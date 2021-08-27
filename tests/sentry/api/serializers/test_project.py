@@ -297,6 +297,16 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasUserReports"] is True
 
+    def test_has_sessions_flag(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasSessions"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_sessions))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasSessions"] is True
+
     def test_no_environments(self):
         # remove environments and related models
         Deploy.objects.all().delete()

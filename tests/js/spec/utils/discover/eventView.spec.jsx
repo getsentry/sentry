@@ -883,12 +883,14 @@ describe('EventView.generateQueryStringObject()', function () {
       id: undefined,
       name: undefined,
       field: ['id', 'title'],
-      widths: [COL_WIDTH_UNDEFINED, COL_WIDTH_UNDEFINED],
+      widths: [],
       sort: [],
       query: '',
       project: [],
       environment: [],
       display: 'previous',
+      user: '1',
+      yAxis: 'count()',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -931,6 +933,7 @@ describe('EventView.generateQueryStringObject()', function () {
       yAxis: 'count()',
       display: 'releases',
       interval: '1m',
+      user: '1',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -1479,6 +1482,33 @@ describe('EventView.isValid()', function () {
   });
 });
 
+describe('EventView.getWidths()', function () {
+  it('returns widths', function () {
+    const eventView = new EventView({
+      fields: [
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'project.id', width: 2020},
+        {field: 'title', width: COL_WIDTH_UNDEFINED},
+        {field: 'time', width: 420},
+        {field: 'lcp', width: 69},
+        {field: 'lcp', width: COL_WIDTH_UNDEFINED},
+        {field: 'fcp', width: COL_WIDTH_UNDEFINED},
+        {field: 'cls', width: COL_WIDTH_UNDEFINED},
+      ],
+      sorts: [],
+      project: [],
+    });
+
+    expect(eventView.getWidths()).toEqual([
+      COL_WIDTH_UNDEFINED,
+      2020,
+      COL_WIDTH_UNDEFINED,
+      420,
+      69,
+    ]);
+  });
+});
+
 describe('EventView.getFields()', function () {
   it('returns fields', function () {
     const eventView = new EventView({
@@ -1585,7 +1615,9 @@ describe('EventView.withColumns()', function () {
     fields: [
       {field: 'count()', width: 30},
       {field: 'project.id', width: 99},
+      {field: 'failure_count()', width: 30},
     ],
+    yAxis: 'failure_count()',
     sorts: generateSorts(['count']),
     query: 'event.type:error',
     project: [42],
@@ -1666,6 +1698,20 @@ describe('EventView.withColumns()', function () {
     const newView = eventView.withColumns([{kind: 'field', field: 'issue'}]);
     expect(newView.fields).toEqual([{field: 'issue', width: COL_WIDTH_UNDEFINED}]);
     expect(newView.sorts).toEqual([]);
+  });
+  it('updates yAxis if column is dropped', function () {
+    const newView = eventView.withColumns([
+      {kind: 'field', field: 'count()'},
+      {kind: 'field', field: 'project.id'},
+    ]);
+
+    expect(newView.fields).toEqual([
+      {field: 'count()', width: 30},
+      {field: 'project.id', width: 99},
+    ]);
+
+    expect(eventView.yAxis).toEqual('failure_count()');
+    expect(newView.yAxis).toEqual('count()');
   });
 });
 
@@ -2236,7 +2282,7 @@ describe('EventView.getQueryWithAdditionalConditions', function () {
       query: 'event.type:transaction foo:bar',
     });
 
-    eventView.additionalConditions.setTagValues('event.type', ['transaction']);
+    eventView.additionalConditions.setFilterValues('event.type', ['transaction']);
 
     expect(eventView.getQueryWithAdditionalConditions()).toEqual(
       'event.type:transaction foo:bar'

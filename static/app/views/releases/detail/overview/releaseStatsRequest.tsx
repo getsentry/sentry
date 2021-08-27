@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {withTheme} from '@emotion/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import meanBy from 'lodash/meanBy';
@@ -16,7 +17,8 @@ import {Series} from 'app/types/echarts';
 import {defined} from 'app/utils';
 import {WebVital} from 'app/utils/discover/fields';
 import {getExactDuration} from 'app/utils/formatters';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {Theme} from 'app/utils/theme';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 import {displayCrashFreePercent, roundDuration} from '../../utils';
 
@@ -66,6 +68,7 @@ type Props = {
   hasDiscover: boolean;
   hasPerformance: boolean;
   defaultStatsPeriod: string;
+  theme: Theme;
 };
 
 type State = {
@@ -108,7 +111,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     const {version, organization, location, selection, defaultStatsPeriod} = this.props;
 
     return {
-      query: new QueryResults([`release:"${version}"`]).formatString(),
+      query: new MutableSearch([`release:"${version}"`]).formatString(),
       interval: getInterval(selection.datetime, {
         highFidelity: organization.features.includes('minute-resolution-sessions'),
       }),
@@ -184,7 +187,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   };
 
   async fetchSessions() {
-    const {api, version} = this.props;
+    const {api, version, theme} = this.props;
 
     const [releaseResponse, otherReleasesResponse]: SessionApiResponse[] =
       await Promise.all([
@@ -200,7 +203,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
             ...this.baseQueryParams,
             field: 'sum(session)',
             groupBy: 'session.status',
-            query: new QueryResults([`!release:"${version}"`]).formatString(),
+            query: new MutableSearch([`!release:"${version}"`]).formatString(),
           },
         }),
       ]);
@@ -214,14 +217,14 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       response: releaseResponse,
       field: 'sum(session)',
       groupBy: 'session.status',
-      chartData: initSessionsBreakdownChartData(),
+      chartData: initSessionsBreakdownChartData(theme),
     });
 
     const otherChartData = fillChartDataFromSessionsResponse({
       response: otherReleasesResponse,
       field: 'sum(session)',
       groupBy: 'session.status',
-      chartData: initOtherSessionsBreakdownChartData(),
+      chartData: initOtherSessionsBreakdownChartData(theme),
     });
 
     return {
@@ -231,7 +234,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   }
 
   async fetchUsers() {
-    const {api, version} = this.props;
+    const {api, version, theme} = this.props;
 
     const [releaseResponse, otherReleasesResponse]: SessionApiResponse[] =
       await Promise.all([
@@ -247,7 +250,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
             ...this.baseQueryParams,
             field: 'count_unique(user)',
             groupBy: 'session.status',
-            query: new QueryResults([`!release:"${version}"`]).formatString(),
+            query: new MutableSearch([`!release:"${version}"`]).formatString(),
           },
         }),
       ]);
@@ -261,14 +264,14 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       response: releaseResponse,
       field: 'count_unique(user)',
       groupBy: 'session.status',
-      chartData: initSessionsBreakdownChartData(),
+      chartData: initSessionsBreakdownChartData(theme),
     });
 
     const otherChartData = fillChartDataFromSessionsResponse({
       response: otherReleasesResponse,
       field: 'count_unique(user)',
       groupBy: 'session.status',
-      chartData: initOtherSessionsBreakdownChartData(),
+      chartData: initOtherSessionsBreakdownChartData(theme),
     });
 
     return {
@@ -294,7 +297,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
             ...this.baseQueryParams,
             field: ['sum(session)', 'count_unique(user)'],
             groupBy: 'session.status',
-            query: new QueryResults([`!release:"${version}"`]).formatString(),
+            query: new MutableSearch([`!release:"${version}"`]).formatString(),
           },
         }),
       ]);
@@ -362,7 +365,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
           query: {
             ...this.baseQueryParams,
             field: 'p50(session.duration)',
-            query: new QueryResults([`!release:"${version}"`]).formatString(),
+            query: new MutableSearch([`!release:"${version}"`]).formatString(),
           },
         }),
       ]);
@@ -430,4 +433,4 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   }
 }
 
-export default ReleaseStatsRequest;
+export default withTheme(ReleaseStatsRequest);

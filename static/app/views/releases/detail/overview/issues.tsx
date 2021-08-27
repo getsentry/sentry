@@ -19,7 +19,7 @@ import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {IssueSortOptions} from 'app/views/issueList/utils';
@@ -144,20 +144,20 @@ class Issues extends Component<Props, State> {
     const {version, organization} = this.props;
     const {issuesType} = this.state;
     const {queryParams} = this.getIssuesEndpoint();
-    const query = new QueryResults([]);
+    const query = new MutableSearch([]);
 
     switch (issuesType) {
       case IssuesType.NEW:
-        query.setTagValues('firstRelease', [version]);
+        query.setFilterValues('firstRelease', [version]);
         break;
       case IssuesType.UNHANDLED:
-        query.setTagValues('release', [version]);
-        query.setTagValues('error.handled', ['0']);
+        query.setFilterValues('release', [version]);
+        query.setFilterValues('error.handled', ['0']);
         break;
       case IssuesType.RESOLVED:
       case IssuesType.ALL:
       default:
-        query.setTagValues('release', [version]);
+        query.setFilterValues('release', [version]);
     }
 
     return {
@@ -194,7 +194,7 @@ class Issues extends Component<Props, State> {
           path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
-            query: new QueryResults([`${IssuesQuery.ALL}:${version}`]).formatString(),
+            query: new MutableSearch([`${IssuesQuery.ALL}:${version}`]).formatString(),
           },
         };
       case IssuesType.RESOLVED:
@@ -207,7 +207,7 @@ class Issues extends Component<Props, State> {
           path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
-            query: new QueryResults([
+            query: new MutableSearch([
               `${IssuesQuery.ALL}:${version}`,
               IssuesQuery.UNHANDLED,
             ]).formatString(),
@@ -219,7 +219,7 @@ class Issues extends Component<Props, State> {
           path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
-            query: new QueryResults([`${IssuesQuery.NEW}:${version}`]).formatString(),
+            query: new MutableSearch([`${IssuesQuery.NEW}:${version}`]).formatString(),
           },
         };
     }
@@ -237,11 +237,11 @@ class Issues extends Component<Props, State> {
       ]).then(([issueResponse, resolvedResponse]) => {
         this.setState({
           count: {
-            all: issueResponse[`${IssuesQuery.ALL}:${version}`] || 0,
-            new: issueResponse[`${IssuesQuery.NEW}:${version}`] || 0,
+            all: issueResponse[`${IssuesQuery.ALL}:"${version}"`] || 0,
+            new: issueResponse[`${IssuesQuery.NEW}:"${version}"`] || 0,
             resolved: resolvedResponse.length,
             unhandled:
-              issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:${version}`] ||
+              issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`] ||
               0,
           },
         });
@@ -257,9 +257,9 @@ class Issues extends Component<Props, State> {
     const issuesCountPath = `/organizations/${organization.slug}/issues-count/`;
 
     const params = [
-      `${IssuesQuery.NEW}:${version}`,
-      `${IssuesQuery.ALL}:${version}`,
-      `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:${version}`,
+      `${IssuesQuery.NEW}:"${version}"`,
+      `${IssuesQuery.ALL}:"${version}"`,
+      `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:"${version}"`,
     ];
     const queryParams = params.map(param => param);
     const queryParameters = {
@@ -359,18 +359,18 @@ class Issues extends Component<Props, State> {
     const {path, queryParams} = this.getIssuesEndpoint();
     const hasReleaseComparison = organization.features.includes('release-comparison');
     const issuesTypes = [
+      {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
       {value: IssuesType.NEW, label: t('New Issues'), issueCount: count.new},
-      {
-        value: IssuesType.RESOLVED,
-        label: t('Resolved Issues'),
-        issueCount: count.resolved,
-      },
       {
         value: IssuesType.UNHANDLED,
         label: t('Unhandled Issues'),
         issueCount: count.unhandled,
       },
-      {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
+      {
+        value: IssuesType.RESOLVED,
+        label: t('Resolved Issues'),
+        issueCount: count.resolved,
+      },
     ];
 
     return (
@@ -438,9 +438,7 @@ class Issues extends Component<Props, State> {
                 </DiscoverButton>
               </GuideAnchor>
             )}
-            {!hasReleaseComparison && (
-              <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
-            )}
+            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
           </OpenInButtonBar>
         </ControlsWrapper>
         <div data-test-id="release-wrapper">
@@ -465,9 +463,9 @@ class Issues extends Component<Props, State> {
 
 const ControlsWrapper = styled('div')`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: block;
     ${ButtonGrid} {
@@ -477,9 +475,7 @@ const ControlsWrapper = styled('div')`
 `;
 
 const OpenInButtonBar = styled(ButtonBar)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    margin-top: ${space(1)};
-  }
+  margin: ${space(1)} 0;
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

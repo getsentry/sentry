@@ -3,14 +3,20 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {MessageRow} from 'app/components/performance/waterfall/messageRow';
-import {pickBarColour} from 'app/components/performance/waterfall/utils';
+import {pickBarColor} from 'app/components/performance/waterfall/utils';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
-import {EnhancedProcessedSpanType, FilterSpans, ParsedTraceType} from './types';
+import SpanGroupBar from './spanGroupBar';
+import {
+  EnhancedProcessedSpanType,
+  EnhancedSpan,
+  FilterSpans,
+  ParsedTraceType,
+} from './types';
 import {getSpanID, getSpanOperation} from './utils';
 import WaterfallModel from './waterfallModel';
 
@@ -147,10 +153,25 @@ class SpanTree extends React.Component<PropType> {
       numOfSpansOutOfViewAbove: number;
       numOfFilteredSpansAbove: number;
       spanTree: React.ReactNode[];
+      spanNumber: number;
     };
 
+    const numOfSpans = spans.reduce((sum: number, payload: EnhancedProcessedSpanType) => {
+      switch (payload.type) {
+        case 'root_span':
+        case 'span':
+        case 'span_group_chain': {
+          return sum + 1;
+        }
+
+        default: {
+          return sum;
+        }
+      }
+    }, 0);
+
     const {spanTree, numOfSpansOutOfViewAbove, numOfFilteredSpansAbove} = spans.reduce(
-      (acc: AccType, payload: EnhancedProcessedSpanType, index) => {
+      (acc: AccType, payload: EnhancedProcessedSpanType) => {
         const {type} = payload;
 
         switch (payload.type) {
@@ -180,26 +201,47 @@ class SpanTree extends React.Component<PropType> {
           acc.spanTree.push(infoMessage);
         }
 
-        const {span} = payload;
+        const spanNumber = acc.spanNumber;
+        const {span, treeDepth, continuingTreeDepths} = payload;
 
-        const key = getSpanID(span, `span-${index}`);
+        if (payload.type === 'span_group_chain') {
+          acc.spanTree.push(
+            <SpanGroupBar
+              key={`${spanNumber}-span-group`}
+              event={waterfallModel.event}
+              span={span}
+              generateBounds={generateBounds}
+              treeDepth={treeDepth}
+              continuingTreeDepths={continuingTreeDepths}
+              spanNumber={spanNumber}
+              spanGrouping={payload.spanGrouping as EnhancedSpan[]}
+              toggleSpanGroup={payload.toggleSpanGroup as () => void}
+            />
+          );
+          acc.spanNumber = spanNumber + 1;
+          return acc;
+        }
 
+        const key = getSpanID(span, `span-${spanNumber}`);
         const isLast = payload.isLastSibling;
         const isRoot = type === 'root_span';
-        const spanBarColour: string = pickBarColour(getSpanOperation(span));
-        const spanNumber = index + 1;
+        const spanBarColor: string = pickBarColor(getSpanOperation(span));
         const numOfSpanChildren = payload.numOfSpanChildren;
-        const treeDepth = payload.treeDepth;
-        const continuingTreeDepths = payload.continuingTreeDepths;
 
         acc.numOfFilteredSpansAbove = 0;
         acc.numOfSpansOutOfViewAbove = 0;
+
+        let toggleSpanGroup: (() => void) | undefined = undefined;
+        if (payload.type === 'span') {
+          toggleSpanGroup = payload.toggleSpanGroup;
+        }
+
         acc.spanTree.push(
           <SpanBar
             key={key}
             organization={organization}
             event={waterfallModel.event}
-            spanBarColour={spanBarColour}
+            spanBarColor={spanBarColor}
             spanBarHatch={type === 'gap'}
             span={span}
             showSpanTree={!waterfallModel.hiddenSpanGroups.has(getSpanID(span))}
@@ -212,19 +254,22 @@ class SpanTree extends React.Component<PropType> {
             spanNumber={spanNumber}
             isLast={isLast}
             isRoot={isRoot}
-            isCurrentSpanFilteredOut={false}
             showEmbeddedChildren={payload.showEmbeddedChildren}
             toggleEmbeddedChildren={payload.toggleEmbeddedChildren}
             fetchEmbeddedChildrenState={payload.fetchEmbeddedChildrenState}
+            toggleSpanGroup={toggleSpanGroup}
+            numOfSpans={numOfSpans}
           />
         );
 
+        acc.spanNumber = spanNumber + 1;
         return acc;
       },
       {
         numOfSpansOutOfViewAbove: 0,
         numOfFilteredSpansAbove: 0,
         spanTree: [],
+        spanNumber: 1, // 1-based indexing
       }
     );
 

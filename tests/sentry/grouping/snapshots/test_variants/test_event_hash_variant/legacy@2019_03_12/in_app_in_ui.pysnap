@@ -1,0 +1,294 @@
+---
+created: '2021-07-26T19:38:19.001536Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "start"
+          frame*
+            filename* (stripped to basename)
+              "main.m"
+            function*
+              "main"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "UIApplicationMain"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "-[UIApplication _run]"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "GSEventRunModal"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "CFRunLoopRunSpecific"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "__CFRunLoopRun"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "__CFRunLoopDoObservers"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "CA::Transaction::observer_callback(__CFRunLoopObserver*, unsigned long, void*)"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "CA::Transaction::commit()"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "CA::Context::commit_transaction(CA::Transaction*, double, double*)"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "CA::Layer::layout_and_display_if_needed(CA::Transaction*)"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "CA::Layer::layout_if_needed(CA::Transaction*)"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "-[CALayer layoutSublayers]"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "@objc TableView.layoutSubviews()"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "-[UITableView layoutSubviews]"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "-[UITableView _updateVisibleCellsNow:]"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "@objc AnyTableViewController.tableView(_: UITableView, cellForRowAt: IndexPath)"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "AnyTableViewController.tableView(_: UITableView, cellForRowAt: IndexPath)"
+          frame*
+            filename* (stripped to basename)
+              "AnyTableViewController.swift"
+            function*
+              "specialized AnyTableViewController.tableView(_: UITableView, cellForRowAt: IndexPath)"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "thunk for closure"
+          frame*
+            filename* (stripped to basename)
+              "DailyDigestTableViewSection.swift"
+            function*
+              "DailyDigestTableViewSection.photoCell(at: IndexPath, in: AnyTableViewController)"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "static MediaSlideshow.toSources(_: [FileAttachment], trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)"
+          frame*
+            filename* (stripped to basename)
+              "MediaSlideshow+Extensions.swift"
+            function*
+              "specialized static MediaSlideshow.toSources(_: [FileAttachment], trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "specialized Sequence.compactMap<A>((A.Element))"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "thunk for closure"
+          frame*
+            filename* (stripped to basename)
+              "MediaSlideshow+Extensions.swift"
+            function*
+              "closure #1 (FileAttachment) in static MediaSlideshow.toSources(_: [FileAttachment], trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)"
+          frame*
+            filename* (stripped to basename)
+              "MediaSlideshow+Extensions.swift"
+            function*
+              "static MediaSlideshow.toSource(_: FileAttachment, trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "@objc CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename* (stripped to basename)
+              "CurrentUserProfile.swift"
+            function*
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename* (stripped to basename)
+              "CurrentUserProfile.swift"
+            function*
+              "Swift runtime failure: Unexpectedly found nil while implicitly unwrapping an Optional value"
+        type*
+          "EXC_BREAKPOINT"
+        value (stacktrace and type take precedence)
+          "autoplayOption"
+--------------------------------------------------------------------------
+system:
+  hash: "c506663b9a1495d301bff1e82149d55e"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame
+            function (function name is not used if module or filename are available)
+              "start"
+          frame*
+            filename* (stripped to basename)
+              "main.m"
+            function*
+              "main"
+          frame
+            function (function name is not used if module or filename are available)
+              "UIApplicationMain"
+          frame
+            function (function name is not used if module or filename are available)
+              "-[UIApplication _run]"
+          frame
+            function (function name is not used if module or filename are available)
+              "GSEventRunModal"
+          frame
+            function (function name is not used if module or filename are available)
+              "CFRunLoopRunSpecific"
+          frame
+            function (function name is not used if module or filename are available)
+              "__CFRunLoopRun"
+          frame
+            function (function name is not used if module or filename are available)
+              "__CFRunLoopDoObservers"
+          frame
+            function (function name is not used if module or filename are available)
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__"
+          frame
+            function (function name is not used if module or filename are available)
+              "CA::Transaction::observer_callback(__CFRunLoopObserver*, unsigned long, void*)"
+          frame
+            function (function name is not used if module or filename are available)
+              "CA::Transaction::commit()"
+          frame
+            function (function name is not used if module or filename are available)
+              "CA::Context::commit_transaction(CA::Transaction*, double, double*)"
+          frame
+            function (function name is not used if module or filename are available)
+              "CA::Layer::layout_and_display_if_needed(CA::Transaction*)"
+          frame
+            function (function name is not used if module or filename are available)
+              "CA::Layer::layout_if_needed(CA::Transaction*)"
+          frame
+            function (function name is not used if module or filename are available)
+              "-[CALayer layoutSublayers]"
+          frame
+            function (function name is not used if module or filename are available)
+              "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "@objc TableView.layoutSubviews()"
+          frame
+            function (function name is not used if module or filename are available)
+              "-[UITableView layoutSubviews]"
+          frame
+            function (function name is not used if module or filename are available)
+              "-[UITableView _updateVisibleCellsNow:]"
+          frame
+            function (function name is not used if module or filename are available)
+              "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "@objc AnyTableViewController.tableView(_: UITableView, cellForRowAt: IndexPath)"
+          frame (ignored due to recursion)
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "AnyTableViewController.tableView(_: UITableView, cellForRowAt: IndexPath)"
+          frame*
+            filename* (stripped to basename)
+              "AnyTableViewController.swift"
+            function*
+              "specialized AnyTableViewController.tableView(_: UITableView, cellForRowAt: IndexPath)"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "thunk for closure"
+          frame*
+            filename* (stripped to basename)
+              "DailyDigestTableViewSection.swift"
+            function*
+              "DailyDigestTableViewSection.photoCell(at: IndexPath, in: AnyTableViewController)"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "static MediaSlideshow.toSources(_: [FileAttachment], trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)"
+          frame*
+            filename* (stripped to basename)
+              "MediaSlideshow+Extensions.swift"
+            function*
+              "specialized static MediaSlideshow.toSources(_: [FileAttachment], trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "specialized Sequence.compactMap<A>((A.Element))"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "thunk for closure"
+          frame*
+            filename* (stripped to basename)
+              "MediaSlideshow+Extensions.swift"
+            function*
+              "closure #1 (FileAttachment) in static MediaSlideshow.toSources(_: [FileAttachment], trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)"
+          frame*
+            filename* (stripped to basename)
+              "MediaSlideshow+Extensions.swift"
+            function*
+              "static MediaSlideshow.toSource(_: FileAttachment, trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)"
+          frame*
+            filename* (stripped to basename)
+              "<compiler-generated>"
+            function*
+              "@objc CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename* (stripped to basename)
+              "CurrentUserProfile.swift"
+            function*
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename* (stripped to basename)
+              "CurrentUserProfile.swift"
+            function*
+              "Swift runtime failure: Unexpectedly found nil while implicitly unwrapping an Optional value"
+        type*
+          "EXC_BREAKPOINT"
+        value (stacktrace and type take precedence)
+          "autoplayOption"

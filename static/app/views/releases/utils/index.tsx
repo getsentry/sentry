@@ -3,11 +3,12 @@ import pick from 'lodash/pick';
 import round from 'lodash/round';
 import moment from 'moment';
 
+import {DateTimeObject} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {PAGE_URL_PARAM, URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {tn} from 'app/locale';
 import {Release, ReleaseStatus} from 'app/types';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {IssueSortOptions} from 'app/views/issueList/utils';
 
 import {DisplayOption} from '../list/utils';
@@ -48,6 +49,14 @@ export const displayCrashFreePercent = (
   return `${rounded}\u0025`;
 };
 
+export const getSessionStatusPercent = (percent: number, absolute = true) => {
+  return round(absolute ? Math.abs(percent) : percent, 3);
+};
+
+export const displaySessionStatusPercent = (percent: number, absolute = true) => {
+  return `${getSessionStatusPercent(percent, absolute).toLocaleString()}\u0025`;
+};
+
 export const displayCrashFreeDiff = (
   diffPercent: number,
   crashFreePercent?: number | null
@@ -72,7 +81,7 @@ export const getReleaseNewIssuesUrl = (
       statsPeriod: undefined,
       start: undefined,
       end: undefined,
-      query: new QueryResults([`firstRelease:${version}`]).formatString(),
+      query: new MutableSearch([`firstRelease:${version}`]).formatString(),
       sort: IssueSortOptions.FREQ,
     },
   };
@@ -81,15 +90,37 @@ export const getReleaseNewIssuesUrl = (
 export const getReleaseUnhandledIssuesUrl = (
   orgSlug: string,
   projectId: string | number | null,
-  version: string
+  version: string,
+  dateTime: DateTimeObject = {}
 ) => {
   return {
     pathname: `/organizations/${orgSlug}/issues/`,
     query: {
+      ...dateTime,
       project: projectId,
-      query: new QueryResults([
+      query: new MutableSearch([
         `release:${version}`,
         'error.unhandled:true',
+      ]).formatString(),
+      sort: IssueSortOptions.FREQ,
+    },
+  };
+};
+
+export const getReleaseHandledIssuesUrl = (
+  orgSlug: string,
+  projectId: string | number | null,
+  version: string,
+  dateTime: DateTimeObject = {}
+) => {
+  return {
+    pathname: `/organizations/${orgSlug}/issues/`,
+    query: {
+      ...dateTime,
+      project: projectId,
+      query: new MutableSearch([
+        `release:${version}`,
+        'error.handled:true',
       ]).formatString(),
       sort: IssueSortOptions.FREQ,
     },
@@ -113,11 +144,25 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
   const {lastEvent, currentProjectMeta, dateCreated} = release || {};
   const {sessionsUpperBound} = currentProjectMeta || {};
 
+  const releaseStart = moment(dateCreated).startOf('minute').utc().format();
+  const releaseEnd = moment(
+    (moment(sessionsUpperBound).isAfter(lastEvent) ? sessionsUpperBound : lastEvent) ??
+      undefined
+  )
+    .startOf('minute')
+    .utc()
+    .format();
+
+  if (moment(releaseStart).isSame(releaseEnd, 'minute')) {
+    return {
+      releaseStart,
+      releaseEnd: moment(releaseEnd).add(1, 'minutes').utc().format(),
+    };
+  }
+
   return {
-    releaseStart: dateCreated,
-    releaseEnd:
-      (moment(sessionsUpperBound).isAfter(lastEvent) ? sessionsUpperBound : lastEvent) ??
-      moment().utc().format(),
+    releaseStart,
+    releaseEnd,
   };
 }
 

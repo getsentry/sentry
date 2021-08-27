@@ -2,6 +2,7 @@ import uuid
 from datetime import timedelta
 from uuid import uuid4
 
+import dateutil.parser as parse_date
 import pytest
 from django.urls import reverse
 from pytz import utc
@@ -276,12 +277,12 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
-        response.data["user_count"]["order"] == 0
+        assert response.data["user_count"]["order"] == 0
         assert [attrs for time, attrs in response.data["user_count"]["data"]] == [
             [{"count": 5}],
             [{"count": 0}],
         ]
-        response.data["apdex()"]["order"] == 1
+        assert response.data["apdex()"]["order"] == 1
         assert [attrs for time, attrs in response.data["apdex()"]["data"]] == [
             [{"count": 0.2}],
             [{"count": 0}],
@@ -609,19 +610,19 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
-        response.data["user_count"]["order"] == 0
+        assert response.data["user_count"]["order"] == 0
         assert [attrs for time, attrs in response.data["user_count"]["data"]] == [
             [{"count": 1}],
             [{"count": 1}],
         ]
-        response.data["event_count"]["order"] == 1
+        assert response.data["event_count"]["order"] == 1
         assert [attrs for time, attrs in response.data["event_count"]["data"]] == [
             [{"count": 1}],
             [{"count": 2}],
         ]
 
     def test_equation_yaxis(self):
-        with self.feature(["organizations:discover-arithmetic", "organizations:discover-basic"]):
+        with self.feature(["organizations:discover-basic"]):
             response = self.client.get(
                 self.url,
                 data={
@@ -640,8 +641,33 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             [{"count": 0.02}],
         ]
 
+    def test_equation_mixed_multi_yaxis(self):
+        with self.feature(["organizations:discover-basic"]):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": ["count()", "equation|count() * 100"],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["count()"]["order"] == 0
+        assert [attrs for time, attrs in response.data["count()"]["data"]] == [
+            [{"count": 1}],
+            [{"count": 2}],
+        ]
+        assert response.data["equation|count() * 100"]["order"] == 1
+        assert [attrs for time, attrs in response.data["equation|count() * 100"]["data"]] == [
+            [{"count": 100}],
+            [{"count": 200}],
+        ]
+
     def test_equation_multi_yaxis(self):
-        with self.feature(["organizations:discover-arithmetic", "organizations:discover-basic"]):
+        with self.feature(["organizations:discover-basic"]):
             response = self.client.get(
                 self.url,
                 data={
@@ -788,6 +814,52 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
 
             assert len(mock_quantize.mock_calls) == 2
+
+    def test_with_zerofill(self):
+        response = self.client.get(
+            self.url,
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "30m",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": 1}],
+            [{"count": 0}],
+            [{"count": 2}],
+            [{"count": 0}],
+        ]
+
+    def test_without_zerofill(self):
+        self.enabled_features = {
+            "organizations:performance-chart-interpolation": True,
+            "organizations:discover-basic": True,
+        }
+        with self.feature(self.enabled_features):
+            start = iso_format(self.day_ago)
+            end = iso_format(self.day_ago + timedelta(hours=2))
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": start,
+                    "end": end,
+                    "interval": "30m",
+                    "withoutZerofill": "1",
+                },
+                format="json",
+            )
+
+            assert response.status_code == 200, response.content
+            assert [attrs for time, attrs in response.data["data"]] == [
+                [{"count": 1}],
+                [{"count": 2}],
+            ]
+            assert response.data["start"] == parse_date.parse(start).timestamp()
+            assert response.data["end"] == parse_date.parse(end).timestamp()
 
 
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
@@ -1494,6 +1566,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         data = response.data
+
         assert len(data) == 3
 
         results = data[""]
@@ -1582,7 +1655,6 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         )
 
     def test_top_events_with_equations(self):
-        self.enabled_features["organizations:discover-arithmetic"] = True
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,

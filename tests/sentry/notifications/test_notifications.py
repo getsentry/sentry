@@ -119,7 +119,7 @@ class ActivityNotificationTest(APITestCase):
         assert attachment["title"] == f"{self.group.title}"
         assert (
             attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=slack"
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=NoteActivitySlack"
         )
         assert attachment["text"] == "blah blah"
         assert (
@@ -238,10 +238,13 @@ class ActivityNotificationTest(APITestCase):
 
         attachment, text = get_attachment()
 
-        assert text == f"Version {release.version} deployed to {self.environment.name}"
         assert (
-            attachment["text"]
-            == f"* <http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy/|{self.project.slug}>"
+            text
+            == f"Release {release.version[:12]} was deployed to {self.environment.name} for this project"
+        )
+        assert (
+            attachment["actions"][0]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy/"
         )
         assert (
             attachment["footer"]
@@ -377,7 +380,6 @@ class ActivityNotificationTest(APITestCase):
         attachment, text = get_attachment()
 
         assert attachment["title"] == "Hello world"
-        assert attachment["text"] == ""
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"

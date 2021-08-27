@@ -16,6 +16,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import QUERY_STATUS_LOOKUP, Environment, Group, GroupStatus
+from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.signals import advanced_search
 from sentry.utils.validators import normalize_event_id
 
@@ -135,7 +136,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         status = [
             search_filter
             for search_filter in query_kwargs.get("search_filters", [])
-            if search_filter.key.name == "status"
+            if search_filter.key.name == "status" and search_filter.operator in EQUALITY_OPERATORS
         ]
         if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
             status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}

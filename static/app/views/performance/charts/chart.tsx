@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import * as ReactRouter from 'react-router';
+import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import max from 'lodash/max';
 import min from 'lodash/min';
@@ -15,7 +15,7 @@ import {Theme} from 'app/utils/theme';
 type Props = {
   theme: Theme;
   data: Series[];
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   statsPeriod: string | undefined;
   start: DateString;
   end: DateString;

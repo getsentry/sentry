@@ -377,7 +377,10 @@ export type TreeLabelPart =
       function?: string;
       package?: string;
       type?: string;
+      classbase?: string;
       datapath?: (string | number)[];
+      is_sentinel?: boolean;
+      is_prefix?: boolean;
     };
 
 // This type is incomplete
@@ -394,6 +397,7 @@ export type EventMetadata = {
   stripped_crash?: boolean;
   current_tree_label?: TreeLabelPart[];
   finest_tree_label?: TreeLabelPart[];
+  current_level?: number;
 };
 
 export type EventAttachment = {
@@ -451,10 +455,14 @@ export type EventsStats = {
   data: EventsStatsData;
   totals?: {count: number};
   order?: number;
+  start?: number;
+  end?: number;
 };
 
 // API response format for multiple series
-export type MultiSeriesEventsStats = {[seriesName: string]: EventsStats};
+export type MultiSeriesEventsStats = {
+  [seriesName: string]: EventsStats;
+};
 
 /**
  * Avatars are a more primitive version of User.
@@ -587,6 +595,9 @@ export type PluginNoProject = {
   author?: {name: string; url: string};
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
+  altIsSentryApp?: boolean;
+  deprecationDate?: string;
+  firstPartyAlternative?: string;
 };
 
 export type Plugin = PluginNoProject & {
@@ -629,6 +640,7 @@ export type RelativePeriod = keyof typeof DEFAULT_RELATIVE_PERIODS;
 export type IntervalPeriod = ReturnType<typeof getInterval>;
 
 export type GlobalSelection = {
+  // Project Ids currently selected
   projects: number[];
   environments: string[];
   datetime: {
@@ -660,6 +672,10 @@ export type Authenticator = {
    */
   allowMultiEnrollment: boolean;
   /**
+   * Allows authenticator's secret to be rotated without disabling
+   */
+  allowRotationInPlace: boolean;
+  /**
    * String to display on button for user to remove authenticator
    */
   removeButton: string | null;
@@ -680,6 +696,8 @@ export type Authenticator = {
    * Description of the authenticator
    */
   description: string;
+  rotationWarning: string | null;
+  status: string;
   createdAt: string | null;
   lastUsedAt: string | null;
   codes: string[];
@@ -771,6 +789,9 @@ export enum DataCategory {
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
 }
+
+export type EventType = 'error' | 'transaction' | 'attachment';
+
 export const DataCategoryName = {
   [DataCategory.ERRORS]: 'Errors',
   [DataCategory.TRANSACTIONS]: 'Transactions',
@@ -896,10 +917,11 @@ type GroupActivityRegression = GroupActivityBase & {
   };
 };
 
-type GroupActivitySetByResolvedInRelease = GroupActivityBase & {
+export type GroupActivitySetByResolvedInRelease = GroupActivityBase & {
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
   data: {
     version?: string;
+    current_release_version?: string;
   };
 };
 
@@ -991,7 +1013,6 @@ export type GroupActivity =
   | GroupActivitySetUnresolved
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
-  | GroupActivitySetByResolvedInRelease
   | GroupActivitySetByResolvedInRelease
   | GroupActivitySetByResolvedInCommit
   | GroupActivitySetByResolvedInPullRequest
@@ -1965,7 +1986,6 @@ export type Frame = {
   function: string | null;
   inApp: boolean;
   instructionAddr: string | null;
-  addrMode?: string;
   lineNo: number | null;
   module: string | null;
   package: string | null;
@@ -1973,13 +1993,23 @@ export type Frame = {
   rawFunction: string | null;
   symbol: string | null;
   symbolAddr: string | null;
-  symbolicatorStatus: SymbolicatorStatus;
   trust: any | null;
   vars: Record<string, any> | null;
+  symbolicatorStatus?: SymbolicatorStatus;
+  addrMode?: string;
   origAbsPath?: string | null;
   mapUrl?: string | null;
   map?: string | null;
+  isSentinel?: boolean;
+  isPrefix?: boolean;
+  minGroupingLevel?: number;
 };
+
+export enum FrameBadge {
+  SENTINEL = 'sentinel',
+  PREFIX = 'prefix',
+  GROUPING = 'grouping',
+}
 
 /**
  * Note used in Group Activity and Alerts for users to comment
@@ -2075,11 +2105,6 @@ export type ServerlessFunction = {
 };
 
 /**
- * File storage service options for debug files
- */
-export type DebugFileSource = 'http' | 's3' | 'gcs' | 'appStoreConnect';
-
-/**
  * Base type for series   style API response
  */
 export type SeriesApi = {
@@ -2108,11 +2133,29 @@ export enum SessionField {
   USERS = 'count_unique(user)',
 }
 
+export enum SessionStatus {
+  HEALTHY = 'healthy',
+  ABNORMAL = 'abnormal',
+  ERRORED = 'errored',
+  CRASHED = 'crashed',
+}
+
 export enum ReleaseComparisonChartType {
   CRASH_FREE_USERS = 'crashFreeUsers',
+  HEALTHY_USERS = 'healthyUsers',
+  ABNORMAL_USERS = 'abnormalUsers',
+  ERRORED_USERS = 'erroredUsers',
+  CRASHED_USERS = 'crashedUsers',
   CRASH_FREE_SESSIONS = 'crashFreeSessions',
+  HEALTHY_SESSIONS = 'healthySessions',
+  ABNORMAL_SESSIONS = 'abnormalSessions',
+  ERRORED_SESSIONS = 'erroredSessions',
+  CRASHED_SESSIONS = 'crashedSessions',
   SESSION_COUNT = 'sessionCount',
   USER_COUNT = 'userCount',
+  ERROR_COUNT = 'errorCount',
+  TRANSACTION_COUNT = 'transactionCount',
+  FAILURE_RATE = 'failureRate',
 }
 
 export enum HealthStatsPeriodOption {
@@ -2129,13 +2172,21 @@ export type IssueOwnership = {
   autoAssignment: boolean;
 };
 
-export type CodeOwners = {
+export type CodeOwner = {
   id: string;
   raw: string;
   dateCreated: string;
   dateUpdated: string;
   provider: 'github' | 'gitlab';
-  codeMapping?: RepositoryProjectPathConfig[];
+  codeMapping?: RepositoryProjectPathConfig;
+  codeMappingId: string;
+  ownershipSyntax?: string;
+  errors: {
+    missing_external_teams: string[];
+    missing_external_users: string[];
+    missing_user_emails: string[];
+    teams_without_access: string[];
+  };
 };
 
 export type KeyValueListData = {
@@ -2160,6 +2211,7 @@ export type ExternalUser = {
   memberId: string;
   externalName: string;
   provider: string;
+  integrationId: string;
 };
 
 export type ExternalTeam = {
@@ -2167,4 +2219,11 @@ export type ExternalTeam = {
   teamId: string;
   externalName: string;
   provider: string;
+  integrationId: string;
+};
+
+export type CodeownersFile = {
+  raw: string;
+  filepath: string;
+  html_url: string;
 };

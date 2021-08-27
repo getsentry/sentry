@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import * as ReactRouter from 'react-router';
+import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -40,7 +40,7 @@ type Props = {
   onYAxisChange: (yAxis: YAxis) => void;
   onEventTypeChange: (eventType: EventType) => void;
   onVitalTypeChange: (vitalType: WebVital) => void;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   organization: Organization;
   hasHealthData: boolean;
   location: Location;

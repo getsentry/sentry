@@ -64,8 +64,10 @@ const IssueListDisplayOptions = ({
       position="bottom"
       disabled={!hasSessions || hasMultipleProjectsSelected}
     >
-      <DropdownControl
-        buttonProps={{prefix: t('Display')}}
+      <StyledDropdownControl
+        buttonProps={{
+          prefix: t('Display'),
+        }}
         buttonTooltipTitle={
           display === IssueDisplayOptions.SESSIONS
             ? t(
@@ -73,19 +75,35 @@ const IssueListDisplayOptions = ({
               )
             : null
         }
-        label={getDisplayLabel(display)}
+        label={
+          !hasSessions || hasMultipleProjectsSelected
+            ? getDisplayLabel(IssueDisplayOptions.EVENTS)
+            : getDisplayLabel(display)
+        }
       >
         <React.Fragment>
           {getMenuItem(IssueDisplayOptions.EVENTS)}
           {getMenuItem(IssueDisplayOptions.SESSIONS)}
         </React.Fragment>
-      </DropdownControl>
+      </StyledDropdownControl>
     </GuideAnchor>
   );
 };
 
 const StyledTooltip = styled(Tooltip)`
   width: 100%;
+`;
+
+const StyledDropdownControl = styled(DropdownControl)`
+  z-index: ${p => p.theme.zIndex.issuesList.displayOptions};
+
+  button {
+    width: 100%;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    order: 1;
+  }
 `;
 
 export default IssueListDisplayOptions;

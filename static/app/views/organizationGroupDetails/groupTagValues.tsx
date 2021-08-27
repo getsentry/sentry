@@ -1,25 +1,28 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import property from 'lodash/property';
-import sortBy from 'lodash/sortBy';
 
+import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import DeviceName from 'app/components/deviceName';
-import DetailedError from 'app/components/errors/detailedError';
+import DropdownLink from 'app/components/dropdownLink';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import UserBadge from 'app/components/idBadge/userBadge';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import Pagination from 'app/components/pagination';
+import {PanelTable} from 'app/components/panels';
 import TimeSince from 'app/components/timeSince';
-import {IconMail, IconOpen} from 'app/icons';
+import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'app/icons';
 import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Environment, Group, Tag, TagValue} from 'app/types';
+import {Group, Project, SavedQueryVersions, Tag, TagValue} from 'app/types';
 import {isUrl, percent} from 'app/utils';
+import EventView from 'app/utils/discover/eventView';
 
 type RouteParams = {
   groupId: string;
@@ -28,15 +31,19 @@ type RouteParams = {
 };
 
 type Props = {
+  baseUrl: string;
   group: Group;
-  environments: Environment[];
+  project?: Project;
+  environments?: string[];
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
-  tag: Tag;
-  tagValueList: TagValue[];
+  tag: Tag | null;
+  tagValueList: TagValue[] | null;
   tagValueListPageLinks: string;
 };
+
+const DEFAULT_SORT = 'count';
 
 class GroupTagValues extends AsyncComponent<
   Props & AsyncComponent['props'],
@@ -50,53 +57,65 @@ class GroupTagValues extends AsyncComponent<
       [
         'tagValueList',
         `/issues/${groupId}/tags/${tagKey}/values/`,
-        {query: {environment}},
+        {query: {environment, sort: this.getSort()}},
       ],
     ];
   }
 
-  renderBody() {
+  getSort(): string {
+    return this.props.location.query.sort || DEFAULT_SORT;
+  }
+
+  renderLoading() {
+    return this.renderBody();
+  }
+
+  renderResults() {
     const {
-      group,
-      params: {orgId, tagKey},
-      environments,
+      baseUrl,
+      project,
+      environments: environment,
+      params: {orgId, groupId, tagKey},
     } = this.props;
-    const {tag, tagValueList, tagValueListPageLinks} = this.state;
-    const sortedTagValueList: TagValue[] = sortBy(
-      tagValueList,
-      property('count')
-    ).reverse();
+    const {tagValueList, tag} = this.state;
+    const discoverFields = [
+      'title',
+      'release',
+      'environment',
+      'user.display',
+      'timestamp',
+    ];
 
-    if (sortedTagValueList.length === 0 && environments.length > 0) {
-      return (
-        <DetailedError
-          heading={t('Sorry, the tags for this issue could not be found.')}
-          message={t('No tags were found for the currently selected environments')}
-        />
-      );
-    }
-
-    const issuesPath = `/organizations/${orgId}/issues/`;
-
-    const children = sortedTagValueList.map((tagValue, tagValueIdx) => {
-      const pct = tag.totalValues
-        ? `${percent(tagValue.count, tag.totalValues).toFixed(2)}%`
+    return tagValueList?.map((tagValue, tagValueIdx) => {
+      const pct = tag?.totalValues
+        ? `${percent(tagValue.count, tag?.totalValues).toFixed(2)}%`
         : '--';
-      const query = tagValue.query || `${tag.key}:"${tagValue.value}"`;
+      const key = tagValue.key ?? tagKey;
+      const issuesQuery = tagValue.query || `${key}:"${tagValue.value}"`;
+      const discoverView = EventView.fromSavedQuery({
+        id: undefined,
+        name: key,
+        fields: [key, ...discoverFields.filter(field => field !== key)],
+        orderby: '-timestamp',
+        query: `issue.id:${groupId} ${issuesQuery}`,
+        projects: [Number(project?.id)],
+        environment,
+        version: 2 as SavedQueryVersions,
+        range: '90d',
+      });
+      const issuesPath = `/organizations/${orgId}/issues/`;
+
       return (
-        <tr key={tagValueIdx}>
-          <td className="bar-cell">
-            <span className="label">{pct}</span>
-          </td>
-          <td>
-            <ValueWrapper>
+        <Fragment key={tagValueIdx}>
+          <NameColumn>
+            <NameWrapper data-test-id="group-tag-value">
               <GlobalSelectionLink
                 to={{
-                  pathname: issuesPath,
-                  query: {query},
+                  pathname: `${baseUrl}events/`,
+                  query: {query: issuesQuery},
                 }}
               >
-                {tag.key === 'user' ? (
+                {key === 'user' ? (
                   <UserBadge
                     user={{...tagValue, id: tagValue.identifier ?? ''}}
                     avatarSize={20}
@@ -106,37 +125,118 @@ class GroupTagValues extends AsyncComponent<
                   <DeviceName value={tagValue.name} />
                 )}
               </GlobalSelectionLink>
-              {tagValue.email && (
-                <StyledExternalLink href={`mailto:${tagValue.email}`}>
-                  <IconMail size="xs" color="gray300" />
-                </StyledExternalLink>
-              )}
-              {isUrl(tagValue.value) && (
-                <StyledExternalLink href={tagValue.value}>
-                  <IconOpen size="xs" color="gray300" />
-                </StyledExternalLink>
-              )}
-            </ValueWrapper>
-          </td>
-          <td>
+            </NameWrapper>
+
+            {tagValue.email && (
+              <StyledExternalLink
+                href={`mailto:${tagValue.email}`}
+                data-test-id="group-tag-mail"
+              >
+                <IconMail size="xs" color="gray300" />
+              </StyledExternalLink>
+            )}
+            {isUrl(tagValue.value) && (
+              <StyledExternalLink href={tagValue.value} data-test-id="group-tag-url">
+                <IconOpen size="xs" color="gray300" />
+              </StyledExternalLink>
+            )}
+          </NameColumn>
+          <RightAlignColumn>{pct}</RightAlignColumn>
+          <RightAlignColumn>{tagValue.count.toLocaleString()}</RightAlignColumn>
+          <RightAlignColumn>
             <TimeSince date={tagValue.lastSeen} />
-          </td>
-        </tr>
+          </RightAlignColumn>
+          <RightAlignColumn>
+            <DropdownLink
+              anchorRight
+              alwaysRenderMenu={false}
+              caret={false}
+              title={
+                <Button
+                  tooltipProps={{
+                    containerDisplayMode: 'flex',
+                  }}
+                  size="small"
+                  type="button"
+                  aria-label={t('Show more')}
+                  icon={<IconEllipsis size="xs" />}
+                />
+              }
+            >
+              <Feature features={['organizations:discover-basic']}>
+                <li>
+                  <Link to={discoverView.getResultsViewUrlTarget(orgId)}>
+                    {t('Open in Discover')}
+                  </Link>
+                </li>
+              </Feature>
+              <li>
+                <GlobalSelectionLink
+                  to={{pathname: issuesPath, query: {query: issuesQuery}}}
+                >
+                  {t('Search All Issues with Tag Value')}
+                </GlobalSelectionLink>
+              </li>
+            </DropdownLink>
+          </RightAlignColumn>
+        </Fragment>
       );
     });
+  }
+
+  renderBody() {
+    const {
+      group,
+      params: {orgId, tagKey},
+      location: {query},
+      environments,
+    } = this.props;
+    const {tagValueList, tag, tagValueListPageLinks, loading} = this.state;
+    const {cursor: _cursor, page: _page, ...currentQuery} = query;
+
+    const title = tagKey === 'user' ? t('Affected Users') : tagKey;
+
+    const sort = this.getSort();
+    const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
+    const lastSeenColumnHeader = (
+      <StyledSortLink
+        to={{
+          pathname: location.pathname,
+          query: {
+            ...currentQuery,
+            sort: 'date',
+          },
+        }}
+      >
+        {t('Last Seen')} {sort === 'date' && sortArrow}
+      </StyledSortLink>
+    );
+    const countColumnHeader = (
+      <StyledSortLink
+        to={{
+          pathname: location.pathname,
+          query: {
+            ...currentQuery,
+            sort: 'count',
+          },
+        }}
+      >
+        {t('Count')} {sort === 'count' && sortArrow}
+      </StyledSortLink>
+    );
 
     return (
       <Fragment>
-        <Header>
-          <HeaderTitle>{tag.key === 'user' ? t('Affected Users') : tag.name}</HeaderTitle>
-          <HeaderButtons gap={1}>
-            <BrowserExportButton
+        <TitleWrapper>
+          <Title>{t('Tag Details')}</Title>
+          <ButtonBar gap={1}>
+            <Button
               size="small"
               priority="default"
               href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
             >
               {t('Export Page to CSV')}
-            </BrowserExportButton>
+            </Button>
             <DataExport
               payload={{
                 queryType: ExportQueryType.IssuesByTag,
@@ -147,65 +247,99 @@ class GroupTagValues extends AsyncComponent<
                 },
               }}
             />
-          </HeaderButtons>
-        </Header>
-        <StyledTable className="table">
-          <thead>
-            <tr>
-              <TableHeader width={20}>%</TableHeader>
-              <th />
-              <TableHeader width={300}>{t('Last Seen')}</TableHeader>
-            </tr>
-          </thead>
-          <tbody>{children}</tbody>
-        </StyledTable>
-        <Pagination pageLinks={tagValueListPageLinks} />
-        <p>
-          <small>
-            {t('Note: Percentage of issue is based on events seen in the last 7 days.')}
-          </small>
-        </p>
+          </ButtonBar>
+        </TitleWrapper>
+        <StyledPanelTable
+          isLoading={loading}
+          isEmpty={tagValueList?.length === 0}
+          headers={[
+            title,
+            <PercentColumnHeader key="percent">{t('Percent')}</PercentColumnHeader>,
+            countColumnHeader,
+            lastSeenColumnHeader,
+            '',
+          ]}
+          emptyMessage={t('Sorry, the tags for this issue could not be found.')}
+          emptyAction={
+            !!environments?.length
+              ? t('No tags were found for the currently selected environments')
+              : null
+          }
+        >
+          {tagValueList && tag && this.renderResults()}
+        </StyledPanelTable>
+        <StyledPagination pageLinks={tagValueListPageLinks} />
       </Fragment>
     );
   }
 }
 
-const StyledTable = styled('table')`
-  > tbody > tr:nth-of-type(odd) {
-    background-color: ${p => p.theme.bodyBackground};
-  }
-`;
+export default GroupTagValues;
 
-const Header = styled('div')`
+const TitleWrapper = styled('div')`
   display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   align-items: center;
-  margin: 0 0 20px;
+  justify-content: space-between;
+  margin-bottom: ${space(2)};
 `;
 
-const HeaderTitle = styled('h3')`
+const Title = styled('h3')`
   margin: 0;
 `;
 
-const HeaderButtons = styled(ButtonBar)`
-  align-items: stretch;
-  margin: 0px ${space(1.5)};
+const StyledPanelTable = styled(PanelTable)`
+  white-space: nowrap;
+  font-size: ${p => p.theme.fontSizeMedium};
+
+  overflow: auto;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    overflow: initial;
+  }
+
+  & > * {
+    padding: ${space(1)} ${space(2)};
+  }
 `;
 
-const BrowserExportButton = styled(Button)`
-  display: flex;
-  align-items: center;
+const PercentColumnHeader = styled('div')`
+  text-align: right;
 `;
 
-const TableHeader = styled('th')<{width: number}>`
-  width: ${p => p.width}px;
+const StyledSortLink = styled(Link)`
+  text-align: right;
+  color: inherit;
+
+  :hover {
+    color: inherit;
+  }
 `;
-const ValueWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
+
 const StyledExternalLink = styled(ExternalLink)`
   margin-left: ${space(0.5)};
 `;
 
-export {GroupTagValues};
-export default GroupTagValues;
+const Column = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const NameColumn = styled(Column)`
+  ${overflowEllipsis};
+  display: flex;
+  min-width: 320px;
+`;
+
+const NameWrapper = styled('span')`
+  ${overflowEllipsis};
+  width: auto;
+`;
+
+const RightAlignColumn = styled(Column)`
+  justify-content: flex-end;
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: 0;
+`;

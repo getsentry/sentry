@@ -182,7 +182,7 @@ class OrganizationMemberTest(TestCase):
 
         member.approve_invite()
         assert member.invite_approved
-        member.invite_status == InviteStatus.APPROVED.value
+        assert member.invite_status == InviteStatus.APPROVED.value
 
     def test_scopes_with_member_admin_config(self):
         organization = self.create_organization()

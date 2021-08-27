@@ -14,7 +14,8 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Commit, Organization, Project, RepositoryStatus} from 'app/types';
 import {Event} from 'app/types/event';
-import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
+import {IssueEventKey} from 'app/utils/analytics/issueAnalyticsEvents';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'app/utils/getDynamicText';
 import {promptCanShow, promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
@@ -81,8 +82,7 @@ const SUSPECT_COMMITS_FEATURE = 'suspect_commits';
 
 type ClickPayload = {
   action: 'snoozed' | 'dismissed';
-  eventKey: string;
-  eventName: string;
+  eventKey: IssueEventKey;
 };
 
 type Props = {
@@ -106,17 +106,10 @@ class EventCauseEmpty extends Component<Props, State> {
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
-    const {project, organization} = this.props;
     const {shouldShow} = this.state;
 
     if (!prevState.shouldShow && shouldShow) {
-      // send to reload only due to high event volume
-      trackAdhocEvent({
-        eventKey: 'event_cause.viewed',
-        org_id: parseInt(organization.id, 10),
-        project_id: parseInt(project.id, 10),
-        platform: project.platform,
-      });
+      this.trackAnalytics('event_cause.viewed');
     }
   }
 
@@ -137,7 +130,7 @@ class EventCauseEmpty extends Component<Props, State> {
     this.setState({shouldShow: !promptIsDismissed(data ?? {}, 7)});
   }
 
-  handleClick({action, eventKey, eventName}: ClickPayload) {
+  handleClick({action, eventKey}: ClickPayload) {
     const {api, project, organization} = this.props;
 
     const data = {
@@ -147,18 +140,16 @@ class EventCauseEmpty extends Component<Props, State> {
       status: action,
     };
     promptsUpdate(api, data).then(() => this.setState({shouldShow: false}));
-    this.trackAnalytics({eventKey, eventName});
+    this.trackAnalytics(eventKey);
   }
 
-  trackAnalytics({eventKey, eventName}) {
+  trackAnalytics(eventKey: IssueEventKey) {
     const {project, organization} = this.props;
 
-    trackAnalyticsEvent({
-      eventKey,
-      eventName,
-      organization_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
+    trackAdvancedAnalyticsEvent(eventKey, {
+      project_id: project.id,
       platform: project.platform,
+      organization,
     });
   }
 
@@ -181,12 +172,7 @@ class EventCauseEmpty extends Component<Props, State> {
                 size="small"
                 priority="primary"
                 href="https://docs.sentry.io/product/releases/setup/"
-                onClick={() =>
-                  this.trackAnalytics({
-                    eventKey: 'event_cause.docs_clicked',
-                    eventName: 'Event Cause Docs Clicked',
-                  })
-                }
+                onClick={() => this.trackAnalytics('event_cause.docs_clicked')}
               >
                 {t('Read the docs')}
               </DocsButton>
@@ -199,7 +185,6 @@ class EventCauseEmpty extends Component<Props, State> {
                     this.handleClick({
                       action: 'snoozed',
                       eventKey: 'event_cause.snoozed',
-                      eventName: 'Event Cause Snoozed',
                     })
                   }
                 >
@@ -212,7 +197,6 @@ class EventCauseEmpty extends Component<Props, State> {
                     this.handleClick({
                       action: 'dismissed',
                       eventKey: 'event_cause.dismissed',
-                      eventName: 'Event Cause Dismissed',
                     })
                   }
                 >

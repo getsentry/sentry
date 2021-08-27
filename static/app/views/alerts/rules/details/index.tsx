@@ -9,6 +9,7 @@ import Feature from 'app/components/acl/feature';
 import DateTime from 'app/components/dateTime';
 import {t} from 'app/locale';
 import {DateString, Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getUtcDateString} from 'app/utils/dates';
 import withApi from 'app/utils/withApi';
 import {IncidentRule, TimePeriod, TimeWindow} from 'app/views/alerts/incidentRules/types';
@@ -43,6 +44,7 @@ class AlertRuleDetails extends Component<Props, State> {
 
     fetchOrgMembers(api, params.orgId);
     this.fetchData();
+    this.trackView();
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -52,7 +54,20 @@ class AlertRuleDetails extends Component<Props, State> {
       prevProps.params.ruleId !== this.props.params.ruleId
     ) {
       this.fetchData();
+      this.trackView();
     }
+  }
+
+  trackView() {
+    const {params, organization, location} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'alert_rule_details.viewed',
+      eventName: 'Alert Rule Details: Viewed',
+      organization_id: organization.id,
+      rule_id: parseInt(params.ruleId, 10),
+      alert: location.query.alert ?? '',
+    });
   }
 
   getTimePeriod(): TimePeriodType {
@@ -159,9 +174,9 @@ class AlertRuleDetails extends Component<Props, State> {
     });
   };
 
-  handleZoom = async (start: DateString, end: DateString) => {
+  handleZoom = (start: DateString, end: DateString) => {
     const {location} = this.props;
-    await browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         start,

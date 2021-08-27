@@ -511,7 +511,13 @@ def fetch_release_artifact(url, release, dist):
         try:
             archive = ReleaseArchive(archive_file)
         except Exception as exc:
-            logger.error("Failed to initialize archive for release %s", release.id, exc_info=exc)
+            archive_file.seek(0)
+            logger.error(
+                "Failed to initialize archive for release %s",
+                release.id,
+                exc_info=exc,
+                extra={"contents": archive_file.read(256)},
+            )
             # TODO(jjbayer): cache error and return here
         else:
             with archive:
@@ -830,7 +836,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get("platform") or self.data.get("platform")
-        return settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and platform in ("javascript", "node")
+        return platform in ("javascript", "node")
 
     def preprocess_frame(self, processable_frame):
         # Stores the resolved token.  This is used to cross refer to other

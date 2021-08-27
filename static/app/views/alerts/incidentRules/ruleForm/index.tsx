@@ -1,6 +1,5 @@
 import * as React from 'react';
-import {RouteComponentProps} from 'react-router';
-import {PlainRoute} from 'react-router/lib/Route';
+import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -456,7 +455,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       transaction.setData('actions', sanitizedTriggers);
 
       this.setState({loading: true});
-      const [resp, , xhr] = await addOrUpdateRule(
+      const [data, , resp] = await addOrUpdateRule(
         this.api,
         organization.slug,
         params.projectId,
@@ -474,10 +473,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       );
       // if we get a 202 back it means that we have an async task
       // running to lookup and verify the channel id for Slack.
-      if (xhr && xhr.status === 202) {
+      if (resp?.status === 202) {
         // if we have a uuid in state, no need to start a new polling cycle
         if (!uuid) {
-          this.setState({loading: true, uuid: resp.uuid});
+          this.setState({loading: true, uuid: data.uuid});
           this.fetchStatus(model);
         }
       } else {
@@ -485,7 +484,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         this.setState({loading: false});
         addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
         if (onSubmitSuccess) {
-          onSubmitSuccess(resp, model);
+          onSubmitSuccess(data, model);
         }
       }
     } catch (err) {

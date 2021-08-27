@@ -1,8 +1,7 @@
 import * as React from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
 
 import NotFound from 'app/components/errors/notFound';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
@@ -22,9 +21,10 @@ type ComparedEventSlugs = {
   regressionEventSlug: string | undefined;
 };
 
-type Props = {
-  location: Location;
-  params: Params;
+type Props = RouteComponentProps<
+  {baselineEventSlug: string; regressionEventSlug: string},
+  {}
+> & {
   organization: Organization;
 };
 

@@ -5,11 +5,7 @@ import path from 'path';
 
 import webpack from 'webpack';
 
-import appConfigAny from '../webpack.config';
-
-// TODO(epurkhiser): Once we convert our webpack.config over to typescript we
-// can remove this
-const appConfig = appConfigAny as any;
+import appConfig from '../webpack.config';
 
 const staticPath = path.resolve(__dirname, '..', 'static', 'app');
 
@@ -97,6 +93,7 @@ const configBuilder = ({config}: Opts = {config: emptyConfig}) => {
         ...config.resolve?.alias,
         ...appConfig.resolve?.alias,
         app: staticPath,
+        'docs-ui': path.resolve(__dirname, '.../docs-ui'),
       },
       fallback: {
         ...appConfig.resolve?.fallback,

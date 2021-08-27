@@ -35,25 +35,14 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             "organizations:discover-basic", organization, actor=request.user
         ) or features.has("organizations:performance-view", organization, actor=request.user)
 
-    def has_arithmetic(self, organization, request):
-        return features.has("organizations:discover-arithmetic", organization, actor=request.user)
-
     def get_equation_list(self, organization: Organization, request: HttpRequest) -> Sequence[str]:
         """equations have a prefix so that they can be easily included alongside our existing fields"""
-        if self.has_arithmetic(organization, request):
-            return [
-                strip_equation(field)
-                for field in request.GET.getlist("field")[:]
-                if is_equation(field)
-            ]
-        else:
-            return []
+        return [
+            strip_equation(field) for field in request.GET.getlist("field")[:] if is_equation(field)
+        ]
 
     def get_field_list(self, organization: Organization, request: HttpRequest) -> Sequence[str]:
-        if self.has_arithmetic(organization, request):
-            return [field for field in request.GET.getlist("field")[:] if not is_equation(field)]
-        else:
-            return request.GET.getlist("field")[:]
+        return [field for field in request.GET.getlist("field")[:] if not is_equation(field)]
 
     def get_snuba_filter(self, request, organization, params=None):
         if params is None:
@@ -269,6 +258,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         params=None,
         query=None,
         allow_partial_buckets=False,
+        zerofill_results=True,
     ):
         with self.handle_query_errors():
             with sentry_sdk.start_span(
@@ -312,7 +302,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
                 query_columns = [column_map.get(column, column) for column in columns]
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
-                result = get_event_stats(query_columns, query, params, rollup)
+                result = get_event_stats(query_columns, query, params, rollup, zerofill_results)
 
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 
@@ -320,12 +310,18 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             # When the request is for top_events, result can be a SnubaTSResult in the event that
             # there were no top events found. In this case, result contains a zerofilled series
             # that acts as a placeholder.
+            is_multiple_axis = len(query_columns) > 1
             if top_events > 0 and isinstance(result, dict):
                 results = {}
                 for key, event_result in result.items():
-                    if len(query_columns) > 1:
+                    if is_multiple_axis:
                         results[key] = self.serialize_multiple_axis(
-                            serializer, event_result, columns, query_columns, allow_partial_buckets
+                            serializer,
+                            event_result,
+                            columns,
+                            query_columns,
+                            allow_partial_buckets,
+                            zerofill_results=zerofill_results,
                         )
                     else:
                         # Need to get function alias if count is a field, but not the axis
@@ -333,44 +329,60 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             event_result,
                             column=resolve_axis_column(query_columns[0]),
                             allow_partial_buckets=allow_partial_buckets,
+                            zerofill_results=zerofill_results,
                         )
-                return results
-            elif len(query_columns) > 1:
-                return self.serialize_multiple_axis(
-                    serializer, result, columns, query_columns, allow_partial_buckets
+                serialized_result = results
+            elif is_multiple_axis:
+                serialized_result = self.serialize_multiple_axis(
+                    serializer,
+                    result,
+                    columns,
+                    query_columns,
+                    allow_partial_buckets,
+                    zerofill_results=zerofill_results,
                 )
             else:
-                return serializer.serialize(
+                serialized_result = serializer.serialize(
                     result,
                     resolve_axis_column(query_columns[0]),
                     allow_partial_buckets=allow_partial_buckets,
+                    zerofill_results=zerofill_results,
                 )
 
+            return serialized_result
+
     def serialize_multiple_axis(
-        self, serializer, event_result, columns, query_columns, allow_partial_buckets
+        self,
+        serializer,
+        event_result,
+        columns,
+        query_columns,
+        allow_partial_buckets,
+        zerofill_results=True,
     ):
         # Return with requested yAxis as the key
-        result = {
-            columns[index]: serializer.serialize(
+        result = {}
+        equations = 0
+        for index, query_column in enumerate(query_columns):
+            result[columns[index]] = serializer.serialize(
                 event_result,
-                resolve_axis_column(query_column, index),
+                resolve_axis_column(query_column, equations),
                 order=index,
                 allow_partial_buckets=allow_partial_buckets,
+                zerofill_results=zerofill_results,
             )
-            for index, query_column in enumerate(query_columns)
-        }
+            if is_equation(query_column):
+                equations += 1
         # Set order if multi-axis + top events
         if "order" in event_result.data:
             result["order"] = event_result.data["order"]
+
         return result
 
 
 class KeyTransactionBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, request, organization):
         return features.has("organizations:performance-view", organization, actor=request.user)
-
-    def has_team_feature(self, request, organization):
-        return features.has("organizations:team-key-transactions", organization, actor=request.user)
 
     def get_project(self, request, organization):
         projects = self.get_projects(request, organization)

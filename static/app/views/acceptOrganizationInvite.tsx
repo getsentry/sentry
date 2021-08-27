@@ -255,6 +255,8 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
           ? this.warning2fa
           : inviteDetails.needsEmailVerification
           ? this.warningEmailVerification
+          : inviteDetails.needsSso
+          ? this.authenticationActions
           : this.acceptActions}
       </NarrowLayout>
     );

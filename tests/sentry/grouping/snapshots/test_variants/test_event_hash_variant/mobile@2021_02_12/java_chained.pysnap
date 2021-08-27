@@ -1,11 +1,11 @@
 ---
-created: '2021-07-08T11:25:50.125928Z'
+created: '2021-08-23T08:27:22.650709Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "e37a6991567f96367fac9ba5c34f1d68"
-  tree_label: "main"
+  tree_label: "Application.main"
   component:
     app-depth-1*
       chained-exception*
@@ -50,8 +50,8 @@ app-depth-1:
             "Failed to start component [Connector[HTTP/<float><int>]]"
 --------------------------------------------------------------------------
 app-depth-2:
-  hash: "4342cbc52b434588d500b518441bb830"
-  tree_label: "run | main"
+  hash: "838ca06e71d56da0d58c8b684fa6c77a"
+  tree_label: "Connector.startInternal | LifecycleBase.start"
   component:
     app-depth-2*
       chained-exception*
@@ -95,30 +95,10 @@ app-depth-2:
             "LifecycleException"
           value (ignored because stacktrace takes precedence)
             "service.getName(): \"Tomcat\";  Protocol handler start failed"
-        exception*
-          stacktrace*
-            frame*
-              module*
-                "io.sentry.example.Application"
-              filename (module takes precedence)
-                "application.java"
-              function*
-                "main"
-            frame*
-              module*
-                "org.springframework.boot.SpringApplication"
-              filename (module takes precedence)
-                "springapplication.java"
-              function*
-                "run"
-          type*
-            "LifecycleException"
-          value (ignored because stacktrace takes precedence)
-            "Failed to start component [Connector[HTTP/<float><int>]]"
 --------------------------------------------------------------------------
 app-depth-3:
-  hash: "797355840aa68b9aeb7416a2267456dd"
-  tree_label: "run | run | main"
+  hash: "e8f73dea2deb7369e187495e063a1b7b"
+  tree_label: "Connector.startInternal | LifecycleBase.start | StandardService.addConnector"
   component:
     app-depth-3*
       chained-exception*
@@ -176,37 +156,10 @@ app-depth-3:
             "LifecycleException"
           value (ignored because stacktrace takes precedence)
             "service.getName(): \"Tomcat\";  Protocol handler start failed"
-        exception*
-          stacktrace*
-            frame*
-              module*
-                "io.sentry.example.Application"
-              filename (module takes precedence)
-                "application.java"
-              function*
-                "main"
-            frame*
-              module*
-                "org.springframework.boot.SpringApplication"
-              filename (module takes precedence)
-                "springapplication.java"
-              function*
-                "run"
-            frame*
-              module*
-                "org.springframework.boot.SpringApplication"
-              filename (module takes precedence)
-                "springapplication.java"
-              function*
-                "run"
-          type*
-            "LifecycleException"
-          value (ignored because stacktrace takes precedence)
-            "Failed to start component [Connector[HTTP/<float><int>]]"
 --------------------------------------------------------------------------
 app-depth-4:
-  hash: "b5cb31481ea65dffcf2f5ba853a8ae37"
-  tree_label: "run | run | run | main"
+  hash: "aaf325b9d3e0cd391701622831800ca8"
+  tree_label: "Connector.startInternal | LifecycleBase.start | StandardService.addConnector | TomcatEmbeddedServletContainer.addPreviouslyRemovedConnectors"
   component:
     app-depth-4*
       chained-exception*
@@ -278,44 +231,10 @@ app-depth-4:
             "LifecycleException"
           value (ignored because stacktrace takes precedence)
             "service.getName(): \"Tomcat\";  Protocol handler start failed"
-        exception*
-          stacktrace*
-            frame*
-              module*
-                "io.sentry.example.Application"
-              filename (module takes precedence)
-                "application.java"
-              function*
-                "main"
-            frame*
-              module*
-                "org.springframework.boot.SpringApplication"
-              filename (module takes precedence)
-                "springapplication.java"
-              function*
-                "run"
-            frame*
-              module*
-                "org.springframework.boot.SpringApplication"
-              filename (module takes precedence)
-                "springapplication.java"
-              function*
-                "run"
-            frame*
-              module*
-                "org.springframework.boot.SpringApplication"
-              filename (module takes precedence)
-                "springapplication.java"
-              function*
-                "run"
-          type*
-            "LifecycleException"
-          value (ignored because stacktrace takes precedence)
-            "Failed to start component [Connector[HTTP/<float><int>]]"
 --------------------------------------------------------------------------
 app-depth-5:
-  hash: "b4abb2ff030b1ad52cbcc34a0be98d77"
-  tree_label: "refreshContext | run | run | run | main"
+  hash: "72e8348aa207c683dc07d82a720d4cba"
+  tree_label: "Connector.startInternal | LifecycleBase.start | StandardService.addConnector | TomcatEmbeddedServletContainer.addPreviouslyRemovedConnectors | TomcatEmbeddedServletContainer.start"
   component:
     app-depth-5*
       chained-exception*
@@ -401,51 +320,10 @@ app-depth-5:
             "LifecycleException"
           value (ignored because stacktrace takes precedence)
             "service.getName(): \"Tomcat\";  Protocol handler start failed"
-        exception*
-          stacktrace*
-            frame*
-              module*
-                "io.sentry.example.Application"
-              filename (module takes precedence)
-                "application.java"
-              function*
-                "main"
-            frame*
-              module*
-                "org.springframework.boot.SpringApplication"
-              filename (module takes precedence)
-                "springapplication.java"
-              function*
-                "run"
-            frame*
-              module*
-                "org.springframework.boot.SpringApplication"
-              filename (module takes precedence)
-                "springapplication.java"
-              function*
-                "run"
-            frame*
-              module*
-                "org.springframework.boot.SpringApplication"
-              filename (module takes precedence)
-                "springapplication.java"
-              function*
-                "run"
-            frame*
-              module*
-                "org.springframework.boot.SpringApplication"
-              filename (module takes precedence)
-                "springapplication.java"
-              function*
-                "refreshContext"
-          type*
-            "LifecycleException"
-          value (ignored because stacktrace takes precedence)
-            "Failed to start component [Connector[HTTP/<float><int>]]"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "8924849495809d42431719c2b9ab65c8"
-  tree_label: "start | addConnector | addPreviouslyRemovedConnectors | start | startEmbeddedServletContainer | finishRefresh | refresh | refresh | refresh | refreshContext | run | run | run | main"
+  hash: "261676ef22aa0523b1a688172ee04b65"
+  tree_label: "Application.main"
   component:
     app-depth-max*
       chained-exception*
@@ -736,97 +614,6 @@ app-depth-max:
                 "application.java"
               function*
                 "main"
-            frame*
-              module*
-                "org.springframework.boot.SpringApplication"
-              filename (module takes precedence)
-                "springapplication.java"
-              function*
-                "run"
-            frame*
-              module*
-                "org.springframework.boot.SpringApplication"
-              filename (module takes precedence)
-                "springapplication.java"
-              function*
-                "run"
-            frame*
-              module*
-                "org.springframework.boot.SpringApplication"
-              filename (module takes precedence)
-                "springapplication.java"
-              function*
-                "run"
-            frame*
-              module*
-                "org.springframework.boot.SpringApplication"
-              filename (module takes precedence)
-                "springapplication.java"
-              function*
-                "refreshContext"
-            frame*
-              module*
-                "org.springframework.boot.SpringApplication"
-              filename (module takes precedence)
-                "springapplication.java"
-              function*
-                "refresh"
-            frame*
-              module*
-                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
-              filename (module takes precedence)
-                "embeddedwebapplicationcontext.java"
-              function*
-                "refresh"
-            frame*
-              module*
-                "org.springframework.context.support.AbstractApplicationContext"
-              filename (module takes precedence)
-                "abstractapplicationcontext.java"
-              function*
-                "refresh"
-            frame*
-              module*
-                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
-              filename (module takes precedence)
-                "embeddedwebapplicationcontext.java"
-              function*
-                "finishRefresh"
-            frame*
-              module*
-                "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
-              filename (module takes precedence)
-                "embeddedwebapplicationcontext.java"
-              function*
-                "startEmbeddedServletContainer"
-            frame*
-              module*
-                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
-              filename (module takes precedence)
-                "tomcatembeddedservletcontainer.java"
-              function*
-                "start"
-            frame*
-              module*
-                "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
-              filename (module takes precedence)
-                "tomcatembeddedservletcontainer.java"
-              function*
-                "addPreviouslyRemovedConnectors"
-            frame*
-              module*
-                "org.apache.catalina.core.StandardService"
-              filename (module takes precedence)
-                "standardservice.java"
-              function*
-                "addConnector"
-            frame*
-              module*
-                "org.apache.catalina.util.LifecycleBase"
-              filename (module takes precedence)
-                "lifecyclebase.java"
-              function*
-                "start"
           type*
             "LifecycleException"
           value (ignored because stacktrace takes precedence)
@@ -841,7 +628,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "8924849495809d42431719c2b9ab65c8"
-  tree_label: "start | addConnector | addPreviouslyRemovedConnectors | start | startEmbeddedServletContainer | finishRefresh | refresh | refresh | refresh | refreshContext | run | run | run | main"
+  tree_label: "LifecycleBase.start | StandardService.addConnector | TomcatEmbeddedServletContainer.addPreviouslyRemovedConnectors | TomcatEmbeddedServletContainer.start | EmbeddedWebApplicationContext.startEmbeddedServletContainer | EmbeddedWebApplicationContext.finishRefresh | AbstractApplicationContext.refresh | EmbeddedWebApplicationContext.refresh | SpringApplication.refresh | SpringApplication.refreshContext | SpringApplication.run | SpringApplication.run | SpringApplication.run | Application.main"
   component:
     system*
       chained-exception*

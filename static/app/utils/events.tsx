@@ -53,19 +53,40 @@ export function getLocation(event: Event | BaseGroup | GroupTombstone) {
   return undefined;
 }
 
-export function formatTreeLabelPart(part: TreeLabelPart): string {
+export function getTreeLabelPartDetails(part: TreeLabelPart) {
+  // Note: This function also exists in Python in eventtypes/base.py, to make
+  // porting efforts simpler it's recommended to keep both variants
+  // structurally similar.
   if (typeof part === 'string') {
-    return part;
-  } else {
-    return part?.function || part?.package || part?.type || '<unknown>';
+    return {
+      label: part,
+      highlight: false,
+    };
   }
+
+  let label = part?.function || part?.package || part?.type;
+  const classbase = part?.classbase;
+  if (classbase) {
+    if (label) {
+      label = `${classbase}.${label}`;
+    } else {
+      label = classbase;
+    }
+  }
+
+  return {
+    label: label || '<unknown>',
+    highlight: !!part.is_sentinel,
+  };
 }
 
-function computeTitleWithTreeLabel(metadata: EventMetadata) {
+function computeTitleWithTreeLabel(metadata: EventMetadata, features: string[] = []) {
   const {type, current_tree_label, finest_tree_label} = metadata;
-  const treeLabel = current_tree_label || finest_tree_label;
+  const treeLabel = features.includes('grouping-title-ui')
+    ? current_tree_label || finest_tree_label
+    : undefined;
   const formattedTreeLabel = treeLabel
-    ? treeLabel.map(formatTreeLabelPart).join(' | ')
+    ? treeLabel.map(labelPart => getTreeLabelPartDetails(labelPart).label).join(' | ')
     : undefined;
 
   if (!type) {
@@ -105,7 +126,7 @@ export function getTitle(event: Event | BaseGroup, features: string[] = []) {
 
       return {
         subtitle: culprit,
-        ...computeTitleWithTreeLabel(metadata),
+        ...computeTitleWithTreeLabel(metadata, features),
       };
     }
     case EventOrGroupType.CSP:

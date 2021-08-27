@@ -48,28 +48,6 @@ RECURSION_COMPARISON_FIELDS = [
     "colno",
 ]
 
-# Ignore all those kinds of exception types as they are produced from platform
-# specific error codes.
-#
-# For example there can be crashes with EXC_ACCESS_VIOLATION_* on Windows with
-# the same exact stacktrace as a crash with EXC_BAD_ACCESS on macOS.
-_synthetic_exception_type_re = re.compile(
-    r"""
-    ^
-    (
-        EXC_ |
-        EXCEPTION_ |
-        SIG |
-        KERN_ |
-        ILL_
-
-    # e.g. "EXC_BAD_ACCESS / 0x00000032"
-    ) [A-Z0-9_ /x]+
-    $
-    """,
-    re.X,
-)
-
 
 def is_recursion_v1(frame1, frame2):
     "Returns a boolean indicating whether frames are recursive calls."
@@ -155,6 +133,11 @@ def get_module_component(abs_path, module, platform):
             module = _clojure_enhancer_re.sub(r"\1<auto>", module)
             if module != old_module:
                 module_component.update(values=[module], hint="removed codegen marker")
+
+        for part in reversed(module.split(".")):
+            if "$" not in part:
+                module_component.update(tree_label={"classbase": part})
+                break
 
     return module_component
 
@@ -386,7 +369,16 @@ def frame(frame, event, context, **meta):
         rv.update(contributes=False, hint="ignored due to recursion")
 
     if rv.tree_label:
-        rv.tree_label = {"datapath": frame.datapath, **rv.tree_label}
+        tree_label = {}
+        for value in rv.values:
+            if isinstance(value, GroupingComponent) and value.contributes and value.tree_label:
+                tree_label.update(value.tree_label)
+
+        if tree_label and context["hierarchical_grouping"]:
+            tree_label["datapath"] = frame.datapath
+            rv.tree_label = tree_label
+        else:
+            rv.tree_label = None
 
     return {context["variant"]: rv}
 
@@ -544,10 +536,16 @@ def single_exception(exception, context, **meta):
 
     if exception.mechanism:
         if exception.mechanism.synthetic:
+            # Ignore synthetic exceptions as they are produced from platform
+            # specific error codes.
+            #
+            # For example there can be crashes with EXC_ACCESS_VIOLATION_* on Windows with
+            # the same exact stacktrace as a crash with EXC_BAD_ACCESS on macOS.
+            #
+            # Do not update type component of system variant, such that regex
+            # can be continuously modified without unnecessarily creating new
+            # groups.
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
-            system_type_component.update(
-                contributes=False, hint="ignored because exception is synthetic"
-            )
         if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
             ns_error_component = GroupingComponent(
                 id="ns-error",
@@ -555,17 +553,6 @@ def single_exception(exception, context, **meta):
                     exception.mechanism.meta["ns_error"].get("domain"),
                     exception.mechanism.meta["ns_error"].get("code"),
                 ],
-            )
-
-        if context["detect_synthetic_exception_types"] and _synthetic_exception_type_re.match(
-            exception.type
-        ):
-            # Do not update type component of system variant, such that regex
-            # can be continuously modified without unnecessarily creating new
-            # groups.
-            type_component.update(
-                contributes=False,
-                hint="ignored because exception is synthetic (detected via exception type)",
             )
 
     if exception.stacktrace is not None:

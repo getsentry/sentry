@@ -1,7 +1,6 @@
 import * as React from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
 
 import Alert from 'app/components/alert';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -23,7 +22,7 @@ import {
   VirtualScrollbar,
   VirtualScrollbarGrip,
 } from 'app/components/performance/waterfall/miniHeader';
-import {pickBarColour, toPercent} from 'app/components/performance/waterfall/utils';
+import {pickBarColor, toPercent} from 'app/components/performance/waterfall/utils';
 import TimeSince from 'app/components/timeSince';
 import {IconInfo} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
@@ -39,10 +38,10 @@ import {MetaData} from 'app/views/performance/transactionDetails/styles';
 
 import {
   SearchContainer,
-  StyledPanel,
   StyledSearchBar,
   TraceDetailBody,
   TraceDetailHeader,
+  TracePanel,
   TraceViewContainer,
   TraceViewHeaderContainer,
 } from './styles';
@@ -61,10 +60,8 @@ type AccType = {
   numberOfHiddenTransactionsAbove: number;
 };
 
-type Props = {
-  location: Location;
+type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
   organization: Organization;
-  params: Params;
   traceSlug: string;
   traceEventView: EventView;
   dateSelected: boolean;
@@ -97,6 +94,17 @@ class TraceDetailsContent extends React.Component<Props, State> {
   }
 
   renderTraceNotFound() {
+    const {meta} = this.props;
+
+    const transactions = meta?.transactions ?? 0;
+    const errors = meta?.errors ?? 0;
+
+    if (transactions === 0 && errors > 0) {
+      return (
+        <LoadingError message={t('The trace you are looking contains only errors.')} />
+      );
+    }
+
     return <LoadingError message={t('The trace you are looking for was not found.')} />;
   }
 
@@ -437,7 +445,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
             isVisible={isVisible}
             hasGuideAnchor={hasGuideAnchor}
             renderedChildren={accumulated.renderedChildren}
-            barColour={pickBarColour(transaction['transaction.op'])}
+            barColor={pickBarColor(transaction['transaction.op'])}
           />
         </React.Fragment>
       ),
@@ -507,7 +515,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                 dividerPosition={dividerPosition}
                 interactiveLayerRef={this.virtualScrollbarContainerRef}
               >
-                <StyledPanel>
+                <TracePanel>
                   <TraceViewHeaderContainer>
                     <ScrollbarManager.Consumer>
                       {({
@@ -567,7 +575,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                         isVisible
                         hasGuideAnchor={false}
                         renderedChildren={transactionGroups}
-                        barColour={pickBarColour('')}
+                        barColor={pickBarColor('')}
                       />
                     </AnchorLinkManager.Provider>
                     {this.renderInfoMessage({
@@ -576,7 +584,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                     })}
                     {this.renderLimitExceededMessage(traceInfo)}
                   </TraceViewContainer>
-                </StyledPanel>
+                </TracePanel>
               </ScrollbarManager.Provider>
             )}
           </DividerHandlerManager.Consumer>

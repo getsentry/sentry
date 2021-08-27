@@ -97,8 +97,8 @@ class BuildIncidentAttachmentTest(TestCase):
         group = self.create_group(project=self.project)
         ts = group.last_seen
         assert build_group_attachment(group) == {
-            "color": "#E03E2F",
             "text": "",
+            "color": "#E03E2F",
             "actions": [
                 {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
                 {"text": "Ignore", "type": "button", "name": "status", "value": "ignored"},

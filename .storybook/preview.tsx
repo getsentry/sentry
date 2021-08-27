@@ -1,13 +1,20 @@
 import 'focus-visible';
 import '../docs-ui/index.js';
 
+import {DocsContainer, Meta} from '@storybook/addon-docs';
 import {addDecorator, addParameters, DecoratorFn, Parameters} from '@storybook/react';
 import {ThemeProvider} from 'emotion-theming';
 
+import ColorChip from '../docs-ui/components/colorChip';
+import DocsLinks from '../docs-ui/components/docsLinks';
+import DoDont from '../docs-ui/components/doDont';
 import GlobalStyles from '../static/app/styles/global';
 import {darkTheme, lightTheme} from '../static/app/utils/theme';
 
-const withTheme: DecoratorFn = (Story, context) => {
+import PreviewGlobalStyles from './previewGlobalStyles';
+
+// Theme decorator for stories
+const withThemeStory: DecoratorFn = (Story, context) => {
   const isDark = context.globals.theme === 'dark';
   const currentTheme = isDark ? darkTheme : lightTheme;
 
@@ -24,10 +31,33 @@ const withTheme: DecoratorFn = (Story, context) => {
   );
 };
 
-addDecorator(withTheme);
+addDecorator(withThemeStory);
+
+// Theme decorator for MDX Docs
+const withThemeDocs: DecoratorFn = ({children, context}) => {
+  const isDark = context.globals.theme === 'dark';
+  const currentTheme = isDark ? darkTheme : lightTheme;
+
+  // Set @storybook/addon-backgrounds current color based on theme
+  if (context.globals.theme) {
+    context.globals.backgrounds = {value: currentTheme.bodyBackground};
+  }
+
+  return (
+    <ThemeProvider theme={currentTheme}>
+      <GlobalStyles isDark={isDark} theme={currentTheme} />
+      <PreviewGlobalStyles theme={currentTheme} />
+      <DocsContainer context={context}>{children}</DocsContainer>
+    </ThemeProvider>
+  );
+};
 
 // Option defaults:
 addParameters({
+  docs: {
+    container: withThemeDocs,
+    components: {Meta, ColorChip, DocsLinks, DoDont},
+  },
   options: {
     /**
      * show story component as full screen
@@ -93,13 +123,53 @@ addParameters({
     storySort: {
       order: [
         'Core',
-        'Forms',
-        'UI',
-        'Layouts',
-        'Charts',
-        'DataVisualization',
-        'Features',
+        ['Overview'],
+        'Assets',
+        ['Logo', 'Icons', 'Platforms'],
+        'Components',
+        [
+          'Buttons',
+          'Tables',
+          'Forms',
+          'Data Visualization',
+          'Alerts',
+          'Tags',
+          'Badges',
+          'Pills',
+          'Tooltips',
+          'Toast Indicators',
+          'Loading Indicators',
+          'Avatars',
+          'Context Data',
+          'Confirm',
+          'Well',
+        ],
+        'Views',
+        [
+          'Layout - Narrow',
+          'Layout - Thirds',
+          'Modals',
+          'Activity',
+          'Empty States',
+          'Not Available',
+          'Page Heading',
+          'Tabs',
+          'Breadcrumbs',
+          'Detailed Error',
+          'Onboarding Panel',
+        ],
         'Utilities',
+        [
+          'Text',
+          'Copy',
+          'Clipboard',
+          'Highlight',
+          'Hidden Content',
+          'Lazy Load',
+          'Command Line',
+          'Get Dynamic Text',
+        ],
+        'Features',
         'Deprecated',
       ],
     },

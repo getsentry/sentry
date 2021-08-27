@@ -3,7 +3,6 @@ import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
 import FeatureBadge from 'app/components/featureBadge';
@@ -17,7 +16,7 @@ import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
 import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withTeams from 'app/utils/withTeams';
 
 import Charts from '../charts/index';
@@ -36,6 +35,7 @@ import {
   FRONTEND_OTHER_COLUMN_TITLES,
   FRONTEND_PAGELOAD_COLUMN_TITLES,
   MOBILE_COLUMN_TITLES,
+  REACT_NATIVE_COLUMN_TITLES,
 } from './data';
 import {
   getCurrentLandingDisplay,
@@ -46,7 +46,7 @@ import {
   LEFT_AXIS_QUERY_KEY,
   RIGHT_AXIS_QUERY_KEY,
 } from './utils';
-import {BackendCards, FrontendCards} from './vitalsCards';
+import {BackendCards, FrontendCards, MobileCards} from './vitalsCards';
 
 type Props = {
   organization: Organization;
@@ -61,8 +61,8 @@ type Props = {
 type State = {};
 class LandingContent extends Component<Props, State> {
   getSummaryConditions(query: string) {
-    const parsed = tokenizeSearch(query);
-    parsed.query = [];
+    const parsed = new MutableSearch(query);
+    parsed.freeText = [];
 
     return parsed.formatString();
   }
@@ -80,8 +80,8 @@ class LandingContent extends Component<Props, State> {
 
     // Transaction op can affect the display and show no results if it is explicitly set.
     const query = decodeScalar(location.query.query, '');
-    const searchConditions = tokenizeSearch(query);
-    searchConditions.removeTag('transaction.op');
+    const searchConditions = new MutableSearch(query);
+    searchConditions.removeFilter('transaction.op');
 
     trackAnalyticsEvent({
       eventKey: 'performance_views.landingv2.display_change',
@@ -205,10 +205,22 @@ class LandingContent extends Component<Props, State> {
     const axisOptions = getMobileAxisOptions(organization);
     const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
 
-    const columnTitles = MOBILE_COLUMN_TITLES;
+    // only react native should contain the stall percentage column
+    const isReactNative = Boolean(
+      eventView.getFields().find(field => field.includes('measurements.stall_percentage'))
+    );
+    const columnTitles = isReactNative
+      ? REACT_NATIVE_COLUMN_TITLES
+      : MOBILE_COLUMN_TITLES;
 
     return (
       <Fragment>
+        <MobileCards
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          showStallPercentage={isReactNative}
+        />
         <DoubleAxisDisplay
           eventView={eventView}
           organization={organization}
@@ -266,6 +278,7 @@ class LandingContent extends Component<Props, State> {
       <Fragment>
         <SearchContainer>
           <SearchBar
+            searchSource="performance_landing"
             organization={organization}
             projectIds={eventView.project}
             query={filterString}
@@ -283,7 +296,7 @@ class LandingContent extends Component<Props, State> {
           >
             {LANDING_DISPLAYS.filter(
               ({isShown}) => !isShown || isShown(organization)
-            ).map(({alpha, label, field}) => (
+            ).map(({badge, label, field}) => (
               <DropdownItem
                 key={field}
                 onSelect={this.handleLandingDisplayChange}
@@ -292,27 +305,19 @@ class LandingContent extends Component<Props, State> {
                 isActive={field === currentLandingDisplay.field}
               >
                 {label}
-                {alpha && <FeatureBadge type="alpha" noTooltip />}
+                {badge && <FeatureBadge type={badge} noTooltip />}
               </DropdownItem>
             ))}
           </DropdownControl>
         </SearchContainer>
-        <Feature organization={organization} features={['team-key-transactions']}>
-          {({hasFeature}) =>
-            hasFeature ? (
-              <TeamKeyTransactionManager.Provider
-                organization={organization}
-                teams={userTeams}
-                selectedTeams={['myteams']}
-                selectedProjects={eventView.project.map(String)}
-              >
-                {this.renderSelectedDisplay(currentLandingDisplay.field)}
-              </TeamKeyTransactionManager.Provider>
-            ) : (
-              this.renderSelectedDisplay(currentLandingDisplay.field)
-            )
-          }
-        </Feature>
+        <TeamKeyTransactionManager.Provider
+          organization={organization}
+          teams={userTeams}
+          selectedTeams={['myteams']}
+          selectedProjects={eventView.project.map(String)}
+        >
+          {this.renderSelectedDisplay(currentLandingDisplay.field)}
+        </TeamKeyTransactionManager.Provider>
       </Fragment>
     );
   }

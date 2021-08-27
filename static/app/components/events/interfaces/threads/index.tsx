@@ -21,7 +21,10 @@ const defaultProps = {
   hideGuide: false,
 };
 
-type Props = {
+type Props = Pick<
+  React.ComponentProps<typeof Content>,
+  'groupingCurrentLevel' | 'hasHierarchicalGrouping'
+> & {
   event: Event;
   projectId: Project['id'];
   type: string;
@@ -46,6 +49,7 @@ function getIntendedStackView(thread: Thread, event: Event) {
   }
 
   const stacktrace = getThreadStacktrace(false, thread);
+
   return stacktrace?.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
 }
 
@@ -66,11 +70,13 @@ class Threads extends Component<Props, State> {
   }
 
   handleSelectNewThread = (thread: Thread) => {
+    const {event} = this.props;
+
     this.setState(prevState => ({
       activeThread: thread,
       stackView:
         prevState.stackView !== STACK_VIEW.RAW
-          ? getIntendedStackView(thread, this.props.event)
+          ? getIntendedStackView(thread, event)
           : prevState.stackView,
       stackType: STACK_TYPE.ORIGINAL,
     }));
@@ -91,7 +97,15 @@ class Threads extends Component<Props, State> {
   };
 
   render() {
-    const {data, event, projectId, hideGuide, type} = this.props;
+    const {
+      data,
+      event,
+      projectId,
+      hideGuide,
+      type,
+      hasHierarchicalGrouping,
+      groupingCurrentLevel,
+    } = this.props;
 
     if (!data.values) {
       return null;
@@ -150,6 +164,7 @@ class Threads extends Component<Props, State> {
               thread={hasMoreThanOneThread ? activeThread : undefined}
               exception={exception}
               onChange={this.handleChangeStackView}
+              hasHierarchicalGrouping={hasHierarchicalGrouping}
             />
           )
         }
@@ -165,7 +180,9 @@ class Threads extends Component<Props, State> {
           event={event}
           newestFirst={newestFirst}
           projectId={projectId}
+          groupingCurrentLevel={groupingCurrentLevel}
           stackTraceNotFound={stackTraceNotFound}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       </EventDataSection>
     );

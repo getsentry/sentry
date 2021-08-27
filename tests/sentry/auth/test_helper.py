@@ -4,7 +4,12 @@ from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
 from django.test import Client, RequestFactory
 
-from sentry.auth.helper import OK_LINK_IDENTITY, AuthHelper, AuthIdentityHandler, RedisBackedState
+from sentry.auth.helper import (
+    OK_LINK_IDENTITY,
+    AuthHelper,
+    AuthHelperSessionStore,
+    AuthIdentityHandler,
+)
 from sentry.auth.provider import Provider
 from sentry.models import (
     AuditLogEntry,
@@ -33,8 +38,6 @@ class AuthIdentityHandlerTest(TestCase):
         self.provider = "dummy"
         self.provider_obj = Provider(self.provider)
         self.request = _set_up_request()
-        self.request.user = AnonymousUser()
-        self.request.session = Client().session
 
         self.auth_provider = AuthProvider.objects.create(
             organization=self.organization, provider=self.provider
@@ -50,7 +53,7 @@ class AuthIdentityHandlerTest(TestCase):
             self.auth_provider, Provider(self.provider), self.organization, self.request
         )
 
-        self.state = RedisBackedState(self.request)
+        self.state = AuthHelperSessionStore(self.request, "pipeline")
 
     def set_up_user(self):
         """Set up a persistent user and associate it to the request.
@@ -159,11 +162,34 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest):
 
         persisted_om = OrganizationMember.objects.get(user=user, organization=self.organization)
         assert getattr(persisted_om.flags, "sso:linked")
+        assert not getattr(persisted_om.flags, "member-limit:restricted")
         assert not getattr(persisted_om.flags, "sso:invalid")
 
         login_request, login_user = mock_auth.login.call_args.args
         assert login_request == self.request
         assert login_user == user
+
+    @mock.patch("sentry.auth.helper.auth")
+    def test_no_invite_members_flag(self, mock_auth):
+        with mock.patch("sentry.features.has", return_value=False) as features_has:
+            mock_auth.get_login_redirect.return_value = "test_login_url"
+            user, auth_identity = self.set_up_user_identity()
+
+            redirect = self.handler.handle_existing_identity(
+                self.state, auth_identity, self.identity
+            )
+
+            assert redirect.url == mock_auth.get_login_redirect.return_value
+            assert mock_auth.get_login_redirect.called_with(self.request)
+
+            persisted_identity = AuthIdentity.objects.get(ident=auth_identity.ident)
+            assert persisted_identity.data == self.identity["data"]
+
+            persisted_om = OrganizationMember.objects.get(user=user, organization=self.organization)
+            assert getattr(persisted_om.flags, "sso:linked")
+            assert getattr(persisted_om.flags, "member-limit:restricted")
+            assert not getattr(persisted_om.flags, "sso:invalid")
+            features_has.assert_called_once_with("organizations:invite-members", self.organization)
 
 
 class HandleAttachIdentityTest(AuthIdentityHandlerTest):
@@ -302,15 +328,15 @@ class AuthHelperTest(TestCase):
         initial_state = {
             "org_id": self.organization.id,
             "flow": flow,
-            "auth_provider": self.auth_provider.id,
+            "provider_model_id": self.auth_provider.id,
             "provider_key": None,
         }
         local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
         local_client.set(self.auth_key, json.dumps(initial_state))
 
         helper = AuthHelper.get_for_request(self.request)
-        helper.init_pipeline()
-        assert helper.pipeline_is_valid()
+        helper.initialize()
+        assert helper.is_valid()
 
         first_step = helper.current_step()
         assert first_step.status_code == 200

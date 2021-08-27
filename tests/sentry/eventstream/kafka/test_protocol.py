@@ -1,13 +1,11 @@
-from datetime import datetime
-
 import pytest
-import pytz
 
 from sentry.eventstream.kafka.protocol import (
     InvalidPayload,
     InvalidVersion,
     UnexpectedOperation,
     get_task_kwargs_for_message,
+    get_task_kwargs_for_message_from_headers,
 )
 from sentry.testutils.helpers import override_options
 from sentry.utils import json
@@ -46,13 +44,9 @@ def test_get_task_kwargs_for_message_version_1():
     task_state = {"is_new": True, "is_regression": False, "is_new_group_environment": True}
 
     kwargs = get_task_kwargs_for_message(json.dumps([1, "insert", event_data, task_state]))
-    event = kwargs.pop("event")
-    assert event.project_id == 1
-    assert event.group_id == 2
-    assert event.event_id == "00000000000010008080808080808080"
-    assert event.message == "message"
-    assert event.platform == "python"
-    assert event.datetime == datetime(2018, 7, 20, 21, 4, 27, 600640, tzinfo=pytz.utc)
+    assert kwargs.pop("project_id") == 1
+    assert kwargs.pop("event_id") == "00000000000010008080808080808080"
+    assert kwargs.pop("group_id") == 2
     assert kwargs.pop("primary_hash") == "49f68a5c8493ec2c0bf489821c21fc3b"
 
     assert kwargs.pop("is_new") is True
@@ -78,3 +72,27 @@ def test_get_task_kwargs_for_message_version_1_unsupported_operation():
 def test_get_task_kwargs_for_message_version_1_unexpected_operation():
     with pytest.raises(UnexpectedOperation):
         get_task_kwargs_for_message(json.dumps([1, "invalid", {}, {}]))
+
+
+@pytest.mark.django_db
+def test_get_task_kwargs_for_message_version_1_kafka_headers():
+    kafka_headers = [
+        ("Received-Timestamp", b"1626301534.910839"),
+        ("event_id", b"00000000000010008080808080808080"),
+        ("project_id", b"1"),
+        ("is_new", b"1"),
+        ("is_new_group_environment", b"1"),
+        ("is_regression", b"0"),
+        ("version", b"2"),
+        ("operation", b"insert"),
+        ("skip_consume", b"0"),
+    ]
+
+    kwargs = get_task_kwargs_for_message_from_headers(kafka_headers)
+    assert kwargs["project_id"] == 1
+    assert kwargs["event_id"] == "00000000000010008080808080808080"
+    assert kwargs["group_id"] is None
+    assert kwargs["primary_hash"] is None
+    assert kwargs["is_new"] is True
+    assert kwargs["is_regression"] is False
+    assert kwargs["is_new_group_environment"] is True

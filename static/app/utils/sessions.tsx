@@ -7,39 +7,42 @@ import {
   ONE_WEEK,
   TWO_WEEKS,
 } from 'app/components/charts/utils';
-import {SessionApiResponse, SessionField} from 'app/types';
+import {SessionApiResponse, SessionField, SessionStatus} from 'app/types';
 import {SeriesDataUnit} from 'app/types/echarts';
 import {defined, percent} from 'app/utils';
-import {getCrashFreePercent} from 'app/views/releases/utils';
+import {getCrashFreePercent, getSessionStatusPercent} from 'app/views/releases/utils';
 
 export function getCount(groups: SessionApiResponse['groups'] = [], field: SessionField) {
   return groups.reduce((acc, group) => acc + group.totals[field], 0);
-}
-
-export function getCrashCount(
-  groups: SessionApiResponse['groups'] = [],
-  field: SessionField
-) {
-  return getCount(
-    groups.filter(({by}) => by['session.status'] === 'crashed'),
-    field
-  );
 }
 
 export function getCrashFreeRate(
   groups: SessionApiResponse['groups'] = [],
   field: SessionField
 ) {
-  const totalCount = groups.reduce((acc, group) => acc + group.totals[field], 0);
+  const crashedRate = getSessionStatusRate(groups, field, SessionStatus.CRASHED);
 
-  const crashedCount = getCrashCount(groups, field);
+  return defined(crashedRate) ? getCrashFreePercent(100 - crashedRate) : null;
+}
+
+export function getSessionStatusRate(
+  groups: SessionApiResponse['groups'] = [],
+  field: SessionField,
+  status: SessionStatus
+) {
+  const totalCount = getCount(groups, field);
+
+  const crashedCount = getCount(
+    groups.filter(({by}) => by['session.status'] === status),
+    field
+  );
 
   return !defined(totalCount) || totalCount === 0
     ? null
-    : getCrashFreePercent(100 - percent(crashedCount ?? 0, totalCount ?? 0));
+    : percent(crashedCount ?? 0, totalCount ?? 0);
 }
 
-export function getCrashFreeSeries(
+export function getCrashFreeRateSeries(
   groups: SessionApiResponse['groups'] = [],
   intervals: SessionApiResponse['intervals'] = [],
   field: SessionField
@@ -52,9 +55,8 @@ export function getCrashFreeSeries(
       );
 
       const intervalCrashedSessions =
-        groups.find(group => group.by['session.status'] === 'crashed')?.series[field][
-          i
-        ] ?? 0;
+        groups.find(group => group.by['session.status'] === SessionStatus.CRASHED)
+          ?.series[field][i] ?? 0;
 
       const crashedSessionsPercent = percent(
         intervalCrashedSessions,
@@ -68,6 +70,40 @@ export function getCrashFreeSeries(
       return {
         name: interval,
         value: getCrashFreePercent(100 - crashedSessionsPercent),
+      };
+    })
+  );
+}
+
+export function getSessionStatusRateSeries(
+  groups: SessionApiResponse['groups'] = [],
+  intervals: SessionApiResponse['intervals'] = [],
+  field: SessionField,
+  status: SessionStatus
+): SeriesDataUnit[] {
+  return compact(
+    intervals.map((interval, i) => {
+      const intervalTotalSessions = groups.reduce(
+        (acc, group) => acc + group.series[field][i],
+        0
+      );
+
+      const intervalStatusSessions =
+        groups.find(group => group.by['session.status'] === status)?.series[field][i] ??
+        0;
+
+      const statusSessionsPercent = percent(
+        intervalStatusSessions,
+        intervalTotalSessions
+      );
+
+      if (intervalTotalSessions === 0) {
+        return null;
+      }
+
+      return {
+        name: interval,
+        value: getSessionStatusPercent(statusSessionsPercent),
       };
     })
   );
@@ -108,6 +144,11 @@ export function getSessionsInterval(
 ) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
+  if (moment(datetimeObj.start).isSameOrBefore(moment().subtract(30, 'days'))) {
+    // we cannot use sub-hour session resolution on buckets older than 30 days
+    highFidelity = false;
+  }
+
   if (diffInMinutes > TWO_WEEKS) {
     return '1d';
   }
@@ -141,7 +182,9 @@ export function filterSessionsInTimeWindow(
   const filteredIndexes: number[] = [];
 
   const intervals = sessions.intervals.filter((interval, index) => {
-    const isBetween = moment(interval).isBetween(start, end, undefined, '[]');
+    const isBetween = moment
+      .utc(interval)
+      .isBetween(moment.utc(start), moment.utc(end), undefined, '[]');
     if (isBetween) {
       filteredIndexes.push(index);
     }
@@ -153,6 +196,7 @@ export function filterSessionsInTimeWindow(
     const series = {};
     const totals = {};
     Object.keys(group.series).forEach(field => {
+      totals[field] = 0;
       series[field] = group.series[field].filter((value, index) => {
         const isBetween = filteredIndexes.includes(index);
         if (isBetween) {

@@ -3,12 +3,14 @@ from typing import Iterable, List, Mapping, Optional
 from sentry.integrations.slack.message_builder import SlackBlock, SlackBody
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 
+from ..utils import logger
+
 UNKNOWN_COMMAND_MESSAGE = "Unknown command: `{command}`"
 HEADER_MESSAGE = "Here are the commands you can use. Commands not working? Re-install the app!"
 DM_COMMAND_HEADER = "*Direct Message Commands:*"
 CHANNEL_COMMANDS_HEADER = "*Channel Commands:*"
 CONTACT_HEADER = "*Contact:*"
-GENERAL_MESSAGE = "Just want to learn more about Sentry? Check out our <https://docs.sentry.io/product/alerts-notifications/alerts/|documentation>."
+GENERAL_MESSAGE = "Just want to learn more about Sentry? Check out our <https://docs.sentry.io/product/integrations/notification-incidents/slack/|documentation>."
 
 DM_COMMANDS = {
     "link": "Link your Slack identity to your Sentry account to receive notifications. You'll also be able to perform actions in Sentry through Slack.",
@@ -16,7 +18,8 @@ DM_COMMANDS = {
     "help": "View this list of commands.",
 }
 CHANNEL_COMMANDS = {
-    "link team": "Get your Sentry team's issue alert notifications in the channel this command is typed in."
+    "link team": "Get your Sentry team's issue alert notifications in the channel this command is typed in.",
+    "unlink team": "Unlink a team from the channel this command is typed in.",
 }
 CONTACT_MESSAGE = "Let us know if you have feedback: ecosystem-feedback@sentry.io"
 
@@ -24,7 +27,7 @@ CONTACT_MESSAGE = "Let us know if you have feedback: ecosystem-feedback@sentry.i
 def list_commands(commands: Mapping[str, str]) -> str:
     return "\n".join(
         (
-            f"• `/sentry {command}`: {description}"
+            f"`/sentry {command}`: {description}"
             for command, description in sorted(tuple(commands.items()))
         )
     )
@@ -52,7 +55,8 @@ class SlackHelpMessageBuilder(BlockSlackMessageBuilder):
 
     def get_header_blocks(self) -> Iterable[SlackBlock]:
         blocks: List[SlackBlock] = []
-        if self.command:
+        if self.command and self.command != "help":
+            logger.info("slack.event.unknown-command", extra={"command": self.command})
             blocks.append(
                 self.get_markdown_block(UNKNOWN_COMMAND_MESSAGE.format(command=self.command))
             )

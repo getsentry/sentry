@@ -34,7 +34,7 @@ import {
   IssueAlertRuleConditionTemplate,
   UnsavedIssueAlertRule,
 } from 'app/types/alerts';
-import {metric} from 'app/utils/analytics';
+import {metric, trackAnalyticsEvent} from 'app/utils/analytics';
 import {getDisplayName} from 'app/utils/environment';
 import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -276,7 +276,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         }
         transaction.setData('actions', rule.actions);
       }
-      const [resp, , xhr] = await this.api.requestPromise(endpoint, {
+      const [data, , resp] = await this.api.requestPromise(endpoint, {
         includeAllArgs: true,
         method: isNew ? 'POST' : 'PUT',
         data: rule,
@@ -284,12 +284,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
       // if we get a 202 back it means that we have an async task
       // running to lookup and verify the channel id for Slack.
-      if (xhr && xhr.status === 202) {
-        this.setState({detailedError: null, loading: true, uuid: resp.uuid});
+      if (resp?.status === 202) {
+        this.setState({detailedError: null, loading: true, uuid: data.uuid});
         this.fetchStatus();
         addLoadingMessage(t('Looking through all your channels...'));
       } else {
-        this.handleRuleSuccess(isNew, resp);
+        this.handleRuleSuccess(isNew, data);
       }
     } catch (err) {
       this.setState({
@@ -425,6 +425,16 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
       set(clonedState, `rule[${type}]`, [...newTypeList, newRule]);
       return clonedState;
+    });
+
+    const {organization, project} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'edit_alert_rule.add_row',
+      eventName: 'Edit Alert Rule: Add Row',
+      organization_id: organization.id,
+      project_id: project.id,
+      type,
+      name: id,
     });
   };
 

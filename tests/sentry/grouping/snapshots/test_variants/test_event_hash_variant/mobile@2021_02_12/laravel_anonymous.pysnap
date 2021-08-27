@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:44:00.576747Z'
+created: '2021-08-04T15:53:48.343022Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -19,64 +19,8 @@ app-depth-1:
         value (ignored because stacktrace takes precedence)
           "LARAVEL TEST"
 --------------------------------------------------------------------------
-app-depth-2:
-  hash: "7a40239cc759dc4f36f25e6453e6bcea"
-  tree_label: "run"
-  component:
-    app-depth-2*
-      exception*
-        stacktrace*
-          frame*
-            filename*
-              "server.php"
-            context-line*
-              "require_once __DIR__.'/public/index.php';"
-          frame*
-            filename*
-              "pipeline.php"
-            function* (anonymous class method)
-              "run"
-            context-line*
-              "return $callable($passable);"
-        type*
-          "Exception"
-        value (ignored because stacktrace takes precedence)
-          "LARAVEL TEST"
---------------------------------------------------------------------------
-app-depth-3:
-  hash: "63c67781779781d9b0a442a5b2bdb976"
-  tree_label: "Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | run"
-  component:
-    app-depth-3*
-      exception*
-        stacktrace*
-          frame*
-            filename*
-              "server.php"
-            context-line*
-              "require_once __DIR__.'/public/index.php';"
-          frame*
-            filename*
-              "pipeline.php"
-            function* (anonymous class method)
-              "run"
-            context-line*
-              "return $callable($passable);"
-          frame*
-            filename*
-              "pipeline.php"
-            function*
-              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
-            context-line*
-              "? $pipe->{$this->method}(...$parameters)"
-        type*
-          "Exception"
-        value (ignored because stacktrace takes precedence)
-          "LARAVEL TEST"
---------------------------------------------------------------------------
 app-depth-max:
-  hash: "63c67781779781d9b0a442a5b2bdb976"
-  tree_label: "Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | run"
+  hash: "a728cdf5d62c8e017c35c3fe04051b6e"
   component:
     app-depth-max*
       exception*
@@ -86,20 +30,6 @@ app-depth-max:
               "server.php"
             context-line*
               "require_once __DIR__.'/public/index.php';"
-          frame*
-            filename*
-              "pipeline.php"
-            function* (anonymous class method)
-              "run"
-            context-line*
-              "return $callable($passable);"
-          frame*
-            filename*
-              "pipeline.php"
-            function*
-              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
-            context-line*
-              "? $pipe->{$this->method}(...$parameters)"
         type*
           "Exception"
         value (ignored because stacktrace takes precedence)

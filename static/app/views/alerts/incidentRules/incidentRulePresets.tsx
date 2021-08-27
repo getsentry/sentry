@@ -2,7 +2,7 @@ import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 import {Project} from 'app/types';
 import {DisplayModes} from 'app/utils/discover/types';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {Dataset, IncidentRule} from 'app/views/alerts/incidentRules/types';
 import {getIncidentRuleDiscoverUrl} from 'app/views/alerts/utils/getIncidentRuleDiscoverUrl';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
@@ -149,9 +149,9 @@ function makeGenericTransactionCta(opts: {
     return {to: '', buttonText: t('Alert rule details')};
   }
 
-  const query = tokenizeSearch(rule.query ?? '');
+  const query = new MutableSearch(rule.query ?? '');
   const transaction = query
-    .getTagValues('transaction')
+    .getFilterValues('transaction')
     ?.find(filter => !filter.includes('*'));
 
   // CASE 1
@@ -210,9 +210,9 @@ function makeFailureRateCta({orgSlug, rule, projects, start, end}: PresetCtaOpts
     return {to: '', buttonText: t('Alert rule details')};
   }
 
-  const query = tokenizeSearch(rule.query ?? '');
+  const query = new MutableSearch(rule.query ?? '');
   const transaction = query
-    .getTagValues('transaction')
+    .getFilterValues('transaction')
     ?.find(filter => !filter.includes('*'));
 
   const extraQueryParams =

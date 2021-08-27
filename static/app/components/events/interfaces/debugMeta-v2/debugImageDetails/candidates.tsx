@@ -11,7 +11,6 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {BuiltinSymbolSource} from 'app/types/debugFiles';
 import {CandidateDownloadStatus, Image, ImageStatus} from 'app/types/debugImage';
 import {defined} from 'app/utils';
 
@@ -36,7 +35,6 @@ type Props = {
   organization: Organization;
   projectId: Project['id'];
   baseUrl: string;
-  builtinSymbolSources: Array<BuiltinSymbolSource> | null;
   isLoading: boolean;
   hasReprocessWarning: boolean;
   onDelete: (debugId: string) => void;
@@ -292,7 +290,6 @@ class Candidates extends React.Component<Props, State> {
       organization,
       projectId,
       baseUrl,
-      builtinSymbolSources,
       onDelete,
       isLoading,
       candidates,
@@ -331,7 +328,7 @@ class Candidates extends React.Component<Props, State> {
             />
           </Title>
           {!!candidates.length && (
-            <SearchBarAction
+            <StyledSearchBarAction
               query={searchTerm}
               onChange={value => this.handleChangeSearchTerm(value)}
               placeholder={t('Search debug file candidates')}
@@ -358,7 +355,6 @@ class Candidates extends React.Component<Props, State> {
             <Candidate
               key={index}
               candidate={candidate}
-              builtinSymbolSources={builtinSymbolSources}
               organization={organization}
               baseUrl={baseUrl}
               projectId={projectId}
@@ -397,7 +393,12 @@ const Title = styled('div')`
   align-items: center;
   font-weight: 600;
   color: ${p => p.theme.gray400};
-  margin-bottom: ${space(2)};
+  height: 32px;
+  flex: 1;
+
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    margin-bottom: ${space(1)};
+  }
 `;
 
 const StyledPanelTable = styled(PanelTable)`
@@ -406,7 +407,11 @@ const StyledPanelTable = styled(PanelTable)`
 
   height: 100%;
 
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+  @media (min-width: ${props => props.theme.breakpoints[4]}) {
     overflow: visible;
   }
+`;
+
+const StyledSearchBarAction = styled(SearchBarAction)`
+  margin-bottom: ${space(1.5)};
 `;

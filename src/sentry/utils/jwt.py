@@ -16,10 +16,12 @@ from cryptography.hazmat.primitives.serialization import (
 )
 from jwt import DecodeError
 
+from sentry.utils.json import JSONData
+
 __all__ = ["peek_claims", "decode", "encode", "authorization_header", "DecodeError"]
 
 
-def peek_header(token: str) -> Mapping[str, str]:
+def peek_header(token: str) -> JSONData:
     """Returns the headers in the JWT token without validation.
 
     Headers are not signed and can thus be spoofed.  You can use these to decide on what
@@ -28,18 +30,17 @@ def peek_header(token: str) -> Mapping[str, str]:
 
     :param token: The JWT token to extract the headers from.
     """
-    return pyjwt.get_unverified_header(token.encode("UTF-8"))  # type: ignore
+    return pyjwt.get_unverified_header(token.encode("UTF-8"))
 
 
-def peek_claims(token: str) -> Mapping[str, str]:
+def peek_claims(token: str) -> JSONData:
     """Returns the claims (payload) in the JWT token without validation.
 
     These claims can be used to look up the correct key to use in :func:`decode`.
 
     :param token: The JWT token to extract the payload from.
     """
-    # This type is checked in the tests so this is fine.
-    return pyjwt.decode(token, options={"verify_signature": False})  # type: ignore
+    return pyjwt.decode(token, options={"verify_signature": False})
 
 
 def decode(
@@ -47,8 +48,8 @@ def decode(
     key: str,
     *,  # Force passing optional arguments by keyword
     audience: Optional[Union[str, bool]] = None,
-    algorithms: List[str] = ["HS256"],
-) -> Mapping[str, str]:
+    algorithms: Optional[List[str]] = None,
+) -> JSONData:
     """Returns the claims (payload) in the JWT token.
 
     This will raise an exception if the claims can not be validated with the provided key.
@@ -63,6 +64,11 @@ def decode(
     """
     # TODO: We do not currently have type-safety for keys suitable for decoding *and*
     # encoding vs those only suitable for decoding.
+    # TODO(flub): The algorithms parameter really does not need to be Optional and should be
+    # a straight List[str].  However this is used by some unclear code in
+    # sentry.integrations.msteams.webook.verify_signature which isn't checked by mypy yet,
+    # and I am too afraid to change this.  One day (hah!) all will be checked by mypy and
+    # this can be safely fixed.
     options = {"verify": True}
     kwargs = dict()
     if audience is False:
@@ -73,16 +79,15 @@ def decode(
         kwargs["audience"] = audience
     if algorithms is None:
         algorithms = ["HS256"]
-    # This type is checked in the tests so this is fine.
-    return pyjwt.decode(token, key, options=options, algorithms=algorithms, **kwargs)  # type: ignore
+    return pyjwt.decode(token, key, options=options, algorithms=algorithms, **kwargs)
 
 
 def encode(
-    payload: Mapping[str, str],
+    payload: JSONData,
     key: str,
     *,  # Force passing optional arguments by keyword
     algorithm: str = "HS256",
-    headers: Optional[Mapping[str, str]] = None,
+    headers: Optional[JSONData] = None,
 ) -> str:
     """Encode a JWT token containing the provided payload/claims.
 

@@ -1,4 +1,4 @@
-import * as ReactRouter from 'react-router';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptor, LocationDescriptorObject} from 'history';
 
@@ -21,7 +21,7 @@ type Props = {
   nextPath: Pick<LocationDescriptorObject, 'query'> & {
     pathname: NonNullable<LocationDescriptorObject['pathname']>;
   };
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   projects: Project[];
 };
 

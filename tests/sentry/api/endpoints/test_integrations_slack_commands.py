@@ -7,10 +7,11 @@ from requests import Response
 from rest_framework import status
 
 from sentry import options
+from sentry.integrations.slack.endpoints.base import NOT_LINKED_MESSAGE
 from sentry.integrations.slack.endpoints.command import (
+    INSUFFICIENT_ROLE_MESSAGE,
     LINK_FROM_CHANNEL_MESSAGE,
     LINK_USER_FIRST_MESSAGE,
-    NOT_LINKED_MESSAGE,
     TEAM_NOT_LINKED_MESSAGE,
 )
 from sentry.integrations.slack.message_builder import SlackBody
@@ -52,6 +53,12 @@ def assert_is_help_text(data: SlackBody, expected_command: Optional[str] = None)
     assert "Here are the commands you can use" in text
     if expected_command:
         assert expected_command in text
+
+
+def assert_unknown_command_text(data: SlackBody, unknown_command: Optional[str] = None) -> None:
+    text = get_response_text(data)
+    assert f"Unknown command: `{unknown_command}`" in text
+    assert "Here are the commands you can use" in text
 
 
 class SlackCommandsTest(APITestCase, TestCase):
@@ -158,7 +165,7 @@ class SlackCommandsHelpTest(SlackCommandsTest):
 
     def test_invalid_command(self):
         data = self.send_slack_message("invalid command")
-        assert_is_help_text(data, "invalid")
+        assert_unknown_command_text(data, "invalid command")
 
     def test_help_command(self):
         data = self.send_slack_message("help")
@@ -325,8 +332,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
 
     @responses.activate
     def test_link_team_insufficient_role(self):
-        """Test that when a user whose role is insufficient and is a member of the
-        team in question in a closed membership org attempts to link a team, we reject
+        """Test that when a user whose role is insufficient attempts to link a team, we reject
         them and reply with the INSUFFICIENT_ROLE_MESSAGE"""
         user2 = self.create_user()
         self.create_member(
@@ -340,72 +346,9 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
             status=IdentityStatus.VALID,
             scopes=[],
         )
-        assert "Link your Sentry team to this Slack channel!" in self.data["text"]
-        linking_url = build_team_linking_url(
-            self.integration,
-            "UXXXXXXX2",
-            "CXXXXXXX9",
-            "general",
-            "http://example.slack.com/response_url",
-        )
-
-        resp = self.client.get(linking_url)
-
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/integrations/slack-link-team.html")
-
-        data = urlencode({"team": self.team.id})
-        resp = self.client.post(linking_url, data, content_type="application/x-www-form-urlencoded")
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/integrations/slack-post-linked-team.html")
-
+        data = self.send_slack_message("link team", user_id="UXXXXXXX2")
+        assert INSUFFICIENT_ROLE_MESSAGE in data["text"]
         assert len(self.external_actor) == 0
-
-        assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
-        assert "You must be an admin or higher" in data["text"]
-
-    @responses.activate
-    def test_link_team_insufficient_role_open_membership(self):
-        """Test that when a user whose role is insufficient in an open membership organization
-        attempts to link a team, we reject them and reply with the INSUFFICIENT_ROLE_MESSAGE"""
-        self.organization.flags.allow_joinleave = True
-        user2 = self.create_user()
-        self.create_member(
-            teams=[self.team], user=user2, role="member", organization=self.organization
-        )
-        self.login_as(user2)
-        Identity.objects.create(
-            external_id="UXXXXXXX2",
-            idp=self.idp,
-            user=user2,
-            status=IdentityStatus.VALID,
-            scopes=[],
-        )
-        assert "Link your Sentry team to this Slack channel!" in self.data["text"]
-        linking_url = build_team_linking_url(
-            self.integration,
-            "UXXXXXXX2",
-            "CXXXXXXX9",
-            "general",
-            "http://example.slack.com/response_url",
-        )
-
-        resp = self.client.get(linking_url)
-
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/integrations/slack-link-team.html")
-
-        data = urlencode({"team": self.team.id})
-        resp = self.client.post(linking_url, data, content_type="application/x-www-form-urlencoded")
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/integrations/slack-post-linked-team.html")
-
-        assert len(self.external_actor) == 0
-
-        assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
-        assert "You must be an admin or higher" in data["text"]
 
     @responses.activate
     def test_link_team_already_linked(self):

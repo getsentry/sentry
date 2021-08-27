@@ -1,3 +1,4 @@
+import logging
 import re
 from datetime import timedelta
 
@@ -9,7 +10,7 @@ from sentry import tsdb
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.rules.conditions.base import EventCondition
 from sentry.utils import metrics
-from sentry.utils.snuba import Dataset, raw_query
+from sentry.utils.snuba import Dataset, options_override, raw_query
 
 standard_intervals = {
     "1m": ("one minute", timedelta(minutes=1)),
@@ -139,14 +140,22 @@ percent_intervals = {
     "1h": ("1 hour", timedelta(minutes=60)),
 }
 
+percent_intervals_to_display = {
+    "5m": ("5 minutes", timedelta(minutes=5)),
+    "10m": ("10 minutes", timedelta(minutes=10)),
+    "30m": ("30 minutes", timedelta(minutes=30)),
+    "1h": ("1 hour", timedelta(minutes=60)),
+}
+MIN_SESSIONS_TO_FIRE = 1
+
 
 class EventFrequencyPercentForm(EventFrequencyForm):
-    intervals = percent_intervals
+    intervals = percent_intervals_to_display
     interval = forms.ChoiceField(
         choices=[
             (key, label)
             for key, (label, duration) in sorted(
-                percent_intervals.items(),
+                percent_intervals_to_display.items(),
                 key=lambda key____label__duration: key____label__duration[1][1],
             )
         ]
@@ -156,11 +165,24 @@ class EventFrequencyPercentForm(EventFrequencyForm):
 
 class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
     label = "The issue affects more than {value} percent of sessions in {interval}"
+    logger = logging.getLogger("rules.event_frequency")
 
     def __init__(self, *args, **kwargs):
         self.intervals = percent_intervals
         self.form_cls = EventFrequencyPercentForm
         super().__init__(*args, **kwargs)
+
+        # Override form fields interval to hide 1 min option from ui, but leave it available to process existing 1m rules
+        self.form_fields["interval"] = {
+            "type": "choice",
+            "choices": [
+                (key, label)
+                for key, (label, duration) in sorted(
+                    percent_intervals_to_display.items(),
+                    key=lambda key____label__duration: key____label__duration[1][1],
+                )
+            ],
+        }
 
     def query_hook(self, event, start, end, environment_id):
         project_id = event.project_id
@@ -170,16 +192,18 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             filters = {"project_id": [project_id]}
             if environment_id:
                 filters["environment"] = [environment_id]
-            result_totals = raw_query(
-                selected_columns=["sessions"],
-                rollup=60,
-                dataset=Dataset.Sessions,
-                start=end - timedelta(minutes=60),
-                end=end,
-                filter_keys=filters,
-                groupby=["bucketed_started"],
-                referrer="rules.conditions.event_frequency.EventFrequencyPercentCondition",
-            )
+            with options_override({"consistent": False}):
+                result_totals = raw_query(
+                    selected_columns=["sessions"],
+                    rollup=60,
+                    dataset=Dataset.Sessions,
+                    start=end - timedelta(minutes=60),
+                    end=end,
+                    filter_keys=filters,
+                    groupby=["bucketed_started"],
+                    referrer="rules.conditions.event_frequency.EventFrequencyPercentCondition",
+                )
+
             if result_totals["data"]:
                 session_count_last_hour = sum(
                     bucket["sessions"] for bucket in result_totals["data"]
@@ -188,7 +212,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 session_count_last_hour = False
             cache.set(cache_key, session_count_last_hour, 600)
 
-        if session_count_last_hour:
+        if session_count_last_hour >= MIN_SESSIONS_TO_FIRE:
             interval_in_minutes = (
                 percent_intervals[self.get_option("interval")][1].total_seconds() // 60
             )
@@ -201,6 +225,16 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 environment_id=environment_id,
                 use_cache=True,
             )[event.group_id]
+            if issue_count > avg_sessions_in_interval:
+                # We want to better understand when and why this is happening, so we're logging it for now
+                self.logger.info(
+                    "EventFrequencyPercentCondition.query_hook",
+                    extra={
+                        "issue_count": issue_count,
+                        "project_id": project_id,
+                        "avg_sessions_in_interval": avg_sessions_in_interval,
+                    },
+                )
             return 100 * round(issue_count / avg_sessions_in_interval, 4)
 
         return 0

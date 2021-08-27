@@ -1,5 +1,7 @@
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {SectionContents} from 'app/components/events/eventDataSection';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
@@ -14,20 +16,12 @@ type Props = {
   organization: Organization;
   projectSlug: Project['slug'];
   location: Location;
-  hasQueryFeature: boolean;
   hasContext: boolean;
 };
 
-function Tags({
-  event,
-  organization,
-  projectSlug,
-  location,
-  hasContext,
-  hasQueryFeature,
-}: Props) {
+function Tags({event, organization, projectSlug, location, hasContext}: Props) {
   return (
-    <DataSection
+    <StyledDataSection
       title={t('Tags')}
       description={t(
         'Tags help you quickly both access related events and view the tag distribution for a set of events'
@@ -39,10 +33,15 @@ function Tags({
         organization={organization}
         projectId={projectSlug}
         location={location}
-        hasQueryFeature={hasQueryFeature}
       />
-    </DataSection>
+    </StyledDataSection>
   );
 }
 
 export default Tags;
+
+const StyledDataSection = styled(DataSection)`
+  ${SectionContents} {
+    overflow: hidden;
+  }
+`;

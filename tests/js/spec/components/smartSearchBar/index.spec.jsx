@@ -26,7 +26,7 @@ describe('SmartSearchBar', function () {
       key: 'firstRelease',
       name: 'firstRelease',
     };
-    organization = TestStubs.Organization({id: '123'});
+    organization = TestStubs.Organization({id: '123', features: ['improved-search']});
 
     location = {
       pathname: '/organizations/org-slug/recent-searches/',
@@ -232,6 +232,22 @@ describe('SmartSearchBar', function () {
       searchBar.setProps({query: 'two'});
 
       expect(searchBar.state().query).toEqual('two ');
+    });
+
+    it('should update state.query if props.query is updated to null/undefined from outside', function () {
+      const searchBar = mountWithTheme(
+        <SmartSearchBar
+          organization={organization}
+          location={location}
+          supportedTags={supportedTags}
+          query="one"
+        />,
+        options
+      );
+
+      searchBar.setProps({query: null});
+
+      expect(searchBar.state().query).toEqual('');
     });
 
     it('should not reset user textarea if a noop props change happens', function () {
@@ -479,6 +495,7 @@ describe('SmartSearchBar', function () {
       jest.useRealTimers();
       const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
       const searchBar = wrapper.instance();
+      wrapper.find('textarea').simulate('focus');
       searchBar.updateAutoCompleteItems();
       await tick();
       wrapper.update();
@@ -499,6 +516,7 @@ describe('SmartSearchBar', function () {
       jest.useRealTimers();
       const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
       const searchBar = wrapper.instance();
+      wrapper.find('textarea').simulate('focus');
       searchBar.updateAutoCompleteItems();
       await tick();
       wrapper.update();
@@ -582,6 +600,7 @@ describe('SmartSearchBar', function () {
         <SmartSearchBar {...props} api={new Client()} />,
         options
       ).instance();
+      mockCursorPosition(searchBar, 13);
       searchBar.updateAutoCompleteItems();
 
       jest.advanceTimersByTime(301);
@@ -595,6 +614,65 @@ describe('SmartSearchBar', function () {
           },
         })
       );
+    });
+
+    it('shows operator autocompletion', async function () {
+      const props = {
+        query: 'is:unresolved',
+        organization,
+        location,
+        supportedTags,
+      };
+      jest.useRealTimers();
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = wrapper.instance();
+      // Cursor is on ':'
+      mockCursorPosition(searchBar, 3);
+      searchBar.updateAutoCompleteItems();
+      await tick();
+      wrapper.update();
+      // two search groups because of operator suggestions
+      expect(searchBar.state.searchGroups).toHaveLength(2);
+      expect(searchBar.state.activeSearchItem).toEqual(-1);
+    });
+
+    it('responds to cursor changes', async function () {
+      const props = {
+        query: 'is:unresolved',
+        organization,
+        location,
+        supportedTags,
+      };
+      jest.useRealTimers();
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = wrapper.instance();
+      // Cursor is on ':'
+      mockCursorPosition(searchBar, 3);
+      searchBar.updateAutoCompleteItems();
+      await tick();
+      wrapper.update();
+      // two search groups tags and values
+      expect(searchBar.state.searchGroups).toHaveLength(2);
+      expect(searchBar.state.activeSearchItem).toEqual(-1);
+      mockCursorPosition(searchBar, 1);
+      searchBar.updateAutoCompleteItems();
+      await tick();
+      wrapper.update();
+      // one search group because only showing tags now
+      expect(searchBar.state.searchGroups).toHaveLength(1);
+      expect(searchBar.state.activeSearchItem).toEqual(-1);
+    });
+
+    it('shows errors on incorrect tokens', async function () {
+      const props = {
+        query: 'tag: ',
+        organization,
+        location,
+        supportedTags,
+      };
+      jest.useRealTimers();
+      const wrapper = mountWithTheme(<SmartSearchBar {...props} />, options);
+      expect(wrapper.find('Filter').prop('invalid')).toBe(true);
     });
   });
 
@@ -675,32 +753,6 @@ describe('SmartSearchBar', function () {
       expect(searchBar.state.query).toEqual('event.type:error !title:');
     });
 
-    it('removes wildcard', function () {
-      const props = {
-        query: '',
-        organization,
-        location,
-        supportedTags,
-      };
-      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
-      const searchBar = smartSearchBar.instance();
-      const textarea = smartSearchBar.find('textarea');
-
-      // leading wildcard
-      textarea.simulate('change', {target: {value: 'event.type:*err'}});
-      mockCursorPosition(searchBar, 20);
-      // use autocompletion to do the rest
-      searchBar.onAutoComplete('error', {});
-      expect(searchBar.state.query).toEqual('event.type:error');
-
-      // trailing wildcard
-      textarea.simulate('change', {target: {value: 'event.type:err*'}});
-      mockCursorPosition(searchBar, 20);
-      // use autocompletion to do the rest
-      searchBar.onAutoComplete('error', {});
-      expect(searchBar.state.query).toEqual('event.type:error');
-    });
-
     it('handles special case for user tag', function () {
       const props = {
         query: '',
@@ -715,13 +767,7 @@ describe('SmartSearchBar', function () {
       textarea.simulate('change', {target: {value: 'user:'}});
       mockCursorPosition(searchBar, 5);
       searchBar.onAutoComplete('id:1', {});
-      expect(searchBar.state.query).toEqual('user:"id:1"');
-
-      // try it with the SEARCH_WILDCARD
-      textarea.simulate('change', {target: {value: 'user:1*'}});
-      mockCursorPosition(searchBar, 5);
-      searchBar.onAutoComplete('ip:127.0.0.1', {});
-      expect(searchBar.state.query).toEqual('user:"ip:127.0.0.1"');
+      expect(searchBar.state.query).toEqual('user:"id:1" ');
     });
   });
 });

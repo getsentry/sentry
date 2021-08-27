@@ -4,11 +4,17 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 import TransactionSummary from 'app/views/performance/transactionSummary';
+
+const teams = [
+  TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
+  TestStubs.Team({id: '2', slug: 'team2', name: 'Team 2'}),
+];
 
 function initializeData({features: additionalFeatures = [], query = {}} = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const project = TestStubs.Project();
+  const project = TestStubs.Project({teams});
   const organization = TestStubs.Organization({
     features,
     projects: [project],
@@ -28,6 +34,7 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
     },
   });
   ProjectsStore.loadInitialData(initialData.organization.projects);
+  TeamStore.loadInitialData(teams);
   return initialData;
 }
 
@@ -227,6 +234,19 @@ describe('Performance > TransactionSummary', function () {
         },
       },
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/key-transactions-list/`,
+      body: teams.map(({id}) => ({
+        team: id,
+        count: 0,
+        keyed: [],
+      })),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: false},
+    });
   });
 
   afterEach(function () {
@@ -412,7 +432,12 @@ describe('Performance > TransactionSummary', function () {
     });
 
     // Click the key transaction button
-    wrapper.find('KeyTransactionButton').simulate('click');
+    wrapper.find('TitleButton').simulate('click');
+
+    await tick();
+    wrapper.update();
+
+    wrapper.find('DropdownMenuHeader CheckboxFancy').simulate('click');
 
     // Ensure request was made.
     expect(mockUpdate).toHaveBeenCalled();

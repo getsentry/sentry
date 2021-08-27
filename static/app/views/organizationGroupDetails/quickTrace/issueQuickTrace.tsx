@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -9,6 +8,7 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ErrorBoundary from 'app/components/errorBoundary';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import QuickTrace from 'app/components/quickTrace';
 import {generateTraceTarget} from 'app/components/quickTrace/utils';
@@ -42,8 +42,11 @@ class IssueQuickTrace extends Component<Props, State> {
     this.promptsCheck();
   }
 
-  shouldComponentUpdate(nextProps) {
-    return this.props.event !== nextProps.event;
+  shouldComponentUpdate(nextProps, nextState: State) {
+    return (
+      this.props.event !== nextProps.event ||
+      this.state.shouldShow !== nextState.shouldShow
+    );
   }
 
   async promptsCheck() {
@@ -117,7 +120,7 @@ class IssueQuickTrace extends Component<Props, State> {
             {tct('The [type] for this error cannot be found. [link]', {
               type: type === 'missing' ? t('transaction') : t('trace'),
               link: (
-                <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#troubleshooting">
+                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#troubleshooting">
                   {t('Read the docs to understand why.')}
                 </ExternalLink>
               ),

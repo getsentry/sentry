@@ -2,12 +2,11 @@ import functools
 from datetime import datetime, timedelta
 from typing import List, Mapping, Optional, Sequence
 
-from django.conf import settings
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, search
 from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
 from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
@@ -35,10 +34,8 @@ from sentry.models import (
     GroupStatus,
     Project,
 )
-from sentry.search.snuba.backend import (
-    EventsDatasetSnubaSearchBackend,
-    assigned_or_suggested_filter,
-)
+from sentry.search.events.constants import EQUALITY_OPERATORS
+from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
 from sentry.snuba import discover
 from sentry.utils.compat import map
@@ -46,11 +43,6 @@ from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
-
-
-search = EventsDatasetSnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
-
-
 allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigned_or_suggested"])
 
 
@@ -324,6 +316,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 search_filters=query_kwargs["search_filters"]
                 if "search_filters" in query_kwargs
                 else None,
+                organization_id=organization.id,
             ),
         )
 
@@ -333,7 +326,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         status = [
             search_filter
             for search_filter in query_kwargs.get("search_filters", [])
-            if search_filter.key.name == "status"
+            if search_filter.key.name == "status" and search_filter.operator in EQUALITY_OPERATORS
         ]
         if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
             status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}

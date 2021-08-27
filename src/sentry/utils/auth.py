@@ -1,5 +1,6 @@
 import logging
 from time import time
+from typing import Container, Optional
 
 from django.conf import settings
 from django.contrib.auth import login as _login
@@ -111,18 +112,18 @@ def get_login_redirect(request, default=None):
     if not login_url:
         return default
 
-    if not is_valid_redirect(login_url, host=request.get_host()):
+    if not is_valid_redirect(login_url, allowed_hosts=(request.get_host(),)):
         login_url = default
 
     return login_url
 
 
-def is_valid_redirect(url, host=None):
+def is_valid_redirect(url: str, allowed_hosts: Optional[Container] = None) -> bool:
     if not url:
         return False
     if url.startswith(get_login_url()):
         return False
-    return is_safe_url(url, host=host)
+    return is_safe_url(url, allowed_hosts=allowed_hosts)
 
 
 def mark_sso_complete(request, organization_id):
@@ -272,20 +273,22 @@ class EmailAuthBackend(ModelBackend):
     Supports authenticating via an email address or a username.
     """
 
-    def authenticate(self, username=None, password=None):
+    def authenticate(self, request, username=None, password=None):
         users = find_users(username)
         if users:
             for user in users:
                 try:
-                    if user.password and user.check_password(password):
-                        return user
+                    if user.password:
+                        # XXX(joshuarli): This is checked before (and therefore, regardless of outcome)
+                        # password checking as a mechanism to drop old password hashers immediately and
+                        # then lazily sending out password reset emails.
+                        if user.is_password_expired:
+                            raise AuthUserPasswordExpired(user)
+                        if user.check_password(password):
+                            return user
                 except ValueError:
                     continue
         return None
 
-    # TODO(joshuarli): When we're fully on Django 1.10, we should switch to
-    # subclassing AllowAllUsersModelBackend (this isn't available in 1.9 and
-    # simply overriding user_can_authenticate here is a lot less verbose than
-    # conditionally importing).
     def user_can_authenticate(self, user):
         return True

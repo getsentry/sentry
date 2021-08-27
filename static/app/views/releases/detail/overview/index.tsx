@@ -13,7 +13,7 @@ import TransactionsList, {DropdownOption} from 'app/components/discover/transact
 import {Body, Main, Side} from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {ChangeData} from 'app/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'app/components/organizations/timeRangeSelector/pageTimeRangeSelector';
+import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -454,17 +454,22 @@ class ReleaseOverview extends AsyncView<Props> {
                               }}
                               defaultPeriod={RELEASE_PERIOD_KEY}
                             />
-                            <ReleaseComparisonChart
-                              release={release}
-                              releaseSessions={thisRelease}
-                              allSessions={allReleases}
-                              platform={project.platform}
-                              location={location}
-                              loading={loading}
-                              reloading={reloading}
-                              errored={errored}
-                              project={project}
-                            />
+                            {(hasDiscover || hasPerformance || hasHealthData) && (
+                              <ReleaseComparisonChart
+                                release={release}
+                                releaseSessions={thisRelease}
+                                allSessions={allReleases}
+                                platform={project.platform}
+                                location={location}
+                                loading={loading}
+                                reloading={reloading}
+                                errored={errored}
+                                project={project}
+                                organization={organization}
+                                api={api}
+                                hasHealthData={hasHealthData}
+                              />
+                            )}
                           </Fragment>
                         ) : (
                           (hasDiscover || hasPerformance || hasHealthData) && (
@@ -536,15 +541,17 @@ class ReleaseOverview extends AsyncView<Props> {
                       isHealthLoading={isHealthLoading}
                     />
                     <Feature features={['release-comparison']}>
-                      <ReleaseAdoption
-                        releaseSessions={thisRelease}
-                        allSessions={allReleases}
-                        loading={loading}
-                        reloading={reloading}
-                        errored={errored}
-                        release={release}
-                        project={project}
-                      />
+                      {hasHealthData && (
+                        <ReleaseAdoption
+                          releaseSessions={thisRelease}
+                          allSessions={allReleases}
+                          loading={loading}
+                          reloading={reloading}
+                          errored={errored}
+                          release={release}
+                          project={project}
+                        />
+                      )}
                     </Feature>
                     <ProjectReleaseDetails
                       release={release}
@@ -652,14 +659,14 @@ function getDropdownOptions(): DropdownOption[] {
     },
     {
       sort: {kind: 'desc', field: 'trend_percentage()'},
-      query: [['t_test()', '<-6']],
+      query: [['confidence()', '>6']],
       trendType: TrendChangeType.REGRESSION,
       value: TransactionsListOption.REGRESSION,
       label: t('Trending Regressions'),
     },
     {
       sort: {kind: 'asc', field: 'trend_percentage()'},
-      query: [['t_test()', '>6']],
+      query: [['confidence()', '>6']],
       trendType: TrendChangeType.IMPROVED,
       value: TransactionsListOption.IMPROVEMENT,
       label: t('Trending Improvements'),

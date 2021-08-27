@@ -1,5 +1,6 @@
 from django.conf.urls import include, url
 
+from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
 )
@@ -89,6 +90,7 @@ from .endpoints.external_team_details import ExternalTeamDetailsEndpoint
 from .endpoints.external_user import ExternalUserEndpoint
 from .endpoints.external_user_details import ExternalUserDetailsEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
+from .endpoints.group_activities import GroupActivitiesEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
@@ -165,6 +167,9 @@ from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoi
 from .endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
     OrganizationEventsFacetsPerformanceHistogramEndpoint,
+)
+from .endpoints.organization_events_has_measurements import (
+    OrganizationEventsHasMeasurementsEndpoint,
 )
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
@@ -277,6 +282,7 @@ from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_codeowners import ProjectCodeOwnersEndpoint
 from .endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
+from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
@@ -398,12 +404,14 @@ from .endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_emails import UserEmailsEndpoint
 from .endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
+from .endpoints.user_identity import UserIdentityEndpoint
 from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
 from .endpoints.user_notification_settings_details import UserNotificationSettingsDetailsEndpoint
+from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_password import UserPasswordEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
@@ -415,6 +423,7 @@ from .endpoints.useravatar import UserAvatarEndpoint
 # to the organization (and queryable via short ID)
 GROUP_URLS = [
     url(r"^(?P<issue_id>[^\/]+)/$", GroupDetailsEndpoint.as_view()),
+    url(r"^(?P<issue_id>[^\/]+)/activities/$", GroupActivitiesEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/$", GroupEventsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/latest/$", GroupEventsLatestEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/oldest/$", GroupEventsOldestEndpoint.as_view()),
@@ -629,6 +638,11 @@ urlpatterns = [
                     name="sentry-api-0-user-identity-details",
                 ),
                 url(
+                    r"^(?P<user_id>[^\/]+)/identities/$",
+                    UserIdentityEndpoint.as_view(),
+                    name="sentry-api-0-user-identity",
+                ),
+                url(
                     r"^(?P<user_id>[^\/]+)/ips/$",
                     UserIPsEndpoint.as_view(),
                     name="sentry-api-0-user-ips",
@@ -672,6 +686,11 @@ urlpatterns = [
                     r"^(?P<user_id>[^\/]+)/subscriptions/$",
                     UserSubscriptionsEndpoint.as_view(),
                     name="sentry-api-0-user-subscriptions",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/organization-integrations/$",
+                    UserOrganizationIntegrationsEndpoint.as_view(),
+                    name="sentry-api-0-user-organization-integrations",
                 ),
             ]
         ),
@@ -988,6 +1007,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-vitals/$",
                     OrganizationEventsVitalsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-vitals",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-has-measurements/$",
+                    OrganizationEventsHasMeasurementsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-has-measurements",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-trends-stats/$",
@@ -1511,6 +1535,11 @@ urlpatterns = [
                     name="sentry-api-0-project-create-sample",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/create-sample-transaction/$",
+                    ProjectCreateSampleTransactionEndpoint.as_view(),
+                    name="sentry-api-0-project-create-sample-transaction",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/docs/(?P<platform>[\w-]+)/$",
                     ProjectDocsPlatformEndpoint.as_view(),
                     name="sentry-api-0-project-docs-platform",
@@ -1888,6 +1917,12 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/repo-path-parsing/$",
                     ProjectRepoPathParsingEndpoint.as_view(),
                     name="sentry-api-0-project-repo-path-parsing",
+                ),
+                # Grouping configs
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/grouping-configs/$",
+                    ProjectGroupingConfigsEndpoint.as_view(),
+                    name="sentry-api-0-project-grouping-configs",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/$",

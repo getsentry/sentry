@@ -11,6 +11,7 @@ DEFAULT_PROMPTS = {
     "stacktrace_link": {"required_fields": ["organization_id", "project_id"]},
     "distributed_tracing": {"required_fields": ["organization_id", "project_id"]},
     "quick_trace_missing": {"required_fields": ["organization_id", "project_id"]},
+    "code_owners": {"required_fields": ["organization_id", "project_id"]},
 }
 
 
@@ -47,8 +48,16 @@ class PromptsConfig:
 prompt_config = PromptsConfig(DEFAULT_PROMPTS)
 
 
+# TODO: remove get_prompt_activities and use get_prompt_activities_for_user instead
 @request_cache
 def get_prompt_activities(organization_ids, features):
     return PromptsActivity.objects.filter(
         organization_id__in=organization_ids, feature__in=features
+    )
+
+
+@request_cache
+def get_prompt_activities_for_user(organization_ids, user_id, features):
+    return PromptsActivity.objects.filter(
+        organization_id__in=organization_ids, feature__in=features, user_id=user_id
     )

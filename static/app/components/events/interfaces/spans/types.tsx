@@ -49,6 +49,12 @@ export type FetchEmbeddedChildrenState =
   | 'loading_embedded_transactions'
   | 'error_fetching_embedded_transactions';
 
+export type SpanGroupProps = {
+  spanGrouping: EnhancedSpan[] | undefined;
+  showSpanGroup: boolean;
+  toggleSpanGroup: (() => void) | undefined;
+};
+
 type CommonEnhancedProcessedSpanType = {
   numOfSpanChildren: number;
   treeDepth: number;
@@ -61,8 +67,7 @@ type CommonEnhancedProcessedSpanType = {
     | undefined;
 };
 
-// ProcessedSpanType with additional information
-export type EnhancedProcessedSpanType =
+export type EnhancedSpan =
   | ({
       type: 'root_span';
       span: SpanType;
@@ -70,7 +75,12 @@ export type EnhancedProcessedSpanType =
   | ({
       type: 'span';
       span: SpanType;
-    } & CommonEnhancedProcessedSpanType)
+      toggleSpanGroup: (() => void) | undefined;
+    } & CommonEnhancedProcessedSpanType);
+
+// ProcessedSpanType with additional information
+export type EnhancedProcessedSpanType =
+  | EnhancedSpan
   | ({
       type: 'gap';
       span: GapSpanType;
@@ -82,7 +92,13 @@ export type EnhancedProcessedSpanType =
   | {
       type: 'out_of_view';
       span: SpanType;
-    };
+    }
+  | ({
+      type: 'span_group_chain';
+      span: SpanType;
+      treeDepth: number;
+      continuingTreeDepths: Array<TreeDepthType>;
+    } & SpanGroupProps);
 
 export type SpanEntry = {
   type: 'spans';
@@ -101,7 +117,6 @@ export type ParsedTraceType = {
   parentSpanID?: string;
   traceStartTimestamp: number;
   traceEndTimestamp: number;
-  numOfSpans: number;
   spans: SpanType[];
   description?: string;
 };
@@ -159,4 +174,10 @@ export type SpanFuseOptions = {
   location: number;
   distance: number;
   maxPatternLength: number;
+};
+
+export type TraceBound = {
+  spanId: string;
+  traceStartTimestamp: number;
+  traceEndTimestamp: number;
 };

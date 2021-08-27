@@ -209,7 +209,7 @@ describe('pushEventViewToLocation', function () {
   const state = {
     id: '1234',
     name: 'best query',
-    fields: [{field: 'count()'}, {field: 'project.id'}],
+    fields: [{field: 'count()', width: 420}, {field: 'project.id'}],
     sorts: [{field: 'count', kind: 'desc'}],
     query: 'event.type:error',
     project: [42],
@@ -222,6 +222,7 @@ describe('pushEventViewToLocation', function () {
   const location = {
     query: {
       bestCountry: 'canada',
+      user: '1',
     },
   };
 
@@ -238,7 +239,7 @@ describe('pushEventViewToLocation', function () {
         id: '1234',
         name: 'best query',
         field: ['count()', 'project.id'],
-        widths: [COL_WIDTH_UNDEFINED, COL_WIDTH_UNDEFINED],
+        widths: [420],
         sort: ['-count'],
         query: 'event.type:error',
         project: [42],
@@ -246,6 +247,8 @@ describe('pushEventViewToLocation', function () {
         end: '2019-10-02T00:00:00',
         statsPeriod: '14d',
         environment: ['staging'],
+        user: '1',
+        yAxis: 'count()',
       },
     });
   });
@@ -266,7 +269,7 @@ describe('pushEventViewToLocation', function () {
         id: '1234',
         name: 'best query',
         field: ['count()', 'project.id'],
-        widths: [COL_WIDTH_UNDEFINED, COL_WIDTH_UNDEFINED],
+        widths: [420],
         sort: ['-count'],
         query: 'event.type:error',
         project: [42],
@@ -275,6 +278,8 @@ describe('pushEventViewToLocation', function () {
         statsPeriod: '14d',
         environment: ['staging'],
         cursor: 'some cursor',
+        user: '1',
+        yAxis: 'count()',
       },
     });
   });

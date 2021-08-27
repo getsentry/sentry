@@ -8,7 +8,13 @@ import Stacktrace from './stacktrace';
 type ExceptionProps = React.ComponentProps<typeof Exception>;
 type Props = Pick<
   ExceptionProps,
-  'stackType' | 'stackView' | 'projectId' | 'event' | 'newestFirst'
+  | 'stackType'
+  | 'stackView'
+  | 'projectId'
+  | 'event'
+  | 'newestFirst'
+  | 'groupingCurrentLevel'
+  | 'hasHierarchicalGrouping'
 > & {
   exception?: ExceptionType;
   stacktrace?: ExceptionValue['stacktrace'];
@@ -20,6 +26,8 @@ const CrashContent = ({
   stackType,
   newestFirst,
   projectId,
+  groupingCurrentLevel,
+  hasHierarchicalGrouping,
   exception,
   stacktrace,
 }: Props) => {
@@ -35,6 +43,8 @@ const CrashContent = ({
         event={event}
         platform={platform}
         values={exception.values}
+        groupingCurrentLevel={groupingCurrentLevel}
+        hasHierarchicalGrouping={hasHierarchicalGrouping}
       />
     );
   }
@@ -47,6 +57,8 @@ const CrashContent = ({
         newestFirst={newestFirst}
         event={event}
         platform={platform}
+        groupingCurrentLevel={groupingCurrentLevel}
+        hasHierarchicalGrouping={hasHierarchicalGrouping}
       />
     );
   }

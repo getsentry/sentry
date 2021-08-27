@@ -1,7 +1,5 @@
-import * as ReactRouter from 'react-router';
-import {Params} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import {stringify} from 'query-string';
@@ -42,10 +40,8 @@ const SORT_OPTIONS: SelectValue<string>[] = [
 
 type Props = {
   organization: Organization;
-  location: Location;
-  router: ReactRouter.InjectedRouter;
-  params: Params;
-} & AsyncComponent['props'];
+} & RouteComponentProps<{}, {}> &
+  AsyncComponent['props'];
 
 type State = {
   savedQueries: SavedQuery[] | null;
@@ -118,7 +114,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       }
     }
 
-    const queryParams: Location['query'] = {
+    const queryParams: Props['location']['query'] = {
       cursor,
       query: `version:2 name:"${searchQuery}"`,
       per_page: perPage.toString(),
@@ -160,7 +156,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
   handleSearchQuery = (searchQuery: string) => {
     const {location} = this.props;
-    ReactRouter.browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -178,7 +174,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       organization_id: parseInt(this.props.organization.id, 10),
       sort: value,
     });
-    ReactRouter.browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -337,7 +333,7 @@ const SwitchLabel = styled('div')`
   padding-right: 8px;
 `;
 
-export const StyledPageHeader = styled('div')`
+const StyledPageHeader = styled('div')`
   display: flex;
   align-items: flex-end;
   font-size: ${p => p.theme.headerFontSize};

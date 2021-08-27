@@ -338,6 +338,17 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200, response.content
 
+    def test_filter_not_unresolved(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event.group.update(status=GroupStatus.RESOLVED)
+        self.login_as(user=self.user)
+        response = self.client.get(f"{self.path}?query=!is:unresolved", format="json")
+        assert response.status_code == 200
+        assert [int(r["id"]) for r in response.data] == [event.group.id]
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     def setUp(self):
@@ -635,6 +646,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inRelease"] == release.version
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+        assert "activity" in response.data
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -672,6 +684,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inRelease"] == release.version
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+        assert "activity" in response.data
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -707,6 +720,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+        assert "activity" in response.data
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED

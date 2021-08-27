@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
@@ -24,7 +24,7 @@ import VitalsDetailsTableQuery, {
   TableData,
   TableDataRow,
 } from 'app/utils/performance/vitals/vitalsDetailsTableQuery';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
@@ -106,14 +106,14 @@ class Table extends React.Component<Props, State> {
         action,
       });
 
-      const searchConditions = tokenizeSearch(eventView.query);
+      const searchConditions = new MutableSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeTag('event.type');
+      searchConditions.removeFilter('event.type');
 
       updateQuery(searchConditions, action, column, value);
 
-      ReactRouter.browserHistory.push({
+      browserHistory.push({
         pathname: location.pathname,
         query: {
           ...location.query,
@@ -176,8 +176,8 @@ class Table extends React.Component<Props, State> {
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
       const summaryView = eventView.clone();
-      const conditions = tokenizeSearch(summaryConditions);
-      conditions.addTagValues('has', [`${vitalName}`]);
+      const conditions = new MutableSearch(summaryConditions);
+      conditions.addFilterValues('has', [`${vitalName}`]);
       summaryView.query = conditions.formatString();
 
       const target = transactionSummaryRouteWithQuery({
@@ -335,7 +335,7 @@ class Table extends React.Component<Props, State> {
   };
 
   getSortedEventView(vitalName: WebVital) {
-    const {eventView, organization} = this.props;
+    const {eventView} = this.props;
 
     const aggregateFieldPoor = getAggregateAlias(
       getVitalDetailTablePoorStatusFunction(vitalName)
@@ -352,9 +352,7 @@ class Table extends React.Component<Props, State> {
       ? []
       : [
           {
-            field: organization.features.includes('team-key-transactions')
-              ? 'team_key_transaction'
-              : 'key_transaction',
+            field: 'team_key_transaction',
             kind: 'desc',
           },
           {
