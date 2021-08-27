@@ -19,5 +19,6 @@ class GroupRegression(Model):
     class Meta:
         db_table = "sentry_groupregression"
         app_label = "sentry"
+        unique_together = (("group", "release"),)
 
     __repr__ = sane_repr("group_id", "release_id")
