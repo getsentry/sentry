@@ -6,13 +6,6 @@ HERE="$(
 # shellcheck disable=SC1090
 source "${HERE}/lib.sh"
 
-die() {
-    cat <<EOF
-$@
-EOF
-    exit 1
-}
-
 # optionally opt out of virtualenv creation
 # WARNING: this will be removed (most likely renamed) soon!
 if [[ "$SENTRY_NO_VIRTUALENV_CREATION" == "1" ]]; then
@@ -20,6 +13,13 @@ if [[ "$SENTRY_NO_VIRTUALENV_CREATION" == "1" ]]; then
 fi
 
 venv_name=".venv"
+
+die() {
+    cat <<EOF
+$@
+EOF
+    exit 1
+}
 
 if [[ -n "$VIRTUAL_ENV" ]]; then
     # The developer is inside is inside a virtualenv *and* has set a SENTRY_PYTHON_VERSION
