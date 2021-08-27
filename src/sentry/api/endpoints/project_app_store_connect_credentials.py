@@ -433,6 +433,7 @@ def _validate_secret(secret_json: str) -> Optional[json.JSONData]:
         return None
     return secret
 
+
 class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: ignore
     """Input validation for :class:`AppStoreConnectUpdateCredentialsEndpoint`."""
 
