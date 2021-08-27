@@ -9,7 +9,7 @@ type Props = {
   className?: string;
 };
 
-class RRWebReplayer extends Component<Props> {
+class BaseRRWebReplayer extends Component<Props> {
   componentDidMount() {
     this.rrwebPlayer();
   }
@@ -54,4 +54,4 @@ class RRWebReplayer extends Component<Props> {
   }
 }
 
-export default RRWebReplayer;
+export default BaseRRWebReplayer;

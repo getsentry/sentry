@@ -57,7 +57,7 @@ export const TraceViewContainer = styled('div')`
   border-bottom-right-radius: 3px;
 `;
 
-export const StyledPanel = styled(Panel)`
+export const TracePanel = styled(Panel)`
   overflow: hidden;
 `;
 
@@ -115,7 +115,6 @@ export function Tags({
                 query={query}
                 streamPath={streamPath}
                 releasesPath={releasesPath}
-                hasQueryFeature={false}
               />
             );
           })}
