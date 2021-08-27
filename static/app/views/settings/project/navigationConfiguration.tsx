@@ -116,7 +116,6 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/performance/`,
           title: t('Performance'),
-          badge: () => 'new',
           show: () => !!organization?.features?.includes('performance-view'),
         },
       ],
