@@ -413,6 +413,26 @@ class UpdateSessionContextSerializer(serializers.Serializer):  # type: ignore
     client_state = serializers.JSONField(required=True)
 
 
+def _validate_secret(secret_json: str) -> Optional[json.JSONData]:
+    if not secret_json:
+        return secret_json
+
+    try:
+        secret = json.loads(secret_json)
+    except Exception as e:
+        raise serializers.ValidationError(str(e))
+
+    try:
+        jsonschema.validate(secret, SECRET_PROPERTY)
+    except jsonschema.ValidationError as e:
+        raise serializers.ValidationError(str(e))
+
+    # If an object was returned then it must be the special value representing the currently
+    # stored secret, i.e. no change was made to it
+    if isinstance(secret, dict):
+        return None
+    return secret
+
 class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: ignore
     """Input validation for :class:`AppStoreConnectUpdateCredentialsEndpoint`."""
 
@@ -432,31 +452,11 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
     orgId = serializers.CharField(max_length=36, min_length=36, required=False)
     orgName = serializers.CharField(max_length=100, required=False)
 
-    def _validate_secret(secret_json: str) -> Optional[json.JSONData]:
-        if not secret_json:
-            return secret_json
-
-        try:
-            secret = json.loads(secret_json)
-        except Exception as e:
-            raise serializers.ValidationError(str(e))
-
-        try:
-            jsonschema.validate(secret, SECRET_PROPERTY)
-        except jsonschema.ValidationError as e:
-            raise serializers.ValidationError(str(e))
-
-        # If an object was returned then it must be the special value representing the currently
-        # stored secret, i.e. no change was made to it
-        if isinstance(secret, dict):
-            return None
-        return secret
-
     def validate_appconnectPrivateKey(self, private_key_json: str) -> Optional[json.JSONData]:
-        return self._validate_secret(private_key_json)
+        return _validate_secret(private_key_json)
 
     def validate_itunesPassword(self, password_json: str) -> Optional[json.JSONData]:
-        return self._validate_secret(password_json)
+        return _validate_secret(password_json)
 
 
 class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
