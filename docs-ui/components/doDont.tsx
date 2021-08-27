@@ -2,11 +2,12 @@ import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {IconCheckmark, IconClose} from 'app/icons';
+import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
 
 type BoxContent = {
   text: string;
-  img: {
+  img?: {
     src: string;
     alt: string;
   };
@@ -53,23 +54,19 @@ export default withTheme(DoDont);
 
 const Wrapper = styled('div')`
   display: flex;
-  justify-content: space-between;
+  gap: ${space(2)};
   width: 100%;
-  margin: 16px auto;
-  @media only screen and (max-width: ${p => p.theme.breakpoints[1]}) {
+  margin: ${space(2)} auto;
+  @media only screen and (max-width: ${p => p.theme.breakpoints[0]}) {
     flex-wrap: wrap;
-    margin: 32px auto;
+    margin: ${space(4)} auto;
   }
 `;
 const BoxWrap = styled('div')`
   display: flex;
   flex-direction: column;
+  width: 100%;
   height: 100%;
-  width: calc(50% - 10px);
-  @media only screen and (max-width: ${p => p.theme.breakpoints[1]}) {
-    width: 100%;
-    margin-bottom: 10px;
-  }
 `;
 const ImgWrap = styled('div')`
   position: relative;
@@ -91,11 +88,8 @@ const Captions = styled('div')`
   display: flex;
   align-items: flex-start;
   width: 100%;
-  padding: 10px;
-  @media only screen and (max-width: ${p => p.theme.breakpoints[1]}) {
-    flex-wrap: wrap;
-  }
-  @media only screen and (max-width: ${p => p.theme.breakpoints[1]}) {
+  padding: ${space(1)};
+  @media only screen and (max-width: ${p => p.theme.breakpoints[0]}) {
     flex-wrap: wrap;
   }
 `;
@@ -104,27 +98,21 @@ const LabelWrap = styled('div')`
   align-items: center;
   flex-shrink: 0;
   width: 6em;
-  margin-top: 0.25em;
-  @media only screen and (max-width: ${p => p.theme.breakpoints[1]}) {
-    flex-direction: row-reverse;
-    justify-content: flex-end;
-    margin-bottom: 5px;
+  margin-top: ${space(0.5)};
+  @media only screen and (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin-bottom: ${space(0.5)};
   }
 `;
 const Label = styled('p')`
   font-weight: 600;
   line-height: 1;
-  margin-left: 5px;
+  margin-left: ${space(0.5)};
   margin-bottom: 0;
   &.green {
     color: ${p => p.theme.green300};
   }
   &.red {
     color: ${p => p.theme.red300};
-  }
-  @media only screen and (max-width: ${p => p.theme.breakpoints[1]}) {
-    margin-left: 0;
-    margin-right: 5px;
   }
 `;
 const Text = styled('p')`
