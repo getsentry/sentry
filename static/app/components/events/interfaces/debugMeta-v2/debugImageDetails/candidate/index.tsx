@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Organization, Project} from 'app/types';
-import {BuiltinSymbolSource} from 'app/types/debugFiles';
 import {ImageCandidate} from 'app/types/debugImage';
 
 import {INTERNAL_SOURCE} from '../utils';
@@ -13,7 +12,6 @@ import Information from './information';
 
 type Props = {
   candidate: ImageCandidate;
-  builtinSymbolSources: Array<BuiltinSymbolSource> | null;
   organization: Organization;
   projectId: Project['slug'];
   baseUrl: string;
@@ -25,7 +23,6 @@ type Props = {
 
 function Candidate({
   candidate,
-  builtinSymbolSources,
   organization,
   projectId,
   baseUrl,
@@ -46,7 +43,6 @@ function Candidate({
       <InformationColumn>
         <Information
           candidate={candidate}
-          builtinSymbolSources={builtinSymbolSources}
           isInternalSource={isInternalSource}
           eventDateReceived={eventDateReceived}
           hasReprocessWarning={hasReprocessWarning}

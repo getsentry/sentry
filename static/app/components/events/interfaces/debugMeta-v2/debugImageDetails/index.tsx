@@ -13,7 +13,7 @@ import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {BuiltinSymbolSource, DebugFile, DebugFileFeature} from 'app/types/debugFiles';
+import {DebugFile, DebugFileFeature} from 'app/types/debugFiles';
 import {CandidateDownloadStatus, Image, ImageStatus} from 'app/types/debugImage';
 import {Event} from 'app/types/event';
 import {displayReprocessEventAction} from 'app/utils/displayReprocessEventAction';
@@ -39,15 +39,13 @@ type Props = AsyncComponent['props'] &
 
 type State = AsyncComponent['state'] & {
   debugFiles: Array<DebugFile> | null;
-  builtinSymbolSources: Array<BuiltinSymbolSource> | null;
 };
 
 class DebugImageDetails extends AsyncComponent<Props, State> {
-  getDefaultState() {
+  getDefaultState(): State {
     return {
       ...super.getDefaultState(),
       debugFiles: [],
-      builtinSymbolSources: [],
     };
   }
 
@@ -71,7 +69,6 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
     }
 
     const {debug_id, candidates = []} = image;
-    const {builtinSymbolSources} = this.state || {};
 
     const uploadedDebugFiles = this.getUplodedDebugFiles(candidates);
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
@@ -86,13 +83,6 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
           },
         },
       ]);
-    }
-
-    if (
-      !builtinSymbolSources?.length &&
-      organization.features.includes('symbol-sources')
-    ) {
-      endpoints.push(['builtinSymbolSources', '/builtin-symbol-sources/', {}]);
     }
 
     return endpoints;
@@ -292,7 +282,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
       onReprocessEvent,
       event,
     } = this.props;
-    const {loading, builtinSymbolSources} = this.state;
+    const {loading} = this.state;
 
     const {code_file, status} = image ?? {};
     const debugFilesSettingsLink = this.getDebugFilesSettingsLink();
@@ -338,7 +328,6 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
               baseUrl={baseUrl}
               isLoading={loading}
               eventDateReceived={event.dateReceived}
-              builtinSymbolSources={builtinSymbolSources}
               onDelete={this.handleDelete}
               hasReprocessWarning={hasReprocessWarning}
             />

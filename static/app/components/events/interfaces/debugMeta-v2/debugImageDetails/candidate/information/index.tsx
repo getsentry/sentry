@@ -10,7 +10,6 @@ import Tooltip from 'app/components/tooltip';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {BuiltinSymbolSource} from 'app/types/debugFiles';
 import {
   CandidateDownloadStatus,
   ImageCandidate,
@@ -30,7 +29,6 @@ import ProcessingIcon from './processingIcon';
 
 type Props = {
   candidate: ImageCandidate;
-  builtinSymbolSources: Array<BuiltinSymbolSource> | null;
   isInternalSource: boolean;
   hasReprocessWarning: boolean;
   eventDateReceived?: string;
