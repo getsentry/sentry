@@ -93,7 +93,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
             [
                 self.session_dict(
                     self.project1,
-                    self.release.version,
+                    self.release,
                     self.environment.name,
                 )
                 for _ in range(11)
@@ -101,7 +101,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
         )
         self.bulk_store_sessions(
             [
-                self.session_dict(self.project2, self.release.version, self.environment2.name)
+                self.session_dict(self.project2, self.release, self.environment2.name)
                 for _ in range(1)
             ]
         )
@@ -227,7 +227,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
             [
                 self.session_dict(
                     self.project1,
-                    self.release.version,
+                    self.release,
                     self.environment.name,
                 )
                 for _ in range(1)
@@ -235,13 +235,13 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
         )
         self.bulk_store_sessions(
             [
-                self.session_dict(self.project2, self.release.version, self.environment2.name)
+                self.session_dict(self.project2, self.release, self.environment2.name)
                 for _ in range(11)
             ]
         )
         self.bulk_store_sessions(
             [
-                self.session_dict(self.project1, self.release2.version, self.environment.name)
+                self.session_dict(self.project1, self.release2, self.environment.name)
                 for _ in range(20)
             ]
         )
@@ -294,8 +294,8 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
         # Make sure re-adopting works
         self.bulk_store_sessions(
             [
-                self.session_dict(i, self.project1, self.release.version, self.environment.name)
-                for i in range(50)
+                self.session_dict(self.project1, self.release, self.environment.name)
+                for _ in range(50)
             ]
         )
         time.sleep(1)
@@ -341,7 +341,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
             [
                 self.session_dict(
                     self.project1,
-                    self.release.version,
+                    self.release,
                     self.environment.name,
                 )
                 for _ in range(11)
@@ -349,19 +349,19 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
         )
         self.bulk_store_sessions(
             [
-                self.session_dict(self.project2, self.release.version, self.environment2.name)
+                self.session_dict(self.project2, self.release, self.environment2.name)
                 for _ in range(1)
             ]
         )
         self.bulk_store_sessions(
             [
-                self.session_dict(self.project1, self.release2.version, self.environment.name)
+                self.session_dict(self.project1, self.release2, self.environment.name)
                 for _ in range(1)
             ]
         )
         self.bulk_store_sessions(
             [
-                self.session_dict(self.project1, self.release3.version, self.environment.name)
+                self.session_dict(self.project1, self.release3, self.environment.name)
                 for _ in range(1)
             ]
         )
@@ -437,7 +437,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
             [
                 self.session_dict(
                     self.org2_project,
-                    self.org2_release.version,
+                    self.org2_release,
                     self.org2_environment.name,
                 )
                 for _ in range(20)
@@ -448,7 +448,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
             [
                 self.session_dict(
                     self.project1,
-                    self.release.version,
+                    self.release,
                     self.environment.name,
                 )
                 for _ in range(11)
@@ -456,7 +456,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
         )
         self.bulk_store_sessions(
             [
-                self.session_dict(self.project2, self.release.version, self.environment2.name)
+                self.session_dict(self.project2, self.release, self.environment2.name)
                 for _ in range(1)
             ]
         )
@@ -482,13 +482,10 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
 
     def test_missing_rpe_is_created(self):
         self.bulk_store_sessions(
-            [
-                self.session_dict(self.project1, self.release2.version, "somenvname")
-                for _ in range(20)
-            ]
+            [self.session_dict(self.project1, self.release2, "somenvname") for _ in range(20)]
         )
         self.bulk_store_sessions(
-            [self.session_dict(self.project1, self.release2.version, "") for _ in range(20)]
+            [self.session_dict(self.project1, self.release2, "") for _ in range(20)]
         )
         now = timezone.now()
         assert not ReleaseProjectEnvironment.objects.filter(

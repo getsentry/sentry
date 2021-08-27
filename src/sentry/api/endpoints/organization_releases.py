@@ -318,7 +318,7 @@ class OrganizationReleasesEndpoint(
                 # We want to fetch at least total_offset + limit releases to check, to make sure
                 # we're not fetching only releases that were on previous pages.
                 release_versions = list(
-                    queryset.order_by("-date_added").values_list("version", flat=True)[
+                    queryset.order_by_recent().values_list("version", flat=True)[
                         : total_offset + limit
                     ]
                 )
@@ -339,7 +339,7 @@ class OrganizationReleasesEndpoint(
                     Release.objects.filter(
                         organization_id=organization.id,
                         version__in=valid_versions,
-                    ).order_by("-date_added")[qs_offset : qs_offset + limit]
+                    ).order_by_recent()[qs_offset : qs_offset + limit]
                 )
                 return results
 

@@ -259,13 +259,19 @@ def get_project_releases_count(
         Condition(Column("org_id"), Op.EQ, organization_id),
     ]
     if environments is not None:
-        where.append([Column("environment"), Op.IN, environments])
+        where.append(Condition(Column("environment"), Op.IN, environments))
+
+    having = []
+    # Filter out releases with zero users when sorting by either `users` or `crash_free_users`
+    if scope in ["users", "crash_free_users"]:
+        having.append(Condition(Column("users"), Op.GT, 0))
 
     query = Query(
         dataset="sessions",
         match=Entity("sessions"),
         select=[Function("uniq", [Column("release"), Column("project_id")], alias="count")],
         where=where,
+        having=having,
     )
     return snuba.raw_snql_query(query, referrer="snuba.sessions.check_releases_have_health_data")[
         "data"
