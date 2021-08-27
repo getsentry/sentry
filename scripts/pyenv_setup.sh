@@ -3,14 +3,19 @@
 #
 # Assumptions:
 # - This script assumes you're calling from the top directory of the repository
+#
+# shellcheck disable=SC2155 # Declare and assign separately to avoid masking return values.
+
 set -eu
 
 HERE="$(
   cd "$(dirname "${BASH_SOURCE[0]}")"
   pwd -P
 )"
-# shellcheck disable=SC1090
 source "${HERE}/lib.sh"
+
+# We can use PYENV_VERSION to define different Python versions, otherwise, determine load default values
+[ -z ${PYENV_VERSION+x} ] && export PYENV_VERSION=$(query-pyenv-version)
 
 get_shell_startup_script() {
   local _startup_script=''
