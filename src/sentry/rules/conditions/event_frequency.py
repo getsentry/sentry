@@ -133,21 +133,29 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
 
 
 percent_intervals = {
+    "1m": ("1 minute", timedelta(minutes=1)),
     "5m": ("5 minutes", timedelta(minutes=5)),
     "10m": ("10 minutes", timedelta(minutes=10)),
     "30m": ("30 minutes", timedelta(minutes=30)),
     "1h": ("1 hour", timedelta(minutes=60)),
 }
-MIN_SESSIONS_TO_FIRE = 0
+
+percent_intervals_to_display = {
+    "5m": ("5 minutes", timedelta(minutes=5)),
+    "10m": ("10 minutes", timedelta(minutes=10)),
+    "30m": ("30 minutes", timedelta(minutes=30)),
+    "1h": ("1 hour", timedelta(minutes=60)),
+}
+MIN_SESSIONS_TO_FIRE = 1
 
 
 class EventFrequencyPercentForm(EventFrequencyForm):
-    intervals = percent_intervals
+    intervals = percent_intervals_to_display
     interval = forms.ChoiceField(
         choices=[
             (key, label)
             for key, (label, duration) in sorted(
-                percent_intervals.items(),
+                percent_intervals_to_display.items(),
                 key=lambda key____label__duration: key____label__duration[1][1],
             )
         ]
@@ -163,6 +171,18 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         self.intervals = percent_intervals
         self.form_cls = EventFrequencyPercentForm
         super().__init__(*args, **kwargs)
+
+        # Override form fields interval to hide 1 min option from ui, but leave it available to process existing 1m rules
+        self.form_fields["interval"] = {
+            "type": "choice",
+            "choices": [
+                (key, label)
+                for key, (label, duration) in sorted(
+                    percent_intervals_to_display.items(),
+                    key=lambda key____label__duration: key____label__duration[1][1],
+                )
+            ],
+        }
 
     def query_hook(self, event, start, end, environment_id):
         project_id = event.project_id
