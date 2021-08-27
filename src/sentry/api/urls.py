@@ -275,7 +275,6 @@ from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectCreateCredentialsEndpoint,
     AppStoreConnectCredentialsValidateEndpoint,
     AppStoreConnectRequestSmsEndpoint,
-    AppStoreConnectSavedAppsEndpoint,
     AppStoreConnectStartAuthEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
@@ -1934,11 +1933,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/apps/$",
                     AppStoreConnectAppsEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-apps",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/apps/(?P<credentials_id>[^\/]+)/$",
-                    AppStoreConnectSavedAppsEndpoint.as_view(),
-                    name="sentry-api-0-project-appstoreconnect-saved-apps",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/validate/(?P<credentials_id>[^\/]+)/$",
