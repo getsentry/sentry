@@ -368,16 +368,26 @@ def frame(frame, event, context, **meta):
     if context["is_recursion"]:
         rv.update(contributes=False, hint="ignored due to recursion")
 
-    if rv.tree_label:
+    if rv.contributes:
         tree_label = {}
+
         for value in rv.values:
             if isinstance(value, GroupingComponent) and value.contributes and value.tree_label:
                 tree_label.update(value.tree_label)
+
+        if not tree_label and function_component.tree_label:
+            # Typically we want to add whichever frame component contributes to
+            # the title. In JS, frames are hashed by source context, which we
+            # cannot show. In that case we want to show something else instead
+            # of hiding the frame from the title as if it didn't contribute.
+            tree_label.update(function_component.tree_label)
 
         if tree_label and context["hierarchical_grouping"]:
             tree_label["datapath"] = frame.datapath
             rv.tree_label = tree_label
         else:
+            # The frame contributes (somehow) but we have nothing meaningful to
+            # show.
             rv.tree_label = None
 
     return {context["variant"]: rv}
