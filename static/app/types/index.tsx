@@ -2186,6 +2186,7 @@ export type CodeOwner = {
     missing_external_users: string[];
     missing_user_emails: string[];
     teams_without_access: string[];
+    users_without_access: string[];
   };
 };
 
