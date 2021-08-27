@@ -271,15 +271,8 @@ class ProjectCharts extends Component<Props, State> {
     const hasDiscover = organization.features.includes('discover-basic');
     const displayMode = this.displayMode;
 
-    let apdexYAxis: string;
-    let apdexPerformanceTerm: PERFORMANCE_TERM;
-    if (organization.features.includes('project-transaction-threshold')) {
-      apdexPerformanceTerm = PERFORMANCE_TERM.APDEX_NEW;
-      apdexYAxis = 'apdex()';
-    } else {
-      apdexPerformanceTerm = PERFORMANCE_TERM.APDEX;
-      apdexYAxis = `apdex(${organization.apdexThreshold})`;
-    }
+    const apdexPerformanceTerm: PERFORMANCE_TERM = PERFORMANCE_TERM.APDEX_NEW;
+    const apdexYAxis: string = 'apdex()';
 
     return (
       <Panel>

@@ -92,40 +92,9 @@ describe('generatePerformanceEventView()', function () {
   });
 
   it('gets the right column', function () {
-    const result = generatePerformanceEventView(organization, {
-      query: {
-        query: 'key:value tag:value',
-      },
-    });
-    expect(result.fields).toEqual(
-      expect.arrayContaining([expect.objectContaining({field: 'user_misery(400)'})])
-    );
-    expect(result.fields).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({field: 'count_miserable(user,400)'}),
-      ])
-    );
-    expect(result.fields).toEqual(
-      expect.arrayContaining([expect.objectContaining({field: 'apdex(400)'})])
-    );
-
-    expect(result.fields).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({field: 'user_misery()'})])
-    );
-    expect(result.fields).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({field: 'count_miserable(user)'})])
-    );
-    expect(result.fields).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({field: 'apdex()'})])
-    );
-
     const newOrganization = TestStubs.Organization({
       apdexThreshold: 400,
-      features: [
-        'transaction-event',
-        'performance-view',
-        'project-transaction-threshold',
-      ],
+      features: ['transaction-event', 'performance-view'],
     });
     const newResult = generatePerformanceEventView(newOrganization, {
       query: {

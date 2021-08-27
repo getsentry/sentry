@@ -113,14 +113,12 @@ export function getReposToRender(repos: Array<string>, activeRepository?: Reposi
 export function getReleaseEventView(
   selection: GlobalSelection,
   version: string,
-  organization: LightWeightOrganization
+  _organization: LightWeightOrganization
 ): EventView {
   const {projects, environments, datetime} = selection;
   const {start, end, period} = datetime;
 
-  const apdexField = organization.features.includes('project-transaction-threshold')
-    ? 'apdex()'
-    : `apdex(${organization.apdexThreshold})`;
+  const apdexField = 'apdex()';
 
   const discoverQuery = {
     id: undefined,

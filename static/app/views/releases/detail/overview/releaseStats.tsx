@@ -100,15 +100,8 @@ function ReleaseStats({
     DisplayOption.USERS
   );
 
-  let apdexField: string;
-  let apdexPerformanceTerm: PERFORMANCE_TERM;
-  if (organization.features.includes('project-transaction-threshold')) {
-    apdexPerformanceTerm = PERFORMANCE_TERM.APDEX_NEW;
-    apdexField = 'apdex()';
-  } else {
-    apdexPerformanceTerm = PERFORMANCE_TERM.APDEX;
-    apdexField = `apdex(${organization.apdexThreshold})`;
-  }
+  const apdexPerformanceTerm: PERFORMANCE_TERM = PERFORMANCE_TERM.APDEX_NEW;
+  const apdexField: string = 'apdex()';
 
   return (
     <Container>

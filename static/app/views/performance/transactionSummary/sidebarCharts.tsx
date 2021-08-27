@@ -157,19 +157,10 @@ function SidebarCharts({
   };
   const project = eventView.project;
   const environment = eventView.environment;
-  const threshold = organization.apdexThreshold;
 
-  let apdexKey, apdexYAxis: string;
-  let apdexPerformanceTerm: PERFORMANCE_TERM;
-  if (organization.features.includes('project-transaction-threshold')) {
-    apdexKey = 'apdex';
-    apdexPerformanceTerm = PERFORMANCE_TERM.APDEX_NEW;
-    apdexYAxis = 'apdex()';
-  } else {
-    apdexKey = `apdex_${threshold}`;
-    apdexPerformanceTerm = PERFORMANCE_TERM.APDEX;
-    apdexYAxis = `apdex(${organization.apdexThreshold})`;
-  }
+  const apdexKey = 'apdex';
+  const apdexPerformanceTerm: PERFORMANCE_TERM = PERFORMANCE_TERM.APDEX_NEW;
+  const apdexYAxis = 'apdex()';
 
   return (
     <RelativeBox>

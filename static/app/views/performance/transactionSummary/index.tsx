@@ -139,9 +139,7 @@ class TransactionSummary extends Component<Props, State> {
     return [t('Summary'), t('Performance')].join(' - ');
   }
 
-  getTotalsEventView(organization: Organization, eventView: EventView): EventView {
-    const threshold = organization.apdexThreshold.toString();
-
+  getTotalsEventView(_organization: Organization, eventView: EventView): EventView {
     const vitals = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce(
       (keys: WebVital[], vs) => {
         vs.forEach(vital => keys.push(vital));
@@ -173,37 +171,20 @@ class TransactionSummary extends Component<Props, State> {
       },
     ];
 
-    const featureColumns: QueryFieldValue[] = organization.features.includes(
-      'project-transaction-threshold'
-    )
-      ? [
-          {
-            kind: 'function',
-            function: ['count_miserable', 'user', undefined, undefined],
-          },
-          {
-            kind: 'function',
-            function: ['user_misery', '', undefined, undefined],
-          },
-          {
-            kind: 'function',
-            function: ['apdex', '', undefined, undefined],
-          },
-        ]
-      : [
-          {
-            kind: 'function',
-            function: ['count_miserable', 'user', threshold, undefined],
-          },
-          {
-            kind: 'function',
-            function: ['user_misery', threshold, undefined, undefined],
-          },
-          {
-            kind: 'function',
-            function: ['apdex', threshold, undefined, undefined],
-          },
-        ];
+    const featureColumns: QueryFieldValue[] = [
+      {
+        kind: 'function',
+        function: ['count_miserable', 'user', undefined, undefined],
+      },
+      {
+        kind: 'function',
+        function: ['user_misery', '', undefined, undefined],
+      },
+      {
+        kind: 'function',
+        function: ['apdex', '', undefined, undefined],
+      },
+    ];
 
     return eventView.withColumns([
       ...totalsColumns,

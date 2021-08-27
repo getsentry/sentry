@@ -352,7 +352,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "apdexThreshold": 450,
         }
 
-        with self.feature("organizations:project-transaction-threshold"):
+        with self.feature("organizations:performance-view"):
             self.get_success_response(self.organization.slug, **data)
 
         org = Organization.objects.get(id=self.organization.id)

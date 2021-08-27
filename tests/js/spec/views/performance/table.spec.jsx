@@ -158,41 +158,9 @@ describe('Performance > Table', function () {
     ProjectsStore.reset();
   });
 
-  it('renders correct cell actions without feature', async function () {
-    const data = initializeData(projects, {query: 'event.type:transaction'});
-
-    const wrapper = mountWithTheme(
-      <Table
-        eventView={eventView}
-        organization={data.organization}
-        location={data.router.location}
-        setError={jest.fn()}
-        summaryConditions=""
-        projects={projects}
-      />
-    );
-
-    await tick();
-    wrapper.update();
-    const firstRow = wrapper.find('GridBody').find('GridRow').at(0);
-    const userMiseryCell = firstRow.find('GridBodyCell').at(9);
-    const cellAction = userMiseryCell.find('CellAction');
-
-    expect(cellAction.prop('allowActions')).toEqual([
-      'add',
-      'exclude',
-      'show_greater_than',
-      'show_less_than',
-    ]);
-
-    const menu = openContextMenu(wrapper, 8); // User Misery Cell Action
-    expect(menu.find('MenuButtons').find('ActionItem')).toHaveLength(2);
-  });
-
   it('renders correct cell actions with feature', async function () {
     const data = initializeData(projects, {query: 'event.type:transaction'}, [
       'performance-view',
-      'project-transaction-threshold-override',
     ]);
 
     const wrapper = mountWithTheme(

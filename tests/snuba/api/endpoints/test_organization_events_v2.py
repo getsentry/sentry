@@ -1195,7 +1195,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
+                "organizations:performance-view": True,
                 "organizations:global-views": True,
             },
         )
@@ -1252,7 +1252,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
+                "organizations:performance-view": True,
             },
         )
 
@@ -1269,7 +1269,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
+                "organizations:performance-view": True,
             },
         )
 
@@ -1354,7 +1354,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
+                "organizations:performance-view": True,
             },
         )
 
@@ -1371,7 +1371,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
+                "organizations:performance-view": True,
             },
         )
 
@@ -1426,7 +1426,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
+                "organizations:performance-view": True,
             },
         )
 
@@ -1443,7 +1443,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
+                "organizations:performance-view": True,
             },
         )
 
@@ -1498,7 +1498,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
+                "organizations:performance-view": True,
             },
         )
 
@@ -1527,7 +1527,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
+                "organizations:performance-view": True,
             },
         )
 
@@ -1598,7 +1598,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             features={
                 "organizations:discover-basic": True,
                 "organizations:global-views": True,
-                "organizations:project-transaction-threshold": True,
+                "organizations:performance-view": True,
             },
         )
 
@@ -1636,7 +1636,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
+                "organizations:performance-view": True,
                 "organizations:global-views": True,
             },
         )
@@ -2791,7 +2791,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         features = {
             "organizations:discover-basic": True,
             "organizations:global-views": True,
-            "organizations:project-transaction-threshold": True,
+            "organizations:performance-view": True,
         }
 
         query = {
@@ -2929,7 +2929,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.store_event(data, project_id=project.id)
         features = {
             "organizations:discover-basic": True,
-            "organizations:project-transaction-threshold": True,
+            "organizations:performance-view": True,
         }
 
         query = {

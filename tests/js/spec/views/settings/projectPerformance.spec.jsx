@@ -3,7 +3,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import ProjectPerformance from 'app/views/settings/projectPerformance/projectPerformance';
 
 describe('projectPerformance', function () {
-  const org = TestStubs.Organization({features: ['project-transaction-threshold']});
+  const org = TestStubs.Organization({features: ['performance-view']});
   const project = TestStubs.ProjectDetails();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
   let getMock, postMock, deleteMock;

@@ -75,6 +75,10 @@ describe('Performance > Web Vitals', function () {
       url: '/organizations/org-slug/is-key-transactions/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      status: 404,
+    });
     // Mock baseline measurements
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-vitals/',

@@ -51,39 +51,9 @@ describe('ProjectDetail > ProjectApdex', function () {
       expect.objectContaining({
         query: {
           environment: [],
-          field: ['apdex(500)'],
-          project: ['1'],
-          query: 'event.type:transaction count():>0 release.version:1.0.0',
-          statsPeriod: '14d',
-        },
-      })
-    );
-  });
-
-  it('calls api with new apdex if feature flag is enabled', function () {
-    organization.features = [
-      'discover-basic',
-      'performance-view',
-      'project-transaction-threshold',
-    ];
-    mountWithTheme(
-      <ProjectApdexScoreCard
-        organization={organization}
-        selection={selection}
-        isProjectStabilized
-        hasTransactions
-      />
-    );
-
-    expect(endpointMock).toHaveBeenNthCalledWith(
-      1,
-      `/organizations/${organization.slug}/eventsv2/`,
-      expect.objectContaining({
-        query: {
-          environment: [],
           field: ['apdex()'],
           project: ['1'],
-          query: 'event.type:transaction count():>0',
+          query: 'event.type:transaction count():>0 release.version:1.0.0',
           statsPeriod: '14d',
         },
       })

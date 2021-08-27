@@ -178,11 +178,8 @@ class Table extends React.Component<Props, State> {
       Actions.EXCLUDE,
       Actions.SHOW_GREATER_THAN,
       Actions.SHOW_LESS_THAN,
+      Actions.EDIT_THRESHOLD,
     ];
-
-    if (organization.features.includes('project-transaction-threshold-override')) {
-      allowActions.push(Actions.EDIT_THRESHOLD);
-    }
 
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
@@ -278,7 +275,7 @@ class Table extends React.Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     title: React.ReactNode
   ): React.ReactNode {
-    const {eventView, location, organization} = this.props;
+    const {eventView, location} = this.props;
 
     const align = fieldAlignment(column.name, column.type, tableMeta);
     const field = {field: column.name, width: column.width};
@@ -314,11 +311,7 @@ class Table extends React.Component<Props, State> {
     );
     if (field.field.startsWith('user_misery')) {
       return (
-        <GuideAnchor
-          target="project_transaction_threshold"
-          position="top"
-          disabled={!organization.features.includes('project-transaction-threshold')}
-        >
+        <GuideAnchor target="project_transaction_threshold" position="top">
           {sortLink}
         </GuideAnchor>
       );
