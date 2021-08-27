@@ -24,7 +24,7 @@ from sentry.incidents.models import (
     IncidentStatusMethod,
     TriggerStatus,
 )
-from sentry.models import Integration, NotificationSetting, PagerDutyService, UserOption
+from sentry.models import Integration, NotificationSetting, PagerDutyService, UserEmail, UserOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
@@ -113,9 +113,14 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         assert handler.get_targets() == [(self.user.id, new_email)]
 
     def test_team_email_routing(self):
-        new_user = self.create_user()
-
         new_email = "marcos@sentry.io"
+
+        new_user = self.create_user(new_email)
+
+        useremail = UserEmail.objects.get(email=self.user.email)
+        useremail.email = new_email
+        useremail.save()
+
         UserOption.objects.create(
             user=self.user, project=self.project, key="mail:email", value=new_email
         )
