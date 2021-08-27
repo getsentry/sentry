@@ -316,7 +316,6 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         config["appconnectPrivateKey"] = {"hidden-secret": True}
         config["itunesPassword"] = {"hidden-secret": True}
 
-        # TODO: Just return the ID instead of the entire config
         return Response(config, status=200)
 
 
