@@ -111,7 +111,6 @@ class Create extends Component<Props, State> {
         <Layout.Header>
           <StyledHeaderContent>
             <BuilderBreadCrumbs
-              hasMetricAlerts={hasMetricAlerts}
               orgSlug={organization.slug}
               alertName={t('Set Conditions')}
               title={wizardAlertType ? t('Select Alert') : title}

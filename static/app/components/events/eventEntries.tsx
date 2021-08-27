@@ -353,7 +353,6 @@ const EventEntries = memo(
       );
     }
 
-    const hasQueryFeature = orgFeatures.includes('discover-query');
     const hasMobileScreenshotsFeature = orgFeatures.includes('mobile-screenshots');
     const hasContext = !objectIsEmpty(event.user) || !objectIsEmpty(event.contexts);
     const hasErrors = !objectIsEmpty(event.errors) || !!proGuardErrors.length;
@@ -399,7 +398,6 @@ const EventEntries = memo(
               organization={organization as Organization}
               projectId={projectSlug}
               location={location}
-              hasQueryFeature={hasQueryFeature}
               isShare={isShare}
               hasContext={hasContext}
               isBorderless={isBorderless}
@@ -415,7 +413,6 @@ const EventEntries = memo(
                   organization={organization as Organization}
                   projectId={projectSlug}
                   location={location}
-                  hasQueryFeature={hasQueryFeature}
                 />
               </StyledEventDataSection>
             )

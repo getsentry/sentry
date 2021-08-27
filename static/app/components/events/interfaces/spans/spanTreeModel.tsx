@@ -274,6 +274,11 @@ class SpanTreeModel {
           : undefined,
     };
 
+    if (wrappedSpan.type === 'root_span') {
+      // @ts-expect-error
+      delete wrappedSpan.toggleSpanGroup;
+    }
+
     const treeDepthEntry = isOrphanSpan(this.span)
       ? ({type: 'orphan', depth: treeDepth} as OrphanTreeDepth)
       : treeDepth;
@@ -412,13 +417,18 @@ class SpanTreeModel {
       wrappedSpan.toggleSpanGroup = undefined;
     }
 
+    // Do not autogroup groups that will only have two spans
     if (isLastSpanOfGroup && Array.isArray(spanGrouping) && spanGrouping.length === 1) {
-      if (toggleSpanGroup !== undefined && !showSpanGroup) {
-        toggleSpanGroup();
-      }
-
       if (!showSpanGroup) {
-        return [spanGrouping[0], wrappedSpan, ...descendants];
+        const parentSpan = spanGrouping[0].span;
+        const parentSpanBounds = generateBounds({
+          startTimestamp: parentSpan.start_timestamp,
+          endTimestamp: parentSpan.timestamp,
+        });
+        const isParentSpanOutOfView = !parentSpanBounds.isSpanVisibleInView;
+        if (!isParentSpanOutOfView) {
+          return [spanGrouping[0], wrappedSpan, ...descendants];
+        }
       }
 
       return [wrappedSpan, ...descendants];
