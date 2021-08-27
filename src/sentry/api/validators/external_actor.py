@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 
 from rest_framework import serializers
@@ -6,6 +7,10 @@ from sentry.models import Organization, OrganizationIntegration
 
 EXTERNAL_ID_LENGTH_MIN = 1
 EXTERNAL_ID_LENGTH_MAX = 64
+
+EXTERNAL_NAME_LENGTH_MIN = 1
+EXTERNAL_NAME_LENGTH_MAX = 255
+EXTERNAL_NAME_REGEX = re.compile(r"^@[\w/\.-]+$")
 
 
 def _out_of_range_string(param: str, minimum: int, maximum: int, actual: int) -> str:
@@ -27,6 +32,25 @@ def validate_external_id_option(external_id: Optional[str]) -> Optional[str]:
         )
 
     return external_id
+
+
+def validate_external_name(external_name: str) -> str:
+    if not (EXTERNAL_NAME_LENGTH_MIN <= len(external_name) <= EXTERNAL_NAME_LENGTH_MAX):
+        raise serializers.ValidationError(
+            _out_of_range_string(
+                "External Name",
+                EXTERNAL_NAME_LENGTH_MIN,
+                EXTERNAL_NAME_LENGTH_MAX,
+                len(external_name),
+            )
+        )
+
+    if EXTERNAL_NAME_REGEX.match(external_name) is None:
+        raise serializers.ValidationError(
+            "External Name must start with '@' and can't contain special characters or spaces."
+        )
+
+    return external_name
 
 
 def validate_integration_id(integration_id: str, organization: Organization) -> str:
