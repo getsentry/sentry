@@ -4,7 +4,7 @@
 # shellcheck disable=SC2034 # Unused variables
 
 # This block is a safe-guard since in CI calling tput will fail and abort scripts
-if [ -z "${TERM-x}" ]; then
+if [ -n "${TERM}" ]; then
     bold="$(tput bold)"
     red="$(tput setaf 1)"
     green="$(tput setaf 2)"
