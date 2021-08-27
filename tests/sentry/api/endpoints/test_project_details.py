@@ -752,7 +752,9 @@ class ProjectUpdateTest(APITestCase):
         assert (now + 3600 * 24 * 90) < expiry < (now + 3600 * 24 * 92)
 
     def test_redacted_symbol_source_secrets(self):
-        with Feature({"organizations:symbol-sources": True}):
+        with Feature(
+            {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
+        ):
             redacted_source = {
                 "id": "honk",
                 "name": "honk source",
