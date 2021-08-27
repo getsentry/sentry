@@ -172,14 +172,14 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
 
-        cfg_id: str = data.get("id")
-        apc_key: str = data.get("appconnectKey")
-        apc_private_key: str = data.get("appconnectPrivateKey")
-        apc_issuer: str = data.get("appconnectIssuer")
+        cfg_id: Optional[str] = data.get("id")
+        apc_key: Optional[str] = data.get("appconnectKey")
+        apc_private_key: Optional[str] = data.get("appconnectPrivateKey")
+        apc_issuer: Optional[str] = data.get("appconnectIssuer")
         if cfg_id:
             try:
                 current_config = appconnect.AppStoreConnectConfig.from_project_config(
-                    project, data.get("id")
+                    project, cfg_id
                 )
             except KeyError:
                 return Response(status=404)
@@ -325,7 +325,7 @@ class UpdateSessionContextSerializer(serializers.Serializer):  # type: ignore
     client_state = serializers.JSONField(required=True)
 
 
-def _validate_secret(secret_json: str) -> Optional[json.JSONData]:
+def _validate_secret(secret_json: Optional[str]) -> Optional[json.JSONData]:
     if not secret_json:
         return secret_json
 
@@ -365,10 +365,12 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
     orgId = serializers.CharField(max_length=36, min_length=36, required=False)
     orgName = serializers.CharField(max_length=100, required=False)
 
-    def validate_appconnectPrivateKey(self, private_key_json: str) -> Optional[json.JSONData]:
+    def validate_appconnectPrivateKey(
+        self, private_key_json: Optional[str]
+    ) -> Optional[json.JSONData]:
         return _validate_secret(private_key_json)
 
-    def validate_itunesPassword(self, password_json: str) -> Optional[json.JSONData]:
+    def validate_itunesPassword(self, password_json: Optional[str]) -> Optional[json.JSONData]:
         return _validate_secret(password_json)
 
 
@@ -454,8 +456,8 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         # Not using redact_source_secrets because it does a lot of extra work that we don't want
         # here
         symbol_source_json = symbol_source_config.to_json()
-        symbol_source_json["appconnectPrivateKey"] = json.dumps({"hidden-secret": True})
-        symbol_source_json["itunesPassword"] = json.dumps({"hidden-secret": True})
+        symbol_source_json["appconnectPrivateKey"] = {"hidden-secret": True}
+        symbol_source_json["itunesPassword"] = {"hidden-secret": True}
 
         return Response(symbol_source_json, status=200)
 
