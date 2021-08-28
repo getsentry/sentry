@@ -70,6 +70,7 @@ from sentry.api.exceptions import (
 )
 from sentry.api.fields.secret import SecretField, validate_secret
 from sentry.lang.native import appconnect
+from sentry.lang.native.symbolicator import get_secret_fields
 from sentry.models import AppConnectBuild, AuditLogEntryEvent, LatestAppConnectBuildsCheck, Project
 from sentry.tasks.app_store_connect import dsym_download
 from sentry.utils import json
@@ -302,8 +303,8 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         )
 
         redacted_config = validated_config.to_redacted_json()
-        config["appconnectPrivateKey"] = redacted_config["appconnectPrivateKey"]
-        config["itunesPassword"] = redacted_config["itunesPassword"]
+        for secret in get_secret_fields(redacted_config.type):
+            config[secret] = redacted_config[secret]
 
         return Response(config, status=200)
 
@@ -393,7 +394,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
 
         # Any secrets set to None during validation are meant to be no-ops, so remove them to avoid
         # erasing the existing values
-        for secret in ["appconnectPrivateKey", "itunesPassword"]:
+        for secret in get_secret_fields(symbol_source_config.type):
             if secret in data and data[secret] is None:
                 del data[secret]
 
