@@ -59,25 +59,7 @@ class TestAppStoreConnectConfig:
         config = appconnect.AppStoreConnectConfig.from_json(data)
         assert config.itunesCreated == now
 
-    def test_from_json_hidden_secrets(self, data):
-        data["itunesPassword"] = json.dumps({"hidden-secret": True})
-        data["appconnectPrivateKey"] = json.dumps({"hidden-secret": True})
-        config = appconnect.AppStoreConnectConfig.from_json(data)
-        assert config.itunesPassword == {"hidden-secret": True}
-        assert config.appconnectPrivateKey == {"hidden-secret": True}
-
     def test_to_json(self, data, now):
-        config = appconnect.AppStoreConnectConfig.from_json(data)
-        new_data = config.to_json()
-
-        # Fixup our input to expected JSON format
-        data["itunesCreated"] = now.isoformat()
-
-        assert new_data == data
-
-    def test_to_json_hidden_secrets(self, data, now):
-        data["itunesPassword"] = json.dumps({"hidden-secret": True})
-        data["appconnectPrivateKey"] = json.dumps({"hidden-secret": True})
         config = appconnect.AppStoreConnectConfig.from_json(data)
         new_data = config.to_json()
 

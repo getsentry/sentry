@@ -51,10 +51,9 @@ To create and manage these credentials, several API endpoints exist:
 """
 import datetime
 import logging
-from typing import Optional
+from typing import Optional, Union
 from uuid import uuid4
 
-import jsonschema
 import requests
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -83,18 +82,52 @@ APP_STORE_CONNECT_FEATURE_NAME = "organizations:app-store-connect"
 # The feature which allows multiple sources per project.
 MULTIPLE_SOURCES_FEATURE_NAME = "organizations:app-store-connect-multiple"
 
-# Schema for secrets sent to and returned from the UI during auth
-SECRET_PROPERTY = {
-    "oneOf": [
-        {"type": "string"},
-        {
-            "type": "object",
-            "properties": {"hidden-secret": {"enum": ["true"]}},
-            "required": ["hidden-secret"],
-            "additionalProperties": False,
-        },
-    ]
-}
+
+class SecretField(serializers.Field):
+    """
+    A secret-containing field whose values are either a string or a magic object. This validator
+    should be used when secrets are known to have previous values already stored on the server, i.e.
+    they may be in the form of a magic object representing a redacted secret.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(SecretField, self).__init__(*args, **kwargs)
+        self.string_field = serializers.CharField(min_length=1, max_length=512, *args, **kwargs)
+        self.magic_object_field = serializers.DictField(
+            child=serializers.BooleanField(required=True), allow_empty=False, *args, **kwargs
+        )
+
+    def to_representation(self, obj):
+        if isinstance(obj, dict):
+            return self.magic_object_field.to_representation(obj)
+        return self.string_field.to_representation(obj)
+
+    def to_internal_value(self, data):
+        if isinstance(data, dict):
+            return self.magic_object_field.to_internal_value(data)
+        self.string_field.run_validation(data)
+        return self.string_field.to_internal_value(data)
+
+
+def _validate_secret(secret: Optional[Union[str, dict]]) -> Optional[json.JSONData]:
+    """
+    Validates the contents of a field containing a secret that may have a magic object representing
+    some existing value already stored on the server. Returns None if the magic object is found,
+    indicating that the field should be back-filled by that existing value.
+    """
+
+    if not secret:
+        return secret
+
+    # If an object was returned then it must be the special value representing the currently
+    # stored secret, i.e. no change was made to it
+    if isinstance(secret, dict):
+        if secret.get("hidden-secret") is True:
+            return None
+        raise serializers.ValidationError("Invalid magic object for secret")
+
+    # Field validation should have already checked everything else.
+    return secret
 
 
 class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ignore
@@ -125,7 +158,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
     See :class:`AppStoreConnectCredentialsSerializer` for input validation.
 
     If you want to list the apps for an existing session you can use the ``id`` as created
-    by :class:`AppStoreConnectCreateCrednetialsEndpoint`
+    by :class:`AppStoreConnectCreateCredentialsEndpoint`
     (``projects/{org_slug}/{proj_slug}/appstoreconnect/``) instead:
     ```json
     {
@@ -324,27 +357,6 @@ class UpdateSessionContextSerializer(serializers.Serializer):  # type: ignore
     client_state = serializers.JSONField(required=True)
 
 
-def _validate_secret(secret_json: Optional[str]) -> Optional[json.JSONData]:
-    if not secret_json:
-        return secret_json
-
-    try:
-        secret = json.loads(secret_json)
-    except Exception as e:
-        raise serializers.ValidationError(str(e))
-
-    try:
-        jsonschema.validate(secret, SECRET_PROPERTY)
-    except jsonschema.ValidationError as e:
-        raise serializers.ValidationError(str(e))
-
-    # If an object was returned then it must be the special value representing the currently
-    # stored secret, i.e. no change was made to it
-    if isinstance(secret, dict):
-        return None
-    return secret
-
-
 class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: ignore
     """Input validation for :class:`AppStoreConnectUpdateCredentialsEndpoint`."""
 
@@ -352,10 +364,9 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
     appconnectIssuer = serializers.CharField(max_length=36, min_length=36, required=False)
     # about 10 chars
     appconnectKey = serializers.CharField(max_length=20, min_length=2, required=False)
-    # 512 should fit a private key
-    appconnectPrivateKey = serializers.CharField(max_length=512, required=False)
+    appconnectPrivateKey = SecretField(required=False)
     itunesUser = serializers.CharField(max_length=100, min_length=1, required=False)
-    itunesPassword = serializers.CharField(max_length=512, min_length=1, required=False)
+    itunesPassword = SecretField(required=False)
     appName = serializers.CharField(max_length=512, min_length=1, required=False)
     appId = serializers.CharField(min_length=1, required=False)
     bundleId = serializers.CharField(min_length=1, required=False)
@@ -365,11 +376,13 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
     orgName = serializers.CharField(max_length=100, required=False)
 
     def validate_appconnectPrivateKey(
-        self, private_key_json: Optional[str]
+        self, private_key_json: Optional[Union[str, dict]]
     ) -> Optional[json.JSONData]:
         return _validate_secret(private_key_json)
 
-    def validate_itunesPassword(self, password_json: Optional[str]) -> Optional[json.JSONData]:
+    def validate_itunesPassword(
+        self, password_json: Optional[Union[str, dict]]
+    ) -> Optional[json.JSONData]:
         return _validate_secret(password_json)
 
 
