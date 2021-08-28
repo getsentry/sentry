@@ -65,6 +65,7 @@ from sentry.api.exceptions import (
     AppConnectAuthenticationError,
     AppConnectMultipleSourcesError,
     ItunesAuthenticationError,
+    ItunesSmsBlocked,
     ItunesTwoFactorAuthenticationRequired,
 )
 from sentry.lang.native import appconnect
@@ -91,7 +92,7 @@ class SecretField(serializers.Field):
     """
 
     def __init__(self, *args, **kwargs):
-        super(SecretField, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.string_field = serializers.CharField(min_length=1, max_length=512, *args, **kwargs)
         self.magic_object_field = serializers.DictField(
             child=serializers.BooleanField(required=True), allow_empty=False, *args, **kwargs
@@ -721,7 +722,10 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):  # type: ignore
         except Exception:
             return Response({"session_context": ["Invalid client_state"]}, status=400)
 
-        itunes_client.request_sms_auth()
+        try:
+            itunes_client.request_sms_auth()
+        except itunes_connect.SmsBlockedError:
+            raise ItunesSmsBlocked
         return Response({"sessionContext": {"client_state": itunes_client.to_json()}}, status=200)
 
 
