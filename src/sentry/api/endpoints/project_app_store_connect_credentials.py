@@ -303,7 +303,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         )
 
         redacted_config = validated_config.to_redacted_json()
-        for secret in get_secret_fields(redacted_config.type):
+        for secret in get_secret_fields(validated_config.type):
             config[secret] = redacted_config[secret]
 
         return Response(config, status=200)
