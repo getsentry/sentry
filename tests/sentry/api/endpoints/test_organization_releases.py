@@ -142,7 +142,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(org.slug)
         self.assert_expected_versions(response, [release8, release7, release6])
 
-    def test_release_list_order_by_sessions(self):
+    def test_release_list_order_by_sessions_empty(self):
         self.login_as(user=self.user)
 
         release_1 = self.create_release(version="1")
@@ -157,7 +157,15 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
             response, [release_5, release_4, release_3, release_2, release_1]
         )
 
+    def test_release_list_order_by_sessions(self):
+        self.login_as(user=self.user)
+
+        release_1 = self.create_release(version="1")
         self.store_session(self.session_dict(release=release_1))
+        release_2 = self.create_release(version="2")
+        release_3 = self.create_release(version="3")
+        release_4 = self.create_release(version="4")
+        release_5 = self.create_release(version="5")
         self.bulk_store_sessions([self.session_dict(release=release_5) for _ in range(2)])
 
         response = self.get_valid_response(self.organization.slug, sort="sessions", flatten="1")
