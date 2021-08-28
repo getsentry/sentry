@@ -13,7 +13,7 @@ class SecretField(serializers.Field):  # type: ignore
     """
 
     def __init__(self, *args, **kwargs):  # type: ignore
-        super(SecretField, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.string_field = serializers.CharField(min_length=1, max_length=512, *args, **kwargs)
         self.magic_object_field = serializers.DictField(
             child=serializers.BooleanField(required=True), allow_empty=False, *args, **kwargs
