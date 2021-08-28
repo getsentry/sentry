@@ -346,8 +346,9 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             }
         )
 
-        config["appconnectPrivateKey"] = {"hidden-secret": True}
-        config["itunesPassword"] = {"hidden-secret": True}
+        redacted_config = validated_config.to_external_json()
+        config["appconnectPrivateKey"] = redacted_config["appconnectPrivateKey"]
+        config["itunesPassword"] = redacted_config["itunesPassword"]
 
         return Response(config, status=200)
 
@@ -465,13 +466,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             }
         )
 
-        # Not using redact_source_secrets because it does a lot of extra work that we don't want
-        # here
-        symbol_source_json = symbol_source_config.to_json()
-        symbol_source_json["appconnectPrivateKey"] = {"hidden-secret": True}
-        symbol_source_json["itunesPassword"] = {"hidden-secret": True}
-
-        return Response(symbol_source_json, status=200)
+        return Response(symbol_source_config.to_external_json(), status=200)
 
 
 class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: ignore
