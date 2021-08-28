@@ -301,6 +301,22 @@ def normalize_user_source(source):
     return source
 
 
+def get_secret_fields(source):
+    """
+    Returns a string list of all of the fields that contain a secret in a given source.
+    """
+    src_type = source["type"] if "type" in source else None
+    if src_type == "appStoreConnect":
+        return ["appconnectPrivateKey", "itunesPassword"]
+    elif src_type == "http":
+        return ["password"]
+    elif src_type == "s3":
+        return ["secret_key"]
+    elif src_type == "gcs":
+        return ["private_key"]
+    return []
+
+
 def parse_sources(config, filter_appconnect=True):
     """
     Parses the given sources in the config string (from JSON).
@@ -359,13 +375,7 @@ def parse_backfill_sources(sources_json, original_sources):
 
         ids.add(source["id"])
 
-        for secret in [
-            "appconnectPrivateKey",
-            "itunesPassword",
-            "password",
-            "secret_key",
-            "private_key",
-        ]:
+        for secret in get_secret_fields(source):
             if secret in source and source[secret] == {"hidden-secret": True}:
                 orig_source = orig_by_id.get(source["id"])
                 # Should just omit the source entirely if it's referencing a previously stored
@@ -389,13 +399,7 @@ def redact_source_secrets(config_sources):
 
     sources = parse_sources(config_sources, False)
     for source in sources:
-        for secret in [
-            "appconnectPrivateKey",
-            "itunesPassword",
-            "password",
-            "secret_key",
-            "private_key",
-        ]:
+        for secret in get_secret_fields(source):
             if secret in source:
                 source[secret] = {"hidden-secret": True}
 
