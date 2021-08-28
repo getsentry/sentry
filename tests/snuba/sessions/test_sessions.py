@@ -143,7 +143,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         data = check_has_health_data(
             [(self.project.id, self.session_release), (self.project.id, "dummy-release")]
         )
-        assert data == {self.session_release}
+        assert data == {(self.project.id, self.session_release)}
 
     def test_check_has_health_data_without_releases_should_exclude_sessions_gt_90_days(self):
         """
