@@ -301,7 +301,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             }
         )
 
-        redacted_config = validated_config.to_external_json()
+        redacted_config = validated_config.to_redacted_json()
         config["appconnectPrivateKey"] = redacted_config["appconnectPrivateKey"]
         config["itunesPassword"] = redacted_config["itunesPassword"]
 
@@ -421,7 +421,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             }
         )
 
-        return Response(symbol_source_config.to_external_json(), status=200)
+        return Response(symbol_source_config.to_redacted_json(), status=200)
 
 
 class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: ignore

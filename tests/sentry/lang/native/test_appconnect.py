@@ -68,9 +68,9 @@ class TestAppStoreConnectConfig:
 
         assert new_data == data
 
-    def test_to_external_json(self, data, now):
+    def test_to_redacted_json(self, data, now):
         config = appconnect.AppStoreConnectConfig.from_json(data)
-        new_data = config.to_external_json()
+        new_data = config.to_redacted_json()
 
         # Fixup our input to expected JSON format
         data["itunesCreated"] = now.isoformat()

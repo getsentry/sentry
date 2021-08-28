@@ -211,7 +211,7 @@ class AppStoreConnectConfig:
             raise InvalidConfigError from e
         return data
 
-    def to_external_json(self) -> Dict[str, Any]:
+    def to_redacted_json(self) -> Dict[str, Any]:
         """Creates a dict which can be serialised to JSON. This should be used when the
         config is meant to be passed to some external consumer, like the front end client.
         This dict will have its secrets redacted.
