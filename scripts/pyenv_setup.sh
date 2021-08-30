@@ -44,15 +44,16 @@ _append_to_startup_script() {
     case "$SHELL" in
     */bash)
       # shellcheck disable=SC2016
-      echo "Visit https://github.com/pyenv/pyenv#installation on how to fully set up your Bash shell.";;
+      echo "Visit https://github.com/pyenv/pyenv#installation on how to fully set up your Bash shell."
+      ;;
     */zsh)
       # shellcheck disable=SC2016
-      echo -e '# It is assumed that pyenv is installed via Brew, so this is all we need to do.\n' \
-        'eval "$(pyenv init --path)"' >>"${1}"
+      echo -e '# It is assumed that pyenv is installed via Brew, so this is all we need to do.' \
+        '\neval "$(pyenv init --path)"' >>"${1}"
       ;;
     */fish)
       # shellcheck disable=SC2016
-      echo -e '\n# pyenv init\nstatus is-login; and pyenv init --path | source' >> "${1}"
+      echo -e '\n# pyenv init\nstatus is-login; and pyenv init --path | source' >>"${1}"
       ;;
     esac
 
@@ -62,6 +63,7 @@ _append_to_startup_script() {
 }
 
 append_to_config() {
+  [[ ! -f "$1" ]] && touch "$1"
   if [[ -n "$1" ]]; then
     if grep -qF "(pyenv init -)" "${1}"; then
       echo >&2 "!!! Please remove the old-style pyenv initialization and try again:"
@@ -111,8 +113,7 @@ install_pyenv() {
 setup_pyenv() {
   configure-sentry-cli
   install_pyenv
-  _startup_script=$(get_shell_startup_script)
-  append_to_config "$_startup_script"
+  append_to_config "$(get_shell_startup_script)"
 
   # If the script is called with the "dot space right" approach (. ./scripts/pyenv_setup.sh),
   # the effects of this will be persistent outside of this script
