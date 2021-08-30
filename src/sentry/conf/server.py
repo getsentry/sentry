@@ -360,6 +360,13 @@ SILENCED_SYSTEM_CHECKS = (
     # the trailing slash. This confuses the warning as the regex is `/$` which
     # looks like it starts with a slash but it doesn't.
     "urls.W002",
+    # Our own AuthenticationMiddleware suffices as a replacement for
+    # django.contrib.auth.middleware.AuthenticationMiddleware; both add the
+    # authenticated user to the HttpRequest which is what's needed here.
+    "admin.E408",
+    # This is fixed in Django@7c08f26bf0439c1ed593b51b51ad847f7e262bc1.
+    # It's not our problem; refer to Django issue 32260.
+    "urls.E007",
 )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
