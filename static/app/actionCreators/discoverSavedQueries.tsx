@@ -81,9 +81,9 @@ export function updateSavedQuery(
 export function updateSavedQueryVisit(
   orgId: string,
   queryId: string | string[]
-): Promise<SavedQuery> {
+): Promise<void> {
   const api = new Client();
-  const promise: Promise<SavedQuery> = api.requestPromise(
+  const promise = api.requestPromise(
     `/organizations/${orgId}/discover/saved/${queryId}/visit/`,
     {
       method: 'POST',

@@ -24,14 +24,16 @@ type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
 };
 
 function ViewEditDashboard(props: Props) {
-  useEffect(() => {
-    const {api, organization, params} = props;
-    if (params.dashboardId && params.dashboardId !== 'default-overview') {
-      updateDashboardVisit(api, organization.slug, params.dashboardId);
-    }
-  });
+  const {api, organization, params, location} = props;
+  const dashboardId = params.dashboardId;
+  const orgSlug = organization.slug;
 
-  const {organization, params, api, location} = props;
+  useEffect(() => {
+    if (dashboardId && dashboardId !== 'default-overview') {
+      updateDashboardVisit(api, orgSlug, dashboardId);
+    }
+  }, [api, orgSlug, dashboardId]);
+
   return (
     <DashboardBasicFeature organization={organization}>
       <OrgDashboards
