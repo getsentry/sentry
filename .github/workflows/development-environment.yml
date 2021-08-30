@@ -31,6 +31,8 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
+      # Brew cache /Users/armenzg/Library/Caches/Homebrew/downloads
+
       - name: Install prerequisites
         # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
         # Sometimes, brew needs to be updated before brew bundle would work
@@ -38,7 +40,8 @@ jobs:
         run: |
           sw_vers -productVersion
           uname -m
-          brew update -q && brew bundle -q
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask docker
+          # brew update -q && brew bundle -q
           # This code is mentioned in our dev docs. Only remove if you adjust the docs as well
           SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh init-docker
 
