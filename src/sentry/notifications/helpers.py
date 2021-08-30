@@ -57,7 +57,10 @@ def _get_notification_setting_default(
     if organization:
         organizations = [organization]
     elif user:
-        organizations = user.get_orgs()
+        if user.is_anonymous:
+            organizations = []
+        else:
+            organizations = user.get_orgs()
         actor = user
 
     if any_organization_has_feature(
