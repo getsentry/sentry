@@ -97,15 +97,13 @@ class TeamDetailsEndpoint(TeamEndpoint):
         Schedules a team for deletion.
 
         **Note:** Deletion happens asynchronously and therefore is not
-        immediate.  However once deletion has begun the state of a team
-        changes and will be hidden from most public views.
+        immediate. Teams will have their slug released while waiting for deletion.
         """
+        transaction_id = uuid4().hex
         updated = Team.objects.filter(id=team.id, status=TeamStatus.VISIBLE).update(
-            status=TeamStatus.PENDING_DELETION
+            slug=f"{team.slug}-{transaction_id}", status=TeamStatus.PENDING_DELETION
         )
         if updated:
-            transaction_id = uuid4().hex
-
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,

@@ -98,8 +98,10 @@ class TeamDeleteTest(TeamDetailsTestBase):
 
         self.get_valid_response(team.organization.slug, team.slug, status_code=204)
 
-        team = Team.objects.get(id=team.id)
+        original_slug = team.slug
+        team.refresh_from_db()
         self.assert_team_deleted(team.id)
+        assert original_slug != team.slug, "Slug should be released on delete."
 
     def test_remove_as_admin_not_in_team(self):
         """Admins can't remove teams of which they're not a part, unless
