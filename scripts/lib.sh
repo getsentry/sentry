@@ -41,7 +41,7 @@ init-docker() {
     # Need to start docker if it was freshly installed or updated
     # You will know that Docker is ready for devservices when the icon on the menu bar stops flashing
     # This block might succeed, thus, on following runs /Applications/Docker.app should exist
-    if query-mac && ! require docker && [ ! -d "/Applications/Docker.app" ]; then
+    if query-mac && ! require docker && [ -d "/Applications/Docker.app" ]; then
         setup-docker
     fi
     start-docker
@@ -68,7 +68,6 @@ setup-docker() {
     fi
     sudo-askpass /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
     sudo-askpass /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
-    sleep 5
 }
 
 # This is mainly to be used by CI
