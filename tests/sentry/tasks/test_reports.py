@@ -278,7 +278,7 @@ class ReportTestCase(TestCase, SnubaTestCase):
         set_option_value([organization.id])
         assert user_subscribed_to_organization_reports(user, organization) is False
 
-        set_option_value([""])
+        set_option_value("")
         assert user_subscribed_to_organization_reports(user, organization) is True
 
     @mock.patch("sentry.tasks.reports.BATCH_SIZE", 1)
