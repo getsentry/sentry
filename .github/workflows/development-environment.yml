@@ -31,8 +31,6 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
-      # Brew cache /Users/armenzg/Library/Caches/Homebrew/downloads
-
       # The next few steps are to set up the cache quickly
       - name: Set environment variables & others
         id: info
@@ -46,7 +44,7 @@ jobs:
       - name: Cache (brew)
         uses: actions/cache@v2
         with:
-          path: ${{ steps.info.outputs.pytbrew-cache }}
+          path: ${{ steps.info.outputs.brew-cache }}
           key: devenv-${{ runner.os }}-brew-${{ hashFiles('Brewfile') }}
           restore-keys: devenv-${{ runner.os }}-brew
 
