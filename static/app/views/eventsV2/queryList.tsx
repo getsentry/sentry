@@ -86,7 +86,8 @@ class QueryList extends React.Component<Props> {
   };
 
   handleAddQueryToDashboard =
-    (eventView: EventView) => (event: React.MouseEvent<Element>) => {
+    (eventView: EventView, savedQuery?: SavedQuery) =>
+    (event: React.MouseEvent<Element>) => {
       const {organization} = this.props;
       event.preventDefault();
       event.stopPropagation();
@@ -97,6 +98,7 @@ class QueryList extends React.Component<Props> {
         end: eventView.end,
         statsPeriod: eventView.statsPeriod,
         fromDiscover: true,
+        defaultTitle: savedQuery?.name ?? eventView.name,
       });
     };
 
@@ -175,6 +177,27 @@ class QueryList extends React.Component<Props> {
               query_name: eventView.name,
             });
           }}
+          renderContextMenu={() => (
+            <Feature
+              organization={organization}
+              features={['connect-discover-and-dashboards', 'dashboards-edit']}
+            >
+              {({hasFeature}) => {
+                return (
+                  hasFeature && (
+                    <ContextMenu>
+                      <MenuItem
+                        data-test-id="add-query-to-dashboard"
+                        onClick={this.handleAddQueryToDashboard(eventView)}
+                      >
+                        {t('Add to Dashboard')}
+                      </MenuItem>
+                    </ContextMenu>
+                  )
+                );
+              }}
+            </Feature>
+          )}
         />
       );
     });
@@ -227,13 +250,13 @@ class QueryList extends React.Component<Props> {
             <ContextMenu>
               <Feature
                 organization={organization}
-                features={['connect-discover-and-dashboards']}
+                features={['connect-discover-and-dashboards', 'dashboards-edit']}
               >
                 {({hasFeature}) =>
                   hasFeature && (
                     <MenuItem
                       data-test-id="add-query-to-dashboard"
-                      onClick={this.handleAddQueryToDashboard(eventView)}
+                      onClick={this.handleAddQueryToDashboard(eventView, savedQuery)}
                     >
                       {t('Add to Dashboard')}
                     </MenuItem>

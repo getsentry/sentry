@@ -357,7 +357,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     const state = this.state;
     const errors = state.errors;
 
-    const querySelection = statsPeriod
+    // Construct GlobalSelection object using statsPeriod/start/end props so we can render widget graph using saved timeframe from Saved/Prebuilt Query
+    const querySelection: GlobalSelection = statsPeriod
       ? {...selection, datetime: {start: null, end: null, period: statsPeriod, utc: null}}
       : start && end
       ? {...selection, datetime: {start, end, period: null, utc: null}}
@@ -435,7 +436,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               return (
                 <WidgetQueriesForm
                   organization={organization}
-                  selection={querySelection as GlobalSelection}
+                  selection={querySelection}
                   fieldOptions={amendedFieldOptions}
                   displayType={state.displayType}
                   queries={state.queries}
@@ -453,7 +454,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           <WidgetCard
             api={api}
             organization={organization}
-            selection={querySelection as GlobalSelection}
+            selection={querySelection}
             widget={this.state}
             isEditing={false}
             onDelete={() => undefined}
