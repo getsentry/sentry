@@ -1,4 +1,4 @@
-import {CSSProperties} from 'react';
+import {CSSProperties, useRef} from 'react';
 import * as React from 'react';
 import classNames from 'classnames';
 
@@ -25,45 +25,40 @@ type Props = {
   style?: CSSProperties;
 };
 
-class AutoSelectText extends React.Component<Props> {
-  private el: HTMLElement | undefined;
+function AutoSelectText({children, className, ...props}: Props) {
+  const element = useRef<HTMLElement>();
 
-  selectText = () => {
-    if (!this.el) {
+  function handleClick() {
+    if (!element.current) {
       return;
     }
-
-    selectText(this.el);
-  };
-
-  handleMount = (el: HTMLElement) => {
-    this.el = el;
-  };
-
-  render() {
-    const {children, className, ...props} = this.props;
-
-    if (isRenderFunc<ChildFunction>(children)) {
-      return children({
-        doMount: this.handleMount,
-        doSelect: this.selectText,
-      });
-    }
-
-    // use an inner span here for the selection as otherwise the selectText
-    // function will create a range that includes the entire part of the
-    // div (including the div itself) which causes newlines to be selected
-    // in chrome.
-    return (
-      <div
-        {...props}
-        onClick={this.selectText}
-        className={classNames('auto-select-text', className)}
-      >
-        <span ref={this.handleMount}>{children}</span>
-      </div>
-    );
+    selectText(element.current);
   }
+
+  function handleMount(el: HTMLElement) {
+    element.current = el;
+  }
+
+  if (isRenderFunc<ChildFunction>(children)) {
+    return children({
+      doMount: handleMount,
+      doSelect: handleClick,
+    });
+  }
+
+  // use an inner span here for the selection as otherwise the selectText
+  // function will create a range that includes the entire part of the
+  // div (including the div itself) which causes newlines to be selected
+  // in chrome.
+  return (
+    <div
+      {...props}
+      onClick={handleClick}
+      className={classNames('auto-select-text', className)}
+    >
+      <span ref={handleMount}>{children}</span>
+    </div>
+  );
 }
 
 export default AutoSelectText;
