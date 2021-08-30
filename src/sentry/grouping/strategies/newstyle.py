@@ -299,6 +299,11 @@ def frame(frame, event, context, **meta):
 
     values = [module_component, filename_component, function_component]
     if context_line_component is not None:
+        # Typically we want to add whichever frame component contributes to
+        # the title. In JS, frames are hashed by source context, which we
+        # cannot show. In that case we want to show something else instead
+        # of hiding the frame from the title as if it didn't contribute.
+        context_line_component.update(tree_label=function_component.tree_label)
         values.append(context_line_component)
 
     if (
@@ -374,13 +379,6 @@ def frame(frame, event, context, **meta):
         for value in rv.values:
             if isinstance(value, GroupingComponent) and value.contributes and value.tree_label:
                 tree_label.update(value.tree_label)
-
-        if not tree_label and function_component.tree_label:
-            # Typically we want to add whichever frame component contributes to
-            # the title. In JS, frames are hashed by source context, which we
-            # cannot show. In that case we want to show something else instead
-            # of hiding the frame from the title as if it didn't contribute.
-            tree_label.update(function_component.tree_label)
 
         if tree_label and context["hierarchical_grouping"]:
             tree_label["datapath"] = frame.datapath
