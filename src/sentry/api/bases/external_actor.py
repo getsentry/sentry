@@ -9,7 +9,9 @@ from rest_framework.request import Request
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.external_actor import (
+    is_valid_provider,
     validate_external_id_option,
+    validate_external_name,
     validate_integration_id,
 )
 from sentry.api.validators.integrations import validate_provider
@@ -21,6 +23,11 @@ AVAILABLE_PROVIDERS = {
     ExternalProviders.GITLAB,
     ExternalProviders.SLACK,
     ExternalProviders.CUSTOM,
+}
+
+STRICT_NAME_PROVIDERS = {
+    ExternalProviders.GITHUB,
+    ExternalProviders.GITLAB,
 }
 
 
@@ -39,6 +46,13 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
 
     def validate_external_id(self, external_id: str) -> Optional[str]:
         return validate_external_id_option(external_id)
+
+    def validate_external_name(self, external_name: str) -> str:
+        provider = self.initial_data.get("provider")
+        # Ensure the provider is strict, otherwise do not validate
+        if is_valid_provider(provider, STRICT_NAME_PROVIDERS):
+            return validate_external_name(external_name)
+        return external_name
 
     def validate_provider(self, provider_name_option: str) -> int:
         provider = validate_provider(provider_name_option, available_providers=AVAILABLE_PROVIDERS)
