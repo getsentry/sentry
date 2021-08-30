@@ -413,7 +413,7 @@ class EventView {
       statsPeriod: saved.range,
     });
 
-    return new EventView({
+    const eventView = new EventView({
       id: saved.id,
       name: saved.name,
       fields,
@@ -436,6 +436,8 @@ class EventView {
       expired: saved.expired,
       additionalConditions: new MutableSearch([]),
     });
+
+    return eventView;
   }
 
   static fromSavedQueryOrLocation(

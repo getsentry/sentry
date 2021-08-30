@@ -361,7 +361,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     const querySelection: GlobalSelection = statsPeriod
       ? {...selection, datetime: {start: null, end: null, period: statsPeriod, utc: null}}
       : start && end
-      ? {...selection, datetime: {start, end, period: null, utc: null}}
+      ? {...selection, datetime: {start, end, period: '', utc: null}}
       : selection;
     const fieldOptions = (measurementKeys: string[]) =>
       generateFieldOptions({

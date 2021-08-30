@@ -197,7 +197,7 @@ describe('EventsV2 > QueryList', function () {
 
   it('renders Add to Dashboard in context menu with feature flag', async function () {
     const featuredOrganization = TestStubs.Organization({
-      features: ['connect-discover-and-dashboards'],
+      features: ['connect-discover-and-dashboards', 'dashboards-edit'],
     });
     const wrapper = mountWithTheme(
       <QueryList
