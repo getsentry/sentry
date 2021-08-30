@@ -1,6 +1,7 @@
 from django.http import Http404
 
 from sentry.api.bases.integration import IntegrationEndpoint
+from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.models import Integration, OrganizationIntegration
 
 
@@ -10,6 +11,8 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
     OrganizationIntegration DB entries to exist for a given organization and
     integration_id.
     """
+
+    permission_classes = (OrganizationIntegrationsPermission,)
 
     def convert_args(self, request, organization_slug, integration_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)

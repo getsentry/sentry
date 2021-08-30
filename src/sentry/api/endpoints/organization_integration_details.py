@@ -2,7 +2,6 @@ from uuid import uuid4
 
 from rest_framework import serializers
 
-from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
@@ -19,8 +18,6 @@ class IntegrationSerializer(serializers.Serializer):
 
 
 class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint):
-    permission_classes = (OrganizationIntegrationsPermission,)
-
     def get(self, request, organization, integration_id):
         org_integration = self.get_organization_integration(organization, integration_id)
 
