@@ -3,6 +3,7 @@ import * as React from 'react';
 import {assignToActor, assignToUser} from 'app/actionCreators/group';
 import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import {Client} from 'app/api';
+import AsyncComponent from 'app/components/asyncComponent';
 import {Actor, CodeOwner, Committer, Group, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
@@ -14,7 +15,6 @@ import withOrganization from 'app/utils/withOrganization';
 import {findMatchedRules, Rules} from './findMatchedRules';
 import {OwnershipRules} from './ownershipRules';
 import {SuggestedAssignees} from './suggestedAssignees';
-import AsyncComponent from 'app/components/asyncComponent';
 
 type OwnerList = React.ComponentProps<typeof SuggestedAssignees>['owners'];
 
