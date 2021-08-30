@@ -36,6 +36,8 @@ jobs:
         # Sometimes, brew needs to be updated before brew bundle would work
         # After installing Docker (via homebrew) we need to make sure that it is properly initialized on Mac
         run: |
+          sw_vers -productVersion
+          uname -m
           brew update -q && brew bundle -q
           # This code is mentioned in our dev docs. Only remove if you adjust the docs as well
           SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh init-docker
@@ -81,8 +83,11 @@ jobs:
           export PATH="$HOME/.volta/bin:$PATH"
           make setup-pyenv
           eval "$(pyenv init --path)"
+          python -VV
           python -m venv .venv
           source .venv/bin/activate
+          pip install uWSGI
+          python -VV
           make develop init-config
           sentry devservices up || exit 0
 
