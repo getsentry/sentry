@@ -43,6 +43,7 @@ import {
   getReleaseHandledIssuesUrl,
   getReleaseParams,
   getReleaseUnhandledIssuesUrl,
+  roundDuration,
 } from 'app/views/releases/utils';
 
 import {releaseComparisonChartLabels} from '../../utils';
@@ -387,8 +388,12 @@ function ReleaseComparisonChart({
   const releaseUsersCount = getCount(releaseSessions?.groups, SessionField.USERS);
   const allUsersCount = getCount(allSessions?.groups, SessionField.USERS);
 
-  const sessionDurationTotal = getCount(releaseSessions?.groups, SessionField.DURATION);
-  const allSessionDurationTotal = getCount(allSessions?.groups, SessionField.DURATION);
+  const sessionDurationTotal = roundDuration(
+    getCount(releaseSessions?.groups, SessionField.DURATION) / 1000
+  );
+  const allSessionDurationTotal = roundDuration(
+    getCount(allSessions?.groups, SessionField.DURATION) / 1000
+  );
 
   const diffFailure =
     eventsTotals?.releaseFailureRate && eventsTotals?.allFailureRate
