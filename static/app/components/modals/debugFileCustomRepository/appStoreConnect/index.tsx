@@ -51,11 +51,15 @@ type InitialData = {
   appName: string;
   appconnectIssuer: string;
   appconnectKey: string;
-  appconnectPrivateKey: string;
+  appconnectPrivateKey: {
+    'hidden-secret': boolean;
+  };
   bundleId: string;
   id: string;
   itunesCreated: string;
-  itunesPassword: string;
+  itunesPassword: {
+    'hidden-secret': boolean;
+  };
   itunesPersonId: string;
   itunesSession: string;
   itunesUser: string;
@@ -68,7 +72,7 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   api: Client;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
-  onSubmit: (data: InitialData) => void;
+  onSubmit: () => void;
   location: Location;
   appStoreConnectContext?: AppStoreConnectContextProps;
   initialData?: InitialData;
@@ -111,7 +115,11 @@ function AppStoreConnect({
   const [stepOneData, setStepOneData] = useState<StepOneData>({
     issuer: initialData?.appconnectIssuer,
     keyId: initialData?.appconnectKey,
-    privateKey: initialData?.appconnectPrivateKey,
+    privateKey:
+      typeof initialData?.appconnectPrivateKey === 'object'
+        ? undefined
+        : initialData?.appconnectPrivateKey,
+    unchanged: typeof initialData?.appconnectPrivateKey === 'object',
   });
 
   const [stepTwoData, setStepTwoData] = useState<StepTwoData>({
@@ -127,7 +135,11 @@ function AppStoreConnect({
 
   const [stepThreeData, setStepThreeData] = useState<StepThreeData>({
     username: initialData?.itunesUser,
-    password: initialData?.itunesPassword,
+    password:
+      typeof initialData?.itunesPassword === 'object'
+        ? undefined
+        : initialData?.itunesPassword,
+    unchanged: typeof initialData?.itunesPassword === 'object',
   });
 
   const [stepFourData, setStepFourData] = useState<StepFourData>({
@@ -168,6 +180,7 @@ function AppStoreConnect({
         {
           method: 'POST',
           data: {
+            id: initialData?.id,
             appconnectIssuer: stepOneData.issuer,
             appconnectKey: stepOneData.keyId,
             appconnectPrivateKey: stepOneData.privateKey,
@@ -233,21 +246,17 @@ function AppStoreConnect({
     setIsLoading(true);
 
     let endpoint = `/projects/${orgSlug}/${projectSlug}/appstoreconnect/`;
-
-    let errorMessage = t(
-      'An error occured while adding the App Store Connect repository.'
-    );
+    let errorMessage = t('An error occurred while adding the custom repository');
+    let successMessage = t('Successfully added custom repository');
 
     if (!!initialData) {
       endpoint = `${endpoint}${initialData.id}/`;
-
-      errorMessage = t(
-        'An error occured while updating the App Store Connect repository.'
-      );
+      errorMessage = t('An error occurred while updating the custom repository');
+      successMessage = t('Successfully updated custom repository');
     }
 
     try {
-      const response = await api.requestPromise(endpoint, {
+      await api.requestPromise(endpoint, {
         method: 'POST',
         data: {
           itunesUser: stepThreeData.username,
@@ -263,7 +272,9 @@ function AppStoreConnect({
           sessionContext: newSessionContext ?? sessionContext,
         },
       });
-      onSubmit(response as InitialData);
+
+      addSuccessMessage(successMessage);
+      onSubmit();
     } catch (error) {
       setIsLoading(false);
       addErrorMessage(errorMessage);
@@ -273,11 +284,21 @@ function AppStoreConnect({
   function isFormInvalid() {
     switch (activeStep) {
       case 0:
-        return Object.keys(stepOneData).some(key => !stepOneData[key]);
+        return Object.keys(stepOneData).some(key => {
+          if ((key === 'privateKey' && stepOneData.unchanged) || key === 'unchanged') {
+            return false;
+          }
+          return !stepOneData[key];
+        });
       case 1:
         return Object.keys(stepTwoData).some(key => !stepTwoData[key]);
       case 2: {
-        return Object.keys(stepThreeData).some(key => !stepThreeData[key]);
+        return Object.keys(stepThreeData).some(key => {
+          if ((key === 'password' && stepThreeData.unchanged) || key === 'unchanged') {
+            return false;
+          }
+          return !stepThreeData[key];
+        });
       }
       case 3: {
         return Object.keys(stepFourData).some(key => !stepFourData[key]);
@@ -309,6 +330,7 @@ function AppStoreConnect({
         {
           method: 'POST',
           data: {
+            id: initialData?.id,
             itunesUser: stepThreeData.username,
             itunesPassword: stepThreeData.password,
           },

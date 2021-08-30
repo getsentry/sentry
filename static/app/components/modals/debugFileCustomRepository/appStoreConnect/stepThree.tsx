@@ -25,6 +25,7 @@ function StepThree({stepThreeData, onSetStepOneData}: Props) {
           type="text"
           name="username"
           placeholder={t('Username')}
+          value={stepThreeData.username}
           onChange={e => onSetStepOneData({...stepThreeData, username: e.target.value})}
         />
       </Field>
@@ -36,10 +37,21 @@ function StepThree({stepThreeData, onSetStepOneData}: Props) {
         required
       >
         <Input
-          type="password"
           name="password"
-          placeholder={t('Password')}
-          onChange={e => onSetStepOneData({...stepThreeData, password: e.target.value})}
+          type={stepThreeData.unchanged ? 'text' : 'password'}
+          value={stepThreeData.password}
+          placeholder={
+            stepThreeData.unchanged
+              ? `${'('}${t('Password unchanged')}${')'}`
+              : t('Password')
+          }
+          onChange={e =>
+            onSetStepOneData({
+              ...stepThreeData,
+              password: e.target.value,
+              unchanged: false,
+            })
+          }
         />
       </Field>
     </Fragment>
