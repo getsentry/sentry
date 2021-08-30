@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
-import {browserHistory} from 'react-router';
-import * as ReactRouter from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import {Location} from 'history';
 
@@ -40,7 +39,7 @@ const QUERY_KEYS = [
 
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
-type Props = ReactRouter.WithRouterProps &
+type Props = WithRouterProps &
   ViewProps & {
     theme: Theme;
     api: Client;
@@ -241,4 +240,4 @@ class VitalsChart extends Component<Props> {
   }
 }
 
-export default withApi(withTheme(ReactRouter.withRouter(VitalsChart)));
+export default withApi(withTheme(withRouter(VitalsChart)));

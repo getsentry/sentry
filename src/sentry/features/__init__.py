@@ -59,6 +59,7 @@ default_manager.add("organizations:app-store-connect", OrganizationFeature, True
 default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature, False)
 default_manager.add("organizations:boolean-search", OrganizationFeature)
 default_manager.add("organizations:chart-unfurls", OrganizationFeature, True)
+default_manager.add("organizations:connect-discover-and-dashboards", OrganizationFeature, True)
 default_manager.add("organizations:custom-event-title", OrganizationFeature)
 default_manager.add("organizations:custom-symbol-sources", OrganizationFeature)
 default_manager.add("organizations:dashboards-basic", OrganizationFeature)
@@ -99,6 +100,7 @@ default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature, 
 default_manager.add("organizations:issue-percent-display", OrganizationFeature, True)
 default_manager.add("organizations:issue-search-use-cdc-primary", OrganizationFeature, True)
 default_manager.add("organizations:issue-search-use-cdc-secondary", OrganizationFeature, True)
+default_manager.add("organizations:jira-ac-plugin", OrganizationFeature, True)
 default_manager.add("organizations:large-debug-files", OrganizationFeature)
 default_manager.add("organizations:metric-alert-builder-aggregate", OrganizationFeature)
 default_manager.add("organizations:metrics", OrganizationFeature, True)
@@ -116,10 +118,9 @@ default_manager.add("organizations:performance-tag-explorer", OrganizationFeatur
 default_manager.add("organizations:performance-tag-page", OrganizationFeature, True)
 default_manager.add("organizations:performance-events-page", OrganizationFeature, True)
 default_manager.add("organizations:performance-chart-interpolation", OrganizationFeature, True)
+default_manager.add("organizations:performance-suspect-spans-ingestion", OrganizationFeature)
+default_manager.add("organizations:performance-suspect-spans-view", OrganizationFeature, True)
 default_manager.add("organizations:performance-view", OrganizationFeature)
-default_manager.add(
-    "organizations:performance-create-sample-transaction", OrganizationFeature, True
-)
 default_manager.add("organizations:project-transaction-threshold", OrganizationFeature, True)
 default_manager.add(
     "organizations:project-transaction-threshold-override", OrganizationFeature, True

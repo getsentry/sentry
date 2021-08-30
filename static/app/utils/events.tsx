@@ -54,6 +54,9 @@ export function getLocation(event: Event | BaseGroup | GroupTombstone) {
 }
 
 export function getTreeLabelPartDetails(part: TreeLabelPart) {
+  // Note: This function also exists in Python in eventtypes/base.py, to make
+  // porting efforts simpler it's recommended to keep both variants
+  // structurally similar.
   if (typeof part === 'string') {
     return {
       label: part,
@@ -61,8 +64,18 @@ export function getTreeLabelPartDetails(part: TreeLabelPart) {
     };
   }
 
+  let label = part?.function || part?.package || part?.type;
+  const classbase = part?.classbase;
+  if (classbase) {
+    if (label) {
+      label = `${classbase}.${label}`;
+    } else {
+      label = classbase;
+    }
+  }
+
   return {
-    label: part?.function || part?.package || part?.type || '<unknown>',
+    label: label || '<unknown>',
     highlight: !!part.is_sentinel,
   };
 }

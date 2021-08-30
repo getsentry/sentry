@@ -161,7 +161,6 @@ describe('Performance > TransactionSummary', function () {
         organization={initialData.organization}
         location={initialData.router.location}
         projects={[]}
-        router={initialData.router}
       />,
       initialData.routerContext
     );
@@ -170,10 +169,7 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     expect(
-      wrapper
-        .find('NavTabs')
-        .find({children: ['All Events']})
-        .find('Link')
+      wrapper.find('NavTabs').find({children: 'All Events'}).find('Link')
     ).toHaveLength(1);
     expect(wrapper.find('SentryDocumentTitle')).toHaveLength(1);
     expect(wrapper.find('SearchBar')).toHaveLength(1);
@@ -189,7 +185,6 @@ describe('Performance > TransactionSummary', function () {
         organization={initialData.organization}
         location={initialData.router.location}
         projects={[]}
-        router={initialData.router}
       />,
       initialData.routerContext
     );
@@ -212,7 +207,6 @@ describe('Performance > TransactionSummary', function () {
         organization={initialData.organization}
         location={initialData.router.location}
         projects={[]}
-        router={initialData.router}
       />,
       initialData.routerContext
     );
@@ -233,7 +227,6 @@ describe('Performance > TransactionSummary', function () {
         organization={initialData.organization}
         location={initialData.router.location}
         projects={[]}
-        router={initialData.router}
       />,
       initialData.routerContext
     );
@@ -274,7 +267,6 @@ describe('Performance > TransactionSummary', function () {
         organization={initialData.organization}
         location={initialData.router.location}
         projects={[]}
-        router={initialData.router}
       />,
       initialData.routerContext
     );

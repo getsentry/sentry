@@ -16,7 +16,7 @@ import {OrganizationSummary} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {TRACING_FIELDS} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 type Props = {
   organization: OrganizationSummary;
@@ -47,7 +47,7 @@ class RelatedIssues extends Component<Props> {
       sort: 'new',
       ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     };
-    const currentFilter = tokenizeSearch(decodeScalar(location.query.query, ''));
+    const currentFilter = new MutableSearch(decodeScalar(location.query.query, ''));
     currentFilter.getFilterKeys().forEach(tagKey => {
       const searchKey = tagKey.startsWith('!') ? tagKey.substr(1) : tagKey;
       // Remove aggregates and transaction event fields

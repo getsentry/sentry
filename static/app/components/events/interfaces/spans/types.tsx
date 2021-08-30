@@ -71,13 +71,12 @@ export type EnhancedSpan =
   | ({
       type: 'root_span';
       span: SpanType;
-    } & CommonEnhancedProcessedSpanType &
-      SpanGroupProps)
+    } & CommonEnhancedProcessedSpanType)
   | ({
       type: 'span';
       span: SpanType;
-    } & CommonEnhancedProcessedSpanType &
-      SpanGroupProps);
+      toggleSpanGroup: (() => void) | undefined;
+    } & CommonEnhancedProcessedSpanType);
 
 // ProcessedSpanType with additional information
 export type EnhancedProcessedSpanType =
@@ -93,7 +92,13 @@ export type EnhancedProcessedSpanType =
   | {
       type: 'out_of_view';
       span: SpanType;
-    };
+    }
+  | ({
+      type: 'span_group_chain';
+      span: SpanType;
+      treeDepth: number;
+      continuingTreeDepths: Array<TreeDepthType>;
+    } & SpanGroupProps);
 
 export type SpanEntry = {
   type: 'spans';
@@ -112,7 +117,6 @@ export type ParsedTraceType = {
   parentSpanID?: string;
   traceStartTimestamp: number;
   traceEndTimestamp: number;
-  numOfSpans: number;
   spans: SpanType[];
   description?: string;
 };
@@ -170,4 +174,10 @@ export type SpanFuseOptions = {
   location: number;
   distance: number;
   maxPatternLength: number;
+};
+
+export type TraceBound = {
+  spanId: string;
+  traceStartTimestamp: number;
+  traceEndTimestamp: number;
 };

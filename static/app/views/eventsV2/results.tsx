@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -48,7 +48,7 @@ import {generateTitle} from './utils';
 
 type Props = {
   api: Client;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   location: Location;
   organization: Organization;
   selection: GlobalSelection;
@@ -246,9 +246,7 @@ class Results extends React.Component<Props, State> {
       nextEventView.query = decodeScalar(location.query.query, '');
     }
 
-    ReactRouter.browserHistory.replace(
-      nextEventView.getResultsViewUrlTarget(organization.slug)
-    );
+    browserHistory.replace(nextEventView.getResultsViewUrlTarget(organization.slug));
   }
 
   handleChangeShowTags = () => {
@@ -500,15 +498,15 @@ class Results extends React.Component<Props, State> {
   }
 }
 
-export const StyledPageContent = styled(PageContent)`
+const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-export const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
 
-export const Top = styled(Layout.Main)`
+const Top = styled(Layout.Main)`
   flex-grow: 0;
 `;
 

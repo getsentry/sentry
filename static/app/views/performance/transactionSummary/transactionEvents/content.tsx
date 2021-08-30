@@ -21,12 +21,13 @@ import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from '../filter';
-import TransactionHeader, {Tab} from '../header';
+import TransactionHeader from '../header';
+import Tab from '../tabs';
 
 import EventsTable from './eventsTable';
 import {EventsDisplayFilterName, getEventsFilterOptions} from './utils';
@@ -61,7 +62,7 @@ class EventsPageContent extends React.Component<Props, State> {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location} = this.props;
 
-      const searchConditions = tokenizeSearch(eventView.query);
+      const searchConditions = new MutableSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
       searchConditions.removeFilter('event.type');

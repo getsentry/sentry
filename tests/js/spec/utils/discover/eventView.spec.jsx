@@ -1615,7 +1615,9 @@ describe('EventView.withColumns()', function () {
     fields: [
       {field: 'count()', width: 30},
       {field: 'project.id', width: 99},
+      {field: 'failure_count()', width: 30},
     ],
+    yAxis: 'failure_count()',
     sorts: generateSorts(['count']),
     query: 'event.type:error',
     project: [42],
@@ -1696,6 +1698,20 @@ describe('EventView.withColumns()', function () {
     const newView = eventView.withColumns([{kind: 'field', field: 'issue'}]);
     expect(newView.fields).toEqual([{field: 'issue', width: COL_WIDTH_UNDEFINED}]);
     expect(newView.sorts).toEqual([]);
+  });
+  it('updates yAxis if column is dropped', function () {
+    const newView = eventView.withColumns([
+      {kind: 'field', field: 'count()'},
+      {kind: 'field', field: 'project.id'},
+    ]);
+
+    expect(newView.fields).toEqual([
+      {field: 'count()', width: 30},
+      {field: 'project.id', width: 99},
+    ]);
+
+    expect(eventView.yAxis).toEqual('failure_count()');
+    expect(newView.yAxis).toEqual('count()');
   });
 });
 

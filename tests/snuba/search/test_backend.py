@@ -1357,7 +1357,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         for i in range(400):
             event = self.store_event(
                 data={
-                    "event_id": md5(f"event {i}".encode("utf-8")).hexdigest(),
+                    "event_id": md5(f"event {i}".encode()).hexdigest(),
                     "fingerprint": [f"put-me-in-group{i}"],
                     "timestamp": iso_format(self.base_datetime - timedelta(days=21)),
                     "message": f"group {i} event",
@@ -1940,7 +1940,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             elif key in issue_search_config.numeric_keys:
                 val = "123"
             elif key in issue_search_config.date_keys:
-                val = "2019-01-01"
+                val = self.base_datetime.isoformat()
             elif key in issue_search_config.boolean_keys:
                 val = "true"
             else:

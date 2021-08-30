@@ -969,6 +969,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable dashboards manager.
     "organizations:dashboards-manage": False,
+    # Enable navigation features between Discover and Dashboards
+    "organizations:connect-discover-and-dashboards": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -977,6 +979,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable Jira AC for select organizations.
+    "organizations:jira-ac-plugin": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -992,8 +996,10 @@ SENTRY_FEATURES = {
     "organizations:performance-events-page": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Allow the user to create a sample transaction while onboarding
-    "organizations:performance-create-sample-transaction": False,
+    # Enable ingestion for suspect spans
+    "organizations:performance-suspect-spans-ingestion": False,
+    # Enable views for suspect tags
+    "organizations:performance-suspect-spans-view": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1140,10 +1146,13 @@ SENTRY_RELAY_ENDPOINT_APM_SAMPLING = 0
 SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
 
 # sample rate for Apple App Store Connect tasks transactions
-SENTRY_APPCONNECT_APM_SAMPLING = 1
+SENTRY_APPCONNECT_APM_SAMPLING = SENTRY_BACKEND_APM_SAMPLING
 
 # sample rate for suspect commits task
 SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
+
+# sample rate for post_process_group task
+SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
 
 # ----
 # end APM config
@@ -1928,16 +1937,16 @@ SDK_VERSIONS = {
     "sentry-php": "2.0.1",
 }
 
+# Some of the migration links below are not ideal, but that is all migration documentation we currently have and can provide at this point
 SDK_URLS = {
-    "raven-js": "https://docs.sentry.io/clients/javascript/",
-    "raven-node": "https://docs.sentry.io/clients/node/",
-    "raven-python": "https://docs.sentry.io/clients/python/",
-    "raven-ruby": "https://docs.sentry.io/clients/ruby/",
-    "raven-swift": "https://docs.sentry.io/clients/cocoa/",
-    "sentry-java": "https://docs.sentry.io/clients/java/",
+    "sentry-java": "https://docs.sentry.io/platforms/java/legacy/migration/",
+    "@sentry/browser": "https://github.com/getsentry/sentry-javascript/blob/master/MIGRATION.md#migrating-from-raven-js-to-sentrybrowser",
+    "sentry-cocoa": "https://docs.sentry.io/platforms/apple/migration/",
     "sentry-php": "https://docs.sentry.io/platforms/php/",
-    "sentry-laravel": "https://docs.sentry.io/platforms/php/laravel/",
-    "sentry-swift": "https://docs.sentry.io/clients/cocoa/",
+    "sentry-python": "https://docs.sentry.io/platforms/python/migration/",
+    "sentry-ruby": "https://docs.sentry.io/platforms/ruby/migration/",
+    "sentry-dotnet": "https://docs.sentry.io/platforms/dotnet/migration/#migrating-from-sharpraven-to-sentry-sdk",
+    "sentry-go": "https://docs.sentry.io/platforms/go/migration/",
 }
 
 DEPRECATED_SDKS = {
@@ -1947,16 +1956,20 @@ DEPRECATED_SDKS = {
     "raven-java:log4j": "sentry-java",
     "raven-java:log4j2": "sentry-java",
     "raven-java:logback": "sentry-java",
-    "raven-js": "sentry.javascript.browser",
-    "raven-node": "sentry.javascript.node",
-    "raven-objc": "sentry-swift",
+    "raven-js": "@sentry/browser",
+    "raven-node": "@sentry/browser",
+    "raven-objc": "sentry-cocoa",
     "raven-php": "sentry-php",
-    "raven-python": "sentry.python",
-    "sentry-android": "raven-java",
+    "raven-python": "sentry-python",
+    "raven-ruby": "sentry-ruby",
+    "raven-swift": "sentry-cocoa",
+    "raven-csharp": "sentry-dotnet",
+    "raven-go": "sentry-go",
+    "sentry-android": "sentry-java",
     "sentry-swift": "sentry-cocoa",
-    "SharpRaven": "sentry.dotnet",
+    "SharpRaven": "sentry-dotnet",
     # The Ruby SDK used to go by the name 'sentry-raven'...
-    "sentry-raven": "raven-ruby",
+    "sentry-raven": "sentry-ruby",
 }
 
 TERMS_URL = None

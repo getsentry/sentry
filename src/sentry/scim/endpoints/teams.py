@@ -64,7 +64,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             organization=organization, status=TeamStatus.VISIBLE
         ).order_by("slug")
         if filter_val:
-            queryset = queryset.filter(name=filter_val)
+            queryset = queryset.filter(name__iexact=filter_val)
 
         def data_fn(offset, limit):
             return list(queryset[offset : offset + limit])
@@ -85,7 +85,9 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     def post(self, request, organization):
         # shim displayName from SCIM api in order to work with
         # our regular team index POST
-        request.data.update({"name": request.data["displayName"]})
+        request.data.update(
+            {"name": request.data["displayName"], "slug": slugify(request.data["displayName"])}
+        ),
         return super().post(request, organization)
 
 
@@ -134,17 +136,8 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                     data=omt.get_audit_log_data(),
                 )
 
-    def _remove_members_operation(self, request, operation, team):
-        try:
-            # grab the filter out of the brackets of the string that looks
-            # like so: members[userName eq "baz@sentry.io"]
-            parsed_filter = parse_filter_conditions(
-                re.search(r"\[(.*?)\]", operation["path"]).groups()[0]
-            )
-        except Exception:
-            # TODO: log parse error
-            raise ParseError(detail=SCIM_400_INVALID_FILTER)
-        member = OrganizationMember.objects.get(organization=team.organization, id=parsed_filter)
+    def _remove_members_operation(self, request, member_id, team):
+        member = OrganizationMember.objects.get(organization=team.organization, id=member_id)
         with transaction.atomic():
             try:
                 omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
@@ -193,9 +186,9 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                     if op == TeamPatchOps.ADD and operation["path"] == "members":
                         self._add_members_operation(request, operation, team)
                     elif op == TeamPatchOps.REMOVE and "members" in operation["path"]:
-                        # the members op contains a filter string like so:
-                        # members[userName eq "baz@sentry.io"]
-                        self._remove_members_operation(request, operation, team)
+                        self._remove_members_operation(
+                            request, self._get_member_id_for_remove_op(operation), team
+                        )
                     elif op == TeamPatchOps.REPLACE:
                         path = operation.get("path")
 
@@ -233,3 +226,19 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         # override parent's put since we don't have puts
         # in SCIM Team routes
         return self.http_method_not_allowed(request)
+
+    def _get_member_id_for_remove_op(self, operation):
+        if "value" in operation:
+            # azure sends member ids in this format under the key 'value'
+            return operation["value"][0]["value"]
+
+        try:
+            # grab the filter out of the brackets of the string that looks
+            # like so: members[value eq "123124"]
+            regex_search = re.search(r"\[(.*?)\]", operation["path"])
+            if regex_search is None:
+                raise SCIMFilterError
+            filter_path = regex_search.groups()[0]
+            return parse_filter_conditions(filter_path)
+        except SCIMFilterError:
+            raise ParseError(detail=SCIM_400_INVALID_FILTER)

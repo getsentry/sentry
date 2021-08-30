@@ -199,15 +199,15 @@ class ReleaseQuerySet(models.QuerySet):
 
         if semver_filter.version_parts:
             filter_func = Func(
-                *[
+                *(
                     Value(part) if isinstance(part, str) else part
                     for part in semver_filter.version_parts
-                ],
+                ),
                 function="ROW",
             )
             cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
             qs = qs.annotate(
-                semver=Func(*[F(col) for col in cols], function="ROW", output_field=ArrayField())
+                semver=Func(*(F(col) for col in cols), function="ROW", output_field=ArrayField())
             ).filter(**{f"semver__{semver_filter.operator}": filter_func})
         return qs
 
@@ -217,9 +217,13 @@ class ReleaseQuerySet(models.QuerySet):
         operator: str,
         value,
         project_ids: Sequence[int] = None,
+        environments: List[str] = None,
     ) -> models.QuerySet:
         from sentry.models import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
+
+        if not environments or len(environments) != 1:
+            raise InvalidSearchQuery("Choose a single environment to filter by release stage.")
 
         filters = {
             ReleaseStages.ADOPTED: Q(adopted__isnull=False, unadopted__isnull=True),
@@ -289,8 +293,11 @@ class ReleaseModelManager(models.Manager):
         operator: str,
         value,
         project_ids: Sequence[int] = None,
+        environments: Optional[List[str]] = None,
     ) -> models.QuerySet:
-        return self.get_queryset().filter_by_stage(organization_id, operator, value, project_ids)
+        return self.get_queryset().filter_by_stage(
+            organization_id, operator, value, project_ids, environments
+        )
 
     @staticmethod
     def _convert_build_code_to_build_number(build_code):

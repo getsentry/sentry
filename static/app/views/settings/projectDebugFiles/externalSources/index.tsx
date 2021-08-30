@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {InjectedRouter} from 'react-router/lib/Router';
+import {InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {Client} from 'app/api';

@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {InjectedRouter} from 'react-router/lib/Router';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
@@ -8,7 +8,6 @@ import {Client} from 'app/api';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
-import PaginationCaption from 'app/components/pagination/paginationCaption';
 import {PanelTable} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import {IconMegaphone} from 'app/icons';
@@ -237,7 +236,10 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
                     key={hash}
                     sampleEvent={{
                       ...latestEvent,
-                      metadata: metadata || latestEvent.metadata,
+                      metadata: {
+                        ...(metadata || latestEvent.metadata),
+                        current_level: activeGroupingLevel,
+                      },
                       title: title || latestEvent.title,
                     }}
                     eventCount={eventCount}
@@ -250,19 +252,15 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
           <StyledPagination
             pageLinks={pagination}
             disabled={isGroupingLevelDetailsLoading}
-            caption={
-              <PaginationCaption
-                caption={tct('Showing [current] of [total] [result]', {
-                  result: hasMore
-                    ? t('results')
-                    : tn('result', 'results', paginationCurrentQuantity),
-                  current: paginationCurrentQuantity,
-                  total: hasMore
-                    ? `${paginationCurrentQuantity}+`
-                    : paginationCurrentQuantity,
-                })}
-              />
-            }
+            caption={tct('Showing [current] of [total] [result]', {
+              result: hasMore
+                ? t('results')
+                : tn('result', 'results', paginationCurrentQuantity),
+              current: paginationCurrentQuantity,
+              total: hasMore
+                ? `${paginationCurrentQuantity}+`
+                : paginationCurrentQuantity,
+            })}
           />
         </Content>
       </Body>

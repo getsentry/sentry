@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import * as ReactRouter from 'react-router';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -21,7 +21,7 @@ import ChartFooter from './chartFooter';
 
 type ResultsChartProps = {
   api: Client;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   organization: Organization;
   eventView: EventView;
   location: Location;
@@ -104,7 +104,7 @@ class ResultsChart extends Component<ResultsChartProps> {
 
 type ContainerProps = {
   api: Client;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   eventView: EventView;
   location: Location;
   organization: Organization;
@@ -185,7 +185,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
 
 export default withApi(ResultsChartContainer);
 
-export const StyledPanel = styled(Panel)`
+const StyledPanel = styled(Panel)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     margin: 0;
   }

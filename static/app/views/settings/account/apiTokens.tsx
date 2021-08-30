@@ -5,6 +5,7 @@ import {
 } from 'app/actionCreators/indicator';
 import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
+import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import {InternalAppApiToken, Organization} from 'app/types';
@@ -101,7 +102,7 @@ export class ApiTokens extends AsyncView<Props, State> {
           {tct(
             'For more information on how to use the web API, see our [link:documentation].',
             {
-              link: <a href="https://docs.sentry.io/api/" />,
+              link: <ExternalLink href="https://docs.sentry.io/api/" />,
             }
           )}
         </TextBlock>

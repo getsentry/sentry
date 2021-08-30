@@ -2157,6 +2157,25 @@ for alias, name in FUNCTION_ALIASES.items():
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
+def normalize_percentile_alias(args: Mapping[str, str]) -> str:
+    # The compare_numeric_aggregate SnQL function accepts a percentile
+    # alias which is resolved to the percentile function call here
+    # to maintain backward compatibility with the legacy compare_numeric_aggregate
+    # function signature. This function only accepts percentile
+    # aliases.
+    aggregate_alias = args["aggregate_alias"]
+    match = re.match(r"(p\d{2,3})_(\w+)", aggregate_alias)
+
+    if not match:
+        raise InvalidFunctionArgument("Aggregate alias must be a percentile function.")
+
+    # Translating an arg of the pattern `measurements_lcp`
+    # to `measurements.lcp`.
+    aggregate_arg = ".".join(match.group(2).split("_"))
+
+    return f"{match.group(1)}({aggregate_arg})"
+
+
 class SnQLFunction(DiscoverFunction):
     def __init__(self, *args, **kwargs):
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
@@ -2241,10 +2260,7 @@ class QueryFields(QueryBase):
                 ),
                 SnQLFunction(
                     "count_miserable",
-                    # Using the generic FunctionArg here temporarily till we
-                    # implement a resolver for count columns in SnQL. The only
-                    # column to be passed through here for now is `user`.
-                    required_args=[FunctionArg("column")],
+                    required_args=[ColumnTagArg("column")],
                     optional_args=[NullableNumberRange("satisfaction", 0, None)],
                     calculated_args=[
                         {
@@ -2625,6 +2641,26 @@ class QueryFields(QueryBase):
                     optional_args=[IntervalDefault("interval", 1, None)],
                     default_result_type="number",
                 ),
+                SnQLFunction(
+                    "compare_numeric_aggregate",
+                    required_args=[
+                        FunctionAliasArg("aggregate_alias"),
+                        ConditionArg("condition"),
+                        NumberRange("value", 0, None),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "aggregate_function",
+                            "fn": normalize_percentile_alias,
+                        }
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        args["condition"],
+                        [self.resolve_function(args["aggregate_function"]), args["value"]],
+                        alias,
+                    ),
+                    default_result_type="number",
+                ),
                 # TODO: implement these
                 SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
@@ -2632,9 +2668,6 @@ class QueryFields(QueryBase):
                 SnQLFunction("t_test", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("minus", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction(
-                    "compare_numeric_aggregate", snql_aggregate=self._resolve_unimplemented_function
-                ),
             ]
         }
         for alias, name in FUNCTION_ALIASES.items():
@@ -3085,14 +3118,7 @@ class QueryFields(QueryBase):
             )
         col = args["column"]
 
-        return Function(
-            "uniqIf",
-            [
-                self.resolve_field_alias(col) if self.is_field_alias(col) else self.column(col),
-                Function("greater", [lhs, rhs]),
-            ],
-            alias,
-        )
+        return Function("uniqIf", [col, Function("greater", [lhs, rhs])], alias)
 
     def _resolve_user_misery_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:
