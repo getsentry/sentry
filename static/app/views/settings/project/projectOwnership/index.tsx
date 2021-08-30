@@ -211,8 +211,17 @@ tags.sku_class:enterprise #enterprise`;
               return errMessageListComponent(
                 `The following team do not have access to the project: ${project.slug}`,
                 values,
-                value => `/settings/${organization.slug}/teams/${value}/projects/`,
+                value =>
+                  `/settings/${organization.slug}/teams/${value.slice(1)}/projects/`,
                 value => `Configure ${value} Permissions`
+              );
+
+            case 'users_without_access':
+              return errMessageListComponent(
+                `The following users are not on a team that has access to the project: ${project.slug}`,
+                values,
+                email => `/settings/${organization.slug}/members/?query=${email}`,
+                _ => `Configure Member Settings`
               );
             default:
               return null;
@@ -369,7 +378,7 @@ const CodeOwnerButton = styled(Button)`
 `;
 
 const AlertContentContainer = styled('div')`
-  overflow-y: scroll;
+  overflow-y: auto;
   max-height: 350px;
 `;
 
