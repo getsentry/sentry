@@ -23,7 +23,7 @@ import {
 import {defined} from 'app/utils';
 import {getCrashFreeRateSeries, getSessionStatusRateSeries} from 'app/utils/sessions';
 import {Theme} from 'app/utils/theme';
-import {displayCrashFreePercent} from 'app/views/releases/utils';
+import {displayCrashFreePercent, roundDuration} from 'app/views/releases/utils';
 
 import {
   generateReleaseMarkLines,
@@ -473,7 +473,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               field: SessionField.DURATION,
               groupBy: 'session.status',
               chartData: initSessionsBreakdownChartData(theme),
-              valueFormatter: value => value / 1000,
+              valueFormatter: duration => roundDuration(duration ? duration / 1000 : 0),
             })
           ),
           markLines,
