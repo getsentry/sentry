@@ -7,7 +7,7 @@ class NotificationSent(analytics.Event):
     attributes = (
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_id"),
-        analytics.Attribute("type"),
+        analytics.Attribute("category"),
     )
 
 
