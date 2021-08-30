@@ -47,7 +47,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
       screen.getByTestId('release-comparison-table').textContent
     ).toMatchInlineSnapshot(
       // eslint-disable-next-line no-irregular-whitespace
-      `"DescriptionAll ReleasesThis ReleaseChangeCrash Free Session Rate 99.516%95.006%4.51% Healthy 98.564%94.001%4.563% Abnormal 0%0%0% —Errored 0.953%1.005%0.052% Crashed Session Rate 0.484%4.994%4.511% Crash Free User Rate 99.908%75%24.908% Healthy 98.994%72.022%26.972% Abnormal 0%0%0% —Errored 0.914%2.493%1.579% Crashed User Rate 0.092%25.485%25.393% Session Count 205k9.8k—Session Duration p50 110s585ms—User Count 100k361—"`
+      `"DescriptionAll ReleasesThis ReleaseChangeCrash Free Session Rate 99.516%95.006%4.51% Healthy 98.564%94.001%4.563% Abnormal 0%0%0% —Errored 0.953%1.005%0.052% Crashed Session Rate 0.484%4.994%4.511% Crash Free User Rate 99.908%75%24.908% Healthy 98.994%72.022%26.972% Abnormal 0%0%0% —Errored 0.914%2.493%1.579% Crashed User Rate 0.092%25.485%25.393% Session Count 205k9.8k—Session Duration p50 8s42ms—User Count 100k361—"`
     );
   });
 
