@@ -104,15 +104,14 @@ class TeamDetailsEndpoint(TeamEndpoint):
             slug=f"{team.slug}-{transaction_id}", status=TeamStatus.PENDING_DELETION
         )
         if updated:
+            scheduled = ScheduledDeletion.schedule(team, days=0, actor=request.user)
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,
                 target_object=team.id,
                 event=AuditLogEntryEvent.TEAM_REMOVE,
                 data=team.get_audit_log_data(),
-                transaction_id=transaction_id,
+                transaction_id=scheduled.id,
             )
-
-            ScheduledDeletion.schedule(team, days=0, actor=request.user)
 
         return Response(status=204)
