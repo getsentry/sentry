@@ -1146,6 +1146,9 @@ SENTRY_APPCONNECT_APM_SAMPLING = 1
 # sample rate for suspect commits task
 SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
 
+# sample rate for post_process_group task
+SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
+
 # ----
 # end APM config
 # ----

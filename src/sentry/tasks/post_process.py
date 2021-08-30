@@ -1,5 +1,7 @@
 import logging
 
+import sentry_sdk
+
 from sentry import analytics, features
 from sentry.app import locks
 from sentry.exceptions import PluginError
@@ -361,10 +363,12 @@ def post_process_group(
 
             from sentry import similarity
 
-            safe_execute(similarity.record, event.project, [event], _with_transaction=False)
+            with sentry_sdk.start_span(op="tasks.post_process_group.similarity"):
+                safe_execute(similarity.record, event.project, [event], _with_transaction=False)
 
         # Patch attachments that were ingested on the standalone path.
-        update_existing_attachments(event)
+        with sentry_sdk.start_span(op="tasks.post_process_group.update_existing_attachments"):
+            update_existing_attachments(event)
 
         if not is_reprocessed:
             event_processed.send_robust(
