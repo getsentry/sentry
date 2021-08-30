@@ -8,7 +8,8 @@ import type {Config} from '@jest/types';
 
 import babelConfig from './babel.config';
 
-const {JEST_TESTS, CI_NODE_TOTAL, CI_NODE_INDEX} = process.env;
+const {CI, JEST_TESTS, CI_NODE_TOTAL, CI_NODE_INDEX, GITHUB_PR_SHA, GITHUB_PR_REF} =
+  process.env;
 
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
@@ -100,13 +101,13 @@ const config: Config.InitialOptions = {
     sentryConfig: {
       init: {
         dsn: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
-        environment: !!process.env.CI ? 'ci' : 'local',
+        environment: !!CI ? 'ci' : 'local',
         tracesSampleRate: 1.0,
       },
       transactionOptions: {
         tags: {
-          branch: process.env.GITHUB_REF,
-          commit: process.env.GITHUB_SHA,
+          branch: GITHUB_PR_REF,
+          commit: GITHUB_PR_SHA,
         },
       },
     },
