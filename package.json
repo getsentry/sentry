@@ -164,6 +164,7 @@
     "jest-circus": "27.0.6",
     "jest-fetch-mock": "^3.0.3",
     "jest-junit": "^9.0.0",
+    "jest-sentry-environment": "1.1.4",
     "mockdate": "3.0.5",
     "prettier": "2.3.2",
     "react-refresh": "^0.8.3",

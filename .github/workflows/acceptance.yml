@@ -52,8 +52,13 @@ jobs:
         run: NODE_ENV=production yarn build-css
 
       - name: jest
+        env:
+          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
+          CI_NODE_TOTAL: ${{ strategy.job-total }}
+          CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
-          CI_NODE_TOTAL=${{ strategy.job-total }} CI_NODE_INDEX=${{ matrix.instance }} JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+          JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2
