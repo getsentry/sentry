@@ -41,9 +41,7 @@ function StepThree({stepThreeData, onSetStepOneData}: Props) {
           type={stepThreeData.unchanged ? 'text' : 'password'}
           value={stepThreeData.password}
           placeholder={
-            stepThreeData.unchanged
-              ? `${'('}${t('Password unchanged')}${')'}`
-              : t('Password')
+            stepThreeData.unchanged ? t('(Password unchanged)') : t('Password')
           }
           onChange={e =>
             onSetStepOneData({

@@ -98,9 +98,7 @@ export function getFormFieldsAndInitialData(
             required: false,
             label: t('Password'),
             placeholder:
-              typeof password === 'object'
-                ? `${'('}${t('Password unchanged')}${')'}`
-                : 'open-sesame',
+              typeof password === 'object' ? t('(Password unchanged)') : 'open-sesame',
             help: t('Password for HTTP basic auth'),
           },
           commonFields.separator,
@@ -167,7 +165,7 @@ export function getFormFieldsAndInitialData(
             label: t('Secret Access Key'),
             placeholder:
               typeof secret_key === 'object'
-                ? `${'('}${t('Secret Access Key unchanged')}${')'}`
+                ? t('(Secret Access Key unchanged)')
                 : 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
           },
           commonFields.separator,
@@ -217,7 +215,7 @@ export function getFormFieldsAndInitialData(
             label: t('Private Key'),
             placeholder:
               typeof private_key === 'object'
-                ? `${'('}${t('Private Key unchanged')}${')'}`
+                ? t('(Private Key unchanged)')
                 : '-----BEGIN PRIVATE KEY-----\n[PRIVATE-KEY]\n-----END PRIVATE KEY-----',
             help: tct(
               'The service account key. Credentials can be managed on the [link].',
