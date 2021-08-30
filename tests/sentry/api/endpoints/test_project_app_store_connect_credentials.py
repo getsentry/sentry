@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.api.endpoints.project_app_store_connect_credentials import (
     AppStoreUpdateCredentialsSerializer,
 )
@@ -14,7 +16,7 @@ class TestAppStoreUpdateCredentialsSerializer:
         payload = json.loads(payload_json)
         serializer = AppStoreUpdateCredentialsSerializer(data=payload)
         if not serializer.is_valid():
-            raise AssertionError(serializer.errors)
+            pytest.fail(serializer.errors)
 
         data = serializer.validated_data
 
@@ -60,7 +62,7 @@ class TestAppStoreUpdateCredentialsSerializer:
         payload = json.loads(payload_json)
         serializer = AppStoreUpdateCredentialsSerializer(data=payload)
         if not serializer.is_valid():
-            raise AssertionError(serializer.errors)
+            pytest.fail(serializer.errors)
 
         data = serializer.validated_data
 
@@ -92,7 +94,7 @@ class TestAppStoreUpdateCredentialsSerializer:
         payload = json.loads(payload_json)
         serializer = AppStoreUpdateCredentialsSerializer(data=payload)
         if not serializer.is_valid():
-            raise AssertionError(serializer.errors)
+            pytest.fail(serializer.errors)
 
         data = serializer.validated_data
 
