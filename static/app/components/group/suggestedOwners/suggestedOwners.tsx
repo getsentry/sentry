@@ -37,7 +37,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      event: {rules: null, owners: []},
+      event: {rules: [], owners: []},
       codeowners: [],
       isDismissed: true,
     };
