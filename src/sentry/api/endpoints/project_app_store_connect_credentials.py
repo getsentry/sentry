@@ -237,7 +237,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
     ``projects/{org_slug}/{proj_slug}/appstoreconnect/2fa/`` so you must have gone through
     the iTunes login steps (endpoints 2-4 in module doc string).
 
-    The returned JSON contains an ``id`` field which can be used in other endpoints to refer
+    The returned JSON only contains an ``id`` field which can be used in other endpoints to refer
     to this set of credentials.
 
     Credentials as saved using the ``symbolSources`` field under project details page
@@ -302,11 +302,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             }
         )
 
-        redacted_config = validated_config.to_redacted_json()
-        for secret in secret_fields(validated_config.type):
-            config[secret] = redacted_config[secret]
-
-        return Response(config, status=200)
+        return Response({"id": validated_config.id}, status=200)
 
 
 class UpdateSessionContextSerializer(serializers.Serializer):  # type: ignore
