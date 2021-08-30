@@ -219,7 +219,7 @@ tags.sku_class:enterprise #enterprise`;
               return errMessageListComponent(
                 `The following users are not on a team that has access to the project: ${project.slug}`,
                 values,
-                _ => `/settings/${organization.slug}/members/`,
+                email => `/settings/${organization.slug}/members/?query=${email}`,
                 _ => `Configure Member Settings`
               );
             default:
