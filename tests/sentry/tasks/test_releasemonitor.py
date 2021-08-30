@@ -1,5 +1,4 @@
 import time
-from uuid import uuid4
 
 from django.db.models import F
 from django.utils import timezone
@@ -89,41 +88,21 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
             group_id=self.event.group.id, project_id=self.project.id, release_id=self.release.id
         )
 
-    def session_dict(self, i, project, release_version, environment_name):
-        received = time.time()
-        session_started = received // 60 * 60
-        return dict(
-            distinct_id=uuid4().hex,
-            session_id=uuid4().hex,
-            org_id=project.organization_id,
-            project_id=project.id,
-            status="ok",
-            seq=0,
-            release=release_version,
-            environment=environment_name,
-            retention_days=90,
-            duration=None,
-            errors=0,
-            started=session_started,
-            received=received,
-        )
-
     def test_simple(self):
         self.bulk_store_sessions(
             [
                 self.session_dict(
-                    i,
                     self.project1,
-                    self.release.version,
+                    self.release,
                     self.environment.name,
                 )
-                for i in range(11)
+                for _ in range(11)
             ]
         )
         self.bulk_store_sessions(
             [
-                self.session_dict(i, self.project2, self.release.version, self.environment2.name)
-                for i in range(1)
+                self.session_dict(self.project2, self.release, self.environment2.name)
+                for _ in range(1)
             ]
         )
         assert self.project1.flags.has_sessions.is_set is False
@@ -247,24 +226,23 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
         self.bulk_store_sessions(
             [
                 self.session_dict(
-                    i,
                     self.project1,
-                    self.release.version,
+                    self.release,
                     self.environment.name,
                 )
-                for i in range(1)
+                for _ in range(1)
             ]
         )
         self.bulk_store_sessions(
             [
-                self.session_dict(i, self.project2, self.release.version, self.environment2.name)
-                for i in range(11)
+                self.session_dict(self.project2, self.release, self.environment2.name)
+                for _ in range(11)
             ]
         )
         self.bulk_store_sessions(
             [
-                self.session_dict(i, self.project1, self.release2.version, self.environment.name)
-                for i in range(20)
+                self.session_dict(self.project1, self.release2, self.environment.name)
+                for _ in range(20)
             ]
         )
         now = timezone.now()
@@ -316,8 +294,8 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
         # Make sure re-adopting works
         self.bulk_store_sessions(
             [
-                self.session_dict(i, self.project1, self.release.version, self.environment.name)
-                for i in range(50)
+                self.session_dict(self.project1, self.release, self.environment.name)
+                for _ in range(50)
             ]
         )
         time.sleep(1)
@@ -362,30 +340,29 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
         self.bulk_store_sessions(
             [
                 self.session_dict(
-                    i,
                     self.project1,
-                    self.release.version,
+                    self.release,
                     self.environment.name,
                 )
-                for i in range(11)
+                for _ in range(11)
             ]
         )
         self.bulk_store_sessions(
             [
-                self.session_dict(i, self.project2, self.release.version, self.environment2.name)
-                for i in range(1)
+                self.session_dict(self.project2, self.release, self.environment2.name)
+                for _ in range(1)
             ]
         )
         self.bulk_store_sessions(
             [
-                self.session_dict(i, self.project1, self.release2.version, self.environment.name)
-                for i in range(1)
+                self.session_dict(self.project1, self.release2, self.environment.name)
+                for _ in range(1)
             ]
         )
         self.bulk_store_sessions(
             [
-                self.session_dict(i, self.project1, self.release3.version, self.environment.name)
-                for i in range(1)
+                self.session_dict(self.project1, self.release3, self.environment.name)
+                for _ in range(1)
             ]
         )
         now = timezone.now()
@@ -459,30 +436,28 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
         self.bulk_store_sessions(
             [
                 self.session_dict(
-                    i,
                     self.org2_project,
-                    self.org2_release.version,
+                    self.org2_release,
                     self.org2_environment.name,
                 )
-                for i in range(20)
+                for _ in range(20)
             ]
         )
         # Tests the scheduled task to ensure it properly processes each org
         self.bulk_store_sessions(
             [
                 self.session_dict(
-                    i,
                     self.project1,
-                    self.release.version,
+                    self.release,
                     self.environment.name,
                 )
-                for i in range(11)
+                for _ in range(11)
             ]
         )
         self.bulk_store_sessions(
             [
-                self.session_dict(i, self.project2, self.release.version, self.environment2.name)
-                for i in range(1)
+                self.session_dict(self.project2, self.release, self.environment2.name)
+                for _ in range(1)
             ]
         )
 
@@ -507,13 +482,10 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
 
     def test_missing_rpe_is_created(self):
         self.bulk_store_sessions(
-            [
-                self.session_dict(i, self.project1, self.release2.version, "somenvname")
-                for i in range(20)
-            ]
+            [self.session_dict(self.project1, self.release2, "somenvname") for _ in range(20)]
         )
         self.bulk_store_sessions(
-            [self.session_dict(i, self.project1, self.release2.version, "") for i in range(20)]
+            [self.session_dict(self.project1, self.release2, "") for _ in range(20)]
         )
         now = timezone.now()
         assert not ReleaseProjectEnvironment.objects.filter(
