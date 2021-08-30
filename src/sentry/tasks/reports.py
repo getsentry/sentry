@@ -668,9 +668,21 @@ DISABLED_ORGANIZATIONS_USER_OPTION_KEY = "reports:disabled-organizations"
 
 
 def user_subscribed_to_organization_reports(user, organization):
-    return organization.id not in UserOption.objects.get_value(
+    value = UserOption.objects.get_value(
         user=user, key=DISABLED_ORGANIZATIONS_USER_OPTION_KEY, default=[]
     )
+    if value == "":
+        # a small number of users have incorrect data stored
+        logger.info(
+            "reports.useroption.invalid",
+            extra={
+                "user": user.id,
+                "organization_id": organization.id,
+                "value": value,
+            },
+        )
+        return True
+    return organization.id not in value
 
 
 class Skipped:
