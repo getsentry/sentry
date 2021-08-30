@@ -106,6 +106,8 @@ type State = {
   totalCountByReleaseIn24h: SessionApiResponse | null;
   totalCountByProjectIn24h: SessionApiResponse | null;
   statusCountByProjectInPeriod: SessionApiResponse | null;
+  totalCountByReleaseInPeriod: SessionApiResponse | null;
+  totalCountByProjectInPeriod: SessionApiResponse | null;
 };
 
 class ReleaseHealthRequest extends React.Component<Props, State> {
@@ -116,6 +118,8 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
     totalCountByReleaseIn24h: null,
     totalCountByProjectIn24h: null,
     statusCountByProjectInPeriod: null,
+    totalCountByReleaseInPeriod: null,
+    totalCountByProjectInPeriod: null,
   };
 
   componentDidMount() {
@@ -184,6 +188,8 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
 
     if (healthStatsPeriod === HealthStatsPeriodOption.AUTO) {
       promises.push(this.fetchStatusCountByProjectInPeriod());
+      promises.push(this.fetchTotalCountByReleaseInPeriod());
+      promises.push(this.fetchTotalCountByProjectInPeriod());
     }
 
     try {
@@ -192,6 +198,8 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
         totalCountByReleaseIn24h,
         totalCountByProjectIn24h,
         statusCountByProjectInPeriod,
+        totalCountByReleaseInPeriod,
+        totalCountByProjectInPeriod,
       ] = await Promise.all(promises);
 
       this.setState({
@@ -200,6 +208,8 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
         totalCountByReleaseIn24h,
         totalCountByProjectIn24h,
         statusCountByProjectInPeriod,
+        totalCountByReleaseInPeriod,
+        totalCountByProjectInPeriod,
       });
     } catch (error) {
       addErrorMessage(error.responseJSON?.detail ?? t('Error loading health data'));
@@ -268,6 +278,20 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
     return response;
   }
 
+  async fetchTotalCountByReleaseInPeriod() {
+    const {api, display} = this.props;
+
+    const response: SessionApiResponse = await api.requestPromise(this.path, {
+      query: {
+        ...this.baseQueryParams,
+        field: display.map(d => sessionDisplayToField(d)),
+        groupBy: ['project', 'release'],
+      },
+    });
+
+    return response;
+  }
+
   /**
    * Used to calculate adoption, and count histogram (Total Project series)
    */
@@ -282,6 +306,21 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
         groupBy: ['project'],
         interval: '1h',
         statsPeriod: '24h',
+      },
+    });
+
+    return response;
+  }
+
+  async fetchTotalCountByProjectInPeriod() {
+    const {api, display} = this.props;
+
+    const response: SessionApiResponse = await api.requestPromise(this.path, {
+      query: {
+        ...this.baseQueryParams,
+        query: undefined,
+        field: display.map(d => sessionDisplayToField(d)),
+        groupBy: ['project'],
       },
     });
 
@@ -336,11 +375,33 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
       ?.reduce((acc, group) => acc + group.totals[field], 0);
   };
 
+  getPeriodCountByRelease = (
+    version: string,
+    project: number,
+    display: DisplayOption
+  ) => {
+    const {totalCountByReleaseInPeriod} = this.state;
+    const field = sessionDisplayToField(display);
+
+    return totalCountByReleaseInPeriod?.groups
+      .filter(({by}) => by.release === version && by.project === project)
+      ?.reduce((acc, group) => acc + group.totals[field], 0);
+  };
+
   get24hCountByProject = (project: number, display: DisplayOption) => {
     const {totalCountByProjectIn24h} = this.state;
     const field = sessionDisplayToField(display);
 
     return totalCountByProjectIn24h?.groups
+      .filter(({by}) => by.project === project)
+      ?.reduce((acc, group) => acc + group.totals[field], 0);
+  };
+
+  getPeriodCountByProject = (project: number, display: DisplayOption) => {
+    const {totalCountByProjectInPeriod} = this.state;
+    const field = sessionDisplayToField(display);
+
+    return totalCountByProjectInPeriod?.groups
       .filter(({by}) => by.project === project)
       ?.reduce((acc, group) => acc + group.totals[field], 0);
   };
@@ -421,11 +482,21 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
   };
 
   getAdoption = (version: string, project: number, display: DisplayOption) => {
-    const get24hCountByRelease = this.get24hCountByRelease(version, project, display);
-    const get24hCountByProject = this.get24hCountByProject(project, display);
+    const {healthStatsPeriod} = this.props;
 
-    return defined(get24hCountByRelease) && defined(get24hCountByProject)
-      ? percent(get24hCountByRelease, get24hCountByProject)
+    const countByRelease = (
+      healthStatsPeriod === HealthStatsPeriodOption.AUTO
+        ? this.getPeriodCountByRelease
+        : this.get24hCountByRelease
+    )(version, project, display);
+    const countByProject = (
+      healthStatsPeriod === HealthStatsPeriodOption.AUTO
+        ? this.getPeriodCountByProject
+        : this.get24hCountByProject
+    )(project, display);
+
+    return defined(countByRelease) && defined(countByProject)
+      ? percent(countByRelease, countByProject)
       : undefined;
   };
 

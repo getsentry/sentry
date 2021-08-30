@@ -10,6 +10,7 @@ import * as queryString from 'query-string';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import SelectControl from 'app/components/forms/selectControl';
+import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -508,7 +509,7 @@ export class IntegrationListDirectory extends AsyncComponent<
                 <EmptyResultsBody>
                   {tct('[link:Build it on the Sentry Integration Platform.]', {
                     link: (
-                      <a href="https://docs.sentry.io/product/integrations/integration-platform/" />
+                      <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/" />
                     ),
                   })}
                 </EmptyResultsBody>
