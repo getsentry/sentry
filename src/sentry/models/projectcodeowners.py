@@ -1,6 +1,7 @@
 import logging
 
 from django.db import models
+from django.db.models import Subquery
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -58,8 +59,16 @@ class ProjectCodeOwners(DefaultFieldsModel):
     @classmethod
     def validate_codeowners_associations(self, codeowners, project):
         from sentry.api.endpoints.project_codeowners import validate_association
-        from sentry.models import ExternalActor, UserEmail, actor_type_to_string
+        from sentry.models import (
+            ExternalActor,
+            OrganizationMember,
+            OrganizationMemberTeam,
+            Project,
+            UserEmail,
+            actor_type_to_string,
+        )
         from sentry.ownership.grammar import parse_code_owners
+        from sentry.types.integrations import ExternalProviders
 
         # Get list of team/user names from CODEOWNERS file
         team_names, usernames, emails = parse_code_owners(codeowners)
@@ -74,17 +83,30 @@ class ProjectCodeOwners(DefaultFieldsModel):
         external_actors = ExternalActor.objects.filter(
             external_name__in=usernames + team_names,
             organization=project.organization,
+            provider__in=[ExternalProviders.GITHUB.value, ExternalProviders.GITLAB.value],
         )
 
         # Convert CODEOWNERS into IssueOwner syntax
         users_dict = {}
         teams_dict = {}
         teams_without_access = []
+        users_without_access = []
         for external_actor in external_actors:
             type = actor_type_to_string(external_actor.actor.type)
             if type == "user":
                 user = external_actor.actor.resolve()
-                users_dict[external_actor.external_name] = user.email
+                organization_members_ids = OrganizationMember.objects.filter(
+                    user_id=user.id, organization_id=project.organization_id
+                ).values_list("id", flat=True)
+                team_ids = OrganizationMemberTeam.objects.filter(
+                    organizationmember_id__in=Subquery(organization_members_ids)
+                ).values_list("team_id", flat=True)
+                projects = Project.objects.get_for_team_ids(Subquery(team_ids))
+
+                if project in projects:
+                    users_dict[external_actor.external_name] = user.email
+                else:
+                    users_without_access.append(f"{user.username}")
             elif type == "team":
                 team = external_actor.actor.resolve()
                 # make sure the sentry team has access to the project
@@ -104,6 +126,7 @@ class ProjectCodeOwners(DefaultFieldsModel):
                 team_names, external_actors, "team names"
             ),
             "teams_without_access": teams_without_access,
+            "users_without_access": users_without_access,
         }
         return associations, errors
 
