@@ -6,6 +6,9 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
 
+import Tab from './transactionSummary/tabs';
+import {eventsRouteWithQuery} from './transactionSummary/transactionEvents/utils';
+import {tagsRouteWithQuery} from './transactionSummary/transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionSummary/transactionVitals/utils';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {vitalDetailRouteWithQuery} from './vitalDetail/utils';
@@ -19,7 +22,7 @@ type Props = {
   eventSlug?: string;
   traceSlug?: string;
   transactionComparison?: boolean;
-  realUserMonitoring?: boolean;
+  tab?: Tab;
 };
 
 class Breadcrumb extends Component<Props> {
@@ -33,7 +36,7 @@ class Breadcrumb extends Component<Props> {
       eventSlug,
       traceSlug,
       transactionComparison,
-      realUserMonitoring,
+      tab,
     } = this.props;
 
     const performanceTarget: LocationDescriptor = {
@@ -52,44 +55,79 @@ class Breadcrumb extends Component<Props> {
     });
 
     if (vitalName) {
-      const rumTarget = vitalDetailRouteWithQuery({
+      const webVitalsTarget = vitalDetailRouteWithQuery({
         orgSlug: organization.slug,
         vitalName: 'fcp',
         projectID: decodeScalar(location.query.project),
         query: location.query,
       });
       crumbs.push({
-        to: rumTarget,
+        to: webVitalsTarget,
         label: t('Vital Detail'),
         preserveGlobalSelection: true,
       });
     } else if (transactionName) {
-      if (realUserMonitoring) {
-        const rumTarget = vitalsRouteWithQuery({
-          orgSlug: organization.slug,
-          transaction: transactionName,
-          projectID: decodeScalar(location.query.project),
-          query: location.query,
-        });
+      switch (tab) {
+        case Tab.Tags: {
+          const tagsTarget = tagsRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: transactionName,
+            projectID: decodeScalar(location.query.project),
+            query: location.query,
+          });
 
-        crumbs.push({
-          to: rumTarget,
-          label: t('Web Vitals'),
-          preserveGlobalSelection: true,
-        });
-      } else {
-        const summaryTarget = transactionSummaryRouteWithQuery({
-          orgSlug: organization.slug,
-          transaction: transactionName,
-          projectID: decodeScalar(location.query.project),
-          query: location.query,
-        });
+          crumbs.push({
+            to: tagsTarget,
+            label: t('Tags'),
+            preserveGlobalSelection: true,
+          });
+          break;
+        }
+        case Tab.Events: {
+          const eventsTarget = eventsRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: transactionName,
+            projectID: decodeScalar(location.query.project),
+            query: location.query,
+          });
 
-        crumbs.push({
-          to: summaryTarget,
-          label: t('Transaction Summary'),
-          preserveGlobalSelection: true,
-        });
+          crumbs.push({
+            to: eventsTarget,
+            label: t('All Events'),
+            preserveGlobalSelection: true,
+          });
+          break;
+        }
+        case Tab.WebVitals: {
+          const webVitalsTarget = vitalsRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: transactionName,
+            projectID: decodeScalar(location.query.project),
+            query: location.query,
+          });
+
+          crumbs.push({
+            to: webVitalsTarget,
+            label: t('Web Vitals'),
+            preserveGlobalSelection: true,
+          });
+          break;
+        }
+        case Tab.TransactionSummary:
+        default: {
+          const summaryTarget = transactionSummaryRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: transactionName,
+            projectID: decodeScalar(location.query.project),
+            query: location.query,
+          });
+
+          crumbs.push({
+            to: summaryTarget,
+            label: t('Transaction Summary'),
+            preserveGlobalSelection: true,
+          });
+        }
       }
     }
 

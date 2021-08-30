@@ -26,7 +26,8 @@ import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from '../filter';
-import TransactionHeader, {Tab} from '../header';
+import TransactionHeader from '../header';
+import Tab from '../tabs';
 
 import EventsTable from './eventsTable';
 import {EventsDisplayFilterName, getEventsFilterOptions} from './utils';
