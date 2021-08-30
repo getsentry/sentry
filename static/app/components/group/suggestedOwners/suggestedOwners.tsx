@@ -45,13 +45,20 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {project, organization, event} = this.props;
-    return [
-      [`codeowners`, `/projects/${organization.slug}/${project.slug}/codeowners/`],
+    const endpoints = [
       [
         'event_owners',
         `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
       ],
     ];
+    if (organization.features.includes('integrations-codeowners')) {
+      endpoints.push([
+        `codeowners`,
+        `/projects/${organization.slug}/${project.slug}/codeowners/`,
+      ]);
+    }
+
+    return endpoints as ReturnType<AsyncComponent['getEndpoints']>;
   }
 
   async componentDidMount() {
@@ -76,6 +83,9 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
   async checkCodeOwnersPrompt() {
     const {api, organization, project} = this.props;
 
+    if (!organization.features.includes('integrations-codeowners')) {
+      return;
+    }
     // check our prompt backend
     const promptData = await promptsCheck(api, {
       organizationId: organization.id,
