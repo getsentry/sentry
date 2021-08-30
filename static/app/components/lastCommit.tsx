@@ -22,7 +22,7 @@ const unknownUser: AvatarUser = {
 };
 
 function LastCommit({commit, headerClass}: Props) {
-  const renderMessage = (message: Commit['message']): string => {
+  function renderMessage(message: Commit['message']) {
     if (!message) {
       return t('No message provided');
     }
@@ -36,12 +36,12 @@ function LastCommit({commit, headerClass}: Props) {
         words.pop();
         truncated = words.join(' ');
       }
-      return truncated + '\u2026';
+      return `${truncated}\u2026`;
     }
     return firstLine;
   };
 
-  const commitAuthor = commit && commit.author;
+  const commitAuthor = commit?.author;
   return (
     <div>
       <h6 className={headerClass}>Last commit</h6>
