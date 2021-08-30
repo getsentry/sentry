@@ -473,6 +473,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
               field: SessionField.DURATION,
               groupBy: 'session.status',
               chartData: initSessionsBreakdownChartData(theme),
+              valueFormatter: value => value / 1000,
             })
           ),
           markLines,

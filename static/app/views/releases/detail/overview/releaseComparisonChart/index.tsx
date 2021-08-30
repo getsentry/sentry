@@ -387,8 +387,10 @@ function ReleaseComparisonChart({
   const releaseUsersCount = getCount(releaseSessions?.groups, SessionField.USERS);
   const allUsersCount = getCount(allSessions?.groups, SessionField.USERS);
 
-  const sessionDurationTotal = getCount(releaseSessions?.groups, SessionField.DURATION);
-  const allSessionDurationTotal = getCount(allSessions?.groups, SessionField.DURATION);
+  const sessionDurationTotal =
+    getCount(releaseSessions?.groups, SessionField.DURATION) / 1000;
+  const allSessionDurationTotal =
+    getCount(allSessions?.groups, SessionField.DURATION) / 1000;
 
   const diffFailure =
     eventsTotals?.releaseFailureRate && eventsTotals?.allFailureRate
