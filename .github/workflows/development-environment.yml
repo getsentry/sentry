@@ -49,9 +49,10 @@ jobs:
         # Sometimes, brew needs to be updated before brew bundle would work
         # After installing Docker (via homebrew) we need to make sure that it is properly initialized on Mac
         run: |
-          brew update -q && brew bundle -q
+          brew install --cask docker
           # This code is mentioned in our dev docs. Only remove if you adjust the docs as well
           SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh init-docker
+          brew update -q && brew bundle -q
 
       # The next few steps are to set up the cache quickly
       - name: Set environment variables & others
