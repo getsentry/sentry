@@ -50,12 +50,8 @@ const ProjectCards = styled('div')`
     grid-template-columns: repeat(2, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
-  }
-
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: repeat(4, minmax(100px, 1fr));
+    grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 `;
 

@@ -12,7 +12,7 @@ import Switch from 'app/components/switchButton';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {IntegrationWithConfig, Organization, ServerlessFunction} from 'app/types';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import withApi from 'app/utils/withApi';
 
 type Props = {
@@ -40,15 +40,12 @@ class IntegrationServerlessRow extends Component<Props, State> {
   }
 
   recordAction = (action: 'enable' | 'disable' | 'updateVersion') => {
-    trackIntegrationEvent(
-      'integrations.serverless_function_action',
-      {
-        integration: this.props.integration.provider.key,
-        integration_type: 'first_party',
-        action,
-      },
-      this.props.organization
-    );
+    trackIntegrationAnalytics('integrations.serverless_function_action', {
+      integration: this.props.integration.provider.key,
+      integration_type: 'first_party',
+      action,
+      organization: this.props.organization,
+    });
   };
   toggleEnable = async () => {
     const {serverlessFunction} = this.props;
@@ -60,18 +57,18 @@ class IntegrationServerlessRow extends Component<Props, State> {
     try {
       addLoadingMessage();
       this.setState({submitting: true});
-      //optimistically update enable state
+      // optimistically update enable state
       this.props.onUpdateFunction({enabled: !this.enabled});
       this.recordAction(action);
       const resp = await this.props.api.requestPromise(this.endpoint, {
         method: 'POST',
         data,
       });
-      //update remaining after response
+      // update remaining after response
       this.props.onUpdateFunction(resp);
       addSuccessMessage(t('Success'));
     } catch (err) {
-      //restore original on failure
+      // restore original on failure
       this.props.onUpdateFunction(serverlessFunction);
       addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
     }
@@ -93,11 +90,11 @@ class IntegrationServerlessRow extends Component<Props, State> {
         method: 'POST',
         data,
       });
-      //update remaining after response
+      // update remaining after response
       this.props.onUpdateFunction(resp);
       addSuccessMessage(t('Success'));
     } catch (err) {
-      //restore original on failure
+      // restore original on failure
       this.props.onUpdateFunction(serverlessFunction);
       addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
     }
@@ -117,7 +114,7 @@ class IntegrationServerlessRow extends Component<Props, State> {
   render() {
     const {serverlessFunction} = this.props;
     const {version} = serverlessFunction;
-    //during optimistic update, we might be enabled without a version
+    // during optimistic update, we might be enabled without a version
     const versionText =
       this.enabled && version > 0 ? <Fragment>&nbsp;|&nbsp;v{version}</Fragment> : null;
     return (

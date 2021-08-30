@@ -10,8 +10,7 @@ from django.utils import timezone
 from sentry import options
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Group
+from sentry.models import Environment, Group
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.utils import json, metrics, snuba
@@ -100,6 +99,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         project_ids,
         environment_ids,
         sort_field,
+        organization_id,
         cursor=None,
         group_ids=None,
         limit=None,
@@ -115,8 +115,14 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         filters = {"project_id": project_ids}
 
+        environments = None
         if environment_ids is not None:
             filters["environment"] = environment_ids
+            environments = list(
+                Environment.objects.filter(
+                    organization_id=organization_id, id__in=environment_ids
+                ).values_list("name", flat=True)
+            )
 
         if group_ids:
             filters["group_id"] = sorted(group_ids)
@@ -132,7 +138,14 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 search_filter.key.name == "date"
             ):
                 continue
-            converted_filter = convert_search_filter_to_snuba_query(search_filter)
+            converted_filter = convert_search_filter_to_snuba_query(
+                search_filter,
+                params={
+                    "organization_id": organization_id,
+                    "project_id": project_ids,
+                    "environment": environments,
+                },
+            )
             converted_filter = self._transform_converted_filter(
                 search_filter, converted_filter, project_ids, environment_ids
             )
@@ -346,35 +359,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # is invalid.
             return self.empty_result
 
-        # This search is specific to Inbox. If we're using inbox sort and only querying
-        # postgres then we can use this sort method. Otherwise if we need to go to Snuba,
-        # fail.
-        if (
-            sort_by == "inbox"
-            and get_search_filter(search_filters, "for_review", "=")
-            # This handles tags and date parameters for search filters.
-            and not [
-                sf
-                for sf in search_filters
-                if sf.key.name not in self.postgres_only_fields.union(["date"])
-            ]
-        ):
-            # We just filter on `GroupInbox.date_added` here, and don't filter by date
-            # on the group. This keeps the query simpler and faster in some edge cases,
-            # and date_added is a good enough proxy when we're using this sort.
-            group_queryset = group_queryset.filter(
-                groupinbox__date_added__gte=start,
-                groupinbox__date_added__lte=end,
-            )
-            group_queryset = group_queryset.extra(
-                select={"inbox_date": "sentry_groupinbox.date_added"},
-            ).order_by("-inbox_date")
-            paginator = DateTimePaginator(group_queryset, "-inbox_date", **paginator_options)
-            return paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
-
-        if sort_by == "inbox":
-            raise InvalidSearchQuery(f"Sort key '{sort_by}' only supported for inbox search")
-
         # Here we check if all the django filters reduce the set of groups down
         # to something that we can send down to Snuba in a `group_id IN (...)`
         # clause.
@@ -459,6 +443,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 end=end,
                 project_ids=[p.id for p in projects],
                 environment_ids=environments and [environment.id for environment in environments],
+                organization_id=projects[0].organization_id,
                 sort_field=sort_field,
                 cursor=cursor,
                 group_ids=group_ids,
@@ -606,6 +591,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 end=end,
                 project_ids=[p.id for p in projects],
                 environment_ids=environments and [environment.id for environment in environments],
+                organization_id=projects[0].organization_id,
                 sort_field=sort_field,
                 limit=sample_size,
                 offset=0,
@@ -630,3 +616,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 return hits
 
         return None
+
+
+class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
+    pass

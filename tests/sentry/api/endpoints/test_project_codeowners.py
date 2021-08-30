@@ -13,7 +13,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         self.integration = Integration.objects.create(
             provider="github", name="GitHub", external_id="github:1"
         )
-        self.integration.add_organization(self.organization, self.user)
+        self.oi = self.integration.add_organization(self.organization, self.user)
 
         self.team = self.create_team(
             organization=self.organization, slug="tiger-team", members=[self.user]
@@ -22,7 +22,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         self.project = self.project = self.create_project(
             organization=self.organization, teams=[self.team], slug="bengal"
         )
-        self.code_mapping = self.create_code_mapping(project=self.project)
+        self.code_mapping = self.create_code_mapping(
+            project=self.project,
+            organization_integration=self.oi,
+        )
         self.external_user = self.create_external_user(
             external_name="@NisanthanNanthakumar", integration=self.integration
         )
@@ -36,14 +39,14 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "codeMappingId": self.code_mapping.id,
         }
 
-    def _create_codeowner_with_integration(self):
+    def _create_codeowner_without_integration(self):
         self.integration = Integration.objects.create(
             provider="github",
             name="getsentry",
             external_id="1234",
             metadata={"domain_name": "github.com/getsentry"},
         )
-        self.oi = self.integration.add_organization(self.organization, self.user)
+        self.integration.add_organization(self.organization, self.user)
         self.repo = self.create_repo(
             project=self.project,
             name="getsentry/sentry",
@@ -51,14 +54,13 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             integration_id=self.integration.id,
             url="https://github.com/getsentry/sentry",
         )
-        self.code_mapping_with_integration = self.create_code_mapping(
+        self.code_mapping_without_integration = self.create_code_mapping(
             project=self.project,
             repo=self.repo,
-            organization_integration=self.oi,
             stack_root="webpack://",
         )
         self.code_owner = self.create_codeowners(
-            self.project, self.code_mapping_with_integration, raw="*.js @tiger-team"
+            self.project, self.code_mapping_without_integration, raw="*.js @tiger-team"
         )
 
     def test_no_codeowners(self):
@@ -73,6 +75,18 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp.data == {"detail": "You do not have permission to perform this action."}
 
     def test_codeowners_without_integrations(self):
+        self._create_codeowner_without_integration()
+        with self.feature({"organizations:integrations-codeowners": True}):
+            resp = self.client.get(self.url)
+        assert resp.status_code == 200
+        resp_data = resp.data[0]
+        assert resp_data["raw"] == self.code_owner.raw
+        assert resp_data["dateCreated"] == self.code_owner.date_added
+        assert resp_data["dateUpdated"] == self.code_owner.date_updated
+        assert resp_data["codeMappingId"] == str(self.code_mapping_without_integration.id)
+        assert resp_data["provider"] == "unknown"
+
+    def test_codeowners_with_integration(self):
         code_owner = self.create_codeowners(self.project, self.code_mapping, raw="*.js @tiger-team")
         with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(self.url)
@@ -82,43 +96,37 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp_data["dateCreated"] == code_owner.date_added
         assert resp_data["dateUpdated"] == code_owner.date_updated
         assert resp_data["codeMappingId"] == str(self.code_mapping.id)
-        assert resp_data["provider"] == "unknown"
-
-    def test_codeowners_with_integration(self):
-        self._create_codeowner_with_integration()
-        with self.feature({"organizations:integrations-codeowners": True}):
-            resp = self.client.get(self.url)
-        assert resp.status_code == 200
-        resp_data = resp.data[0]
-        assert resp_data["raw"] == self.code_owner.raw
-        assert resp_data["dateCreated"] == self.code_owner.date_added
-        assert resp_data["dateUpdated"] == self.code_owner.date_updated
-        assert resp_data["codeMappingId"] == str(self.code_mapping_with_integration.id)
         assert resp_data["provider"] == self.integration.provider
 
     def test_get_expanded_codeowners_with_integration(self):
-        self._create_codeowner_with_integration()
+        code_owner = self.create_codeowners(self.project, self.code_mapping, raw="*.js @tiger-team")
         with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(f"{self.url}?expand=codeMapping")
         assert resp.status_code == 200
         resp_data = resp.data[0]
-        assert resp_data["raw"] == self.code_owner.raw
-        assert resp_data["dateCreated"] == self.code_owner.date_added
-        assert resp_data["dateUpdated"] == self.code_owner.date_updated
-        assert resp_data["codeMappingId"] == str(self.code_mapping_with_integration.id)
+        assert resp_data["raw"] == code_owner.raw
+        assert resp_data["dateCreated"] == code_owner.date_added
+        assert resp_data["dateUpdated"] == code_owner.date_updated
+        assert resp_data["codeMappingId"] == str(self.code_mapping.id)
         assert resp_data["provider"] == self.integration.provider
-        assert resp_data["codeMapping"]["id"] == str(self.code_mapping_with_integration.id)
+        assert resp_data["codeMapping"]["id"] == str(self.code_mapping.id)
 
     def test_basic_post(self):
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 201, response.content
         assert response.data["id"]
-        assert {
-            "raw": "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem",
-            "codeMappingId": str(self.code_mapping.id),
-            "provider": "unknown",
-        }.items() <= response.data.items()
+        assert response.data["raw"] == "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem"
+        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["provider"] == "github"
+        assert response.data["ownershipSyntax"] == "codeowners:docs/* admin@sentry.io #tiger-team\n"
+
+        errors = response.data["errors"]
+        assert errors["missing_external_teams"] == []
+        assert errors["missing_external_users"] == []
+        assert errors["missing_user_emails"] == []
+        assert errors["teams_without_access"] == []
+        assert errors["users_without_access"] == []
 
     def test_empty_codeowners_text(self):
         self.data["raw"] = ""
@@ -131,50 +139,86 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         self.data["raw"] = "docs/*"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
-        assert response.data == {"raw": ["Parse error: 'ownership' (line 1, column 1)"]}
+        assert response.status_code == 201
+        assert response.data["raw"] == "docs/*"
+        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["provider"] == "github"
+        assert response.data["ownershipSyntax"] == ""
+
+        errors = response.data["errors"]
+        assert errors["missing_external_teams"] == []
+        assert errors["missing_external_users"] == []
+        assert errors["missing_user_emails"] == []
+        assert errors["teams_without_access"] == []
+        assert errors["users_without_access"] == []
 
     def test_cannot_find_external_user_name_association(self):
-        self.data["raw"] = "docs/*  @MeredithAnya "
+        self.data["raw"] = "docs/*  @MeredithAnya"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
-        assert response.data == {
-            "raw": ["The following usernames do not have an association in Sentry: @MeredithAnya."]
-        }
+        assert response.status_code == 201
+        assert response.data["raw"] == "docs/*  @MeredithAnya"
+        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["provider"] == "github"
+        assert response.data["ownershipSyntax"] == ""
+
+        errors = response.data["errors"]
+        assert errors["missing_external_teams"] == []
+        assert set(errors["missing_external_users"]) == {"@MeredithAnya"}
+        assert errors["missing_user_emails"] == []
+        assert errors["teams_without_access"] == []
+        assert errors["users_without_access"] == []
 
     def test_cannot_find_sentry_user_with_email(self):
         self.data["raw"] = "docs/*  someuser@sentry.io"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
-        assert response.data == {
-            "raw": [
-                "The following emails do not have an association in Sentry: someuser@sentry.io."
-            ]
-        }
+        assert response.status_code == 201
+        assert response.data["raw"] == "docs/*  someuser@sentry.io"
+        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["provider"] == "github"
+        assert response.data["ownershipSyntax"] == ""
+
+        errors = response.data["errors"]
+        assert errors["missing_external_teams"] == []
+        assert errors["missing_external_users"] == []
+        assert set(errors["missing_user_emails"]) == {"someuser@sentry.io"}
+        assert errors["teams_without_access"] == []
+        assert errors["users_without_access"] == []
 
     def test_cannot_find_external_team_name_association(self):
         self.data["raw"] = "docs/*  @getsentry/frontend\nstatic/* @getsentry/frontend"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
-        assert response.data == {
-            "raw": [
-                "The following team names do not have an association in Sentry: @getsentry/frontend."
-            ]
-        }
+        assert response.status_code == 201
+        assert response.data["raw"] == "docs/*  @getsentry/frontend\nstatic/* @getsentry/frontend"
+        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["provider"] == "github"
+        assert response.data["ownershipSyntax"] == ""
+
+        errors = response.data["errors"]
+        assert set(errors["missing_external_teams"]) == {"@getsentry/frontend"}
+        assert errors["missing_external_users"] == []
+        assert errors["missing_user_emails"] == []
+        assert errors["teams_without_access"] == []
+        assert errors["users_without_access"] == []
 
     def test_cannot_find__multiple_external_name_association(self):
         self.data["raw"] = "docs/*  @AnotherUser @getsentry/frontend @getsentry/docs"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
-        assert response.data == {
-            "raw": [
-                "The following usernames do not have an association in Sentry: @AnotherUser.\nThe following team names do not have an association in Sentry: @getsentry/frontend, @getsentry/docs."
-            ]
-        }
+        assert response.status_code == 201
+        assert response.data["raw"] == "docs/*  @AnotherUser @getsentry/frontend @getsentry/docs"
+        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["provider"] == "github"
+        assert response.data["ownershipSyntax"] == ""
+
+        errors = response.data["errors"]
+        assert set(errors["missing_external_teams"]) == {"@getsentry/frontend", "@getsentry/docs"}
+        assert set(errors["missing_external_users"]) == {"@AnotherUser"}
+        assert errors["missing_user_emails"] == []
+        assert errors["teams_without_access"] == []
+        assert errors["users_without_access"] == []
 
     def test_missing_code_mapping_id(self):
         self.data.pop("codeMappingId")
@@ -208,7 +252,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "$version": 1,
             "rules": [
                 {
-                    "matcher": {"pattern": "docs/*", "type": "path"},
+                    "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
                         {"identifier": self.user.email, "type": "user"},
                         {"identifier": self.team.slug, "type": "team"},
@@ -228,7 +272,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "$version": 1,
             "rules": [
                 {
-                    "matcher": {"pattern": "docs/*", "type": "path"},
+                    "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
                         {"identifier": self.user.email, "type": "user"},
                         {"identifier": self.team.slug, "type": "team"},
@@ -248,7 +292,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "$version": 1,
             "rules": [
                 {
-                    "matcher": {"pattern": "docs/*", "type": "path"},
+                    "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
                         {"identifier": self.user.email, "type": "user"},
                         {"identifier": self.team.slug, "type": "team"},
@@ -265,9 +309,47 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         }
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
-        assert response.status_code == 400
-        assert response.data == {
-            "raw": [
-                f"The following emails do not have an association in Sentry: {self.user2.email}."
-            ]
-        }
+        assert response.status_code == 201
+        assert response.data["id"]
+        assert response.data["raw"] == "docs/*    @NisanthanNanthakumar   user2@sentry.io"
+        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["provider"] == "github"
+        assert response.data["ownershipSyntax"] == "codeowners:docs/* admin@sentry.io\n"
+
+        errors = response.data["errors"]
+        assert errors["missing_external_teams"] == []
+        assert errors["missing_external_users"] == []
+        assert set(errors["missing_user_emails"]) == {self.user2.email}
+        assert errors["teams_without_access"] == []
+        assert errors["users_without_access"] == []
+
+    def test_multiple_codeowners_for_project(self):
+        code_mapping_2 = self.create_code_mapping(stack_root="src/")
+        self.create_codeowners(code_mapping=code_mapping_2)
+        with self.feature({"organizations:integrations-codeowners": True}):
+            response = self.client.post(self.url, self.data)
+        assert response.status_code == 201
+
+    def test_users_without_access(self):
+        user_2 = self.create_user("bar@example.com")
+        self.create_member(organization=self.organization, user=user_2, role="member")
+        team_2 = self.create_team(name="foo", organization=self.organization, members=[user_2])
+        self.create_project(organization=self.organization, teams=[team_2], slug="bass")
+        self.create_external_user(
+            user=user_2, external_name="@foobarSentry", integration=self.integration
+        )
+        self.data["raw"] = "docs/*  @foobarSentry\nstatic/* @foobarSentry"
+        with self.feature({"organizations:integrations-codeowners": True}):
+            response = self.client.post(self.url, self.data)
+        assert response.status_code == 201
+        assert response.data["raw"] == "docs/*  @foobarSentry\nstatic/* @foobarSentry"
+        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["provider"] == "github"
+        assert response.data["ownershipSyntax"] == ""
+
+        errors = response.data["errors"]
+        assert errors["missing_external_teams"] == []
+        assert errors["missing_external_users"] == []
+        assert errors["missing_user_emails"] == []
+        assert errors["teams_without_access"] == []
+        assert set(errors["users_without_access"]) == {user_2.email}

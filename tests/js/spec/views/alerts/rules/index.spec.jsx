@@ -2,8 +2,11 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import AlertRulesList from 'app/views/alerts/rules';
 import {IncidentStatus} from 'app/views/alerts/types';
+
+jest.mock('app/utils/analytics');
 
 describe('OrganizationRuleList', () => {
   const {routerContext, organization, router} = initializeOrg();
@@ -63,6 +66,7 @@ describe('OrganizationRuleList', () => {
     wrapper.unmount();
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
+    trackAnalyticsEvent.mockClear();
   });
 
   it('displays list', async () => {
@@ -86,6 +90,12 @@ describe('OrganizationRuleList', () => {
     expect(wrapper.find('IdBadge').at(0).prop('project')).toMatchObject({
       slug: 'earth',
     });
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+      eventKey: 'alert_rules.viewed',
+      eventName: 'Alert Rules: Viewed',
+      organization_id: '3',
+      sort: undefined,
+    });
   });
 
   it('displays empty state', async () => {
@@ -99,7 +109,7 @@ describe('OrganizationRuleList', () => {
     expect(rulesMock).toHaveBeenCalledTimes(0);
 
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain('No alert rules exist for these projects');
+    expect(wrapper.text()).toContain('No alert rules found for the current query');
   });
 
   it('sorts by date created', async () => {
@@ -131,6 +141,7 @@ describe('OrganizationRuleList', () => {
         query: {
           sort: 'name',
           asc: undefined,
+          team: ['myteams', 'unassigned'],
         },
       })
     );
@@ -169,11 +180,7 @@ describe('OrganizationRuleList', () => {
   });
 
   it('searches by name', async () => {
-    const ownershipOrg = {
-      ...organization,
-      features: ['team-alerts-ownership'],
-    };
-    await createWrapper({organization: ownershipOrg});
+    await createWrapper();
     expect(wrapper.find('StyledSearchBar').exists()).toBe(true);
 
     const testQuery = 'test name';
@@ -194,11 +201,7 @@ describe('OrganizationRuleList', () => {
   });
 
   it('uses empty team query parameter when removing all teams', async () => {
-    const ownershipOrg = {
-      ...organization,
-      features: ['team-alerts-ownership'],
-    };
-    await createWrapper({organization: ownershipOrg});
+    await createWrapper();
 
     wrapper.setProps({
       location: {query: {team: 'myteams'}, search: '?team=myteams`'},
@@ -247,6 +250,7 @@ describe('OrganizationRuleList', () => {
         query: {
           expand: ['latestIncident'],
           sort: ['incident_status', 'date_triggered'],
+          team: ['myteams', 'unassigned'],
         },
       })
     );

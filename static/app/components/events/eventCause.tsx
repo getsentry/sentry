@@ -17,8 +17,8 @@ import withCommitters from 'app/utils/withCommitters';
 
 type Props = {
   // injected by HoC
-  committers: Committer[];
   api: Client;
+  committers?: Committer[];
 
   // needed by HoC
   organization: Organization;
@@ -57,7 +57,7 @@ class EventCause extends Component<Props, State> {
     const {committers} = this.props;
     const {expanded} = this.state;
 
-    if (!(committers && committers.length)) {
+    if (!committers?.length) {
       return null;
     }
 

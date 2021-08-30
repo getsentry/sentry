@@ -1,28 +1,23 @@
 ---
-created: '2021-05-05T18:04:39.688558Z'
+created: '2021-07-14T12:39:42.706890Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "83c2aa527052d0ca889ed70770032dd8"
-  tree_label: "abort | dlopen | stripped_application_code [load/throw]"
+  hash: "b7de92d39e823772baa9a88863c07cab"
+  tree_label: "dlopen | stripped_application_code"
   component:
     app-depth-1*
       exception*
         stacktrace*
-          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame*
             function*
-              "abort"
-            package (ignored because function takes precedence)
-              "libsystem_c.dylib"
+              "stripped_application_code"
           frame* (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
             function*
               "dlopen"
             package (ignored because function takes precedence)
               "libdyld.dylib"
-          frame*
-            function*
-              "stripped_application_code"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
@@ -30,7 +25,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "8be5979a334287a1b47457228f1d4612"
-  tree_label: "<entire stacktrace>"
+  tree_label: "abort | dlopen | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     app-depth-max*
       exception*
@@ -239,17 +234,17 @@ app-depth-max:
               "__report_load.cold.1"
             package (ignored because function takes precedence)
               "libcrypto.dylib"
-          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
             package (ignored because function takes precedence)
               "libsystem_c.dylib"
-          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__abort"
             package (ignored because function takes precedence)
               "libsystem_c.dylib"
-          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__pthread_kill"
             package (ignored because function takes precedence)
@@ -260,8 +255,8 @@ app-depth-max:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "8be5979a334287a1b47457228f1d4612"
-  tree_label: "<entire stacktrace>"
+  hash: "9537ce3f27493f603bc706069c99ae2d"
+  tree_label: "abort | dlopen | stripped_application_code | stripped_application_code | stripped_application_code"
   component:
     system*
       exception*
@@ -470,22 +465,22 @@ system:
               "__report_load.cold.1"
             package (ignored because function takes precedence)
               "libcrypto.dylib"
-          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
             package (ignored because function takes precedence)
               "libsystem_c.dylib"
-          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__abort"
             package (ignored because function takes precedence)
               "libsystem_c.dylib"
-          frame (ignored by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__pthread_kill"
             package (ignored because function takes precedence)
               "libsystem_kernel.dylib"
-        type (ignored because exception is synthetic)
+        type*
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: <hex> / <hex>"

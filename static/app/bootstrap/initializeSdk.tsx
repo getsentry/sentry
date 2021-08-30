@@ -1,4 +1,4 @@
-import * as Router from 'react-router';
+import {browserHistory, createRoutes, match} from 'react-router';
 import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
 import SentryRRWeb from '@sentry/rrweb';
@@ -25,13 +25,16 @@ function getSentryIntegrations(hasReplays: boolean = false, routes?: Function) {
       ...(typeof routes === 'function'
         ? {
             routingInstrumentation: Sentry.reactRouterV3Instrumentation(
-              Router.browserHistory as any,
-              Router.createRoutes(routes()),
-              Router.match
+              browserHistory as any,
+              createRoutes(routes()),
+              match
             ),
           }
         : {}),
-      idleTimeout: 5000,
+      idleTimeout: 4000,
+      _metricOptions: {
+        _reportAllChanges: true,
+      },
     }),
   ];
   if (hasReplays) {

@@ -9,14 +9,11 @@ import Feature from 'app/components/acl/feature';
 import DateTime from 'app/components/dateTime';
 import {t} from 'app/locale';
 import {DateString, Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getUtcDateString} from 'app/utils/dates';
 import withApi from 'app/utils/withApi';
+import {IncidentRule, TimePeriod, TimeWindow} from 'app/views/alerts/incidentRules/types';
 import {makeRuleDetailsQuery} from 'app/views/alerts/list/row';
-import {
-  IncidentRule,
-  TimePeriod,
-  TimeWindow,
-} from 'app/views/settings/incidentRules/types';
 
 import {Incident} from '../../types';
 import {fetchAlertRule, fetchIncident, fetchIncidentsForRule} from '../../utils';
@@ -47,6 +44,7 @@ class AlertRuleDetails extends Component<Props, State> {
 
     fetchOrgMembers(api, params.orgId);
     this.fetchData();
+    this.trackView();
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -56,7 +54,20 @@ class AlertRuleDetails extends Component<Props, State> {
       prevProps.params.ruleId !== this.props.params.ruleId
     ) {
       this.fetchData();
+      this.trackView();
     }
+  }
+
+  trackView() {
+    const {params, organization, location} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'alert_rule_details.viewed',
+      eventName: 'Alert Rule Details: Viewed',
+      organization_id: organization.id,
+      rule_id: parseInt(params.ruleId, 10),
+      alert: location.query.alert ?? '',
+    });
   }
 
   getTimePeriod(): TimePeriodType {
@@ -144,12 +155,9 @@ class AlertRuleDetails extends Component<Props, State> {
       const rulePromise = fetchAlertRule(orgId, ruleId).then(rule =>
         this.setState({rule})
       );
-      const incidentsPromise = fetchIncidentsForRule(
-        orgId,
-        ruleId,
-        start,
-        end
-      ).then(incidents => this.setState({incidents}));
+      const incidentsPromise = fetchIncidentsForRule(orgId, ruleId, start, end).then(
+        incidents => this.setState({incidents})
+      );
       await Promise.all([rulePromise, incidentsPromise]);
       this.setState({isLoading: false, hasError: false});
     } catch (_err) {
@@ -166,9 +174,9 @@ class AlertRuleDetails extends Component<Props, State> {
     });
   };
 
-  handleZoom = async (start: DateString, end: DateString) => {
+  handleZoom = (start: DateString, end: DateString) => {
     const {location} = this.props;
-    await browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         start,

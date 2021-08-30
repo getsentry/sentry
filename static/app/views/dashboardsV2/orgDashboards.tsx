@@ -66,7 +66,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
         eventKey: 'dashboards2.view',
         eventName: 'Dashboards2: View dashboard',
         organization_id: parseInt(this.props.organization.id, 10),
-        dashboard_id: params.dashboardId,
+        dashboard_id: parseInt(params.dashboardId, 10),
       });
     }
 

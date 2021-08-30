@@ -2,6 +2,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
+from exam import mock
 
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models import (
@@ -12,7 +13,7 @@ from sentry.models import (
     Repository,
 )
 from sentry.plugins.base import plugins
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.testutils.helpers import with_feature
 from sentry.utils.compat.mock import Mock, patch
 from tests.sentry.plugins.testutils import (
@@ -150,7 +151,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     def test_accounts_list_failure(self):
         responses.replace(
             responses.GET,
-            "https://app.vssps.visualstudio.com/_apis/accounts?ownerId=%s&api-version=4.1"
+            "https://app.vssps.visualstudio.com/_apis/accounts?memberId=%s&api-version=4.1"
             % self.vsts_user_id,
             status=403,
             json={"$id": 1, "message": "Your account is not good"},
@@ -185,7 +186,11 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
         # The above already created the Webhook, so subsequent calls to
         # ``build_integration`` should omit that data.
-        data = VstsIntegrationProvider().build_integration(state)
+        provider = VstsIntegrationProvider()
+        pipeline = Mock()
+        pipeline.organization = self.organization
+        provider.set_pipeline(pipeline)
+        data = provider.build_integration(state)
         assert "subscription" in data["metadata"]
         assert (
             Integration.objects.get(provider="vsts").metadata["subscription"]
@@ -271,7 +276,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
         integration = VstsIntegrationProvider()
 
-        with pytest.raises(IntegrationError) as err:
+        with pytest.raises(IntegrationProviderError) as err:
             integration.build_integration(state)
         assert "sufficient account access to create webhooks" in str(err)
 
@@ -304,7 +309,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
         integration = VstsIntegrationProvider()
 
-        with pytest.raises(IntegrationError) as err:
+        with pytest.raises(IntegrationProviderError) as err:
             integration.build_integration(state)
         assert "sufficient account access to create webhooks" in str(err)
 
@@ -513,3 +518,15 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         )
         with pytest.raises(IntegrationError):
             installation.get_repositories()
+
+    def test_update_comment(self):
+        self.assert_installation()
+        integration = Integration.objects.get(provider="vsts")
+        installation = integration.get_installation(self.organization.id)
+
+        group_note = mock.Mock()
+        comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
+        group_note.data = {"text": comment, "external_id": "123"}
+
+        # Does nothing.
+        installation.update_comment(1, self.user.id, group_note)

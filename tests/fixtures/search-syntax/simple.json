@@ -1,0 +1,55 @@
+[
+  {
+    "desc": "test with raw search query at the end",
+    "query": "user.email:foo@example.com release:1.2.1 hello",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "user.email", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "foo@example.com", "quoted": false}
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "release", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "1.2.1", "quoted": false}
+      },
+      {"type": "spaces", "value": " "},
+      {"type": "freeText", "value": "hello", "quoted": false},
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "hello user.email:foo@example.com release:1.2.1",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": "hello ", "quoted": false},
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "user.email", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "foo@example.com", "quoted": false}
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "release", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "1.2.1", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

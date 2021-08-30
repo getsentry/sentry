@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.urls import reverse
 from exam import fixture
 
+from sentry.search.events.constants import SEMVER_ALIAS
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
@@ -268,6 +269,16 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
         )
         self.run_test(
             "user.display", qs_params={"includeTransactions": "1", "query": "bar"}, expected=[]
+        )
+
+    def test_semver(self):
+        self.create_release(version="test@1.0.0.0")
+        self.create_release(version="test@2.0.0.0")
+        self.run_test(SEMVER_ALIAS, expected=[("2.0.0.0", None), ("1.0.0.0", None)])
+        self.run_test(SEMVER_ALIAS, query="1.", expected=[("1.0.0.0", None)])
+        self.run_test(SEMVER_ALIAS, query="test@1.", expected=[("test@1.0.0.0", None)])
+        self.run_test(
+            SEMVER_ALIAS, query="test", expected=[("test@2.0.0.0", None), ("test@1.0.0.0", None)]
         )
 
 

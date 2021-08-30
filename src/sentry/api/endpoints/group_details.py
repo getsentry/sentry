@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import features, tagstore, tsdb
+from sentry import tagstore, tsdb
 from sentry.api import client
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
@@ -18,7 +18,7 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.models import Activity, Group, GroupSeen, User, UserReport
+from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
 from sentry.models.groupinbox import get_inbox_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
@@ -31,33 +31,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     def _get_activity(self, request, group, num):
-        activity_items = set()
-        activity = []
-        activity_qs = (
-            Activity.objects.filter(group=group).order_by("-datetime").select_related("user")
-        )
-        # we select excess so we can filter dupes
-        for item in activity_qs[: num * 2]:
-            sig = (item.type, item.ident, item.user_id)
-            # TODO: we could just generate a signature (hash(text)) for notes
-            # so there's no special casing
-            if item.type == Activity.NOTE:
-                activity.append(item)
-            elif sig not in activity_items:
-                activity_items.add(sig)
-                activity.append(item)
-
-        activity.append(
-            Activity(
-                id=0,
-                project=group.project,
-                group=group,
-                type=Activity.FIRST_SEEN,
-                datetime=group.first_seen,
-            )
-        )
-
-        return activity[:num]
+        return Activity.get_activities_for_group(group, num)
 
     def _get_seen_by(self, request, group):
         seen_by = list(
@@ -134,7 +108,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             environment_ids = [e.id for e in environments]
             expand = request.GET.getlist("expand", [])
             collapse = request.GET.getlist("collapse", [])
-            has_inbox = features.has("organizations:inbox", organization, actor=request.user)
 
             # WARNING: the rest of this endpoint relies on this serializer
             # populating the cache SO don't move this :)
@@ -184,13 +157,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 3600 * 24,
             )[group.id]
 
-            participants = list(
-                User.objects.filter(
-                    groupsubscription__is_active=True, groupsubscription__group=group
-                )
-            )
+            participants = GroupSubscriptionManager.get_participating_users(group)
 
-            if "inbox" in expand and has_inbox:
+            if "inbox" in expand:
                 inbox_map = get_inbox_details([group])
                 inbox_reason = inbox_map.get(group.id)
                 data.update({"inbox": inbox_reason})
@@ -248,6 +217,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                                   this issue. Can be of the form ``"<user_id>"``,
                                   ``"user:<user_id>"``, ``"<username>"``,
                                   ``"<user_primary_email>"``, or ``"team:<team_id>"``.
+        :param string assignedBy: ``"suggested_assignee"`` | ``"assignee_selector"``
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the
@@ -263,11 +233,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             discard = request.data.get("discard")
             project = group.project
             search_fn = functools.partial(prep_search, self, request, project)
-            has_inbox = features.has(
-                "organizations:inbox", project.organization, actor=request.user
-            )
             response = update_groups(
-                request, [group.id], [project], project.organization_id, search_fn, has_inbox
+                request, [group.id], [project], project.organization_id, search_fn
             )
             # if action was discard, there isn't a group to serialize anymore
             # if response isn't 200, return the response update_groups gave us (i.e. helpful error)

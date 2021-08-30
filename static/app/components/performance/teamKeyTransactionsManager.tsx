@@ -1,4 +1,5 @@
 import {Component, createContext, ReactNode} from 'react';
+import isEqual from 'lodash/isEqual';
 
 import {
   fetchTeamKeyTransactions,
@@ -26,16 +27,15 @@ export type TeamKeyTransactionManagerChildrenProps = {
   handleToggleKeyTransaction: (selection: TeamSelection) => void;
 };
 
-const TeamKeyTransactionsManagerContext = createContext<TeamKeyTransactionManagerChildrenProps>(
-  {
+const TeamKeyTransactionsManagerContext =
+  createContext<TeamKeyTransactionManagerChildrenProps>({
     teams: [],
     isLoading: false,
     error: null,
     counts: null,
     getKeyedTeams: () => null,
     handleToggleKeyTransaction: () => {},
-  }
-);
+  });
 
 type Props = {
   api: Client;
@@ -68,18 +68,14 @@ class UnwrappedProvider extends Component<Props> {
 
   componentDidUpdate(prevProps: Props) {
     const orgSlugChanged = prevProps.organization.slug !== this.props.organization.slug;
-    const selectedTeamsChanged =
-      prevProps.selectedTeams.length !== this.props.selectedTeams.length ||
-      prevProps.selectedTeams.every(
-        (teamId, i) => this.props.selectedTeams[i] !== teamId
-      );
-    const selectedProjectsChanged =
-      prevProps.selectedProjects &&
-      this.props.selectedProjects &&
-      prevProps.selectedProjects.length !== this.props.selectedProjects.length &&
-      prevProps.selectedProjects.every(
-        (projectId, i) => this.props.selectedProjects?.[i] !== projectId
-      );
+    const selectedTeamsChanged = !isEqual(
+      prevProps.selectedTeams,
+      this.props.selectedTeams
+    );
+    const selectedProjectsChanged = !isEqual(
+      prevProps.selectedProjects,
+      this.props.selectedProjects
+    );
 
     if (orgSlugChanged || selectedTeamsChanged || selectedProjectsChanged) {
       this.fetchData();

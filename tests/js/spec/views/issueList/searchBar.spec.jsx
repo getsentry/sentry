@@ -16,6 +16,15 @@ describe('IssueListSearchBar', function () {
   const clickInput = searchBar =>
     searchBar.find('textarea[name="query"]').simulate('click');
 
+  const mockCursorPosition = (wrapper, pos) => {
+    const component = wrapper.find('SmartSearchBar').instance();
+    delete component.cursorPosition;
+    Object.defineProperty(component, 'cursorPosition', {
+      get: jest.fn().mockReturnValue(pos),
+      configurable: true,
+    });
+  };
+
   beforeEach(function () {
     TagStore.reset();
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
@@ -64,6 +73,7 @@ describe('IssueListSearchBar', function () {
         onSearch: jest.fn(),
       };
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      mockCursorPosition(searchBar, 5);
       clickInput(searchBar);
       jest.advanceTimersByTime(301);
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
@@ -87,6 +97,7 @@ describe('IssueListSearchBar', function () {
       };
 
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      mockCursorPosition(searchBar, 5);
       clickInput(searchBar);
       expect(searchBar.state.searchTerm).toEqual();
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual(
@@ -137,6 +148,7 @@ describe('IssueListSearchBar', function () {
         supportedTags,
       };
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      mockCursorPosition(searchBar, 5);
       clickInput(searchBar);
       jest.advanceTimersByTime(301);
       expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
@@ -171,6 +183,7 @@ describe('IssueListSearchBar', function () {
       jest.useRealTimers();
       const wrapper = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
 
+      wrapper.find('textarea').simulate('focus');
       wrapper.find('textarea').simulate('change', {target: {value: 'is:'}});
       await tick();
       wrapper.update();
@@ -257,7 +270,8 @@ describe('IssueListSearchBar', function () {
         organization,
       };
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
-      expect(searchBar.find('[data-test-id="pin-icon"]')).toHaveLength(2);
+
+      expect(searchBar.find('ActionButton[data-test-id="pin-icon"]')).toHaveLength(1);
     });
 
     it('pins a search from the searchbar', function () {
@@ -269,7 +283,7 @@ describe('IssueListSearchBar', function () {
         organization,
       };
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
-      searchBar.find('button[aria-label="Pin this search"]').simulate('click');
+      searchBar.find('ActionButton[data-test-id="pin-icon"]').simulate('click');
 
       expect(pinSearch).toHaveBeenLastCalledWith(
         expect.anything(),
@@ -290,10 +304,11 @@ describe('IssueListSearchBar', function () {
         tagValueLoader: () => Promise.resolve([]),
         supportedTags,
         organization,
-        pinnedSearch: {id: '1', query: 'url:"fu"'},
+        savedSearch: {id: '1', isPinned: true, query: 'url:"fu"'},
       };
       const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
-      searchBar.find('button[aria-label="Unpin this search"]').simulate('click');
+
+      searchBar.find('ActionButton[aria-label="Unpin this search"]').simulate('click');
 
       expect(unpinSearch).toHaveBeenLastCalledWith(
         expect.anything(),

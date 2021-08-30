@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.features import OrganizationFeature
-from sentry.features.helpers import requires_feature
+from sentry.features.helpers import any_organization_has_feature, requires_feature
 from sentry.testutils import TestCase
 from sentry.utils.compat.mock import patch
 
@@ -20,6 +20,11 @@ class TestFeatureHelpers(TestCase):
         self.request.user = self.user
 
         features.add("foo", OrganizationFeature)
+
+    def test_any_organization_has_feature(self):
+        assert not any_organization_has_feature("foo", self.user.get_orgs())
+        with org_with_feature(self.org, "foo"):
+            assert any_organization_has_feature("foo", self.user.get_orgs())
 
     def test_org_missing_from_request_fails(self):
         @requires_feature("foo")

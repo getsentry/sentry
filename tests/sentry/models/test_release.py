@@ -3,6 +3,8 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.exceptions import InvalidRepository
+from sentry.api.release_search import INVALID_SEMVER_MESSAGE
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -25,10 +27,40 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     Repository,
     add_group_to_inbox,
+    follows_semver_versioning_scheme,
 )
+from sentry.search.events.filter import parse_semver
 from sentry.testutils import SetRefsTestCase, TestCase
 from sentry.utils.compat.mock import patch
 from sentry.utils.strings import truncatechars
+
+
+@pytest.mark.parametrize(
+    "release_version",
+    [
+        "1.0.0",
+        "1.0.0-alpha",
+        "1.0.0-alpha.1",
+        "1.0.0-alpha.beta",
+        "1.0.0-rc.1+43",
+        "org.example.FooApp@1.0+whatever",
+    ],
+)
+def test_version_is_semver_valid(release_version):
+    assert Release.is_semver_version(release_version) is True
+
+
+@pytest.mark.parametrize(
+    "release_version",
+    [
+        "helloworld",
+        "alpha@helloworld",
+        "alpha@helloworld-1.0",
+        "org.example.FooApp@9223372036854775808.1.2.3-r1+12345",
+    ],
+)
+def test_version_is_semver_invalid(release_version):
+    assert Release.is_semver_version(release_version) is False
 
 
 class MergeReleasesTest(TestCase):
@@ -779,3 +811,340 @@ class SemverReleaseParseTestCase(TestCase):
         version = "hello world"
         release = Release.objects.create(organization=self.org, version=version)
         assert release.version == "hello world"
+
+    def test_parse_release_overflow_bigint(self):
+        """
+        Tests that we don't error if we have a version component that is larger than
+        a postgres bigint.
+        """
+        version = "org.example.FooApp@9223372036854775808.1.2.3-r1+12345"
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release.version == version
+        assert release.major is None
+        assert release.minor is None
+        assert release.patch is None
+        assert release.revision is None
+        assert release.prerelease is None
+        assert release.build_code is None
+        assert release.build_number is None
+        assert release.package is None
+
+
+class ReleaseFilterBySemverTest(TestCase):
+    def test_invalid_query(self):
+        with pytest.raises(
+            InvalidSearchQuery,
+            match=INVALID_SEMVER_MESSAGE,
+        ):
+            Release.objects.filter_by_semver(self.organization.id, parse_semver("1.2.hi", ">"))
+
+    def run_test(self, operator, version, expected_releases, organization_id=None, projects=None):
+        organization_id = organization_id if organization_id else self.organization.id
+        project_ids = [p.id for p in projects] if projects else None
+        assert set(
+            Release.objects.filter_by_semver(
+                organization_id, parse_semver(version, operator), project_ids=project_ids
+            )
+        ) == set(expected_releases)
+
+    def test(self):
+        release = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        self.run_test(">", "1.2.3", [release_2])
+        self.run_test(">=", "1.2.4", [release_2])
+        self.run_test("<", "1.2.4", [release])
+        self.run_test("<=", "1.2.3", [release])
+
+    def test_prerelease(self):
+        # Prerelease has weird sorting rules, where an empty string is higher priority
+        # than a non-empty string. Make sure this sorting works
+        release = self.create_release(version="test@1.2.3-alpha")
+        release_1 = self.create_release(version="test@1.2.3-beta")
+        release_2 = self.create_release(version="test@1.2.3")
+        release_3 = self.create_release(version="test@1.2.4-alpha")
+        release_4 = self.create_release(version="test@1.2.4")
+        self.run_test(">=", "1.2.3", [release_2, release_3, release_4])
+        self.run_test(
+            ">=",
+            "1.2.3-beta",
+            [release_1, release_2, release_3, release_4],
+        )
+        self.run_test("<", "1.2.3", [release_1, release])
+
+    def test_granularity(self):
+        self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0")
+        release_3 = self.create_release(version="test@1.2.3.0")
+        release_4 = self.create_release(version="test@1.2.3.4")
+        release_5 = self.create_release(version="test@2.0.0.0")
+        self.run_test(
+            ">",
+            "1",
+            [release_2, release_3, release_4, release_5],
+        )
+        self.run_test(">", "1.2", [release_3, release_4, release_5])
+        self.run_test(">", "1.2.3", [release_4, release_5])
+        self.run_test(">", "1.2.3.4", [release_5])
+        self.run_test(">", "2", [])
+
+    def test_wildcard(self):
+        release_1 = self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0")
+        release_3 = self.create_release(version="test@1.2.3.0")
+        release_4 = self.create_release(version="test@1.2.3.4")
+        release_5 = self.create_release(version="test@2.0.0.0")
+
+        self.run_test(
+            "=",
+            "1.X",
+            [release_1, release_2, release_3, release_4],
+        )
+        self.run_test("=", "1.2.*", [release_2, release_3, release_4])
+        self.run_test("=", "1.2.3.*", [release_3, release_4])
+        self.run_test("=", "1.2.3.4", [release_4])
+        self.run_test("=", "2.*", [release_5])
+
+    def test_package(self):
+        release = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test2@1.2.3")
+        self.run_test(">=", "test@1.2.3", [release])
+        self.run_test(">=", "test2@1.2.3", [release_2])
+
+    def test_project(self):
+        project_2 = self.create_project()
+        release = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        release_3 = self.create_release(version="test@1.2.5", additional_projects=[project_2])
+        release_4 = self.create_release(version="test@1.2.6", project=project_2)
+        self.run_test(">=", "test@1.2.3", [release, release_2, release_3, release_4])
+        self.run_test(
+            ">=",
+            "test@1.2.3",
+            [release, release_2, release_3, release_4],
+            projects=[self.project, project_2],
+        )
+        self.run_test(">=", "test@1.2.3", [release, release_2, release_3], projects=[self.project])
+        self.run_test(">=", "test@1.2.3", [release_3, release_4], projects=[project_2])
+
+
+class ReleaseFilterBySemverBuildTest(TestCase):
+    def run_test(self, operator, build, expected_releases, organization_id=None, projects=None):
+        organization_id = organization_id if organization_id else self.organization.id
+        project_ids = [p.id for p in projects] if projects else None
+        assert set(
+            Release.objects.filter_by_semver_build(
+                organization_id, operator, build, project_ids=project_ids
+            )
+        ) == set(expected_releases)
+
+    def test_no_build(self):
+        self.create_release(version="test@1.2.3")
+        self.create_release(version="test@1.2.4")
+        self.run_test("gt", "100", [])
+        self.run_test("exact", "105aab", [])
+
+    def test_numeric(self):
+        release_1 = self.create_release(version="test@1.2.3+123")
+        release_2 = self.create_release(version="test@1.2.4+456")
+        self.create_release(version="test@1.2.4+123abc")
+        self.run_test("gt", "123", [release_2])
+        self.run_test("lte", "123", [release_1])
+        self.run_test("exact", "123", [release_1])
+
+    def test_large_numeric(self):
+        release_1 = self.create_release(version="test@1.2.3+9223372036854775808")
+        self.create_release(version="test@1.2.3+9223372036854775809")
+
+        # This should only return `release_1`, since this exceeds the max size for a bigint and
+        # so should fall back to an exact string match instead.
+        self.run_test("gt", "9223372036854775808", [release_1])
+
+    def test_text(self):
+        release_1 = self.create_release(version="test@1.2.3+123")
+        release_2 = self.create_release(version="test@1.2.4+1234")
+        release_3 = self.create_release(version="test@1.2.4+123abc")
+
+        self.run_test("exact", "", [release_1, release_2, release_3])
+        self.run_test("exact", "*", [release_1, release_2, release_3])
+        self.run_test("exact", "123*", [release_1, release_2, release_3])
+        self.run_test("exact", "123a*", [release_3])
+        self.run_test("exact", "123ab", [])
+        self.run_test("exact", "123abc", [release_3])
+
+
+class FollowsSemverVersioningSchemeTestCase(TestCase):
+    def setUp(self):
+        self.org = self.create_organization()
+        self.fake_package = "_fake_package_prj_"
+
+        # Project with 10 semver releases
+        self.proj_1 = self.create_project(organization=self.org)
+        for i in range(10):
+            self.create_release(version=f"fake_package-ahmed@1.1.{i}", project=self.proj_1)
+
+    def test_follows_semver_with_all_releases_semver_and_semver_release_version(self):
+        """
+        Test that ensures that when the last 10 releases and the release version passed in as an arg
+        follow semver versioning, then True should be returned
+        """
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org.id, project_id=self.proj_1.id, release_version="fake_package@2.0.0"
+            )
+            is True
+        )
+
+    def test_follows_semver_with_all_releases_semver_and_no_release_version(self):
+        """
+        Test that ensures that when the last 10 releases follow semver versioning and no release
+        version is passed in as an argument, then True should be returned
+        """
+        assert (
+            follows_semver_versioning_scheme(org_id=self.org.id, project_id=self.proj_1.id) is True
+        )
+
+    def test_follows_semver_with_all_releases_semver_and_non_semver_release_version(self):
+        """
+        Test that ensures that even if the last 10 releases follow semver but the passed in
+        release_version doesn't then we should return False because we should not follow semver
+        versioning in this case
+        """
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org.id, project_id=self.proj_1.id, release_version="fizbuzz"
+            )
+            is False
+        )
+
+    def test_follows_semver_user_accidentally_stopped_using_semver_a_few_times(self):
+        """
+        Test that ensures that when a user accidentally stops using semver versioning for a few
+        times but there exists atleast one semver compliant release in the last 3 releases and
+        atleast 3 releases that are semver compliant in the last 10 then we still consider
+        project to be following semantic versioning
+        """
+        proj = self.create_project(organization=self.org)
+
+        for i in range(2):
+            self.create_release(version=f"{self.fake_package}{proj.id}@1.{i}", project=proj)
+        for i in range(7):
+            self.create_release(version=f"foo release {i}", project=proj)
+        self.create_release(version=f"{self.fake_package}{proj.id}@1.9", project=proj)
+
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org.id,
+                project_id=proj.id,
+            )
+            is True
+        )
+
+    def test_follows_semver_user_stops_using_semver(self):
+        """
+        Test that ensures that if a user stops using semver and so the last 3 releases in the last
+        10 releases are all non-semver releases, then the project does not follow semver anymore
+        since 1st condition of atleast one semver release in the last 3 has to be a semver
+        release is not satisfied
+        """
+        proj = self.create_project(organization=self.org)
+
+        for i in range(7):
+            self.create_release(version=f"{self.fake_package}{proj.id}@1.{i}", project=proj)
+        for i in range(3):
+            self.create_release(version=f"helloworld {i}", project=proj)
+
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org.id,
+                project_id=proj.id,
+            )
+            is False
+        )
+
+    def test_follows_semver_user_accidentally_uses_semver_a_few_times(self):
+        """
+        Test that ensures that if user accidentally uses semver compliant versions for a few
+        times then the project will not be considered to be using semver
+        """
+        proj = self.create_project(organization=self.org)
+
+        for i in range(8):
+            self.create_release(version=f"foo release {i}", project=proj)
+        for i in range(2):
+            self.create_release(version=f"{self.fake_package}{proj.id}@1.{i}", project=proj)
+
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org.id,
+                project_id=proj.id,
+            )
+            is False
+        )
+
+    def test_follows_semver_user_starts_using_semver(self):
+        """
+        Test that ensures if a user starts using semver by having atleast the last 3 releases
+        using semver then we consider the project to be using semver
+        """
+        proj = self.create_project(organization=self.org)
+
+        for i in range(7):
+            self.create_release(version=f"foo release {i}", project=proj)
+        for i in range(3):
+            self.create_release(version=f"{self.fake_package}{proj.id}@1.{i}", project=proj)
+
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org.id,
+                project_id=proj.id,
+            )
+            is True
+        )
+
+    def test_follows_semver_user_starts_using_semver_with_less_than_10_recent_releases(self):
+        """
+        Test that ensures that a project with only 5 (<10) releases and atleast one semver
+        release in the most recent releases is considered to be following semver
+        """
+        proj = self.create_project(organization=self.org)
+
+        for i in range(4):
+            self.create_release(version=f"helloworld {i}", project=proj)
+        self.create_release(version=f"{self.fake_package}{proj.id}@1.0", project=proj)
+
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org.id,
+                project_id=proj.id,
+            )
+            is True
+        )
+
+    def test_follows_semver_check_when_project_only_has_two_releases(self):
+        """
+        Test that ensures that when a project has only two releases, then we consider project to
+        be semver or not based on if the most recent release follows semver or not
+        """
+        # Case: User just started using semver
+        proj = self.create_project(organization=self.org)
+        self.create_release(version="helloworld 0", project=proj)
+        self.create_release(version=f"{self.fake_package}{proj.id}@1.0", project=proj)
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org.id,
+                project_id=proj.id,
+            )
+            is True
+        )
+
+        # Case: User just stopped using semver
+        proj_2 = self.create_project(organization=self.org)
+        self.create_release(version=f"{self.fake_package}{proj_2.id}@1.0", project=proj_2)
+        self.create_release(version="helloworld 1", project=proj_2)
+        assert (
+            follows_semver_versioning_scheme(
+                org_id=self.org.id,
+                project_id=proj_2.id,
+            )
+            is False
+        )

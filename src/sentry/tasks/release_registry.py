@@ -48,7 +48,7 @@ def fetch_release_registry_data(**kwargs):
     More details about the registry: https://github.com/getsentry/sentry-release-registry/
     """
     if not settings.SENTRY_RELEASE_REGISTRY_BASEURL:
-        logger.warn("Release registry URL is not specified, skipping the task.")
+        logger.warning("Release registry URL is not specified, skipping the task.")
         return
 
     # Language SDKs

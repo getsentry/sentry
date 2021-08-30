@@ -3,6 +3,7 @@
   <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
     <meta name="robots" content="NONE,NOARCHIVE" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#000000">
     <title><%= htmlWebpackPlugin.options.title || 'Sentry Dev'%></title>
     <script type="text/javascript">
@@ -10,6 +11,7 @@
       var reg = new RegExp(/\/organizations\/(.+?(?=(\/|$)))(\/|$)/, 'i');
       var organization = window.location.pathname;
       var slug = organization.match(reg)[1];
+      var preloadPromises = { orgSlug: slug };
 
       function promiseRequest(url) {
         return new Promise(function (resolve, reject) {
@@ -35,12 +37,13 @@
         return '/api/0/organizations/' + slug + suffix;
       }
 
-      var preloadPromises = { orgSlug: slug };
       window.__sentry_preload = preloadPromises;
 
-      preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
-      preloadPromises.projects =  promiseRequest(makeUrl('/projects/?all_projects=1&collapse=latestDeploys'));
-      preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
+      if (slug !== 'new') {
+        preloadPromises['organization?detailed=0'] = promiseRequest(makeUrl('/?detailed=0'));
+        preloadPromises.projects =  promiseRequest(makeUrl('/projects/?all_projects=1&collapse=latestDeploys'));
+        preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
+      }
     } catch(_) {}
     </script>
   </head>

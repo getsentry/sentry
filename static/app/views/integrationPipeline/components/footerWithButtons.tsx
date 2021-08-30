@@ -18,7 +18,7 @@ export default function FooterWithButtons({buttonText, ...rest}: Props) {
   );
 }
 
-//wrap in form so we can keep form submission behavior
+// wrap in form so we can keep form submission behavior
 const Footer = styled('form')`
   width: 100%;
   position: fixed;

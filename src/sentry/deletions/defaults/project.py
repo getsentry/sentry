@@ -16,6 +16,7 @@ class ProjectDeletionTask(ModelDeletionTask):
         # in bulk
         model_list = (
             models.Activity,
+            models.AppConnectBuild,
             models.EnvironmentProject,
             models.EventAttachment,
             models.EventUser,
@@ -28,6 +29,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.GroupSeen,
             models.GroupShare,
             models.GroupSubscription,
+            models.LatestAppConnectBuildsCheck,
             models.ProjectBookmark,
             models.ProjectKey,
             models.ProjectTeam,
@@ -39,6 +41,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.SavedSearch,
             models.ServiceHook,
             models.UserReport,
+            models.ProjectTransactionThreshold,
             DiscoverSavedQueryProject,
             KeyTransaction,
             IncidentProject,

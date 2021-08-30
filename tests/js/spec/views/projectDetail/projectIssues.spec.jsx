@@ -4,7 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import ProjectIssues from 'app/views/projectDetail/projectIssues';
 
 describe('ProjectDetail > ProjectIssues', function () {
-  let endpointMock, filteredEndpointMock;
+  let endpointMock, filteredEndpointMock, wrapper;
   const {organization, router, routerContext} = initializeOrg({
     organization: {
       features: ['discover-basic'],
@@ -30,10 +30,11 @@ describe('ProjectDetail > ProjectIssues', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    wrapper.unmount();
   });
 
   it('renders a list', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectIssues organization={organization} location={router.location} />,
       routerContext
     );
@@ -43,13 +44,13 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a link to Issues', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectIssues organization={organization} location={router.location} />,
       routerContext
     );
 
     expect(
-      wrapper.find('ControlsWrapper Link[aria-label="Open in Issues"]').prop('to')
+      wrapper.find('ControlsWrapper Link[aria-label="Open in Issues"]').at(0).prop('to')
     ).toEqual({
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {
@@ -62,13 +63,13 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a link to Discover', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectIssues organization={organization} location={router.location} />,
       routerContext
     );
 
     expect(
-      wrapper.find('ControlsWrapper Link[aria-label="Open in Discover"]').prop('to')
+      wrapper.find('ControlsWrapper Link[aria-label="Open in Discover"]').at(0).prop('to')
     ).toEqual({
       pathname: `/organizations/${organization.slug}/discover/results/`,
       query: {
@@ -83,7 +84,7 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('changes according to global header', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectIssues
         organization={organization}
         location={{
@@ -97,7 +98,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(filteredEndpointMock).toHaveBeenCalledTimes(1);
 
     expect(
-      wrapper.find('ControlsWrapper Link[aria-label="Open in Issues"]').prop('to')
+      wrapper.find('ControlsWrapper Link[aria-label="Open in Issues"]').at(0).prop('to')
     ).toEqual({
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {

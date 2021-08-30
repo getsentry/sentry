@@ -16,6 +16,7 @@ from sentry.models import (
     ReleaseCommit,
     ReleaseProject,
     ReleaseProjectEnvironment,
+    ReleaseStages,
     User,
     UserEmail,
 )
@@ -159,7 +160,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["versionInfo"]["version"]["pre"] == "a"
         assert result["versionInfo"]["version"]["buildCode"] == "20200101100"
         assert result["versionInfo"]["buildHash"] is None
-        assert result["versionInfo"]["description"] == "1.0-a (20200101100)"
+        assert result["versionInfo"]["description"] == "1.0a (20200101100)"
         assert result["versionInfo"]["version"]["components"] == 2
 
     def test_no_tag_data(self):
@@ -494,6 +495,73 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert users[str(commit_author.id)]["email"] == user.email
         assert users[str(commit_author2.id)]["email"] == user2.email
         patched_serialize_base.call_count = 2
+
+    def test_adoption_stages(self):
+        user = self.create_user()
+        project = self.create_project()
+        release = Release.objects.create(
+            organization_id=project.organization_id, version=uuid4().hex
+        )
+        release.add_project(project)
+        env = Environment.objects.create(organization_id=project.organization_id, name="staging")
+        env.add_project(project)
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project.id, release_id=release.id, environment_id=env.id, new_issues_count=1
+        )
+        result = serialize(release, user)
+        assert "adoptionStages" not in result
+
+        with self.feature("organizations:release-adoption-stage"):
+            result = serialize(release, user)
+            assert "adoptionStages" not in result
+
+            result = serialize(release, user, with_adoption_stages=True)
+            assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.LOW_ADOPTION
+            assert result["adoptionStages"][project.slug]["unadopted"] is None
+            assert result["adoptionStages"][project.slug]["adopted"] is None
+
+            env2 = Environment.objects.create(
+                organization_id=project.organization_id, name="production"
+            )
+            rpe = ReleaseProjectEnvironment.objects.create(
+                project_id=project.id,
+                release_id=release.id,
+                environment_id=env2.id,
+                new_issues_count=1,
+                adopted=datetime.utcnow(),
+            )
+
+            result = serialize(release, user, with_adoption_stages=True)
+            assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.ADOPTED
+            assert result["adoptionStages"][project.slug]["unadopted"] is None
+            assert result["adoptionStages"][project.slug]["adopted"] is not None
+
+            project2 = self.create_project()
+            ReleaseProjectEnvironment.objects.create(
+                project_id=project2.id,
+                release_id=release.id,
+                environment_id=env2.id,
+                new_issues_count=1,
+            )
+            result = serialize(release, user, with_adoption_stages=True)
+            assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.ADOPTED
+            assert result["adoptionStages"][project2.slug]["stage"] == ReleaseStages.LOW_ADOPTION
+
+            ReleaseProjectEnvironment.objects.create(
+                project_id=project2.id,
+                release_id=release.id,
+                environment_id=env.id,
+                new_issues_count=1,
+                adopted=datetime.utcnow(),
+            )
+            result = serialize(release, user, with_adoption_stages=True)
+            assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.ADOPTED
+            assert result["adoptionStages"][project2.slug]["stage"] == ReleaseStages.ADOPTED
+
+            rpe.update(unadopted=datetime.utcnow())
+            result = serialize(release, user, with_adoption_stages=True)
+            assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.REPLACED
+            assert result["adoptionStages"][project2.slug]["stage"] == ReleaseStages.ADOPTED
 
 
 class ReleaseRefsSerializerTest(TestCase):

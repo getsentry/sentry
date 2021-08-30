@@ -4,6 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
+import ErrorBoundary from 'app/components/errorBoundary';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Tooltip from 'app/components/tooltip';
@@ -13,9 +14,9 @@ import {Group, GroupTombstone, Level, Organization} from 'app/types';
 import {Event} from 'app/types/event';
 import {getLocation, getMessage} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
-import UnhandledTag, {
-  TagAndMessageWrapper,
-} from 'app/views/organizationGroupDetails/unhandledTag';
+import {TagAndMessageWrapper} from 'app/views/organizationGroupDetails/unhandledTag';
+
+import EventTitleError from './eventTitleError';
 
 type DefaultProps = {
   includeLink: boolean;
@@ -44,8 +45,9 @@ class EventOrGroupHeader extends Component<Props> {
   };
 
   getTitleChildren() {
-    const {hideIcons, hideLevel, data, index} = this.props;
+    const {hideIcons, hideLevel, data, index, organization} = this.props;
     const {level, status, isBookmarked, hasSeen} = data as Group;
+    const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
 
     return (
       <Fragment>
@@ -66,13 +68,16 @@ class EventOrGroupHeader extends Component<Props> {
             <IconStar isSolid color="yellow300" />
           </IconWrapper>
         )}
-        <EventOrGroupTitle
-          {...this.props}
-          style={{fontWeight: hasSeen ? 400 : 600}}
-          withStackTracePreview
-          hasGuideAnchor={index === 0}
-          guideAnchorName="issue_stream_title"
-        />
+
+        <ErrorBoundary customComponent={<EventTitleError />} mini>
+          <StyledEventOrGroupTitle
+            {...this.props}
+            hasSeen={hasGroupingTreeUI && hasSeen === undefined ? true : hasSeen}
+            withStackTracePreview
+            hasGuideAnchor={index === 0}
+            guideAnchorName="issue_stream_title"
+          />
+        </ErrorBoundary>
       </Fragment>
     );
   }
@@ -101,7 +106,7 @@ class EventOrGroupHeader extends Component<Props> {
             query: {
               query: this.props.query,
               ...(location.query.sort !== undefined ? {sort: location.query.sort} : {}), // This adds sort to the query if one was selected from the issues list page
-              ...(location.query.project !== undefined ? {} : {_allp: 1}), //This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
+              ...(location.query.project !== undefined ? {} : {_allp: 1}), // This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
             },
           }}
           onClick={onClick}
@@ -115,19 +120,16 @@ class EventOrGroupHeader extends Component<Props> {
   }
 
   render() {
-    const {className, size, data, organization} = this.props;
+    const {className, size, data} = this.props;
     const location = getLocation(data);
     const message = getMessage(data);
-    const {isUnhandled} = data as Group;
-    const showUnhandled = isUnhandled && !organization.features.includes('inbox');
 
     return (
       <div className={className} data-test-id="event-issue-header">
         <Title size={size}>{this.getTitle()}</Title>
         {location && <Location size={size}>{location}</Location>}
-        {(message || showUnhandled) && (
+        {message && (
           <StyledTagAndMessageWrapper size={size}>
-            {showUnhandled && <UnhandledTag />}
             {message && <Message>{message}</Message>}
           </StyledTagAndMessageWrapper>
         )}
@@ -219,3 +221,9 @@ const GroupLevel = styled('div')<{level: Level}>`
 `;
 
 export default withRouter(withOrganization(EventOrGroupHeader));
+
+const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
+  hasSeen: boolean;
+}>`
+  font-weight: ${p => (p.hasSeen ? 400 : 600)};
+`;

@@ -1,0 +1,314 @@
+{
+  "event_id": "86f6650cba334f80938c560c256f9974",
+  "project": 5428557,
+  "release": "io.sentry.sample.iOS-Swift@7.1.3+1",
+  "dist": "1",
+  "platform": "cocoa",
+  "message": "",
+  "datetime": "2021-06-08T13:33:01.181000+00:00",
+  "tags": [
+    ["app.device", "2421fae1ac9237a8131e74883e52b0f7034a143f"],
+    ["device", "iPhone13,2"],
+    ["device.family", "iOS"],
+    ["environment", "debug"],
+    ["language", "swift"],
+    ["level", "info"],
+    ["os", "iOS 14.6"],
+    ["os.name", "iOS"],
+    ["os.rooted", "no"],
+    ["dist", "1"],
+    ["release", "io.sentry.sample.iOS-Swift@7.1.3+1"],
+    ["user", "id:1"],
+    ["transaction", "iOS_Swift.ViewController"]
+  ],
+  "_metrics": {"bytes.ingested.event": 5867, "bytes.stored.event": 7298},
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1623159181.144,
+        "type": "debug",
+        "category": "started",
+        "level": "info",
+        "message": "Breadcrumb Tracking"
+      },
+      {
+        "timestamp": 1623159181.146,
+        "type": "navigation",
+        "category": "device.orientation",
+        "level": "info",
+        "data": {"position": "portrait"}
+      },
+      {
+        "timestamp": 1623159181.164,
+        "type": "navigation",
+        "category": "device.orientation",
+        "level": "info",
+        "data": {"position": "portrait"}
+      },
+      {
+        "timestamp": 1623159181.164,
+        "type": "navigation",
+        "category": "device.orientation",
+        "level": "info",
+        "data": {"position": "portrait"}
+      },
+      {
+        "timestamp": 1623159181.165,
+        "type": "navigation",
+        "category": "app.lifecycle",
+        "level": "info",
+        "data": {"state": "foreground"}
+      },
+      {
+        "timestamp": 1623159181.181,
+        "type": "navigation",
+        "category": "ui.lifecycle",
+        "level": "info",
+        "data": {"screen": "iOS_Swift.ViewController"}
+      }
+    ]
+  },
+  "breakdowns": {"span_ops": {"total.time": {"value": 1770.999909}}},
+  "contexts": {
+    "app": {
+      "device_app_hash": "2421fae1ac9237a8131e74883e52b0f7034a143f",
+      "build_type": "test",
+      "app_identifier": "io.sentry.sample.iOS-Swift",
+      "app_name": "iOS-Swift",
+      "app_version": "7.1.3",
+      "app_build": "1",
+      "app_id": "3145EA1A-0EAE-3F8C-969A-13A01394D3EA",
+      "type": "app"
+    },
+    "device": {
+      "family": "iOS",
+      "model": "iPhone13,2",
+      "model_id": "D53gAP",
+      "memory_size": 3883876352,
+      "free_memory": 44826624,
+      "usable_memory": 2743615488,
+      "storage_size": 63870980096,
+      "boot_time": "2021-06-02T09:43:51Z",
+      "timezone": "CEST",
+      "type": "device"
+    },
+    "os": {
+      "name": "iOS",
+      "version": "14.6",
+      "build": "18F72",
+      "kernel_version": "Darwin Kernel Version 20.5.0: Sat May  8 02:21:45 PDT 2021; root:xnu-7195.122.1~4/RELEASE_ARM64_T8101",
+      "rooted": false,
+      "type": "os"
+    },
+    "trace": {
+      "trace_id": "1bf193e4d9684924bc5534bb68d1579b",
+      "span_id": "e5fd54665cd84c8c",
+      "op": "ui.rendering",
+      "status": "ok",
+      "data": {},
+      "start_timestamp": "2021-06-08T13:32:59.397Z",
+      "tags": {},
+      "timestamp": "2021-06-08T13:33:01.181Z",
+      "type": "trace"
+    }
+  },
+  "culprit": "iOS_Swift.ViewController",
+  "environment": "debug",
+  "extra": {"currentViewController": "<iOS_Swift.ViewController: 0x109a19b80>"},
+  "grouping_config": {
+    "enhancements": "eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ",
+    "id": "newstyle:2019-10-29"
+  },
+  "key_id": "1478344",
+  "level": "info",
+  "location": "iOS_Swift.ViewController",
+  "logger": "",
+  "metadata": {
+    "location": "iOS_Swift.ViewController",
+    "title": "iOS_Swift.ViewController"
+  },
+  "received": 1623159184.821028,
+  "sdk": {"name": "sentry.cocoa", "version": "7.1.3"},
+  "spans": [
+    {
+      "timestamp": 1623159181.157,
+      "start_timestamp": 1623159181.154,
+      "description": "loadView",
+      "op": "ui.rendering",
+      "span_id": "b49dc5fec4a747c7",
+      "parent_span_id": "e5fd54665cd84c8c",
+      "trace_id": "1bf193e4d9684924bc5534bb68d1579b",
+      "tags": {},
+      "data": {},
+      "type": "trace"
+    },
+    {
+      "timestamp": 1623159181.158,
+      "start_timestamp": 1623159181.157,
+      "description": "viewDidLoad",
+      "op": "ui.rendering",
+      "span_id": "0f02b30b64194464",
+      "parent_span_id": "e5fd54665cd84c8c",
+      "trace_id": "1bf193e4d9684924bc5534bb68d1579b",
+      "tags": {},
+      "data": {},
+      "type": "trace"
+    },
+    {
+      "timestamp": 1623159181.162,
+      "start_timestamp": 1623159181.162,
+      "description": "viewWillAppear",
+      "op": "ui.rendering",
+      "span_id": "4ef8474162c94a62",
+      "parent_span_id": "e5fd54665cd84c8c",
+      "trace_id": "1bf193e4d9684924bc5534bb68d1579b",
+      "tags": {},
+      "data": {},
+      "type": "trace"
+    },
+    {
+      "timestamp": 1623159181.17,
+      "start_timestamp": 1623159181.17,
+      "description": "viewWillLayoutSubviews",
+      "op": "ui.rendering",
+      "span_id": "7165bf748d874dda",
+      "parent_span_id": "e5fd54665cd84c8c",
+      "trace_id": "1bf193e4d9684924bc5534bb68d1579b",
+      "tags": {},
+      "data": {},
+      "type": "trace"
+    },
+    {
+      "timestamp": 1623159181.164,
+      "start_timestamp": 1623159179.397,
+      "description": "Warm Start",
+      "op": "app start",
+      "span_id": "ec53661a53c44c3f",
+      "parent_span_id": "e5fd54665cd84c8c",
+      "trace_id": "1bf193e4d9684924bc5534bb68d1579b",
+      "tags": {},
+      "data": {},
+      "type": "trace"
+    },
+    {
+      "timestamp": 1623159181.077,
+      "start_timestamp": 1623159179.397,
+      "description": "Pre main",
+      "op": "app start",
+      "span_id": "126365702e4843c7",
+      "parent_span_id": "ec53661a53c44c3f",
+      "trace_id": "1bf193e4d9684924bc5534bb68d1579b",
+      "tags": {},
+      "data": {},
+      "type": "trace"
+    },
+    {
+      "timestamp": 1623159181.146,
+      "start_timestamp": 1623159181.077,
+      "description": "UIKit and Application Init",
+      "op": "app start",
+      "span_id": "56ef9367083249ca",
+      "parent_span_id": "ec53661a53c44c3f",
+      "trace_id": "1bf193e4d9684924bc5534bb68d1579b",
+      "tags": {},
+      "data": {},
+      "type": "trace"
+    },
+    {
+      "timestamp": 1623159181.164,
+      "start_timestamp": 1623159181.146,
+      "description": "Initial Frame Render",
+      "op": "app start",
+      "span_id": "abdb5304f6b44144",
+      "parent_span_id": "ec53661a53c44c3f",
+      "trace_id": "1bf193e4d9684924bc5534bb68d1579b",
+      "tags": {},
+      "data": {},
+      "type": "trace"
+    },
+    {
+      "timestamp": 1623159181.171,
+      "start_timestamp": 1623159181.171,
+      "description": "layoutSubViews",
+      "op": "ui.rendering",
+      "span_id": "bc986401a9d44ba1",
+      "parent_span_id": "e5fd54665cd84c8c",
+      "trace_id": "1bf193e4d9684924bc5534bb68d1579b",
+      "tags": {},
+      "data": {},
+      "type": "trace"
+    },
+    {
+      "timestamp": 1623159181.172,
+      "start_timestamp": 1623159181.172,
+      "description": "viewDidLayoutSubviews",
+      "op": "ui.rendering",
+      "span_id": "2902d05553334fd7",
+      "parent_span_id": "e5fd54665cd84c8c",
+      "trace_id": "1bf193e4d9684924bc5534bb68d1579b",
+      "tags": {},
+      "data": {},
+      "type": "trace"
+    },
+    {
+      "timestamp": 1623159181.174,
+      "start_timestamp": 1623159181.174,
+      "description": "viewWillLayoutSubviews",
+      "op": "ui.rendering",
+      "span_id": "3a7e3761b8bf4eaa",
+      "parent_span_id": "e5fd54665cd84c8c",
+      "trace_id": "1bf193e4d9684924bc5534bb68d1579b",
+      "tags": {},
+      "data": {},
+      "type": "trace"
+    },
+    {
+      "timestamp": 1623159181.174,
+      "start_timestamp": 1623159181.174,
+      "description": "layoutSubViews",
+      "op": "ui.rendering",
+      "span_id": "70b1dcf87db846db",
+      "parent_span_id": "e5fd54665cd84c8c",
+      "trace_id": "1bf193e4d9684924bc5534bb68d1579b",
+      "tags": {},
+      "data": {},
+      "type": "trace"
+    },
+    {
+      "timestamp": 1623159181.175,
+      "start_timestamp": 1623159181.175,
+      "description": "viewDidLayoutSubviews",
+      "op": "ui.rendering",
+      "span_id": "f65fa0758e0444f2",
+      "parent_span_id": "e5fd54665cd84c8c",
+      "trace_id": "1bf193e4d9684924bc5534bb68d1579b",
+      "tags": {},
+      "data": {},
+      "type": "trace"
+    },
+    {
+      "timestamp": 1623159181.181,
+      "start_timestamp": 1623159181.181,
+      "description": "viewDidAppear",
+      "op": "ui.rendering",
+      "span_id": "cba4c1fb68564ca9",
+      "parent_span_id": "e5fd54665cd84c8c",
+      "trace_id": "1bf193e4d9684924bc5534bb68d1579b",
+      "tags": {},
+      "data": {},
+      "type": "trace"
+    }
+  ],
+  "start_timestamp": 1623159179.397,
+  "timestamp": 1623159181.181,
+  "title": "iOS_Swift.ViewController",
+  "transaction": "iOS_Swift.ViewController",
+  "type": "transaction",
+  "user": {
+    "id": "1",
+    "email": "tony1@example.com",
+    "ip_address": "213.142.96.194",
+    "geo": {"country_code": "AT", "city": "Vienna", "region": "Austria"}
+  },
+  "version": "7"
+}

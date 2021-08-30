@@ -4,6 +4,7 @@ from django.db import models
 from django.utils import timezone
 
 from bitfield import BitField
+from sentry import options
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     EncryptedJsonField,
@@ -22,7 +23,7 @@ SCIM_INTERNAL_INTEGRATION_OVERVIEW = (
 
 
 class AuthProvider(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     organization = FlexibleForeignKey("sentry.Organization", unique=True)
     provider = models.CharField(max_length=128)
@@ -77,8 +78,10 @@ class AuthProvider(Model):
 
     def get_scim_url(self):
         if self.flags.scim_enabled:
-            return f"https://sentry.io/scim/{self.organization.slug}/scim/v2"
-            # TODO: make dynamic once URL routes are added
+            url_prefix = options.get("system.url-prefix")
+            # the SCIM protocol doesn't use trailing slashes in URLs
+            return f"{url_prefix}/api/0/organizations/{self.organization.slug}/scim/v2"
+
         else:
             return None
 
@@ -118,8 +121,7 @@ class AuthProvider(Model):
                 "member:write",
                 "member:admin",
                 "team:write",
-                "org:write",
-                "org:admin",
+                "team:admin",
             ],
         }
         # create the internal integration and link it to the join table

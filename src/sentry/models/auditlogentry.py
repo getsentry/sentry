@@ -99,7 +99,7 @@ class AuditLogEntryEvent:
 
 
 class AuditLogEntry(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
     actor_label = models.CharField(max_length=MAX_ACTOR_LABEL_LENGTH, null=True, blank=True)
@@ -195,6 +195,7 @@ class AuditLogEntry(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_auditlogentry"
+        indexes = [models.Index(fields=["organization", "datetime"])]
 
     __repr__ = sane_repr("organization_id", "type")
 
@@ -277,8 +278,15 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.PROJECT_ADD:
             return "created project {}".format(self.data["slug"])
         elif self.event == AuditLogEntryEvent.PROJECT_EDIT:
+            if self.data.get("old_slug") is not None:
+                return (
+                    "renamed project slug from "
+                    + self.data["old_slug"]
+                    + " to "
+                    + self.data["new_slug"]
+                )
             return "edited project settings " + (
-                " ".join(f" in {key} to {value}" for (key, value) in self.data.items())
+                " ".join(f"in {key} to {value}" for (key, value) in self.data.items())
             )
         elif self.event == AuditLogEntryEvent.PROJECT_REMOVE:
             return "removed project {}".format(self.data["slug"])

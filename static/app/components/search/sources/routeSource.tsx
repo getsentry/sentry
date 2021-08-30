@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {WithRouterProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import {FuseOptions} from 'fuse.js';
 import flattenDepth from 'lodash/flattenDepth';
 
@@ -37,15 +37,11 @@ type Context = Parameters<Extract<Config, Function>>[0] &
  * of all navigation item objects
  */
 const mapFunc = (config: Config, context: Context | null = null) =>
-  (Array.isArray(config)
-    ? config
-    : context !== null
-    ? config(context)
-    : []
-  ).map(({items}) =>
-    items.filter(({show}) =>
-      typeof show === 'function' && context !== null ? show(context) : true
-    )
+  (Array.isArray(config) ? config : context !== null ? config(context) : []).map(
+    ({items}) =>
+      items.filter(({show}) =>
+        typeof show === 'function' && context !== null ? show(context) : true
+      )
   );
 
 type DefaultProps = {
@@ -55,7 +51,7 @@ type DefaultProps = {
   searchOptions: FuseOptions<NavigationItem>;
 };
 
-type Props = WithRouterProps &
+type Props = RouteComponentProps<{}, {}> &
   DefaultProps & {
     organization?: Organization;
     project?: Project;

@@ -1,3 +1,5 @@
+from time import time
+
 import pytest
 
 from sentry.api.endpoints.project_details import (
@@ -26,6 +28,7 @@ from sentry.models import (
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
 from sentry.types.integrations import ExternalProviders
+from sentry.utils import json
 from sentry.utils.compat import mock, zip
 
 
@@ -118,6 +121,18 @@ class ProjectDetailsTest(APITestCase):
         )
 
         response = self.get_valid_response(project.organization.slug, project.slug, status_code=302)
+        assert (
+            AuditLogEntry.objects.get(
+                organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            ).data.get("old_slug")
+            == project.slug
+        )
+        assert (
+            AuditLogEntry.objects.get(
+                organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            ).data.get("new_slug")
+            == "foobar"
+        )
         assert response.data["slug"] == "foobar"
         assert (
             response.data["detail"]["extra"]["url"]
@@ -662,7 +677,7 @@ class ProjectUpdateTest(APITestCase):
         id2 = saved_config["rules"][1]["id"]
         id3 = saved_config["rules"][2]["id"]
         assert id1 != 0 and id2 != 0 and id3 != 0
-        next_id != 0
+        assert next_id != 0
         assert id1 != id2 and id2 != id3 and id1 != id3
         assert next_id > id1 and next_id > id2 and next_id > id3
         assert response.status_code == 200
@@ -709,6 +724,62 @@ class ProjectUpdateTest(APITestCase):
         assert new_ids == [4, 5, 2, 6]
         new_next_id = saved_config["next_id"]
         assert new_next_id == 7
+
+    def test_cap_secondary_grouping_expiry(self):
+        now = time()
+
+        response = self.get_response(self.org_slug, self.proj_slug, secondaryGroupingExpiry=0)
+        assert response.status_code == 400
+
+        expiry = int(now + 3600 * 24 * 1)
+        response = self.get_valid_response(
+            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
+        )
+        assert response.data["secondaryGroupingExpiry"] == expiry
+
+        expiry = int(now + 3600 * 24 * 89)
+        response = self.get_valid_response(
+            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
+        )
+        assert response.data["secondaryGroupingExpiry"] == expiry
+
+        # Larger timestamps are capped to 91 days:
+        expiry = int(now + 3600 * 24 * 365)
+        response = self.get_valid_response(
+            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
+        )
+        expiry = response.data["secondaryGroupingExpiry"]
+        assert (now + 3600 * 24 * 90) < expiry < (now + 3600 * 24 * 92)
+
+    def test_redacted_symbol_source_secrets(self):
+        with Feature(
+            {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
+        ):
+            redacted_source = {
+                "id": "honk",
+                "name": "honk source",
+                "layout": {
+                    "type": "native",
+                },
+                "filetypes": ["pe"],
+                "type": "http",
+                "url": "http://honk.beep",
+                "username": "honkhonk",
+                "password": "beepbeep",
+            }
+            self.get_valid_response(
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
+            )
+            assert self.project.get_option("sentry:symbol_sources") == json.dumps([redacted_source])
+
+            # redact password
+            redacted_source["password"] = {"hidden-secret": True}
+            self.get_valid_response(
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
+            )
+            # on save the magic object should be replaced with the previously set password
+            redacted_source["password"] = "beepbeep"
+            assert self.project.get_option("sentry:symbol_sources") == json.dumps([redacted_source])
 
 
 class CopyProjectSettingsTest(APITestCase):

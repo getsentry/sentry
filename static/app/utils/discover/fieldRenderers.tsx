@@ -9,7 +9,7 @@ import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import {RowRectangle} from 'app/components/performance/waterfall/rowBar';
-import {pickBarColour, toPercent} from 'app/components/performance/waterfall/utils';
+import {pickBarColor, toPercent} from 'app/components/performance/waterfall/utils';
 import Tooltip from 'app/components/tooltip';
 import UserMisery from 'app/components/userMisery';
 import Version from 'app/components/version';
@@ -17,10 +17,12 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import EventView, {EventData, MetaType} from 'app/utils/discover/eventView';
 import {
   AGGREGATIONS,
   getAggregateAlias,
   getSpanOperationName,
+  isEquation,
   isRelativeSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
@@ -36,16 +38,15 @@ import {
 } from 'app/views/performance/transactionSummary/filter';
 
 import ArrayValue from './arrayValue';
-import {EventData, MetaType} from './eventView';
 import KeyTransactionField from './keyTransactionField';
 import {
   BarContainer,
   Container,
+  FieldDateTime,
+  FieldShortId,
   FlexContainer,
   NumberContainer,
   OverflowLink,
-  StyledDateTime,
-  StyledShortId,
   UserIcon,
   VersionContainer,
 } from './styles';
@@ -57,6 +58,7 @@ import TeamKeyTransactionField from './teamKeyTransactionField';
 type RenderFunctionBaggage = {
   organization: Organization;
   location: Location;
+  eventView?: EventView;
 };
 
 type FieldFormatterRenderFunction = (field: string, data: EventData) => React.ReactNode;
@@ -110,7 +112,7 @@ const FIELD_FORMATTERS: FieldFormatters = {
       <Container>
         {data[field]
           ? getDynamicText({
-              value: <StyledDateTime date={data[field]} />,
+              value: <FieldDateTime date={data[field]} />,
               fixed: 'timestamp',
             })
           : emptyValue}
@@ -253,7 +255,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       if (!issueID) {
         return (
           <Container>
-            <StyledShortId shortId={`${data.issue}`} />
+            <FieldShortId shortId={`${data.issue}`} />
           </Container>
         );
       }
@@ -265,7 +267,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       return (
         <Container>
           <OverflowLink to={target} aria-label={issueID}>
-            <StyledShortId shortId={`${data.issue}`} />
+            <FieldShortId shortId={`${data.issue}`} />
           </OverflowLink>
         </Container>
       );
@@ -413,7 +415,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <StyledDateTime date={data['timestamp.to_hour']} format="lll z" />,
+          value: <FieldDateTime date={data['timestamp.to_hour']} format="lll z" />,
           fixed: 'timestamp.to_hour',
         })}
       </Container>
@@ -424,7 +426,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <StyledDateTime date={data['timestamp.to_day']} format="MMM D, YYYY" />,
+          value: <FieldDateTime date={data['timestamp.to_day']} dateOnly utc />,
           fixed: 'timestamp.to_day',
         })}
       </Container>
@@ -432,8 +434,12 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
 };
 
+type SpecialFunctionFieldRenderer = (
+  fieldName: string
+) => (data: EventData, baggage: RenderFunctionBaggage) => React.ReactNode;
+
 type SpecialFunctions = {
-  user_misery: SpecialFieldRenderFunc;
+  user_misery: SpecialFunctionFieldRenderer;
 };
 
 /**
@@ -441,38 +447,41 @@ type SpecialFunctions = {
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
 const SPECIAL_FUNCTIONS: SpecialFunctions = {
-  user_misery: data => {
-    let userMiseryField: string = '';
-    let countMiserableUserField: string = '';
-    let projectThresholdConfig: string = '';
-    for (const field in data) {
-      if (field.startsWith('user_misery')) {
-        userMiseryField = field;
-      } else if (
-        field.startsWith('count_miserable_user') ||
-        field.startsWith('count_miserable_new_user')
-      ) {
-        countMiserableUserField = field;
-      } else if (field === 'project_threshold_config') {
-        projectThresholdConfig = field;
-      }
-    }
+  user_misery: fieldName => data => {
+    const userMiseryField = fieldName;
 
-    if (!userMiseryField) {
+    if (!(userMiseryField in data)) {
       return <NumberContainer>{emptyValue}</NumberContainer>;
     }
 
-    const uniqueUsers = data.count_unique_user;
     const userMisery = data[userMiseryField];
-
-    let miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
-    if (isNaN(miseryLimit)) {
-      miseryLimit = projectThresholdConfig ? data[projectThresholdConfig][1] : undefined;
+    if (userMisery === null || isNaN(userMisery)) {
+      return <NumberContainer>{emptyValue}</NumberContainer>;
     }
+
+    const projectThresholdConfig = 'project_threshold_config';
+    let countMiserableUserField: string = '';
+
+    let miseryLimit: number | undefined = parseInt(
+      userMiseryField.split('_').pop() || '',
+      10
+    );
+    if (isNaN(miseryLimit)) {
+      countMiserableUserField = 'count_miserable_user';
+      if (projectThresholdConfig in data) {
+        miseryLimit = data[projectThresholdConfig][1];
+      } else {
+        miseryLimit = undefined;
+      }
+    } else {
+      countMiserableUserField = `count_miserable_user_${miseryLimit}`;
+    }
+
+    const uniqueUsers = data.count_unique_user;
 
     let miserableUsers: number | undefined;
 
-    if (countMiserableUserField) {
+    if (countMiserableUserField in data) {
       const countMiserableMiseryLimit = parseInt(
         countMiserableUserField.split('_').pop() || '',
         10
@@ -515,6 +524,10 @@ export function getSortField(
     return field;
   }
 
+  if (isEquation(field)) {
+    return field;
+  }
+
   for (const alias in AGGREGATIONS) {
     if (field.startsWith(alias)) {
       return AGGREGATIONS[alias].isSortable ? field : null;
@@ -537,12 +550,15 @@ const isDurationValue = (data: EventData, field: string): boolean => {
 
 const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
-  {location, organization}: RenderFunctionBaggage
+  {location, organization, eventView}: RenderFunctionBaggage
 ): React.ReactNode => {
-  const cumulativeSpanOpBreakdown = data['spans.total.time'];
+  const sumOfSpanTime = SPAN_OP_BREAKDOWN_FIELDS.reduce(
+    (prev, curr) => (isDurationValue(data, curr) ? prev + data[curr] : prev),
+    0
+  );
+  const cumulativeSpanOpBreakdown = Math.max(sumOfSpanTime, data['transaction.duration']);
 
   if (
-    !isDurationValue(data, 'spans.total.time') ||
     SPAN_OP_BREAKDOWN_FIELDS.every(field => !isDurationValue(data, field)) ||
     cumulativeSpanOpBreakdown === 0
   ) {
@@ -550,10 +566,19 @@ const spanOperationRelativeBreakdownRenderer = (
   }
 
   let otherPercentage = 1;
-
+  let orderedSpanOpsBreakdownFields;
+  const sortingOnField = eventView?.sorts?.[0]?.field;
+  if (sortingOnField && SPAN_OP_BREAKDOWN_FIELDS.includes(sortingOnField)) {
+    orderedSpanOpsBreakdownFields = [
+      sortingOnField,
+      ...SPAN_OP_BREAKDOWN_FIELDS.filter(op => op !== sortingOnField),
+    ];
+  } else {
+    orderedSpanOpsBreakdownFields = SPAN_OP_BREAKDOWN_FIELDS;
+  }
   return (
     <RelativeOpsBreakdown>
-      {SPAN_OP_BREAKDOWN_FIELDS.map(field => {
+      {orderedSpanOpsBreakdownFields.map(field => {
         if (!isDurationValue(data, field)) {
           return null;
         }
@@ -570,7 +595,7 @@ const spanOperationRelativeBreakdownRenderer = (
             <Tooltip
               title={
                 <div>
-                  <div>{`${operationName} ${formatPercentage(widthPercentage, 0)}`}</div>
+                  <div>{operationName}</div>
                   <div>
                     <Duration
                       seconds={spanOpDuration / 1000}
@@ -585,7 +610,7 @@ const spanOperationRelativeBreakdownRenderer = (
               <RectangleRelativeOpsBreakdown
                 spanBarHatch={false}
                 style={{
-                  backgroundColor: pickBarColour(operationName),
+                  backgroundColor: pickBarColor(operationName),
                   cursor: 'pointer',
                 }}
                 onClick={event => {
@@ -629,7 +654,6 @@ const RelativeOpsBreakdown = styled('div')`
 
 const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
   position: relative;
-  top: 0;
   width: 100%;
 `;
 
@@ -661,7 +685,7 @@ export function getFieldRenderer(
 
   for (const alias in SPECIAL_FUNCTIONS) {
     if (fieldName.startsWith(alias)) {
-      return SPECIAL_FUNCTIONS[alias];
+      return SPECIAL_FUNCTIONS[alias](fieldName);
     }
   }
 

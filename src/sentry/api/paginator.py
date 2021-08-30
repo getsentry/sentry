@@ -44,7 +44,7 @@ class BasePaginator:
     def _is_asc(self, is_prev):
         return (self.desc and is_prev) or not (self.desc or is_prev)
 
-    def _build_queryset(self, value, is_prev):
+    def build_queryset(self, value, is_prev):
         queryset = self.queryset
 
         # "asc" controls whether or not we need to change the ORDER BY to
@@ -62,11 +62,15 @@ class BasePaginator:
             if self.key in queryset.query.order_by:
                 if not asc:
                     index = queryset.query.order_by.index(self.key)
-                    queryset.query.order_by[index] = "-%s" % (queryset.query.order_by[index])
+                    new_order_by = list(queryset.query.order_by)
+                    new_order_by[index] = f"-{queryset.query.order_by[index]}"
+                    queryset.query.order_by = tuple(new_order_by)
             elif ("-%s" % self.key) in queryset.query.order_by:
                 if asc:
-                    index = queryset.query.order_by.index("-%s" % (self.key))
-                    queryset.query.order_by[index] = queryset.query.order_by[index][1:]
+                    index = queryset.query.order_by.index(f"-{self.key}")
+                    new_order_by = list(queryset.query.order_by)
+                    new_order_by[index] = queryset.query.order_by[index][1:]
+                    queryset.query.order_b = tuple(new_order_by)
             else:
                 if asc:
                     queryset = queryset.order_by(self.key)
@@ -110,7 +114,7 @@ class BasePaginator:
         else:
             cursor_value = 0
 
-        queryset = self._build_queryset(cursor_value, cursor.is_prev)
+        queryset = self.build_queryset(cursor_value, cursor.is_prev)
 
         # TODO(dcramer): this does not yet work correctly for ``is_prev`` when
         # the key is not unique
@@ -282,12 +286,16 @@ class MergingOffsetPaginator(OffsetPaginator):
         key_from_data=None,
         max_limit=MAX_LIMIT,
         on_results=None,
+        data_count_func=None,
+        queryset_load_func=None,
     ):
         super().__init__(queryset, max_limit=max_limit, on_results=on_results)
         self.data_load_func = data_load_func
         self.apply_to_queryset = apply_to_queryset
         self.key_from_model = key_from_model or (lambda x: x.id)
         self.key_from_data = key_from_data or (lambda x: x)
+        self.data_count_func = data_count_func
+        self.queryset_load_func = queryset_load_func
 
     def get_result(self, limit=100, cursor=None):
         if cursor is None:
@@ -297,14 +305,14 @@ class MergingOffsetPaginator(OffsetPaginator):
 
         page = cursor.offset
         offset = cursor.offset * cursor.value
-        limit = (cursor.value or limit) + 1
+        limit = cursor.value or limit
 
         if self.max_offset is not None and offset >= self.max_offset:
             raise BadPaginationError("Pagination offset too large")
         if offset < 0:
             raise BadPaginationError("Pagination offset cannot be negative")
 
-        primary_results = self.data_load_func(offset=offset, limit=limit)
+        primary_results = self.data_load_func(offset=offset, limit=self.max_limit + 1)
 
         queryset = self.apply_to_queryset(self.queryset, primary_results)
 
@@ -318,9 +326,24 @@ class MergingOffsetPaginator(OffsetPaginator):
             if model is not None:
                 results.append(model)
 
-        next_cursor = Cursor(limit, page + 1, False, len(primary_results) > limit)
+        if self.queryset_load_func and self.data_count_func and len(results) < limit:
+            # If we hit the end of the results from the data load func, check whether there are
+            # any additional results in the queryset_load_func, if one is provided.
+            extra_limit = limit - len(results) + 1
+            total_data_count = self.data_count_func()
+            total_offset = offset + len(results)
+            qs_offset = total_offset - total_data_count
+            qs_results = self.queryset_load_func(
+                self.queryset, total_offset, qs_offset, extra_limit
+            )
+            results.extend(qs_results)
+            has_more = len(qs_results) == extra_limit
+        else:
+            has_more = len(primary_results) > limit
+
+        results = results[:limit]
+        next_cursor = Cursor(limit, page + 1, False, has_more)
         prev_cursor = Cursor(limit, page - 1, True, page > 0)
-        results = list(results[:limit])
 
         if self.on_results:
             results = self.on_results(results)

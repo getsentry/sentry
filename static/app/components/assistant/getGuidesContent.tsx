@@ -185,32 +185,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'release_adoption',
-      requiredTargets: ['release_adoption'],
-      steps: [
-        {
-          title: t('Recalculating Adoption'),
-          target: 'release_adoption',
-          description: t(
-            `Adoption now compares the sessions or users of a release with the total sessions or users for this project in the last 24 hours.`
-          ),
-        },
-      ],
-    },
-    {
-      guide: 'user_misery',
-      requiredTargets: ['user_misery'],
-      steps: [
-        {
-          title: t('User Misery'),
-          target: 'user_misery',
-          description: t(
-            `Make users less miserable. Our User Misery Index now combines unique miserable users both by number and percentage. Plus, you can sort User Misery to identify your site’s most frustrating transactions.`
-          ),
-        },
-      ],
-    },
-    {
       guide: 'stack_trace_preview',
       requiredTargets: ['issue_stream_title'],
       dateThreshold: new Date(2021, 2, 15),
@@ -286,6 +260,115 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'team_key_transactions',
+      requiredTargets: ['team_key_transaction_header'],
+      steps: [
+        {
+          title: t('Key Transactions'),
+          target: 'team_key_transaction_header',
+          description: t(
+            'Software development is a team sport. Key Transactions allow you to mark important transactions and share them with your team.'
+          ),
+          nextText: t('Great'),
+        },
+        {
+          title: t('Migrating Key Transactions'),
+          target: 'team_key_transaction_existing',
+          description: t(
+            'To migrate your previous key transactions, you will have to mark them as a key transaction again for your team. Sorry about that.'
+          ),
+          nextText: t('Fine'),
+        },
+      ],
+    },
+    {
+      guide: 'project_transaction_threshold',
+      requiredTargets: ['project_transaction_threshold'],
+      steps: [
+        {
+          title: t('Project Thresholds'),
+          target: 'project_transaction_threshold',
+          description: t(
+            'Gauge performance using different metrics for each project. Set response time thresholds, per project, for the Apdex and User Misery Scores in each project’s Performance settings.'
+          ),
+        },
+      ],
+    },
+    {
+      guide: 'project_transaction_threshold_override',
+      requiredTargets: ['project_transaction_threshold_override'],
+      steps: [
+        {
+          title: t('Response Time Thresholds'),
+          target: 'project_transaction_threshold_override',
+          description: t(
+            'Use this menu to adjust each transaction’s satisfactory response time threshold, which can vary across transactions. These thresholds are used to calculate Apdex and User Misery, metrics that indicate how satisfied and miserable users are, respectively.'
+          ),
+        },
+      ],
+    },
+    {
+      guide: 'percentage_based_alerts',
+      requiredTargets: ['percentage_based_alerts'],
+      steps: [
+        {
+          title: t('Percentage Based Alerts'),
+          target: 'percentage_based_alerts',
+          description: tct(
+            'View the event count as a percentage of sessions and alert on this number to adapt to changes in traffic patterns. [link:View the docs] to learn more.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/issue-alert-config/#when-conditions-triggers" />
+              ),
+            }
+          ),
+          nextText: t('Got it'),
+        },
+      ],
+    },
+    {
+      guide: 'semver',
+      requiredTargets: ['releases_search'],
+      dateThreshold: new Date(2021, 6, 1),
+      steps: [
+        {
+          title: t('Filter by Semver'),
+          target: 'releases_search',
+          description: tct(
+            'You can now filter releases by semver. For example: release.version:>14.0 [br] [link:View the docs]',
+            {
+              br: <br />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/releases/usage/sorting-filtering/#filtering-releases" />
+              ),
+            }
+          ),
+          nextText: t('Leave me alone'),
+        },
+      ],
+    },
+    {
+      guide: 'release_stages',
+      requiredTargets: ['release_stages'],
+      dateThreshold: new Date(2021, 6, 1),
+      steps: [
+        {
+          title: t('Adoption Filter'),
+          target: 'release_stages',
+          description: tct(
+            'Select an environment and search for `release.stage:adopted` to filter out releases with low adoption. [br] [link:Learn more]',
+            {
+              br: <br />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/releases/usage/sorting-filtering/#filtering-releases" />
+              ),
+            }
+          ),
+          nextText: t('Got it'),
+        },
+      ],
+    },
   ];
 }
 
@@ -294,7 +377,7 @@ function getDemoModeGuides(): GuidesContent {
     {
       guide: 'sidebar',
       requiredTargets: ['projects', 'issues'],
-      priority: 1, //lower number means higher priority
+      priority: 1, // lower number means higher priority
       markOthersAsSeen: true,
       steps: [
         {
@@ -395,7 +478,7 @@ function getDemoModeGuides(): GuidesContent {
           title: t('Release'),
           target: 'release_version',
           description: t(
-            `Click here to easily identify new issues, regressions, and track the health every release.`
+            `Click here to easily identify new issues, regressions, and track the health of every release.`
           ),
         },
       ],

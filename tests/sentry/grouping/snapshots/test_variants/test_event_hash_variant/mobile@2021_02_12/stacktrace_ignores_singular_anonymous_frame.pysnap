@@ -1,5 +1,5 @@
 ---
-created: '2021-05-05T18:04:38.773573Z'
+created: '2021-08-04T15:53:47.709437Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -17,7 +17,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "c5da56c71b31f34c5880d734cbc8f5bb"
-  tree_label: "c | ..."
+  tree_label: "_createDocumentViewModel | c"
   component:
     app-depth-2*
       stacktrace*
@@ -34,13 +34,10 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "c5da56c71b31f34c5880d734cbc8f5bb"
-  tree_label: "<entire stacktrace>"
+  tree_label: "_createDocumentViewModel | c"
   component:
     app-depth-max*
       stacktrace*
-        frame (ignored low quality javascript frame)
-          filename (anonymous filename discarded)
-            "<anonymous>"
         frame*
           filename*
             "dojo.js"
@@ -54,7 +51,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "c5da56c71b31f34c5880d734cbc8f5bb"
-  tree_label: "<entire stacktrace>"
+  tree_label: "_createDocumentViewModel | c"
   component:
     system*
       stacktrace*

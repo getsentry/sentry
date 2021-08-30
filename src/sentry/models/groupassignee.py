@@ -179,6 +179,8 @@ class GroupAssigneeManager(BaseManager):
             ):
                 sync_group_assignee_outbound(group, assigned_to.id, assign=True)
 
+        return {"new_assignment": created, "updated_assignment": bool(not created and affected)}
+
     def deassign(self, group, acting_user=None):
         from sentry import features
 
@@ -204,7 +206,7 @@ class GroupAssignee(Model):
     aggregated event (Group).
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     objects = GroupAssigneeManager()
 

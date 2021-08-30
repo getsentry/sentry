@@ -296,6 +296,11 @@ class InvalidParams(Exception):
     pass
 
 
+def get_now():
+    """Wrapper function to make it mockable in unit tests"""
+    return datetime.now(tz=pytz.utc)
+
+
 def get_constrained_date_range(
     params, allow_minute_resolution=False, max_points=MAX_POINTS
 ) -> Tuple[datetime, datetime, int]:
@@ -318,7 +323,7 @@ def get_constrained_date_range(
     using_minute_resolution = interval % ONE_HOUR != 0
 
     start, end = get_date_range_from_params(params)
-    now = datetime.now(tz=pytz.utc)
+    now = get_now()
 
     # if `end` is explicitly given, we add a second to it, so it is treated as
     # inclusive. the rounding logic down below will take care of the rest.
@@ -332,7 +337,9 @@ def get_constrained_date_range(
     # NOTE: we can remove the difference between `interval` / `rounding_interval`
     # as soon as snuba can provide us with grouped totals in the same query
     # as the timeseries (using `WITH ROLLUP` in clickhouse)
+
     rounding_interval = int(math.ceil(interval / ONE_HOUR) * ONE_HOUR)
+
     date_range = timedelta(
         seconds=int(rounding_interval * math.ceil(date_range.total_seconds() / rounding_interval))
     )
@@ -488,8 +495,9 @@ def massage_sessions_result(
         group = {
             "by": by,
             "totals": make_totals(total_groups.get(key, [None]), by),
-            "series": make_timeseries(timeseries_groups.get(key, []), by),
         }
+        if result_timeseries is not None:
+            group["series"] = make_timeseries(timeseries_groups.get(key, []), by)
 
         groups.append(group)
 
@@ -519,6 +527,8 @@ def _get_timestamps(query):
 
 def _split_rows_groupby(rows, groupby):
     groups = {}
+    if rows is None:
+        return groups
     for row in rows:
         key_parts = (group.get_keys_for_row(row) for group in groupby)
         keys = itertools.product(*key_parts)

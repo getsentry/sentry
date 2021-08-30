@@ -1,17 +1,18 @@
 import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
+import {Location} from 'history';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
 import {getDebugSourceName} from 'app/data/debugFileSources';
 import {tct} from 'app/locale';
-import {DebugFileSource} from 'app/types';
+import {CustomRepoType} from 'app/types/debugFiles';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 
 import AppStoreConnect from './appStoreConnect';
-import {getFormFields} from './utils';
+import {getFinalData, getFormFieldsAndInitialData} from './utils';
 
 type AppStoreConnectInitialData = React.ComponentProps<
   typeof AppStoreConnect
@@ -22,29 +23,24 @@ type RouteParams = {
   projectId: string;
 };
 
-type Query = {
-  revalidateItunesSession?: boolean;
-};
-
-type Props = WithRouterProps<RouteParams, Query> & {
+type Props = WithRouterProps<RouteParams, {}> & {
   /**
    * Callback invoked with the updated config value.
    */
-  onSave: (config: Record<string, string>) => void;
+  onSave: (data: Record<string, any>) => Promise<void>;
   /**
    * Type of this source.
    */
-  sourceType: DebugFileSource;
+  sourceType: CustomRepoType;
 
   appStoreConnectContext?: AppStoreConnectContextProps;
   /**
    * The sourceConfig. May be empty to create a new one.
    */
-  sourceConfig?: Record<string, string>;
-} & ModalRenderProps;
+  sourceConfig?: Record<string, any>;
+} & Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer' | 'closeModal'>;
 
 function DebugFileCustomRepository({
-  closeModal,
   Header,
   Body,
   Footer,
@@ -54,32 +50,37 @@ function DebugFileCustomRepository({
   params: {orgId, projectId: projectSlug},
   location,
   appStoreConnectContext,
+  closeModal,
 }: Props) {
-  function handleSave(data: Record<string, string>) {
-    onSave({...data, type: sourceType});
-    closeModal();
+  function handleSave(data?: Record<string, any>) {
+    if (!data) {
+      closeModal();
+      window.location.reload();
+      return;
+    }
+
+    onSave({...getFinalData(sourceType, data), type: sourceType}).then(() => {
+      closeModal();
+    });
   }
 
-  if (sourceType === 'appStoreConnect') {
-    const {revalidateItunesSession} = location.query;
-
+  if (sourceType === CustomRepoType.APP_STORE_CONNECT) {
     return (
       <AppStoreConnect
         Header={Header}
         Body={Body}
         Footer={Footer}
-        closeModal={closeModal}
         orgSlug={orgId}
         projectSlug={projectSlug}
         onSubmit={handleSave}
         initialData={sourceConfig as AppStoreConnectInitialData | undefined}
-        revalidateItunesSession={!!revalidateItunesSession}
+        location={location as Location}
         appStoreConnectContext={appStoreConnectContext}
       />
     );
   }
 
-  const fields = getFormFields(sourceType);
+  const {initialData, fields} = getFormFieldsAndInitialData(sourceType, sourceConfig);
 
   return (
     <Fragment>
@@ -92,7 +93,7 @@ function DebugFileCustomRepository({
         <Form
           allowUndo
           requireChanges
-          initialData={sourceConfig}
+          initialData={initialData}
           onSubmit={handleSave}
           footerClass="modal-footer"
         >

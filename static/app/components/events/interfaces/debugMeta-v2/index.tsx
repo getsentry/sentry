@@ -1,6 +1,5 @@
 import * as React from 'react';
-import {withRouter} from 'react-router';
-import {WithRouterProps} from 'react-router/lib/withRouter';
+import {withRouter, WithRouterProps} from 'react-router';
 import {
   AutoSizer,
   CellMeasurer,
@@ -17,7 +16,6 @@ import EventDataSection from 'app/components/events/eventDataSection';
 import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
 import {PanelTable} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
-import SearchBar from 'app/components/searchBar';
 import {t} from 'app/locale';
 import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -27,9 +25,11 @@ import {Image, ImageStatus} from 'app/types/debugImage';
 import {Event} from 'app/types/event';
 import {defined} from 'app/utils';
 
+import SearchBarAction from '../searchBarAction';
+import SearchBarActionFilter from '../searchBarAction/searchBarActionFilter';
+
 import Status from './debugImage/status';
 import DebugImage from './debugImage';
-import Filter from './filter';
 import layout from './layout';
 import {
   combineStatus,
@@ -47,7 +47,7 @@ type DefaultProps = {
   };
 };
 
-type FilterOptions = React.ComponentProps<typeof Filter>['options'];
+type FilterOptions = React.ComponentProps<typeof SearchBarActionFilter>['options'];
 type Images = Array<React.ComponentProps<typeof DebugImage>['image']>;
 
 type Props = DefaultProps &
@@ -341,6 +341,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
     if (![...checkedOptions].length) {
       return filteredImages;
     }
+
     return filteredImages.filter(image => checkedOptions.has(image.status));
   }
 
@@ -535,17 +536,19 @@ class DebugMeta extends React.PureComponent<Props, State> {
           </TitleWrapper>
         }
         actions={
-          <Search>
-            {displayFilter && (
-              <Filter options={filterOptions} onFilter={this.handleChangeFilter} />
-            )}
-            <StyledSearchBar
-              query={searchTerm}
-              onChange={value => this.handleChangeSearchTerm(value)}
-              placeholder={t('Search images')}
-              blendWithFilter={displayFilter}
-            />
-          </Search>
+          <StyledSearchBarAction
+            placeholder={t('Search images loaded')}
+            onChange={value => this.handleChangeSearchTerm(value)}
+            query={searchTerm}
+            filter={
+              displayFilter ? (
+                <SearchBarActionFilter
+                  onChange={this.handleChangeFilter}
+                  options={filterOptions}
+                />
+              ) : undefined
+            }
+          />
         }
         wrapTitle={false}
         isCentered
@@ -622,55 +625,6 @@ const StyledList = styled(List as any)<React.ComponentProps<typeof List>>`
   outline: none;
 `;
 
-const Search = styled('div')`
-  display: grid;
-  grid-gap: ${space(2)};
-  width: 100%;
-  margin-top: ${space(1)};
-
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    margin-top: 0;
-    grid-gap: 0;
-    grid-template-columns: ${p =>
-      p.children && React.Children.toArray(p.children).length === 1
-        ? '1fr'
-        : 'max-content 1fr'};
-    justify-content: flex-end;
-  }
-
-  @media (min-width: ${props => props.theme.breakpoints[1]}) {
-    width: 400px;
-  }
-
-  @media (min-width: ${props => props.theme.breakpoints[3]}) {
-    width: 600px;
-  }
-`;
-
-// TODO(matej): remove this once we refactor SearchBar to not use css classes
-// - it could accept size as a prop
-const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
-  width: 100%;
-  position: relative;
-  .search-input {
-    height: 32px;
-  }
-  .search-clear-form,
-  .search-input-icon {
-    height: 32px;
-    display: flex;
-    align-items: center;
-  }
-
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    ${p =>
-      p.blendWithFilter &&
-      `
-        .search-input,
-        .search-input:focus {
-          border-top-left-radius: 0;
-          border-bottom-left-radius: 0;
-        }
-      `}
-  }
+const StyledSearchBarAction = styled(SearchBarAction)`
+  z-index: 1;
 `;

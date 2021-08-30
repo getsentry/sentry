@@ -29,7 +29,7 @@ FEATURES = [
         """
         Interact with messages in the chat to assign, ignore, and resolve issues.
         """,
-        IntegrationFeatures.CHAT_UNFURL,  # not acutally using unfurl but we show this as just "chat"
+        IntegrationFeatures.CHAT_UNFURL,  # not actually using unfurl but we show this as just "chat"
     ),
     FeatureDescription(
         "Configure rule based Teams alerts to automatically be posted into a specific channel or user.",
@@ -55,7 +55,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Microsoft%20Teams%20Integration%20Problem",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Microsoft%20Teams%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/msteams",
     aspects={"externalInstall": external_install},
 )

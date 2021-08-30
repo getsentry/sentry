@@ -11,7 +11,7 @@ class ProjectPlatform(Model):
     Note: This model is used solely for analytics.
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     project_id = BoundedBigIntegerField()
     platform = models.CharField(max_length=64)

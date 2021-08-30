@@ -1,0 +1,39 @@
+---
+created: '2021-08-03T15:35:11.097507Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+<redacted>:_ (thread_id:_, crashed:_)
+                               libdyld.dylib  start category=threadbase
+                                              stripped_application_code
+                                   UIKitCore  UIApplicationMain category=threadbase
+                                   UIKitCore  -[UIApplication _run] category=ui
+                            GraphicsServices  GSEventRunModal category=internals
+                              CoreFoundation  CFRunLoopRunSpecific category=indirection
+                              CoreFoundation  __CFRunLoopRun category=internals
+                              CoreFoundation  __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ category=internals
+                           libdispatch.dylib  _dispatch_main_queue_callback_4CF category=internals
+                           libdispatch.dylib  _dispatch_client_callout category=threadbase
+                           libdispatch.dylib  _dispatch_call_block_and_release category=internals
+                   stripped_application_code  @callee_guaranteed category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                   stripped_application_code  @callee_guaranteed category=internals
+                   stripped_application_code  @callee_guaranteed category=internals
+                                              stripped_application_code
+                   stripped_application_code  @callee_guaranteed category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                   stripped_application_code  @callee_guaranteed category=internals
+                   stripped_application_code  @callee_guaranteed category=internals
+                   stripped_application_code  @callee_guaranteed category=internals
+                   stripped_application_code  @callee_guaranteed category=internals
+                   stripped_application_code  @callee_guaranteed category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code

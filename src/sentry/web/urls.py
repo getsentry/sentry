@@ -96,8 +96,8 @@ urlpatterns += [
     # a filecontent-based hash in its filenames so that it can be cached long term
     url(
         r"^_static/dist/(?P<module>[^/]+)/(?P<path>.*)$",
-        generic.static_media_with_manifest,
-        name="sentry-webpack-media",
+        generic.unversioned_static_media,
+        name="sentry-unversioned-media",
     ),
     # The static version is either a 10 digit timestamp, a sha1, or md5 hash
     url(
@@ -416,14 +416,14 @@ urlpatterns += [
                     name="sentry-organization-settings",
                 ),
                 url(
+                    r"^(?P<organization_slug>[\w_-]+)/teams/$",
+                    react_page_view,
+                    name="sentry-organization-teams",
+                ),
+                url(
                     r"^(?P<organization_slug>[\w_-]+)/members/$",
                     react_page_view,
                     name="sentry-organization-members",
-                ),
-                url(
-                    r"^(?P<organization_slug>[\w_-]+)/members/requests/$",
-                    react_page_view,
-                    name="sentry-organization-members-requests",
                 ),
                 url(
                     r"^(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$",
@@ -543,8 +543,7 @@ urlpatterns += [
                     name="sentry-organization-disabled-member",
                 ),
                 # need to force these to React and ensure organization_slug is captured
-                # TODO(RyanSkonnord): Generalize to all pages without regressing
-                url(r"^(?P<organization_slug>[\w_-]+)/(settings|discover)/", react_page_view),
+                url(r"^(?P<organization_slug>[\w_-]+)/[\w_-]+/", react_page_view),
             ]
         ),
     ),

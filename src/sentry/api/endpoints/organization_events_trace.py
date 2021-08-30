@@ -29,6 +29,7 @@ from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.eventstore.models import Event
 from sentry.models import Organization
 from sentry.snuba import discover
+from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import Dataset, SnubaQueryParams, bulk_raw_query
 from sentry.utils.validators import INVALID_EVENT_DETAILS, is_event_id
 
@@ -180,7 +181,7 @@ class TraceEvent:
                     result["measurements"] = self.nodestore_event.data.get("measurements")
                 result["_meta"] = {}
                 result["tags"], result["_meta"]["tags"] = get_tags_with_meta(self.nodestore_event)
-        # Only add children that have nodestore events, which may be missing if we're pruning for quick trace
+        # Only add children that have nodestore events, which may be missing if we're pruning for trace navigator
         result["children"] = [
             child.full_dict(detailed) for child in self.children if child.nodestore_event
         ]
@@ -208,17 +209,6 @@ def child_sort_key(item: TraceEvent) -> List[int]:
     # The sorting of items without nodestore events doesn't matter cause we drop them
     else:
         return [0]
-
-
-def group_length(length: int) -> str:
-    if length == 1:
-        return "1"
-    elif length < 10:
-        return "<10"
-    elif length < 100:
-        return "<100"
-    else:
-        return ">100"
 
 
 def query_trace_data(
@@ -345,14 +335,16 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
 
             sentry_sdk.set_tag("trace_view.trace", trace_id)
             sentry_sdk.set_tag("trace_view.transactions", len_transactions)
-            sentry_sdk.set_tag("trace_view.transactions.grouped", group_length(len_transactions))
+            sentry_sdk.set_tag(
+                "trace_view.transactions.grouped", format_grouped_length(len_transactions)
+            )
             projects: Set[int] = set()
             for transaction in transactions:
                 projects.add(transaction["project.id"])
 
             len_projects = len(projects)
             sentry_sdk.set_tag("trace_view.projects", len_projects)
-            sentry_sdk.set_tag("trace_view.projects.grouped", group_length(len_projects))
+            sentry_sdk.set_tag("trace_view.projects.grouped", format_grouped_length(len_projects))
 
     def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
         if not self.has_feature(organization, request):
@@ -613,7 +605,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     current_event = to_check.popleft()
                     previous_event = parent_events[current_event["id"]]
 
-                # We've found the event for the quick trace so we can remove everything in the deque
+                # We've found the event for the trace navigator so we can remove everything in the deque
                 # As they're unrelated ancestors now
                 if event_id and current_event["id"] == event_id:
                     # Remove any remaining events so we don't think they're orphans

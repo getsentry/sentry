@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
@@ -12,7 +13,8 @@ import {IconCheckmark, IconNot} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
-  CodeOwners,
+  CodeOwner,
+  CodeownersFile,
   Integration,
   Organization,
   Project,
@@ -29,26 +31,20 @@ type Props = {
   project: Project;
   codeMappings: RepositoryProjectPathConfig[];
   integrations: Integration[];
-  onSave: (data: CodeOwners) => void;
+  onSave: (data: CodeOwner) => void;
 } & ModalRenderProps;
 
 type State = {
-  codeownerFile: CodeOwnerFile | null;
+  codeownersFile: CodeownersFile | null;
   codeMappingId: string | null;
   isLoading: boolean;
   error: boolean;
   errorJSON: {raw?: string} | null;
 };
 
-type CodeOwnerFile = {
-  raw: string;
-  filepath: string;
-  html_url: string;
-};
-
 class AddCodeOwnerModal extends Component<Props, State> {
   state: State = {
-    codeownerFile: null,
+    codeownersFile: null,
     codeMappingId: null,
     isLoading: false,
     error: false,
@@ -59,19 +55,19 @@ class AddCodeOwnerModal extends Component<Props, State> {
     const {organization} = this.props;
     this.setState({
       codeMappingId,
-      codeownerFile: null,
+      codeownersFile: null,
       error: false,
       errorJSON: null,
       isLoading: true,
     });
     try {
-      const data: CodeOwnerFile = await this.props.api.requestPromise(
+      const data: CodeownersFile = await this.props.api.requestPromise(
         `/organizations/${organization.slug}/code-mappings/${codeMappingId}/codeowners/`,
         {
           method: 'GET',
         }
       );
-      this.setState({codeownerFile: data, isLoading: false});
+      this.setState({codeownersFile: data, isLoading: false});
     } catch (_err) {
       this.setState({isLoading: false});
     }
@@ -79,41 +75,51 @@ class AddCodeOwnerModal extends Component<Props, State> {
 
   addFile = async () => {
     const {organization, project, codeMappings} = this.props;
-    const {codeownerFile, codeMappingId} = this.state;
-    if (codeownerFile) {
+    const {codeownersFile, codeMappingId} = this.state;
+
+    if (codeownersFile) {
+      const postData: {
+        codeMappingId: string | null;
+        raw: string;
+      } = {
+        codeMappingId,
+        raw: codeownersFile.raw,
+      };
+
       try {
         const data = await this.props.api.requestPromise(
           `/projects/${organization.slug}/${project.slug}/codeowners/`,
           {
             method: 'POST',
-            data: {
-              codeMappingId,
-              raw: codeownerFile.raw,
-            },
+            data: postData,
           }
         );
         const codeMapping = codeMappings.find(
           mapping => mapping.id === codeMappingId?.toString()
         );
         this.handleAddedFile({...data, codeMapping});
-      } catch (_err) {
-        this.setState({error: true, errorJSON: _err.responseJSON, isLoading: false});
+      } catch (err) {
+        if (err.responseJSON.raw) {
+          this.setState({error: true, errorJSON: err.responseJSON, isLoading: false});
+        } else {
+          addErrorMessage(t(Object.values(err.responseJSON).flat().join(' ')));
+        }
       }
     }
   };
 
-  handleAddedFile(data: CodeOwners) {
+  handleAddedFile(data: CodeOwner) {
     this.props.onSave(data);
     this.props.closeModal();
   }
 
-  sourceFile(codeownerFile: CodeOwnerFile) {
+  sourceFile(codeownersFile: CodeownersFile) {
     return (
       <Panel>
         <SourceFileBody>
           <IconCheckmark size="md" isCircled color="green200" />
-          {codeownerFile.filepath}
-          <Button size="small" href={codeownerFile.html_url} target="_blank">
+          {codeownersFile.filepath}
+          <Button size="small" href={codeownersFile.html_url} target="_blank">
             {t('Preview File')}
           </Button>
         </SourceFileBody>
@@ -126,9 +132,10 @@ class AddCodeOwnerModal extends Component<Props, State> {
     const {codeMappings} = this.props;
     const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
     const {integrationId, provider} = codeMapping as RepositoryProjectPathConfig;
+    const errActors = errorJSON?.raw?.[0].split('\n').map(el => <p>{el}</p>);
     return (
       <Alert type="error" icon={<IconNot size="md" />}>
-        <p>{errorJSON?.raw?.[0]}</p>
+        {errActors}
         {codeMapping && (
           <p>
             {tct(
@@ -147,6 +154,10 @@ class AddCodeOwnerModal extends Component<Props, State> {
               }
             )}
           </p>
+        )}
+        {tct(
+          '[addAndSkip:Add and Skip Missing Associations] will add your codeowner file and skip any rules that having missing associations. You can add associations later for any skipped rules.',
+          {addAndSkip: <strong>Add and Skip Missing Associations</strong>}
         )}
       </Alert>
     );
@@ -180,7 +191,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
 
   render() {
     const {Header, Body, Footer} = this.props;
-    const {codeownerFile, error, errorJSON} = this.state;
+    const {codeownersFile, error, errorJSON} = this.state;
     const {codeMappings, integrations, organization} = this.props;
     const baseUrl = `/settings/${organization.slug}/integrations`;
 
@@ -231,7 +242,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
               />
 
               <FileResult>
-                {codeownerFile ? this.sourceFile(codeownerFile) : this.noSourceFile()}
+                {codeownersFile ? this.sourceFile(codeownersFile) : this.noSourceFile()}
                 {error && errorJSON && this.errorMessage(baseUrl)}
               </FileResult>
             </Form>
@@ -239,7 +250,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
         </Body>
         <Footer>
           <Button
-            disabled={codeownerFile ? false : true}
+            disabled={codeownersFile ? false : true}
             label={t('Add File')}
             priority="primary"
             onClick={this.addFile}

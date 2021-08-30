@@ -12,6 +12,7 @@ import GridEditable, {
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
+import Truncate from 'app/components/truncate';
 import {IconStack} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
@@ -32,7 +33,7 @@ import {
 } from 'app/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
 import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
@@ -200,24 +201,25 @@ class TableView extends React.Component<TableViewProps> {
     }
     const currentSort = eventView.sortForField(field, tableMeta);
     const canSort = isFieldSortable(field, tableMeta);
+    const titleText = isEquationAlias(column.name)
+      ? eventView.getEquations()[getEquationAliasIndex(column.name)]
+      : column.name;
 
-    const sortLink = (
+    const title = (
+      <StyledTooltip title={titleText}>
+        <Truncate value={titleText} maxLength={60} expandable={false} />
+      </StyledTooltip>
+    );
+
+    return (
       <SortLink
         align={align}
-        title={column.name}
+        title={title}
         direction={currentSort ? currentSort.kind : undefined}
         canSort={canSort}
         generateSortLink={generateSortLink}
       />
     );
-    if (isEquationAlias(column.name)) {
-      return (
-        <Tooltip title={eventView.getEquations()[getEquationAliasIndex(column.name)]}>
-          {sortLink}
-        </Tooltip>
-      );
-    }
-    return sortLink;
   };
 
   _renderGridBodyCell = (
@@ -350,7 +352,7 @@ class TableView extends React.Component<TableViewProps> {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, organization, projects} = this.props;
 
-      const query = tokenizeSearch(eventView.query);
+      const query = new MutableSearch(eventView.query);
 
       let nextView = eventView.clone();
 
@@ -407,7 +409,7 @@ class TableView extends React.Component<TableViewProps> {
           // Drilldown into each distinct value and get a count() for each value.
           nextView = getExpandedResults(nextView, {}, dataRow).withNewColumn({
             kind: 'function',
-            function: ['count', '', undefined],
+            function: ['count', '', undefined, undefined],
           });
 
           browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
@@ -418,7 +420,7 @@ class TableView extends React.Component<TableViewProps> {
           updateQuery(query, action, column, value);
         }
       }
-      nextView.query = stringifyQueryObject(query);
+      nextView.query = query.formatString();
 
       browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
     };
@@ -444,6 +446,7 @@ class TableView extends React.Component<TableViewProps> {
       title,
       eventView,
       isLoading,
+      error,
       tableData,
       location,
       onChangeShowTags,
@@ -454,6 +457,7 @@ class TableView extends React.Component<TableViewProps> {
       <TableActions
         title={title}
         isLoading={isLoading}
+        error={error}
         organization={organization}
         eventView={eventView}
         onEdit={this.handleEditColumns}
@@ -501,6 +505,10 @@ class TableView extends React.Component<TableViewProps> {
 
 const PrependHeader = styled('span')`
   color: ${p => p.theme.subText};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  display: initial;
 `;
 
 const StyledLink = styled(Link)`

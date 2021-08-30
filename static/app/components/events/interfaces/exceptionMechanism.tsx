@@ -80,7 +80,7 @@ class ExceptionMechanism extends Component<Props> {
 
     return (
       <Wrapper>
-        <Pills>{pills}</Pills>
+        <StyledPills>{pills}</StyledPills>
       </Wrapper>
     );
   }
@@ -107,6 +107,15 @@ const StyledExternalLink = styled(ExternalLink)`
 
 const Details = styled('span')`
   margin-right: ${space(1)};
+`;
+
+const StyledPills = styled(Pills)`
+  span:nth-of-type(2) {
+    display: inline;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 `;
 
 const StyledIconInfo = styled(IconInfo)`

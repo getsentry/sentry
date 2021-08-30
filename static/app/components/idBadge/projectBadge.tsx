@@ -21,13 +21,20 @@ type Props = Partial<Omit<BaseBadgeProps, 'project' | 'organization' | 'team'>> 
    * If true, this component will not be a link to project details page
    */
   disableLink?: boolean;
+  /**
+   * Overides where the project badge links
+   */
+  to?: React.ComponentProps<typeof Link>['to'];
+  className?: string;
 };
 
 const ProjectBadge = ({
   project,
   organization,
+  to,
   hideOverflow = true,
   disableLink = false,
+  className,
   ...props
 }: Props) => {
   const {slug, id} = project;
@@ -43,18 +50,18 @@ const ProjectBadge = ({
   );
 
   if (!disableLink && organization?.slug) {
+    const defaultTo = `/organizations/${organization.slug}/projects/${slug}/${
+      id ? `?project=${id}` : ''
+    }`;
+
     return (
-      <StyledLink
-        to={`/organizations/${organization.slug}/projects/${slug}/${
-          id ? `?project=${id}` : ''
-        }`}
-      >
+      <StyledLink to={to ?? defaultTo} className={className}>
         {badge}
       </StyledLink>
     );
   }
 
-  return badge;
+  return React.cloneElement(badge, {className});
 };
 
 const StyledLink = styled(Link)`

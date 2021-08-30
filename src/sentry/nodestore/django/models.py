@@ -5,7 +5,7 @@ from sentry.db.models import BaseModel, sane_repr
 
 
 class Node(BaseModel):
-    __core__ = False
+    __include_in_export__ = False
 
     id = models.CharField(max_length=40, primary_key=True)
     # TODO(dcramer): this being pickle and not JSON has the ability to cause

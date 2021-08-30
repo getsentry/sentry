@@ -1,0 +1,21 @@
+[
+  {
+    "query": "device.family:\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "device.family", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"",
+          "quoted": true
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

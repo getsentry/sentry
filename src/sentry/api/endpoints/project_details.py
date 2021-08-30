@@ -24,7 +24,11 @@ from sentry.datascrubbing import validate_pii_config_update
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.lang.native.symbolicator import InvalidSourcesError, parse_sources
+from sentry.lang.native.symbolicator import (
+    InvalidSourcesError,
+    parse_backfill_sources,
+    parse_sources,
+)
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     AuditLogEntryEvent,
@@ -237,10 +241,25 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
 
         try:
-            sources = parse_sources(sources_json.strip())
-            sources_json = json.dumps(sources) if sources else ""
+            # We should really only grab and parse if there are sources in sources_json whose
+            # secrets are set to {"hidden-secret":true}
+            orig_sources = parse_sources(
+                self.context["project"].get_option("sentry:symbol_sources")
+            )
+            sources = parse_backfill_sources(sources_json.strip(), orig_sources)
         except InvalidSourcesError as e:
             raise serializers.ValidationError(str(e))
+
+        sources_json = json.dumps(sources) if sources else ""
+
+        has_multiple_appconnect = features.has(
+            "organizations:app-store-connect-multiple", organization, actor=request.user
+        )
+        appconnect_sources = [s for s in sources if s.get("type") == "appStoreConnect"]
+        if not has_multiple_appconnect and len(appconnect_sources) > 1:
+            raise serializers.ValidationError(
+                "Only one Apple App Store Connect application is allowed in this project"
+            )
 
         return sources_json
 
@@ -260,10 +279,15 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 f"Grouping expiry must be a numerical value, a UNIX timestamp with second resolution, found {type(value)}"
             )
-        if not (0 < value - time.time() < (91 * 24 * 3600)):
+        now = time.time()
+        if value < now:
             raise serializers.ValidationError(
                 "Grouping expiry must be sometime within the next 90 days and not in the past. Perhaps you specified the timestamp not in seconds?"
             )
+
+        max_expiry_date = now + (91 * 24 * 3600)
+        if value > max_expiry_date:
+            value = max_expiry_date
 
         return value
 
@@ -420,6 +444,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.slug = result["slug"]
             changed = True
             changed_proj_settings["new_slug"] = project.slug
+            changed_proj_settings["old_slug"] = old_slug
 
         if result.get("name"):
             project.name = result["name"]

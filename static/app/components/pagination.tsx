@@ -1,87 +1,98 @@
-import {Component} from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Query} from 'history';
-import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {IconChevron} from 'app/icons';
 import {t} from 'app/locale';
-import {callIfFunction} from 'app/utils/callIfFunction';
+import space from 'app/styles/space';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 
-const defaultProps: DefaultProps = {
-  size: 'small',
-  onCursor: (cursor: string, path: string, query: Query, _direction: number) => {
-    browserHistory.push({
-      pathname: path,
-      query: {...query, cursor},
-    });
-  },
-};
+/**
+ * @param cursor The string cursor value
+ * @param path   The current page pathname
+ * @param query  The current query object
+ * @param delta  The delta in page number change triggered by the
+ *               click. A negative delta would be a "previous" page.
+ */
+export type CursorHandler = (
+  cursor: string | undefined,
+  path: string,
+  query: Query,
+  delta: number
+) => void;
 
-type DefaultProps = {
-  size?: 'zero' | 'xsmall' | 'small';
-  onCursor?: (cursor: string, path: string, query: Query, _direction: number) => void;
-};
-
-type Props = DefaultProps & {
-  className?: string;
+type Props = WithRouterProps & {
   pageLinks?: string | null;
   to?: string;
+  caption?: React.ReactElement;
+  size?: 'zero' | 'xsmall' | 'small';
+  onCursor?: CursorHandler;
+  disabled?: boolean;
+  className?: string;
 };
 
-class Pagination extends Component<Props> {
-  static contextTypes = {
-    location: PropTypes.object,
-  };
+const defaultOnCursor: CursorHandler = (cursor, path, query, _direction) =>
+  browserHistory.push({
+    pathname: path,
+    query: {...query, cursor},
+  });
 
-  static defaultProps = defaultProps;
-
-  render() {
-    const {className, onCursor, pageLinks, size} = this.props;
-    if (!pageLinks) {
-      return null;
-    }
-
-    const location = this.context.location;
-    const path = this.props.to || location.pathname;
-    const query = location.query;
-    const links = parseLinkHeader(pageLinks);
-    const previousDisabled = links.previous.results === false;
-    const nextDisabled = links.next.results === false;
-
-    return (
-      <div className={className}>
-        <ButtonBar merged>
-          <Button
-            icon={<IconChevron direction="left" size="sm" />}
-            aria-label={t('Previous')}
-            size={size}
-            disabled={previousDisabled}
-            onClick={() => {
-              callIfFunction(onCursor, links.previous.cursor, path, query, -1);
-            }}
-          />
-          <Button
-            icon={<IconChevron direction="right" size="sm" />}
-            aria-label={t('Next')}
-            size={size}
-            disabled={nextDisabled}
-            onClick={() => {
-              callIfFunction(onCursor, links.next.cursor, path, query, 1);
-            }}
-          />
-        </ButtonBar>
-      </div>
-    );
+const Pagination = ({
+  to,
+  location,
+  className,
+  onCursor = defaultOnCursor,
+  pageLinks,
+  size = 'small',
+  caption,
+  disabled = false,
+}: Props) => {
+  if (!pageLinks) {
+    return null;
   }
-}
 
-export default styled(Pagination)`
+  const path = to ?? location.pathname;
+  const query = location.query;
+  const links = parseLinkHeader(pageLinks);
+  const previousDisabled = disabled || links.previous?.results === false;
+  const nextDisabled = disabled || links.next?.results === false;
+
+  return (
+    <Wrapper className={className}>
+      {caption && <PaginationCaption>{caption}</PaginationCaption>}
+      <ButtonBar merged>
+        <Button
+          icon={<IconChevron direction="left" size="sm" />}
+          aria-label={t('Previous')}
+          size={size}
+          disabled={previousDisabled}
+          onClick={() => onCursor?.(links.previous?.cursor, path, query, -1)}
+        />
+        <Button
+          icon={<IconChevron direction="right" size="sm" />}
+          aria-label={t('Next')}
+          size={size}
+          disabled={nextDisabled}
+          onClick={() => onCursor?.(links.next?.cursor, path, query, 1)}
+        />
+      </ButtonBar>
+    </Wrapper>
+  );
+};
+
+const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  margin: 20px 0 0 0;
+  margin: ${space(3)} 0 0 0;
 `;
+
+const PaginationCaption = styled('span')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-right: ${space(2)};
+`;
+
+export default withRouter(Pagination);

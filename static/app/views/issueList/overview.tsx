@@ -1,8 +1,8 @@
 import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
@@ -20,17 +20,20 @@ import {
 import {fetchTagValues, loadOrganizationTags} from 'app/actionCreators/tags';
 import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import Pagination from 'app/components/pagination';
+import Pagination, {CursorHandler} from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
 import QueryCount from 'app/components/queryCount';
 import StreamGroup from 'app/components/stream/group';
 import ProcessingIssueList from 'app/components/stream/processingIssueList';
-import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {
+  DEFAULT_QUERY,
+  DEFAULT_STATS_PERIOD,
+  RELEASE_ADOPTION_STAGES,
+} from 'app/constants';
 import {tct} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
 import {PageContent} from 'app/styles/organization';
@@ -229,8 +232,11 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
       this.fetchMemberList();
       this.fetchTags();
-      if (this.getDisplay() !== DEFAULT_DISPLAY) {
-        this.transitionTo({display: DEFAULT_DISPLAY});
+      // Reset display when selecting multiple projects
+      const projects = this.props.selection.projects ?? [];
+      const hasMultipleProjects = projects.length !== 1 || projects[0] === -1;
+      if (hasMultipleProjects && this.getDisplay() !== DEFAULT_DISPLAY) {
+        this.transitionTo({display: undefined});
       }
     }
 
@@ -419,6 +425,7 @@ class IssueListOverview extends React.Component<Props, State> {
   fetchStats = (groups: string[]) => {
     // If we have no groups to fetch, just skip stats
     if (!groups.length) {
+      this.setState({hasSessions: false});
       return;
     }
     const requestParams: StatEndpointParams = {
@@ -457,6 +464,13 @@ class IssueListOverview extends React.Component<Props, State> {
       },
       complete: () => {
         this._lastStatsRequest = null;
+
+        // End navigation transaction to prevent additional page requests from impacting page metrics.
+        // Other transactions include stacktrace preview request
+        const currentTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+        if (currentTransaction?.op === 'navigation') {
+          currentTransaction.finish();
+        }
       },
     });
   };
@@ -566,14 +580,7 @@ class IssueListOverview extends React.Component<Props, State> {
       requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
     }
 
-    const orgFeatures = new Set(this.props.organization.features);
-    const expandParams: string[] = ['owners'];
-    if (orgFeatures.has('inbox')) {
-      expandParams.push('inbox');
-    }
-    if (expandParams.length) {
-      requestParams.expand = expandParams;
-    }
+    requestParams.expand = ['owners', 'inbox'];
     requestParams.collapse = 'stats';
 
     if (this._lastRequest) {
@@ -588,14 +595,14 @@ class IssueListOverview extends React.Component<Props, State> {
     this._lastRequest = this.props.api.request(this.getGroupListEndpoint(), {
       method: 'GET',
       data: qs.stringify(requestParams),
-      success: (data, _, jqXHR) => {
-        if (!jqXHR) {
+      success: (data, _, resp) => {
+        if (!resp) {
           return;
         }
 
         const {orgId} = this.props.params;
         // If this is a direct hit, we redirect to the intended result directly.
-        if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+        if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
           let redirect: string;
           if (data[0] && data[0].matchingEventId) {
             const {id, matchingEventId} = data[0];
@@ -615,17 +622,15 @@ class IssueListOverview extends React.Component<Props, State> {
         this._streamManager.push(data);
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
-        const hits = jqXHR.getResponseHeader('X-Hits');
+        const hits = resp.getResponseHeader('X-Hits');
         const queryCount =
           typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
-        const maxHits = jqXHR.getResponseHeader('X-Max-Hits');
+        const maxHits = resp.getResponseHeader('X-Max-Hits');
         const queryMaxCount =
           typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
-        const pageLinks = jqXHR.getResponseHeader('Link');
+        const pageLinks = resp.getResponseHeader('Link');
 
-        if (this.props.organization.features.includes('inbox')) {
-          this.fetchCounts(queryCount, fetchAllCounts);
-        }
+        this.fetchCounts(queryCount, fetchAllCounts);
 
         this.setState({
           error: null,
@@ -636,6 +641,15 @@ class IssueListOverview extends React.Component<Props, State> {
         });
       },
       error: err => {
+        trackAnalyticsEvent({
+          eventKey: 'issue_search.failed',
+          eventName: 'Issue Search: Failed',
+          organization_id: this.props.organization.id,
+          search_type: 'issues',
+          search_source: 'main_search',
+          error: parseApiError(err),
+        });
+
         this.setState({
           error: parseApiError(err),
           issuesLoading: false,
@@ -738,11 +752,11 @@ class IssueListOverview extends React.Component<Props, State> {
     this.transitionTo({display});
   };
 
-  onCursorChange = (cursor: string | undefined, _path, query, pageDiff: number) => {
-    const queryPageInt = parseInt(query.page, 10);
-    let nextPage: number | undefined = isNaN(queryPageInt)
-      ? pageDiff
-      : queryPageInt + pageDiff;
+  onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
+    const queryPageInt = parseInt(this.props.location.query.page, 10);
+    let nextPage: number | undefined = isNaN(queryPageInt) ? delta : queryPageInt + delta;
+
+    let cursor: undefined | string = nextCursor;
 
     // unset cursor and page when we navigate back to the first page
     // also reset cursor if somehow the previous button is enabled on
@@ -843,7 +857,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const topIssue = ids[0];
     const {memberList} = this.state;
     const query = this.getQuery();
-    const showInboxTime = this.getSort() === 'inbox';
+    const showInboxTime = this.getSort() === IssueSortOptions.INBOX;
 
     return ids.map((id, index) => {
       const hasGuideAnchor = id === topIssue;
@@ -889,7 +903,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const {issuesLoading, error, groupIds} = this.state;
 
     if (issuesLoading) {
-      return this.renderLoading();
+      return <LoadingIndicator hideMessage />;
     }
 
     if (error) {
@@ -918,12 +932,20 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   fetchSavedSearches = () => {
-    const {organization} = this.props;
+    const {organization, api} = this.props;
 
-    fetchSavedSearches(this.props.api, organization.slug);
+    fetchSavedSearches(api, organization.slug);
   };
 
   onSavedSearchSelect = (savedSearch: SavedSearch) => {
+    trackAnalyticsEvent({
+      eventKey: 'organization_saved_search.selected',
+      eventName: 'Organization Saved Search: Selected saved search',
+      organization_id: this.props.organization.id,
+      search_type: 'issues',
+      id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
+    });
+
     this.setState({issuesLoading: true}, () => this.transitionTo(undefined, savedSearch));
   };
 
@@ -999,15 +1021,8 @@ class IssueListOverview extends React.Component<Props, State> {
       itemsRemoved,
       hasSessions,
     } = this.state;
-    const {
-      organization,
-      savedSearch,
-      savedSearches,
-      tags,
-      selection,
-      location,
-      router,
-    } = this.props;
+    const {organization, savedSearch, savedSearches, tags, selection, location, router} =
+      this.props;
     const links = parseLinkHeader(pageLinks);
     const query = this.getQuery();
     const queryPageInt = parseInt(location.query.page, 10);
@@ -1039,16 +1054,29 @@ class IssueListOverview extends React.Component<Props, State> {
       ),
     });
 
-    // TODO(workflow): When organization:inbox flag is removed add 'inbox' to tagStore
-    if (
-      organization.features.includes('inbox') &&
-      !tags?.is?.values?.includes('for_review')
-    ) {
-      tags?.is?.values?.push('for_review');
+    // TODO(workflow): When organization:semver flag is removed add semver tags to tagStore
+    if (organization.features.includes('semver') && !tags['release.version']) {
+      tags['release.version'] = {
+        key: 'release.version',
+        name: 'release.version',
+      };
+      tags['release.build'] = {
+        key: 'release.build',
+        name: 'release.build',
+      };
+      tags['release.package'] = {
+        key: 'release.package',
+        name: 'release.package',
+      };
+      tags['release.stage'] = {
+        key: 'release.stage',
+        name: 'release.stage',
+        predefined: true,
+        values: RELEASE_ADOPTION_STAGES,
+      };
     }
 
     const projectIds = selection?.projects?.map(p => p.toString());
-    const orgSlug = organization.slug;
 
     const showReprocessingTab = this.displayReprocessingTab();
     const displayReprocessingActions = this.displayReprocessingLayout(
@@ -1057,115 +1085,90 @@ class IssueListOverview extends React.Component<Props, State> {
     );
 
     return (
-      <Feature organization={organization} features={['organizations:inbox']}>
-        {({hasFeature}) => (
-          <React.Fragment>
-            {hasFeature && (
-              <IssueListHeader
+      <React.Fragment>
+        <IssueListHeader
+          organization={organization}
+          query={query}
+          sort={this.getSort()}
+          queryCount={queryCount}
+          queryCounts={queryCounts}
+          realtimeActive={realtimeActive}
+          onRealtimeChange={this.onRealtimeChange}
+          router={router}
+          savedSearchList={savedSearches}
+          onSavedSearchSelect={this.onSavedSearchSelect}
+          onSavedSearchDelete={this.onSavedSearchDelete}
+          displayReprocessingTab={showReprocessingTab}
+        />
+
+        <StyledPageContent>
+          <StreamContent showSidebar={isSidebarVisible}>
+            <IssueListFilters
+              organization={organization}
+              query={query}
+              savedSearch={savedSearch}
+              sort={this.getSort()}
+              display={this.getDisplay()}
+              onDisplayChange={this.onDisplayChange}
+              onSortChange={this.onSortChange}
+              onSearch={this.onSearch}
+              onSidebarToggle={this.onSidebarToggle}
+              isSearchDisabled={isSidebarVisible}
+              tagValueLoader={this.tagValueLoader}
+              tags={tags}
+              hasSessions={hasSessions}
+              selectedProjects={selection.projects}
+            />
+
+            <Panel>
+              <IssueListActions
                 organization={organization}
+                selection={selection}
                 query={query}
-                sort={this.getSort()}
-                queryCount={queryCount}
-                queryCounts={queryCounts}
-                realtimeActive={realtimeActive}
-                onRealtimeChange={this.onRealtimeChange}
-                projectIds={projectIds}
-                orgSlug={orgSlug}
-                router={router}
-                savedSearchList={savedSearches}
-                onSavedSearchSelect={this.onSavedSearchSelect}
-                onSavedSearchDelete={this.onSavedSearchDelete}
-                displayReprocessingTab={showReprocessingTab}
+                queryCount={modifiedQueryCount}
+                displayCount={displayCount}
+                onSelectStatsPeriod={this.onSelectStatsPeriod}
+                onMarkReviewed={this.onMarkReviewed}
+                onDelete={this.onDelete}
+                statsPeriod={this.getGroupStatsPeriod()}
+                groupIds={groupIds}
+                allResultsVisible={this.allResultsVisible()}
+                displayReprocessingActions={displayReprocessingActions}
+              />
+              <PanelBody>
+                <ProcessingIssueList
+                  organization={organization}
+                  projectIds={projectIds}
+                  showProject
+                />
+                {this.renderStreamBody()}
+              </PanelBody>
+            </Panel>
+            <StyledPagination
+              caption={tct('Showing [displayCount] issues', {
+                displayCount,
+              })}
+              pageLinks={pageLinks}
+              onCursor={this.onCursorChange}
+            />
+          </StreamContent>
+
+          <SidebarContainer showSidebar={isSidebarVisible}>
+            {/* Avoid rendering sidebar until first accessed */}
+            {renderSidebar && (
+              <IssueListSidebar
+                loading={tagsLoading}
+                tags={tags}
+                query={query}
+                onQueryChange={this.onIssueListSidebarSearch}
+                tagValueLoader={this.tagValueLoader}
               />
             )}
-            <StyledPageContent isInbox={hasFeature}>
-              <StreamContent showSidebar={isSidebarVisible}>
-                <IssueListFilters
-                  organization={organization}
-                  query={query}
-                  savedSearch={savedSearch}
-                  sort={this.getSort()}
-                  display={this.getDisplay()}
-                  queryCount={queryCount}
-                  queryMaxCount={queryMaxCount}
-                  onDisplayChange={this.onDisplayChange}
-                  onSortChange={this.onSortChange}
-                  onSearch={this.onSearch}
-                  onSavedSearchSelect={this.onSavedSearchSelect}
-                  onSavedSearchDelete={this.onSavedSearchDelete}
-                  onSidebarToggle={this.onSidebarToggle}
-                  isSearchDisabled={isSidebarVisible}
-                  savedSearchList={savedSearches}
-                  tagValueLoader={this.tagValueLoader}
-                  tags={tags}
-                  isInbox={hasFeature}
-                  hasSessions={hasSessions}
-                  selectedProjects={selection.projects}
-                />
+          </SidebarContainer>
+        </StyledPageContent>
 
-                <Panel>
-                  <IssueListActions
-                    organization={organization}
-                    selection={selection}
-                    query={query}
-                    queryCount={modifiedQueryCount}
-                    displayCount={displayCount}
-                    onSelectStatsPeriod={this.onSelectStatsPeriod}
-                    onRealtimeChange={this.onRealtimeChange}
-                    onMarkReviewed={this.onMarkReviewed}
-                    onDelete={this.onDelete}
-                    realtimeActive={realtimeActive}
-                    statsPeriod={this.getGroupStatsPeriod()}
-                    groupIds={groupIds}
-                    allResultsVisible={this.allResultsVisible()}
-                    hasInbox={hasFeature}
-                    displayReprocessingActions={displayReprocessingActions}
-                  />
-                  <PanelBody>
-                    <ProcessingIssueList
-                      organization={organization}
-                      projectIds={projectIds}
-                      showProject
-                    />
-                    {this.renderStreamBody()}
-                  </PanelBody>
-                </Panel>
-                <PaginationWrapper>
-                  {hasFeature && groupIds?.length > 0 && (
-                    <div>
-                      {/* total includes its own space */}
-                      {tct('Showing [displayCount] issues', {
-                        displayCount,
-                      })}
-                    </div>
-                  )}
-                  <StyledPagination
-                    pageLinks={pageLinks}
-                    onCursor={this.onCursorChange}
-                  />
-                </PaginationWrapper>
-              </StreamContent>
-
-              <SidebarContainer showSidebar={isSidebarVisible}>
-                {/* Avoid rendering sidebar until first accessed */}
-                {renderSidebar && (
-                  <IssueListSidebar
-                    loading={tagsLoading}
-                    tags={tags}
-                    query={query}
-                    onQueryChange={this.onIssueListSidebarSearch}
-                    tagValueLoader={this.tagValueLoader}
-                  />
-                )}
-              </SidebarContainer>
-            </StyledPageContent>
-
-            {hasFeature && query === Query.FOR_REVIEW && (
-              <GuideAnchor target="is_inbox_tab" />
-            )}
-          </React.Fragment>
-        )}
-      </Feature>
+        {query === Query.FOR_REVIEW && <GuideAnchor target="is_inbox_tab" />}
+      </React.Fragment>
     );
   }
 }
@@ -1179,14 +1182,10 @@ export default withApi(
 export {IssueListOverview};
 
 // TODO(workflow): Replace PageContent with thirds body
-const StyledPageContent = styled(PageContent)<{isInbox?: boolean}>`
+const StyledPageContent = styled(PageContent)`
   display: flex;
   flex-direction: row;
-  ${p =>
-    p.isInbox &&
-    css`
-      background-color: ${p.theme.background};
-    `}
+  background-color: ${p => p.theme.background};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     /* Matches thirds layout */
@@ -1216,16 +1215,8 @@ const SidebarContainer = styled('div')<{showSidebar: boolean}>`
   }
 `;
 
-const PaginationWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
 const StyledPagination = styled(Pagination)`
   margin-top: 0;
-  margin-left: ${space(2)};
 `;
 
 const StyledQueryCount = styled(QueryCount)`

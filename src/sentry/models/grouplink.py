@@ -16,7 +16,7 @@ class GroupLink(Model):
     Link a group with an external resource like a commit, issue, or pull request
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     class Relationship:
         unknown = 0

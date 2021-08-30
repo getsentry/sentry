@@ -28,6 +28,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.eventstore.models import Event
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
@@ -101,16 +102,19 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
 
         if short_id:
             params = {
-                "id": GroupRedirect.objects.filter(
+                "id__in": GroupRedirect.objects.filter(
                     organization_id=organization.id,
                     previous_short_id=short_id.short_id,
                     previous_project_slug=short_id.project_slug,
-                ).values_list("group_id", flat=True)
+                ).values_list("group_id", flat=True)[:1]
             }
         else:
-            params["id"] = GroupRedirect.objects.filter(previous_group_id=params["id"]).values_list(
-                "group_id", flat=True
-            )
+            params = {
+                "id__in": GroupRedirect.objects.filter(
+                    previous_group_id=id_or_qualified_short_id,
+                ).values_list("group_id", flat=True)[:1]
+            }
+
         try:
             return queryset.get(**params), True
         except Group.DoesNotExist:
@@ -171,7 +175,7 @@ class EventOrdering(Enum):
 
 def get_oldest_or_latest_event_for_environments(
     ordering, environments=(), issue_id=None, project_id=None
-):
+) -> Optional[Event]:
     conditions = []
 
     if len(environments) > 0:
@@ -297,7 +301,7 @@ class Group(Model):
     Aggregated message which summarizes a set of Events.
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project")
     logger = models.CharField(
@@ -352,7 +356,10 @@ class Group(Model):
             ("project", "id"),
             ("project", "status", "last_seen", "id"),
         ]
-        unique_together = (("project", "short_id"),)
+        unique_together = (
+            ("project", "short_id"),
+            ("project", "id"),
+        )
 
     __repr__ = sane_repr("project_id")
 
@@ -383,7 +390,7 @@ class Group(Model):
         event_id: Optional[int] = None,
         organization_slug: Optional[str] = None,
     ) -> str:
-        # Built manually in preference to django.core.urlresolvers.reverse,
+        # Built manually in preference to django.urls.reverse,
         # because reverse has a measured performance impact.
         event_path = f"events/{event_id}/" if event_id else ""
         url = "organizations/{org}/issues/{id}/{event_path}{params}".format(
@@ -455,12 +462,14 @@ class Group(Model):
 
         from sentry.models import GroupShare
 
-        return cls.objects.get(id=GroupShare.objects.filter(uuid=share_id).values_list("group_id"))
+        return cls.objects.get(
+            id__in=GroupShare.objects.filter(uuid=share_id).values_list("group_id")[:1]
+        )
 
     def get_score(self):
         return type(self).calculate_score(self.times_seen, self.last_seen)
 
-    def get_latest_event(self):
+    def get_latest_event(self) -> Optional[Event]:
         if not hasattr(self, "_latest_event"):
             self._latest_event = self.get_latest_event_for_environments()
 
@@ -485,16 +494,16 @@ class Group(Model):
     def _get_cache_key(self, project_id, group_id, first):
         return f"g-r:{group_id}-{project_id}-{first}"
 
-    def __get_release(self, project_id, group_id, first=True):
+    def __get_release(self, project_id, group_id, first=True, use_cache=True):
         from sentry.models import GroupRelease, Release
 
         orderby = "first_seen" if first else "-last_seen"
         cache_key = self._get_cache_key(project_id, group_id, first)
         try:
-            release_version = cache.get(cache_key)
+            release_version = cache.get(cache_key) if use_cache else None
             if release_version is None:
                 release_version = Release.objects.get(
-                    id=GroupRelease.objects.filter(group_id=group_id, project_id=project_id)
+                    id__in=GroupRelease.objects.filter(group_id=group_id)
                     .order_by(orderby)
                     .values("release_id")[:1]
                 ).version
@@ -513,8 +522,8 @@ class Group(Model):
 
         return self.first_release.version
 
-    def get_last_release(self):
-        return self.__get_release(self.project_id, self.id, False)
+    def get_last_release(self, use_cache=True):
+        return self.__get_release(self.project_id, self.id, False, use_cache=use_cache)
 
     def get_event_type(self):
         """
@@ -524,7 +533,7 @@ class Group(Model):
         """
         return self.data.get("type", "default")
 
-    def get_event_metadata(self):
+    def get_event_metadata(self) -> Mapping[str, str]:
         """
         Return the metadata of this issue.
 
@@ -533,7 +542,7 @@ class Group(Model):
         return self.data["metadata"]
 
     @property
-    def title(self):
+    def title(self) -> str:
         et = eventtypes.get(self.get_event_type())()
         return et.get_title(self.get_event_metadata())
 

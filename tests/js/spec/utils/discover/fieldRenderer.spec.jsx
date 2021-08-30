@@ -1,11 +1,14 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import ConfigStore from 'app/stores/configStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'app/utils/discover/fields';
 
 describe('getFieldRenderer', function () {
   let location, context, project, organization, data, user;
+
   beforeEach(function () {
     context = initializeOrg({
       project: TestStubs.Project(),
@@ -31,6 +34,14 @@ describe('getFieldRenderer', function () {
       project: project.slug,
       release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
       user,
+      'span_ops_breakdown.relative': '',
+      'spans.browser': 10,
+      'spans.db': 30,
+      'spans.http': 15,
+      'spans.resource': 20,
+      'spans.total.time': 75,
+      'transaction.duration': 75,
+      'timestamp.to_day': '2021-09-05T00:00:00+00:00',
     };
 
     MockApiClient.addMockResponse({
@@ -77,7 +88,7 @@ describe('getFieldRenderer', function () {
     expect(renderer).toBeInstanceOf(Function);
     const wrapper = mountWithTheme(renderer(data, {location, organization}));
 
-    const value = wrapper.find('StyledDateTime');
+    const value = wrapper.find('FieldDateTime');
     expect(value).toHaveLength(1);
     expect(value.props().date).toEqual(data.createdAt);
   });
@@ -86,9 +97,24 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('nope', {nope: 'date'});
     const wrapper = mountWithTheme(renderer(data, {location, organization}));
 
-    const value = wrapper.find('StyledDateTime');
+    const value = wrapper.find('FieldDateTime');
     expect(value).toHaveLength(0);
     expect(wrapper.text()).toEqual('n/a');
+  });
+
+  it('can render timestamp.to_day', function () {
+    // Set timezone
+    ConfigStore.loadInitialData({
+      user: {
+        options: {
+          timezone: 'America/Los_Angeles',
+        },
+      },
+    });
+    const renderer = getFieldRenderer('timestamp.to_day', {'timestamp.to_day': 'date'});
+    const wrapper = mountWithTheme(renderer(data, {location, organization}));
+    const text = wrapper.find('Container');
+    expect(text.text()).toEqual('September 5, 2021');
   });
 
   it('can render error.handled values', function () {
@@ -255,5 +281,50 @@ describe('getFieldRenderer', function () {
 
     // Since there is no project column, it is not wrapped with the dropdown
     expect(wrapper.find('TeamKeyTransaction')).toHaveLength(0);
+  });
+
+  describe('ops breakdown', () => {
+    const getWidth = (wrapper, index) =>
+      wrapper.children().children().at(index).getDOMNode().style.width;
+
+    it('can render operation breakdowns', async function () {
+      const renderer = getFieldRenderer(SPAN_OP_RELATIVE_BREAKDOWN_FIELD, {
+        [SPAN_OP_RELATIVE_BREAKDOWN_FIELD]: 'string',
+      });
+
+      const wrapper = mountWithTheme(
+        renderer(data, {location, organization}),
+        context.routerContext
+      );
+
+      const value = wrapper.find('RelativeOpsBreakdown');
+      expect(value).toHaveLength(1);
+      expect(getWidth(value, 0)).toEqual('20.000%');
+      expect(getWidth(value, 1)).toEqual('40.000%');
+      expect(getWidth(value, 2)).toEqual('13.333%');
+      expect(getWidth(value, 3)).toEqual('26.667%');
+    });
+
+    it('renders operation breakdowns in sorted order when a sort field is provided', async function () {
+      const renderer = getFieldRenderer(SPAN_OP_RELATIVE_BREAKDOWN_FIELD, {
+        [SPAN_OP_RELATIVE_BREAKDOWN_FIELD]: 'string',
+      });
+
+      const wrapper = mountWithTheme(
+        renderer(data, {
+          location,
+          organization,
+          eventView: {sorts: [{field: 'spans.db'}]},
+        }),
+        context.routerContext
+      );
+
+      const value = wrapper.find('RelativeOpsBreakdown');
+      expect(value).toHaveLength(1);
+      expect(getWidth(value, 0)).toEqual('40.000%');
+      expect(getWidth(value, 1)).toEqual('20.000%');
+      expect(getWidth(value, 2)).toEqual('13.333%');
+      expect(getWidth(value, 3)).toEqual('26.667%');
+    });
   });
 });

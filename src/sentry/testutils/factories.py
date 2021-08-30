@@ -3,14 +3,16 @@ import os
 import random
 import warnings
 from binascii import hexlify
+from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
-from typing import Any
+from typing import Any, Optional, Sequence
 from uuid import uuid4
 
 import petname
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
 from django.utils.encoding import force_text
@@ -62,6 +64,7 @@ from sentry.models import (
     ProjectDebugFile,
     Release,
     ReleaseCommit,
+    ReleaseEnvironment,
     ReleaseFile,
     Repository,
     RepositoryProjectPathConfig,
@@ -73,6 +76,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
+from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.models import QueryDatasets
 from sentry.types.integrations import ExternalProviders
@@ -354,7 +358,14 @@ class Factories:
         return project.key_set.get_or_create()[0]
 
     @staticmethod
-    def create_release(project, user=None, version=None, date_added=None, additional_projects=None):
+    def create_release(
+        project: Project,
+        user: Optional[User] = None,
+        version: Optional[str] = None,
+        date_added: Optional[datetime] = None,
+        additional_projects: Optional[Sequence[Project]] = None,
+        environments: Optional[Sequence[Environment]] = None,
+    ):
         if version is None:
             version = force_text(hexlify(os.urandom(20)))
 
@@ -371,6 +382,11 @@ class Factories:
         release.add_project(project)
         for additional_project in additional_projects:
             release.add_project(additional_project)
+
+        for environment in environments or []:
+            ReleaseEnvironment.objects.create(
+                organization=project.organization, release=release, environment=environment
+            )
 
         Activity.objects.create(
             type=Activity.RELEASE,
@@ -398,7 +414,7 @@ class Factories:
         return release
 
     @staticmethod
-    def create_release_file(release, file=None, name=None, dist=None):
+    def create_release_file(release_id, file=None, name=None, dist_id=None):
         if file is None:
             file = Factories.create_file(
                 name="log.txt",
@@ -410,8 +426,14 @@ class Factories:
         if name is None:
             name = file.name
 
+        organization_id = Release.objects.get(pk=release_id).organization.id
+
         return ReleaseFile.objects.create(
-            organization=release.organization, release=release, name=name, file=file, dist=dist
+            organization_id=organization_id,
+            release_id=release_id,
+            name=name,
+            file=file,
+            dist_id=dist_id,
         )
 
     @staticmethod
@@ -436,6 +458,14 @@ class Factories:
                         zipfile.write(fullpath, relpath)
 
         return bundle.getvalue()
+
+    @classmethod
+    def create_release_archive(cls, org, release: str, project=None, dist=None):
+        bundle = cls.create_artifact_bundle(org, release, project)
+        file_ = File.objects.create(name="release-artifacts.zip")
+        file_.putfile(ContentFile(bundle))
+        release = Release.objects.get(organization__slug=org, version=release)
+        return update_artifact_index(release, dist, file_)
 
     @staticmethod
     def create_code_mapping(project, repo=None, **kwargs):
@@ -633,7 +663,7 @@ class Factories:
         return ProjectDebugFile.objects.create(
             debug_id=debug_id,
             code_id=code_id,
-            project=project,
+            project_id=project.id,
             object_name=object_name,
             cpu_name=cpu_name or "x86_64",
             file=file,

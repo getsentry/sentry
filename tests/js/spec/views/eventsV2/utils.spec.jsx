@@ -80,7 +80,7 @@ describe('decodeColumnOrder', function () {
       name: 'count()',
       column: {
         kind: 'function',
-        function: ['count', '', undefined],
+        function: ['count', '', undefined, undefined],
       },
       width: 123,
       isSortable: true,
@@ -104,7 +104,7 @@ describe('decodeColumnOrder', function () {
       name: 'avg(transaction.duration)',
       column: {
         kind: 'function',
-        function: ['avg', 'transaction.duration', undefined],
+        function: ['avg', 'transaction.duration', undefined, undefined],
       },
       width: COL_WIDTH_UNDEFINED,
       isSortable: true,
@@ -124,7 +124,7 @@ describe('decodeColumnOrder', function () {
       name: 'percentile(transaction.duration, 0.65)',
       column: {
         kind: 'function',
-        function: ['percentile', 'transaction.duration', '0.65'],
+        function: ['percentile', 'transaction.duration', '0.65', undefined],
       },
       width: COL_WIDTH_UNDEFINED,
       isSortable: true,
@@ -142,7 +142,7 @@ describe('decodeColumnOrder', function () {
       name: 'avg(measurements.foo)',
       column: {
         kind: 'function',
-        function: ['avg', 'measurements.foo', undefined],
+        function: ['avg', 'measurements.foo', undefined, undefined],
       },
       width: COL_WIDTH_UNDEFINED,
       isSortable: true,
@@ -160,7 +160,7 @@ describe('decodeColumnOrder', function () {
       name: 'percentile(measurements.lcp, 0.65)',
       column: {
         kind: 'function',
-        function: ['percentile', 'measurements.lcp', '0.65'],
+        function: ['percentile', 'measurements.lcp', '0.65', undefined],
       },
       width: COL_WIDTH_UNDEFINED,
       isSortable: true,
@@ -178,7 +178,7 @@ describe('decodeColumnOrder', function () {
       name: 'avg(spans.foo)',
       column: {
         kind: 'function',
-        function: ['avg', 'spans.foo', undefined],
+        function: ['avg', 'spans.foo', undefined, undefined],
       },
       width: COL_WIDTH_UNDEFINED,
       isSortable: true,
@@ -196,7 +196,7 @@ describe('decodeColumnOrder', function () {
       name: 'percentile(spans.lcp, 0.65)',
       column: {
         kind: 'function',
-        function: ['percentile', 'spans.lcp', '0.65'],
+        function: ['percentile', 'spans.lcp', '0.65', undefined],
       },
       width: COL_WIDTH_UNDEFINED,
       isSortable: true,
@@ -209,7 +209,7 @@ describe('pushEventViewToLocation', function () {
   const state = {
     id: '1234',
     name: 'best query',
-    fields: [{field: 'count()'}, {field: 'project.id'}],
+    fields: [{field: 'count()', width: 420}, {field: 'project.id'}],
     sorts: [{field: 'count', kind: 'desc'}],
     query: 'event.type:error',
     project: [42],
@@ -222,6 +222,7 @@ describe('pushEventViewToLocation', function () {
   const location = {
     query: {
       bestCountry: 'canada',
+      user: '1',
     },
   };
 
@@ -238,7 +239,7 @@ describe('pushEventViewToLocation', function () {
         id: '1234',
         name: 'best query',
         field: ['count()', 'project.id'],
-        widths: [COL_WIDTH_UNDEFINED, COL_WIDTH_UNDEFINED],
+        widths: [420],
         sort: ['-count'],
         query: 'event.type:error',
         project: [42],
@@ -246,6 +247,8 @@ describe('pushEventViewToLocation', function () {
         end: '2019-10-02T00:00:00',
         statsPeriod: '14d',
         environment: ['staging'],
+        user: '1',
+        yAxis: 'count()',
       },
     });
   });
@@ -266,7 +269,7 @@ describe('pushEventViewToLocation', function () {
         id: '1234',
         name: 'best query',
         field: ['count()', 'project.id'],
-        widths: [COL_WIDTH_UNDEFINED, COL_WIDTH_UNDEFINED],
+        widths: [420],
         sort: ['-count'],
         query: 'event.type:error',
         project: [42],
@@ -275,6 +278,8 @@ describe('pushEventViewToLocation', function () {
         statsPeriod: '14d',
         environment: ['staging'],
         cursor: 'some cursor',
+        user: '1',
+        yAxis: 'count()',
       },
     });
   });
@@ -470,6 +475,38 @@ describe('getExpandedResults()', function () {
     const result = getExpandedResults(view, {some_tag: 'value'}, {});
     expect(result.fields).toEqual([]);
     expect(result.query).toEqual('some_tag:value');
+  });
+
+  it('removes equations on aggregates', () => {
+    const view = new EventView({
+      ...state,
+      fields: [
+        {field: 'count()'},
+        {field: 'equation|count() / 2'},
+        {field: 'equation|(count() - count()) + 5'},
+      ],
+    });
+    const result = getExpandedResults(view, {});
+    expect(result.fields).toEqual([
+      {
+        field: 'id',
+        width: -1,
+      },
+    ]);
+  });
+
+  it('keeps equations without aggregates', () => {
+    const view = new EventView({
+      ...state,
+      fields: [{field: 'count()'}, {field: 'equation|transaction.duration / 2'}],
+    });
+    const result = getExpandedResults(view, {});
+    expect(result.fields).toEqual([
+      {
+        field: 'equation|transaction.duration / 2',
+        width: -1,
+      },
+    ]);
   });
 
   it('applies array value conditions from event data', () => {

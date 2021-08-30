@@ -1,5 +1,7 @@
 import logging
 
+import sentry_sdk
+
 from sentry import analytics, features
 from sentry.app import locks
 from sentry.exceptions import PluginError
@@ -80,30 +82,39 @@ def handle_owner_assignment(project, group, event):
     from sentry.models import GroupAssignee, ProjectOwnership
 
     with metrics.timer("post_process.handle_owner_assignment"):
-        # Is the issue already assigned to a team or user?
-        key = "assignee_exists:1:%s" % group.id
-        owners_exists = cache.get(key)
+        owner_key = "owner_exists:1:%s" % group.id
+        owners_exists = cache.get(owner_key)
         if owners_exists is None:
-            owners_exists = group.assignee_set.exists() or group.groupowner_set.exists()
+            owners_exists = group.groupowner_set.exists()
             # Cache for an hour if it's assigned. We don't need to move that fast.
-            cache.set(key, owners_exists, 3600 if owners_exists else 60)
-        if owners_exists:
+            cache.set(owner_key, owners_exists, 3600 if owners_exists else 60)
+
+        # Is the issue already assigned to a team or user?
+        assignee_key = "assignee_exists:1:%s" % group.id
+        assignees_exists = cache.get(assignee_key)
+        if assignees_exists is None:
+            assignees_exists = group.assignee_set.exists()
+            # Cache for an hour if it's assigned. We don't need to move that fast.
+            cache.set(assignee_key, assignees_exists, 3600 if assignees_exists else 60)
+
+        if owners_exists and assignees_exists:
             return
 
         auto_assignment, owners, assigned_by_codeowners = ProjectOwnership.get_autoassign_owners(
             group.project_id, event.data
         )
-        if auto_assignment and owners:
-            GroupAssignee.objects.assign(group, owners[0])
-            if assigned_by_codeowners:
+
+        if auto_assignment and owners and not assignees_exists:
+            assignment = GroupAssignee.objects.assign(group, owners[0])
+            if assignment["new_assignment"] or assignment["updated_assignment"]:
                 analytics.record(
-                    "codeowners.assignment",
+                    "codeowners.assignment" if assigned_by_codeowners else "issueowners.assignment",
                     organization_id=project.organization_id,
                     project_id=project.id,
                     group_id=group.id,
                 )
 
-        if owners:
+        if owners and not owners_exists:
             try:
                 handle_group_owners(project, group, owners)
             except Exception:
@@ -215,8 +226,8 @@ def post_process_group(
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
         event.project = Project.objects.get_from_cache(id=event.project_id)
-        event.project._organization_cache = Organization.objects.get_from_cache(
-            id=event.project.organization_id
+        event.project.set_cached_field_value(
+            "organization", Organization.objects.get_from_cache(id=event.project.organization_id)
         )
 
         # Simplified post processing for transaction events.
@@ -251,7 +262,7 @@ def post_process_group(
         event.group_id = event.group.id
 
         event.group.project = event.project
-        event.group.project._organization_cache = event.project._organization_cache
+        event.group.project.set_cached_field_value("organization", event.project.organization)
 
         bind_organization_context(event.project.organization)
 
@@ -352,10 +363,12 @@ def post_process_group(
 
             from sentry import similarity
 
-            safe_execute(similarity.record, event.project, [event], _with_transaction=False)
+            with sentry_sdk.start_span(op="tasks.post_process_group.similarity"):
+                safe_execute(similarity.record, event.project, [event], _with_transaction=False)
 
         # Patch attachments that were ingested on the standalone path.
-        update_existing_attachments(event)
+        with sentry_sdk.start_span(op="tasks.post_process_group.update_existing_attachments"):
+            update_existing_attachments(event)
 
         if not is_reprocessed:
             event_processed.send_robust(

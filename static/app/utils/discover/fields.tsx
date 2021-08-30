@@ -1,4 +1,7 @@
-import {LightWeightOrganization} from 'app/types';
+import isEqual from 'lodash/isEqual';
+
+import {RELEASE_ADOPTION_STAGES} from 'app/constants';
+import {LightWeightOrganization, SelectValue} from 'app/types';
 import {assert} from 'app/types/utils';
 
 export type Sort = {
@@ -24,6 +27,11 @@ export type ColumnType =
 
 export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
 
+export type ParsedFunction = {
+  name: string;
+  arguments: string[];
+};
+
 type ValidateColumnValueFunction = ({name: string, dataType: ColumnType}) => boolean;
 
 export type ValidateColumnTypes = ColumnType[] | ValidateColumnValueFunction;
@@ -40,6 +48,15 @@ export type AggregateParameter =
       dataType: ColumnType;
       defaultValue?: string;
       required: boolean;
+      placeholder?: string;
+    }
+  | {
+      kind: 'dropdown';
+      options: SelectValue<string>[];
+      dataType: string;
+      defaultValue?: string;
+      required: boolean;
+      placeholder?: string;
     };
 
 export type AggregationRefinement = string | undefined;
@@ -59,7 +76,7 @@ export type QueryFieldValue =
     }
   | {
       kind: 'function';
-      function: [AggregationKey, string, AggregationRefinement];
+      function: [AggregationKey, string, AggregationRefinement, AggregationRefinement];
     };
 
 // Column is just an alias of a Query value
@@ -67,7 +84,34 @@ export type Column = QueryFieldValue;
 
 export type Alignments = 'left' | 'right';
 
-// Refer to src/sentry/api/event_search.py
+const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
+  {
+    label: 'is equal to',
+    value: 'equals',
+  },
+  {
+    label: 'is not equal to',
+    value: 'notEquals',
+  },
+  {
+    label: 'is less than',
+    value: 'less',
+  },
+  {
+    label: 'is greater than',
+    value: 'greater',
+  },
+  {
+    label: 'is less than or equal to',
+    value: 'lessOrEquals',
+  },
+  {
+    label: 'is greater than or equal to',
+    value: 'greaterOrEquals',
+  },
+];
+
+// Refer to src/sentry/search/events/fields.py
 export const AGGREGATIONS = {
   count: {
     parameters: [],
@@ -102,6 +146,7 @@ export const AGGREGATIONS = {
           'number',
           'duration',
           'date',
+          'percentage',
         ]),
         required: true,
       },
@@ -119,6 +164,7 @@ export const AGGREGATIONS = {
           'number',
           'duration',
           'date',
+          'percentage',
         ]),
         required: true,
       },
@@ -131,7 +177,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: true,
       },
@@ -144,7 +190,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         required: true,
       },
     ],
@@ -174,7 +220,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -187,7 +233,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -200,7 +246,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -214,7 +260,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -227,7 +273,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -240,7 +286,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number']),
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         defaultValue: 'transaction.duration',
         required: true,
       },
@@ -262,8 +308,10 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   apdex: {
-    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
-      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
+      return {
+        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+      };
     },
     parameters: [
       {
@@ -278,8 +326,10 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   user_misery: {
-    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
-      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
+      return {
+        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+      };
     },
     parameters: [
       {
@@ -306,11 +356,13 @@ export const AGGREGATIONS = {
     multiPlotType: 'area',
   },
   count_miserable: {
-    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
+    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
       if (parameter.kind === 'column') {
-        return 'user';
+        return {defaultValue: 'user'};
       }
-      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+      return {
+        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+      };
     },
     parameters: [
       {
@@ -322,6 +374,35 @@ export const AGGREGATIONS = {
       {
         kind: 'value',
         dataType: 'number',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  count_if: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateDenyListColumns(
+          ['string', 'duration'],
+          ['id', 'issue', 'user.display']
+        ),
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        kind: 'dropdown',
+        options: CONDITIONS_ARGUMENTS,
+        dataType: 'string',
+        defaultValue: CONDITIONS_ARGUMENTS[0].value,
+        required: true,
+      },
+      {
+        kind: 'value',
+        dataType: 'string',
         defaultValue: '300',
         required: true,
       },
@@ -356,11 +437,6 @@ type DefaultValueInputs = {
 
 export type Aggregation = {
   /**
-   * Used by functions that need to define their default values dynamically
-   * based on the organization, or parameter data.
-   */
-  generateDefaultValue?: (data: DefaultValueInputs) => string;
-  /**
    * List of parameters for the function.
    */
   parameters: Readonly<AggregateParameter[]>;
@@ -377,6 +453,9 @@ export type Aggregation = {
    * Optional because some functions cannot be plotted (strings/dates)
    */
   multiPlotType?: PlotType;
+  getFieldOverrides?: (
+    data: DefaultValueInputs
+  ) => Partial<Omit<AggregateParameter, 'kind'>>;
 };
 
 enum FieldKey {
@@ -532,6 +611,27 @@ export const FIELD_TAGS = Object.freeze(
   Object.fromEntries(Object.keys(FIELDS).map(item => [item, {key: item, name: item}]))
 );
 
+export const SEMVER_TAGS = {
+  'release.version': {
+    key: 'release.version',
+    name: 'release.version',
+  },
+  'release.build': {
+    key: 'release.build',
+    name: 'release.build',
+  },
+  'release.package': {
+    key: 'release.package',
+    name: 'release.package',
+  },
+  'release.stage': {
+    key: 'release.stage',
+    name: 'release.stage',
+    predefined: true,
+    values: RELEASE_ADOPTION_STAGES,
+  },
+};
+
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
@@ -545,7 +645,21 @@ export enum WebVital {
   RequestTime = 'measurements.ttfb.requesttime',
 }
 
-const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
+export enum MobileVital {
+  AppStartCold = 'measurements.app_start_cold',
+  AppStartWarm = 'measurements.app_start_warm',
+  FramesTotal = 'measurements.frames_total',
+  FramesSlow = 'measurements.frames_slow',
+  FramesFrozen = 'measurements.frames_frozen',
+  FramesSlowRate = 'measurements.frames_slow_rate',
+  FramesFrozenRate = 'measurements.frames_frozen_rate',
+  StallCount = 'measurements.stall_count',
+  StallTotalTime = 'measurements.stall_total_time',
+  StallLongestTime = 'measurements.stall_longest_time',
+  StallPercentage = 'measurements.stall_percentage',
+}
+
+const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
   [WebVital.FP]: 'duration',
   [WebVital.FCP]: 'duration',
   [WebVital.LCP]: 'duration',
@@ -553,6 +667,17 @@ const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
   [WebVital.CLS]: 'number',
   [WebVital.TTFB]: 'duration',
   [WebVital.RequestTime]: 'duration',
+  [MobileVital.AppStartCold]: 'duration',
+  [MobileVital.AppStartWarm]: 'duration',
+  [MobileVital.FramesTotal]: 'integer',
+  [MobileVital.FramesSlow]: 'integer',
+  [MobileVital.FramesFrozen]: 'integer',
+  [MobileVital.FramesSlowRate]: 'percentage',
+  [MobileVital.FramesFrozenRate]: 'percentage',
+  [MobileVital.StallCount]: 'integer',
+  [MobileVital.StallTotalTime]: 'duration',
+  [MobileVital.StallLongestTime]: 'duration',
+  [MobileVital.StallPercentage]: 'percentage',
 };
 
 // This list contains fields/functions that are available with performance-view feature.
@@ -572,11 +697,10 @@ export const TRACING_FIELDS = [
   'apdex',
   'count_miserable',
   'user_misery',
-  'apdex_new',
-  'count_miserable_new',
-  'user_misery_new',
   'eps',
   'epm',
+  'key_transaction',
+  'team_key_transaction',
   ...Object.keys(MEASUREMENTS),
 ];
 
@@ -603,14 +727,91 @@ export function getMeasurementSlug(field: string): string | null {
   return null;
 }
 
-const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;
+const AGGREGATE_PATTERN = /^(\w+)\((.*)?\)$/;
+// Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
+const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
 
 export function getAggregateArg(field: string): string | null {
-  const results = field.match(AGGREGATE_PATTERN);
-  if (results && results.length >= 3) {
-    return results[2];
+  // only returns the first argument if field is an aggregate
+  const result = parseFunction(field);
+
+  if (result && result.arguments.length > 0) {
+    return result.arguments[0];
   }
+
   return null;
+}
+
+export function parseFunction(field: string): ParsedFunction | null {
+  const results = field.match(AGGREGATE_PATTERN);
+  if (results && results.length === 3) {
+    return {
+      name: results[1],
+      arguments: parseArguments(results[1], results[2]),
+    };
+  }
+
+  return null;
+}
+
+export function parseArguments(functionText: string, columnText: string): string[] {
+  // Some functions take a quoted string for their arguments that may contain commas
+  // This function attempts to be identical with the similarly named parse_arguments
+  // found in src/sentry/search/events/fields.py
+  if (
+    (functionText !== 'to_other' && functionText !== 'count_if') ||
+    columnText.length === 0
+  ) {
+    return columnText ? columnText.split(',').map(result => result.trim()) : [];
+  }
+
+  const args: string[] = [];
+
+  let quoted = false;
+  let escaped = false;
+
+  let i: number = 0;
+  let j: number = 0;
+
+  while (j < columnText.length) {
+    if (i === j && columnText[j] === '"') {
+      // when we see a quote at the beginning of
+      // an argument, then this is a quoted string
+      quoted = true;
+    } else if (i === j && columnText[j] === ' ') {
+      // argument has leading spaces, skip over them
+      i += 1;
+    } else if (quoted && !escaped && columnText[j] === '\\') {
+      // when we see a slash inside a quoted string,
+      // the next character is an escape character
+      escaped = true;
+    } else if (quoted && !escaped && columnText[j] === '"') {
+      // when we see a non-escaped quote while inside
+      // of a quoted string, we should end it
+      quoted = false;
+    } else if (quoted && escaped) {
+      // when we are inside a quoted string and have
+      // begun an escape character, we should end it
+      escaped = false;
+    } else if (quoted && columnText[j] === ',') {
+      // when we are inside a quoted string and see
+      // a comma, it should not be considered an
+      // argument separator
+    } else if (columnText[j] === ',') {
+      // when we see a comma outside of a quoted string
+      // it is an argument separator
+      args.push(columnText.substring(i, j).trim());
+      i = j + 1;
+    }
+    j += 1;
+  }
+
+  if (i !== j) {
+    // add in the last argument if any
+    args.push(columnText.substring(i).trim());
+  }
+
+  return args;
 }
 
 // `|` is an invalid field character, so it is used to determine whether a field is an equation or not
@@ -638,6 +839,21 @@ export function getEquation(field: string): string {
   return field.slice(EQUATION_PREFIX.length);
 }
 
+export function isAggregateEquation(field: string): boolean {
+  const results = field.match(AGGREGATE_BASE);
+
+  return isEquation(field) && results !== null && results.length > 0;
+}
+
+export function isLegalEquationColumn(column: Column): boolean {
+  // Any isn't allowed in arithmetic
+  if (column.kind === 'function' && column.function[0] === 'any') {
+    return false;
+  }
+  const columnType = getColumnType(column);
+  return columnType === 'number' || columnType === 'integer' || columnType === 'duration';
+}
+
 export function generateAggregateFields(
   organization: LightWeightOrganization,
   eventFields: readonly Field[] | Field[],
@@ -647,13 +863,13 @@ export function generateAggregateFields(
   const fields = Object.values(eventFields).map(field => field.field);
   functions.forEach(func => {
     const parameters = AGGREGATIONS[func].parameters.map(param => {
-      const generator = AGGREGATIONS[func].generateDefaultValue;
-      if (typeof generator === 'undefined') {
+      const overrides = AGGREGATIONS[func].getFieldOverrides;
+      if (typeof overrides === 'undefined') {
         return param;
       }
       return {
         ...param,
-        defaultValue: generator({parameter: param, organization}),
+        ...overrides({parameter: param, organization}),
       };
     });
 
@@ -670,20 +886,22 @@ export function generateAggregateFields(
 }
 
 export function explodeFieldString(field: string): Column {
-  const results = field.match(AGGREGATE_PATTERN);
+  if (isEquation(field)) {
+    return {kind: 'equation', field: getEquation(field)};
+  }
 
-  if (results && results.length >= 3) {
+  const results = parseFunction(field);
+
+  if (results) {
     return {
       kind: 'function',
       function: [
-        results[1] as AggregationKey,
-        results[2],
-        results[3] as AggregationRefinement,
+        results.name as AggregationKey,
+        results.arguments[0] ?? '',
+        results.arguments[1] as AggregationRefinement,
+        results.arguments[2] as AggregationRefinement,
       ],
     };
-  }
-  if (isEquation(field)) {
-    return {kind: 'equation', field: getEquation(field)};
   }
 
   return {kind: 'field', field};
@@ -711,21 +929,24 @@ export function explodeField(field: Field): Column {
  * Get the alias that the API results will have for a given aggregate function name
  */
 export function getAggregateAlias(field: string): string {
-  if (!field.match(AGGREGATE_PATTERN)) {
+  const result = parseFunction(field);
+  if (!result) {
     return field;
   }
-  return field
-    .replace(AGGREGATE_PATTERN, '$1_$2_$3')
-    .replace(/[^\w]/g, '_')
-    .replace(/^_+/g, '')
-    .replace(/_+$/, '');
+  let alias = result.name;
+
+  if (result.arguments.length > 0) {
+    alias += '_' + result.arguments.join('_');
+  }
+
+  return alias.replace(/[^\w]/g, '_').replace(/^_+/g, '').replace(/_+$/, '');
 }
 
 /**
  * Check if a field name looks like an aggregate function or known aggregate alias.
  */
 export function isAggregateField(field: string): boolean {
-  return field.match(AGGREGATE_PATTERN) !== null;
+  return parseFunction(field) !== null;
 }
 
 /**
@@ -734,11 +955,11 @@ export function isAggregateField(field: string): boolean {
  * or in series markers.
  */
 export function aggregateOutputType(field: string): AggregationOutputType {
-  const matches = AGGREGATE_PATTERN.exec(field);
-  if (!matches) {
+  const result = parseFunction(field);
+  if (!result) {
     return 'number';
   }
-  const outputType = aggregateFunctionOutputType(matches[1], matches[2]);
+  const outputType = aggregateFunctionOutputType(result.name, result.arguments[0]);
   if (outputType === null) {
     return 'number';
   }
@@ -783,14 +1004,6 @@ export function aggregateFunctionOutputType(
     return 'duration';
   }
 
-  // This is temporary since these don't fulfill any of
-  // the conditions above. Will be removed when these fields
-  // are added to the list of aggregations with an explicit
-  // return type.
-  if (funcName.startsWith('user_misery_new') || funcName.startsWith('apdex_new')) {
-    return 'number';
-  }
-
   return null;
 }
 
@@ -798,16 +1011,18 @@ export function aggregateFunctionOutputType(
  * Get the multi-series chart type for an aggregate function.
  */
 export function aggregateMultiPlotType(field: string): PlotType {
-  const matches = AGGREGATE_PATTERN.exec(field);
+  if (isEquation(field)) {
+    return 'line';
+  }
+  const result = parseFunction(field);
   // Handle invalid data.
-  if (!matches) {
+  if (!result) {
     return 'area';
   }
-  const funcName = matches[1];
-  if (!AGGREGATIONS.hasOwnProperty(funcName)) {
+  if (!AGGREGATIONS.hasOwnProperty(result.name)) {
     return 'area';
   }
-  return AGGREGATIONS[funcName].multiPlotType;
+  return AGGREGATIONS[result.name].multiPlotType;
 }
 
 function validateForNumericAggregate(
@@ -827,6 +1042,15 @@ function validateForNumericAggregate(
     }
 
     return validColumnTypes.includes(dataType);
+  };
+}
+
+function validateDenyListColumns(
+  validColumnTypes: ColumnType[],
+  deniedColumns: string[]
+): ValidateColumnValueFunction {
+  return function ({name, dataType}: {name: string; dataType: ColumnType}): boolean {
+    return validColumnTypes.includes(dataType) && !deniedColumns.includes(name);
   };
 }
 
@@ -888,4 +1112,32 @@ export function getSpanOperationName(field: string): string | null {
     return results[1];
   }
   return null;
+}
+
+export function getColumnType(column: Column): ColumnType {
+  if (column.kind === 'function') {
+    const outputType = aggregateFunctionOutputType(
+      column.function[0],
+      column.function[1]
+    );
+    if (outputType !== null) {
+      return outputType;
+    }
+  } else if (column.kind === 'field') {
+    if (FIELDS.hasOwnProperty(column.field)) {
+      return FIELDS[column.field];
+    } else if (isMeasurement(column.field)) {
+      return measurementType(column.field);
+    } else if (isSpanOperationBreakdownField(column.field)) {
+      return 'duration';
+    }
+  }
+  return 'string';
+}
+
+export function hasDuplicate(columnList: Column[], column: Column): boolean {
+  if (column.kind !== 'function' && column.kind !== 'field') {
+    return false;
+  }
+  return columnList.filter(newColumn => isEqual(newColumn, column)).length > 1;
 }

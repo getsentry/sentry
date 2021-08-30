@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -45,10 +44,14 @@ import {generateTitle, getExpandedResults} from '../utils';
 
 import LinkedIssue from './linkedIssue';
 
-type Props = {
+/**
+ * Some tag keys should never be formatted as `tag[...]`
+ * when used as a filter because they are predefined.
+ */
+const EXCLUDED_TAG_KEYS = new Set(['release']);
+
+type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'location'> & {
   organization: Organization;
-  location: Location;
-  params: Params;
   eventSlug: string;
   eventView: EventView;
 };
@@ -99,7 +102,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     // Some tags may be normalized from context, but not all of them are.
     // This supports a user making a custom tag with the same name as one
     // that comes from context as all of these are also tags.
-    if (tag.key in FIELD_TAGS) {
+    if (tag.key in FIELD_TAGS && !EXCLUDED_TAG_KEYS.has(tag.key)) {
       return `tags[${tag.key}]`;
     }
     return tag.key;
@@ -235,6 +238,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         showExampleCommit={false}
                         showTagSummary={false}
                         api={this.api}
+                        isBorderless
                       />
                     </QuickTraceContext.Provider>
                   </SpanEntryContext.Provider>

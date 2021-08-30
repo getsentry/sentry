@@ -3,17 +3,11 @@ import * as React from 'react';
 import ModalActions from 'app/actions/modalActions';
 import GlobalModal from 'app/components/globalModal';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
+import {InviteRow} from 'app/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'app/components/modals/reprocessEventModal';
 import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
-import {
-  DebugFileSource,
-  Group,
-  IssueOwnership,
-  Organization,
-  Project,
-  SentryApp,
-  Team,
-} from 'app/types';
+import {Group, IssueOwnership, Organization, Project, SentryApp, Team} from 'app/types';
+import {CustomRepoType} from 'app/types/debugFiles';
 import {Event} from 'app/types/event';
 
 type ModalProps = Required<React.ComponentProps<typeof GlobalModal>>;
@@ -49,6 +43,12 @@ type emailVerificationModalOptions = {
   onClose?: () => void;
   emailVerified?: boolean;
   actionMessage?: string;
+};
+
+type inviteMembersModalOptions = {
+  onClose?: () => void;
+  initialData?: Partial<InviteRow>[];
+  source?: string;
 };
 
 export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
@@ -191,15 +191,15 @@ export type SentryAppDetailsModalOptions = {
   isInstalled: boolean;
   onInstall: () => Promise<void>;
   organization: Organization;
-  onCloseModal?: () => void; //used for analytics
+  onCloseModal?: () => void; // used for analytics
 };
 
 type DebugFileSourceModalOptions = {
-  sourceType: DebugFileSource;
-  onSave: (data: Record<string, string>) => void;
+  sourceType: CustomRepoType;
+  onSave: (data: Record<string, any>) => Promise<void>;
   appStoreConnectContext?: AppStoreConnectContextProps;
   onClose?: () => void;
-  sourceConfig?: Record<string, string>;
+  sourceConfig?: Record<string, any>;
 };
 
 export async function openDebugFileSourceModal({
@@ -217,11 +217,14 @@ export async function openDebugFileSourceModal({
   });
 }
 
-export async function openInviteMembersModal(options = {}) {
+export async function openInviteMembersModal({
+  onClose,
+  ...args
+}: inviteMembersModalOptions = {}) {
   const mod = await import('app/components/modals/inviteMembersModal');
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+  openModal(deps => <Modal {...deps} {...args} />, {modalCss, onClose});
 }
 
 export async function openAddDashboardWidgetModal(options: DashboardWidgetModalOptions) {
@@ -240,4 +243,11 @@ export async function openReprocessEventModal({
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {onClose});
+}
+
+export async function demoSignupModal(options: ModalOptions = {}) {
+  const mod = await import('app/components/modals/demoSignUp');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }

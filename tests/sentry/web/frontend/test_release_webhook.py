@@ -23,7 +23,7 @@ class ReleaseWebhookTestBase(TestCase):
     def signature(self):
         return hmac.new(
             key=self.token.encode("utf-8"),
-            msg=(f"{self.plugin_id}-{self.project.id}").encode("utf-8"),
+            msg=(f"{self.plugin_id}-{self.project.id}").encode(),
             digestmod=sha256,
         ).hexdigest()
 

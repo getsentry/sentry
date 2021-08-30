@@ -88,21 +88,22 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     );
   }
 
-  getFields(notificationType: string): FieldObject[] {
-    return [
-      Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
-        getData: data => this.getStateToPutForDefault(data, notificationType),
-        help: (
-          <React.Fragment>
-            {NOTIFICATION_SETTING_FIELDS[notificationType].help}
-            &nbsp;
-            <Link to={`/settings/account/notifications/${notificationType}`}>
-              Fine tune
-            </Link>
-          </React.Fragment>
-        ),
-      }),
-    ] as FieldObject[];
+  getFields(): FieldObject[] {
+    return NOTIFICATION_SETTINGS_TYPES.map(
+      notificationType =>
+        Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
+          getData: data => this.getStateToPutForDefault(data, notificationType),
+          help: (
+            <React.Fragment>
+              {NOTIFICATION_SETTING_FIELDS[notificationType].help}
+              &nbsp;
+              <Link to={`/settings/account/notifications/${notificationType}`}>
+                Fine tune
+              </Link>
+            </React.Fragment>
+          ),
+        }) as FieldObject
+    );
   }
 
   renderBody() {
@@ -111,7 +112,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     return (
       <React.Fragment>
         <SettingsPageHeader title="Notifications" />
-        <TextBlock>Control alerts that you receive.</TextBlock>
+        <TextBlock>Personal notifications sent via email or an integration.</TextBlock>
         <FeedbackAlert />
         <Form
           saveOnBlur
@@ -119,13 +120,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
           apiEndpoint="/users/me/notification-settings/"
           initialData={this.getInitialData()}
         >
-          {NOTIFICATION_SETTINGS_TYPES.map(notificationType => (
-            <JsonForm
-              key={notificationType}
-              title={NOTIFICATION_SETTING_FIELDS[notificationType].name}
-              fields={this.getFields(notificationType)}
-            />
-          ))}
+          <JsonForm title={t('Notifications')} fields={this.getFields()} />
         </Form>
         <Form
           initialData={legacyData}

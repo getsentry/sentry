@@ -1,6 +1,16 @@
 import logging
 from collections import defaultdict
-from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 from sentry.models import (
     Group,
@@ -29,6 +39,9 @@ from sentry.notifications.types import (
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
 
 logger = logging.getLogger(__name__)
 
@@ -101,9 +114,9 @@ def get_participants_for_release(
 
     # Get all the involved users' settings for deploy-emails (including
     # users' organization-independent settings.)
-    notification_settings = NotificationSetting.objects.get_for_users_by_parent(
+    notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
         NotificationSettingTypes.DEPLOY,
-        users=users,
+        recipients=users,
         parent=organization,
     )
     notification_settings_by_user = transform_to_notification_settings_by_user(
@@ -144,7 +157,7 @@ def get_send_to(
     project: Project,
     target_type: ActionTargetType,
     target_identifier: Optional[int] = None,
-    event: Optional[Any] = None,
+    event: Optional["Event"] = None,
 ) -> Mapping[ExternalProviders, Union[Set[User], Set[Team]]]:
     """
     Returns a mapping of providers to a list of user IDs for the users that
@@ -166,7 +179,7 @@ def get_send_to(
     return {}
 
 
-def get_send_to_owners(event: Any, project: Project) -> Mapping[ExternalProviders, Set[User]]:
+def get_send_to_owners(event: "Event", project: Project) -> Mapping[ExternalProviders, Set[User]]:
     owners, _ = ProjectOwnership.get_owners(project.id, event.data)
     if owners == ProjectOwnership.Everyone:
         metrics.incr(
@@ -225,10 +238,10 @@ def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, 
     """Get a set of users that have disabled Issue Alert notifications for a given project."""
     user_ids = project.member_set.values_list("user", flat=True)
     users = User.objects.filter(id__in=user_ids)
-    notification_settings = NotificationSetting.objects.get_for_users_by_parent(
+    notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
         type=NotificationSettingTypes.ISSUE_ALERTS,
         parent=project,
-        users=users,
+        recipients=users,
     )
     notification_settings_by_user = transform_to_notification_settings_by_user(
         notification_settings, users
@@ -267,9 +280,8 @@ def get_send_to_team(
         return {}
 
     team_notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
-        NotificationSettingTypes.ISSUE_ALERTS, parent=project, recipient=team
+        NotificationSettingTypes.ISSUE_ALERTS, parent=project, recipients=[team]
     )
-
     if team_notification_settings:
         team_mapping = {
             ExternalProviders(notification_setting.provider): {team}
@@ -312,8 +324,8 @@ def get_send_to_member(
         )
     except User.DoesNotExist:
         return {}
-    notification_settings = NotificationSetting.objects.get_for_users_by_parent(
-        NotificationSettingTypes.ISSUE_ALERTS, parent=project, users=[user]
+    notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
+        NotificationSettingTypes.ISSUE_ALERTS, parent=project, recipients=[user]
     )
     if notification_settings:
         return {

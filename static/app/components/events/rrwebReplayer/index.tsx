@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 
-import RRWebReplayer from './rrWebReplayer';
+import space from 'app/styles/space';
 
-const StyledRRWebReplayer = styled(RRWebReplayer)`
+import BaseRRWebReplayer from './rrWebReplayer';
+
+const RRWebReplayer = styled(BaseRRWebReplayer)`
   .rr-player {
     width: auto !important;
   }
@@ -39,7 +41,7 @@ const StyledRRWebReplayer = styled(RRWebReplayer)`
   .rr-controller {
     width: 100%;
     display: block;
-    padding: ${p => p.theme.space[2]}px 0;
+    padding: ${space(2)} 0;
     background: ${p => p.theme.background};
     border-radius: 0 0 5px 5px;
     box-shadow: 0 -1px 3px 0 rgba(0, 0, 0, 0.1);
@@ -190,4 +192,4 @@ const StyledRRWebReplayer = styled(RRWebReplayer)`
   }
 `;
 
-export default StyledRRWebReplayer;
+export default RRWebReplayer;

@@ -132,8 +132,8 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
 
   onCloseGuide(dismissed?: boolean) {
     const {currentGuide, guides} = this.state;
-    //update the current guide seen to true or all guides
-    //if markOthersAsSeen is true and the user is dismissing
+    // update the current guide seen to true or all guides
+    // if markOthersAsSeen is true and the user is dismissing
     guides
       .filter(
         guide =>

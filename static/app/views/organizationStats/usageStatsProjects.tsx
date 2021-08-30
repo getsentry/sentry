@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import {LocationDescriptorObject} from 'history';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import {DateTimeObject} from 'app/components/charts/utils';
+import {DateTimeObject, getSeriesApiInterval} from 'app/components/charts/utils';
 import SortLink, {Alignments, Directions} from 'app/components/gridEditable/sortLink';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
@@ -96,7 +96,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     // We do not need more granularity in the data so interval is '1d'
     return {
       ...queryDatetime,
-      interval: '1d',
+      interval: getSeriesApiInterval(dataDatetime),
       groupBy: ['outcome', 'project'],
       field: ['sum(quantity)'],
       project: '-1', // get all project user has access to
@@ -301,9 +301,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     handleChangeState({query, cursor: undefined});
   };
 
-  mapSeriesToTable(
-    projectStats?: UsageSeries
-  ): {
+  mapSeriesToTable(projectStats?: UsageSeries): {
     tableStats: TableStat[];
     error?: Error;
   } {

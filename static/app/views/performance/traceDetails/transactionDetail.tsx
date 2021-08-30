@@ -17,7 +17,7 @@ import {
 } from 'app/components/performance/waterfall/rowDetails';
 import {generateIssueEventTarget} from 'app/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {IconAnchor, IconChevron, IconWarning} from 'app/icons';
+import {IconAnchor, IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -37,22 +37,9 @@ type Props = {
   scrollToHash: (hash: string) => void;
 };
 
-type State = {
-  errorsOpened: boolean;
-};
-
-class TransactionDetail extends Component<Props, State> {
-  state: State = {
-    errorsOpened: false,
-  };
-
-  toggleErrors = () => {
-    this.setState(({errorsOpened}) => ({errorsOpened: !errorsOpened}));
-  };
-
+class TransactionDetail extends Component<Props> {
   renderTransactionErrors() {
     const {organization, transaction} = this.props;
-    const {errorsOpened} = this.state;
     const {errors} = transaction;
 
     if (errors.length === 0) {
@@ -60,32 +47,29 @@ class TransactionDetail extends Component<Props, State> {
     }
 
     return (
-      <Alert system type="error" icon={<IconWarning size="md" />}>
+      <Alert
+        system
+        type="error"
+        icon={<IconWarning size="md" />}
+        expand={errors.map(error => (
+          <ErrorMessageContent key={error.event_id}>
+            <ErrorDot level={error.level} />
+            <ErrorLevel>{error.level}</ErrorLevel>
+            <ErrorTitle>
+              <Link to={generateIssueEventTarget(error, organization)}>
+                {error.title}
+              </Link>
+            </ErrorTitle>
+          </ErrorMessageContent>
+        ))}
+      >
         <ErrorMessageTitle>
           {tn(
             'An error event occurred in this transaction.',
             '%s error events occurred in this transaction.',
             errors.length
           )}
-          <Toggle priority="link" onClick={this.toggleErrors}>
-            <IconChevron direction={errorsOpened ? 'up' : 'down'} />
-          </Toggle>
         </ErrorMessageTitle>
-        {errorsOpened && (
-          <ErrorMessageContent>
-            {errors.map(error => (
-              <Fragment key={error.event_id}>
-                <ErrorDot level={error.level} />
-                <ErrorLevel>{error.level}</ErrorLevel>
-                <ErrorTitle>
-                  <Link to={generateIssueEventTarget(error, organization)}>
-                    {error.title}
-                  </Link>
-                </ErrorTitle>
-              </Fragment>
-            ))}
-          </ErrorMessageContent>
-        )}
       </Alert>
     );
   }
@@ -155,26 +139,25 @@ class TransactionDetail extends Component<Props, State> {
     );
   }
 
-  scrollBarIntoView = (transactionId: string) => (
-    e: React.MouseEvent<HTMLAnchorElement>
-  ) => {
-    // do not use the default anchor behaviour
-    // because it will be hidden behind the minimap
-    e.preventDefault();
+  scrollBarIntoView =
+    (transactionId: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+      // do not use the default anchor behaviour
+      // because it will be hidden behind the minimap
+      e.preventDefault();
 
-    const hash = `#txn-${transactionId}`;
+      const hash = `#txn-${transactionId}`;
 
-    this.props.scrollToHash(hash);
+      this.props.scrollToHash(hash);
 
-    // TODO(txiao): This is causing a rerender of the whole page,
-    // which can be slow.
-    //
-    // make sure to update the location
-    browserHistory.push({
-      ...this.props.location,
-      hash,
-    });
-  };
+      // TODO(txiao): This is causing a rerender of the whole page,
+      // which can be slow.
+      //
+      // make sure to update the location
+      browserHistory.push({
+        ...this.props.location,
+        hash,
+      });
+    };
 
   renderTransactionDetail() {
     const {location, organization, transaction} = this.props;
@@ -275,14 +258,6 @@ const StyledButton = styled(Button)`
   position: absolute;
   top: ${space(0.75)};
   right: ${space(0.5)};
-`;
-
-const Toggle = styled(Button)`
-  font-weight: bold;
-  color: ${p => p.theme.subText};
-  :hover {
-    color: ${p => p.theme.textColor};
-  }
 `;
 
 export default TransactionDetail;

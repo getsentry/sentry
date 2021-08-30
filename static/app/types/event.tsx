@@ -7,6 +7,7 @@ import {StacktraceType} from './stacktrace';
 import {
   EventAttachment,
   EventMetadata,
+  EventOrGroupType,
   ExceptionType,
   Frame,
   PlatformType,
@@ -63,7 +64,7 @@ type EntryStacktrace = {
 
 type EntrySpans = {
   type: EntryType.SPANS;
-  data: any; //data is not used
+  data: any; // data is not used
 };
 
 type EntryMessage = {
@@ -166,6 +167,12 @@ export type EventUser = {
 
 type EventBase = {
   id: string;
+  type:
+    | EventOrGroupType.CSP
+    | EventOrGroupType.DEFAULT
+    | EventOrGroupType.EXPECTCT
+    | EventOrGroupType.EXPECTSTAPLE
+    | EventOrGroupType.HPKP;
   eventID: string;
   title: string;
   culprit: string;
@@ -212,7 +219,7 @@ export type EventTransaction = Omit<EventBase, 'entries' | 'type'> & {
   entries: (EntrySpans | EntryRequest)[];
   startTimestamp: number;
   endTimestamp: number;
-  type: 'transaction';
+  type: EventOrGroupType.TRANSACTION;
   title?: string;
   contexts?: {
     trace?: TraceContextType;
@@ -221,8 +228,7 @@ export type EventTransaction = Omit<EventBase, 'entries' | 'type'> & {
 
 export type EventError = Omit<EventBase, 'entries' | 'type'> & {
   entries: (EntryException | EntryStacktrace | EntryRequest)[];
-  type: 'error';
+  type: EventOrGroupType.ERROR;
 };
 
-// This type is incomplete
-export type Event = EventError | EventTransaction | ({type: string} & EventBase);
+export type Event = EventError | EventTransaction | EventBase;

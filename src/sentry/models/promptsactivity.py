@@ -14,7 +14,7 @@ from sentry.db.models import (
 class PromptsActivity(Model):
     """Records user interaction with various feature prompts in product"""
 
-    __core__ = False
+    __include_in_export__ = False
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
     # Not a Foreign Key because it's no longer safe to take out lock on Project table in Prod

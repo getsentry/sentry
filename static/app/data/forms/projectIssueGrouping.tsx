@@ -76,7 +76,7 @@ export const fields: Record<string, Field> = {
             {
               pattern: <code>matcher:glob -&gt; fingerprint, values</code>,
               docs: (
-                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=%2Fdata-management%2Fevent-grouping%2Fserver-side-fingerprinting%2F" />
+                <ExternalLink href="https://docs.sentry.io/product/data-management-settings/event-grouping/fingerprint-rules/" />
               ),
             }
           )}
@@ -117,9 +117,9 @@ stack.function:malloc -> memory-allocation-error`}
             `This can be used to enhance the grouping algorithm with custom rules.
         Rules follow the pattern [pattern]. To learn more about stack trace rules, [docs:read the docs].`,
             {
-              pattern: <code>matcher:glob [^v]?[+-]flag</code>,
+              pattern: <code>matcher:glob [v^]?[+-]flag</code>,
               docs: (
-                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/data-management/event-grouping/stack-trace-rules/" />
+                <ExternalLink href="https://docs.sentry.io/product/data-management-settings/event-grouping/stack-trace-rules/" />
               ),
             }
           )}

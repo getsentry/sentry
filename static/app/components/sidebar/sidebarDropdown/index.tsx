@@ -26,7 +26,7 @@ import {CommonSidebarProps} from '../types';
 import Divider from './divider.styled';
 import SwitchOrganization from './switchOrganization';
 
-//TODO: make org and user optional props
+// TODO: make org and user optional props
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
   org: Organization;
@@ -140,9 +140,8 @@ const SidebarDropdown = ({
                 </Fragment>
               )}
 
-              {hasOrganization && user && <Divider />}
-
               <DemoModeGate>
+                {hasOrganization && user && <Divider />}
                 {!!user && (
                   <Fragment>
                     <UserSummary to="/settings/account/details/">

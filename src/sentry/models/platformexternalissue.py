@@ -8,7 +8,7 @@ from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 
 class PlatformExternalIssue(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     group = FlexibleForeignKey("sentry.Group", db_constraint=False, db_index=False)
     project = FlexibleForeignKey("sentry.Project", null=True, db_constraint=False)

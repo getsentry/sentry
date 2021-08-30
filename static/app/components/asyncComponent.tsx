@@ -1,11 +1,10 @@
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
-import {WithRouterProps} from 'react-router/lib/withRouter';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 
-import {Client} from 'app/api';
+import {Client, ResponseMeta} from 'app/api';
 import AsyncComponentSearchInput from 'app/components/asyncComponentSearchInput';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -21,7 +20,7 @@ type AsyncComponentState = {
   loading: boolean;
   reloading: boolean;
   error: boolean;
-  errors: Record<string, JQueryXHR>;
+  errors: Record<string, ResponseMeta>;
   remainingRequests?: number;
   [key: string]: any;
 };
@@ -30,7 +29,7 @@ type SearchInputProps = React.ComponentProps<typeof AsyncComponentSearchInput>;
 
 type RenderSearchInputArgs = Omit<
   SearchInputProps,
-  'api' | 'onSuccess' | 'onError' | 'url' | keyof WithRouterProps
+  'api' | 'onSuccess' | 'onError' | 'url' | keyof RouteComponentProps<{}, {}>
 > & {
   stateKey?: string;
   url?: SearchInputProps['url'];
@@ -174,7 +173,7 @@ export default class AsyncComponent<
   api: Client = new Client();
   private _measurement: any;
 
-  // XXX: cant call this getInitialState as React whines
+  // XXX: can't call this getInitialState as React whines
   getDefaultState(): AsyncComponentState {
     const endpoints = this.getEndpoints();
     const state = {
@@ -247,7 +246,7 @@ export default class AsyncComponent<
       let query = (params && params.query) || {};
       // If paginate option then pass entire `query` object to API call
       // It should only be expecting `query.cursor` for pagination
-      if (options.paginate || locationQuery.cursor) {
+      if ((options.paginate || locationQuery.cursor) && !options.disableEntireQuery) {
         query = {...locationQuery, ...query};
       }
 
@@ -255,8 +254,8 @@ export default class AsyncComponent<
         method: 'GET',
         ...params,
         query,
-        success: (data, _, jqXHR) => {
-          this.handleRequestSuccess({stateKey, data, jqXHR}, true);
+        success: (data, _, resp) => {
+          this.handleRequestSuccess({stateKey, data, resp}, true);
         },
         error: error => {
           // Allow endpoints to fail
@@ -270,7 +269,7 @@ export default class AsyncComponent<
     });
   };
 
-  onRequestSuccess(_resp /*{stateKey, data, jqXHR}*/) {
+  onRequestSuccess(_resp /* {stateKey, data, resp} */) {
     // Allow children to implement this
   }
 
@@ -282,13 +281,13 @@ export default class AsyncComponent<
     // Allow children to implement this
   }
 
-  handleRequestSuccess({stateKey, data, jqXHR}, initialRequest?: boolean) {
+  handleRequestSuccess({stateKey, data, resp}, initialRequest?: boolean) {
     this.setState(
       prevState => {
         const state = {
           [stateKey]: data,
           // TODO(billy): This currently fails if this request is retried by SudoModal
-          [`${stateKey}PageLinks`]: jqXHR && jqXHR.getResponseHeader('Link'),
+          [`${stateKey}PageLinks`]: resp?.getResponseHeader('Link'),
         };
 
         if (initialRequest) {
@@ -301,13 +300,13 @@ export default class AsyncComponent<
         return state;
       },
       () => {
-        //if everything is loaded and we don't have an error, call the callback
+        // if everything is loaded and we don't have an error, call the callback
         if (this.state.remainingRequests === 0 && !this.state.error) {
           this.onLoadAllEndpointsSuccess();
         }
       }
     );
-    this.onRequestSuccess({stateKey, data, jqXHR});
+    this.onRequestSuccess({stateKey, data, resp});
   }
 
   handleError(error, args) {
@@ -381,8 +380,8 @@ export default class AsyncComponent<
         url={urlOrDefault}
         {...props}
         api={this.api}
-        onSuccess={(data, jqXHR) => {
-          this.handleRequestSuccess({stateKey: stateKeyOrDefault, data, jqXHR});
+        onSuccess={(data, resp) => {
+          this.handleRequestSuccess({stateKey: stateKeyOrDefault, data, resp});
         }}
         onError={() => {
           this.renderError(new Error('Error with AsyncComponentSearchInput'));
@@ -432,7 +431,7 @@ export default class AsyncComponent<
         .map(resp => resp.responseJSON.detail);
 
       if (badRequests.length) {
-        return <LoadingError message={badRequests.join('\n')} />;
+        return <LoadingError message={[...new Set(badRequests)].join('\n')} />;
       }
     }
 

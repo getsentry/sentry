@@ -116,7 +116,9 @@ function ReleaseActions({
   function replaceReleaseUrl(toRelease: string | null) {
     return toRelease
       ? {
-          pathname: location.pathname.replace(release.version, toRelease),
+          pathname: location.pathname
+            .replace(encodeURIComponent(release.version), toRelease)
+            .replace(release.version, toRelease),
           query: {...location.query, activeRepo: undefined},
         }
       : '';

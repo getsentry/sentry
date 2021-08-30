@@ -2,64 +2,68 @@ import unittest
 
 import pytest
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from snuba_sdk.column import Column
+from snuba_sdk.function import Function
 
 from sentry import eventstore
 from sentry.search.events.fields import (
     FUNCTIONS,
     FunctionDetails,
     InvalidSearchQuery,
+    QueryFields,
     get_json_meta_type,
+    parse_arguments,
     parse_function,
     resolve_field_list,
 )
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.snuba import Dataset
 
 
-def test_get_json_meta_type():
-    assert get_json_meta_type("project_id", "UInt8") == "boolean"
-    assert get_json_meta_type("project_id", "UInt16") == "integer"
-    assert get_json_meta_type("project_id", "UInt32") == "integer"
-    assert get_json_meta_type("project_id", "UInt64") == "integer"
-    assert get_json_meta_type("project_id", "Float32") == "number"
-    assert get_json_meta_type("project_id", "Float64") == "number"
-    assert get_json_meta_type("value", "Nullable(Float64)") == "number"
-    assert get_json_meta_type("exception_stacks.type", "Array(String)") == "array"
-    assert get_json_meta_type("transaction", "Char") == "string"
-    assert get_json_meta_type("foo", "unknown") == "string"
-    assert get_json_meta_type("other", "") == "string"
-    assert get_json_meta_type("avg_duration", "") == "duration"
-    assert get_json_meta_type("duration", "UInt64") == "duration"
-    assert get_json_meta_type("p50", "Float32") == "duration"
-    assert get_json_meta_type("p75", "Float32") == "duration"
-    assert get_json_meta_type("p95", "Float32") == "duration"
-    assert get_json_meta_type("p99", "Float32") == "duration"
-    assert get_json_meta_type("p100", "Float32") == "duration"
-    assert get_json_meta_type("apdex_transaction_duration_300", "Float32") == "number"
-    assert get_json_meta_type("failure_rate", "Float32") == "percentage"
-    assert get_json_meta_type("count_miserable_user_300", "Float32") == "number"
-    assert get_json_meta_type("user_misery_300", "Float32") == "number"
-    assert get_json_meta_type("percentile_transaction_duration_0_95", "Float32") == "duration"
-    assert get_json_meta_type("count_thing", "UInt64") == "integer"
-    assert get_json_meta_type("count_thing", "String") == "string"
-    assert get_json_meta_type("count_thing", "Nullable(String)") == "string"
-    assert get_json_meta_type("measurements.size", "Float64") == "number"
-    assert get_json_meta_type("measurements.fp", "Float64") == "duration"
-    assert get_json_meta_type("spans.browser", "Float64") == "duration"
-    assert get_json_meta_type("spans.total.time", "Float64") == "duration"
-    assert (
-        get_json_meta_type(
-            "percentile_measurements_fp_0_5",
+@pytest.mark.parametrize(
+    "field_alias,snuba_type,function,expected",
+    [
+        ("project_id", "UInt8", None, "boolean"),
+        ("project_id", "UInt16", None, "integer"),
+        ("project_id", "UInt32", None, "integer"),
+        ("project_id", "UInt64", None, "integer"),
+        ("project_id", "Float32", None, "number"),
+        ("project_id", "Float64", None, "number"),
+        ("value", "Nullable(Float64)", None, "number"),
+        ("exception_stacks.type", "Array(String)", None, "array"),
+        ("transaction", "Char", None, "string"),
+        ("foo", "unknown", None, "string"),
+        ("other", "", None, "string"),
+        ("avg_duration", "", None, "duration"),
+        ("duration", "Uint64", None, "duration"),
+        ("p50", "Float32", None, "duration"),
+        ("p75", "Float32", None, "duration"),
+        ("p95", "Float32", None, "duration"),
+        ("p99", "Float32", None, "duration"),
+        ("p100", "Float32", None, "duration"),
+        ("apdex_transaction_duration_300", "Float32", None, "number"),
+        ("failure_rate", "Float32", None, "percentage"),
+        ("count_miserable_user_300", "Float32", None, "number"),
+        ("user_misery_300", "Float32", None, "number"),
+        ("percentile_transaction_duration_0_95", "Float32", None, "duration"),
+        ("count_thing", "UInt64", None, "integer"),
+        ("count_thing", "String", None, "string"),
+        ("count_thing", "Nullable(String)", None, "string"),
+        ("measurements.size", "Float64", None, "number"),
+        ("measurements.fp", "Float64", None, "duration"),
+        ("spans.browser", "Float64", None, "duration"),
+        ("spans.total.time", "Float64", None, "duration"),
+        (
+            "percentile_measurements_foo_0_5",
             "Nullable(Float64)",
             FunctionDetails(
                 "percentile(measurements.fp, 0.5)",
                 FUNCTIONS["percentile"],
                 {"column": "measurements.fp", "percentile": 0.5},
             ),
-        )
-        == "duration"
-    )
-    assert (
-        get_json_meta_type(
+            "duration",
+        ),
+        (
             "percentile_measurements_foo_0_5",
             "Nullable(Float64)",
             FunctionDetails(
@@ -67,11 +71,9 @@ def test_get_json_meta_type():
                 FUNCTIONS["percentile"],
                 {"column": "measurements.foo", "percentile": 0.5},
             ),
-        )
-        == "number"
-    )
-    assert (
-        get_json_meta_type(
+            "number",
+        ),
+        (
             "percentile_spans_fp_0_5",
             "Nullable(Float64)",
             FunctionDetails(
@@ -79,11 +81,9 @@ def test_get_json_meta_type():
                 FUNCTIONS["percentile"],
                 {"column": "spans.fp", "percentile": 0.5},
             ),
-        )
-        == "duration"
-    )
-    assert (
-        get_json_meta_type(
+            "duration",
+        ),
+        (
             "percentile_spans_foo_0_5",
             "Nullable(Float64)",
             FunctionDetails(
@@ -91,11 +91,9 @@ def test_get_json_meta_type():
                 FUNCTIONS["percentile"],
                 {"column": "spans.foo", "percentile": 0.5},
             ),
-        )
-        == "duration"
-    )
-    assert (
-        get_json_meta_type(
+            "duration",
+        ),
+        (
             "percentile_spans_total_time_0_5",
             "Nullable(Float64)",
             FunctionDetails(
@@ -103,89 +101,97 @@ def test_get_json_meta_type():
                 FUNCTIONS["percentile"],
                 {"column": "spans.total.time", "percentile": 0.5},
             ),
-        )
-        == "duration"
-    )
+            "duration",
+        ),
+    ],
+)
+def test_get_json_meta_type(field_alias, snuba_type, function, expected):
+    assert get_json_meta_type(field_alias, snuba_type, function) == expected
 
 
-def test_parse_function():
-    assert parse_function("percentile(transaction.duration, 0.5)") == (
-        "percentile",
-        ["transaction.duration", "0.5"],
-        None,
-    )
-    assert parse_function("p50()") == (
-        "p50",
-        [],
-        None,
-    )
-    assert parse_function("p75(measurements.lcp)") == ("p75", ["measurements.lcp"], None)
-    assert parse_function("p75(spans.http)") == (
-        "p75",
-        ["spans.http"],
-        None,
-    )
-    assert parse_function("p75(spans.total.time)") == (
-        "p75",
-        ["spans.total.time"],
-        None,
-    )
-    assert parse_function("apdex(300)") == ("apdex", ["300"], None)
-    assert parse_function("failure_rate()") == ("failure_rate", [], None)
-    assert parse_function("histogram(measurements_value, 1,0,1)") == (
-        "histogram",
-        ["measurements_value", "1", "0", "1"],
-        None,
-    )
-    assert parse_function("histogram(spans_value, 1,0,1)") == (
-        "histogram",
-        ["spans_value", "1", "0", "1"],
-        None,
-    )
-    assert parse_function("count_unique(transaction.status)") == (
-        "count_unique",
-        ["transaction.status"],
-        None,
-    )
-    assert parse_function("count_unique(some.tag-name)") == (
-        "count_unique",
-        ["some.tag-name"],
-        None,
-    )
-    assert parse_function("count()") == ("count", [], None)
-    assert parse_function("count_at_least(transaction.duration ,200)") == (
-        "count_at_least",
-        ["transaction.duration", "200"],
-        None,
-    )
-    assert parse_function("min(measurements.foo)") == ("min", ["measurements.foo"], None)
-    assert parse_function("absolute_delta(transaction.duration, 400)") == (
-        "absolute_delta",
-        ["transaction.duration", "400"],
-        None,
-    )
-    assert parse_function(
-        "avg_range(transaction.duration, 0.5, 2020-03-13T15:14:15, 2020-03-14T15:14:15) AS p"
-    ) == (
-        "avg_range",
-        ["transaction.duration", "0.5", "2020-03-13T15:14:15", "2020-03-14T15:14:15"],
-        "p",
-    )
-    assert parse_function("t_test(avg_1, avg_2,var_1, var_2, count_1, count_2)") == (
-        "t_test",
-        ["avg_1", "avg_2", "var_1", "var_2", "count_1", "count_2"],
-        None,
-    )
-    assert parse_function("compare_numeric_aggregate(alias, greater,1234)") == (
-        "compare_numeric_aggregate",
-        ["alias", "greater", "1234"],
-        None,
-    )
-    assert parse_function(r'to_other(release,"asdf @ \"qwer: (3,2)")') == (
-        "to_other",
-        ["release", r'"asdf @ \"qwer: (3,2)"'],
-        None,
-    )
+@pytest.mark.parametrize(
+    "function,expected",
+    [
+        (
+            "percentile(transaction.duration, 0.5)",
+            ("percentile", ["transaction.duration", "0.5"], None),
+        ),
+        ("p50()", ("p50", [], None)),
+        ("p75(measurements.lcp)", ("p75", ["measurements.lcp"], None)),
+        ("p75(spans.http)", ("p75", ["spans.http"], None)),
+        ("p75(spans.total.time)", ("p75", ["spans.total.time"], None)),
+        ("apdex(300)", ("apdex", ["300"], None)),
+        ("failure_rate()", ("failure_rate", [], None)),
+        (
+            "histogram(measurements_value, 1,0,1)",
+            ("histogram", ["measurements_value", "1", "0", "1"], None),
+        ),
+        (
+            "histogram(spans_value, 1,0,1)",
+            ("histogram", ["spans_value", "1", "0", "1"], None),
+        ),
+        (
+            "count_unique(transaction.status)",
+            ("count_unique", ["transaction.status"], None),
+        ),
+        ("count_unique(some.tag-name)", ("count_unique", ["some.tag-name"], None)),
+        ("count()", ("count", [], None)),
+        (
+            "count_at_least(transaction.duration ,200)",
+            ("count_at_least", ["transaction.duration", "200"], None),
+        ),
+        ("min(measurements.foo)", ("min", ["measurements.foo"], None)),
+        (
+            "absolute_delta(transaction.duration, 400)",
+            ("absolute_delta", ["transaction.duration", "400"], None),
+        ),
+        (
+            "avg_range(transaction.duration, 0.5, 2020-03-13T15:14:15, 2020-03-14T15:14:15) AS p",
+            (
+                "avg_range",
+                ["transaction.duration", "0.5", "2020-03-13T15:14:15", "2020-03-14T15:14:15"],
+                "p",
+            ),
+        ),
+        (
+            "t_test(avg_1, avg_2,var_1, var_2, count_1, count_2)",
+            (
+                "t_test",
+                ["avg_1", "avg_2", "var_1", "var_2", "count_1", "count_2"],
+                None,
+            ),
+        ),
+        (
+            "compare_numeric_aggregate(alias, greater,1234)",
+            ("compare_numeric_aggregate", ["alias", "greater", "1234"], None),
+        ),
+        (
+            r'to_other(release,"asdf @ \"qwer: (3,2)")',
+            ("to_other", ["release", r'"asdf @ \"qwer: (3,2)"'], None),
+        ),
+    ],
+)
+def test_parse_function(function, expected):
+    assert parse_function(function) == expected
+
+
+@pytest.mark.parametrize(
+    "function,columns,result",
+    [
+        # pretty straight forward since its effectively a split on `,`
+        ("func", "a,b,c", ["a", "b", "c"]),
+        ("func", "a, b, c", ["a", "b", "c"]),
+        # to_other and count_if support quotes so have special handling
+        ("to_other", "a,b", ["a", "b"]),
+        ("to_other", "a, b", ["a", "b"]),
+        ("count_if", 'a, b, "c"', ["a", "b", '"c"']),
+        ("count_if", 'a, b, "\\""', ["a", "b", '"\\""']),
+        ("count_if", 'a, b, "\\test"', ["a", "b", '"\\test"']),
+        ("count_if", 'a, b,","', ["a", "b", '","']),
+    ],
+)
+def test_parse_arguments(function, columns, result):
+    assert parse_arguments(function, columns) == result
 
 
 class ResolveFieldListTest(unittest.TestCase):
@@ -277,8 +283,8 @@ class ResolveFieldListTest(unittest.TestCase):
             ["max", "timestamp", "last_seen"],
             ["apdex(duration, 300)", None, "apdex_300"],
             [
-                "uniqIf",
-                ["user", ["greater", ["transaction.duration", 1200.0]]],
+                "uniqIf(user, greater(duration, 1200))",
+                None,
                 "count_miserable_user_300",
             ],
             [
@@ -543,6 +549,74 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
 
         assert "stddev(): expected 1 argument(s)" in str(err)
+
+    def test_cov_function(self):
+        fields = [
+            "cov(transaction.duration, measurements.fcp)",
+            "cov(transaction.duration, spans.browser)",
+            "cov(transaction.duration, transaction.duration)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "covarSamp",
+                ["transaction.duration", "measurements.fcp"],
+                "cov_transaction_duration_measurements_fcp",
+            ],
+            [
+                "covarSamp",
+                ["transaction.duration", "spans.browser"],
+                "cov_transaction_duration_spans_browser",
+            ],
+            [
+                "covarSamp",
+                ["transaction.duration", "transaction.duration"],
+                "cov_transaction_duration_transaction_duration",
+            ],
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["cov(user.display, timestamp)"]
+            result = resolve_field_list(fields, eventstore.Filter())
+
+        assert (
+            "cov(user.display, timestamp): column1 argument invalid: user.display is not a numeric column"
+            in str(err)
+        )
+
+    def test_corr_function(self):
+        fields = [
+            "corr(transaction.duration, measurements.fcp)",
+            "corr(transaction.duration, spans.browser)",
+            "corr(transaction.duration, transaction.duration)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "corr",
+                ["transaction.duration", "measurements.fcp"],
+                "corr_transaction_duration_measurements_fcp",
+            ],
+            [
+                "corr",
+                ["transaction.duration", "spans.browser"],
+                "corr_transaction_duration_spans_browser",
+            ],
+            [
+                "corr",
+                ["transaction.duration", "transaction.duration"],
+                "corr_transaction_duration_transaction_duration",
+            ],
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["corr(user.display, timestamp)"]
+            result = resolve_field_list(fields, eventstore.Filter())
+
+        assert (
+            "corr(user.display, timestamp): column1 argument invalid: user.display is not a numeric column"
+            in str(err)
+        )
 
     def test_tpm_function_alias(self):
         """TPM should be functionally identical to EPM except in name"""
@@ -908,7 +982,7 @@ class ResolveFieldListTest(unittest.TestCase):
     def test_count_if(self):
         fields = [
             "count_if(event.type,equals,transaction)",
-            "count_if(event.type,notEquals,transaction)",
+            'count_if(event.type,notEquals,"transaction")',
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
@@ -920,7 +994,7 @@ class ResolveFieldListTest(unittest.TestCase):
             [
                 "countIf",
                 [["notEquals", ["event.type", "'transaction'"]]],
-                "count_if_event_type_notEquals_transaction",
+                "count_if_event_type_notEquals__transaction",
             ],
         ]
 
@@ -1346,7 +1420,7 @@ class ResolveFieldListTest(unittest.TestCase):
                                             for name in ["ok", "cancelled", "unknown"]
                                         ],
                                     ],
-                                    "transaction_status",
+                                    "transaction.status",
                                 ],
                             ],
                         ],
@@ -1398,3 +1472,201 @@ class ResolveFieldListTest(unittest.TestCase):
             )
 
         assert "and 3 more" in str(error)
+
+    def test_count_if_field_with_duration(self):
+        fields = ["count_if(transaction.duration, less, 10)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "less",
+                        ["transaction.duration", 10],
+                    ],
+                ],
+                "count_if_transaction_duration_less_10",
+            ],
+        ]
+        fields = ["count_if(spans.http, lessOrEquals, 100)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "lessOrEquals",
+                        ["spans.http", 100],
+                    ],
+                ],
+                "count_if_spans_http_lessOrEquals_100",
+            ],
+        ]
+        fields = ["count_if(measurements.lcp, lessOrEquals, 10d)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "lessOrEquals",
+                        ["measurements.lcp", 864000000],
+                    ],
+                ],
+                "count_if_measurements_lcp_lessOrEquals_10d",
+            ],
+        ]
+
+    def test_count_if_field_with_tag(self):
+        fields = ["count_if(http.status_code, equals, 200)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "equals",
+                        ["http.status_code", "'200'"],
+                    ],
+                ],
+                "count_if_http_status_code_equals_200",
+            ],
+        ]
+
+        fields = ["count_if(http.status_code, notEquals, 400)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "notEquals",
+                        ["http.status_code", "'400'"],
+                    ],
+                ],
+                "count_if_http_status_code_notEquals_400",
+            ],
+        ]
+
+    def test_count_if_with_transaction_status(self):
+        result = resolve_field_list(
+            ["count_if(transaction.status, equals, ok)"], eventstore.Filter()
+        )
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "equals",
+                        ["transaction.status", 0],
+                    ],
+                ],
+                "count_if_transaction_status_equals_ok",
+            ],
+        ]
+
+        result = resolve_field_list(
+            ["count_if(transaction.status, notEquals, ok)"], eventstore.Filter()
+        )
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "notEquals",
+                        ["transaction.status", 0],
+                    ],
+                ],
+                "count_if_transaction_status_notEquals_ok",
+            ],
+        ]
+
+    def test_invalid_count_if_fields(self):
+        with self.assertRaises(InvalidSearchQuery) as query_error:
+            resolve_field_list(
+                ["count_if(transaction.duration, equals, sentry)"], eventstore.Filter()
+            )
+        assert (
+            str(query_error.exception)
+            == "'sentry' is not a valid value to compare with transaction.duration"
+        )
+
+        with self.assertRaises(InvalidSearchQuery) as query_error:
+            resolve_field_list(
+                ["count_if(transaction.duration, equals, 10wow)"], eventstore.Filter()
+            )
+        assert str(query_error.exception).startswith("wow is not a valid duration type")
+
+        with self.assertRaises(InvalidSearchQuery) as query_error:
+            resolve_field_list(["count_if(project, equals, sentry)"], eventstore.Filter())
+        assert str(query_error.exception) == "project is not supported by count_if"
+
+        with self.assertRaises(InvalidSearchQuery) as query_error:
+            resolve_field_list(["count_if(stack.function, equals, test)"], eventstore.Filter())
+        assert str(query_error.exception) == "stack.function is not supported by count_if"
+
+        with self.assertRaises(InvalidSearchQuery) as query_error:
+            resolve_field_list(
+                ["count_if(transaction.status, equals, fakestatus)"], eventstore.Filter()
+            )
+        assert (
+            str(query_error.exception) == "'fakestatus' is not a valid value for transaction.status"
+        )
+
+
+def resolve_snql_fieldlist(fields):
+    return QueryFields(Dataset.Discover, {}).resolve_select(fields)
+
+
+@pytest.mark.parametrize(
+    "field,expected",
+    [
+        (
+            "percentile_range(transaction.duration, 0.5, greater, 2020-05-03T06:48:57) as percentile_range_1",
+            Function(
+                "quantileIf(0.50)",
+                [
+                    Column("duration"),
+                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                ],
+                "percentile_range_1",
+            ),
+        ),
+        (
+            "avg_range(transaction.duration, greater, 2020-05-03T06:48:57) as avg_range_1",
+            Function(
+                "avgIf",
+                [
+                    Column("duration"),
+                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                ],
+                "avg_range_1",
+            ),
+        ),
+        (
+            "variance_range(transaction.duration, greater, 2020-05-03T06:48:57) as variance_range_1",
+            Function(
+                "varSampIf",
+                [
+                    Column("duration"),
+                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                ],
+                "variance_range_1",
+            ),
+        ),
+        (
+            "count_range(greater, 2020-05-03T06:48:57) as count_range_1",
+            Function(
+                "countIf",
+                [
+                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                ],
+                "count_range_1",
+            ),
+        ),
+    ],
+)
+def test_range_funtions(field, expected):
+    fields = resolve_snql_fieldlist([field])
+    assert len(fields) == 1
+    assert fields[0] == expected

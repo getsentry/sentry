@@ -1,0 +1,17 @@
+[
+  {
+    "query": "release:\"a\trelease\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "release", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "a\trelease", "quoted": true}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

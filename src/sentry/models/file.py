@@ -27,6 +27,7 @@ from sentry.db.models import (
 from sentry.tasks.files import delete_file as delete_file_task
 from sentry.tasks.files import delete_unreferenced_blobs
 from sentry.utils import metrics
+from sentry.utils.db import atomic_transaction
 from sentry.utils.retries import TimedRetryPolicy
 
 ONE_DAY = 60 * 60 * 24
@@ -105,7 +106,7 @@ def get_storage(config=None):
 
 
 class FileBlob(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     path = models.TextField(null=True)
     size = BoundedPositiveIntegerField(null=True)
@@ -160,7 +161,7 @@ class FileBlob(Model):
             if organization is None:
                 return
             try:
-                with transaction.atomic(using=router.db_for_write(FileBlobOwner)):
+                with atomic_transaction(using=router.db_for_write(FileBlobOwner)):
                     FileBlobOwner.objects.create(organization_id=organization.id, blob=blob)
             except IntegrityError:
                 pass
@@ -309,7 +310,7 @@ class FileBlob(Model):
 
 
 class File(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     name = models.TextField()
     type = models.CharField(max_length=64)
@@ -405,7 +406,6 @@ class File(Model):
 
             blob_fileobj = ContentFile(contents)
             blob = FileBlob.from_file(blob_fileobj, logger=logger)
-
             results.append(FileBlobIndex.objects.create(file=self, blob=blob, offset=offset))
             offset += blob.size
         self.size = offset
@@ -421,7 +421,12 @@ class File(Model):
         contents.
         """
         tf = tempfile.NamedTemporaryFile()
-        with transaction.atomic():
+        with atomic_transaction(
+            using=(
+                router.db_for_write(FileBlob),
+                router.db_for_write(FileBlobIndex),
+            )
+        ):
             file_blobs = FileBlob.objects.filter(id__in=file_blob_ids).all()
 
             # Ensure blobs are in the order and duplication as provided
@@ -460,12 +465,13 @@ class File(Model):
         transaction.on_commit(
             lambda: delete_unreferenced_blobs.apply_async(
                 kwargs={"blob_ids": blob_ids}, countdown=60 * 5
-            )
+            ),
+            using=router.db_for_write(type(self)),
         )
 
 
 class FileBlobIndex(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     file = FlexibleForeignKey("sentry.File")
     blob = FlexibleForeignKey("sentry.FileBlob", on_delete=models.PROTECT)
@@ -639,7 +645,7 @@ class ChunkedFileBlobIndexWrapper:
 
 
 class FileBlobOwner(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     blob = FlexibleForeignKey("sentry.FileBlob")
     organization_id = BoundedBigIntegerField(db_index=True)

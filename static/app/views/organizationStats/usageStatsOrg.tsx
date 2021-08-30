@@ -194,9 +194,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     };
   }
 
-  mapSeriesToChart(
-    orgStats?: UsageSeries
-  ): {
+  mapSeriesToChart(orgStats?: UsageSeries): {
     chartStats: ChartStats;
     cardStats: {
       total?: string;
@@ -216,6 +214,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       accepted: [],
       dropped: [],
       projected: [],
+      filtered: [],
     };
 
     if (!orgStats) {
@@ -279,6 +278,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         // Chart Data
         chartStats.accepted.push({value: [stat.date, stat.accepted]} as any);
         chartStats.dropped.push({value: [stat.date, stat.dropped.total]} as any);
+        chartStats.filtered?.push({value: [stat.date, stat.filtered]} as any);
       });
 
       return {
@@ -293,13 +293,13 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
-          dropped: formatUsageWithUnits(
-            count[Outcome.DROPPED],
+          filtered: formatUsageWithUnits(
+            count[Outcome.FILTERED],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
-          filtered: formatUsageWithUnits(
-            count[Outcome.FILTERED],
+          dropped: formatUsageWithUnits(
+            count[Outcome.DROPPED],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),

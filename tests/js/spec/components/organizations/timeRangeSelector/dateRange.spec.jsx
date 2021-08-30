@@ -8,7 +8,7 @@ import ConfigStore from 'app/stores/configStore';
 // 2017-10-14T02:38:00.000Z
 // 2017-10-17T02:38:00.000Z
 const start = new Date(1507948680000);
-const end = new Date(1508207880000); //National Pasta Day
+const end = new Date(1508207880000); // National Pasta Day
 
 const getSelectedRange = wrapper => [
   wrapper.find('.rdrStartEdge').closest('DayCell').find('.rdrDayNumber span').text(),
@@ -64,7 +64,7 @@ describe('DateRange', function () {
     });
 
     it('has the right max date', function () {
-      expect(wrapper.find('StyledDateRangePicker').prop('maxDate')).toEqual(
+      expect(wrapper.find('DateRangePicker').at(0).prop('maxDate')).toEqual(
         new Date('2017-10-16T23:41:20.000Z')
       );
     });
@@ -210,7 +210,7 @@ describe('DateRange', function () {
     });
 
     it('has the right max date', function () {
-      expect(wrapper.find('StyledDateRangePicker').prop('maxDate')).toEqual(
+      expect(wrapper.find('DateRangePicker').at(0).prop('maxDate')).toEqual(
         new Date('2017-10-16T23:41:20.000Z')
       );
     });

@@ -25,7 +25,7 @@ type State = {
   groupingConfigs: EventGroupingConfig[] | null;
 } & AsyncView['state'];
 
-class ProjectDebugSymbols extends AsyncView<Props, State> {
+class ProjectIssueGrouping extends AsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
 
@@ -40,7 +40,8 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    return [['groupingConfigs', '/grouping-configs/']];
+    const {projectId, orgId} = this.props.params;
+    return [['groupingConfigs', `/projects/${orgId}/${projectId}/grouping-configs/`]];
   }
 
   handleSubmit = (response: Project) => {
@@ -73,7 +74,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
             `All events have a fingerprint. Events with the same fingerprint are grouped together into an issue. To learn more about issue grouping, [link: read the docs].`,
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=%2Fdata-management%2Fevent-grouping%2F" />
+                <ExternalLink href="https://docs.sentry.io/product/data-management-settings/event-grouping/" />
               ),
             }
           )}
@@ -125,4 +126,4 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   }
 }
 
-export default ProjectDebugSymbols;
+export default ProjectIssueGrouping;

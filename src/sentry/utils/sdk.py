@@ -10,6 +10,7 @@ from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
 from sentry.utils import metrics
+from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
 
 UNSAFE_FILES = (
@@ -41,6 +42,9 @@ SAMPLED_URL_NAMES = {
     "sentry-extensions-vercel-configure": settings.SAMPLED_DEFAULT_RATE,
     "sentry-extensions-vercel-ui-hook": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-group-integration-details": settings.SAMPLED_DEFAULT_RATE,
+    # notification platform
+    "sentry-api-0-user-notification-settings": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-team-notification-settings": settings.SAMPLED_DEFAULT_RATE,
     # releases
     "sentry-api-0-organization-releases": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-release-details": settings.SAMPLED_DEFAULT_RATE,
@@ -50,6 +54,13 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-stats": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-stats-v2": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-project-stats": 0.1,  # lower rate because of high TPM
+    # debug files
+    "sentry-api-0-assemble-dif-files": 0.1,
+    # scim
+    "sentry-api-0-organization-scim-member-index": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-organization-scim-member-details": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-organization-scim-team-index": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-organization-scim-team-details": settings.SAMPLED_DEFAULT_RATE,
 }
 if settings.ADDITIONAL_SAMPLED_URLS:
     SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)
@@ -60,6 +71,11 @@ SAMPLED_TASKS = {
     "sentry.tasks.store.symbolicate_event_from_reprocessing": settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
+    "sentry.tasks.assemble.assemble_dif": 0.1,
+    "sentry.tasks.app_store_connect.dsym_download": settings.SENTRY_APPCONNECT_APM_SAMPLING,
+    "sentry.tasks.app_store_connect.refresh_all_builds": settings.SENTRY_APPCONNECT_APM_SAMPLING,
+    "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
+    "sentry.tasks.post_process.post_process_group": settings.SENTRY_POST_PROCESS_GROUP_APM_SAMPLING,
 }
 
 
@@ -96,7 +112,7 @@ def is_current_event_safe():
 
 def mark_scope_as_unsafe():
     """
-    Set the unsafe tag on the SDK scope for outgoing crashe and transactions.
+    Set the unsafe tag on the SDK scope for outgoing crashes and transactions.
 
     Marking a scope explicitly as unsafe allows the recursion breaker to
     decide early, before walking the stack and checking for unsafe files.
@@ -190,6 +206,20 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
+# Patches transport functions to add metrics to improve resolution around events sent to our ingest.
+# Leaving this in to keep a permanent measurement of sdk requests vs ingest.
+def patch_transport_for_instrumentation(transport, transport_name):
+    _send_request = transport._send_request
+    if _send_request:
+
+        def patched_send_request(*args, **kwargs):
+            metrics.incr(f"internal.sent_requests.{transport_name}.events")
+            return _send_request(*args, **kwargs)
+
+        transport._send_request = patched_send_request
+    return transport
+
+
 def configure_sdk():
     from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
@@ -206,16 +236,17 @@ def configure_sdk():
     sdk_options["traces_sampler"] = traces_sampler
 
     if upstream_dsn:
-        upstream_transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
+        transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
+        upstream_transport = patch_transport_for_instrumentation(transport, "upstream")
     else:
         upstream_transport = None
 
     if relay_dsn:
-        relay_transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
+        transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
+        relay_transport = patch_transport_for_instrumentation(transport, "relay")
     elif internal_project_key and internal_project_key.dsn_private:
-        relay_transport = make_transport(
-            get_options(dsn=internal_project_key.dsn_private, **sdk_options)
-        )
+        transport = make_transport(get_options(dsn=internal_project_key.dsn_private, **sdk_options))
+        relay_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
         relay_transport = None
 
@@ -224,6 +255,14 @@ def configure_sdk():
 
     class MultiplexingTransport(sentry_sdk.transport.Transport):
         def capture_envelope(self, envelope):
+            # Temporarily capture envelope counts to compare to ingested
+            # transactions.
+            metrics.incr("internal.captured.events.envelopes")
+            transaction = envelope.get_transaction_event()
+
+            if transaction:
+                metrics.incr("internal.captured.events.transactions")
+
             # Assume only transactions get sent via envelopes
             if options.get("transaction-events.force-disable-internal-project"):
                 return
@@ -273,6 +312,7 @@ def configure_sdk():
     sentry_sdk.init(
         transport=MultiplexingTransport(),
         integrations=[
+            DjangoAtomicIntegration(),
             DjangoIntegration(),
             CeleryIntegration(),
             LoggingIntegration(event_level=None),

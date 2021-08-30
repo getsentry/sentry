@@ -5,12 +5,13 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Column, Entity, Function, Query
 
-from sentry import features, nodestore
+from sentry import nodestore
 from sentry.api.bases import GroupEndpoint
 from sentry.api.endpoints.group_hashes_split import _get_group_filters
-from sentry.api.endpoints.grouping_levels import LevelsOverview, get_levels_overview
+from sentry.api.endpoints.grouping_levels import LevelsOverview, check_feature, get_levels_overview
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize
+from sentry.event_manager import get_event_type
 from sentry.eventstore.models import Event
 from sentry.models import Group
 from sentry.utils import snuba
@@ -64,19 +65,15 @@ class GroupingLevelNewIssuesEndpoint(GroupEndpoint):
         the new issues are more than what the current issue has).
         """
 
-        if not features.has(
-            "organizations:grouping-tree-ui", group.project.organization, actor=request.user
-        ):
-            return self.respond(
-                {"error": "This project does not have the grouping tree feature"},
-                status=403,
-            )
+        check_feature(group.project.organization, request)
+
+        parsed_id = int(id)
 
         def data_fn(offset=None, limit=None):
-            return _query_snuba(group, id, offset=offset, limit=limit)
+            return _query_snuba(group, parsed_id, offset=offset, limit=limit)
 
         def on_results(results):
-            return _process_snuba_results(results, group, request.user)
+            return _process_snuba_results(results, group, parsed_id, request.user)
 
         return self.paginate(
             request=request,
@@ -112,9 +109,7 @@ def _get_hash_for_parent_level(group: Group, id: int, levels_overview: LevelsOve
     return return_hash
 
 
-def _query_snuba(group: Group, unparsed_id: str, offset=None, limit=None):
-    id = int(unparsed_id)
-
+def _query_snuba(group: Group, id: int, offset=None, limit=None):
     query = (
         Query("events", Entity("events"))
         .set_select(
@@ -135,7 +130,14 @@ def _query_snuba(group: Group, unparsed_id: str, offset=None, limit=None):
             ]
         )
         .set_groupby([Column("new_materialized_hash")])
-        .set_orderby([OrderBy(Column("latest_event_timestamp"), Direction.DESC)])
+        .set_orderby(
+            [
+                OrderBy(Column("event_count"), Direction.DESC),
+                # Completely useless sorting key, only there to achieve stable sort
+                # order in tests.
+                OrderBy(Column("latest_event_timestamp"), Direction.DESC),
+            ]
+        )
     )
 
     levels_overview = get_levels_overview(group)
@@ -185,7 +187,7 @@ def _query_snuba(group: Group, unparsed_id: str, offset=None, limit=None):
     ]
 
 
-def _process_snuba_results(query_res, group: Group, user):
+def _process_snuba_results(query_res, group: Group, id: int, user):
     event_ids = {
         row["latest_event_id"]: Event.generate_node_id(group.project_id, row["latest_event_id"])
         for row in query_res
@@ -206,6 +208,18 @@ def _process_snuba_results(query_res, group: Group, user):
         if event_data is not None:
             event = Event(group.project_id, event_id, group_id=group.id, data=event_data)
             response_item["latestEvent"] = serialize(event, user, EventSerializer())
+
+            tree_label = get_path(event_data, "hierarchical_tree_labels", id) or get_path(
+                event_data, "hierarchical_tree_labels", -1
+            )
+
+            # Rough approximation of what happens with Group title
+            event_type = get_event_type(event.data)
+            metadata = dict(event.get_event_metadata())
+            metadata["current_tree_label"] = tree_label
+            title = event_type.get_title(metadata)
+            response_item["title"] = title or event.title
+            response_item["metadata"] = metadata
 
         response.append(response_item)
 

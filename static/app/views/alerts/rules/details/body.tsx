@@ -5,7 +5,6 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import {SectionHeading} from 'app/components/charts/styles';
@@ -17,6 +16,8 @@ import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
 import * as Layout from 'app/components/layouts/thirds';
 import {Panel, PanelBody} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
+import {parseSearch} from 'app/components/searchSyntax/parser';
+import HighlightQuery from 'app/components/searchSyntax/renderer';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconFire, IconInfo, IconWarning} from 'app/icons';
@@ -25,14 +26,14 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Actor, DateString, Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
-import Timeline from 'app/views/alerts/rules/details/timeline';
 import {
   AlertRuleThresholdType,
   Dataset,
   IncidentRule,
   Trigger,
-} from 'app/views/settings/incidentRules/types';
-import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
+} from 'app/views/alerts/incidentRules/types';
+import {extractEventTypeFilterFromRule} from 'app/views/alerts/incidentRules/utils/getEventTypeFilter';
+import Timeline from 'app/views/alerts/rules/details/timeline';
 
 import AlertBadge from '../../alertBadge';
 import {AlertRuleStatus, Incident, IncidentStatus} from '../../types';
@@ -99,7 +100,7 @@ export default class DetailsBody extends React.Component<Props> {
       return `${timeWindow}m`;
     }
 
-    return getInterval({start, end}, true);
+    return getInterval({start, end}, 'high');
   }
 
   getFilter() {
@@ -108,11 +109,11 @@ export default class DetailsBody extends React.Component<Props> {
       return null;
     }
 
+    const eventType = extractEventTypeFilterFromRule(rule);
+    const parsedQuery = parseSearch([eventType, rule.query].join(' '));
+
     return (
-      <Filters>
-        <code>{extractEventTypeFilterFromRule(rule)}</code>&nbsp;&nbsp;
-        {rule.query && <code>{rule.query}</code>}
-      </Filters>
+      <Filters>{parsedQuery && <HighlightQuery parsedQuery={parsedQuery} />}</Filters>
     );
   }
 
@@ -188,14 +189,12 @@ export default class DetailsBody extends React.Component<Props> {
         <SidebarGroup>
           <Heading>{t('Other Details')}</Heading>
           <KeyValueTable>
-            <Feature features={['organizations:team-alerts-ownership']}>
-              <KeyValueTableRow
-                keyName={t('Team')}
-                value={
-                  teamActor ? <ActorAvatar actor={teamActor} size={24} /> : 'Unassigned'
-                }
-              />
-            </Feature>
+            <KeyValueTableRow
+              keyName={t('Team')}
+              value={
+                teamActor ? <ActorAvatar actor={teamActor} size={24} /> : 'Unassigned'
+              }
+            />
 
             {rule.createdBy && (
               <KeyValueTableRow
@@ -311,6 +310,9 @@ export default class DetailsBody extends React.Component<Props> {
                               <DropdownItem
                                 key={value}
                                 eventKey={value}
+                                isActive={
+                                  !timePeriod.custom && timePeriod.period === value
+                                }
                                 onSelect={this.props.handleTimePeriodChange}
                               >
                                 {label}
@@ -515,10 +517,13 @@ const RuleText = styled('div')`
 `;
 
 const Filters = styled('span')`
-  width: 100%;
   overflow-wrap: break-word;
-  font-size: ${p => p.theme.fontSizeMedium};
-  gap: ${space(1)};
+  word-break: break-word;
+  white-space: pre-wrap;
+  font-size: ${p => p.theme.fontSizeSmall};
+
+  line-height: 25px;
+  font-family: ${p => p.theme.text.familyMono};
 `;
 
 const TriggerCondition = styled('div')`

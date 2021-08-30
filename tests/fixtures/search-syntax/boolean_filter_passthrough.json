@@ -1,0 +1,17 @@
+[
+  {
+    "query": "project_id:1",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numeric",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "project_id", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueNumber", "value": "1", "rawValue": 1, "unit": null}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

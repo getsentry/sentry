@@ -20,7 +20,6 @@ export const SectionHeading = styled('h4')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0;
-  line-height: 1.3;
 `;
 
 export const SectionValue = styled('span')`
@@ -32,8 +31,11 @@ export const SectionValue = styled('span')`
 export const InlineContainer = styled('div')`
   display: grid;
   align-items: center;
-  grid-template-columns: max-content auto;
-  grid-gap: ${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-auto-flow: column;
+    grid-column-gap: ${space(1)};
+  }
 `;
 
 export const ChartControls = styled('div')`
@@ -43,6 +45,7 @@ export const ChartControls = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: flex;
     justify-content: space-between;
+    flex-wrap: wrap;
   }
 `;
 
@@ -63,6 +66,19 @@ export const HeaderTitleLegend = styled(HeaderTitle)`
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   position: absolute;
   z-index: 1;
+`;
+
+// Used for rendering total value of a chart right below the HeaderTitleLegend
+export const HeaderValue = styled('div')`
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+  align-items: baseline;
+  background-color: ${p => p.theme.background};
+  position: absolute;
+  top: 40px;
+  z-index: 1;
+  font-size: ${p => p.theme.headerFontSize};
 `;
 
 export const ChartContainer = styled('div')`

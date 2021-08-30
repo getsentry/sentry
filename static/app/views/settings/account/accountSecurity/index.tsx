@@ -1,4 +1,4 @@
-import * as ReactRouter from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -32,7 +32,7 @@ type Props = {
   handleRefresh: () => void;
   onDisable: (auth: Authenticator) => void;
 } & AsyncView['props'] &
-  ReactRouter.WithRouterProps;
+  RouteComponentProps<{}, {}>;
 
 /**
  * Lists 2fa devices + password change form
@@ -79,13 +79,8 @@ class AccountSecurity extends AsyncView<Props> {
   };
 
   renderBody() {
-    const {
-      authenticators,
-      countEnrolled,
-      deleteDisabled,
-      onDisable,
-      hasVerifiedEmail,
-    } = this.props;
+    const {authenticators, countEnrolled, deleteDisabled, onDisable, hasVerifiedEmail} =
+      this.props;
     const isEmpty = !authenticators?.length;
     return (
       <div>

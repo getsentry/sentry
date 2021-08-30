@@ -18,8 +18,13 @@ export type TableDataRow = {
   [key: string]: React.ReactText;
 };
 
+export type HistogramTag = {
+  tags_value: string;
+};
+
 export type TableData = {
-  data: TableDataRow[];
+  histogram: {data: TableDataRow[]};
+  tags: {data: HistogramTag[]};
   meta: {};
 };
 
@@ -34,13 +39,15 @@ type ChildrenProps = Omit<GenericChildrenProps<TableData>, 'tableData'> & {
 type QueryProps = DiscoverQueryProps & {
   aggregateColumn: string;
   tagKey: string;
-  sort?: string | string[];
+  numBucketsPerKey: number;
+  sort: string | string[];
   children: (props: ChildrenProps) => React.ReactNode;
 };
 
 type FacetQuery = LocationQuery &
   EventQuery & {
     tagKey?: string;
+    numBucketsPerKey?: number;
     sort?: string | string[];
     aggregateColumn?: string;
   };
@@ -51,8 +58,9 @@ export function getRequestFunction(_props: QueryProps) {
     const {eventView} = props;
     const apiPayload: FacetQuery = eventView.getEventsAPIPayload(props.location);
     apiPayload.aggregateColumn = aggregateColumn;
-    apiPayload.sort = _props.sort ? _props.sort : '-sumdelta';
+    apiPayload.sort = _props.sort;
     apiPayload.tagKey = _props.tagKey;
+    apiPayload.numBucketsPerKey = _props.numBucketsPerKey;
     return apiPayload;
   }
   return getTagExplorerRequestPayload;

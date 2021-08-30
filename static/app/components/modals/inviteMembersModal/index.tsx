@@ -255,20 +255,41 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
       const sentCount = statuses.filter(i => i.sent).length;
       const errorCount = statuses.filter(i => i.error).length;
 
-      const invites = <strong>{tn('%s invite', '%s invites', sentCount)}</strong>;
-      const tctComponents = {
-        invites,
-        failed: errorCount,
-      };
+      if (this.willInvite) {
+        const invites = <strong>{tn('%s invite', '%s invites', sentCount)}</strong>;
+        const tctComponents = {
+          invites,
+          failed: errorCount,
+        };
 
-      return (
-        <StatusMessage status="success">
-          <IconCheckmark size="sm" />
-          {errorCount > 0
-            ? tct('Sent [invites], [failed] failed to send.', tctComponents)
-            : tct('Sent [invites]', tctComponents)}
-        </StatusMessage>
-      );
+        return (
+          <StatusMessage status="success">
+            <IconCheckmark size="sm" />
+            {errorCount > 0
+              ? tct('Sent [invites], [failed] failed to send.', tctComponents)
+              : tct('Sent [invites]', tctComponents)}
+          </StatusMessage>
+        );
+      } else {
+        const inviteRequests = (
+          <strong>{tn('%s invite request', '%s invite requests', sentCount)}</strong>
+        );
+        const tctComponents = {
+          inviteRequests,
+          failed: errorCount,
+        };
+        return (
+          <StatusMessage status="success">
+            <IconCheckmark size="sm" />
+            {errorCount > 0
+              ? tct(
+                  '[inviteRequests] pending approval, [failed] failed to send.',
+                  tctComponents
+                )
+              : tct('[inviteRequests] pending approval', tctComponents)}
+          </StatusMessage>
+        );
+      }
     }
 
     if (this.hasDuplicateEmails) {
@@ -333,8 +354,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
           {this.willInvite
             ? t('Invite new members by email to join your organization.')
             : t(
-                `You don’t have permission to directly invite users, but we’ll
-                 send a request on your behalf.`
+                `You don’t have permission to directly invite users, but we'll send a request to your organization owner and manager for review.`
               )}
         </Subtext>
 

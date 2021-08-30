@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
@@ -10,10 +10,10 @@ import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Pagination from 'app/components/pagination';
-import {PanelTable, PanelTableHeader} from 'app/components/panels';
+import {PanelTable} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {IconArrow, IconCheckmark} from 'app/icons';
+import {IconArrow} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, Project, Team} from 'app/types';
@@ -51,9 +51,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       query.expand = ['latestIncident'];
     }
 
-    if (organization.features.includes('team-alerts-ownership')) {
-      query.team = getTeamParams(query.team);
-    }
+    query.team = getTeamParams(query.team);
 
     if (organization.features.includes('alert-details-redesign') && !query.sort) {
       query.sort = ['incident_status', 'date_triggered'];
@@ -68,28 +66,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
         },
       ],
     ];
-  }
-
-  tryRenderEmpty() {
-    const {ruleList} = this.state;
-    if (ruleList && ruleList.length > 0) {
-      return null;
-    }
-
-    return (
-      <Fragment>
-        <IconWrapper>
-          <IconCheckmark isCircled size="48" />
-        </IconWrapper>
-
-        <Title>{t('No alert rules exist for these projects.')}</Title>
-        <Description>
-          {tct('Learn more about [link:Alerts]', {
-            link: <ExternalLink href={DOCS_URL} />,
-          })}
-        </Description>
-      </Fragment>
-    );
   }
 
   handleChangeFilter = (_sectionId: string, activeFilters: Set<string>) => {
@@ -180,7 +156,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       field: query.sort || 'date_added',
     };
     const {cursor: _cursor, page: _page, ...currentQuery} = query;
-    const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
     const hasAlertList = organization.features.includes('alert-details-redesign');
     const isAlertRuleSort =
       sort.field.includes('incident_status') || sort.field.includes('date_triggered');
@@ -189,10 +164,11 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     );
 
     const userTeams = new Set(teams.filter(({isMember}) => isMember).map(({id}) => id));
+
     return (
       <StyledLayoutBody>
         <Layout.Main fullWidth>
-          {hasAlertOwnership && this.renderFilterBar()}
+          {this.renderFilterBar()}
           <StyledPanelTable
             headers={[
               ...(hasAlertList
@@ -203,7 +179,8 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                         pathname: location.pathname,
                         query: {
                           ...currentQuery,
-                          asc: sort.field === 'name' && !sort.asc ? '1' : undefined,
+                          // sort by name should start by ascending on first click
+                          asc: sort.field === 'name' && sort.asc ? undefined : '1',
                           sort: 'name',
                         },
                       }}
@@ -241,7 +218,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                     </StyledSortLink>,
                   ]),
               t('Project'),
-              ...(hasAlertOwnership ? [t('Team')] : []),
+              t('Team'),
               ...(hasAlertList ? [] : [t('Created By')]),
               // eslint-disable-next-line react/jsx-key
               <StyledSortLink
@@ -260,8 +237,14 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
             ]}
             isLoading={loading}
             isEmpty={ruleList?.length === 0}
-            emptyMessage={this.tryRenderEmpty()}
-            showTeamCol={hasAlertOwnership}
+            emptyMessage={t('No alert rules found for the current query.')}
+            emptyAction={
+              <EmptyStateAction>
+                {tct('Learn more about [link:Alerts]', {
+                  link: <ExternalLink href={DOCS_URL} />,
+                })}
+              </EmptyStateAction>
+            }
             hasAlertList={hasAlertList}
           >
             <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
@@ -282,7 +265,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
               }
             </Projects>
           </StyledPanelTable>
-
           <Pagination pageLinks={ruleListPageLinks} />
         </Layout.Main>
       </StyledLayoutBody>
@@ -362,45 +344,17 @@ const StyledSearchBar = styled(SearchBar)`
   margin-left: ${space(1.5)};
 `;
 
-const StyledPanelTable = styled(PanelTable)<{
-  showTeamCol: boolean;
-  hasAlertList: boolean;
-}>`
+const StyledPanelTable = styled(PanelTable)<{hasAlertList: boolean}>`
   overflow: auto;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     overflow: initial;
   }
 
-  ${PanelTableHeader} {
-    padding: ${space(2)};
-    line-height: normal;
-  }
-  font-size: ${p => p.theme.fontSizeMedium};
-  grid-template-columns: auto 1.5fr 1fr 1fr ${p => (!p.hasAlertList ? '1fr' : '')} ${p =>
-      p.showTeamCol ? '1fr' : ''} auto;
-  margin-bottom: 0;
+  grid-template-columns: auto 1.5fr 1fr 1fr ${p => (!p.hasAlertList ? '1fr' : '')} 1fr auto;
   white-space: nowrap;
-  ${p =>
-    p.emptyMessage &&
-    `svg:not([data-test-id='icon-check-mark']) {
-    display: none;`}
-  & > * {
-    padding: ${p => (p.hasAlertList ? `${space(2)} ${space(2)}` : space(2))};
-  }
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const IconWrapper = styled('span')`
-  color: ${p => p.theme.gray200};
-  display: block;
-`;
-
-const Title = styled('strong')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin-bottom: ${space(1)};
-`;
-
-const Description = styled('span')`
+const EmptyStateAction = styled('p')`
   font-size: ${p => p.theme.fontSizeLarge};
-  display: block;
-  margin: 0;
 `;

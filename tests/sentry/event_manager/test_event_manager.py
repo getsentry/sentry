@@ -158,7 +158,7 @@ class EventManagerTest(TestCase):
             event2 = manager.save(project.id)
 
         # make sure that events did get into same group because of fallback grouping, not because of hashes which come from primary grouping only
-        assert not set(event.get_hashes()[0]) & set(event2.get_hashes()[0])
+        assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group_id)
@@ -372,6 +372,119 @@ class EventManagerTest(TestCase):
         activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
 
         mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
+
+    @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
+    @mock.patch("sentry.event_manager.plugin_is_regression")
+    def test_that_release_in_latest_activity_prior_to_regression_is_not_overridden(
+        self, plugin_is_regression, mock_send_activity_notifications_delay
+    ):
+        """
+        Test that ensures in the case where a regression occurs, the release prior to the latest
+        activity to that regression is not overridden.
+        It should only be overridden if the activity was awaiting the upcoming release
+        """
+        plugin_is_regression.return_value = True
+
+        # Create a release and a group associated with it
+        old_release = self.create_release(
+            version="foobar", date_added=timezone.now() - timedelta(minutes=30)
+        )
+        manager = EventManager(
+            make_event(
+                event_id="a" * 32,
+                checksum="a" * 32,
+                timestamp=time() - 50000,  # need to work around active_at
+                release=old_release.version,
+            )
+        )
+        event = manager.save(1)
+        group = event.group
+        group.update(status=GroupStatus.RESOLVED)
+
+        # Resolve the group in old_release
+        resolution = GroupResolution.objects.create(release=old_release, group=group)
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+            ident=resolution.id,
+            data={"version": "foobar"},
+        )
+
+        # Create a regression
+        manager = EventManager(
+            make_event(event_id="c" * 32, checksum="a" * 32, timestamp=time(), release="b")
+        )
+        event = manager.save(1)
+        assert event.group_id == group.id
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+
+        activity = Activity.objects.get(id=activity.id)
+        assert activity.data["version"] == "foobar"
+
+        regressed_activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
+        assert regressed_activity.data["version"] == "b"
+
+        mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
+
+    @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
+    @mock.patch("sentry.event_manager.plugin_is_regression")
+    def test_current_release_version_in_latest_activity_prior_to_regression_is_not_overridden(
+        self, plugin_is_regression, mock_send_activity_notifications_delay
+    ):
+        """
+        Test that ensures in the case where a regression occurs, the release prior to the latest
+        activity to that regression is overridden with the release regression occurred in but the
+        value of `current_release_version` used for semver is not lost in the update.
+        """
+        plugin_is_regression.return_value = True
+
+        # Create a release and a group associated with it
+        old_release = self.create_release(
+            version="a", date_added=timezone.now() - timedelta(minutes=30)
+        )
+        manager = EventManager(
+            make_event(
+                event_id="a" * 32,
+                checksum="a" * 32,
+                timestamp=time() - 50000,  # need to work around active_at
+                release=old_release.version,
+            )
+        )
+        event = manager.save(1)
+        group = event.group
+        group.update(status=GroupStatus.RESOLVED)
+
+        # Resolve the group in old_release
+        resolution = GroupResolution.objects.create(release=old_release, group=group)
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+            ident=resolution.id,
+            data={"version": "", "current_release_version": "pre foobar"},
+        )
+
+        # Create a regression
+        manager = EventManager(
+            make_event(event_id="c" * 32, checksum="a" * 32, timestamp=time(), release="b")
+        )
+        event = manager.save(1)
+        assert event.group_id == group.id
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+
+        activity = Activity.objects.get(id=activity.id)
+        assert activity.data["version"] == "b"
+        assert activity.data["current_release_version"] == "pre foobar"
+
+        regressed_activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
+        assert regressed_activity.data["version"] == "b"
+
+        mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
 
     def test_has_pending_commit_resolution(self):
         project_id = 1
@@ -1493,6 +1606,193 @@ class EventManagerTest(TestCase):
             ]
             == 1
         )
+
+    def test_category_match_in_app(self):
+        """
+        Regression test to ensure that grouping in-app enhancements work in
+        principle.
+        """
+        from sentry.grouping.enhancer import Enhancements
+
+        enhancement = Enhancements.from_config_string(
+            """
+            function:foo category=bar
+            function:foo2 category=bar
+            category:bar -app
+            """,
+        )
+
+        event = make_event(
+            platform="native",
+            exception={
+                "values": [
+                    {
+                        "type": "Hello",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "foo",
+                                    "in_app": True,
+                                },
+                                {"function": "bar"},
+                            ]
+                        },
+                    }
+                ]
+            },
+        )
+
+        manager = EventManager(event)
+        manager.normalize()
+        manager.get_data()["grouping_config"] = {
+            "enhancements": enhancement.dumps(),
+            "id": "mobile:2021-02-12",
+        }
+        event1 = manager.save(1)
+        assert event1.data["exception"]["values"][0]["stacktrace"]["frames"][0]["in_app"] is False
+
+        event = make_event(
+            platform="native",
+            exception={
+                "values": [
+                    {
+                        "type": "Hello",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "foo2",
+                                    "in_app": True,
+                                },
+                                {"function": "bar"},
+                            ]
+                        },
+                    }
+                ]
+            },
+        )
+
+        manager = EventManager(event)
+        manager.normalize()
+        manager.get_data()["grouping_config"] = {
+            "enhancements": enhancement.dumps(),
+            "id": "mobile:2021-02-12",
+        }
+        event2 = manager.save(1)
+        assert event2.data["exception"]["values"][0]["stacktrace"]["frames"][0]["in_app"] is False
+        assert event1.group_id == event2.group_id
+
+    def test_category_match_group(self):
+        """
+        Regression test to ensure categories are applied consistently and don't
+        produce hash mismatches.
+        """
+        from sentry.grouping.enhancer import Enhancements
+
+        enhancement = Enhancements.from_config_string(
+            """
+            function:foo category=foo_like
+            category:foo_like -group
+            """,
+        )
+
+        event = make_event(
+            platform="native",
+            exception={
+                "values": [
+                    {
+                        "type": "Hello",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "foo",
+                                },
+                                {
+                                    "function": "bar",
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        )
+
+        manager = EventManager(event)
+        manager.normalize()
+
+        grouping_config = {
+            "enhancements": enhancement.dumps(),
+            "id": "mobile:2021-02-12",
+        }
+
+        manager.get_data()["grouping_config"] = grouping_config
+        event1 = manager.save(1)
+
+        event2 = Event(event1.project_id, event1.event_id, data=event1.data)
+
+        assert event1.get_hashes().hashes == event2.get_hashes(grouping_config).hashes
+
+    def test_write_none_tree_labels(self):
+        """Write tree labels even if None"""
+
+        event = make_event(
+            platform="native",
+            exception={
+                "values": [
+                    {
+                        "type": "Hello",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "<redacted>",
+                                },
+                                {
+                                    "function": "<redacted>",
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        )
+
+        manager = EventManager(event)
+        manager.normalize()
+
+        manager.get_data()["grouping_config"] = {
+            "id": "mobile:2021-02-12",
+        }
+        event = manager.save(1)
+
+        assert event.data["hierarchical_tree_labels"] == [None]
+
+    def test_synthetic_exception_detection(self):
+        manager = EventManager(
+            make_event(
+                message="foo",
+                event_id="b" * 32,
+                exception={
+                    "values": [
+                        {
+                            "type": "SIGABRT",
+                            "mechanism": {"handled": False},
+                            "stacktrace": {"frames": [{"function": "foo"}]},
+                        }
+                    ]
+                },
+            ),
+            project=self.project,
+        )
+        manager.normalize()
+
+        manager.get_data()["grouping_config"] = {
+            "id": "mobile:2021-02-12",
+        }
+        event = manager.save(1)
+
+        mechanism = event.interfaces["exception"].values[0].mechanism
+        assert mechanism is not None
+        assert mechanism.synthetic is True
+        assert event.title == "foo"
 
 
 class ReleaseIssueTest(TestCase):

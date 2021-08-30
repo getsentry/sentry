@@ -1,6 +1,5 @@
-import {browserHistory, WithRouterProps} from 'react-router';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
+import {Component} from 'react';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {
   changeProjectSlug,
@@ -30,7 +29,7 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 type Props = AsyncView['props'] &
-  WithRouterProps<{orgId: string; projectId: string}> & {
+  RouteComponentProps<{orgId: string; projectId: string}, {}> & {
     organization: Organization;
     onChangeSlug: (slug: string) => void;
   };
@@ -328,12 +327,15 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
 
 type ContainerProps = {
   organization: Organization;
-};
+} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
-const ProjectGeneralSettingsContainer = createReactClass<ContainerProps>({
-  mixins: [Reflux.listenTo(ProjectsStore, 'onProjectsUpdate') as any],
+class ProjectGeneralSettingsContainer extends Component<ContainerProps> {
+  componentWillUnmount() {
+    this.unsubscribe();
+  }
 
-  changedSlug: undefined,
+  changedSlug: string | undefined = undefined;
+  unsubscribe = ProjectsStore.listen(() => this.onProjectsUpdate(), undefined);
 
   onProjectsUpdate() {
     if (!this.changedSlug) {
@@ -354,16 +356,16 @@ const ProjectGeneralSettingsContainer = createReactClass<ContainerProps>({
         },
       })
     );
-  },
+  }
 
   render() {
     return (
       <ProjectGeneralSettings
-        onChangeSlug={newSlug => (this.changedSlug = newSlug)}
+        onChangeSlug={(newSlug: string) => (this.changedSlug = newSlug)}
         {...this.props}
       />
     );
-  },
-});
+  }
+}
 
 export default withOrganization(ProjectGeneralSettingsContainer);

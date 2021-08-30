@@ -32,7 +32,9 @@ node_modules
 /src/sentry/integration-docs
 /src/sentry/loader/_registry.json
 /config/chartcuterie/config.js*
+/config/*.pem
 /tests/apidocs/openapi-derefed.json
+/tests/sentry/utils/appleconnect/*.json
 tests/fixtures/integrations/*/data/**
 /wheelhouse
 /test_cli/

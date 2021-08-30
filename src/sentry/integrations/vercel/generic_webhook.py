@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+from typing import Any, Mapping, Tuple
 
 from django.utils.crypto import constant_time_compare
 from django.views.decorators.csrf import csrf_exempt
@@ -29,6 +30,10 @@ class NoCommitFoundError(IntegrationError):
     pass
 
 
+class MissingRepositoryError(IntegrationError):
+    pass
+
+
 def verify_signature(request):
     # TODO(meredith): Pretty sure they always send both, but once we
     # get rid of old webhooks can update to just check VERCEL_SIGNATURE
@@ -50,7 +55,43 @@ def safe_json_parse(resp):
     return None
 
 
-def get_payload_and_token(payload, organization_id, sentry_project_id):
+def get_commit_sha(meta: Mapping[str, str]) -> str:
+    """Find the commit SHA so we can use it as as the release."""
+    commit_sha = (
+        meta.get("githubCommitSha") or meta.get("gitlabCommitSha") or meta.get("bitbucketCommitSha")
+    )
+
+    if not commit_sha:
+        # This can happen with manual builds.
+        raise NoCommitFoundError("No commit found")
+
+    return commit_sha
+
+
+def get_repository(meta: Mapping[str, str]) -> str:
+    """Construct the repository string depending what provider we use."""
+
+    try:
+        if meta.get("githubCommitSha"):
+            # We use these instead of githubOrg and githubRepo since it's the repo the user has access to.
+            return f'{meta["githubCommitOrg"]}/{meta["githubCommitRepo"]}'
+
+        if meta.get("gitlabCommitSha"):
+            # GitLab repos are formatted with a space for some reason.
+            return f'{meta["gitlabProjectNamespace"]} / {meta["gitlabProjectName"]}'
+
+        if meta.get("bitbucketCommitSha"):
+            return f'{meta["bitbucketRepoOwner"]}/{meta["bitbucketRepoName"]}'
+
+    except KeyError:
+        pass
+
+    raise MissingRepositoryError("Could not determine repository")
+
+
+def get_payload_and_token(
+    payload: Mapping[str, Any], organization_id: int, sentry_project_id: int
+) -> Tuple[Mapping[str, Any], str]:
     meta = payload["deployment"]["meta"]
 
     # look up the project so we can get the slug
@@ -71,33 +112,15 @@ def get_payload_and_token(payload, organization_id, sentry_project_id):
     if not sentry_app_installation_token:
         raise SentryAppInstallationToken.DoesNotExist()
 
-    # find the commmit sha so we can  use it as as the release
-    commit_sha = (
-        meta.get("githubCommitSha") or meta.get("gitlabCommitSha") or meta.get("bitbucketCommitSha")
-    )
-
-    # contruct the repo depeding what provider we use
-    if meta.get("githubCommitSha"):
-        # we use these instead of githubOrg and githubRepo since it's the repo the user has access to
-        repository = "{}/{}".format(meta["githubCommitOrg"], meta["githubCommitRepo"])
-    elif meta.get("gitlabCommitSha"):
-        # gitlab repos are formatted with a space for some reason
-        repository = "{} / {}".format(
-            meta["gitlabProjectNamespace"],
-            meta["gitlabProjectName"],
-        )
-    elif meta.get("bitbucketCommitSha"):
-        repository = "{}/{}".format(meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
-    else:
-        # this can happen with manual builds
-        raise NoCommitFoundError("No commit found")
+    commit_sha = get_commit_sha(meta)
+    repository = get_repository(meta)
 
     release_payload = {
         "version": commit_sha,
         "projects": [project.slug],
         "refs": [{"repository": repository, "commit": commit_sha}],
     }
-    return [release_payload, sentry_app_installation_token.api_token.token]
+    return release_payload, sentry_app_installation_token.api_token.token
 
 
 class VercelGenericWebhookEndpoint(Endpoint):
@@ -207,7 +230,7 @@ class VercelGenericWebhookEndpoint(Endpoint):
         if configuration_id == integration.metadata["installation_id"]:
             # if we are uninstalling a primary configuration, and there are
             # multiple orgs connected to this integration we must update
-            # the crendentials (access_token, webhook_id etc)
+            # the credentials (access_token, webhook_id etc).
             next_config_id, next_config = list(integration.metadata["configurations"].items())[0]
 
             integration.metadata["access_token"] = next_config["access_token"]
@@ -247,7 +270,7 @@ class VercelGenericWebhookEndpoint(Endpoint):
 
     def _deployment_created(self, external_id, request):
         payload = request.data["payload"]
-        # Only create releases for production deloys for now
+        # Only create releases for production deploys for now
         if payload["target"] != "production":
             logger.info(
                 "Ignoring deployment for environment: %s" % payload["target"],
@@ -287,7 +310,7 @@ class VercelGenericWebhookEndpoint(Endpoint):
                 logging_params["project_id"] = sentry_project_id
 
                 try:
-                    [release_payload, token] = get_payload_and_token(
+                    release_payload, token = get_payload_and_token(
                         payload, organization.id, sentry_project_id
                     )
                 except Project.DoesNotExist:
@@ -302,12 +325,14 @@ class VercelGenericWebhookEndpoint(Endpoint):
                 except NoCommitFoundError:
                     logger.info("No commit found", extra=logging_params)
                     return self.respond({"detail": "No commit found"}, status=404)
+                except MissingRepositoryError:
+                    logger.info("Could not determine repository", extra=logging_params)
+                    return self.respond({"detail": "Could not determine repository"}, status=400)
 
-                session = http.build_session()
-                url = absolute_uri("/api/0/organizations/%s/releases/" % organization.slug)
+                url = absolute_uri(f"/api/0/organizations/{organization.slug}/releases/")
                 headers = {
                     "Accept": "application/json",
-                    "Authorization": "Bearer %s" % token,
+                    "Authorization": f"Bearer {token}",
                     "User-Agent": f"sentry_vercel/{VERSION}",
                 }
                 json_error = None
@@ -315,39 +340,42 @@ class VercelGenericWebhookEndpoint(Endpoint):
                 # create the basic release payload without refs
                 no_ref_payload = release_payload.copy()
                 del no_ref_payload["refs"]
-                try:
-                    resp = session.post(url, json=no_ref_payload, headers=headers)
-                    json_error = safe_json_parse(resp)
-                    resp.raise_for_status()
-                except RequestException as e:
-                    # errors here should be uncommon but we should be aware of them
-                    logger.error(
-                        f"Error creating release: {e} - {json_error}",
-                        extra=logging_params,
-                        exc_info=True,
-                    )
-                    # 400 probably isn't the right status code but oh well
-                    return self.respond({"detail": "Error creating release: %s" % e}, status=400)
 
-                # set the refs
-                try:
-                    resp = session.post(
-                        url,
-                        json=release_payload,
-                        headers=headers,
-                    )
-                    json_error = safe_json_parse(resp)
-                    resp.raise_for_status()
-                except RequestException as e:
-                    # errors will probably be common if the user doesn't have repos set up
-                    logger.info(
-                        f"Error setting refs: {e} - {json_error}",
-                        extra=logging_params,
-                        exc_info=True,
-                    )
-                    # 400 probably isn't the right status code but oh well
-                    return self.respond({"detail": "Error setting refs: %s" % e}, status=400)
+                with http.build_session() as session:
+                    try:
+                        resp = session.post(url, json=no_ref_payload, headers=headers)
+                        json_error = safe_json_parse(resp)
+                        resp.raise_for_status()
+                    except RequestException as e:
+                        # errors here should be uncommon but we should be aware of them
+                        logger.error(
+                            f"Error creating release: {e} - {json_error}",
+                            extra=logging_params,
+                            exc_info=True,
+                        )
+                        # 400 probably isn't the right status code but oh well
+                        return self.respond({"detail": f"Error creating release: {e}"}, status=400)
+
+                    # set the refs
+                    try:
+                        resp = session.post(
+                            url,
+                            json=release_payload,
+                            headers=headers,
+                        )
+                        json_error = safe_json_parse(resp)
+                        resp.raise_for_status()
+                    except RequestException as e:
+                        # errors will probably be common if the user doesn't have repos set up
+                        logger.info(
+                            f"Error setting refs: {e} - {json_error}",
+                            extra=logging_params,
+                            exc_info=True,
+                        )
+                        # 400 probably isn't the right status code but oh well
+                        return self.respond({"detail": f"Error setting refs: {e}"}, status=400)
 
                 # we are going to quit after the first project match as there shouldn't be multiple matches
                 return self.respond(status=201)
+
         return self.respond(status=204)

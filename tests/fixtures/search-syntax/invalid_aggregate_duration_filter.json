@@ -1,0 +1,10 @@
+[
+  {
+    "query": "avg(transaction.duration):>..500s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": "avg(transaction.duration):>..500s", "quoted": false},
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

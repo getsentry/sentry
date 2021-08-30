@@ -8,7 +8,7 @@ from sentry.utils.geo import geo_by_addr
 
 
 class UserIP(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     ip_address = models.GenericIPAddressField()
@@ -28,7 +28,7 @@ class UserIP(Model):
     def log(cls, user, ip_address):
         # Only log once every 5 minutes for the same user/ip_address pair
         # since this is hit pretty frequently by all API calls in the UI, etc.
-        cache_key = "userip.log:%d:%s" % (user.id, ip_address)
+        cache_key = f"userip.log:{user.id}:{ip_address}"
         if cache.get(cache_key):
             return
 

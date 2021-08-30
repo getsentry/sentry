@@ -10,23 +10,8 @@ export const modalCss = css`
   }
 
   @media (min-width: ${theme.breakpoints[0]}) {
-    width: 95%;
-  }
-
-  @media (min-width: ${theme.breakpoints[1]}) {
-    width: 75%;
-  }
-
-  @media (min-width: ${theme.breakpoints[2]}) {
-    width: 65%;
-  }
-
-  @media (min-width: ${theme.breakpoints[3]}) {
-    width: 55%;
-  }
-
-  @media (min-width: ${theme.breakpoints[4]}) {
-    width: 45%;
+    width: 100%;
+    max-width: 700px;
   }
 `;
 
@@ -104,6 +89,9 @@ export function getMatchFieldPlaceholder(category: DynamicSamplingInnerName) {
       return t('ex. file://* or example.com (Multiline)');
     case DynamicSamplingInnerName.EVENT_ERROR_MESSAGES:
       return t('ex. TypeError* (Multiline)');
+    case DynamicSamplingInnerName.TRACE_TRANSACTION:
+    case DynamicSamplingInnerName.EVENT_TRANSACTION:
+      return t('ex. "page-load" (Multiline)');
     default:
       return '';
   }

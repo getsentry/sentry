@@ -6,10 +6,10 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import {tct} from 'app/locale';
 import {Choices, IntegrationIssueConfig, IssueConfigField} from 'app/types';
+import {FormField} from 'app/views/alerts/issueRuleEditor/ruleNode';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 import {FieldValue} from 'app/views/settings/components/forms/model';
-import {FormField} from 'app/views/settings/projectAlerts/issueRuleEditor/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';
 
@@ -58,8 +58,8 @@ export default class AbstractExternalIssueForm<
     this.api.request(endpoint, {
       method: 'GET',
       query,
-      success: (data, _, jqXHR) => {
-        this.handleRequestSuccess({stateKey: 'integrationDetails', data, jqXHR}, true);
+      success: (data, _, resp) => {
+        this.handleRequestSuccess({stateKey: 'integrationDetails', data, resp}, true);
       },
       error: error => {
         this.handleError(error, ['integrationDetails', endpoint, null, null]);

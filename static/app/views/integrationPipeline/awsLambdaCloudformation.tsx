@@ -10,7 +10,7 @@ import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {uniqueId} from 'app/utils/guid';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
 
@@ -84,7 +84,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     // generate the cloudformation URL using the params we get from the server
     // and the external id we generate
     const {baseCloudformationUrl, templateUrl, stackName} = this.props;
-    //always us the generated AWS External ID in local storage
+    // always us the generated AWS External ID in local storage
     const awsExternalId = getAwsExternalId();
     const query = qs.stringify({
       templateURL: templateUrl,
@@ -101,7 +101,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   handleSubmit = (e: React.MouseEvent) => {
     this.setState({submitting: true});
     e.preventDefault();
-    //use the external ID from the form on on the submission
+    // use the external ID from the form on on the submission
     const {accountNumber, region, awsExternalId} = this.state;
     const data = {
       accountNumber,
@@ -152,15 +152,12 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
 
   handleChangeShowInputs = () => {
     this.setState({showInputs: true});
-    trackIntegrationEvent(
-      'integrations.installation_input_value_changed',
-      {
-        integration: 'aws_lambda',
-        integration_type: 'first_party',
-        field_name: 'showInputs',
-      },
-      this.props.organization
-    );
+    trackIntegrationAnalytics('integrations.installation_input_value_changed', {
+      integration: 'aws_lambda',
+      integration_type: 'first_party',
+      field_name: 'showInputs',
+      organization: this.props.organization,
+    });
   };
 
   get formValid() {
@@ -168,28 +165,22 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     return !!region && testAccountNumber(accountNumber || '') && !!awsExternalId;
   }
 
-  //debounce so we don't send a request on every input change
+  // debounce so we don't send a request on every input change
   debouncedTrackValueChanged = debounce((fieldName: string) => {
-    trackIntegrationEvent(
-      'integrations.installation_input_value_changed',
-      {
-        integration: 'aws_lambda',
-        integration_type: 'first_party',
-        field_name: fieldName,
-      },
-      this.props.organization
-    );
+    trackIntegrationAnalytics('integrations.installation_input_value_changed', {
+      integration: 'aws_lambda',
+      integration_type: 'first_party',
+      field_name: fieldName,
+      organization: this.props.organization,
+    });
   }, 200);
 
   trackOpenCloudFormation = () => {
-    trackIntegrationEvent(
-      'integrations.cloudformation_link_clicked',
-      {
-        integration: 'aws_lambda',
-        integration_type: 'first_party',
-      },
-      this.props.organization
-    );
+    trackIntegrationAnalytics('integrations.cloudformation_link_clicked', {
+      integration: 'aws_lambda',
+      integration_type: 'first_party',
+      organization: this.props.organization,
+    });
   };
 
   render = () => {
@@ -204,7 +195,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     } = this.state;
     return (
       <React.Fragment>
-        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws-lambda/" />
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/" />
         <StyledList symbol="colored-numeric" initialCounterValue={initialStepNumber}>
           <ListItem>
             <h3>{t("Add Sentry's CloudFormation")}</h3>

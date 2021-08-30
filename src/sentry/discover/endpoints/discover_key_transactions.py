@@ -24,6 +24,32 @@ class KeyTransactionPermission(OrganizationPermission):
     }
 
 
+class LegacyKeyTransactionCountEndpoint(KeyTransactionBase):
+    permission_classes = (KeyTransactionPermission,)
+
+    def get(self, request, organization):
+        """
+        Check how many legacy Key Transactions a user has
+
+        This is used to show the guide to users who previously had key
+        transactions to update their team key transactions
+        """
+        if not self.has_feature(request, organization):
+            return Response(status=404)
+
+        projects = self.get_projects(request, organization)
+
+        try:
+            count = KeyTransaction.objects.filter(
+                organization=organization,
+                owner=request.user,
+                project__in=projects,
+            ).count()
+            return Response({"keyed": count}, status=200)
+        except KeyTransaction.DoesNotExist:
+            return Response({"keyed": 0}, status=200)
+
+
 class IsKeyTransactionEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
@@ -52,7 +78,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
     def get(self, request, organization):
-        if not self.has_team_feature(request, organization):
+        if not self.has_feature(request, organization):
             return Response(status=404)
 
         transaction_name = request.GET.get("transaction")
@@ -76,29 +102,6 @@ class KeyTransactionEndpoint(KeyTransactionBase):
             return Response(status=404)
 
         project = self.get_project(request, organization)
-
-        if not self.has_team_feature(request, organization):
-            base_filter = {"organization": organization, "owner": request.user}
-
-            with transaction.atomic():
-                serializer = serializers.KeyTransactionSerializer(
-                    data=request.data, context=base_filter
-                )
-                if serializer.is_valid():
-                    data = serializer.validated_data
-                    base_filter["transaction"] = data["transaction"]
-                    base_filter["project"] = project
-
-                    if KeyTransaction.objects.filter(**base_filter).exists():
-                        return Response(status=204)
-
-                    try:
-                        KeyTransaction.objects.create(**base_filter)
-                        return Response(status=201)
-                    # Even though we tried to avoid it, this KeyTransaction was created already
-                    except IntegrityError:
-                        return Response(status=204)
-                return Response(serializer.errors, status=400)
 
         with transaction.atomic():
             serializer = serializers.TeamKeyTransactionSerializer(
@@ -155,22 +158,6 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
         project = self.get_project(request, organization)
 
-        if not self.has_team_feature(request, organization):
-            transaction = request.data["transaction"]
-            try:
-                model = KeyTransaction.objects.get(
-                    transaction=transaction,
-                    organization=organization,
-                    project=project,
-                    owner=request.user,
-                )
-            except KeyTransaction.DoesNotExist:
-                return Response(status=204)
-
-            model.delete()
-
-            return Response(status=204)
-
         serializer = serializers.TeamKeyTransactionSerializer(
             data=request.data,
             context={
@@ -195,11 +182,6 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
 class KeyTransactionListEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
-
-    def has_feature(self, request, organization):
-        return super().has_feature(request, organization) and super().has_team_feature(
-            request, organization
-        )
 
     def get(self, request, organization):
         if not self.has_feature(request, organization):
@@ -236,9 +218,13 @@ class KeyTransactionTeamSerializer(Serializer):
         self.project_ids = {project.id for project in projects}
 
     def get_attrs(self, item_list, user, **kwargs):
-        team_key_transactions = TeamKeyTransaction.objects.filter(
-            project_team__in=ProjectTeam.objects.filter(team__in=item_list),
-        ).order_by("transaction", "project_team__project_id")
+        team_key_transactions = (
+            TeamKeyTransaction.objects.filter(
+                project_team__in=ProjectTeam.objects.filter(team__in=item_list),
+            )
+            .select_related("project_team__project", "project_team__team")
+            .order_by("transaction", "project_team__project_id")
+        )
 
         attrs = defaultdict(
             lambda: {

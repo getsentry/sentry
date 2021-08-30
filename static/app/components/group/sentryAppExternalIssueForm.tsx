@@ -17,7 +17,7 @@ import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
 import {Field, FieldValue} from 'app/views/settings/components/forms/type';
 
-//0 is a valid choice but empty string, undefined, and null are not
+// 0 is a valid choice but empty string, undefined, and null are not
 const hasValue = value => !!value || value === 0;
 
 type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
@@ -35,7 +35,7 @@ type Config = {
   optional_fields?: FieldFromSchema[];
 };
 
-//only need required_fields and optional_fields
+// only need required_fields and optional_fields
 type State = Omit<Config, 'uri'> & {
   optionsByField: Map<string, Array<{label: string; value: any}>>;
 };
@@ -67,14 +67,14 @@ export class SentryAppExternalIssueForm extends Component<Props, State> {
 
   model = new FormModel();
 
-  //reset the state when we mount or the action changes
+  // reset the state when we mount or the action changes
   resetStateFromProps() {
     const {config, action, group} = this.props;
     this.setState({
       required_fields: config.required_fields,
       optional_fields: config.optional_fields,
     });
-    //we need to pass these fields in the API so just set them as values so we don't need hidden form fields
+    // we need to pass these fields in the API so just set them as values so we don't need hidden form fields
     this.model.setInitialData({
       action,
       groupId: group.id,
@@ -128,7 +128,7 @@ export class SentryAppExternalIssueForm extends Component<Props, State> {
         accum[dependentField] = this.model.getValue(dependentField);
         return accum;
       }, {});
-      //stringify the data
+      // stringify the data
       query.dependentData = JSON.stringify(dependentData);
     }
 
@@ -186,7 +186,7 @@ export class SentryAppExternalIssueForm extends Component<Props, State> {
 
     const fieldList: FieldFromSchema[] = requiredFields.concat(optionalFields);
 
-    //could have multiple impacted fields
+    // could have multiple impacted fields
     const impactedFields = fieldList.filter(({depends_on}) => {
       if (!depends_on) {
         return false;
@@ -195,20 +195,20 @@ export class SentryAppExternalIssueForm extends Component<Props, State> {
       return depends_on.includes(id);
     });
 
-    //load all options in parallel
+    // load all options in parallel
     const choiceArray = await Promise.all(
       impactedFields.map(field => {
-        //reset all impacted fields first
+        // reset all impacted fields first
         this.model.setValue(field.name || '', '', {quiet: true});
         return this.makeExternalRequest(field, '');
       })
     );
 
     this.setState(state => {
-      //pull the field lists from latest state
+      // pull the field lists from latest state
       requiredFields = state.required_fields || [];
       optionalFields = state.optional_fields || [];
-      //iterate through all the impacted fields and get new values
+      // iterate through all the impacted fields and get new values
       impactedFields.forEach((impactedField, i) => {
         const choices = choiceArray[i];
         const requiredIndex = requiredFields.indexOf(impactedField);
@@ -216,7 +216,7 @@ export class SentryAppExternalIssueForm extends Component<Props, State> {
 
         const updatedField = {...impactedField, choices};
 
-        //immutably update the lists with the updated field depending where we got it from
+        // immutably update the lists with the updated field depending where we got it from
         if (requiredIndex > -1) {
           requiredFields = replaceAtArrayIndex(
             requiredFields,
@@ -239,8 +239,8 @@ export class SentryAppExternalIssueForm extends Component<Props, State> {
   };
 
   renderField = (field: FieldFromSchema, required: boolean) => {
-    //This function converts the field we get from the backend into
-    //the field we need to pass down
+    // This function converts the field we get from the backend into
+    // the field we need to pass down
     let fieldToPass: Field = {
       ...field,
       inline: false,
@@ -249,8 +249,8 @@ export class SentryAppExternalIssueForm extends Component<Props, State> {
       required,
     };
 
-    //async only used for select components
-    const isAsync = typeof field.async === 'undefined' ? true : !!field.async; //default to true
+    // async only used for select components
+    const isAsync = typeof field.async === 'undefined' ? true : !!field.async; // default to true
 
     if (fieldToPass.type === 'select') {
       // find the options from state to pass down
@@ -260,7 +260,7 @@ export class SentryAppExternalIssueForm extends Component<Props, State> {
       }));
       const options = this.state.optionsByField.get(field.name) || defaultOptions;
       const allowClear = !required;
-      //filter by what the user is typing
+      // filter by what the user is typing
       const filterOption = createFilter({});
       fieldToPass = {
         ...fieldToPass,
@@ -269,7 +269,7 @@ export class SentryAppExternalIssueForm extends Component<Props, State> {
         filterOption,
         allowClear,
       };
-      //default message for async select fields
+      // default message for async select fields
       if (isAsync) {
         fieldToPass.noOptionsMessage = () => 'Type to search';
       }
@@ -278,7 +278,7 @@ export class SentryAppExternalIssueForm extends Component<Props, State> {
     }
 
     if (field.depends_on) {
-      //check if this is dependent on other fields which haven't been set yet
+      // check if this is dependent on other fields which haven't been set yet
       const shouldDisable = field.depends_on.some(
         dependentField => !hasValue(this.model.getValue(dependentField))
       );
@@ -287,7 +287,7 @@ export class SentryAppExternalIssueForm extends Component<Props, State> {
       }
     }
 
-    //if we have a uri, we need to set extra parameters
+    // if we have a uri, we need to set extra parameters
     const extraProps = field.uri
       ? {
           loadOptions: (input: string) => this.getOptions(field, input),

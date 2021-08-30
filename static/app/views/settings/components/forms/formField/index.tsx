@@ -121,7 +121,7 @@ type BaseProps<P> = {
   defaultValue?: FieldValue;
   resetOnError?: boolean;
   placeholder?: ObservedFnOrValue<P, React.ReactNode>;
-  formatMessageValue?: boolean | Function; //used in prettyFormString
+  formatMessageValue?: boolean | Function; // used in prettyFormString
 };
 
 type Props<P> = BaseProps<P> & ObservableProps<P> & Omit<Field['props'], PropToObserve>;

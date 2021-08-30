@@ -79,6 +79,10 @@ error.mechanism:ANR invert-stacktrace=1
 # Note: Newer iOS SDK sends snapshot flag, so this is not strictly necessary.
 error.mechanism:NSError invert-stacktrace=1
 
+# Dart/Flutter stacktraces that are not in-app
+family:javascript stack.abs_path:org-dartlang-sdk* -app -group
+family:javascript module:flutter/flutter/packages/flutter/* -app
+
 # Categorization of frames
 family:native package:"/System/Library/Frameworks/**" category=system
 family:native package:"C:/Windows/**" category=system
@@ -88,16 +92,20 @@ family:native function:memcpy category=system
 family:native function:__memcpy category=system
 family:native function:memcmp category=system
 family:native package:CoreFoundation category=system
+family:native package:Foundation category=system
+family:native package:CFNetwork category=system
 family:native package:IOKit category=system
 family:native package:QuartzCore category=system
 family:native package:IOMobileFramebuffer category=system
 family:native package:libobjc* category=system
+family:native package:libsystem* category=system
 family:native package:/system/** category=system
 family:native package:/vendor/** category=system
 module:dalvik.system.* category=system
 module:com.android.* category=system
 family:native package:libdispatch.dylib category=system
 family:native package:WebKit category=system
+family:native package:**/libart.so category=system
 package:/apex/com.android.*/lib*/** category=system
 
 # (Presumably) preinstalled stuff on Lenovo Android devices
@@ -119,15 +127,21 @@ module:android.os.* category=system
 
 family:native package:UIKit category=ui
 family:native package:UIKitCore category=ui
-family:native package:UIKitCore category=ui
+family:native package:SwiftUI category=ui
+family:native package:AttributeGraph category=ui
+family:native package:CoreAutoLayout category=ui
+family:native package:GraphicsServices category=ui
+family:native function:"-\[NSISEngine*" category=ui  # auto-layout engine
 module:android.view.* category=ui
 module:android.text.* category=ui
 module:android.widget.* category=ui
 module:android.app.Dialog category=ui
+module:androidx.*.widget.* category=ui
+module:com.google.android.material.* category=ui
 category:ui function:handleMessage category=indirection
 category:ui function:run category=indirection
 
-family:native package:**/libart.so category=gc
+family:native function:art::jit::* category=runtime
 
 family:native package:/system/lib/libmedia.so category=av
 family:native package:/System/lib/libaudioclient.so category=av
@@ -135,8 +149,13 @@ family:native package:AudioToolbox* category=av
 family:native package:libAudioToolboxUtility.dylib category=av
 
 family:native function:std::_* category=internals
+family:native function:__swift_* category=internals
+family:native function:block_destroy_helper* category=internals
+family:native function:*_block_invoke* category=internals
 
 family:native package:/usr/lib/system/** function:start category=threadbase
+family:native package:libdyld.dylib function:start category=threadbase
+family:native package:UIKitCore function:UIApplicationMain category=threadbase
 family:native function:wWinMain category=threadbase
 family:native function:invoke_main category=threadbase
 family:native function:BaseThreadInitThunk category=threadbase
@@ -152,16 +171,21 @@ family:native function:_pthread_wqthread category=threadbase
 family:native function:boost::*::thread_proxy category=threadbase
 family:native package:/usr/lib/system/libsystem_pthread.dylib function:"<unknown>" category=threadbase
 module:android.os.AsyncTask* function:call category=threadbase
-module:java.lang.Thread category=threadbase
 family:native package:UIKit function:UIApplicationMain category=threadbase
 module:java.util.concurrent.ThreadPoolExecutor* function:runWorker category=threadbase
 module:android.os.* function:call category=threadbase
 module:android.app.ActivityThread function:main category=threadbase
+module:android.view.View function:layout category=threadbase
+module:android.os.Looper function:loop category=threadbase
+family:native function:TppWorkerThread category=threadbase
+family:native function:TppWorkpExecuteCallback category=threadbase
+family:native function:RtlpTpWorkCallback category=threadbase
+module:android.os.Handler function:dispatchMessage category=threadbase
+module:android.os.Handler function:handleCallback category=threadbase
+module:android.app.ActivityThread* function:handleMessage category=threadbase
 
-family:native package:"/usr/lib/system/libsystem_malloc.dylib" category=malloc
+family:native package:"**/libsystem_malloc.dylib" category=malloc
 family:native function:malloc category=malloc
-family:native function:malloc_report category=oom
-family:native function:malloc_vreport category=oom
 family:native function:malloc_base category=malloc
 family:native function:RtlpAllocateHeapInternal category=malloc
 family:native function:std::*::allocator_traits* category=malloc
@@ -173,11 +197,12 @@ family:native function:__dynamic_cast category=indirection
 family:native function:boost::function* category=indirection
 family:native function:boost::_bi::* category=indirection
 family:native function:boost::detail::function::functor_manager* category=indirection
+family:native function:Array.subscript.* category=indirection
 module:java.lang.reflect.* category=indirection
 module:java.lang.Class function:getMethod category=indirection
 module:androidx.work.impl.utils.ForceStopRunnable category=indirection
 
-family:native function:"*::\{dtor\}" category=dtor
+family:native function:"*::\\{dtor\\}" category=dtor
 family:native function:"destructor'" category=dtor
 
 family:native function:exit category=shutdown
@@ -200,12 +225,13 @@ family:native function:RaiseException category=throw
 family:native function:RaiseComPlusException category=throw
 family:native function:_CFThrowFormattedException category=throw
 family:native function:objc_exception_throw category=throw
+family:native function:AG::precondition_failure* category=throw
 
-family:native package:"C:/WINDOWS/system32/DriverStore\**" category=driver
+family:native package:"C:/WINDOWS/system32/DriverStore/**" category=driver
 family:native package:"/System/Library/Extensions/AppleIntel*GraphicsGLDriver.bundle/**" category=driver
 family:native function:*CUDA* category=driver
 family:native package:**/nvcuda.dll category=driver
-family:native package:"C:\Program Files\NVIDIA Corporation\**" category=driver
+family:native package:"C:/Program Files/NVIDIA Corporation/**" category=driver
 family:native package:/System/Library/Extensions/GeForceGLDriver.bundle/** category=driver
 family:native package:/System/Library/Extensions/AMDRadeon*/** category=driver
 family:native package:/System/Library/PrivateFrameworks/GPUSupport.framework/** category=driver
@@ -215,9 +241,12 @@ family:native package:AGXGLDriver category=driver
 family:native function:RtlFreeHeap category=free
 family:native function:RtlFreeUnicodeString category=free
 family:native function:std::_Deallocate category=free
-family:native category:system function:free category=free
+family:native function:free category=free
+family:native function:objc_release category=free
+family:native function:_swift_release_dealloc category=free
+family:native function:_CFRelease category=free
 
-family:native package:C:\Windows\SYSTEM32\OPENGL32.dll category=gl
+family:native package:C:/Windows/SYSTEM32/OPENGL32.dll category=gl
 family:native package:/System/Library/Frameworks/OpenGL.framework/** category=gl
 family:native package:OpenGLES category=gl
 family:native package:GLEngine category=gl
@@ -239,23 +268,48 @@ module:cn.gundam.sdk.* category=telemetry
 # entirely sure if any of that is linked into the app, it's probably something
 # preinstalled on Lenovo devices.
 module:com.lenovo.payplus.analytics.* category=telemetry
+package:"**/libBugly.so" category=telemetry
 
 family:native function:dlopen category=load
+family:native function:dladdr category=load
+family:native function:ImageLoaderMachO::findClosestSymbol category=load
 family:native package:/system/lib/libnativeloader.so function:android::OpenNativeLibrary category=load
 module:java.lang.System function:loadLibrary category=load
 module:java.lang.Runtime function:loadLibrary* category=load
 
 family:native function:pthread_mutex_lock category=lock
 
-# Semi-interesting frames
-category:driver +sentinel +prefix
-category:free +sentinel +prefix
-category:malloc +sentinel +prefix
+# not interesting at all, if for some reason this gets picked as grouping
+# frame, add the next one too
+category:free +prefix
+category:malloc +prefix
+
+# lock: fails to get acquired/released
 category:lock +sentinel +prefix
+
+# load: dylib/module fails to get loaded
 category:load +sentinel +prefix
-category:gl +sentinel
-category:gc +sentinel
+
+# driver crash, similar reasoning as for GL
+category:driver +sentinel +prefix
+
+# UI: This is mostly interesting for ANR, where we need to pick interesting UI
+# frames to group by. Sometimes it can also happen that some UI framework
+# crashes without the (calling) app being at fault, that's where this also gets
+# useful.
 category:ui +sentinel +prefix
+
+# GL: We've observed that the same sequence of app
+# ("submit data buffer") frames triggers very different crashes in there.
+category:gl +sentinel
+
+# runtime: frames from a garbage collector, JIT or something else in the language
+# runtime. Only add frames to this category if you think their presence makes it
+# unlikely that app frames are relevant, e.g. because app frames can't call the
+# JIT/GC directly, or at least not this way and it's really the runtime being
+# buggy, not the app (or at least unlikely that it's the app code currently running).
+category:runtime +sentinel
+
 
 # Ignore driver frame if it is directly calling another driver frame. This
 # removes a lot of noise from the stack especially if most of the called frames
@@ -273,7 +327,7 @@ category:driver | [ category:driver ] category=internals
 
 # abort() and exception raising is technically the culprit for crashes, but not
 # the thing we want to show.
-category:throw +sentinel +prefix ^-group
+category:throw +prefix ^-group
 
 # On Windows, _purecall internally aborts when the function pointer is invalid.
 # We want to treat this the same as a segfault happening before calling
@@ -308,6 +362,20 @@ family:native category:system function:_* !function:_purecall category=internals
 family:native category:system function:"<unknown>" category=internals
 family:native function:_INTERNAL* category=internals
 
+
+# We should be able to write this, but unfortunately sentry-cocoa 6.x is so
+# buggy with detecting compiler-generated code that we have decided to go with a
+# list of function name patterns instead:
+# path:"<compiler-generated>" category=internals
+
+family:native function:closure category=internals
+family:native function:Collection.map<T> category=internals
+family:native function:Array.subscript.getter category=internals
+family:native function:Array._getElement category=internals
+family:native function:_ArrayBuffer._nativeTypeChecked.getter category=internals
+family:native function:range category=internals
+family:native function:@callee_guaranteed category=internals
+
 # frames with .cold.1 are probably hotpaths vs slow paths but not relevant for grouping
 # e.g., two callstacks that should group together:
 #   foo -> bar
@@ -325,9 +393,10 @@ family:native function:*.cold.1 category=indirection
 [ category:ui ]         | category:ui      category=internals
 [ category:ui ]         | category:system  category=internals
 [ category:internals ]  | category:system  category=internals
+[ category:internals ]  | category:ui      category=internals
 [ category:load ]       | category:system  category=internals
 [ category:load ]       | category:load    category=internals
 [ category:throw ]      | category:system  category=internals
-[ category:gc ]         | category:system  category=internals
-[ category:gc ]         | category:gc      category=internals
+[ category:runtime ]    | category:system  category=internals
+[ category:runtime ]    | category:runtime category=internals
 [ category:dtor ]       | category:dtor    category=internals

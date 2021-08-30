@@ -5,7 +5,6 @@ from rest_framework.exceptions import ParseError, PermissionDenied
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.helpers.teams import get_teams
 from sentry.api.permissions import SentryPermission
 from sentry.api.utils import (
     InvalidParams,
@@ -25,6 +24,7 @@ from sentry.models import (
 from sentry.utils import auth
 from sentry.utils.compat import map
 from sentry.utils.hashlib import hash_values
+from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import bind_organization_context
 
 
@@ -257,9 +257,6 @@ class OrganizationEndpoint(Endpoint):
     def get_environments(self, request, organization):
         return get_environments(request, organization)
 
-    def get_teams(self, request, organization):
-        return get_teams(request, organization)
-
     def get_filter_params(
         self, request, organization, date_filter_optional=False, project_ids=None
     ):
@@ -311,10 +308,7 @@ class OrganizationEndpoint(Endpoint):
 
         len_projects = len(projects)
         sentry_sdk.set_tag("query.num_projects", len_projects)
-        sentry_sdk.set_tag(
-            "query.num_projects.grouped",
-            "<10" if len_projects < 10 else "<100" if len_projects < 100 else ">100",
-        )
+        sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
 
         params = {
             "start": start,
@@ -327,10 +321,6 @@ class OrganizationEndpoint(Endpoint):
         if environments:
             params["environment"] = [env.name for env in environments]
             params["environment_objects"] = environments
-
-        teams = self.get_teams(request, organization)
-        if teams:
-            params["team_id"] = [team.id for team in teams]
 
         return params
 

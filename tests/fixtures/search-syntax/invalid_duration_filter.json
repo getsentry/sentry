@@ -1,0 +1,21 @@
+[
+  {
+    "query": "transaction.duration:>..500s",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "filter": "text",
+        "negated": false,
+        "operator": "",
+        "invalid": {
+          "reason": "Invalid duration. Expected number followed by duration unit suffix",
+          "expectedType": ["duration"]
+        },
+        "key": {"quoted": false, "type": "keySimple", "value": "transaction.duration"},
+        "type": "filter",
+        "value": {"quoted": false, "type": "valueText", "value": ">..500s"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

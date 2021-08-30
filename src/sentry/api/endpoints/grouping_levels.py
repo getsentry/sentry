@@ -1,25 +1,44 @@
 from dataclasses import dataclass
 
-from rest_framework.exceptions import APIException
 from snuba_sdk.query import Column, Entity, Function, Query
 
 from sentry import features
 from sentry.api.bases import GroupEndpoint
 from sentry.api.endpoints.group_hashes_split import _construct_arraymax, _get_group_filters
+from sentry.api.exceptions import SentryAPIException, status
+from sentry.grouping.api import get_grouping_config_dict_for_project, load_grouping_config
 from sentry.models import Group, GroupHash
 from sentry.utils import snuba
 
 
-class NoEvents(APIException):
-    status_code = 403
-    default_detail = "This issue has no events."
-    default_code = "no_events"
+class NoEvents(SentryAPIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "no_events"
+    message = "This issue has no events."
 
 
-class MergedIssues(APIException):
-    status_code = 403
-    default_detail = "The issue can only contain one fingerprint. It needs to be fully unmerged before grouping levels can be shown."
-    default_code = "merged_issues"
+class MergedIssues(SentryAPIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "merged_issues"
+    message = "The issue can only contain one fingerprint. It needs to be fully unmerged before grouping levels can be shown."
+
+
+class MissingFeature(SentryAPIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "missing_feature"
+    message = "This project does not have the grouping tree feature."
+
+
+class IssueNotHierarchical(SentryAPIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "issue_not_hierarchical"
+    message = "This issue does not have hierarchical grouping."
+
+
+class ProjectNotHierarchical(SentryAPIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "project_not_hierarchical"
+    message = "This project does not have hierarchical grouping."
 
 
 class GroupingLevelsEndpoint(GroupEndpoint):
@@ -51,15 +70,14 @@ class GroupingLevelsEndpoint(GroupEndpoint):
         featureflags are missing.
         """
 
-        if not features.has(
-            "organizations:grouping-tree-ui", group.project.organization, actor=request.user
-        ):
-            return self.respond(
-                {"error": "This project does not have the grouping tree feature"},
-                status=403,
-            )
+        check_feature(group.project.organization, request)
 
         return self.respond(_list_levels(group), status=200)
+
+
+def check_feature(organization, request):
+    if not features.has("organizations:grouping-tree-ui", organization, actor=request.user):
+        raise MissingFeature()
 
 
 def _current_level_expr(group):
@@ -115,6 +133,11 @@ def get_levels_overview(group):
 
     fields = res["data"][0]
 
+    if fields["num_levels"] <= 0:
+        if not _project_has_hierarchical_grouping(group.project):
+            raise ProjectNotHierarchical()
+        raise IssueNotHierarchical()
+
     # TODO: Cache this if it takes too long. This is called from multiple
     # places, grouping overview and then again in the new-issues endpoint.
 
@@ -130,11 +153,16 @@ def _list_levels(group):
 
     # It is a little silly to transfer a list of integers rather than just
     # giving the UI a range, but in the future we may want to add
-    # additional fields to each level. Also it is good if the UI does not
-    # assume too much about the form of IDs.
-    levels = [{"id": str(i)} for i in range(fields.num_levels)]
+    # additional fields to each level.
+    levels = [{"id": i} for i in range(fields.num_levels)]
 
     current_level = fields.current_level
-    assert levels[current_level]["id"] == str(current_level)
+    assert levels[current_level]["id"] == current_level
     levels[current_level]["isCurrent"] = True
     return {"levels": levels}
+
+
+def _project_has_hierarchical_grouping(project):
+    config_dict = get_grouping_config_dict_for_project(project)
+    config = load_grouping_config(config_dict)
+    return config.initial_context["hierarchical_grouping"]

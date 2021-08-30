@@ -10,6 +10,7 @@ import * as queryString from 'query-string';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import SelectControl from 'app/components/forms/selectControl';
+import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -32,7 +33,7 @@ import {
   isDocumentIntegration,
   isPlugin,
   isSentryApp,
-  trackIntegrationEvent,
+  trackIntegrationAnalytics,
 } from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -98,7 +99,7 @@ export class IntegrationListDirectory extends AsyncComponent<
       orgOwnedApps.push(extraApp);
     }
 
-    // we dont want the app to render twice if its the org that created
+    // we don't want the app to render twice if its the org that created
     // the published app.
     const orgOwned = orgOwnedApps?.filter(
       app => !published.find(p => p.slug === app.slug)
@@ -129,31 +130,31 @@ export class IntegrationListDirectory extends AsyncComponent<
   }
 
   trackPageViewed() {
-    //count the number of installed apps
+    // count the number of installed apps
 
     const {integrations, publishedApps, plugins} = this.state;
     const integrationsInstalled = new Set();
-    //add installed integrations
+    // add installed integrations
     integrations?.forEach((integration: Integration) => {
       integrationsInstalled.add(integration.provider.key);
     });
-    //add sentry apps
+    // add sentry apps
     publishedApps?.filter(this.getAppInstall).forEach((sentryApp: SentryApp) => {
       integrationsInstalled.add(sentryApp.slug);
     });
-    //add plugins
+    // add plugins
     plugins?.forEach((plugin: PluginWithProjectList) => {
       if (plugin.projectList.length) {
         integrationsInstalled.add(plugin.slug);
       }
     });
-    trackIntegrationEvent(
+    trackIntegrationAnalytics(
       'integrations.index_viewed',
       {
         integrations_installed: integrationsInstalled.size,
         view: 'integrations_directory',
+        organization: this.props.organization,
       },
-      this.props.organization,
       {startSession: true}
     );
   }
@@ -199,7 +200,7 @@ export class IntegrationListDirectory extends AsyncComponent<
   getAppInstall = (app: SentryApp) =>
     this.state.appInstalls?.find(i => i.app.slug === app.slug);
 
-  //Returns 0 if uninstalled, 1 if pending, and 2 if installed
+  // Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProviderOrPlugin) {
     const {integrations} = this.state;
 
@@ -239,17 +240,17 @@ export class IntegrationListDirectory extends AsyncComponent<
 
   sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
     return integrations.sort((a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
-      //sort by whether installed first
+      // sort by whether installed first
       const diffWeight = this.sortByInstalled(a, b);
       if (diffWeight !== 0) {
         return diffWeight;
       }
-      //then sort by popularity
+      // then sort by popularity
       const diffPop = this.sortByPopularity(a, b);
       if (diffPop !== 0) {
         return diffPop;
       }
-      //then sort by name
+      // then sort by name
       return this.sortByName(a, b);
     });
   }
@@ -268,15 +269,12 @@ export class IntegrationListDirectory extends AsyncComponent<
   }
 
   debouncedTrackIntegrationSearch = debounce((search: string, numResults: number) => {
-    trackIntegrationEvent(
-      'integrations.directory_item_searched',
-      {
-        view: 'integrations_directory',
-        search_term: search,
-        num_results: numResults,
-      },
-      this.props.organization
-    );
+    trackIntegrationAnalytics('integrations.directory_item_searched', {
+      view: 'integrations_directory',
+      search_term: search,
+      num_results: numResults,
+      organization: this.props.organization,
+    });
   }, TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS);
 
   /**
@@ -349,14 +347,11 @@ export class IntegrationListDirectory extends AsyncComponent<
       this.updateDisplayedList();
 
       if (category) {
-        trackIntegrationEvent(
-          'integrations.directory_category_selected',
-          {
-            view: 'integrations_directory',
-            category,
-          },
-          this.props.organization
-        );
+        trackIntegrationAnalytics('integrations.directory_category_selected', {
+          view: 'integrations_directory',
+          category,
+          organization: this.props.organization,
+        });
       }
     });
   };
@@ -364,7 +359,7 @@ export class IntegrationListDirectory extends AsyncComponent<
   // Rendering
   renderProvider = (provider: IntegrationProvider) => {
     const {organization} = this.props;
-    //find the integration installations for that provider
+    // find the integration installations for that provider
     const integrations =
       this.state.integrations?.filter(i => i.provider.key === provider.key) ?? [];
 
@@ -386,10 +381,9 @@ export class IntegrationListDirectory extends AsyncComponent<
 
   renderPlugin = (plugin: PluginWithProjectList) => {
     const {organization} = this.props;
-
     const isLegacy = plugin.isHidden;
     const displayName = `${plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
-    //hide legacy integrations if we don't have any projects with them
+    // hide legacy integrations if we don't have any projects with them
     if (isLegacy && !plugin.projectList.length) {
       return null;
     }
@@ -405,11 +399,12 @@ export class IntegrationListDirectory extends AsyncComponent<
         publishStatus="published"
         configurations={plugin.projectList.length}
         categories={getCategoriesForIntegration(plugin)}
+        plugin={plugin}
       />
     );
   };
 
-  //render either an internal or non-internal app
+  // render either an internal or non-internal app
   renderSentryApp = (app: SentryApp) => {
     const {organization} = this.props;
     const status = getSentryAppInstallStatus(this.getAppInstall(app));
@@ -514,7 +509,7 @@ export class IntegrationListDirectory extends AsyncComponent<
                 <EmptyResultsBody>
                   {tct('[link:Build it on the Sentry Integration Platform.]', {
                     link: (
-                      <a href="https://docs.sentry.io/product/integrations/integration-platform/" />
+                      <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/" />
                     ),
                   })}
                 </EmptyResultsBody>

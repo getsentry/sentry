@@ -14,7 +14,7 @@ import {IntegrationFeature, Organization, SentryApp} from 'app/types';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import {
   getIntegrationFeatureGate,
-  trackIntegrationEvent,
+  trackIntegrationAnalytics,
 } from 'app/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
@@ -31,10 +31,10 @@ type State = {
   featureData: IntegrationFeature[];
 } & AsyncComponent['state'];
 
-//No longer a modal anymore but yea :)
+// No longer a modal anymore but yea :)
 export default class SentryAppDetailsModal extends AsyncComponent<Props, State> {
   componentDidUpdate(prevProps: Props) {
-    //if the user changes org, count this as a fresh event to track
+    // if the user changes org, count this as a fresh event to track
     if (this.props.organization.id !== prevProps.organization.id) {
       this.trackOpened();
     }
@@ -48,7 +48,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     const {sentryApp, organization, isInstalled} = this.props;
     recordInteraction(sentryApp.slug, 'sentry_app_viewed');
 
-    trackIntegrationEvent(
+    trackIntegrationAnalytics(
       'integrations.install_modal_opened',
       {
         integration_type: 'sentry_app',
@@ -56,8 +56,8 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
         already_installed: isInstalled,
         view: 'external_install',
         integration_status: sentryApp.status,
+        organization,
       },
-      organization,
       {startSession: true}
     );
   }
@@ -80,8 +80,8 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
 
   async onInstall() {
     const {onInstall} = this.props;
-    //we want to make sure install finishes before we close the modal
-    //and we should close the modal if there is an error as well
+    // we want to make sure install finishes before we close the modal
+    // and we should close the modal if there is an error as well
     try {
       await onInstall();
     } catch (_err) {

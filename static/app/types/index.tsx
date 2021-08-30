@@ -105,8 +105,8 @@ declare global {
      */
     adblockSuspected?: boolean;
 
-    //typing currently used for demo add on
-    //TODO: improve typing
+    // typing currently used for demo add on
+    // TODO: improve typing
     SentryApp?: {
       HookStore: any;
       ConfigStore: any;
@@ -298,6 +298,11 @@ export type Project = {
   transactionStats?: TimeseriesValue[];
   latestRelease?: Release;
   options?: Record<string, boolean | string>;
+  sessionStats?: {
+    currentCrashFreeRate: number | null;
+    previousCrashFreeRate: number | null;
+    hasHealthData: boolean;
+  };
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
@@ -366,6 +371,18 @@ export type Team = {
 
 export type TeamWithProjects = Team & {projects: Project[]};
 
+export type TreeLabelPart =
+  | string
+  | {
+      function?: string;
+      package?: string;
+      type?: string;
+      classbase?: string;
+      datapath?: (string | number)[];
+      is_sentinel?: boolean;
+      is_prefix?: boolean;
+    };
+
 // This type is incomplete
 export type EventMetadata = {
   value?: string;
@@ -378,6 +395,9 @@ export type EventMetadata = {
   origin?: string;
   function?: string;
   stripped_crash?: boolean;
+  current_tree_label?: TreeLabelPart[];
+  finest_tree_label?: TreeLabelPart[];
+  current_level?: number;
 };
 
 export type EventAttachment = {
@@ -401,7 +421,7 @@ type EnableIntegrationSuggestion = {
   integrationUrl?: string | null;
 };
 
-type UpdateSdkSuggestion = {
+export type UpdateSdkSuggestion = {
   type: 'updateSdk';
   sdkName: string;
   newSdkVersion: string;
@@ -435,10 +455,14 @@ export type EventsStats = {
   data: EventsStatsData;
   totals?: {count: number};
   order?: number;
+  start?: number;
+  end?: number;
 };
 
 // API response format for multiple series
-export type MultiSeriesEventsStats = {[seriesName: string]: EventsStats};
+export type MultiSeriesEventsStats = {
+  [seriesName: string]: EventsStats;
+};
 
 /**
  * Avatars are a more primitive version of User.
@@ -448,9 +472,9 @@ export type AvatarUser = {
   name: string;
   username: string;
   email: string;
+  ip_address: string;
   avatarUrl?: string;
   avatar?: Avatar;
-  ip_address: string;
   // Compatibility shim with EventUser serializer
   ipAddress?: string;
   options?: {
@@ -571,6 +595,9 @@ export type PluginNoProject = {
   author?: {name: string; url: string};
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
+  altIsSentryApp?: boolean;
+  deprecationDate?: string;
+  firstPartyAlternative?: string;
 };
 
 export type Plugin = PluginNoProject & {
@@ -613,6 +640,7 @@ export type RelativePeriod = keyof typeof DEFAULT_RELATIVE_PERIODS;
 export type IntervalPeriod = ReturnType<typeof getInterval>;
 
 export type GlobalSelection = {
+  // Project Ids currently selected
   projects: number[];
   environments: string[];
   datetime: {
@@ -644,6 +672,10 @@ export type Authenticator = {
    */
   allowMultiEnrollment: boolean;
   /**
+   * Allows authenticator's secret to be rotated without disabling
+   */
+  allowRotationInPlace: boolean;
+  /**
    * String to display on button for user to remove authenticator
    */
   removeButton: string | null;
@@ -664,6 +696,8 @@ export type Authenticator = {
    * Description of the authenticator
    */
   description: string;
+  rotationWarning: string | null;
+  status: string;
   createdAt: string | null;
   lastUsedAt: string | null;
   codes: string[];
@@ -755,20 +789,24 @@ export enum DataCategory {
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
 }
+
+export type EventType = 'error' | 'transaction' | 'attachment';
+
 export const DataCategoryName = {
   [DataCategory.ERRORS]: 'Errors',
   [DataCategory.TRANSACTIONS]: 'Transactions',
   [DataCategory.ATTACHMENTS]: 'Attachments',
 };
 
-export type EventOrGroupType =
-  | 'error'
-  | 'csp'
-  | 'hpkp'
-  | 'expectct'
-  | 'expectstaple'
-  | 'default'
-  | 'transaction';
+export enum EventOrGroupType {
+  ERROR = 'error',
+  CSP = 'csp',
+  HPKP = 'hpkp',
+  EXPECTCT = 'expectct',
+  EXPECTSTAPLE = 'expectstaple',
+  DEFAULT = 'default',
+  TRANSACTION = 'transaction',
+}
 
 export type InboxReasonDetails = {
   until?: string | null;
@@ -879,10 +917,11 @@ type GroupActivityRegression = GroupActivityBase & {
   };
 };
 
-type GroupActivitySetByResolvedInRelease = GroupActivityBase & {
+export type GroupActivitySetByResolvedInRelease = GroupActivityBase & {
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
   data: {
     version?: string;
+    current_release_version?: string;
   };
 };
 
@@ -974,7 +1013,6 @@ export type GroupActivity =
   | GroupActivitySetUnresolved
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
-  | GroupActivitySetByResolvedInRelease
   | GroupActivitySetByResolvedInRelease
   | GroupActivitySetByResolvedInCommit
   | GroupActivitySetByResolvedInPullRequest
@@ -1184,10 +1222,11 @@ export type RepositoryProjectPathConfig = BaseRepositoryProjectPathConfig & {
   provider: BaseIntegrationProvider | null;
 };
 
-export type RepositoryProjectPathConfigWithIntegration = BaseRepositoryProjectPathConfig & {
-  integrationId: string;
-  provider: BaseIntegrationProvider;
-};
+export type RepositoryProjectPathConfigWithIntegration =
+  BaseRepositoryProjectPathConfig & {
+    integrationId: string;
+    provider: BaseIntegrationProvider;
+  };
 
 export type PullRequest = {
   id: string;
@@ -1284,11 +1323,11 @@ export type SentryApp = {
   schema: {
     elements?: SentryAppSchemaElement[];
   };
-  //possible null params
+  // possible null params
   webhookUrl: string | null;
   redirectUrl: string | null;
   overview: string | null;
-  //optional params below
+  // optional params below
   datePublished?: string;
   clientId?: string;
   clientSecret?: string;
@@ -1390,7 +1429,7 @@ export type Permissions = {
   Team: PermissionValue;
 };
 
-//See src/sentry/api/serializers/models/apitoken.py for the differences based on application
+// See src/sentry/api/serializers/models/apitoken.py for the differences based on application
 type BaseApiToken = {
   id: string;
   scopes: Scope[];
@@ -1399,7 +1438,7 @@ type BaseApiToken = {
   state: string;
 };
 
-//We include the token for API tokens used for internal apps
+// We include the token for API tokens used for internal apps
 export type InternalAppApiToken = BaseApiToken & {
   application: null;
   token: string;
@@ -1461,6 +1500,14 @@ type ReleaseData = {
     firstReleaseVersion: string | null;
     lastReleaseVersion: string | null;
   };
+  adoptionStages?: Record<
+    'string',
+    {
+      stage: string | null;
+      adopted: string | null;
+      unadopted: string | null;
+    }
+  >;
 };
 
 type BaseRelease = {
@@ -1566,6 +1613,7 @@ export type SentryAppComponent = {
   sentryApp: {
     uuid: string;
     slug:
+      | 'calixa'
       | 'clickup'
       | 'clubhouse'
       | 'komodor'
@@ -1743,7 +1791,7 @@ export type Tag = {
   maxSuggestedValues?: number;
 };
 
-export type TagCollection = {[key: string]: Tag};
+export type TagCollection = Record<string, Tag>;
 
 export type TagValue = {
   count: number;
@@ -1938,7 +1986,6 @@ export type Frame = {
   function: string | null;
   inApp: boolean;
   instructionAddr: string | null;
-  addrMode?: string;
   lineNo: number | null;
   module: string | null;
   package: string | null;
@@ -1946,13 +1993,23 @@ export type Frame = {
   rawFunction: string | null;
   symbol: string | null;
   symbolAddr: string | null;
-  symbolicatorStatus: SymbolicatorStatus;
   trust: any | null;
   vars: Record<string, any> | null;
+  symbolicatorStatus?: SymbolicatorStatus;
+  addrMode?: string;
   origAbsPath?: string | null;
   mapUrl?: string | null;
   map?: string | null;
+  isSentinel?: boolean;
+  isPrefix?: boolean;
+  minGroupingLevel?: number;
 };
+
+export enum FrameBadge {
+  SENTINEL = 'sentinel',
+  PREFIX = 'prefix',
+  GROUPING = 'grouping',
+}
 
 /**
  * Note used in Group Activity and Alerts for users to comment
@@ -1984,7 +2041,7 @@ export type ExceptionValue = {
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
-  frames?: Frame[];
+  frames: Frame[] | null;
 };
 
 export type ExceptionType = {
@@ -2002,7 +2059,7 @@ export type Identity = {
   providerLabel: string;
 };
 
-//taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
+// taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
 export type Writable<T> = {-readonly [K in keyof T]: T[K]};
 
 export type InternetProtocol = {
@@ -2048,11 +2105,6 @@ export type ServerlessFunction = {
 };
 
 /**
- * File storage service options for debug files
- */
-export type DebugFileSource = 'http' | 's3' | 'gcs' | 'appStoreConnect';
-
-/**
  * Base type for series   style API response
  */
 export type SeriesApi = {
@@ -2065,6 +2117,8 @@ export type SeriesApi = {
 };
 
 export type SessionApiResponse = SeriesApi & {
+  start: DateString;
+  end: DateString;
   query: string;
   intervals: string[];
   groups: {
@@ -2073,6 +2127,38 @@ export type SessionApiResponse = SeriesApi & {
     series: Record<string, number[]>;
   }[];
 };
+
+export enum SessionField {
+  SESSIONS = 'sum(session)',
+  USERS = 'count_unique(user)',
+  DURATION = 'p50(session.duration)',
+}
+
+export enum SessionStatus {
+  HEALTHY = 'healthy',
+  ABNORMAL = 'abnormal',
+  ERRORED = 'errored',
+  CRASHED = 'crashed',
+}
+
+export enum ReleaseComparisonChartType {
+  CRASH_FREE_USERS = 'crashFreeUsers',
+  HEALTHY_USERS = 'healthyUsers',
+  ABNORMAL_USERS = 'abnormalUsers',
+  ERRORED_USERS = 'erroredUsers',
+  CRASHED_USERS = 'crashedUsers',
+  CRASH_FREE_SESSIONS = 'crashFreeSessions',
+  HEALTHY_SESSIONS = 'healthySessions',
+  ABNORMAL_SESSIONS = 'abnormalSessions',
+  ERRORED_SESSIONS = 'erroredSessions',
+  CRASHED_SESSIONS = 'crashedSessions',
+  SESSION_COUNT = 'sessionCount',
+  USER_COUNT = 'userCount',
+  ERROR_COUNT = 'errorCount',
+  TRANSACTION_COUNT = 'transactionCount',
+  FAILURE_RATE = 'failureRate',
+  SESSION_DURATION = 'sessionDuration',
+}
 
 export enum HealthStatsPeriodOption {
   AUTO = 'auto',
@@ -2088,13 +2174,22 @@ export type IssueOwnership = {
   autoAssignment: boolean;
 };
 
-export type CodeOwners = {
+export type CodeOwner = {
   id: string;
   raw: string;
   dateCreated: string;
   dateUpdated: string;
   provider: 'github' | 'gitlab';
-  codeMapping?: RepositoryProjectPathConfig[];
+  codeMapping?: RepositoryProjectPathConfig;
+  codeMappingId: string;
+  ownershipSyntax?: string;
+  errors: {
+    missing_external_teams: string[];
+    missing_external_users: string[];
+    missing_user_emails: string[];
+    teams_without_access: string[];
+    users_without_access: string[];
+  };
 };
 
 export type KeyValueListData = {
@@ -2119,6 +2214,7 @@ export type ExternalUser = {
   memberId: string;
   externalName: string;
   provider: string;
+  integrationId: string;
 };
 
 export type ExternalTeam = {
@@ -2126,4 +2222,11 @@ export type ExternalTeam = {
   teamId: string;
   externalName: string;
   provider: string;
+  integrationId: string;
+};
+
+export type CodeownersFile = {
+  raw: string;
+  filepath: string;
+  html_url: string;
 };

@@ -502,7 +502,7 @@ def monkeypatch_drf_listfield_serializer_errors():
 
     # We don't need to patch DictField since we don't use it
     # at the time of patching. This is fine since anything newly
-    # introduced that does use it should prefer the better seralizer
+    # introduced that does use it should prefer the better serializer
     # errors.
 
 
@@ -630,7 +630,11 @@ def validate_snuba():
         return
 
     has_all_snuba_required_backends = (
-        settings.SENTRY_SEARCH == "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
+        settings.SENTRY_SEARCH
+        in (
+            "sentry.search.snuba.EventsDatasetSnubaSearchBackend",
+            "sentry.utils.services.ServiceDelegator",
+        )
         and settings.SENTRY_TAGSTORE == "sentry.tagstore.snuba.SnubaTagStorage"
         and
         # TODO(mattrobenolt): Remove ServiceDelegator check

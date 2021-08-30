@@ -2,6 +2,7 @@ import logging
 from uuid import uuid4
 
 from django.conf import settings
+from django.utils import timezone
 from rest_framework import serializers
 
 from sentry.auth.access import SystemAccess
@@ -12,9 +13,18 @@ from sentry.incidents.logic import (
     get_slack_channel_ids,
 )
 from sentry.incidents.models import AlertRule
-from sentry.integrations.slack.utils import get_channel_id_with_timeout, strip_channel_name
+from sentry.integrations.slack.utils import (
+    SLACK_RATE_LIMITED_MESSAGE,
+    get_channel_id_with_timeout,
+    get_identities_by_user,
+    get_slack_data_by_user,
+    strip_channel_name,
+)
 from sentry.mediators import project_rules
 from sentry.models import (
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
     Integration,
     Organization,
     Project,
@@ -22,8 +32,9 @@ from sentry.models import (
     RuleActivity,
     RuleActivityType,
     User,
+    UserEmail,
 )
-from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.redis import redis_clusters
@@ -43,8 +54,8 @@ class RedisRuleStatus:
     def uuid(self):
         return self._uuid
 
-    def set_value(self, status, rule_id=None):
-        value = self._format_value(status, rule_id)
+    def set_value(self, status, rule_id=None, error_message=None):
+        value = self._format_value(status, rule_id, error_message)
         self.client.set(self._get_redis_key(), f"{value}", ex=60 * 60)
 
     def get_value(self):
@@ -62,15 +73,16 @@ class RedisRuleStatus:
     def _get_redis_key(self):
         return f"slack-channel-task:1:{self.uuid}"
 
-    def _format_value(self, status, rule_id):
+    def _format_value(self, status, rule_id, error_message):
         value = {"status": status}
         if rule_id:
             value["rule_id"] = str(rule_id)
-        if status == "failed":
+        if error_message:
+            value["error"] = error_message
+        elif status == "failed":
             value[
                 "error"
             ] = "The slack resource does not exist or has not been granted access in that workspace."
-
         return json.dumps(value)
 
 
@@ -123,6 +135,9 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, user_id=None,
         # want to set the status to failed. This just lets us skip
         # over the next block and hit the failed status at the end.
         item_id = None
+    except ApiRateLimitedError:
+        redis_rule_status.set_value("failed", None, SLACK_RATE_LIMITED_MESSAGE)
+        return
 
     if item_id:
         for action in actions:
@@ -189,6 +204,15 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
         )
         redis_rule_status.set_value("failed")
         return
+    except ApiRateLimitedError as e:
+        logger.info(
+            "get_slack_channel_ids.rate_limited",
+            extra={
+                "exception": e,
+            },
+        )
+        redis_rule_status.set_value("failed", None, SLACK_RATE_LIMITED_MESSAGE)
+        return
 
     for trigger in data["triggers"]:
         for action in trigger["actions"]:
@@ -229,3 +253,42 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
     # some other error
     redis_rule_status.set_value("failed")
     return
+
+
+@instrumented_task(name="sentry.integrations.slack.link_users_identities", queue="integrations")
+def link_slack_user_identities(integration, organization):
+    emails_by_user = UserEmail.objects.get_emails_by_user(organization)
+    slack_data_by_user = get_slack_data_by_user(integration, organization, emails_by_user)
+
+    idp = IdentityProvider.objects.get(
+        type=integration.provider,
+        external_id=integration.external_id,
+    )
+    date_verified = timezone.now()
+    identities_by_user = get_identities_by_user(idp, slack_data_by_user.keys())
+
+    for user, data in slack_data_by_user.items():
+        # Identity already exists, the emails match, AND the external ID has changed
+        if user in identities_by_user.keys():
+            if data["slack_id"] != identities_by_user[user].external_id:
+                # replace the Identity's external_id with the new one we just got from Slack
+                identities_by_user[user].update(external_id=data["slack_id"])
+            continue
+        # the user doesn't already have an Identity and one of their Sentry emails matches their Slack email
+        matched_identity, created = Identity.objects.get_or_create(
+            idp=idp,
+            external_id=data["slack_id"],
+            defaults={"user": user, "status": IdentityStatus.VALID, "date_verified": date_verified},
+        )
+        # the Identity matching that idp/external_id combo is linked to a different user
+        if not created:
+            logger.info(
+                "post_install.identity_linked_different_user",
+                extra={
+                    "idp_id": idp.id,
+                    "external_id": data["slack_id"],
+                    "object_id": matched_identity.id,
+                    "user_id": user.id,
+                    "type": idp.type,
+                },
+            )

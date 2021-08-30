@@ -46,7 +46,7 @@ function autoCompleteFilter(
   }
 
   if (hasRootGroup(items)) {
-    //if the first item has children, we assume it is a group
+    // if the first item has children, we assume it is a group
     return flatMap(filterGroupedItems(items, inputValue), item => {
       const groupItems = item.items.map(groupedItem => ({
         ...groupedItem,

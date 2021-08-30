@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {InjectedRouter, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -21,7 +21,6 @@ import withReleaseRepos from './withReleaseRepos';
 
 type Props = RouteComponentProps<{orgId: string; release: string}, {}> & {
   location: Location;
-  router: InjectedRouter;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   release: string;
@@ -53,10 +52,12 @@ class FilesChanged extends AsyncView<Props, State> {
     };
   }
 
-  componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: Props, prevContext: Record<string, any>) {
     if (prevProps.activeReleaseRepo?.name !== this.props.activeReleaseRepo?.name) {
       this.remountComponent();
+      return;
     }
+    super.componentDidUpdate(prevProps, prevContext);
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

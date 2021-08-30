@@ -1,4 +1,4 @@
-import * as ReactRouter from 'react-router';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import compact from 'lodash/compact';
@@ -18,13 +18,16 @@ import {
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {
-  DateTimeObject,
   getDiffInMinutes,
   ONE_WEEK,
   truncationFormatter,
 } from 'app/components/charts/utils';
 import Count from 'app/components/count';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {
+  getParams,
+  parseStatsPeriod,
+  StatsPeriodType,
+} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -46,42 +49,49 @@ type Props = AsyncComponent['props'] & {
   selection: GlobalSelection;
   activeDisplay: DisplayOption;
   location: Location;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
 };
 
 type State = AsyncComponent['state'] & {
   sessions: SessionApiResponse | null;
 };
 
-type GetIntervalOptions = {
-  highFidelity?: boolean;
-};
-
-// TODO(release-adoption-chart): refactor duplication
-function getInterval(
-  datetimeObj: DateTimeObject,
-  {highFidelity}: GetIntervalOptions = {}
-) {
-  const diffInMinutes = getDiffInMinutes(datetimeObj);
-
-  if (
-    highFidelity &&
-    diffInMinutes < 360 // limit on backend is set to six hour
-  ) {
-    return '10m';
-  }
-
-  if (diffInMinutes >= ONE_WEEK) {
-    return '1d';
-  } else {
-    return '1h';
-  }
-}
 class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
   shouldReload = true;
 
+  // TODO(release-adoption-chart): refactor duplication
+  getInterval() {
+    const {organization, location} = this.props;
+
+    const datetimeObj = {
+      start: location.query.start,
+      end: location.query.end,
+      period: location.query.statsPeriod,
+      utc: location.query.utc,
+    };
+
+    const diffInMinutes = getDiffInMinutes(datetimeObj);
+
+    // use high fidelity intervals when available
+    // limit on backend is set to six hour
+    if (
+      organization.features.includes('minute-resolution-sessions') &&
+      diffInMinutes < 360
+    ) {
+      return '10m';
+    }
+
+    if (diffInMinutes >= ONE_WEEK) {
+      return '1d';
+    } else {
+      return '1h';
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location, activeDisplay} = this.props;
+
+    const hasSemverFeature = organization.features.includes('semver');
 
     return [
       [
@@ -89,23 +99,15 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
         `/organizations/${organization.slug}/sessions/`,
         {
           query: {
-            interval: getInterval(
-              {
-                start: location.query.start,
-                end: location.query.end,
-                period: location.query.statsPeriod,
-                utc: location.query.utc,
-              },
-              {
-                highFidelity: organization.features.includes(
-                  'minute-resolution-sessions'
-                ),
-              }
-            ),
+            interval: this.getInterval(),
             ...getParams(pick(location.query, Object.values(URL_PARAM))),
             groupBy: ['release'],
             field: [sessionDisplayToField(activeDisplay)],
-            query: location.query.query ? `release:${location.query.query}` : undefined,
+            query: location.query.query
+              ? hasSemverFeature
+                ? location.query.query
+                : `release:${location.query.query}`
+              : undefined,
           },
         },
       ],
@@ -132,6 +134,7 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
         sessionDisplayToField(activeDisplay)
       ];
       return {
+        id: release as string,
         seriesName: formatVersion(release as string),
         data:
           sessions?.intervals.map((interval, index) => ({
@@ -154,6 +157,19 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
     );
   }
 
+  handleClick = (params: {seriesId: string}) => {
+    const {organization, router, selection, location} = this.props;
+
+    const project = selection.projects[0];
+
+    router.push({
+      pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
+        params.seriesId
+      )}/`,
+      query: {project, environment: location.query.environment},
+    });
+  };
+
   renderEmpty() {
     return (
       <Panel>
@@ -173,11 +189,11 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
   render() {
     const {activeDisplay, router, selection} = this.props;
     const {start, end, period, utc} = selection.datetime;
-    const {loading, reloading} = this.state;
+    const {loading, reloading, sessions} = this.state;
     const releasesSeries = this.getReleasesSeries();
     const totalCount = this.getTotal();
 
-    if ((loading && !reloading) || (reloading && totalCount === 0)) {
+    if ((loading && !reloading) || (reloading && totalCount === 0) || !sessions) {
       return this.renderEmpty();
     }
 
@@ -185,11 +201,17 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
       return null;
     }
 
+    const interval = this.getInterval();
+    const numDataPoints = releasesSeries[0].data.length;
+    const xAxisData = releasesSeries[0].data.map(point => point.name);
+    const hideLastPoint =
+      releasesSeries.findIndex(series => series.data[numDataPoints - 1].value > 0) === -1;
+
     return (
       <Panel>
         <PanelBody withPadding>
           <ChartHeader>
-            <ChartTitle>{t('Releases Adopted')}</ChartTitle>
+            <ChartTitle>{t('Release Adoption')}</ChartTitle>
           </ChartHeader>
           <TransitionChart loading={loading} reloading={reloading}>
             <TransparentLoadingMask visible={reloading} />
@@ -198,7 +220,10 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
                 <LineChart
                   {...zoomRenderProps}
                   grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
-                  series={releasesSeries}
+                  series={releasesSeries.map(series => ({
+                    ...series,
+                    data: hideLastPoint ? series.data.slice(0, -1) : series.data,
+                  }))}
                   yAxis={{
                     min: 0,
                     max: 100,
@@ -209,6 +234,13 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
                     axisLabel: {
                       formatter: '{value}%',
                     },
+                  }}
+                  xAxis={{
+                    show: true,
+                    min: xAxisData[0],
+                    max: xAxisData[numDataPoints - 1],
+                    type: 'time',
+                    data: xAxisData,
                   }}
                   tooltip={{
                     formatter: seriesParams => {
@@ -237,6 +269,20 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
                         return '<div/>';
                       }
 
+                      const periodObj = parseStatsPeriod(interval) || {
+                        periodLength: 'd',
+                        period: '1',
+                      };
+                      const intervalStart = moment(timestamp).format('MMM D LT');
+                      const intervalEnd = (
+                        series[0].dataIndex === numDataPoints - 1
+                          ? moment(sessions.end)
+                          : moment(timestamp).add(
+                              parseInt(periodObj.period, 10),
+                              periodObj.periodLength as StatsPeriodType
+                            )
+                      ).format('MMM D LT');
+
                       return [
                         '<div class="tooltip-series">',
                         seriesToRender
@@ -248,13 +294,12 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
                           )
                           .join(''),
                         '</div>',
-                        `<div class="tooltip-date">${moment(timestamp).format(
-                          'MMM D, YYYY LT'
-                        )}</div>`,
+                        `<div class="tooltip-date">${intervalStart} &mdash; ${intervalEnd}</div>`,
                         `<div class="tooltip-arrow"></div>`,
                       ].join('');
                     },
                   }}
+                  onClick={this.handleClick}
                 />
               )}
             </ChartZoom>

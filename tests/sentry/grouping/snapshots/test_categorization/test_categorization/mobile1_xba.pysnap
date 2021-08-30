@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:41.433569Z'
+created: '2021-08-06T16:25:45.512298Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -11,9 +11,9 @@ NoSuchMethodException:callDrawGLFunction [long] (thread_id:_, crashed:_)
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
-                          android.os.Handler  dispatchMessage category=internals
-                          android.os.Handler  handleCallback category=internals
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                          android.os.Handler  handleCallback category=threadbase
                                               stripped_application_code
                                               stripped_application_code
                       android.webkit.WebView  <init> category=std
@@ -21,7 +21,7 @@ NoSuchMethodException:callDrawGLFunction [long] (thread_id:_, crashed:_)
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
-               android.widget.AbsoluteLayout  <init> category=ui
+               android.widget.AbsoluteLayout  <init> category=internals
                       android.view.ViewGroup  <init> category=internals
                            android.view.View  <init> category=internals
                            android.view.View  <init> category=internals
@@ -43,9 +43,9 @@ RuntimeException:Invalid reflection (thread_id:_, crashed:_)
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
-                          android.os.Handler  dispatchMessage category=internals
-                          android.os.Handler  handleCallback category=internals
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                          android.os.Handler  handleCallback category=threadbase
                                               stripped_application_code
                                               stripped_application_code
                       android.webkit.WebView  <init> category=std
@@ -53,7 +53,7 @@ RuntimeException:Invalid reflection (thread_id:_, crashed:_)
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
-               android.widget.AbsoluteLayout  <init> category=ui
+               android.widget.AbsoluteLayout  <init> category=internals
                       android.view.ViewGroup  <init> category=internals
                            android.view.View  <init> category=internals
                            android.view.View  <init> category=internals
@@ -73,9 +73,9 @@ AndroidRuntimeException:java.lang.RuntimeException: Invalid reflection (thread_i
                     java.lang.reflect.Method  invoke category=indirection
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
-                          android.os.Handler  dispatchMessage category=internals
-                          android.os.Handler  handleCallback category=internals
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                          android.os.Handler  handleCallback category=threadbase
                                               stripped_application_code
                                               stripped_application_code
                       android.webkit.WebView  <init> category=std
@@ -83,7 +83,7 @@ AndroidRuntimeException:java.lang.RuntimeException: Invalid reflection (thread_i
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
                       android.webkit.WebView  <init> category=internals
-               android.widget.AbsoluteLayout  <init> category=ui
+               android.widget.AbsoluteLayout  <init> category=internals
                       android.view.ViewGroup  <init> category=internals
                            android.view.View  <init> category=internals
                            android.view.View  <init> category=internals

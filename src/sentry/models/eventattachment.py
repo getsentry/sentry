@@ -21,7 +21,7 @@ def get_crashreport_key(group_id):
 
 
 class EventAttachment(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     project_id = BoundedBigIntegerField()
     group_id = BoundedBigIntegerField(null=True, db_index=True)
@@ -54,10 +54,11 @@ class EventAttachment(Model):
 
         rv = super().delete(*args, **kwargs)
 
-        # Always prune the group cache. Even if there are more crash reports
-        # stored than the now configured limit, the cache will be repopulated
-        # with the next incoming crash report.
-        cache.delete(get_crashreport_key(self.group_id))
+        if self.group_id and self.type in CRASH_REPORT_TYPES:
+            # Prune the group cache even if there would be more crash reports
+            # stored than the now configured limit, the cache will be
+            # repopulated with the next incoming crash report.
+            cache.delete(get_crashreport_key(self.group_id))
 
         try:
             file = File.objects.get(id=self.file_id)

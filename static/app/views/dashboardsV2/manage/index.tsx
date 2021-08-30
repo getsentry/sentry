@@ -1,5 +1,4 @@
-import * as ReactRouter from 'react-router';
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -37,7 +36,7 @@ type Props = {
   api: Client;
   organization: Organization;
   location: Location;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
 } & AsyncView['props'];
 
 type State = {

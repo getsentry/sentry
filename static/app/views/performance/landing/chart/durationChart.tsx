@@ -1,7 +1,5 @@
-import * as ReactRouter from 'react-router';
-import withRouter, {WithRouterProps} from 'react-router/lib/withRouter';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {Client} from 'app/api';
 import ErrorPanel from 'app/components/charts/errorPanel';
@@ -28,8 +26,6 @@ type Props = {
   api: Client;
   eventView: EventView;
   organization: Organization;
-  location: Location;
-  router: ReactRouter.InjectedRouter;
   field: string;
   title: string;
   titleTooltip: string;
@@ -65,6 +61,8 @@ function DurationChart(props: Props) {
 
   const _backupField = backupField ? [backupField] : [];
 
+  const apiPayload = eventView.getEventsAPIPayload(location);
+
   return (
     <EventsRequest
       organization={organization}
@@ -72,6 +70,7 @@ function DurationChart(props: Props) {
       period={globalSelection.datetime.period}
       project={globalSelection.projects}
       environment={globalSelection.environments}
+      team={apiPayload.team}
       start={start}
       end={end}
       interval={getInterval(
@@ -80,10 +79,10 @@ function DurationChart(props: Props) {
           end,
           period: globalSelection.datetime.period,
         },
-        true
+        'high'
       )}
       showLoading={false}
-      query={eventView.getEventsAPIPayload(location).query}
+      query={apiPayload.query}
       includePrevious={false}
       yAxis={[field, ..._backupField]}
       partial

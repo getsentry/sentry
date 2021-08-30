@@ -9,13 +9,19 @@ import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
-import {IntegrationInstallationStatus, Organization, SentryApp} from 'app/types';
+import {
+  IntegrationInstallationStatus,
+  Organization,
+  PluginWithProjectList,
+  SentryApp,
+} from 'app/types';
 import {
   convertIntegrationTypeToSnakeCase,
-  trackIntegrationEvent,
+  trackIntegrationAnalytics,
 } from 'app/utils/integrationUtil';
 
 import IntegrationStatus from './integrationStatus';
+import PluginDeprecationAlert from './pluginDeprecationAlert';
 
 type Props = {
   organization: Organization;
@@ -27,6 +33,7 @@ type Props = {
   configurations: number;
   categories: string[];
   alertText?: string;
+  plugin?: PluginWithProjectList;
 };
 
 const urlMap = {
@@ -47,6 +54,7 @@ const IntegrationRow = (props: Props) => {
     configurations,
     categories,
     alertText,
+    plugin,
   } = props;
 
   const baseUrl =
@@ -58,7 +66,7 @@ const IntegrationRow = (props: Props) => {
     if (type === 'sentryApp') {
       return publishStatus !== 'published' && <PublishStatus status={publishStatus} />;
     }
-    //TODO: Use proper translations
+    // TODO: Use proper translations
     return configurations > 0 ? (
       <StyledLink to={`${baseUrl}?tab=configurations`}>{`${configurations} Configuration${
         configurations > 1 ? 's' : ''
@@ -67,7 +75,7 @@ const IntegrationRow = (props: Props) => {
   };
 
   const renderStatus = () => {
-    //status should be undefined for document integrations
+    // status should be undefined for document integrations
     if (status) {
       return <IntegrationStatus status={status} />;
     }
@@ -103,14 +111,11 @@ const IntegrationRow = (props: Props) => {
               href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
               size="xsmall"
               onClick={() =>
-                trackIntegrationEvent(
-                  'integrations.resolve_now_clicked',
-                  {
-                    integration_type: convertIntegrationTypeToSnakeCase(type),
-                    integration: slug,
-                  },
-                  organization
-                )
+                trackIntegrationAnalytics('integrations.resolve_now_clicked', {
+                  integration_type: convertIntegrationTypeToSnakeCase(type),
+                  integration: slug,
+                  organization,
+                })
               }
             >
               {t('Resolve Now')}
@@ -118,9 +123,18 @@ const IntegrationRow = (props: Props) => {
           </Alert>
         </AlertContainer>
       )}
+      {plugin?.deprecationDate && (
+        <PluginDeprecationAlertWrapper>
+          <PluginDeprecationAlert organization={organization} plugin={plugin} />
+        </PluginDeprecationAlertWrapper>
+      )}
     </PanelRow>
   );
 };
+
+const PluginDeprecationAlertWrapper = styled('div')`
+  padding: 0px ${space(3)} 0px 68px;
+`;
 
 const PanelRow = styled(PanelItem)`
   flex-direction: column;

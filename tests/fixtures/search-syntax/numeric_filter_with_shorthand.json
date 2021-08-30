@@ -1,0 +1,52 @@
+[
+  {
+    "query": "stack.colno:>3k",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numeric",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "stack.colno", "quoted": false},
+        "operator": ">",
+        "value": {"type": "valueNumber", "value": "3", "rawValue": 3000, "unit": "k"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "stack.colno:>3m",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numeric",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "stack.colno", "quoted": false},
+        "operator": ">",
+        "value": {"type": "valueNumber", "value": "3", "rawValue": 3000000, "unit": "m"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "stack.colno:>3b",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "numeric",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "stack.colno", "quoted": false},
+        "operator": ">",
+        "value": {
+          "type": "valueNumber",
+          "value": "3",
+          "rawValue": 3000000000,
+          "unit": "b"
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

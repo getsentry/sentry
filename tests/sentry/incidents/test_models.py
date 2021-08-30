@@ -98,7 +98,10 @@ class IncidentClearSubscriptionCacheTest(TestCase):
             cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id)
             == self.alert_rule
         )
+        subscription_id = self.subscription.id
         self.subscription.delete()
+        # Add the subscription id back in so we don't use `None` in the lookup check.
+        self.subscription.id = subscription_id
         with self.assertRaises(AlertRule.DoesNotExist):
             AlertRule.objects.get_for_subscription(self.subscription)
 

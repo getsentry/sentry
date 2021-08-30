@@ -1,11 +1,12 @@
 import re
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Union
+from typing import Any, Mapping, Optional, Tuple, Union, cast
 
 import pytz
 from dateutil.parser import parse
 from django.db import connections
 from django.http.request import HttpRequest
+from django.utils.timezone import is_aware, make_aware
 
 from sentry import quotas
 from sentry.constants import MAX_ROLLUP_POINTS
@@ -15,7 +16,16 @@ DATE_TRUNC_GROUPERS = {"date": "day", "hour": "hour", "minute": "minute"}
 epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
 
 
-def to_timestamp(value):
+def ensure_aware(value: datetime) -> datetime:
+    """
+    Ensures the datetime is an aware datetime.
+    """
+    if is_aware(value):
+        return value
+    return cast(datetime, make_aware(value))
+
+
+def to_timestamp(value: datetime) -> float:
     """
     Convert a time zone aware datetime to a POSIX timestamp (with fractional
     component.)
@@ -23,7 +33,7 @@ def to_timestamp(value):
     return (value - epoch).total_seconds()
 
 
-def to_datetime(value):
+def to_datetime(value: Any) -> Optional[datetime]:
     """
     Convert a POSIX timestamp to a time zone aware datetime.
 
@@ -36,23 +46,23 @@ def to_datetime(value):
     return epoch + timedelta(seconds=value)
 
 
-def floor_to_utc_day(value):
+def floor_to_utc_day(value: datetime) -> datetime:
     """
     Floors a given datetime to UTC midnight.
     """
     return value.astimezone(pytz.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
 
-def get_sql_date_trunc(col, db="default", grouper="hour"):
+def get_sql_date_trunc(col: Any, db: str = "default", grouper: str = "hour") -> Any:
     conn = connections[db]
     method = DATE_TRUNC_GROUPERS[grouper]
     return conn.ops.date_trunc_sql(method, col)
 
 
-def parse_date(datestr, timestr):
+def parse_date(datestr: str, timestr: str) -> Optional[datetime]:
     # format is Y-m-d
     if not (datestr or timestr):
-        return
+        return None
     if not timestr:
         return datetime.strptime(datestr, "%Y-%m-%d")
 
@@ -63,10 +73,10 @@ def parse_date(datestr, timestr):
         try:
             return parse(datetimestr)
         except Exception:
-            return
+            return None
 
 
-def parse_timestamp(value):
+def parse_timestamp(value: Any) -> Optional[datetime]:
     # TODO(mitsuhiko): merge this code with coreapis date parser
     if isinstance(value, datetime):
         return value
@@ -83,24 +93,21 @@ def parse_timestamp(value):
         try:
             rv = rv.replace(microsecond=int(value[1].ljust(6, b"0")[:6]))
         except ValueError:
-            rv = None
+            return None
     return rv.replace(tzinfo=pytz.utc)
 
 
-def parse_stats_period(period):
-    """
-    Convert a value such as 1h into a
-    proper timedelta.
-    """
+def parse_stats_period(period: str) -> Optional[timedelta]:
+    """Convert a value such as 1h into a proper timedelta."""
     m = re.match(r"^(\d+)([hdmsw]?)$", period)
     if not m:
         return None
     value, unit = m.groups()
-    value = int(value)
+    value = int(value)  # type: ignore
     if not unit:
         unit = "s"
     return timedelta(
-        **{{"h": "hours", "d": "days", "m": "minutes", "s": "seconds", "w": "weeks"}[unit]: value}
+        **{{"h": "hours", "d": "days", "m": "minutes", "s": "seconds", "w": "weeks"}[unit]: value}  # type: ignore
     )
 
 
@@ -148,7 +155,9 @@ def get_rollup_from_request(
     return int(interval.total_seconds())
 
 
-def outside_retention_with_modified_start(start, end, organization):
+def outside_retention_with_modified_start(
+    start: datetime, end: datetime, organization: Any
+) -> Tuple[bool, datetime]:
     """
     Check if a start-end datetime range is outside an
     organizations retention period. Returns an updated

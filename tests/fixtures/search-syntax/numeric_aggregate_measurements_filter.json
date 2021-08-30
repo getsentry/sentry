@@ -1,0 +1,182 @@
+[
+  {
+    "query": "min(measurements.size):3.1415",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateNumeric",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "min", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "measurements.size",
+                  "quoted": false
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": "",
+        "value": {
+          "type": "valueNumber",
+          "value": "3.1415",
+          "rawValue": 3.1415,
+          "unit": null
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "min(measurements.size):>3.1415",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateNumeric",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "min", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "measurements.size",
+                  "quoted": false
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": ">",
+        "value": {
+          "type": "valueNumber",
+          "value": "3.1415",
+          "rawValue": 3.1415,
+          "unit": null
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "min(measurements.size):<3.1415",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateNumeric",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "min", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "measurements.size",
+                  "quoted": false
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": "<",
+        "value": {
+          "type": "valueNumber",
+          "value": "3.1415",
+          "rawValue": 3.1415,
+          "unit": null
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "min(measurements.size):<3k",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateNumeric",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "min", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "measurements.size",
+                  "quoted": false
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": "<",
+        "value": {"type": "valueNumber", "value": "3", "rawValue": 3000, "unit": "k"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "min(measurements.size):2m",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateNumeric",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "min", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "measurements.size",
+                  "quoted": false
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": "",
+        "value": {"type": "valueNumber", "value": "2", "rawValue": 2000000, "unit": "m"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

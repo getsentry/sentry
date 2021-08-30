@@ -9,7 +9,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import MemberDisabledOverLimit, ResourceDoesNotExist, TwoFactorRequired
-from sentry.api.utils import MAX_STATS_PERIOD, InvalidParams
+from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import ApiKey, Organization, OrganizationMember
@@ -326,60 +326,9 @@ class GetEnvironmentsTest(BaseOrganizationEndpointTest):
             self.run_test([self.env_1, self.env_2], ["fake", self.env_2.name])
 
 
-class GetTeamsTest(BaseOrganizationEndpointTest):
-    def setUp(self):
-        self.team_1 = self.create_team(organization=self.org)
-        self.team_2 = self.create_team(organization=self.org)
-        self.team_3 = self.create_team(organization=self.org)
-
-        self.create_team_membership(user=self.user, team=self.team_1)
-        self.create_team_membership(user=self.user, team=self.team_2)
-
-    def run_test(self, expected_teams, team_ids=None, active_superuser=False):
-        request_args = {}
-        if team_ids:
-            request_args["team"] = team_ids
-        request = self.build_request(active_superuser=active_superuser, **request_args)
-        result = self.endpoint.get_teams(request, self.org)
-        assert {t.name for t in expected_teams} == {t.name for t in result}
-
-    def test_no_params(self):
-        self.run_test([])
-
-    def test_my_teams(self):
-        self.run_test([self.team_1, self.team_2], "myteams")
-
-    def test_team_id(self):
-        self.run_test([self.team_1], [self.team_1.id])
-
-    def test_team_ids(self):
-        self.run_test([self.team_1, self.team_2], [self.team_1.id, self.team_2.id])
-
-    def test_my_teams_plus_an_id(self):
-        # need `allow_joinleave to access another team
-        self.org.flags.allow_joinleave = True
-        self.run_test([self.team_1, self.team_2, self.team_3], ["myteams", self.team_3.id])
-
-    def test_all_teams_as_superuser(self):
-        self.run_test(
-            [self.team_1, self.team_2, self.team_3],
-            [self.team_1.id, self.team_2.id, self.team_3.id],
-            active_superuser=True,
-        )
-
-    def test_invalid_negative_team(self):
-        with self.assertRaises(InvalidParams):
-            self.run_test([], [-1])
-
-    def test_invalid_string(self):
-        with self.assertRaises(InvalidParams):
-            self.run_test([], ["notateam"])
-
-
 class GetFilterParamsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.team_1 = self.create_team(organization=self.org)
-        self.team_2 = self.create_team(organization=self.org)
         self.project_1 = self.create_project(organization=self.org, teams=[self.team_1])
         self.project_2 = self.create_project(organization=self.org, teams=[self.team_1])
         self.env_1 = self.create_environment(project=self.project_1)
@@ -393,7 +342,6 @@ class GetFilterParamsTest(BaseOrganizationEndpointTest):
         expected_start=None,
         expected_end=None,
         env_names=None,
-        team_ids=None,
         user=None,
         date_filter_optional=False,
         project_ids=None,
@@ -405,8 +353,6 @@ class GetFilterParamsTest(BaseOrganizationEndpointTest):
         request_args = {}
         if env_names:
             request_args["environment"] = env_names
-        if team_ids:
-            request_args["team"] = team_ids
         if project_ids:
             request_args["project"] = project_ids
         if start and end:
@@ -428,10 +374,6 @@ class GetFilterParamsTest(BaseOrganizationEndpointTest):
             assert {e.name for e in expected_envs} == set(result["environment"])
         else:
             assert "environment" not in result
-        if expected_teams:
-            assert {t.id for t in expected_teams} == set(result["team_id"])
-        else:
-            assert "team_id" not in result
 
     @freeze_time("2018-12-11 03:21:34")
     def test_no_params(self):
@@ -462,8 +404,6 @@ class GetFilterParamsTest(BaseOrganizationEndpointTest):
             project_ids=[self.project_1.id, self.project_2.id],
             expected_envs=[self.env_1, self.env_2],
             env_names=[self.env_1.name, self.env_2.name],
-            expected_teams=[self.team_1],
-            team_ids=["myteams"],
             expected_start=start,
             expected_end=end,
             start=start.replace(tzinfo=None).isoformat(),
@@ -476,8 +416,6 @@ class GetFilterParamsTest(BaseOrganizationEndpointTest):
                 project_ids=[self.project_1.id, self.project_2.id],
                 expected_envs=[self.env_1, self.env_2],
                 env_names=[self.env_1.name, self.env_2.name],
-                expected_teams=[self.team_1],
-                team_ids=["myteams"],
                 expected_start=timezone.now() - timedelta(days=2),
                 expected_end=timezone.now(),
                 stats_period="2d",

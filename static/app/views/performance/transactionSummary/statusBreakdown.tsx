@@ -14,7 +14,7 @@ import {t} from 'app/locale';
 import {LightWeightOrganization} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
 type Props = {
@@ -26,7 +26,7 @@ type Props = {
 function StatusBreakdown({eventView, location, organization}: Props) {
   const breakdownView = eventView
     .withColumns([
-      {kind: 'function', function: ['count', '', '']},
+      {kind: 'function', function: ['count', '', '', undefined]},
       {kind: 'field', field: 'transaction.status'},
     ])
     .withSorts([{kind: 'desc', field: 'count'}]);
@@ -67,16 +67,16 @@ function StatusBreakdown({eventView, location, organization}: Props) {
             label: String(row['transaction.status']),
             value: parseInt(String(row.count), 10),
             onClick: () => {
-              const query = tokenizeSearch(eventView.query);
+              const query = new MutableSearch(eventView.query);
               query
-                .removeTag('!transaction.status')
-                .setTagValues('transaction.status', [row['transaction.status']]);
+                .removeFilter('!transaction.status')
+                .setFilterValues('transaction.status', [row['transaction.status']]);
               browserHistory.push({
                 pathname: location.pathname,
                 query: {
                   ...location.query,
                   cursor: undefined,
-                  query: stringifyQueryObject(query),
+                  query: query.formatString(),
                 },
               });
             },

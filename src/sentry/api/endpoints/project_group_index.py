@@ -2,7 +2,7 @@ import functools
 
 from rest_framework.response import Response
 
-from sentry import analytics, eventstore, features
+from sentry import analytics, eventstore
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.group_index import (
@@ -15,7 +15,8 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
-from sentry.models import QUERY_STATUS_LOOKUP, Environment, Group, GroupStatus, Organization
+from sentry.models import QUERY_STATUS_LOOKUP, Environment, Group, GroupStatus
+from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.signals import advanced_search
 from sentry.utils.validators import normalize_event_id
 
@@ -135,7 +136,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         status = [
             search_filter
             for search_filter in query_kwargs.get("search_filters", [])
-            if search_filter.key.name == "status"
+            if search_filter.key.name == "status" and search_filter.operator in EQUALITY_OPERATORS
         ]
         if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
             status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
@@ -217,15 +218,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         """
 
         search_fn = functools.partial(prep_search, self, request, project)
-        organization = Organization.objects.get_from_cache(id=project.organization_id)
-        has_inbox = features.has("organizations:inbox", organization, actor=request.user)
         return update_groups(
             request,
             request.GET.getlist("id"),
             [project],
             project.organization_id,
             search_fn,
-            has_inbox,
         )
 
     @track_slo_response("workflow")

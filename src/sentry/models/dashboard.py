@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models.fields.bounded import BoundedBigIntegerField
 
 
 class Dashboard(Model):
@@ -9,12 +10,14 @@ class Dashboard(Model):
     A dashboard.
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     title = models.CharField(max_length=255)
     created_by = FlexibleForeignKey("sentry.User")
     organization = FlexibleForeignKey("sentry.Organization")
     date_added = models.DateTimeField(default=timezone.now)
+    visits = BoundedBigIntegerField(null=True, default=1)
+    last_visited = models.DateTimeField(null=True, default=timezone.now)
 
     class Meta:
         app_label = "sentry"
@@ -50,7 +53,7 @@ class DashboardTombstone(Model):
     has been replaced or deleted for an organization.
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     slug = models.CharField(max_length=255)
     organization = FlexibleForeignKey("sentry.Organization")

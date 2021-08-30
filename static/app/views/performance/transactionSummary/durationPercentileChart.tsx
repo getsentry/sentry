@@ -19,7 +19,7 @@ import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
 import {Theme} from 'app/utils/theme';
 
-import {filterToColour, filterToField, SpanOperationBreakdownFilter} from './filter';
+import {filterToColor, filterToField, SpanOperationBreakdownFilter} from './filter';
 
 const QUERY_KEYS = [
   'environment',
@@ -91,16 +91,8 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
   };
 
   getEndpoints = (): ReturnType<AsyncComponent['getEndpoints']> => {
-    const {
-      organization,
-      query,
-      start,
-      end,
-      statsPeriod,
-      environment,
-      project,
-      location,
-    } = this.props;
+    const {organization, query, start, end, statsPeriod, environment, project, location} =
+      this.props;
 
     const eventView = EventView.fromSavedQuery({
       id: '',
@@ -158,7 +150,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
     const colors = (theme: Theme) =>
       currentFilter === SpanOperationBreakdownFilter.None
         ? theme.charts.getColorPalette(1)
-        : [filterToColour(currentFilter)];
+        : [filterToColor(currentFilter)];
 
     return <StyledAreaChart series={transformData(chartData.data)} colors={colors} />;
   }

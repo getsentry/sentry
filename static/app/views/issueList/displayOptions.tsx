@@ -1,10 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import FeatureBadge from 'app/components/featureBadge';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {getDisplayLabel, IssueDisplayOptions} from 'app/views/issueList/utils';
 
 type Props = {
@@ -26,11 +27,13 @@ const IssueListDisplayOptions = ({
     if (key === IssueDisplayOptions.SESSIONS) {
       if (hasMultipleProjectsSelected) {
         tooltipText = t(
-          'Select a project to view events as a % of sessions. This helps you get a better picture of how these errors affect your users.'
+          'This option is not available when multiple projects are selected.'
         );
         disabled = true;
       } else if (!hasSessions) {
-        tooltipText = t('The selected project does not have session data');
+        tooltipText = t(
+          'This option is not available because there is no session data in the selected time period.'
+        );
         disabled = true;
       }
     }
@@ -45,35 +48,62 @@ const IssueListDisplayOptions = ({
         <StyledTooltip
           containerDisplayMode="block"
           position="top"
-          delay={500}
           title={tooltipText}
           disabled={!tooltipText}
         >
           {getDisplayLabel(key)}
+          {key === IssueDisplayOptions.SESSIONS && <FeatureBadge type="beta" noTooltip />}
         </StyledTooltip>
       </DropdownItem>
     );
   };
 
   return (
-    <StyledDropdownControl
-      buttonProps={{prefix: t('Display')}}
-      label={getDisplayLabel(display)}
+    <GuideAnchor
+      target="percentage_based_alerts"
+      position="bottom"
+      disabled={!hasSessions || hasMultipleProjectsSelected}
     >
-      <React.Fragment>
-        {getMenuItem(IssueDisplayOptions.EVENTS)}
-        {getMenuItem(IssueDisplayOptions.SESSIONS)}
-      </React.Fragment>
-    </StyledDropdownControl>
+      <StyledDropdownControl
+        buttonProps={{
+          prefix: t('Display'),
+        }}
+        buttonTooltipTitle={
+          display === IssueDisplayOptions.SESSIONS
+            ? t(
+                'This shows the event count as a percent of sessions in the same time period.'
+              )
+            : null
+        }
+        label={
+          !hasSessions || hasMultipleProjectsSelected
+            ? getDisplayLabel(IssueDisplayOptions.EVENTS)
+            : getDisplayLabel(display)
+        }
+      >
+        <React.Fragment>
+          {getMenuItem(IssueDisplayOptions.EVENTS)}
+          {getMenuItem(IssueDisplayOptions.SESSIONS)}
+        </React.Fragment>
+      </StyledDropdownControl>
+    </GuideAnchor>
   );
 };
 
-const StyledDropdownControl = styled(DropdownControl)`
-  margin-right: ${space(1)};
-`;
-
 const StyledTooltip = styled(Tooltip)`
   width: 100%;
+`;
+
+const StyledDropdownControl = styled(DropdownControl)`
+  z-index: ${p => p.theme.zIndex.issuesList.displayOptions};
+
+  button {
+    width: 100%;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    order: 1;
+  }
 `;
 
 export default IssueListDisplayOptions;

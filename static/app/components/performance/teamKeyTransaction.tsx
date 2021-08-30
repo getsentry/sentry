@@ -16,7 +16,9 @@ import {defined} from 'app/utils';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'app/utils/performance/constants';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>> & {
-  keyedTeamsCount: number;
+  isOpen: boolean;
+  keyedTeams: Team[] | null;
+  initialValue?: number;
   disabled?: boolean;
 };
 
@@ -237,7 +239,7 @@ class TeamKeyTransaction extends Component<Props, State> {
   }
 
   render() {
-    const {isLoading, error, title: Title, keyedTeams, initialValue} = this.props;
+    const {isLoading, error, title: Title, keyedTeams, initialValue, teams} = this.props;
     const {isOpen} = this.state;
 
     const menu: ReactPortal | null = isOpen ? this.renderMenu() : null;
@@ -248,8 +250,12 @@ class TeamKeyTransaction extends Component<Props, State> {
           {({ref}) => (
             <div ref={ref}>
               <Title
+                isOpen={isOpen}
                 disabled={isLoading || Boolean(error)}
-                keyedTeamsCount={keyedTeams?.size ?? initialValue ?? 0}
+                keyedTeams={
+                  keyedTeams ? teams.filter(({id}) => keyedTeams.has(id)) : null
+                }
+                initialValue={initialValue}
                 onClick={this.toggleOpen}
               />
             </div>

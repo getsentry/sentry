@@ -1,18 +1,18 @@
 import * as React from 'react';
-import {WithRouterProps} from 'react-router/lib/withRouter';
+import {RouteComponentProps} from 'react-router';
 
 import {disablePlugin, enablePlugin, fetchPlugins} from 'app/actionCreators/plugins';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {Organization, Plugin, Project} from 'app/types';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import withPlugins from 'app/utils/withPlugins';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 import ProjectPlugins from './projectPlugins';
 
-type Props = WithRouterProps<{orgId: string; projectId: string}> & {
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   plugins: {
     plugins: Plugin[];
     error: React.ComponentProps<typeof ProjectPlugins>['error'];
@@ -32,13 +32,13 @@ class ProjectPluginsContainer extends React.Component<Props> {
     const installCount = plugins.filter(
       plugin => plugin.hasConfiguration && plugin.enabled
     ).length;
-    trackIntegrationEvent(
+    trackIntegrationAnalytics(
       'integrations.index_viewed',
       {
         integrations_installed: installCount,
         view: 'legacy_integrations',
+        organization: this.props.organization,
       },
-      this.props.organization,
       {startSession: true}
     );
   };

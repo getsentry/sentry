@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptor, Query} from 'history';
+import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Feature from 'app/components/acl/feature';
@@ -17,7 +17,6 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {
   getAggregateAlias,
@@ -25,34 +24,40 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'app/utils/discover/fields';
-import {generateEventSlug} from 'app/utils/discover/urls';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
 import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import Tags from 'app/views/eventsV2/tags';
-import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
 } from 'app/views/performance/transactionSummary/transactionVitals/constants';
 
-import {getTransactionDetailsUrl, isSummaryViewFrontendPageLoad} from '../utils';
+import {isSummaryViewFrontend, isSummaryViewFrontendPageLoad} from '../utils';
 
 import TransactionSummaryCharts from './charts';
 import Filter, {
+  decodeFilterFromLocation,
   filterToField,
   filterToSearchConditions,
   SpanOperationBreakdownFilter,
 } from './filter';
-import TransactionHeader, {Tab} from './header';
+import TransactionHeader from './header';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
+import Tab from './tabs';
 import {TagExplorer} from './tagExplorer';
+import {TransactionThresholdMetric} from './transactionThresholdModal';
 import UserStats from './userStats';
-import {SidebarSpacer, TransactionFilterOptions} from './utils';
+import {
+  generateTraceLink,
+  generateTransactionLink,
+  SidebarSpacer,
+  TransactionFilterOptions,
+} from './utils';
 
 type Props = {
   location: Location;
@@ -64,6 +69,7 @@ type Props = {
   totalValues: Record<string, number> | null;
   projects: Project[];
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
 };
 
@@ -116,13 +122,13 @@ class SummaryContent extends React.Component<Props, State> {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location} = this.props;
 
-      const searchConditions = tokenizeSearch(eventView.query);
+      const searchConditions = new MutableSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeTag('event.type');
+      searchConditions.removeFilter('event.type');
 
       // no need to include transaction as its already in the query params
-      searchConditions.removeTag('transaction');
+      searchConditions.removeFilter('transaction');
 
       updateQuery(searchConditions, action, column, value);
 
@@ -131,7 +137,7 @@ class SummaryContent extends React.Component<Props, State> {
         query: {
           ...location.query,
           cursor: undefined,
-          query: stringifyQueryObject(searchConditions),
+          query: searchConditions.formatString(),
         },
       });
     };
@@ -144,6 +150,15 @@ class SummaryContent extends React.Component<Props, State> {
       query: {...location.query, showTransactions: value, transactionCursor: undefined},
     };
     browserHistory.push(target);
+  };
+
+  handleAllEventsViewClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.view_in_transaction_events',
+      eventName: 'Performance Views: View in All Events from Transaction Summary',
+      organization_id: parseInt(organization.id, 10),
+    });
   };
 
   handleDiscoverViewClick = () => {
@@ -164,6 +179,31 @@ class SummaryContent extends React.Component<Props, State> {
     });
   };
 
+  generateEventView(
+    transactionsListEventView: EventView,
+    transactionsListTitles: string[]
+  ) {
+    const {location, totalValues, spanOperationBreakdownFilter} = this.props;
+    const {selected} = getTransactionsListSort(location, {
+      p95: totalValues?.p95 ?? 0,
+      spanOperationBreakdownFilter,
+    });
+    const sortedEventView = transactionsListEventView.withSorts([selected.sort]);
+
+    if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+      const fields = [
+        // Remove the extra field columns
+        ...sortedEventView.fields.slice(0, transactionsListTitles.length),
+      ];
+
+      // omit "Operation Duration" column
+      sortedEventView.fields = fields.filter(({field}) => {
+        return !isRelativeSpanOperationBreakdownField(field);
+      });
+    }
+    return sortedEventView;
+  }
+
   render() {
     let {eventView} = this.props;
     const {
@@ -175,8 +215,16 @@ class SummaryContent extends React.Component<Props, State> {
       error,
       totalValues,
       onChangeFilter,
+      onChangeThreshold,
       spanOperationBreakdownFilter,
     } = this.props;
+    const hasPerformanceEventsPage = organization.features.includes(
+      'performance-events-page'
+    );
+    const hasPerformanceChartInterpolation = organization.features.includes(
+      'performance-chart-interpolation'
+    );
+
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query, '');
     const totalCount = totalValues === null ? null : totalValues.count;
@@ -192,6 +240,8 @@ class SummaryContent extends React.Component<Props, State> {
             return Number.isFinite(totalValues[alias]);
           })
         ));
+
+    const isFrontendView = isSummaryViewFrontend(eventView, projects);
 
     const transactionsListTitles = [
       t('event id'),
@@ -241,9 +291,6 @@ class SummaryContent extends React.Component<Props, State> {
       fields.splice(2, 0, {field: durationField});
 
       if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
-        // Add spans.total.time field so that the span op breakdown can be compared against it.
-        // This is used to generate the relative
-        fields.push({field: 'spans.total.time'});
         fields.push(
           ...SPAN_OP_BREAKDOWN_FIELDS.map(field => {
             return {field};
@@ -254,6 +301,24 @@ class SummaryContent extends React.Component<Props, State> {
       transactionsListEventView.fields = fields;
     }
 
+    const openAllEventsProps = {
+      generatePerformanceTransactionEventsView: () => {
+        const performanceTransactionEventsView = this.generateEventView(
+          transactionsListEventView,
+          transactionsListTitles
+        );
+        performanceTransactionEventsView.query = query;
+        return performanceTransactionEventsView;
+      },
+      handleOpenAllEventsClick: this.handleAllEventsViewClick,
+    };
+
+    const openInDiscoverProps = {
+      generateDiscoverEventView: () =>
+        this.generateEventView(transactionsListEventView, transactionsListTitles),
+      handleOpenInDiscoverClick: this.handleDiscoverViewClick,
+    };
+
     return (
       <React.Fragment>
         <TransactionHeader
@@ -263,8 +328,9 @@ class SummaryContent extends React.Component<Props, State> {
           projects={projects}
           transactionName={transactionName}
           currentTab={Tab.TransactionSummary}
-          hasWebVitals={hasWebVitals}
+          hasWebVitals="maybe"
           handleIncompatibleQuery={this.handleIncompatibleQuery}
+          onChangeThreshold={onChangeThreshold}
         />
         <Layout.Body>
           <StyledSdkUpdatesAlert />
@@ -279,6 +345,7 @@ class SummaryContent extends React.Component<Props, State> {
                 onChangeFilter={onChangeFilter}
               />
               <StyledSearchBar
+                searchSource="transaction_summary"
                 organization={organization}
                 projectIds={eventView.project}
                 query={query}
@@ -293,33 +360,20 @@ class SummaryContent extends React.Component<Props, State> {
               eventView={eventView}
               totalValues={totalCount}
               currentFilter={spanOperationBreakdownFilter}
+              withoutZerofill={hasPerformanceChartInterpolation}
             />
             <TransactionsList
               location={location}
               organization={organization}
               eventView={transactionsListEventView}
-              generateDiscoverEventView={() => {
-                const {selected} = getTransactionsListSort(location, {
-                  p95: totalValues?.p95 ?? 0,
-                  spanOperationBreakdownFilter,
-                });
-                const sortedEventView = transactionsListEventView.withSorts([
-                  selected.sort,
-                ]);
-
-                if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
-                  const fields = [
-                    // Remove the extra field columns
-                    ...sortedEventView.fields.slice(0, transactionsListTitles.length),
-                  ];
-
-                  // omit "Operation Duration" column
-                  sortedEventView.fields = fields.filter(({field}) => {
-                    return !isRelativeSpanOperationBreakdownField(field);
-                  });
-                }
-                return sortedEventView;
-              }}
+              {...(hasPerformanceEventsPage ? openAllEventsProps : openInDiscoverProps)}
+              showTransactions={
+                decodeScalar(
+                  location.query.showTransactions,
+                  TransactionFilterOptions.SLOW
+                ) as TransactionFilterOptions
+              }
+              breakdown={decodeFilterFromLocation(location)}
               titles={transactionsListTitles}
               handleDropdownChange={this.handleTransactionsListSortChange}
               generateLink={{
@@ -329,14 +383,16 @@ class SummaryContent extends React.Component<Props, State> {
               baseline={transactionName}
               handleBaselineClick={this.handleViewDetailsClick}
               handleCellAction={this.handleCellAction}
-              handleOpenInDiscoverClick={this.handleDiscoverViewClick}
               {...getTransactionsListSort(location, {
                 p95: totalValues?.p95 ?? 0,
                 spanOperationBreakdownFilter,
               })}
               forceLoading={isLoading}
             />
-            <Feature features={['performance-tag-explorer']}>
+            <Feature
+              requireAll={false}
+              features={['performance-tag-explorer', 'performance-tag-page']}
+            >
               <TagExplorer
                 eventView={eventView}
                 organization={organization}
@@ -366,11 +422,13 @@ class SummaryContent extends React.Component<Props, State> {
               transactionName={transactionName}
               eventView={eventView}
             />
-            <StatusBreakdown
-              eventView={eventView}
-              organization={organization}
-              location={location}
-            />
+            {!isFrontendView && (
+              <StatusBreakdown
+                eventView={eventView}
+                organization={organization}
+                location={location}
+              />
+            )}
             <SidebarSpacer />
             <SidebarCharts
               organization={organization}
@@ -392,32 +450,6 @@ class SummaryContent extends React.Component<Props, State> {
       </React.Fragment>
     );
   }
-}
-
-function generateTraceLink(dateSelection) {
-  return (
-    organization: Organization,
-    tableRow: TableDataRow,
-    _query: Query
-  ): LocationDescriptor => {
-    const traceId = `${tableRow.trace}`;
-    if (!traceId) {
-      return {};
-    }
-
-    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
-  };
-}
-
-function generateTransactionLink(transactionName: string) {
-  return (
-    organization: Organization,
-    tableRow: TableDataRow,
-    query: Query
-  ): LocationDescriptor => {
-    const eventSlug = generateEventSlug(tableRow);
-    return getTransactionDetailsUrl(organization, eventSlug, transactionName, query);
-  };
 }
 
 function getFilterOptions({

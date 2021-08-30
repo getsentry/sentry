@@ -18,7 +18,8 @@ import Histogram from 'app/utils/performance/histogram';
 import {FILTER_OPTIONS} from 'app/utils/performance/histogram/constants';
 import {decodeScalar} from 'app/utils/queryString';
 
-import TransactionHeader, {Tab} from '../header';
+import TransactionHeader from '../header';
+import Tab from '../tabs';
 
 import {ZOOM_KEYS} from './constants';
 import VitalsPanel from './vitalsPanel';
@@ -79,8 +80,8 @@ class VitalsContent extends React.Component<Props, State> {
           organization={organization}
           projects={projects}
           transactionName={transactionName}
-          currentTab={Tab.RealUserMonitoring}
-          hasWebVitals
+          currentTab={Tab.WebVitals}
+          hasWebVitals="yes"
           handleIncompatibleQuery={this.handleIncompatibleQuery}
         />
         <Histogram location={location} zoomKeys={ZOOM_KEYS}>

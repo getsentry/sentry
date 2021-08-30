@@ -1,0 +1,36 @@
+[
+  {
+    "desc": "2m should mean 2 minutes for duration filters (as opposed to 2 million)",
+    "query": "avg(transaction.duration):>2m",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregateDuration",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "avg", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "transaction.duration",
+                  "quoted": false
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": ">",
+        "value": {"type": "valueDuration", "value": 2, "unit": "m"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

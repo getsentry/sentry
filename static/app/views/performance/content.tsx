@@ -20,11 +20,7 @@ import {GlobalSelection, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import {
-  QueryResults,
-  stringifyQueryObject,
-  tokenizeSearch,
-} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -80,6 +76,7 @@ class PerformanceContent extends Component<Props, State> {
       eventKey: 'performance_views.overview.view',
       eventName: 'Performance Views: Transaction overview view',
       organization_id: parseInt(organization.id, 10),
+      show_onboarding: this.shouldShowOnboarding(),
     });
   }
 
@@ -139,7 +136,7 @@ class PerformanceContent extends Component<Props, State> {
     };
 
     const query = decodeScalar(location.query.query, '');
-    const conditions = tokenizeSearch(query);
+    const conditions = new MutableSearch(query);
 
     trackAnalyticsEvent({
       eventKey: 'performance_views.change_view',
@@ -148,25 +145,25 @@ class PerformanceContent extends Component<Props, State> {
       view_name: 'TRENDS',
     });
 
-    const modifiedConditions = new QueryResults([]);
+    const modifiedConditions = new MutableSearch([]);
 
-    if (conditions.hasTag('tpm()')) {
-      modifiedConditions.setTagValues('tpm()', conditions.getTagValues('tpm()'));
+    if (conditions.hasFilter('tpm()')) {
+      modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
     } else {
-      modifiedConditions.setTagValues('tpm()', ['>0.01']);
+      modifiedConditions.setFilterValues('tpm()', ['>0.01']);
     }
-    if (conditions.hasTag('transaction.duration')) {
-      modifiedConditions.setTagValues(
+    if (conditions.hasFilter('transaction.duration')) {
+      modifiedConditions.setFilterValues(
         'transaction.duration',
-        conditions.getTagValues('transaction.duration')
+        conditions.getFilterValues('transaction.duration')
       );
     } else {
-      modifiedConditions.setTagValues('transaction.duration', [
+      modifiedConditions.setFilterValues('transaction.duration', [
         '>0',
         `<${DEFAULT_MAX_DURATION}`,
       ]);
     }
-    newQuery.query = stringifyQueryObject(modifiedConditions);
+    newQuery.query = modifiedConditions.formatString();
 
     browserHistory.push({
       pathname: getPerformanceTrendsUrl(organization),
@@ -205,7 +202,7 @@ class PerformanceContent extends Component<Props, State> {
   }
 
   renderBody() {
-    const {organization, projects} = this.props;
+    const {organization, projects, selection} = this.props;
     const eventView = this.state.eventView;
     const showOnboarding = this.shouldShowOnboarding();
 
@@ -227,7 +224,18 @@ class PerformanceContent extends Component<Props, State> {
           <GlobalSdkUpdateAlert />
           {this.renderError()}
           {showOnboarding ? (
-            <Onboarding organization={organization} />
+            <Onboarding
+              organization={organization}
+              project={
+                selection.projects.length > 0
+                  ? // If some projects selected, use the first selection
+                    projects.find(
+                      project => selection.projects[0].toString() === project.id
+                    ) || projects[0]
+                  : // Otherwise, use the first project in the org
+                    projects[0]
+              }
+            />
           ) : (
             <LandingContent
               eventView={eventView}

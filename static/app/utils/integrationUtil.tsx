@@ -16,18 +16,21 @@ import {
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
-  Organization,
+  LightWeightOrganization,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
-import {EventParameters, trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
-import {IntegrationAnalyticsKey} from 'app/utils/integrationEvents';
+import {
+  integrationEventMap,
+  IntegrationEventParameters,
+} from 'app/utils/analytics/integrationAnalyticsEvents';
+import makeAnalyticsFunction from 'app/utils/analytics/makeAnalyticsFunction';
 
 const mapIntegrationParams = analyticsParams => {
-  //Reload expects integration_status even though it's not relevant for non-sentry apps
-  //Passing in a dummy value of published in those cases
+  // Reload expects integration_status even though it's not relevant for non-sentry apps
+  // Passing in a dummy value of published in those cases
   const fullParams = {...analyticsParams};
   if (analyticsParams.integration && analyticsParams.integration_type !== 'sentry_app') {
     fullParams.integration_status = 'published';
@@ -35,22 +38,12 @@ const mapIntegrationParams = analyticsParams => {
   return fullParams;
 };
 
-//wrapper around trackAdvancedAnalyticsEvent which has some extra
-//data massaging above
-export function trackIntegrationEvent<T extends IntegrationAnalyticsKey>(
-  eventKey: T,
-  analyticsParams: EventParameters[T],
-  org: Organization, // integration events should always be tied to an org
-  options?: Parameters<typeof trackAdvancedAnalyticsEvent>[3]
-) {
-  return trackAdvancedAnalyticsEvent(
-    eventKey,
-    analyticsParams,
-    org,
-    options,
-    mapIntegrationParams
-  );
-}
+export const trackIntegrationAnalytics = makeAnalyticsFunction<
+  IntegrationEventParameters,
+  {organization: LightWeightOrganization} // org is required
+>(integrationEventMap, {
+  mapValuesFn: mapIntegrationParams,
+});
 
 /**
  * In sentry.io the features list supports rendering plan details. If the hook
@@ -212,8 +205,8 @@ export const getIntegrationIcon = (integrationType?: string, size?: string) => {
   }
 };
 
-//used for project creation and onboarding
-//determines what integration maps to what project platform
+// used for project creation and onboarding
+// determines what integration maps to what project platform
 export const platfromToIntegrationMap = {
   'node-awslambda': 'aws_lambda',
   'python-awslambda': 'aws_lambda',

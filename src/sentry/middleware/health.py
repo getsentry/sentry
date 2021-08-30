@@ -1,11 +1,12 @@
 import itertools
 
 from django.http import HttpResponse
+from django.utils.deprecation import MiddlewareMixin
 
 from sentry.utils.compat import filter
 
 
-class HealthCheck:
+class HealthCheck(MiddlewareMixin):
     def process_request(self, request):
         # Our health check can't be a done as a view, because we need
         # to bypass the ALLOWED_HOSTS check. We need to do this

@@ -9,14 +9,13 @@ import withOrganization from 'app/utils/withOrganization';
 
 import Grouping from './grouping';
 
-type RouteParams = {groupId: Group['id']; orgId: Organization['slug']};
-
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<{}, {}> & {
   organization: Organization;
+  group: Group;
   project: Project;
 };
 
-function GroupingContainer({organization, params, location, project}: Props) {
+function GroupingContainer({organization, location, group, router, project}: Props) {
   return (
     <Feature
       features={['grouping-tree-ui']}
@@ -29,9 +28,10 @@ function GroupingContainer({organization, params, location, project}: Props) {
     >
       <Grouping
         location={location}
-        groupId={params.groupId}
+        groupId={group.id}
         organization={organization}
-        project={project}
+        router={router}
+        projSlug={project.slug}
       />
     </Feature>
   );

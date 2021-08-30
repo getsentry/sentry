@@ -44,6 +44,62 @@ export type SpanType = RawSpanType | OrphanSpanType;
 // and as well as pseudo-spans (e.g. gap spans)
 export type ProcessedSpanType = SpanType | GapSpanType;
 
+export type FetchEmbeddedChildrenState =
+  | 'idle'
+  | 'loading_embedded_transactions'
+  | 'error_fetching_embedded_transactions';
+
+export type SpanGroupProps = {
+  spanGrouping: EnhancedSpan[] | undefined;
+  showSpanGroup: boolean;
+  toggleSpanGroup: (() => void) | undefined;
+};
+
+type CommonEnhancedProcessedSpanType = {
+  numOfSpanChildren: number;
+  treeDepth: number;
+  isLastSibling: boolean;
+  continuingTreeDepths: Array<TreeDepthType>;
+  fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
+  showEmbeddedChildren: boolean;
+  toggleEmbeddedChildren:
+    | ((props: {orgSlug: string; eventSlug: string}) => void)
+    | undefined;
+};
+
+export type EnhancedSpan =
+  | ({
+      type: 'root_span';
+      span: SpanType;
+    } & CommonEnhancedProcessedSpanType)
+  | ({
+      type: 'span';
+      span: SpanType;
+      toggleSpanGroup: (() => void) | undefined;
+    } & CommonEnhancedProcessedSpanType);
+
+// ProcessedSpanType with additional information
+export type EnhancedProcessedSpanType =
+  | EnhancedSpan
+  | ({
+      type: 'gap';
+      span: GapSpanType;
+    } & CommonEnhancedProcessedSpanType)
+  | {
+      type: 'filtered_out';
+      span: SpanType;
+    }
+  | {
+      type: 'out_of_view';
+      span: SpanType;
+    }
+  | ({
+      type: 'span_group_chain';
+      span: SpanType;
+      treeDepth: number;
+      continuingTreeDepths: Array<TreeDepthType>;
+    } & SpanGroupProps);
+
 export type SpanEntry = {
   type: 'spans';
   data: Array<RawSpanType>;
@@ -61,7 +117,6 @@ export type ParsedTraceType = {
   parentSpanID?: string;
   traceStartTimestamp: number;
   traceEndTimestamp: number;
-  numOfSpans: number;
   spans: SpanType[];
   description?: string;
 };
@@ -90,3 +145,39 @@ export type OrphanTreeDepth = {
 };
 
 export type TreeDepthType = SpanTreeDepth | OrphanTreeDepth;
+
+export type IndexedFusedSpan = {
+  span: RawSpanType;
+  indexed: string[];
+  tagKeys: string[];
+  tagValues: string[];
+  dataKeys: string[];
+  dataValues: string[];
+};
+
+export type FuseResult = {
+  item: IndexedFusedSpan;
+  score: number;
+};
+
+export type FilterSpans = {
+  results: FuseResult[];
+  spanIDs: Set<string>;
+};
+
+type FuseKey = 'indexed' | 'tagKeys' | 'tagValues' | 'dataKeys' | 'dataValues';
+
+export type SpanFuseOptions = {
+  keys: FuseKey[];
+  includeMatches: false;
+  threshold: number;
+  location: number;
+  distance: number;
+  maxPatternLength: number;
+};
+
+export type TraceBound = {
+  spanId: string;
+  traceStartTimestamp: number;
+  traceEndTimestamp: number;
+};

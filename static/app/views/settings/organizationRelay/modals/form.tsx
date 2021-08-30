@@ -34,11 +34,13 @@ const Form = ({
   onValidateKey,
   onSave,
 }: Props) => {
-  const handleChange = (field: FormField) => (
-    event: React.ChangeEvent<HTMLTextAreaElement> | React.ChangeEvent<HTMLInputElement>
-  ) => {
-    onChange(field, event.target.value);
-  };
+  const handleChange =
+    (field: FormField) =>
+    (
+      event: React.ChangeEvent<HTMLTextAreaElement> | React.ChangeEvent<HTMLInputElement>
+    ) => {
+      onChange(field, event.target.value);
+    };
 
   const handleSubmit = () => {
     if (isFormValid) {
@@ -49,7 +51,7 @@ const Form = ({
   // code below copied from app/views/organizationIntegrations/SplitInstallationIdModal.tsx
   // TODO: fix the common method selectText
   const onCopy = (value: string) => async () =>
-    //This hack is needed because the normal copying methods with TextCopyInput do not work correctly
+    // This hack is needed because the normal copying methods with TextCopyInput do not work correctly
     await navigator.clipboard.writeText(value);
 
   return (

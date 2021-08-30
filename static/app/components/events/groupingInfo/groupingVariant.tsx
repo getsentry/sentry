@@ -285,7 +285,7 @@ const ContributingToggle = styled(ButtonBar)`
 `;
 
 const GroupingTree = styled('div')`
-  color: #2f2936;
+  color: ${p => p.theme.textColor};
 `;
 
 const TextWithQuestionTooltip = styled('div')`

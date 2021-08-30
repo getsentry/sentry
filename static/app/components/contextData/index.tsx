@@ -17,7 +17,6 @@ type Value = null | string | boolean | number | {[key: string]: Value} | Value[]
 
 type Props = React.HTMLAttributes<HTMLPreElement> & {
   data: Value;
-  onToggle?: () => void;
   preserveQuotes?: boolean;
   withAnnotatedText?: boolean;
   maxDefaultDepth?: number;
@@ -37,21 +36,15 @@ class ContextData extends React.Component<Props, State> {
   };
 
   renderValue(value: Value) {
-    const {
-      preserveQuotes,
-      meta,
-      withAnnotatedText,
-      jsonConsts,
-      maxDefaultDepth,
-      onToggle,
-    } = this.props;
+    const {preserveQuotes, meta, withAnnotatedText, jsonConsts, maxDefaultDepth} =
+      this.props;
     const maxDepth = maxDefaultDepth ?? 2;
 
     function getValueWithAnnotatedText(v: Value, meta?: Meta) {
       return <AnnotatedText value={v} meta={meta} />;
     }
 
-    /*eslint no-shadow:0*/
+    /* eslint no-shadow:0 */
     function walk(value: Value, depth: number) {
       let i = 0;
       const children: React.ReactNode[] = [];
@@ -118,11 +111,7 @@ class ContextData extends React.Component<Props, State> {
         return (
           <span className="val-array">
             <span className="val-array-marker">{'['}</span>
-            <Toggle
-              highUp={depth <= maxDepth}
-              wrapClassName="val-array-items"
-              onClick={onToggle}
-            >
+            <Toggle highUp={depth <= maxDepth} wrapClassName="val-array-items">
               {children}
             </Toggle>
             <span className="val-array-marker">{']'}</span>
@@ -154,11 +143,7 @@ class ContextData extends React.Component<Props, State> {
       return (
         <span className="val-dict">
           <span className="val-dict-marker">{'{'}</span>
-          <Toggle
-            highUp={depth <= maxDepth - 1}
-            onClick={onToggle}
-            wrapClassName="val-dict-items"
-          >
+          <Toggle highUp={depth <= maxDepth - 1} wrapClassName="val-dict-items">
             {children}
           </Toggle>
           <span className="val-dict-marker">{'}'}</span>

@@ -136,7 +136,7 @@ class ContextPickerModal extends Component<Props> {
       return;
     }
 
-    // If there is only one org and we dont need a project slug, then call finish callback
+    // If there is only one org and we don't need a project slug, then call finish callback
     if (!needProject) {
       onFinish(
         replaceRouterParams(nextPath, {
@@ -246,7 +246,7 @@ class ContextPickerModal extends Component<Props> {
     });
   };
 
-  //TODO(TS): Fix typings
+  // TODO(TS): Fix typings
   customOptionProject = ({label, ...props}: any) => {
     const project = this.props.projects.find(({slug}) => props.value === slug);
     if (!project) {
@@ -278,7 +278,7 @@ class ContextPickerModal extends Component<Props> {
     if (integrationConfigs.length) {
       return t('Select a configuration to continue');
     }
-    //if neither project nor org needs to be selected, nothing will render anyways
+    // if neither project nor org needs to be selected, nothing will render anyways
     return '';
   }
 

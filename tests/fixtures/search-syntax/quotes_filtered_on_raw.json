@@ -1,0 +1,102 @@
+[
+  {
+    "desc": "Enclose the full raw query? Strip it.",
+    "query": "thinger:unknown \"what is this?\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "thinger", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "unknown", "quoted": false}
+      },
+      {"type": "spaces", "value": " "},
+      {"type": "freeText", "value": "what is this?", "quoted": true},
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Enclose the full query? Strip it and the whole query is raw.",
+    "query": "\"thinger:unknown what is this?\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": "thinger:unknown what is this?", "quoted": true},
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Allow a single quotation at end",
+    "query": "end\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": "end\"", "quoted": false},
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Allow a single quotation at beginning",
+    "query": "\"beginning",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": "\"beginning", "quoted": false},
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Allow a single quotation",
+    "query": "\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": "\"", "quoted": false},
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Empty quotations become a dropped term",
+    "query": "\"\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": "", "quoted": true},
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Allow a search for space",
+    "query": "\" \"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": " ", "quoted": true},
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Strip in a balanced manner",
+    "query": "\"\"woof\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": "", "quoted": true},
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": "woof\"", "quoted": false},
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Don't try this at home kids",
+    "query": "\"\"\"\"\"\"\"\"\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": "", "quoted": true},
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": "", "quoted": true},
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": "", "quoted": true},
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": "", "quoted": true},
+      {"type": "spaces", "value": ""},
+      {"type": "freeText", "value": "\"", "quoted": false},
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

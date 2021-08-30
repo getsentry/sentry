@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -31,7 +31,7 @@ import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
-type Props = ReactRouter.WithRouterProps & {
+type Props = WithRouterProps & {
   theme: Theme;
   api: Client;
   organization: LightWeightOrganization;
@@ -162,9 +162,9 @@ function SidebarCharts({
   let apdexKey, apdexYAxis: string;
   let apdexPerformanceTerm: PERFORMANCE_TERM;
   if (organization.features.includes('project-transaction-threshold')) {
-    apdexKey = 'apdex_new';
+    apdexKey = 'apdex';
     apdexPerformanceTerm = PERFORMANCE_TERM.APDEX_NEW;
-    apdexYAxis = 'apdex_new()';
+    apdexYAxis = 'apdex()';
   } else {
     apdexKey = `apdex_${threshold}`;
     apdexPerformanceTerm = PERFORMANCE_TERM.APDEX;
@@ -309,4 +309,4 @@ const ChartValue = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
-export default withApi(withTheme(ReactRouter.withRouter(SidebarCharts)));
+export default withApi(withTheme(withRouter(SidebarCharts)));

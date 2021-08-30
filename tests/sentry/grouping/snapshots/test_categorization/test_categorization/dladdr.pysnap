@@ -1,0 +1,27 @@
+---
+created: '2021-07-27T14:43:43.231210Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXC_BAD_ACCESS:Exception 1, Code 272, Subcode 8 >
+Attempted to dereference garbage pointer 0x110. (thread_id:_, crashed:_)
+                               libdyld.dylib  start category=threadbase
+                                              stripped_application_code
+                                   UIKitCore  UIApplicationMain category=threadbase
+                                   UIKitCore  -[UIApplication _run] category=ui
+                                              stripped_application_code
+                              CoreFoundation  CFRunLoopRunSpecific category=indirection
+                              CoreFoundation  __CFRunLoopRun category=internals
+                              CoreFoundation  __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ category=internals
+                           libdispatch.dylib  _dispatch_main_queue_callback_4CF category=internals
+                           libdispatch.dylib  _dispatch_client_callout category=threadbase
+                           libdispatch.dylib  _dispatch_async_and_wait_invoke category=internals
+                           libdispatch.dylib  _dispatch_client_callout category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                   UIKitCore  -[UIApplication __beginBackgroundTaskWithExpirationHandler:] category=ui
+                               libdyld.dylib  dladdr category=load
+                                    dyld_sim  dladdr category=internals
+                                    dyld_sim  ImageLoaderMachO::findClosestSymbol category=internals

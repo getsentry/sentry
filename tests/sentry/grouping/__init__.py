@@ -4,7 +4,7 @@ import pytest
 from django.utils.functional import cached_property
 
 from sentry import eventstore
-from sentry.event_manager import EventManager, materialize_metadata
+from sentry.event_manager import EventManager, get_event_type, materialize_metadata
 from sentry.grouping.api import apply_server_fingerprinting, load_grouping_config
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
@@ -83,7 +83,9 @@ class FingerprintInput:
 
         data.setdefault("fingerprint", ["{{ default }}"])
         apply_server_fingerprinting(data, config)
-        data.update(materialize_metadata(data))
+        event_type = get_event_type(data)
+        event_metadata = event_type.get_metadata(data)
+        data.update(materialize_metadata(data, event_type, event_metadata))
 
         evt = eventstore.create_event(data=data)
         return config, evt

@@ -74,6 +74,7 @@ const defaultProps = {
   useFilteredStats: false,
   useTintRow: true,
   display: DEFAULT_DISPLAY,
+  narrowGroups: false,
 };
 
 type Props = {
@@ -89,6 +90,7 @@ type Props = {
   customStatsPeriod?: TimePeriodType;
   display?: IssueDisplayOptions;
   // TODO(ts): higher order functions break defaultprops export types
+  queryFilterDescription?: string;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -359,6 +361,8 @@ class StreamGroup extends React.Component<Props, State> {
       useTintRow,
       customStatsPeriod,
       display,
+      queryFilterDescription,
+      narrowGroups,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -380,9 +384,6 @@ class StreamGroup extends React.Component<Props, State> {
       withChart && data && data.filtered && statsPeriod && useFilteredStats
     );
 
-    const hasInbox = organization.features.includes('inbox');
-    const unresolved = data.status === 'unresolved' ? true : false;
-
     const showSessions = display === IssueDisplayOptions.SESSIONS;
     // calculate a percentage count based on session data if the user has selected sessions display
     const primaryPercent =
@@ -400,8 +401,7 @@ class StreamGroup extends React.Component<Props, State> {
         data-test-id="group"
         onClick={displayReprocessingLayout ? undefined : this.toggleSelect}
         reviewed={reviewed}
-        hasInbox={hasInbox}
-        unresolved={unresolved}
+        unresolved={data.status === 'unresolved'}
         actionTaken={actionTaken}
         useTintRow={useTintRow ?? true}
       >
@@ -422,14 +422,15 @@ class StreamGroup extends React.Component<Props, State> {
           />
           <EventOrGroupExtraDetails
             hasGuideAnchor={hasGuideAnchor}
-            organization={organization}
             data={data}
             showInboxTime={showInboxTime}
           />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && !displayReprocessingLayout && (
-          <ChartWrapper className="hidden-xs hidden-sm">
+          <ChartWrapper
+            className={`hidden-xs hidden-sm ${narrowGroups ? 'hidden-md' : ''}`}
+          >
             {!data.filtered?.stats && !data.stats ? (
               <Placeholder height="24px" />
             ) : (
@@ -487,7 +488,8 @@ class StreamGroup extends React.Component<Props, State> {
                                 <React.Fragment>
                                   <StyledMenuItem to={this.getDiscoverUrl(true)}>
                                     <MenuItemText>
-                                      {t('Matching search filters')}
+                                      {queryFilterDescription ??
+                                        t('Matching search filters')}
                                     </MenuItemText>
                                     {primaryPercent ? (
                                       <MenuItemPercent>{primaryPercent}</MenuItemPercent>
@@ -559,7 +561,8 @@ class StreamGroup extends React.Component<Props, State> {
                               <React.Fragment>
                                 <StyledMenuItem to={this.getDiscoverUrl(true)}>
                                   <MenuItemText>
-                                    {t('Matching search filters')}
+                                    {queryFilterDescription ??
+                                      t('Matching search filters')}
                                   </MenuItemText>
                                   <MenuItemCount value={data.filtered.userCount} />
                                 </StyledMenuItem>
@@ -608,16 +611,13 @@ export default withGlobalSelection(withOrganization(StreamGroup));
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
   reviewed: boolean;
-  hasInbox: boolean;
   unresolved: boolean;
   actionTaken: boolean;
   useTintRow: boolean;
 }>`
   position: relative;
-  padding: ${p => (p.hasInbox ? `${space(1.5)} 0` : `${space(1)} 0`)};
+  padding: ${space(1.5)} 0;
   line-height: 1.1;
-
-  ${p => (p.hasInbox ? p.theme.textColor : p.theme.subText)};
 
   ${p =>
     p.useTintRow &&
@@ -750,6 +750,7 @@ const MenuItemCount = styled(({value, ...p}) => (
   </div>
 ))`
   ${menuItemStatStyles};
+  color: ${p => p.theme.subText};
 `;
 
 const MenuItemPercent = styled('div')`
@@ -761,6 +762,7 @@ const MenuItemText = styled('div')`
   font-weight: normal;
   text-align: left;
   padding-right: ${space(1)};
+  color: ${p => p.theme.textColor};
 `;
 
 const ChartWrapper = styled('div')`

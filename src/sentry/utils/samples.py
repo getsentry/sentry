@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 import pytz
-from django.utils import timezone
 
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
 from sentry.event_manager import EventManager
@@ -168,9 +167,9 @@ def load_data(
 
     # Generate a timestamp in the present.
     if timestamp is None:
-        timestamp = timezone.now()
-    else:
-        timestamp = timestamp.replace(tzinfo=pytz.utc)
+        timestamp = datetime.utcnow() - timedelta(minutes=1)
+        timestamp = timestamp - timedelta(microseconds=timestamp.microsecond % 1000)
+    timestamp = timestamp.replace(tzinfo=pytz.utc)
     data.setdefault("timestamp", to_timestamp(timestamp))
 
     if data.get("type") == "transaction":
@@ -300,10 +299,12 @@ def create_sample_event(
     return create_sample_event_basic(data, project.id, raw=raw)
 
 
-def create_sample_event_basic(data, project_id, raw=True):
+def create_sample_event_basic(data, project_id, raw=True, skip_send_first_transaction=False):
     manager = EventManager(data)
     manager.normalize()
-    return manager.save(project_id, raw=raw)
+    return manager.save(
+        project_id, raw=raw, skip_send_first_transaction=skip_send_first_transaction
+    )
 
 
 def create_trace(slow, start_timestamp, timestamp, user, trace_id, parent_span_id, data):

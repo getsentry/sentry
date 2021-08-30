@@ -139,7 +139,7 @@ export default class ChoiceMapper extends React.Component<FieldProps> {
     };
 
     const removeRow = (itemKey: string) => {
-      //eslint-disable-next-line no-unused-vars
+      // eslint-disable-next-line no-unused-vars
       const {[itemKey]: _, ...updatedValue} = value;
       saveChanges(updatedValue);
     };

@@ -8,7 +8,7 @@ import sentry_sdk
 from celery.exceptions import MaxRetriesExceededError
 from celery.task import current
 from django.core.files.base import ContentFile
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router
 from django.utils import timezone
 
 from sentry.models import (
@@ -21,6 +21,7 @@ from sentry.models import (
 )
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.db import atomic_transaction
 from sentry.utils.sdk import capture_exception
 
 from .base import (
@@ -253,29 +254,40 @@ def process_discover(processor, limit, offset):
     return processor.handle_fields(raw_data_unicode)
 
 
-@transaction.atomic()
+class ExportDataFileTooBig(Exception):
+    pass
+
+
 def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DEFAULT_BLOB_SIZE):
-    # adapted from `putfile` in  `src/sentry/models/file.py`
-    bytes_offset = 0
-    while True:
-        contents = fileobj.read(blob_size)
-        if not contents:
-            return bytes_offset
+    try:
+        with atomic_transaction(
+            using=(
+                router.db_for_write(FileBlob),
+                router.db_for_write(ExportedDataBlob),
+            )
+        ):
+            # adapted from `putfile` in  `src/sentry/models/file.py`
+            bytes_offset = 0
+            while True:
+                contents = fileobj.read(blob_size)
+                if not contents:
+                    return bytes_offset
 
-        blob_fileobj = ContentFile(contents)
-        blob = FileBlob.from_file(blob_fileobj, logger=logger)
-        ExportedDataBlob.objects.get_or_create(
-            data_export=data_export, blob=blob, offset=bytes_written + bytes_offset
-        )
+                blob_fileobj = ContentFile(contents)
+                blob = FileBlob.from_file(blob_fileobj, logger=logger)
+                ExportedDataBlob.objects.get_or_create(
+                    data_export=data_export, blob_id=blob.id, offset=bytes_written + bytes_offset
+                )
 
-        bytes_offset += blob.size
+                bytes_offset += blob.size
 
-        # there is a maximum file size allowed, so we need to make sure we don't exceed it
-        # NOTE: there seems to be issues with downloading files larger than 1 GB on slower
-        # networks, limit the export to 1 GB for now to improve reliability
-        if bytes_written + bytes_offset >= min(MAX_FILE_SIZE, 2 ** 30):
-            transaction.set_rollback(True)
-            return 0
+                # there is a maximum file size allowed, so we need to make sure we don't exceed it
+                # NOTE: there seems to be issues with downloading files larger than 1 GB on slower
+                # networks, limit the export to 1 GB for now to improve reliability
+                if bytes_written + bytes_offset >= min(MAX_FILE_SIZE, 2 ** 30):
+                    raise ExportDataFileTooBig()
+    except ExportDataFileTooBig:
+        return 0
 
 
 @instrumented_task(name="sentry.data_export.tasks.merge_blobs", queue="data_export", acks_late=True)
@@ -308,7 +320,13 @@ def merge_export_blobs(data_export_id, **kwargs):
 
         # adapted from `putfile` in  `src/sentry/models/file.py`
         try:
-            with transaction.atomic():
+            with atomic_transaction(
+                using=(
+                    router.db_for_write(File),
+                    router.db_for_write(FileBlobIndex),
+                    router.db_for_write(ExportedData),
+                )
+            ):
                 file = File.objects.create(
                     name=data_export.file_name,
                     type="export.csv",
@@ -320,7 +338,7 @@ def merge_export_blobs(data_export_id, **kwargs):
                 for export_blob in ExportedDataBlob.objects.filter(
                     data_export=data_export
                 ).order_by("offset"):
-                    blob = export_blob.blob
+                    blob = FileBlob.objects.get(pk=export_blob.blob_id)
                     FileBlobIndex.objects.create(file=file, blob=blob, offset=size)
                     size += blob.size
                     blob_checksum = sha1(b"")

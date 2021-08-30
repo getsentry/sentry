@@ -26,16 +26,18 @@ class ErrorRuleModal extends Form<Props, State> {
     const {rule} = this.props;
 
     if (rule) {
-      return t('Edit a custom rule for errors');
+      return t('Edit Error Sampling Rule');
     }
 
-    return t('Add a custom rule for errors');
+    return t('Add Error Sampling Rule');
   }
 
   geTransactionFieldDescription() {
     return {
-      label: t('Error'),
-      // help: t('This is a description'), TODO(PRISCILA): Add correct description
+      label: t('Errors'),
+      help: t(
+        'This determines if the rule applies to all errors or only errors that match custom conditions.'
+      ),
     };
   }
 
@@ -52,6 +54,7 @@ class ErrorRuleModal extends Form<Props, State> {
       [DynamicSamplingInnerName.EVENT_IP_ADDRESSES, t('IP Addresses')],
       [DynamicSamplingInnerName.EVENT_CSP, t('Content Security Policy')],
       [DynamicSamplingInnerName.EVENT_ERROR_MESSAGES, t('Error Messages')],
+      [DynamicSamplingInnerName.EVENT_TRANSACTION, t('Transactions')],
     ];
   }
 

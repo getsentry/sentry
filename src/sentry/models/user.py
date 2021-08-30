@@ -64,7 +64,7 @@ class UserManager(BaseManager, DjangoUserManager):
 
 
 class User(BaseModel, AbstractBaseUser):
-    __core__ = True
+    __include_in_export__ = True
 
     id = BoundedAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=128, unique=True)
@@ -181,6 +181,15 @@ class User(BaseModel, AbstractBaseUser):
 
     def has_unverified_emails(self):
         return self.get_unverified_emails().exists()
+
+    def has_usable_password(self):
+        if self.password == "" or self.password is None:
+            # This is the behavior we've been relying on from Django 1.6 - 2.0.
+            # In 2.1, a "" or None password is considered usable.
+            # Removing this override requires identifying all the places
+            # to put set_unusable_password and a migration.
+            return False
+        return super().has_usable_password()
 
     def get_label(self):
         return self.email or self.username or self.id

@@ -29,15 +29,35 @@ export type ConfirmMessageRenderProps = {
   setConfirmCallback: (cb: () => void) => void;
 };
 
+export type ConfirmButtonsRenderProps = {
+  /**
+   * Applications can call this function to manually close the modal.
+   */
+  closeModal: () => void;
+  /**
+   * The default onClick behavior, including closing the modal and triggering the
+   * onConfirm / onCancel callbacks.
+   */
+  defaultOnClick: () => void;
+};
+
 type ChildrenRenderProps = {
   open: () => void;
 };
 
-type Props = {
+export type OpenConfirmOptions = {
   /**
    * Callback when user confirms
    */
   onConfirm?: () => void;
+  /**
+   * Custom function to render the confirm button
+   */
+  renderConfirmButton?: (props: ConfirmButtonsRenderProps) => React.ReactNode;
+  /**
+   * Custom function to render the cancel button
+   */
+  renderCancelButton?: (props: ConfirmButtonsRenderProps) => React.ReactNode;
   /**
    * If true, will skip the confirmation modal and call `onConfirm` callback
    */
@@ -51,16 +71,6 @@ type Props = {
    */
   renderMessage?: (renderProps: ConfirmMessageRenderProps) => React.ReactNode;
   /**
-   * Render props to control rendering of the modal in its entirety
-   */
-  children?:
-    | ((renderProps: ChildrenRenderProps) => React.ReactNode)
-    | React.ReactElement<{disabled: boolean; onClick: (e: React.MouseEvent) => void}>;
-  /**
-   * Passed to `children` render function
-   */
-  disabled?: boolean;
-  /**
    * Callback function when user is in the confirming state called when the
    * confirm modal is opened
    */
@@ -73,10 +83,6 @@ type Props = {
    * Header of modal
    */
   header?: React.ReactNode;
-  /**
-   * Stop event propagation when opening the confirm modal
-   */
-  stopPropagation?: boolean;
   /**
    * Disables the confirm button.
    *
@@ -102,21 +108,64 @@ type Props = {
   confirmText?: React.ReactNode;
 };
 
-function Confirm({
+type Props = OpenConfirmOptions & {
+  /**
+   * Render props to control rendering of the modal in its entirety
+   */
+  children?:
+    | ((renderProps: ChildrenRenderProps) => React.ReactNode)
+    | React.ReactElement<{disabled: boolean; onClick: (e: React.MouseEvent) => void}>;
+  /**
+   * Passed to `children` render function
+   */
+  disabled?: boolean;
+  /**
+   * Stop event propagation when opening the confirm modal
+   */
+  stopPropagation?: boolean;
+};
+
+/**
+ * Opens a confirmation modal when called. The procedural version of the
+ * `Confirm` component
+ */
+export const openConfirmModal = ({
   bypass,
-  renderMessage,
-  message,
-  header,
-  disabled,
-  children,
-  onConfirm,
   onConfirming,
-  onCancel,
   priority = 'primary',
   cancelText = t('Cancel'),
   confirmText = t('Confirm'),
-  stopPropagation = false,
   disableConfirmButton = false,
+  ...rest
+}: OpenConfirmOptions) => {
+  if (bypass) {
+    rest.onConfirm?.();
+    return;
+  }
+
+  const modalProps = {
+    ...rest,
+    priority,
+    confirmText,
+    cancelText,
+    disableConfirmButton,
+  };
+
+  onConfirming?.();
+  openModal(renderProps => <ConfirmModal {...renderProps} {...modalProps} />);
+};
+
+/**
+ * The confirm component is somewhat special in that you can wrap any
+ * onClick-able element with this to trigger a interstital confirmation modal.
+ *
+ * This is the declarative alternative to using openConfirmModal
+ */
+function Confirm({
+  disabled,
+  children,
+  stopPropagation = false,
+  ...openConfirmOptions
 }: Props) {
   const triggerModal = (e?: React.MouseEvent) => {
     if (stopPropagation) {
@@ -127,26 +176,7 @@ function Confirm({
       return;
     }
 
-    if (bypass) {
-      onConfirm?.();
-      return;
-    }
-
-    onConfirming?.();
-
-    const modalProps = {
-      priority,
-      renderMessage,
-      message,
-      confirmText,
-      cancelText,
-      header,
-      onConfirm,
-      onCancel,
-      disableConfirmButton,
-    };
-
-    openModal(renderProps => <ConfirmModal {...renderProps} {...modalProps} />);
+    openConfirmModal(openConfirmOptions);
   };
 
   if (typeof children === 'function') {
@@ -166,6 +196,8 @@ type ModalProps = ModalRenderProps &
     Props,
     | 'priority'
     | 'renderMessage'
+    | 'renderConfirmButton'
+    | 'renderCancelButton'
     | 'message'
     | 'confirmText'
     | 'cancelText'
@@ -246,24 +278,47 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
   }
 
   render() {
-    const {Header, Body, Footer, priority, confirmText, cancelText, header} = this.props;
-
+    const {
+      Header,
+      Body,
+      Footer,
+      priority,
+      confirmText,
+      cancelText,
+      header,
+      renderConfirmButton,
+      renderCancelButton,
+    } = this.props;
     return (
       <React.Fragment>
         {header && <Header>{header}</Header>}
         <Body>{this.confirmMessage}</Body>
         <Footer>
           <ButtonBar gap={2}>
-            <Button onClick={this.handleClose}>{cancelText}</Button>
-            <Button
-              data-test-id="confirm-button"
-              disabled={this.state.disableConfirmButton}
-              priority={priority}
-              onClick={this.handleConfirm}
-              autoFocus
-            >
-              {confirmText}
-            </Button>
+            {renderCancelButton ? (
+              renderCancelButton({
+                closeModal: this.props.closeModal,
+                defaultOnClick: this.handleClose,
+              })
+            ) : (
+              <Button onClick={this.handleClose}>{cancelText}</Button>
+            )}
+            {renderConfirmButton ? (
+              renderConfirmButton({
+                closeModal: this.props.closeModal,
+                defaultOnClick: this.handleConfirm,
+              })
+            ) : (
+              <Button
+                data-test-id="confirm-button"
+                disabled={this.state.disableConfirmButton}
+                priority={priority}
+                onClick={this.handleConfirm}
+                autoFocus
+              >
+                {confirmText}
+              </Button>
+            )}
           </ButtonBar>
         </Footer>
       </React.Fragment>

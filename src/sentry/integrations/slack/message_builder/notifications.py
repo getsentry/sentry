@@ -1,60 +1,96 @@
-import re
-from typing import Any, Mapping
-from urllib.parse import urljoin
+from typing import Any, Dict, List, Mapping, Union
 
-from sentry.integrations.slack.message_builder.issues import build_group_attachment
-from sentry.integrations.slack.utils import LEVEL_TO_COLOR
-from sentry.notifications.base import BaseNotification
-from sentry.notifications.rules import AlertRuleNotification
-from sentry.notifications.utils.avatar import get_sentry_avatar_url
+from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.integrations.slack.message_builder.issues import (
+    SlackIssuesMessageBuilder,
+    build_attachment_title,
+    get_title_link,
+)
+from sentry.models import Team, User
+from sentry.notifications.notifications.activity.new_processing_issues import (
+    NewProcessingIssuesActivityNotification,
+)
+from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
+from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.utils import get_release
 from sentry.utils.http import absolute_uri
 
-
-def get_referrer_qstring(notification: BaseNotification) -> str:
-    return "?referrer=" + re.sub("Notification$", "Slack", notification.__class__.__name__)
+from ..utils import build_notification_footer
 
 
-def get_settings_url(notification: BaseNotification) -> str:
-    return urljoin(
-        absolute_uri("/settings/account/notifications/"), get_referrer_qstring(notification)
-    )
+def build_deploy_buttons(notification: ReleaseActivityNotification) -> List[Dict[str, str]]:
+    buttons = []
+    if notification.release:
+        release = get_release(notification.activity, notification.project.organization)
+        if release:
+            for project in notification.release.projects.all():
+                project_url = absolute_uri(
+                    f"/organizations/{project.organization.slug}/releases/{release.version}/?project={project.id}&unselectedSeries=Healthy/"
+                )
+                buttons.append(
+                    {
+                        "text": project.slug,
+                        "name": project.slug,
+                        "type": "button",
+                        "url": project_url,
+                    }
+                )
+    return buttons
 
 
-def get_group_url(notification: BaseNotification) -> str:
-    return urljoin(notification.group.get_absolute_url(), get_referrer_qstring(notification))
+class SlackNotificationsMessageBuilder(SlackMessageBuilder):
+    def __init__(
+        self,
+        notification: BaseNotification,
+        context: Mapping[str, Any],
+        recipient: Union[Team, User],
+    ) -> None:
+        super().__init__()
+        self.notification = notification
+        self.context = context
+        self.recipient = recipient
 
+    def build(self) -> SlackBody:
+        group = getattr(self.notification, "group", None)
+        if self.notification.is_message_issue_unfurl:
+            return SlackIssuesMessageBuilder(
+                group=group,
+                event=getattr(self.notification, "event", None),
+                tags=self.context.get("tags", None),
+                rules=getattr(self.notification, "rules", None),
+                issue_details=True,
+                notification=self.notification,
+                recipient=self.recipient,
+            ).build()
 
-def build_notification_footer(notification: BaseNotification) -> str:
-    settings_url = get_settings_url(notification)
+        if isinstance(self.notification, ReleaseActivityNotification):
+            return self._build(
+                text="",
+                actions=build_deploy_buttons(self.notification),
+                footer=build_notification_footer(self.notification, self.recipient),
+            )
 
-    if not notification.group:
-        # Groups are not associated with a deploy notification so in this one
-        # case, the footer is different.
-        return f"<{settings_url}|Notification Settings>"
+        if isinstance(self.notification, NewProcessingIssuesActivityNotification):
+            return self._build(
+                title=self.notification.get_title(),
+                text=self.notification.get_message_description(),
+                footer=build_notification_footer(self.notification, self.recipient),
+            )
 
-    group_url = get_group_url(notification)
-    short_id = notification.group.qualified_short_id
-    return f"<{group_url}|{short_id}> via <{settings_url}|Notification Settings>"
+        return self._build(
+            title=build_attachment_title(group),
+            title_link=get_title_link(group, None, False, True, self.notification),
+            text=self.notification.get_message_description(),
+            footer=build_notification_footer(self.notification, self.recipient),
+            color="info",
+        )
 
 
 def build_notification_attachment(
-    notification: BaseNotification, context: Mapping[str, Any]
-) -> Mapping[str, str]:
-    if isinstance(notification, AlertRuleNotification):
-        return build_group_attachment(
-            notification.group,
-            notification.event,
-            context["tags"],
-            notification.rules,
-            issue_alert=True,
-        )
-
-    footer = build_notification_footer(notification)
-    return {
-        "title": notification.get_title(),
-        "text": context["text_description"],
-        "mrkdwn_in": ["text"],
-        "footer_icon": get_sentry_avatar_url(),
-        "footer": footer,
-        "color": LEVEL_TO_COLOR["info"],
-    }
+    notification: BaseNotification,
+    context: Mapping[str, Any],
+    recipient: Union[Team, User],
+) -> SlackBody:
+    """@deprecated"""
+    return SlackNotificationsMessageBuilder(notification, context, recipient).build()

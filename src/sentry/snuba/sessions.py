@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import List, Optional, Set
 
 import pytz
 from snuba_sdk.column import Column
@@ -9,6 +10,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
 from sentry.snuba.dataset import Dataset
+from sentry.utils import snuba
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.snuba import (
     QueryOutsideRetentionError,
@@ -101,21 +103,82 @@ def get_oldest_health_data_for_releases(project_releases):
     return rv
 
 
-def check_has_health_data(project_releases):
-    conditions = [["release", "IN", list(x[1] for x in project_releases)]]
-    filter_keys = {"project_id": list({x[0] for x in project_releases})}
-    return {
-        (x["project_id"], x["release"])
-        for x in raw_query(
-            dataset=Dataset.Sessions,
-            selected_columns=["release", "project_id"],
-            groupby=["release", "project_id"],
-            start=datetime.utcnow() - timedelta(days=90),
-            conditions=conditions,
-            referrer="sessions.health-data-check",
-            filter_keys=filter_keys,
-        )["data"]
+def check_has_health_data(projects_list):
+    """
+    Function that returns a set of all project_ids or (project, release) if they have health data
+    within the last 90 days based on a list of projects or a list of project, release combinations
+    provided as an arg.
+    Inputs:
+        * projects_list: Contains either a list of project ids or a list of tuple (project_id,
+        release)
+    """
+    if len(projects_list) == 0:
+        return set()
+
+    conditions = None
+    projects_list = list(projects_list)
+    # Check if projects_list also contains releases as a tuple of (project_id, releases)
+    includes_releases = type(projects_list[0]) == tuple
+
+    if includes_releases:
+        filter_keys = {"project_id": {x[0] for x in projects_list}}
+        conditions = [["release", "IN", [x[1] for x in projects_list]]]
+        query_cols = ["release", "project_id"]
+
+        def data_tuple(x):
+            return x["project_id"], x["release"]
+
+    else:
+        filter_keys = {"project_id": {x for x in projects_list}}
+        query_cols = ["project_id"]
+
+        def data_tuple(x):
+            return x["project_id"]
+
+    raw_query_args = {
+        "dataset": Dataset.Sessions,
+        "selected_columns": query_cols,
+        "groupby": query_cols,
+        "start": datetime.utcnow() - timedelta(days=90),
+        "referrer": "sessions.health-data-check",
+        "filter_keys": filter_keys,
     }
+    if conditions is not None:
+        raw_query_args.update({"conditions": conditions})
+
+    return {data_tuple(x) for x in raw_query(**raw_query_args)["data"]}
+
+
+def check_releases_have_health_data(
+    organization_id: int,
+    project_ids: List[int],
+    release_versions: List[str],
+    start: datetime,
+    end: datetime,
+) -> Set[str]:
+    """
+    Returns a set of all release versions that have health data within a given period of time.
+    """
+    if not release_versions:
+        return set()
+
+    query = Query(
+        dataset="sessions",
+        match=Entity("sessions"),
+        select=[Column("release")],
+        groupby=[Column("release")],
+        where=[
+            Condition(Column("started"), Op.GTE, start),
+            Condition(Column("started"), Op.LT, end),
+            Condition(Column("org_id"), Op.EQ, organization_id),
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("release"), Op.IN, release_versions),
+        ],
+    )
+    data = snuba.raw_snql_query(query, referrer="snuba.sessions.check_releases_have_health_data")[
+        "data"
+    ]
+    return {row["release"] for row in data}
 
 
 def get_project_releases_by_stability(
@@ -147,6 +210,11 @@ def get_project_releases_by_stability(
     filter_keys = {"project_id": project_ids}
     rv = []
 
+    # Filter out releases with zero users when sorting by either `users` or `crash_free_users`
+    having_dict = {}
+    if scope in ["users", "crash_free_users"]:
+        having_dict["having"] = [["users", ">", 0]]
+
     for x in raw_query(
         dataset=Dataset.Sessions,
         selected_columns=["project_id", "release"],
@@ -156,12 +224,58 @@ def get_project_releases_by_stability(
         offset=offset,
         limit=limit,
         conditions=conditions,
+        **having_dict,
         filter_keys=filter_keys,
         referrer="sessions.stability-sort",
     )["data"]:
         rv.append((x["project_id"], x["release"]))
 
     return rv
+
+
+def get_project_releases_count(
+    organization_id: int,
+    project_ids: List[int],
+    scope: str,
+    stats_period: Optional[str] = None,
+    environments: Optional[str] = None,
+) -> int:
+    """
+    Fetches the total count of releases/project combinations
+    """
+    if stats_period is None:
+        stats_period = "24h"
+
+    # Special rule that we support sorting by the last 24h only.
+    if scope.endswith("_24h"):
+        stats_period = "24h"
+
+    _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
+
+    where = [
+        Condition(Column("started"), Op.GTE, stats_start),
+        Condition(Column("started"), Op.LT, datetime.now()),
+        Condition(Column("project_id"), Op.IN, project_ids),
+        Condition(Column("org_id"), Op.EQ, organization_id),
+    ]
+    if environments is not None:
+        where.append(Condition(Column("environment"), Op.IN, environments))
+
+    having = []
+    # Filter out releases with zero users when sorting by either `users` or `crash_free_users`
+    if scope in ["users", "crash_free_users"]:
+        having.append(Condition(Column("users"), Op.GT, 0))
+
+    query = Query(
+        dataset="sessions",
+        match=Entity("sessions"),
+        select=[Function("uniq", [Column("release"), Column("project_id")], alias="count")],
+        where=where,
+        having=having,
+    )
+    return snuba.raw_snql_query(query, referrer="snuba.sessions.check_releases_have_health_data")[
+        "data"
+    ][0]["count"]
 
 
 def _make_stats(start, rollup, buckets, default=0):
@@ -572,6 +686,10 @@ def get_release_sessions_time_bounds(project_id, release, org_id, environments=N
         Dictionary with two keys "sessions_lower_bound" and "sessions_upper_bound" that
     correspond to when the first session occurred and when the last session occurred respectively
     """
+
+    def iso_format_snuba_datetime(date):
+        return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S+00:00").isoformat()[:19] + "Z"
+
     release_sessions_time_bounds = {
         "sessions_lower_bound": None,
         "sessions_upper_bound": None,
@@ -606,9 +724,10 @@ def get_release_sessions_time_bounds(project_id, release, org_id, environments=N
         # P.S. To avoid confusion the `0` timestamp which is '1970-01-01 00:00:00'
         # is rendered as '0000-00-00 00:00:00' in clickhouse shell
         if set(rv.values()) != {formatted_unix_start_time}:
+
             release_sessions_time_bounds = {
-                "sessions_lower_bound": rv["first_session_started"],
-                "sessions_upper_bound": rv["last_session_started"],
+                "sessions_lower_bound": iso_format_snuba_datetime(rv["first_session_started"]),
+                "sessions_upper_bound": iso_format_snuba_datetime(rv["last_session_started"]),
             }
     return release_sessions_time_bounds
 
@@ -916,3 +1035,110 @@ def __get_scope_value_for_release(
     elif scope == "crash_free_users":
         scope_value = rq_row["users_crashed"] / rq_row["users"]
     return scope_value
+
+
+def __get_crash_free_rate_data(project_ids, start, end, rollup):
+    """
+    Helper function that executes a snuba query on project_ids to fetch the number of crashed
+    sessions and total sessions and returns the crash free rate for those project_ids.
+    Inputs:
+        * project_ids
+        * start
+        * end
+        * rollup
+    Returns:
+        Snuba query results
+    """
+    return raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=[
+            "project_id",
+            "sessions_crashed",
+            "sessions_errored",
+            "sessions_abnormal",
+            "sessions",
+        ],
+        filter_keys={"project_id": project_ids},
+        start=start,
+        end=end,
+        rollup=rollup,
+        groupby=["project_id"],
+        referrer="sessions.totals",
+    )["data"]
+
+
+def get_current_and_previous_crash_free_rates(
+    project_ids, current_start, current_end, previous_start, previous_end, rollup
+):
+    """
+    Function that returns `currentCrashFreeRate` and the `previousCrashFreeRate` of projects
+    based on the inputs provided
+    Inputs:
+        * project_ids
+        * current_start: start interval of currentCrashFreeRate
+        * current_end: end interval of currentCrashFreeRate
+        * previous_start: start interval of previousCrashFreeRate
+        * previous_end: end interval of previousCrashFreeRate
+        * rollup
+    Returns:
+        A dictionary of project_id as key and as value the `currentCrashFreeRate` and the
+        `previousCrashFreeRate`
+
+        As an example:
+        {
+            1: {
+                "currentCrashFreeRate": 100,
+                "previousCrashFreeRate": 66.66666666666667
+            },
+            2: {
+                "currentCrashFreeRate": 50.0,
+                "previousCrashFreeRate": None
+            },
+            ...
+        }
+    """
+    projects_crash_free_rate_dict = {
+        prj: {"currentCrashFreeRate": None, "previousCrashFreeRate": None} for prj in project_ids
+    }
+
+    def calculate_crash_free_percentage(row):
+        # XXX: Calculation is done in this way to clamp possible negative values and so to calculate
+        # crash free rates similar to how it is calculated here
+        # Ref: https://github.com/getsentry/sentry/pull/25543
+        healthy_sessions = max(row["sessions"] - row["sessions_errored"], 0)
+        errored_sessions = max(
+            row["sessions_errored"] - row["sessions_crashed"] - row["sessions_abnormal"], 0
+        )
+        totals = (
+            healthy_sessions + errored_sessions + row["sessions_crashed"] + row["sessions_abnormal"]
+        )
+        try:
+            crash_free_rate = 100 - (row["sessions_crashed"] / totals) * 100
+        except ZeroDivisionError:
+            crash_free_rate = None
+        return crash_free_rate
+
+    # currentCrashFreeRate
+    current_crash_free_data = __get_crash_free_rate_data(
+        project_ids=project_ids,
+        start=current_start,
+        end=current_end,
+        rollup=rollup,
+    )
+    for row in current_crash_free_data:
+        projects_crash_free_rate_dict[row["project_id"]].update(
+            {"currentCrashFreeRate": calculate_crash_free_percentage(row)}
+        )
+
+    # previousCrashFreeRate
+    previous_crash_free_data = __get_crash_free_rate_data(
+        project_ids=project_ids,
+        start=previous_start,
+        end=previous_end,
+        rollup=rollup,
+    )
+    for row in previous_crash_free_data:
+        projects_crash_free_rate_dict[row["project_id"]].update(
+            {"previousCrashFreeRate": calculate_crash_free_percentage(row)}
+        )
+    return projects_crash_free_rate_dict

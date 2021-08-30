@@ -33,20 +33,9 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 import GroupActions from './actions';
-import UnhandledTag, {TagAndMessageWrapper} from './unhandledTag';
+import {Tab} from './types';
+import {TagAndMessageWrapper} from './unhandledTag';
 import {ReprocessingStatus} from './utils';
-
-const TAB = {
-  DETAILS: 'details',
-  ACTIVITY: 'activity',
-  USER_FEEDBACK: 'user-feedback',
-  ATTACHMENTS: 'attachments',
-  TAGS: 'tags',
-  EVENTS: 'events',
-  MERGED: 'merged',
-  GROUPING: 'grouping',
-  SIMILAR_ISSUES: 'similar-issues',
-};
 
 type Props = WithRouterProps & {
   currentTab: string;
@@ -93,27 +82,27 @@ class GroupHeader extends React.Component<Props, State> {
 
     if (groupReprocessingStatus === ReprocessingStatus.REPROCESSING) {
       return [
-        TAB.ACTIVITY,
-        TAB.USER_FEEDBACK,
-        TAB.ATTACHMENTS,
-        TAB.EVENTS,
-        TAB.MERGED,
-        TAB.GROUPING,
-        TAB.SIMILAR_ISSUES,
-        TAB.TAGS,
+        Tab.ACTIVITY,
+        Tab.USER_FEEDBACK,
+        Tab.ATTACHMENTS,
+        Tab.EVENTS,
+        Tab.MERGED,
+        Tab.GROUPING,
+        Tab.SIMILAR_ISSUES,
+        Tab.TAGS,
       ];
     }
 
     if (groupReprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT) {
       return [
-        TAB.DETAILS,
-        TAB.ATTACHMENTS,
-        TAB.EVENTS,
-        TAB.MERGED,
-        TAB.GROUPING,
-        TAB.SIMILAR_ISSUES,
-        TAB.TAGS,
-        TAB.USER_FEEDBACK,
+        Tab.DETAILS,
+        Tab.ATTACHMENTS,
+        Tab.EVENTS,
+        Tab.MERGED,
+        Tab.GROUPING,
+        Tab.SIMILAR_ISSUES,
+        Tab.TAGS,
+        Tab.USER_FEEDBACK,
       ];
     }
 
@@ -121,15 +110,8 @@ class GroupHeader extends React.Component<Props, State> {
   }
 
   render() {
-    const {
-      project,
-      group,
-      currentTab,
-      baseUrl,
-      event,
-      organization,
-      location,
-    } = this.props;
+    const {project, group, currentTab, baseUrl, event, organization, location} =
+      this.props;
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
@@ -151,7 +133,6 @@ class GroupHeader extends React.Component<Props, State> {
     const {memberList} = this.state;
     const orgId = organization.slug;
     const message = getMessage(group);
-    const hasInbox = organization.features?.includes('inbox');
 
     const searchTermWithoutQuery = omit(location.query, 'query');
     const eventRouteToObject = {
@@ -170,18 +151,17 @@ class GroupHeader extends React.Component<Props, State> {
               <h3>
                 <EventOrGroupTitle hasGuideAnchor data={group} />
               </h3>
-              {hasInbox && group.inbox && (
+              {group.inbox && (
                 <InboxReasonWrapper>
                   <InboxReason inbox={group.inbox} fontSize="md" />
                 </InboxReasonWrapper>
               )}
             </TitleWrapper>
             <StyledTagAndMessageWrapper>
-              {hasInbox && group.level && <ErrorLevel level={group.level} size="11px" />}
-              {group.isUnhandled && (hasInbox ? <UnhandledInboxTag /> : <UnhandledTag />)}
+              {group.level && <ErrorLevel level={group.level} size="11px" />}
+              {group.isUnhandled && <UnhandledInboxTag />}
               <EventMessage
                 message={message}
-                level={hasInbox ? undefined : group.level}
                 annotations={
                   <React.Fragment>
                     {group.logger && (
@@ -221,7 +201,7 @@ class GroupHeader extends React.Component<Props, State> {
                         )}
                         position="bottom"
                       >
-                        <ExternalLink href="https://docs.sentry.io/product/integrations/github/#resolve-via-commit-or-pull-request">
+                        <ExternalLink href="https://docs.sentry.io/product/integrations/source-code-mgmt/github/#resolve-via-commit-or-pull-request">
                           {t('Issue #')}
                         </ExternalLink>
                       </Tooltip>
@@ -283,15 +263,15 @@ class GroupHeader extends React.Component<Props, State> {
         <NavTabs>
           <ListLink
             to={`${baseUrl}${location.search}`}
-            isActive={() => currentTab === TAB.DETAILS}
-            disabled={disabledTabs.includes(TAB.DETAILS)}
+            isActive={() => currentTab === Tab.DETAILS}
+            disabled={disabledTabs.includes(Tab.DETAILS)}
           >
             {t('Details')}
           </ListLink>
           <StyledListLink
             to={`${baseUrl}activity/${location.search}`}
-            isActive={() => currentTab === TAB.ACTIVITY}
-            disabled={disabledTabs.includes(TAB.ACTIVITY)}
+            isActive={() => currentTab === Tab.ACTIVITY}
+            disabled={disabledTabs.includes(Tab.ACTIVITY)}
           >
             {t('Activity')}
             <Badge>
@@ -301,46 +281,46 @@ class GroupHeader extends React.Component<Props, State> {
           </StyledListLink>
           <StyledListLink
             to={`${baseUrl}feedback/${location.search}`}
-            isActive={() => currentTab === TAB.USER_FEEDBACK}
-            disabled={disabledTabs.includes(TAB.USER_FEEDBACK)}
+            isActive={() => currentTab === Tab.USER_FEEDBACK}
+            disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
           >
             {t('User Feedback')} <Badge text={group.userReportCount} />
           </StyledListLink>
           {hasEventAttachments && (
             <ListLink
               to={`${baseUrl}attachments/${location.search}`}
-              isActive={() => currentTab === TAB.ATTACHMENTS}
-              disabled={disabledTabs.includes(TAB.ATTACHMENTS)}
+              isActive={() => currentTab === Tab.ATTACHMENTS}
+              disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
             >
               {t('Attachments')}
             </ListLink>
           )}
           <ListLink
             to={`${baseUrl}tags/${location.search}`}
-            isActive={() => currentTab === TAB.TAGS}
-            disabled={disabledTabs.includes(TAB.TAGS)}
+            isActive={() => currentTab === Tab.TAGS}
+            disabled={disabledTabs.includes(Tab.TAGS)}
           >
             {t('Tags')}
           </ListLink>
           <ListLink
             to={eventRouteToObject}
-            isActive={() => currentTab === TAB.EVENTS}
-            disabled={disabledTabs.includes(TAB.EVENTS)}
+            isActive={() => currentTab === Tab.EVENTS}
+            disabled={disabledTabs.includes(Tab.EVENTS)}
           >
             {t('Events')}
           </ListLink>
           <ListLink
             to={`${baseUrl}merged/${location.search}`}
-            isActive={() => currentTab === TAB.MERGED}
-            disabled={disabledTabs.includes(TAB.MERGED)}
+            isActive={() => currentTab === Tab.MERGED}
+            disabled={disabledTabs.includes(Tab.MERGED)}
           >
             {t('Merged Issues')}
           </ListLink>
           {hasGroupingTreeUI && (
             <ListLink
               to={`${baseUrl}grouping/${location.search}`}
-              isActive={() => currentTab === TAB.GROUPING}
-              disabled={disabledTabs.includes(TAB.GROUPING)}
+              isActive={() => currentTab === Tab.GROUPING}
+              disabled={disabledTabs.includes(Tab.GROUPING)}
             >
               {t('Grouping')}
             </ListLink>
@@ -348,8 +328,8 @@ class GroupHeader extends React.Component<Props, State> {
           {hasSimilarView && (
             <ListLink
               to={`${baseUrl}similar/${location.search}`}
-              isActive={() => currentTab === TAB.SIMILAR_ISSUES}
-              disabled={disabledTabs.includes(TAB.SIMILAR_ISSUES)}
+              isActive={() => currentTab === Tab.SIMILAR_ISSUES}
+              disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
             >
               {t('Similar Issues')}
             </ListLink>
@@ -360,7 +340,7 @@ class GroupHeader extends React.Component<Props, State> {
   }
 }
 
-export {GroupHeader, TAB};
+export {GroupHeader};
 
 export default withApi(withRouter(withOrganization(GroupHeader)));
 

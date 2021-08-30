@@ -10,7 +10,7 @@ import {
   TraceContextType,
 } from 'app/components/events/interfaces/spans/types';
 import {getSpanOperation} from 'app/components/events/interfaces/spans/utils';
-import {pickBarColour} from 'app/components/performance/waterfall/utils';
+import {pickBarColor} from 'app/components/performance/waterfall/utils';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -191,16 +191,16 @@ class OpsBreakdown extends Component<Props> {
       }
     );
 
-    const breakdown = sortedOpsBreakdown.slice(0, topN).map(
-      ([operationName, duration]: [OperationName, Duration]): OpStats => {
+    const breakdown = sortedOpsBreakdown
+      .slice(0, topN)
+      .map(([operationName, duration]: [OperationName, Duration]): OpStats => {
         return {
           name: operationName,
           // percentage to be recalculated after the ops breakdown group is decided
           percentage: 0,
           totalInterval: duration,
         };
-      }
-    );
+      });
 
     const other = sortedOpsBreakdown.slice(topN).reduce(
       (accOther: OpStats, [_operationName, duration]: [OperationName, Duration]) => {
@@ -254,7 +254,7 @@ class OpsBreakdown extends Component<Props> {
 
       const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
       const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
-      const opsColor: string = pickBarColour(operationName);
+      const opsColor: string = pickBarColor(operationName);
 
       return (
         <OpsLine key={operationName}>
@@ -280,7 +280,7 @@ class OpsBreakdown extends Component<Props> {
               size="sm"
               containerDisplayMode="block"
               title={t(
-                'Durations are calculated by summing span durations over the course of the transaction. Percentages are then calculated by dividing the individual op duration by the sum of total op durations. Overlapping/parallel spans are only counted once.'
+                'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once. Percentages are calculated by dividing the summed span durations by the total of all span durations.'
               )}
             />
           </SectionHeading>

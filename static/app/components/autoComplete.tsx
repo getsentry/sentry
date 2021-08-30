@@ -58,9 +58,7 @@ type ChildrenProps<T> = Parameters<DropdownMenu['props']['children']>[0] & {
   getInputProps: <E extends HTMLInputElement = HTMLInputElement>(
     args: GetInputArgs<E>
   ) => GetInputOutput<E>;
-  getItemProps: (
-    args: GetItemArgs<T>
-  ) => Pick<GetItemArgs<T>, 'style'> & {
+  getItemProps: (args: GetItemArgs<T>) => Pick<GetItemArgs<T>, 'style'> & {
     onClick: (e: React.MouseEvent) => void;
   };
   inputValue: string;
@@ -153,28 +151,28 @@ class AutoComplete<T> extends React.Component<Props<T>, State<T>> {
     });
   };
 
-  handleInputChange = <E extends HTMLInputElement>({
-    onChange,
-  }: Pick<GetInputArgs<E>, 'onChange'>) => (e: React.ChangeEvent<E>) => {
-    const value = e.target.value;
+  handleInputChange =
+    <E extends HTMLInputElement>({onChange}: Pick<GetInputArgs<E>, 'onChange'>) =>
+    (e: React.ChangeEvent<E>) => {
+      const value = e.target.value;
 
-    // We force `isOpen: true` here because:
-    // 1) it's possible to have menu closed but input with focus (i.e. hitting "Esc")
-    // 2) you select an item, input still has focus, and then change input
-    this.openMenu();
-    this.setState({
-      inputValue: value,
-    });
+      // We force `isOpen: true` here because:
+      // 1) it's possible to have menu closed but input with focus (i.e. hitting "Esc")
+      // 2) you select an item, input still has focus, and then change input
+      this.openMenu();
+      this.setState({
+        inputValue: value,
+      });
 
-    onChange?.(e);
-  };
+      onChange?.(e);
+    };
 
-  handleInputFocus = <E extends HTMLInputElement>({
-    onFocus,
-  }: Pick<GetInputArgs<E>, 'onFocus'>) => (e: React.FocusEvent<E>) => {
-    this.openMenu();
-    onFocus?.(e);
-  };
+  handleInputFocus =
+    <E extends HTMLInputElement>({onFocus}: Pick<GetInputArgs<E>, 'onFocus'>) =>
+    (e: React.FocusEvent<E>) => {
+      this.openMenu();
+      onFocus?.(e);
+    };
 
   /**
    *
@@ -185,14 +183,14 @@ class AutoComplete<T> extends React.Component<Props<T>, State<T>> {
    * Clicks outside should close the dropdown immediately via <DropdownMenu />,
    * however blur via keyboard will have a 200ms delay
    */
-  handleInputBlur = <E extends HTMLInputElement>({
-    onBlur,
-  }: Pick<GetInputArgs<E>, 'onBlur'>) => (e: React.FocusEvent<E>) => {
-    this.blurTimer = setTimeout(() => {
-      this.closeMenu();
-      onBlur?.(e);
-    }, 200);
-  };
+  handleInputBlur =
+    <E extends HTMLInputElement>({onBlur}: Pick<GetInputArgs<E>, 'onBlur'>) =>
+    (e: React.FocusEvent<E>) => {
+      this.blurTimer = setTimeout(() => {
+        this.closeMenu();
+        onBlur?.(e);
+      }, 200);
+    };
 
   // Dropdown detected click outside, we should close
   handleClickOutside = async () => {
@@ -212,44 +210,46 @@ class AutoComplete<T> extends React.Component<Props<T>, State<T>> {
     this.closeMenu();
   };
 
-  handleInputKeyDown = <E extends HTMLInputElement>({
-    onKeyDown,
-  }: Pick<GetInputArgs<E>, 'onKeyDown'>) => (e: React.KeyboardEvent<E>) => {
-    const hasHighlightedItem =
-      this.items.size && this.items.has(this.state.highlightedIndex);
-    const canSelectWithEnter = this.props.shouldSelectWithEnter && e.key === 'Enter';
-    const canSelectWithTab = this.props.shouldSelectWithTab && e.key === 'Tab';
+  handleInputKeyDown =
+    <E extends HTMLInputElement>({onKeyDown}: Pick<GetInputArgs<E>, 'onKeyDown'>) =>
+    (e: React.KeyboardEvent<E>) => {
+      const hasHighlightedItem =
+        this.items.size && this.items.has(this.state.highlightedIndex);
+      const canSelectWithEnter = this.props.shouldSelectWithEnter && e.key === 'Enter';
+      const canSelectWithTab = this.props.shouldSelectWithTab && e.key === 'Tab';
 
-    if (hasHighlightedItem && (canSelectWithEnter || canSelectWithTab)) {
-      this.handleSelect(this.items.get(this.state.highlightedIndex), e);
-      e.preventDefault();
-    }
+      if (hasHighlightedItem && (canSelectWithEnter || canSelectWithTab)) {
+        this.handleSelect(this.items.get(this.state.highlightedIndex), e);
+        e.preventDefault();
+      }
 
-    if (e.key === 'ArrowUp') {
-      this.moveHighlightedIndex(-1);
-      e.preventDefault();
-    }
+      if (e.key === 'ArrowUp') {
+        this.moveHighlightedIndex(-1);
+        e.preventDefault();
+      }
 
-    if (e.key === 'ArrowDown') {
-      this.moveHighlightedIndex(1);
-      e.preventDefault();
-    }
+      if (e.key === 'ArrowDown') {
+        this.moveHighlightedIndex(1);
+        e.preventDefault();
+      }
 
-    if (e.key === 'Escape') {
-      this.closeMenu();
-    }
+      if (e.key === 'Escape') {
+        this.closeMenu();
+      }
 
-    onKeyDown?.(e);
-  };
+      onKeyDown?.(e);
+    };
 
-  handleItemClick = ({onClick, item, index}: GetItemArgs<T>) => (e: React.MouseEvent) => {
-    if (this.blurTimer) {
-      clearTimeout(this.blurTimer);
-    }
-    this.setState({highlightedIndex: index});
-    this.handleSelect(item, e);
-    onClick?.(item)(e);
-  };
+  handleItemClick =
+    ({onClick, item, index}: GetItemArgs<T>) =>
+    (e: React.MouseEvent) => {
+      if (this.blurTimer) {
+        clearTimeout(this.blurTimer);
+      }
+      this.setState({highlightedIndex: index});
+      this.handleSelect(item, e);
+      onClick?.(item)(e);
+    };
 
   handleMenuMouseDown = () => {
     // Cancel close menu from input blur (mouseDown event can occur before input blur :()

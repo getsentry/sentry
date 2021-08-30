@@ -1,8 +1,8 @@
 import {PureComponent} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import {openModal} from 'app/actionCreators/modal';
+import Link from 'app/components/links/link';
 import SentryAppPublishRequestModal from 'app/components/modals/sentryAppPublishRequestModal';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -24,7 +24,7 @@ export default class SentryApplicationRow extends PureComponent<Props> {
   }
 
   hideStatus() {
-    //no publishing for internal apps so hide the status on the developer settings page
+    // no publishing for internal apps so hide the status on the developer settings page
     return this.isInternal;
   }
 

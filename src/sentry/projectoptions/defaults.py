@@ -14,6 +14,7 @@ LATEST_EPOCH = 7
 # epoch instead.
 LEGACY_GROUPING_CONFIG = "legacy:2019-03-12"
 DEFAULT_GROUPING_CONFIG = "newstyle:2019-10-29"
+BETA_GROUPING_CONFIG = "mobile:2021-02-12"
 register(
     key="sentry:grouping_config",
     epoch_defaults={
@@ -70,7 +71,7 @@ register(
     epoch_defaults={
         1: {
             "span_ops": {
-                "type": "span_operations",
+                "type": "spanOperations",
                 "matches": ["http", "db", "browser", "resource"],
             }
         },

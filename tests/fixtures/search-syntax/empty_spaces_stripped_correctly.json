@@ -1,0 +1,30 @@
+[
+  {
+    "query": "event.type:transaction   transaction:/organizations/:orgId/discover/results/",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "event.type", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "transaction", "quoted": false}
+      },
+      {"type": "spaces", "value": "   "},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "transaction", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "/organizations/:orgId/discover/results/",
+          "quoted": false
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

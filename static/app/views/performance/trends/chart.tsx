@@ -1,6 +1,5 @@
 import {Component} from 'react';
-import {browserHistory, withRouter} from 'react-router';
-import {WithRouterProps} from 'react-router/lib/withRouter';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 
 import {Client} from 'app/api';
@@ -77,8 +76,7 @@ function getLegend(trendFunction: string) {
     data: [
       {
         name: 'Baseline',
-        icon:
-          'path://M180 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z, M810 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40zm, M1440 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z',
+        icon: 'path://M180 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z, M810 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40zm, M1440 1000 l0 -40 200 0 200 0 0 40 0 40 -200 0 -200 0 0 -40z',
       },
       {
         name: 'Releases',

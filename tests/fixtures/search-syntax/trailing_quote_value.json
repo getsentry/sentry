@@ -1,0 +1,92 @@
+[
+  {
+    "query": "device.family:\"test",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Quotes must enclose text or be escaped"
+        },
+        "key": {"type": "keySimple", "value": "device.family", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "\"test", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "url:test\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Quotes must enclose text or be escaped"
+        },
+        "key": {"type": "keySimple", "value": "url", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "test\"", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "url:\"test transaction:abadcafe",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Quotes must enclose text or be escaped"
+        },
+        "key": {"type": "keySimple", "value": "url", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "\"test", "quoted": false}
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "transaction", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "abadcafe", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "url:te\"st transaction:abadcafe",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalid": {
+          "reason": "Quotes must enclose text or be escaped"
+        },
+        "key": {"type": "keySimple", "value": "url", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "te\"st", "quoted": false}
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "transaction", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "abadcafe", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

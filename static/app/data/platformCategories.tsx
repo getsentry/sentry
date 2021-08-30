@@ -3,6 +3,7 @@ import {t} from 'app/locale';
 const popular = [
   'javascript',
   'javascript-react',
+  'javascript-nextjs',
   'python-django',
   'python',
   'python-flask',
@@ -44,7 +45,9 @@ export const mobile = [
   'android',
   'apple-ios',
   'cordova',
+  'capacitor',
   'javascript-cordova',
+  'javascript-capacitor',
   'react-native',
   'flutter',
   'dart-flutter',
@@ -103,7 +106,7 @@ export const serverless = [
   'dotnet-awslambda',
 ] as const;
 
-const desktop = [
+export const desktop = [
   'apple-macos',
   'dotnet',
   'dotnet-winforms',

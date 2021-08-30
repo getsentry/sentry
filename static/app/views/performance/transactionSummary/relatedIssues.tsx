@@ -16,7 +16,7 @@ import {OrganizationSummary} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {TRACING_FIELDS} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 type Props = {
   organization: OrganizationSummary;
@@ -26,6 +26,14 @@ type Props = {
   start?: string;
   end?: string;
 };
+
+const EXCLUDE_TAG_KEYS = new Set([
+  // event type can be "transaction" but we're searching for issues
+  'event.type',
+  // the project is already determined by the transaction,
+  // and issue search does not support the project filter
+  'project',
+]);
 
 class RelatedIssues extends Component<Props> {
   getIssuesEndpoint() {
@@ -39,31 +47,30 @@ class RelatedIssues extends Component<Props> {
       sort: 'new',
       ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     };
-    const currentFilter = tokenizeSearch(decodeScalar(location.query.query, ''));
-    currentFilter.getTagKeys().forEach(tagKey => {
+    const currentFilter = new MutableSearch(decodeScalar(location.query.query, ''));
+    currentFilter.getFilterKeys().forEach(tagKey => {
+      const searchKey = tagKey.startsWith('!') ? tagKey.substr(1) : tagKey;
       // Remove aggregates and transaction event fields
       if (
         // aggregates
-        tagKey.match(/\w+\(.*\)/) ||
+        searchKey.match(/\w+\(.*\)/) ||
         // transaction event fields
-        TRACING_FIELDS.includes(tagKey) ||
-        // event type can be "transaction" but we're searching for issues
-        tagKey === 'event.type'
+        TRACING_FIELDS.includes(searchKey) ||
+        // tags that we don't want to pass to pass to issue search
+        EXCLUDE_TAG_KEYS.has(searchKey)
       ) {
-        currentFilter.removeTag(tagKey);
+        currentFilter.removeFilter(tagKey);
       }
     });
-    currentFilter.addQuery('is:unresolved').setTagValues('transaction', [transaction]);
-
-    // Filter out key_transaction from being passed to issues as it will cause an error.
-    currentFilter.removeTag('key_transaction');
-    currentFilter.removeTag('team_key_transaction');
+    currentFilter
+      .addFreeText('is:unresolved')
+      .setFilterValues('transaction', [transaction]);
 
     return {
       path: `/organizations/${organization.slug}/issues/`,
       queryParams: {
         ...queryParams,
-        query: stringifyQueryObject(currentFilter),
+        query: currentFilter.formatString(),
       },
     };
   }

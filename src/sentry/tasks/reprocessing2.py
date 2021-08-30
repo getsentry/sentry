@@ -4,7 +4,7 @@ import time
 import sentry_sdk
 from django.db import transaction
 
-from sentry import eventstore, eventstream, models, nodestore
+from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.query import celery_run_batch_query
@@ -40,6 +40,7 @@ def reprocess_group(
     from sentry.reprocessing2 import (
         CannotReprocess,
         logger,
+        mark_event_reprocessed,
         reprocess_event,
         start_group_reprocessing,
     )
@@ -96,13 +97,19 @@ def reprocess_group(
 
                     continue
 
+            # In case of errors while kicking off reprocessing, mark the event
+            # as reprocessed such that progressbar advances and the
+            # finish_reprocessing task is still correctly spawned.
+            mark_event_reprocessed(group_id=group_id, project_id=project_id)
+
+        # In case of errors while kicking off reprocessing or if max_events has
+        # been exceeded, do the default action.
+
         if remaining_events_min_datetime is None or remaining_events_min_datetime > event.datetime:
             remaining_events_min_datetime = event.datetime
         if remaining_events_max_datetime is None or remaining_events_max_datetime < event.datetime:
             remaining_events_max_datetime = event.datetime
 
-        # In case of errors while kicking of reprocessing or if max_events has
-        # been exceeded, do the default action.
         remaining_event_ids.append(event.event_id)
 
     # len(remaining_event_ids) is upper-bounded by GROUP_REPROCESSING_CHUNK_SIZE
@@ -146,16 +153,18 @@ def handle_remaining_events(
     reuse for reprocessed events. An event ID that is once tombstoned cannot be
     inserted over in eventstream.
 
-    See doccomment in sentry.reprocessing2.
+    See doc comment in sentry.reprocessing2.
     """
+
+    from sentry import buffer
+    from sentry.models.group import Group
+    from sentry.reprocessing2 import EVENT_MODELS_TO_MIGRATE
 
     assert remaining_events in ("delete", "keep")
 
     if remaining_events == "delete":
-        models.EventAttachment.objects.filter(
-            project_id=project_id, event_id__in=event_ids
-        ).delete()
-        models.UserReport.objects.filter(project_id=project_id, event_id__in=event_ids).delete()
+        for cls in EVENT_MODELS_TO_MIGRATE:
+            cls.objects.filter(project_id=project_id, event_id__in=event_ids).delete()
 
         # Remove from nodestore
         node_ids = [Event.generate_node_id(project_id, event_id) for event_id in event_ids]
@@ -166,6 +175,11 @@ def handle_remaining_events(
             project_id, event_ids, from_timestamp=from_timestamp, to_timestamp=to_timestamp
         )
     elif remaining_events == "keep":
+        for cls in EVENT_MODELS_TO_MIGRATE:
+            cls.objects.filter(project_id=project_id, event_id__in=event_ids).update(
+                group_id=new_group_id
+            )
+
         eventstream.replace_group_unsafe(
             project_id,
             event_ids,
@@ -173,6 +187,8 @@ def handle_remaining_events(
             from_timestamp=from_timestamp,
             to_timestamp=to_timestamp,
         )
+
+        buffer.incr(Group, {"times_seen": len(event_ids)}, {"id": new_group_id})
     else:
         raise ValueError(f"Invalid value for remaining_events: {remaining_events}")
 
