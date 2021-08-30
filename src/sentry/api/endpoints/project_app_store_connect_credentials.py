@@ -64,6 +64,7 @@ from sentry.api.exceptions import (
     AppConnectAuthenticationError,
     AppConnectMultipleSourcesError,
     ItunesAuthenticationError,
+    ItunesSmsBlocked,
     ItunesTwoFactorAuthenticationRequired,
 )
 from sentry.lang.native import appconnect
@@ -619,7 +620,10 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):  # type: ignore
         except Exception:
             return Response({"session_context": ["Invalid client_state"]}, status=400)
 
-        itunes_client.request_sms_auth()
+        try:
+            itunes_client.request_sms_auth()
+        except itunes_connect.SmsBlockedError:
+            raise ItunesSmsBlocked
         return Response({"sessionContext": {"client_state": itunes_client.to_json()}}, status=200)
 
 

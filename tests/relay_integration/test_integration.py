@@ -1,6 +1,8 @@
 from io import BytesIO
 from uuid import uuid4
 
+import pytest
+
 from sentry.models.eventattachment import EventAttachment
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers import Feature
@@ -187,10 +189,10 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             assert raw_event["spans"] == event_data["spans"]
             assert raw_event["breakdowns"] == {
                 "span_ops": {
-                    "ops.browser": {"value": 200.000048},
-                    "ops.resource": {"value": 200.000048},
-                    "ops.http": {"value": 200.000048},
-                    "ops.db": {"value": 200.000048},
-                    "total.time": {"value": 1050.000192},
+                    "ops.browser": {"value": pytest.approx(200)},
+                    "ops.resource": {"value": pytest.approx(200)},
+                    "ops.http": {"value": pytest.approx(200)},
+                    "ops.db": {"value": pytest.approx(200)},
+                    "total.time": {"value": pytest.approx(1050)},
                 }
             }

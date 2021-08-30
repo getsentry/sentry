@@ -974,6 +974,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable Jira AC for select organizations.
+    "organizations:jira-ac-plugin": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -989,8 +991,10 @@ SENTRY_FEATURES = {
     "organizations:performance-events-page": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Allow the user to create a sample transaction while onboarding
-    "organizations:performance-create-sample-transaction": False,
+    # Enable ingestion for suspect spans
+    "organizations:performance-suspect-spans-ingestion": False,
+    # Enable views for suspect tags
+    "organizations:performance-suspect-spans-view": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1141,6 +1145,9 @@ SENTRY_APPCONNECT_APM_SAMPLING = 1
 
 # sample rate for suspect commits task
 SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
+
+# sample rate for post_process_group task
+SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
 
 # ----
 # end APM config

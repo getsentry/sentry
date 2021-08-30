@@ -18,11 +18,11 @@ import {
 import {RowTitle, RowTitleContainer} from 'app/components/performance/waterfall/rowTitle';
 import {
   ConnectorBar,
-  StyledIconChevron,
   TOGGLE_BORDER_BOX,
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
+  TreeToggleIcon,
 } from 'app/components/performance/waterfall/treeConnector';
 import {
   getBackgroundColor,
@@ -147,7 +147,7 @@ class SpanBar extends React.Component<Props, State> {
   renderSpanTreeToggler({left}: {left: number}) {
     const {numOfSpanChildren, isRoot, showSpanTree} = this.props;
 
-    const chevron = <StyledIconChevron direction={showSpanTree ? 'up' : 'down'} />;
+    const chevron = <TreeToggleIcon direction={showSpanTree ? 'up' : 'down'} />;
 
     if (numOfSpanChildren <= 0) {
       return (
