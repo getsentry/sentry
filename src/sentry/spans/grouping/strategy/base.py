@@ -108,7 +108,7 @@ def normalized_db_span_in_condition_strategy(span: Span) -> Optional[Sequence[st
     on the right hand side as the raw query. This results in identical queries that
     have different number of elements on the right hand side to be seen as different
     spans. We want these spans to be seen as similar spans, so we normalize the right
-    hand side of `IN` conditions to `(...)` to use in the fingerprint.
+    hand side of `IN` conditions to `(%s) to use in the fingerprint.
     """
     description = span.get("description") or ""
     cleaned, count = IN_CONDITION_PATTERN.subn(" IN (%s)", description)
