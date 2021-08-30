@@ -49,7 +49,6 @@ COMMON_SOURCE_PROPERTIES = {
     "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
 }
 
-
 APP_STORE_CONNECT_SCHEMA = {
     "type": "object",
     "properties": {
@@ -302,6 +301,21 @@ def normalize_user_source(source):
     return source
 
 
+def secret_fields(source_type):
+    """
+    Returns a string list of all of the fields that contain a secret in a given source.
+    """
+    if source_type == "appStoreConnect":
+        yield from ["appconnectPrivateKey", "itunesPassword"]
+    elif source_type == "http":
+        yield "password"
+    elif source_type == "s3":
+        yield "secret_key"
+    elif source_type == "gcs":
+        yield "private_key"
+    yield from []
+
+
 def parse_sources(config, filter_appconnect=True):
     """
     Parses the given sources in the config string (from JSON).
@@ -333,6 +347,62 @@ def parse_sources(config, filter_appconnect=True):
         ids.add(source["id"])
 
     return sources
+
+
+def parse_backfill_sources(sources_json, original_sources):
+    """
+    Parses a json string of sources passed in from a client and backfills any redacted secrets by
+    finding their previous values stored in original_sources.
+    """
+
+    if not sources_json:
+        return []
+
+    try:
+        sources = json.loads(sources_json)
+    except Exception as e:
+        raise InvalidSourcesError(f"{e}")
+
+    orig_by_id = {src["id"]: src for src in original_sources}
+
+    ids = set()
+    for source in sources:
+        if is_internal_source_id(source["id"]):
+            raise InvalidSourcesError('Source ids must not start with "sentry:"')
+        if source["id"] in ids:
+            raise InvalidSourcesError("Duplicate source id: {}".format(source["id"]))
+
+        ids.add(source["id"])
+
+        for secret in secret_fields(source["type"]):
+            if secret in source and source[secret] == {"hidden-secret": True}:
+                orig_source = orig_by_id.get(source["id"])
+                # Should just omit the source entirely if it's referencing a previously stored
+                # secret that we can't find
+                source[secret] = orig_source.get(secret, "")
+
+    try:
+        jsonschema.validate(sources, SOURCES_SCHEMA)
+    except jsonschema.ValidationError as e:
+        raise InvalidSourcesError(f"{e}")
+
+    return sources
+
+
+def redact_source_secrets(config_sources):
+    """
+    Returns a json string with all of the secrets redacted from every source.
+
+    May raise InvalidSourcesError if the provided sources are invalid.
+    """
+
+    sources = parse_sources(config_sources, False)
+    for source in sources:
+        for secret in secret_fields(source["type"]):
+            if secret in source:
+                source[secret] = {"hidden-secret": True}
+
+    return json.dumps(sources)
 
 
 def get_options_for_project(project):

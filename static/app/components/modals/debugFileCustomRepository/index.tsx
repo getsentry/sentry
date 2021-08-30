@@ -12,7 +12,7 @@ import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig
 import Form from 'app/views/settings/components/forms/form';
 
 import AppStoreConnect from './appStoreConnect';
-import {getFormFields, getInitialData} from './utils';
+import {getFinalData, getFormFieldsAndInitialData} from './utils';
 
 type AppStoreConnectInitialData = React.ComponentProps<
   typeof AppStoreConnect
@@ -52,13 +52,15 @@ function DebugFileCustomRepository({
   appStoreConnectContext,
   closeModal,
 }: Props) {
-  function handleSave(data: Record<string, any>) {
-    onSave({...data, type: sourceType}).then(() => {
+  function handleSave(data?: Record<string, any>) {
+    if (!data) {
       closeModal();
+      window.location.reload();
+      return;
+    }
 
-      if (sourceType === CustomRepoType.APP_STORE_CONNECT) {
-        window.location.reload();
-      }
+    onSave({...getFinalData(sourceType, data), type: sourceType}).then(() => {
+      closeModal();
     });
   }
 
@@ -78,8 +80,7 @@ function DebugFileCustomRepository({
     );
   }
 
-  const fields = getFormFields(sourceType);
-  const initialData = getInitialData(sourceConfig);
+  const {initialData, fields} = getFormFieldsAndInitialData(sourceType, sourceConfig);
 
   return (
     <Fragment>

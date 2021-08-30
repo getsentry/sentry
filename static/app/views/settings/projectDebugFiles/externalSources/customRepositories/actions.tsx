@@ -64,7 +64,7 @@ function Actions({
         <StyledDropdownButton
           isOpen={isDetailsExpanded}
           size="small"
-          onClick={onToggleDetails}
+          onClick={isDetailsDisabled ? undefined : onToggleDetails}
           hideBottomBorder={false}
           disabled={isDetailsDisabled}
         >

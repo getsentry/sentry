@@ -190,9 +190,11 @@ class AppStoreConnectConfig:
         ]
 
     def to_json(self) -> Dict[str, Any]:
-        """Creates a dict which can be serialised to JSON.
+        """Creates a dict which can be serialised to JSON. This dict should only be
+        used internally and should never be sent to external clients, as it contains
+        the raw content of all of the secrets contained in the config.
 
-        The generated dict will validate according to the schema.
+        The generated dict will be validated according to the schema.
 
         :raises InvalidConfigError: if somehow the data in the class is not valid, this
            should only occur if the class was created in a weird way.
@@ -207,6 +209,19 @@ class AppStoreConnectConfig:
             jsonschema.validate(data, APP_STORE_CONNECT_SCHEMA)
         except jsonschema.exceptions.ValidationError as e:
             raise InvalidConfigError from e
+        return data
+
+    def to_redacted_json(self) -> Dict[str, Any]:
+        """Creates a dict which can be serialised to JSON. This should be used when the
+        config is meant to be passed to some external consumer, like the front end client.
+        This dict will have its secrets redacted.
+
+        :raises InvalidConfigError: if somehow the data in the class is not valid, this
+           should only occur if the class was created in a weird way.
+        """
+        data = self.to_json()
+        data["itunesPassword"] = {"hidden-secret": True}
+        data["appconnectPrivateKey"] = {"hidden-secret": True}
         return data
 
     def update_project_symbol_source(self, project: Project, allow_multiple: bool) -> json.JSONData:

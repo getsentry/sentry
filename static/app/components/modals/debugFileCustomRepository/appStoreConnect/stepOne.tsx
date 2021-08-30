@@ -52,10 +52,14 @@ function StepOne({stepOneData, onSetStepOneData}: Props) {
       >
         <Textarea
           name="privateKey"
-          placeholder={t('Private Key')}
           value={stepOneData.privateKey}
           rows={5}
           autosize
+          placeholder={
+            stepOneData.privateKey === undefined
+              ? t('(Private Key unchanged)')
+              : t('Private Key')
+          }
           onChange={e =>
             onSetStepOneData({
               ...stepOneData,
