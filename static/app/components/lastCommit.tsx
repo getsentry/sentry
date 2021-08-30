@@ -39,7 +39,7 @@ function LastCommit({commit, headerClass}: Props) {
       return `${truncated}\u2026`;
     }
     return firstLine;
-  };
+  }
 
   const commitAuthor = commit?.author;
   return (
