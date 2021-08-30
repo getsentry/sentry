@@ -7,9 +7,9 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 
 from sentry import features
-from sentry.api.exceptions import ParameterValidationError
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.external_actor import (
+    is_valid_provider,
     validate_external_id_option,
     validate_external_name,
     validate_integration_id,
@@ -48,16 +48,11 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
         return validate_external_id_option(external_id)
 
     def validate_external_name(self, external_name: str) -> str:
-        try:
-            # Only validate the External Name if the provider is strict
-            # (i.e. Users/Teams from Github or Gitlab)
-            validate_provider(
-                self.initial_data["provider"], available_providers=STRICT_NAME_PROVIDERS
-            )
+        provider = self.initial_data.get("provider")
+        # Ensure the provider is strict, otherwise do not validate
+        if is_valid_provider(provider, STRICT_NAME_PROVIDERS):
             return validate_external_name(external_name)
-        except (ParameterValidationError, KeyError):
-            # Requests with invalid/absent providers will get handled by `validate_provider`
-            return external_name
+        return external_name
 
     def validate_provider(self, provider_name_option: str) -> int:
         provider = validate_provider(provider_name_option, available_providers=AVAILABLE_PROVIDERS)
