@@ -7,9 +7,10 @@ from sentry.utils import json
 
 class SecretField(serializers.Field):  # type: ignore
     """
-    A secret-containing field whose values are either a string or a magic object. This validator
-    should be used when secrets are known to have previous values already stored on the server, i.e.
-    they may be in the form of a magic object representing a redacted secret.
+    A validator for a secret-containing field whose values are either a string or a magic object.
+
+    This validator should be used when secrets are known to have previous values already stored on
+    the server, i.e. they may be in the form of a magic object representing a redacted secret.
     """
 
     def __init__(self, *args, **kwargs):  # type: ignore
@@ -34,8 +35,10 @@ class SecretField(serializers.Field):  # type: ignore
 def validate_secret(secret: Optional[Union[str, Dict[str, bool]]]) -> Optional[json.JSONData]:
     """
     Validates the contents of a field containing a secret that may have a magic object representing
-    some existing value already stored on the server. Returns None if the magic object is found,
-    indicating that the field should be back-filled by that existing value.
+    some existing value already stored on the server.
+
+    Returns None if the magic object is found, indicating that the field should be back-filled by
+    that existing value.
     """
 
     if not secret:
