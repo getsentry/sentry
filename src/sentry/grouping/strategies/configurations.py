@@ -165,7 +165,7 @@ register_strategy_config(
         * Groups by a single frame to create fewer duplicate issues, usually
           the top in-app frame.
         * Provides a [breakdown of issues](https://docs.sentry.io/product/data-management-settings/event-grouping/grouping-breakdown/)
-          into unique call hiearchies in the _Grouping_ tab.
+          into unique call hierarchies in the _Grouping_ tab.
         * Filenames in native events are no longer used because they differ
           between platforms, and package (dll basename) is used as fallback for a
           frame if a function name is not available.
