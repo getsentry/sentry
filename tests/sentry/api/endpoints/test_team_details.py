@@ -86,10 +86,10 @@ class TeamUpdateTest(TeamDetailsTestBase):
 class TeamDeleteTest(TeamDetailsTestBase):
     method = "delete"
 
-    def test_can_remove_as_admin_in_team(self):
+    def test_rename_on_delete(self):
         """Admins can remove teams of which they're a part"""
         org = self.create_organization()
-        team = self.create_team(organization=org)
+        team = self.create_team(organization=org, slug="something-moderately-long")
         admin_user = self.create_user(email="foo@example.com", is_superuser=False)
 
         self.create_member(organization=org, user=admin_user, role="admin", teams=[team])
@@ -102,6 +102,21 @@ class TeamDeleteTest(TeamDetailsTestBase):
         team.refresh_from_db()
         self.assert_team_deleted(team.id)
         assert original_slug != team.slug, "Slug should be released on delete."
+
+    def test_can_remove_as_admin_in_team(self):
+        """Admins can remove teams of which they're a part"""
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        admin_user = self.create_user(email="foo@example.com", is_superuser=False)
+
+        self.create_member(organization=org, user=admin_user, role="admin", teams=[team])
+
+        self.login_as(admin_user)
+
+        self.get_valid_response(team.organization.slug, team.slug, status_code=204)
+
+        team.refresh_from_db()
+        self.assert_team_deleted(team.id)
 
     def test_remove_as_admin_not_in_team(self):
         """Admins can't remove teams of which they're not a part, unless
