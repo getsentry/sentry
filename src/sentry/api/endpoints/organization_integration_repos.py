@@ -1,4 +1,3 @@
-from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
@@ -7,8 +6,6 @@ from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
-    permission_classes = (OrganizationIntegrationsPermission,)
-
     def get(self, request, organization, integration_id):
         """
         Get the list of repositories available in an integration
