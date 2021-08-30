@@ -22,11 +22,11 @@ import {
   SentryAppInstallation,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
-import makeAnalyticsFunction from 'app/utils/analytics/makeAnalyticsFunction';
 import {
   integrationEventMap,
   IntegrationEventParameters,
-} from 'app/utils/integrationEvents';
+} from 'app/utils/analytics/integrationAnalyticsEvents';
+import makeAnalyticsFunction from 'app/utils/analytics/makeAnalyticsFunction';
 
 const mapIntegrationParams = analyticsParams => {
   // Reload expects integration_status even though it's not relevant for non-sentry apps
@@ -38,7 +38,7 @@ const mapIntegrationParams = analyticsParams => {
   return fullParams;
 };
 
-export const trackIntegrationEvent = makeAnalyticsFunction<
+export const trackIntegrationAnalytics = makeAnalyticsFunction<
   IntegrationEventParameters,
   {organization: LightWeightOrganization} // org is required
 >(integrationEventMap, {

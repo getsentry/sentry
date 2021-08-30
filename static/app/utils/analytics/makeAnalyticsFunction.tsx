@@ -2,7 +2,7 @@ import {LightWeightOrganization} from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import {trackAnalyticsEventV2} from 'app/utils/analytics';
 
-const hasAnalyticsDebug = () => window.localStorage.getItem('DEBUG_ANALYTICS') === '1';
+const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
 
 type OptionalOrg = {organization: LightWeightOrganization | null};
 type Options = Parameters<Hooks['analytics:track-event-v2']>[1];

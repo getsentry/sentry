@@ -333,7 +333,7 @@ const SwitchLabel = styled('div')`
   padding-right: 8px;
 `;
 
-export const StyledPageHeader = styled('div')`
+const StyledPageHeader = styled('div')`
   display: flex;
   align-items: flex-end;
   font-size: ${p => p.theme.headerFontSize};

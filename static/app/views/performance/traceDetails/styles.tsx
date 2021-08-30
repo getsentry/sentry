@@ -3,7 +3,6 @@ import {Location} from 'history';
 
 import EventTagsPill from 'app/components/events/eventTags/eventTagsPill';
 import {SecondaryHeader} from 'app/components/events/interfaces/spans/header';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {Panel} from 'app/components/panels';
 import Pills from 'app/components/pills';
 import SearchBar from 'app/components/searchBar';
@@ -58,12 +57,15 @@ export const TraceViewContainer = styled('div')`
   border-bottom-right-radius: 3px;
 `;
 
-export const StyledPanel = styled(Panel)`
+export const TracePanel = styled(Panel)`
   overflow: hidden;
 `;
 
-export const StyledProjectBadge = styled(ProjectBadge)`
+export const ProjectBadgeContainer = styled('span')`
   margin-right: ${space(0.75)};
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 const StyledPills = styled(Pills)`
@@ -113,7 +115,6 @@ export function Tags({
                 query={query}
                 streamPath={streamPath}
                 releasesPath={releasesPath}
-                hasQueryFeature={false}
               />
             );
           })}
