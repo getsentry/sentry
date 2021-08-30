@@ -130,7 +130,7 @@ class PerformanceContent extends Component<Props, State> {
     });
   };
 
-  handleTrendsClick() {
+  handleTrendsClick = () => {
     const {location, organization} = this.props;
 
     const newQuery = {
@@ -171,7 +171,7 @@ class PerformanceContent extends Component<Props, State> {
       pathname: getPerformanceTrendsUrl(organization),
       query: {...newQuery},
     });
-  }
+  };
 
   shouldShowOnboarding() {
     const {projects, demoMode} = this.props;
@@ -217,7 +217,7 @@ class PerformanceContent extends Component<Props, State> {
               <Button
                 priority="primary"
                 data-test-id="landing-header-trends"
-                onClick={() => this.handleTrendsClick()}
+                onClick={this.handleTrendsClick}
               >
                 {t('View Trends')}
               </Button>
@@ -258,7 +258,7 @@ class PerformanceContent extends Component<Props, State> {
         eventView={this.state.eventView}
         setError={this.setError}
         handleSearch={this.handleSearch}
-        handleTrendsClick={() => this.handleTrendsClick()}
+        handleTrendsClick={this.handleTrendsClick}
         shouldShowOnboarding={this.shouldShowOnboarding()}
         {...this.props}
       />
