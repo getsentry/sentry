@@ -3,6 +3,7 @@ import * as React from 'react';
 import {assignToActor, assignToUser} from 'app/actionCreators/group';
 import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import {Client} from 'app/api';
+import AsyncComponent from 'app/components/asyncComponent';
 import {Actor, CodeOwner, Committer, Group, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
@@ -24,51 +25,67 @@ type Props = {
   group: Group;
   event: Event;
   committers?: Committer[];
-};
+} & AsyncComponent['props'];
 
 type State = {
-  rules: Rules;
-  owners: Array<Actor>;
+  event_owners: {rules: Rules; owners: Array<Actor>};
   codeowners: CodeOwner[];
   isDismissed: boolean;
-};
+} & AsyncComponent['state'];
 
-class SuggestedOwners extends React.Component<Props, State> {
-  state: State = {
-    rules: null,
-    owners: [],
-    codeowners: [],
-    isDismissed: true,
-  };
+class SuggestedOwners extends AsyncComponent<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      event: {rules: [], owners: []},
+      codeowners: [],
+      isDismissed: true,
+    };
+  }
 
-  componentDidMount() {
-    this.fetchData(this.props.event);
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {project, organization, event} = this.props;
+    const endpoints = [
+      [
+        'event_owners',
+        `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
+      ],
+    ];
+    if (organization.features.includes('integrations-codeowners')) {
+      endpoints.push([
+        `codeowners`,
+        `/projects/${organization.slug}/${project.slug}/codeowners/`,
+      ]);
+    }
+
+    return endpoints as ReturnType<AsyncComponent['getEndpoints']>;
+  }
+
+  async componentDidMount() {
+    await this.checkCodeOwnersPrompt();
   }
 
   componentDidUpdate(prevProps: Props) {
     if (this.props.event && prevProps.event) {
       if (this.props.event.id !== prevProps.event.id) {
         // two events, with different IDs
-        this.fetchData(this.props.event);
+        this.reloadData();
       }
       return;
     }
 
     if (this.props.event) {
       // going from having no event to having an event
-      this.fetchData(this.props.event);
+      this.reloadData();
     }
-  }
-
-  async fetchData(event: Event) {
-    this.fetchOwners(event.id);
-    this.fetchCodeOwners();
-    this.checkCodeOwnersPrompt();
   }
 
   async checkCodeOwnersPrompt() {
     const {api, organization, project} = this.props;
 
+    if (!organization.features.includes('integrations-codeowners')) {
+      return;
+    }
     // check our prompt backend
     const promptData = await promptsCheck(api, {
       organizationId: organization.id,
@@ -111,43 +128,6 @@ class SuggestedOwners extends React.Component<Props, State> {
     );
   };
 
-  fetchCodeOwners = async () => {
-    const {api, project, organization} = this.props;
-
-    try {
-      const data = await api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/codeowners/`
-      );
-      this.setState({
-        codeowners: data,
-      });
-    } catch {
-      this.setState({
-        codeowners: [],
-      });
-    }
-  };
-
-  fetchOwners = async (eventId: Event['id']) => {
-    const {api, project, organization} = this.props;
-
-    try {
-      const data = await api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/events/${eventId}/owners/`
-      );
-
-      this.setState({
-        rules: data.rules,
-        owners: data.owners,
-      });
-    } catch {
-      this.setState({
-        rules: null,
-        owners: [],
-      });
-    }
-  };
-
   /**
    * Combine the commiter and ownership data into a single array, merging
    * users who are both owners based on having commits, and owners matching
@@ -177,10 +157,10 @@ class SuggestedOwners extends React.Component<Props, State> {
       commits: commiter.commits,
     })) as OwnerList;
 
-    this.state.owners.forEach(owner => {
+    this.state.event_owners.owners.forEach(owner => {
       const normalizedOwner = {
         actor: owner,
-        rules: findMatchedRules(this.state.rules || [], owner),
+        rules: findMatchedRules(this.state.event_owners.rules || [], owner),
       };
 
       const existingIdx = owners.findIndex(o =>
@@ -223,11 +203,10 @@ class SuggestedOwners extends React.Component<Props, State> {
     }
   };
 
-  render() {
+  renderBody() {
     const {organization, project, group} = this.props;
     const {codeowners, isDismissed} = this.state;
     const owners = this.getOwnerList();
-
     return (
       <React.Fragment>
         {owners.length > 0 && (
