@@ -56,13 +56,14 @@ function StepOne({stepOneData, onSetStepOneData}: Props) {
           rows={5}
           autosize
           placeholder={
-            stepOneData.unchanged ? t('(Private Key unchanged)') : t('Private Key')
+            stepOneData.privateKey === undefined
+              ? t('(Private Key unchanged)')
+              : t('Private Key')
           }
           onChange={e =>
             onSetStepOneData({
               ...stepOneData,
               privateKey: e.target.value,
-              unchanged: false,
             })
           }
         />

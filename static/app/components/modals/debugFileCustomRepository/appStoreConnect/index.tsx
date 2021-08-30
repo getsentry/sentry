@@ -115,11 +115,7 @@ function AppStoreConnect({
   const [stepOneData, setStepOneData] = useState<StepOneData>({
     issuer: initialData?.appconnectIssuer,
     keyId: initialData?.appconnectKey,
-    privateKey:
-      typeof initialData?.appconnectPrivateKey === 'object'
-        ? undefined
-        : initialData?.appconnectPrivateKey,
-    unchanged: typeof initialData?.appconnectPrivateKey === 'object',
+    privateKey: typeof initialData?.appconnectPrivateKey === 'object' ? undefined : '',
   });
 
   const [stepTwoData, setStepTwoData] = useState<StepTwoData>({
@@ -135,11 +131,7 @@ function AppStoreConnect({
 
   const [stepThreeData, setStepThreeData] = useState<StepThreeData>({
     username: initialData?.itunesUser,
-    password:
-      typeof initialData?.itunesPassword === 'object'
-        ? undefined
-        : initialData?.itunesPassword,
-    unchanged: typeof initialData?.itunesPassword === 'object',
+    password: typeof initialData?.itunesPassword === 'object' ? undefined : '',
   });
 
   const [stepFourData, setStepFourData] = useState<StepFourData>({
@@ -180,7 +172,7 @@ function AppStoreConnect({
         {
           method: 'POST',
           data: {
-            id: initialData?.id,
+            id: stepOneData.privateKey !== undefined ? undefined : initialData?.id,
             appconnectIssuer: stepOneData.issuer,
             appconnectKey: stepOneData.keyId,
             appconnectPrivateKey: stepOneData.privateKey,
@@ -285,7 +277,7 @@ function AppStoreConnect({
     switch (activeStep) {
       case 0:
         return Object.keys(stepOneData).some(key => {
-          if ((key === 'privateKey' && stepOneData.unchanged) || key === 'unchanged') {
+          if (key === 'privateKey' && stepOneData[key] === undefined) {
             return false;
           }
           return !stepOneData[key];
@@ -294,7 +286,7 @@ function AppStoreConnect({
         return Object.keys(stepTwoData).some(key => !stepTwoData[key]);
       case 2: {
         return Object.keys(stepThreeData).some(key => {
-          if ((key === 'password' && stepThreeData.unchanged) || key === 'unchanged') {
+          if (key === 'password' && stepThreeData[key] === undefined) {
             return false;
           }
           return !stepThreeData[key];
@@ -330,7 +322,7 @@ function AppStoreConnect({
         {
           method: 'POST',
           data: {
-            id: initialData?.id,
+            id: stepThreeData.password !== undefined ? undefined : initialData?.id,
             itunesUser: stepThreeData.username,
             itunesPassword: stepThreeData.password,
           },

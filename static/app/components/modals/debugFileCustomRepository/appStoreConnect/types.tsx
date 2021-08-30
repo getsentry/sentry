@@ -10,7 +10,6 @@ export type AppleStoreOrg = {
 };
 
 export type StepOneData = {
-  unchanged: boolean;
   issuer?: string;
   keyId?: string;
   privateKey?: string;
@@ -21,7 +20,6 @@ export type StepTwoData = {
 };
 
 export type StepThreeData = {
-  unchanged: boolean;
   username?: string;
   password?: string;
 };
