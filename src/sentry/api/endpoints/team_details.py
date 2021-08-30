@@ -99,20 +99,20 @@ class TeamDetailsEndpoint(TeamEndpoint):
         **Note:** Deletion happens asynchronously and therefore is not
         immediate. Teams will have their slug released while waiting for deletion.
         """
-        transaction_id = uuid4().hex
+        suffix = uuid4().hex
+        new_slug = f"{team.slug}-{suffix}"[0:50]
         updated = Team.objects.filter(id=team.id, status=TeamStatus.VISIBLE).update(
-            slug=f"{team.slug}-{transaction_id}", status=TeamStatus.PENDING_DELETION
+            slug=new_slug, status=TeamStatus.PENDING_DELETION
         )
         if updated:
+            scheduled = ScheduledDeletion.schedule(team, days=0, actor=request.user)
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,
                 target_object=team.id,
                 event=AuditLogEntryEvent.TEAM_REMOVE,
                 data=team.get_audit_log_data(),
-                transaction_id=transaction_id,
+                transaction_id=scheduled.id,
             )
-
-            ScheduledDeletion.schedule(team, days=0, actor=request.user)
 
         return Response(status=204)
