@@ -55,7 +55,8 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
                 self.initial_data["provider"], available_providers=STRICT_NAME_PROVIDERS
             )
             return validate_external_name(external_name)
-        except ParameterValidationError:
+        except (ParameterValidationError, KeyError):
+            # Requests with invalid/absent providers will get handled by `validate_provider`
             return external_name
 
     def validate_provider(self, provider_name_option: str) -> int:
