@@ -156,6 +156,7 @@ def delete_organization(object_id, transaction_id=None, actor_id=None, **kwargs)
 )
 @retry(exclude=(DeleteAborted,))
 def delete_team(object_id, transaction_id=None, **kwargs):
+    # TODO this method is deleted and should be removed/nerfed when it is no longer enqueuing jobs.
     from sentry import deletions
     from sentry.incidents.models import AlertRule
     from sentry.models import Rule, Team, TeamStatus
