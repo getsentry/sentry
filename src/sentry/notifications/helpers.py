@@ -14,6 +14,10 @@ from typing import (
 )
 
 from sentry.features.helpers import any_organization_has_feature
+from sentry.notifications.defaults import (
+    NOTIFICATION_SETTING_DEFAULTS,
+    NOTIFICATION_SETTINGS_ALL_SOMETIMES,
+)
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
     NOTIFICATION_SETTING_OPTION_VALUES,
@@ -39,25 +43,6 @@ if TYPE_CHECKING:
     )
 
 
-# These mappings represents how to interpret the absence of a DB row for a given
-# provider. For example, a user with no NotificationSettings should be opted
-# into receiving emails but no Slack messages.
-NOTIFICATION_SETTING_DEFAULTS_DEFAULT = {
-    NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.COMMITTED_ONLY,
-    NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.ALWAYS,
-    NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-}
-NOTIFICATION_SETTING_DEFAULTS_OFF = {
-    NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.NEVER,
-    NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.NEVER,
-    NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.NEVER,
-}
-NOTIFICATION_SETTING_DEFAULTS = {
-    ExternalProviders.EMAIL: NOTIFICATION_SETTING_DEFAULTS_DEFAULT,
-    ExternalProviders.SLACK: NOTIFICATION_SETTING_DEFAULTS_OFF,
-}
-
-
 def _get_notification_setting_default(
     provider: ExternalProviders,
     type: NotificationSettingTypes,
@@ -78,7 +63,7 @@ def _get_notification_setting_default(
     if any_organization_has_feature(
         "organizations:notification-slack-automatic", organizations, actor=actor
     ):
-        return NOTIFICATION_SETTING_DEFAULTS_DEFAULT[type]
+        return NOTIFICATION_SETTINGS_ALL_SOMETIMES[type]
     return NOTIFICATION_SETTING_DEFAULTS[provider][type]
 
 
