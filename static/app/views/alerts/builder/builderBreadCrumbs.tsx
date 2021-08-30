@@ -14,7 +14,6 @@ import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem'
 import {RouteWithName} from 'app/views/settings/components/settingsBreadcrumb/types';
 
 type Props = {
-  hasMetricAlerts: boolean;
   orgSlug: string;
   title: string;
   projectSlug: string;
