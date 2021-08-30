@@ -104,6 +104,10 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             user=self.user, project=self.project, key="mail:email", value=new_email
         )
 
+        useremail = UserEmail.objects.get(email=self.user.email)
+        useremail.email = new_email
+        useremail.save()
+
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=str(self.user.id),

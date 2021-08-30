@@ -168,7 +168,7 @@ def get_email_addresses(user_ids: Iterable[int], project: Project = None) -> Map
     if project:
         queryset = UserOption.objects.filter(project=project, user__in=pending, key="mail:email")
         for option in (o for o in queryset if o.value and not is_fake_email(o.value)):
-            if len(UserEmail.objects.filter(user=option.user, email=option.value)) > 0:
+            if UserEmail.objects.filter(user=option.user, email=option.value).exists():
                 results[option.user_id] = option.value
                 pending.discard(option.user_id)
             else:

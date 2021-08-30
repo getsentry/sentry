@@ -285,7 +285,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             proj_list = Project.objects.filter(organization=organization).values_list(
                 "id", flat=True
             )
-            uo_list = UserOption.objects.filter(project_id__in=proj_list, key="mail:email")
+            uo_list = UserOption.objects.filter(
+                user=om.user, project_id__in=proj_list, key="mail:email"
+            )
             for uo in uo_list:
                 uo.delete()
 
