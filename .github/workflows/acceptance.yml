@@ -160,6 +160,7 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
       - name: Wait for frontend build
@@ -221,6 +222,7 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           chartcuterie: true
 
       - name: yarn cache

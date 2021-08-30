@@ -46,6 +46,7 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         id: setup
         with:
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})

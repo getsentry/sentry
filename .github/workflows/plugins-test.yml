@@ -26,6 +26,7 @@ jobs:
         id: setup
         if: steps.changes.outputs.plugins == 'true'
         with:
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
       - name: Run test

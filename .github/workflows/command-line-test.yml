@@ -24,6 +24,8 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         if: steps.changes.outputs.backend == 'true'
+        with:
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
 
       - name: Run test
         if: steps.changes.outputs.backend == 'true'

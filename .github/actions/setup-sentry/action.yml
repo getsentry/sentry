@@ -21,6 +21,10 @@ inputs:
     description: 'Is chartcuterie required?'
     required: false
     default: 'false'
+  pip-cache-version:
+    description: 'pip cache version in order to bust cache'
+    required: false
+    default: '1630355466247'
 
 outputs:
   yarn-cache-dir:
@@ -99,7 +103,7 @@ runs:
       with:
         path: ${{ steps.pip.outputs.pip-cache-dir }}
         key: |
-          ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
+          ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ inputs.pip-cache-version }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
 
     - name: Install system dependencies
       shell: bash

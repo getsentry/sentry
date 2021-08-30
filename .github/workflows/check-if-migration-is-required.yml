@@ -33,6 +33,8 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
+        with:
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
 
       - name: Migration & lockfile checks
         env:

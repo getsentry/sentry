@@ -30,6 +30,7 @@ jobs:
         id: setup
         if: steps.changes.outputs.backend == 'true'
         with:
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           kafka: true
 
