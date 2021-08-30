@@ -7,7 +7,7 @@ outputs:
     value: ${{ steps.python-version.outputs.python-version }}
   pip-cache-dir:
     description: 'Path to pip cache'
-    value: ${{ steps.pip-info.outputs.pip-cache }}
+    value: ${{ steps.pip-info.outputs.pip-cache-dir }}
   pip-version:
     description: 'Pip version'
     value: ${{ steps.pip-info.outputs.pip-version }}
@@ -25,13 +25,6 @@ runs:
       with:
         python-version: ${{ steps.python-version.outputs.python-version }}
 
-    - name: pip cache
-      uses: actions/cache@v2
-      with:
-        path: ${{ steps.pip.outputs.pip-cache-dir }}
-        key: |
-          ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ inputs.pip-cache-version }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
-
     - name: Setup default environment variables
       shell: bash
       run: |
@@ -47,5 +40,12 @@ runs:
       shell: bash
       # pip versions before 20.1 do not have `pip cache`, `make upgrade-pip` ensures that version as a minimum
       run: |
-        echo "::set-output name=pip-cache::$(pip cache dir)"
+        echo "::set-output name=pip-cache-dir::$(pip cache dir)"
         echo "::set-output name=pip-version::$(pip -V | awk -F ' ' '{print $2}')"
+
+    - name: pip cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.pip-info.outputs.pip-cache-dir }}
+        key: |
+          ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip-info.outputs.pip-version }}-${{ inputs.pip-cache-version }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}

@@ -32,7 +32,13 @@ outputs:
     value: ${{ steps.config.outputs.yarn-cache-dir }}
   pip-cache-dir:
     description: "Path to pip cache"
-    value: ${{ steps.pip-cache.outputs.pip-cache }}
+    value: ${{ steps.setup-python.outputs.pip-cache-dir }}
+  pip-version:
+    description: "pip version"
+    value: ${{ steps.setup-python.outputs.pip-version }}
+  python-version:
+    description: "python version"
+    value: ${{ steps.setup-python.outputs.python-version }}
   acceptance-dir:
     description: "Path to acceptance visual snapshot artifacts"
     value: ${{ steps.config.outputs.acceptance-dir }}
@@ -85,7 +91,7 @@ runs:
         fi
 
     - name: Setup python
-      id: python
+      id: setup-python
       uses: ./.github/actions/setup-python
 
     - name: Install system dependencies
