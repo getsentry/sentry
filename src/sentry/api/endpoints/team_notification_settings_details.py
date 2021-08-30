@@ -76,6 +76,6 @@ class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
             raise ResourceDoesNotExist
 
         notification_settings = validate(request.data, team=team)
-        NotificationSetting.objects.update_settings_bulk(notification_settings, team.actor_id)
+        NotificationSetting.objects.update_settings_bulk(notification_settings, team=team)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

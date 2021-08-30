@@ -1,6 +1,6 @@
 import {IntegrationType, PlatformType, SentryAppStatus} from 'app/types';
 
-// define the various event paylaods
+// define the various event payloads
 type View = {
   view?:
     | 'external_install'
@@ -52,7 +52,7 @@ type IntegrationServerlessFunctionActionParams = {
   action: 'enable' | 'disable' | 'updateVersion';
 } & SingleIntegrationEventParams;
 
-type IntegrationInstalltionInputValueChangeEventParams = {
+type IntegrationInstallationInputValueChangeEventParams = {
   field_name: string;
 } & SingleIntegrationEventParams;
 
@@ -89,7 +89,7 @@ export type IntegrationEventParameters = {
   'integrations.reconfigure_stacktrace_setup': IntegrationStacktraceLinkEventParams;
   'integrations.stacktrace_docs_clicked': IntegrationStacktraceLinkEventParams;
   'integrations.serverless_functions_viewed': IntegrationServerlessFunctionsViewedParams;
-  'integrations.installation_input_value_changed': IntegrationInstalltionInputValueChangeEventParams;
+  'integrations.installation_input_value_changed': IntegrationInstallationInputValueChangeEventParams;
   'integrations.serverless_function_action': IntegrationServerlessFunctionActionParams;
   'integrations.cloudformation_link_clicked': SingleIntegrationEventParams;
   'integrations.switch_manual_sdk_setup': SingleIntegrationEventParams;
