@@ -6,18 +6,13 @@ import EventView from 'app/utils/discover/eventView';
 import {PerformanceLanding} from 'app/views/performance/landing';
 import {LandingDisplayField} from 'app/views/performance/landing/utils';
 
-declare global {
-  let TestStubs: any;
-  let tick: any;
-  let MockApiClient: any;
-}
-
 function initializeData(settings?: {
   query?: {};
   features?: string[];
   projects?: Project[];
   project?: Project;
 }) {
+  // @ts-expect-error
   const _defaultProject = TestStubs.Project();
   const _settings = {
     query: {},
@@ -28,9 +23,11 @@ function initializeData(settings?: {
   };
   const {query, features} = _settings;
 
+  // @ts-expect-error
   const projects = [TestStubs.Project()];
   const [project] = projects;
 
+  // @ts-expect-error
   const organization = TestStubs.Organization({
     features,
     projects,
@@ -64,14 +61,17 @@ const WrappedComponent = ({data}) => {
 
 describe('Performance > Landing > Index', function () {
   beforeEach(function () {
+    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
+    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
+    // @ts-expect-error
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/key-transactions-list/`,
@@ -80,6 +80,7 @@ describe('Performance > Landing > Index', function () {
   });
 
   afterEach(function () {
+    // @ts-expect-error
     MockApiClient.clearMockResponses();
   });
 
@@ -87,6 +88,7 @@ describe('Performance > Landing > Index', function () {
     const data = initializeData();
 
     const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -101,6 +103,7 @@ describe('Performance > Landing > Index', function () {
     });
 
     const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    // @ts-expect-error
     await tick();
     wrapper.update();
 
