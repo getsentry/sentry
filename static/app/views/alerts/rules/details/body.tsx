@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {RouteComponentProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
@@ -48,6 +48,7 @@ type Props = {
   rule?: IncidentRule;
   incidents?: Incident[];
   timePeriod: TimePeriodType;
+  displayPeriod: string;
   selectedIncident?: Incident | null;
   organization: Organization;
   location: Location;
@@ -115,6 +116,15 @@ export default class DetailsBody extends React.Component<Props> {
     return (
       <Filters>{parsedQuery && <HighlightQuery parsedQuery={parsedQuery} />}</Filters>
     );
+  }
+
+  handlePeriodQuery(value: string) {
+    browserHistory.push({
+      pathname: this.props.location.pathname,
+      query: {
+        period: value,
+      },
+    });
   }
 
   renderTrigger(trigger: Trigger): React.ReactNode {
@@ -270,6 +280,7 @@ export default class DetailsBody extends React.Component<Props> {
       location,
       organization,
       timePeriod,
+      displayPeriod,
       selectedIncident,
       handleZoom,
       params: {orgId},
@@ -277,6 +288,10 @@ export default class DetailsBody extends React.Component<Props> {
 
     if (!rule) {
       return this.renderLoading();
+    }
+
+    if (!location.search) {
+      this.handlePeriodQuery(displayPeriod);
     }
 
     const {query, projects: projectSlugs} = rule;

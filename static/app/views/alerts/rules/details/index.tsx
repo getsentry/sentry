@@ -203,6 +203,7 @@ class AlertRuleDetails extends Component<Props, State> {
             rule={rule}
             incidents={incidents}
             timePeriod={timePeriod}
+            displayPeriod={timePeriod.period}
             selectedIncident={selectedIncident}
             handleTimePeriodChange={this.handleTimePeriodChange}
             handleZoom={this.handleZoom}
