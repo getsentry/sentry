@@ -76,8 +76,6 @@ setup-docker() {
 start-docker() {
     if query-mac && ! docker system info &>/dev/null; then
         echo "About to open Docker.app"
-        # At a later stage in the script, we're going to execute
-        # ensure_docker_server which waits for it to be ready
         if ! open -g -a Docker.app; then
             # If the step above fails, at least we can get some debugging information to determine why
             sudo-askpass ls -l /Library/PrivilegedHelperTools/com.docker.vmnetd
@@ -85,7 +83,23 @@ start-docker() {
             cat /Library/LaunchDaemons/com.docker.vmnetd.plist
             ls -l /Applications/Docker.app
         fi
+        ensure-docker-server
     fi
+}
+
+ensure-docker-server() {
+    # Taken from https://github.com/docker/for-mac/issues/2359#issuecomment-607154849
+    # Wait for the server to start up
+    echo "Waiting for server to start up"
+    i=0
+    while ! docker system info &>/dev/null; do
+        ((i++ == 0)) && printf %s '-- Waiting for Docker to finish starting up...' || printf '.'
+        sleep 1
+        docker system info
+    done
+    ((i)) && printf '\n'
+
+    echo "Docker is ready."
 }
 
 upgrade-pip() {
