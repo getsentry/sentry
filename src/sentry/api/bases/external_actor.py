@@ -49,7 +49,8 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
 
     def validate_external_name(self, external_name: str) -> str:
         try:
-            # Only validate the External Name if the provider is strict\
+            # Only validate the External Name if the provider is strict
+            # (i.e. Users/Teams from Github or Gitlab)
             validate_provider(
                 self.initial_data["provider"], available_providers=STRICT_NAME_PROVIDERS
             )
