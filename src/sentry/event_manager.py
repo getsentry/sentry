@@ -1697,17 +1697,24 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
 
 def _calculate_span_grouping(jobs, projects):
     for job in jobs:
-        event = job["event"]
-        project = projects[job["project_id"]]
+        # Make sure this snippet doesn't crash ingestion
+        # as the feature is under development.
+        try:
+            event = job["event"]
+            project = projects[job["project_id"]]
 
-        # TODO: check if this organization is already cached
-        if not features.has(
-            "organizations:performance-suspect-spans-ingestion", project.organization, actor=None
-        ):
-            continue
+            # TODO: check if this organization is already cached
+            if not features.has(
+                "organizations:performance-suspect-spans-ingestion",
+                project.organization,
+                actor=None,
+            ):
+                continue
 
-        groupings = event.get_span_groupings()
-        groupings.write_to_event(event.data)
+            groupings = event.get_span_groupings()
+            groupings.write_to_event(event.data)
+        except Exception:
+            sentry_sdk.capture_exception()
 
 
 @metrics.wraps("event_manager.save_transaction_events")

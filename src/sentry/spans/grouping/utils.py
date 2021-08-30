@@ -23,3 +23,9 @@ class Hash:
 
     def hexdigest(self) -> str:
         return self.result.hexdigest()
+
+
+def hash_values(values: Sequence[str]) -> str:
+    hash_ = Hash()
+    hash_.update(values)
+    return hash_.hexdigest()

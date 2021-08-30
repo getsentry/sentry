@@ -32,12 +32,18 @@ Span = TypedDict(
 )
 
 
+# A callable strategy is a callable that when given a span, it tries to
+# returns a fingerprint. If the strategy does not apply to the span, it
+# should return `None` to indicate that the strategy should not be used
+# and to try a different strategy. If the strategy does apply, it should
+# return a list of strings that will serve as the span fingerprint.
 CallableStrategy = Callable[[Span], Optional[Sequence[str]]]
 
 
 @dataclass(frozen=True)
 class SpanGroupingStrategy:
     name: str
+    # The strategies to use with the default fingerprint
     strategies: Sequence[CallableStrategy]
 
     def execute(self, spans: Sequence[Span]) -> Dict[str, str]:
@@ -86,16 +92,26 @@ def span_op(op_name: str) -> Callable[[CallableStrategy], CallableStrategy]:
 
 
 def raw_description_strategy(span: Span) -> Sequence[str]:
+    """The catch-all strategy to use if all other strategies fail. This
+    strategy is only effective if the span description is a fixed string.
+    Otherwise, this strategy will produce a large number of span groups.
+    """
     return [span.get("description") or ""]
 
 
-IN_CONDITION_PATTERN = re.compile(r" IN \(%s(, %s)+\)")
+IN_CONDITION_PATTERN = re.compile(r" IN \(%s(\s*,\s*%s)*\)")
 
 
 @span_op("db")
 def normalized_db_span_in_condition_strategy(span: Span) -> Optional[Sequence[str]]:
+    """For a `db` span, the `IN` condition contains the same same number of elements
+    on the right hand side as the raw query. This results in identical queries that
+    have different number of elements on the right hand side to be seen as different
+    spans. We want these spans to be seen as similar spans, so we normalize the right
+    hand side of `IN` conditions to `(...)` to use in the fingerprint.
+    """
     description = span.get("description") or ""
-    cleaned, count = IN_CONDITION_PATTERN.subn(" IN (...)", description)
+    cleaned, count = IN_CONDITION_PATTERN.subn(" IN (%s)", description)
     if count == 0:
         return None
     return [cleaned]
@@ -116,9 +132,37 @@ HTTP_METHODS = {
 
 @span_op("http.client")
 def remove_http_client_query_string_strategy(span: Span) -> Optional[Sequence[str]]:
+    """For a `http.client` span, the fingerprint to use is
+
+    - The http method
+    - The url scheme
+    - The url domain
+    - The url path
+
+    This strategy means that different url path parameters are seen as different
+    spans but different url query parameters are seen as same spans.
+
+    For example,
+
+    `GET https://sentry.io/organizations/this-org/issues/` and
+    `GET https://sentry.io/organizations/that-org/issues/` differ in the url path.
+    Therefore, these are different spans.
+
+    `GET https://sentry.io/organizations/this-org/issues/?id=1` and
+    `GET https://sentry.io/organizations/this-org/issues/?id=2` differ in the query
+    string. Therefore, these are similar spans.
+    """
+
+    # Check the description is of the form `<HTTP METHOD> <URL>`
     description = span.get("description") or ""
-    method, url_str = description.split(" ", 1)
-    if method not in HTTP_METHODS:
+    parts = description.split(" ", 1)
+    if len(parts) != 2:
         return None
+
+    # Ensure that this is a valid http method
+    method, url_str = parts
+    if method.upper() not in HTTP_METHODS:
+        return None
+
     url = urlparse(url_str)
-    return [url.scheme, url.netloc, url.path]
+    return [method.lower(), url.scheme, url.netloc, url.path]
