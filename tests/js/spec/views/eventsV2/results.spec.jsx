@@ -28,7 +28,7 @@ const generateFields = () => ({
 describe('EventsV2 > Results', function () {
   const eventTitle = 'Oh no something bad';
   const features = ['discover-basic'];
-  let eventResultsMock, mockSaved, eventsStatsMock;
+  let eventResultsMock, mockSaved, eventsStatsMock, mockVisit;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -119,6 +119,12 @@ describe('EventsV2 > Results', function () {
           topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
         },
       ],
+    });
+    mockVisit = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/saved/1/visit/',
+      method: 'POST',
+      body: [],
+      statusCode: 200,
     });
     mockSaved = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/saved/1/',
@@ -284,6 +290,9 @@ describe('EventsV2 > Results', function () {
       preventDefault() {},
     });
     await tick();
+
+    // should only be called with saved queries
+    expect(mockVisit).not.toHaveBeenCalled();
 
     // cursor query string should be omitted from the query string
     expect(initialData.router.push).toHaveBeenCalledWith({
@@ -583,6 +592,7 @@ describe('EventsV2 > Results', function () {
     expect(savedQuery.projects).toEqual([]);
     expect(savedQuery.range).toEqual('24h');
     expect(mockSaved).toHaveBeenCalled();
+    expect(mockVisit).toHaveBeenCalledTimes(1);
     wrapper.unmount();
   });
 
@@ -658,6 +668,7 @@ describe('EventsV2 > Results', function () {
     expect(eventView.project).toEqual([2]);
     expect(eventView.statsPeriod).toEqual('7d');
     expect(eventView.environment).toEqual(['production']);
+    expect(mockVisit).toHaveBeenCalledTimes(1);
     wrapper.unmount();
   });
 
