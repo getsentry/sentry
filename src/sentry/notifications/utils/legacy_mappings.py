@@ -1,5 +1,5 @@
 from collections import namedtuple
-from typing import Any, Iterable, List, Mapping, Optional, Tuple
+from typing import TYPE_CHECKING, Mapping, Optional, Sequence, Tuple
 
 from sentry.notifications.types import (
     FineTuningAPIKey,
@@ -8,6 +8,10 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
     UserOptionsSettingsKey,
 )
+
+if TYPE_CHECKING:
+    from sentry.models import NotificationSetting, Organization, Project, User
+
 
 LegacyUserOptionClone = namedtuple(
     "LegacyUserOptionClone",
@@ -152,23 +156,12 @@ def get_key_from_legacy(key: str) -> Optional[NotificationSettingTypes]:
     }.get(key)
 
 
-def get_key_value_from_legacy(
-    key: str, value: Any
-) -> Tuple[Optional[NotificationSettingTypes], Optional[NotificationSettingOptionValues]]:
-    type = get_key_from_legacy(key)
-    if type not in LEGACY_VALUE_TO_KEY:
-        return None, None
-    option_value = LEGACY_VALUE_TO_KEY.get(type, {}).get(int(value))
-
-    return type, option_value
-
-
 def get_legacy_object(
-    notification_setting: Any,
-    actor_mapping: Mapping[int, Any],
-    parent_mapping: Mapping[int, Any],
-    organization_mapping: Mapping[int, Any],
-) -> Any:
+    notification_setting: "NotificationSetting",
+    actor_mapping: Mapping[int, "User"],
+    parent_mapping: Mapping[int, "Project"],
+    organization_mapping: Mapping[int, "Organization"],
+) -> LegacyUserOptionClone:
     type = NotificationSettingTypes(notification_setting.type)
     value = NotificationSettingOptionValues(notification_setting.value)
     scope_type = NotificationScopeType(notification_setting.scope_type)
@@ -191,9 +184,9 @@ def get_legacy_object(
 
 
 def map_notification_settings_to_legacy(
-    notification_settings: Iterable[Any],
-    actor_mapping: Mapping[int, Any],
-) -> List[Any]:
+    notification_settings: Sequence["NotificationSetting"],
+    actor_mapping: Mapping[int, "User"],
+) -> Sequence[LegacyUserOptionClone]:
     """A hack for legacy serializers. Pretend a list of NotificationSettings is a list of UserOptions."""
     project_mapping, organization_mapping = get_parent_mappings(notification_settings)
     return [
@@ -205,8 +198,8 @@ def map_notification_settings_to_legacy(
 
 
 def get_parent_mappings(
-    notification_settings: Iterable[Any],
-) -> Tuple[Mapping[int, Any], Mapping[int, Any]]:
+    notification_settings: Sequence["NotificationSetting"],
+) -> Tuple[Mapping[int, "Project"], Mapping[int, "Organization"]]:
     """Prefetch a list of Project or Organization objects for the Serializer."""
     from sentry.models.organization import Organization
     from sentry.models.project import Project
