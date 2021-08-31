@@ -82,6 +82,7 @@ export function updateSavedQueryVisit(
   orgId: string,
   queryId: string | string[]
 ): Promise<void> {
+  // Create a new client so the request is not cancelled
   const api = new Client();
   const promise = api.requestPromise(
     `/organizations/${orgId}/discover/saved/${queryId}/visit/`,
