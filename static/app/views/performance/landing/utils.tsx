@@ -1,3 +1,4 @@
+import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
 import {t} from 'app/locale';
@@ -11,6 +12,7 @@ import {
 } from 'app/utils/formatters';
 import {HistogramData} from 'app/utils/performance/histogram/types';
 import {decodeScalar} from 'app/utils/queryString';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 import {AxisOption, getTermHelp, PERFORMANCE_TERM} from '../data';
 import {Rectangle} from '../transactionSummary/transactionVitals/types';
@@ -74,6 +76,27 @@ export function getCurrentLandingDisplay(
     ({field}) => field === defaultDisplayField
   );
   return defaultDisplay || LANDING_DISPLAYS[0];
+}
+
+export function handleLandingDisplayChange(field: string, location: Location) {
+  const newQuery = {...location.query};
+
+  delete newQuery[LEFT_AXIS_QUERY_KEY];
+  delete newQuery[RIGHT_AXIS_QUERY_KEY];
+
+  // Transaction op can affect the display and show no results if it is explicitly set.
+  const query = decodeScalar(location.query.query, '');
+  const searchConditions = new MutableSearch(query);
+  searchConditions.removeFilter('transaction.op');
+
+  browserHistory.push({
+    pathname: location.pathname,
+    query: {
+      ...newQuery,
+      query: searchConditions.formatString(),
+      landingDisplay: field,
+    },
+  });
 }
 
 export function getChartWidth(chartData: HistogramData, refPixelRect: Rectangle | null) {
