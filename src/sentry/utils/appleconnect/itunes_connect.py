@@ -139,13 +139,32 @@ class ITunesClient:
         self.state = ClientState.NEW
 
         # The x-apple-id-session-id header as populated by :meth:`start_login_sequence`.
-        self.session_id: Optional[str] = None
+        self._session_id: Optional[str] = None
 
         # The scnt header as populated by :meth:`start_login_sequence`.
         self._scnt: Optional[str] = None
 
-        # The trusted phone info, set by :meth:`_request_trusted_phone_info`.
-        self._trusted_phone: Optional[TrustedPhoneInfo] = None
+    @property
+    def session_id(self) -> str:
+        """The session ID, if client already has one (after :meth:start_login_sequence).
+
+        :raises AttributeError: if this state does not yet exist.
+        """
+        if self._session_id is None:
+            raise AttributeError("No session_id available yet")
+        else:
+            return self._session_id
+
+    @property
+    def scnt(self) -> str:
+        """The scnt header, if the client already has one (after :meth:start_login_sequence).
+
+        :raises AttributeError: if this state does not yet exist.
+        """
+        if self._scnt is None:
+            raise AttributeError("No scnt header available yet")
+        else:
+            return self._scnt
 
     @classmethod
     def from_session_cookie(
@@ -197,7 +216,7 @@ class ITunesClient:
             ClientState.AUTH_REQUESTED,
             ClientState.SMS_AUTH_REQUESTED,
         ]:
-            obj.session_id = context["session_id"]
+            obj._session_id = context["session_id"]
             obj._scnt = context["scnt"]
         if obj.state is ClientState.SMS_AUTH_REQUESTED:
             obj._trusted_phone = TrustedPhoneInfo(
@@ -259,7 +278,7 @@ class ITunesClient:
                 f"Two factor auth not enabled for user, status_code={start_login.status_code}"
             )
         elif start_login.status_code == http.HTTPStatus.CONFLICT:
-            self.session_id = start_login.headers["x-apple-id-session-id"]
+            self._session_id = start_login.headers["x-apple-id-session-id"]
             self._scnt = start_login.headers["scnt"]
             self.state = ClientState.AUTH_REQUESTED
         elif start_login.status_code == http.HTTPStatus.UNAUTHORIZED:
@@ -283,7 +302,7 @@ class ITunesClient:
                 }
             },
             headers={
-                "scnt": self._scnt,
+                "scnt": self.scnt,
                 "X-Apple-Id-Session-Id": self.session_id,
                 "Accept": "application/json",
                 "X-Apple-Widget-Key": self.service_key,
@@ -296,15 +315,14 @@ class ITunesClient:
         else:
             self.state = ClientState.AUTHENTICATED
 
-    def _request_trusted_phone_info(self) -> None:
+    def _request_trusted_phone_info(self) -> TrustedPhoneInfo:
         """Requests the trusted phone info for the account."""
-        assert self.state is ClientState.AUTH_REQUESTED, f"Actual client state: {self.state}"
         url = "https://idmsa.apple.com/appleauth/auth"
         logger.debug("GET %s", url)
         response = self.session.get(
             url,
             headers={
-                "scnt": self._scnt,
+                "scnt": self.scnt,
                 "X-Apple-Id-Session-Id": self.session_id,
                 "Accept": "application/json",
                 "X-Apple-Widget-Key": self.service_key,
@@ -324,7 +342,7 @@ class ITunesClient:
             raise ITunesError(
                 f"Trusted phone info missing from response with status: {response.status_code}"
             )
-        self._trusted_phone = TrustedPhoneInfo(
+        return TrustedPhoneInfo(
             id=info["id"],
             push_mode=info["pushMode"],
         )
@@ -340,18 +358,17 @@ class ITunesClient:
             ClientState.AUTH_REQUESTED,
             ClientState.SMS_AUTH_REQUESTED,
         ], f"Actual client state: {self.state}"
-        self._request_trusted_phone_info()
-        assert self._trusted_phone is not None
+        trusted_phone = self._request_trusted_phone_info()
         url = "https://idmsa.apple.com/appleauth/auth/verify/phone"
         logger.debug("PUT %s", url)
         response = self.session.put(
             url,
             json={
-                "phoneNumber": {"id": self._trusted_phone.id},
-                "mode": self._trusted_phone.push_mode,
+                "phoneNumber": {"id": trusted_phone.id},
+                "mode": trusted_phone.push_mode,
             },
             headers={
-                "scnt": self._scnt,
+                "scnt": self.scnt,
                 "X-Apple-Id-Session-Id": self.session_id,
                 "Accept": "application/json",
                 "X-Apple-Widget-Key": self.service_key,
@@ -382,7 +399,7 @@ class ITunesClient:
                 "mode": self._trusted_phone.push_mode,
             },
             headers={
-                "scnt": self._scnt,
+                "scnt": self.scnt,
                 "X-Apple-Id-Session-Id": self.session_id,
                 "Accept": "application/json",
                 "X-Apple-Widget-Key": self.service_key,
