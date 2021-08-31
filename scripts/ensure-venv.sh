@@ -22,7 +22,7 @@ EOF
 }
 
 if [[ -n "$VIRTUAL_ENV" ]]; then
-    # The developer is inside is inside a virtualenv *and* has set a SENTRY_PYTHON_VERSION
+    # The developer is inside a virtualenv *and* has set a SENTRY_PYTHON_VERSION
     # Let's assume that they know what they're doing
     if [[ -n "$SENTRY_PYTHON_VERSION" ]]; then
         cat <<EOF

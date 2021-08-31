@@ -48,7 +48,7 @@ query-pyenv-version() {
     echo "${PYENV_VERSION}"
 }
 
-# XXX: Fix this check to be more lineant
+# XXX: Fix this check to be more lenient
 query-valid-python-versions() {
     python_version=$(python3 -V 2>&1 | awk '{print $2}')
     if [ "${python_version}" == 3.6.13 ] || [ "${python_version}" == 3.8.10 ]; then
