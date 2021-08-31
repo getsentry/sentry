@@ -54,6 +54,10 @@ from sentry.models import (
     File,
     Group,
     GroupLink,
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
+    Integration,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -79,7 +83,7 @@ from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.models import QueryDatasets
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json, loremipsum
 
 
@@ -1010,4 +1014,40 @@ class Factories:
 
         return ProjectCodeOwners.objects.create(
             project=project, repository_project_path_config=code_mapping, **kwargs
+        )
+
+    @staticmethod
+    def create_integration(
+        organization: Organization, provider: ExternalProviders, external_id: str, **kwargs: Any
+    ) -> Identity:
+        integration = Integration.objects.create(
+            provider=EXTERNAL_PROVIDERS[provider],
+            name="Team A",
+            external_id=external_id,
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration.add_organization(organization)
+        return integration
+
+    @staticmethod
+    def create_identity_provider(integration: Integration, **kwargs: Any) -> IdentityProvider:
+        return IdentityProvider.objects.create(
+            type=integration.provider,
+            external_id=integration.external_id,
+            config={},
+        )
+
+    @staticmethod
+    def create_identity(
+        user: User, identity_provider: IdentityProvider, external_id: str, **kwargs: Any
+    ) -> Identity:
+        return Identity.objects.create(
+            external_id=external_id,
+            idp=identity_provider,
+            user=user,
+            status=IdentityStatus.VALID,
+            scopes=[],
         )

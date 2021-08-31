@@ -1,10 +1,19 @@
+from typing import Any
+
 import pytest
 from django.utils.functional import cached_property
 
 from sentry.incidents.models import IncidentActivityType
-from sentry.models import Activity, Integration, OrganizationMember, OrganizationMemberTeam
+from sentry.models import (
+    Activity,
+    Integration,
+    Organization,
+    OrganizationMember,
+    OrganizationMemberTeam,
+)
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.integrations import ExternalProviders
 
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -334,6 +343,21 @@ class Fixtures:
             code_mapping = self.create_code_mapping(self.project, self.repo)
 
         return Factories.create_codeowners(project=project, code_mapping=code_mapping, **kwargs)
+
+    def create_integration(
+        self,
+        organization: "Organization",
+        provider: ExternalProviders = ExternalProviders.SLACK,
+        external_id: str = "TXXXXXXX1",
+        **kwargs: Any,
+    ):
+        integration = Factories.create_integration(
+            organization=organization, provider=provider, external_id=external_id, **kwargs
+        )
+        idp = Factories.create_identity_provider(integration=integration)
+        Factories.create_identity(organization.get_default_owner(), idp, "UXXXXXXX1")
+
+        return integration
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):
