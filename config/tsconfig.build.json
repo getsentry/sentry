@@ -23,7 +23,7 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "strict": true,
-    "target": "es5",
+    "target": "es6",
     "strictBindCallApply": false,
     "experimentalDecorators": true,
     "useUnknownInCatchVariables": false,
