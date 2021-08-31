@@ -1,0 +1,27 @@
+import {act, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+
+import TeamStore from 'app/stores/teamStore';
+import {useLegacyStore} from 'app/stores/useLegacyStore';
+
+describe('abc', () => {
+  // @ts-expect-error
+  const team = TestStubs.Team();
+
+  function TestComponent() {
+    const teams = useLegacyStore(TeamStore);
+    return <div>Teams: {teams.length}</div>;
+  }
+
+  afterEach(() => {
+    TeamStore.reset();
+  });
+
+  it('should update on change to store', () => {
+    const wrapper = mountWithTheme(<TestComponent />);
+    expect(wrapper.getByText('Teams: 0')).toBeTruthy();
+
+    act(() => TeamStore.loadInitialData([team]));
+
+    expect(wrapper.getByText('Teams: 1')).toBeTruthy();
+  });
+});
