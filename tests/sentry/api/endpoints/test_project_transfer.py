@@ -2,7 +2,6 @@ from django.core import mail
 from django.urls import reverse
 
 from sentry.testutils import APITestCase
-from sentry.utils.compat import mock
 
 
 class ProjectTransferTest(APITestCase):
@@ -21,9 +20,7 @@ class ProjectTransferTest(APITestCase):
 
         assert response.status_code == 403
 
-    @mock.patch("sentry.api.endpoints.project_details.uuid4")
-    def test_transfer_project(self, mock_uuid4):
-        mock_uuid4.return_value = self.get_mock_uuid()
+    def test_transfer_project(self):
         project = self.create_project()
         new_user = self.create_user("b@example.com")
         self.create_organization(name="New Org", owner=new_user)
@@ -44,9 +41,7 @@ class ProjectTransferTest(APITestCase):
                 # assertion does not pass
                 assert mail.outbox
 
-    @mock.patch("sentry.api.endpoints.project_details.uuid4")
-    def test_transfer_project_to_invalid_user(self, mock_uuid4):
-        mock_uuid4.return_value = self.get_mock_uuid()
+    def test_transfer_project_to_invalid_user(self):
         project = self.create_project()
         # new user is not an owner of anything
         new_user = self.create_user("b@example.com")
