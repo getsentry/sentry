@@ -152,15 +152,17 @@ function UpgradeGrouping({
           )}
           disabled
         >
-          <Button
-            onClick={handleOpenUpgradeGroupingConfirmModal}
-            disabled={!hasAccess || noUpdates}
-            title={getButtonTitle()}
-            type="button"
-            priority={priority}
-          >
-            {t('Upgrade Grouping Strategy')}
-          </Button>
+          <div>
+            <Button
+              onClick={handleOpenUpgradeGroupingConfirmModal}
+              disabled={!hasAccess || noUpdates}
+              title={getButtonTitle()}
+              type="button"
+              priority={priority}
+            >
+              {t('Upgrade Grouping Strategy')}
+            </Button>
+          </div>
         </Field>
       </PanelBody>
     </Panel>
