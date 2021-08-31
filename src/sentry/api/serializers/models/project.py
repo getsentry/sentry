@@ -18,7 +18,7 @@ from sentry.digests import backend as digests
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.lang.native.symbolicator import redact_sources
+from sentry.lang.native.symbolicator import redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
@@ -797,7 +797,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         )
         custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")
         try:
-            symbol_sources = redact_sources(custom_symbol_sources_json)
+            symbol_sources = redact_source_secrets(custom_symbol_sources_json)
         except Exception:
             # In theory sources stored on the project should be valid. If they are invalid, we don't
             # want to abort serialization just for sources, so just return an empty list instead of

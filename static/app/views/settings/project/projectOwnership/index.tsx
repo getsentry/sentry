@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {openEditOwnershipRules, openModal} from 'app/actionCreators/modal';
+import Access from 'app/components/acl/access';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
@@ -19,6 +20,7 @@ import {
 } from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
+import FeedbackAlert from 'app/views/settings/account/notifications/feedbackAlert';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -209,8 +211,17 @@ tags.sku_class:enterprise #enterprise`;
               return errMessageListComponent(
                 `The following team do not have access to the project: ${project.slug}`,
                 values,
-                value => `/settings/${organization.slug}/teams/${value}/projects/`,
+                value =>
+                  `/settings/${organization.slug}/teams/${value.slice(1)}/projects/`,
                 value => `Configure ${value} Permissions`
+              );
+
+            case 'users_without_access':
+              return errMessageListComponent(
+                `The following users are not on a team that has access to the project: ${project.slug}`,
+                values,
+                email => `/settings/${organization.slug}/members/?query=${email}`,
+                _ => `Configure Member Settings`
               );
             default:
               return null;
@@ -262,20 +273,27 @@ tags.sku_class:enterprise #enterprise`;
                 {t('View Issues')}
               </Button>
               <Feature features={['integrations-codeowners']}>
-                <CodeOwnerButton
-                  onClick={this.handleAddCodeOwner}
-                  size="small"
-                  priority="primary"
-                  data-test-id="add-codeowner-button"
-                >
-                  {t('Add CODEOWNERS File')}
-                </CodeOwnerButton>
+                <Access access={['project:write']}>
+                  {({hasAccess}) =>
+                    hasAccess && (
+                      <CodeOwnerButton
+                        onClick={this.handleAddCodeOwner}
+                        size="small"
+                        priority="primary"
+                        data-test-id="add-codeowner-button"
+                      >
+                        {t('Add CODEOWNERS File')}
+                      </CodeOwnerButton>
+                    )
+                  }
+                </Access>
               </Feature>
             </Fragment>
           }
         />
         <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
         <PermissionAlert />
+        <FeedbackAlert />
         {this.renderCodeOwnerErrors()}
         <RulesPanel
           data-test-id="issueowners-panel"
@@ -360,7 +378,7 @@ const CodeOwnerButton = styled(Button)`
 `;
 
 const AlertContentContainer = styled('div')`
-  overflow-y: scroll;
+  overflow-y: auto;
   max-height: 350px;
 `;
 

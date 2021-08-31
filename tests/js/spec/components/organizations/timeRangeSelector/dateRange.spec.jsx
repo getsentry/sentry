@@ -64,7 +64,7 @@ describe('DateRange', function () {
     });
 
     it('has the right max date', function () {
-      expect(wrapper.find('StyledDateRangePicker').prop('maxDate')).toEqual(
+      expect(wrapper.find('DateRangePicker').at(0).prop('maxDate')).toEqual(
         new Date('2017-10-16T23:41:20.000Z')
       );
     });
@@ -210,7 +210,7 @@ describe('DateRange', function () {
     });
 
     it('has the right max date', function () {
-      expect(wrapper.find('StyledDateRangePicker').prop('maxDate')).toEqual(
+      expect(wrapper.find('DateRangePicker').at(0).prop('maxDate')).toEqual(
         new Date('2017-10-16T23:41:20.000Z')
       );
     });

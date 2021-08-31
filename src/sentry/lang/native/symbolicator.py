@@ -49,18 +49,6 @@ COMMON_SOURCE_PROPERTIES = {
     "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
 }
 
-SECRET_PROPERTY = {
-    "oneOf": [
-        {"type": "string"},
-        {
-            "type": "object",
-            "properties": {"_hidden-secret": {"enum": ["true"]}},
-            "required": ["_hidden-secret"],
-            "additionalProperties": False,
-        },
-    ]
-}
-
 APP_STORE_CONNECT_SCHEMA = {
     "type": "object",
     "properties": {
@@ -69,10 +57,10 @@ APP_STORE_CONNECT_SCHEMA = {
         "name": {"type": "string"},
         "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
         "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
-        "appconnectPrivateKey": SECRET_PROPERTY,
+        "appconnectPrivateKey": {"type": "string"},
         "itunesUser": {"type": "string", "minLength": 1, "maxLength": 100},
         "itunesCreated": {"type": "string", "format": "date-time"},
-        "itunesPassword": SECRET_PROPERTY,
+        "itunesPassword": {"type": "string"},
         "itunesSession": {"type": "string"},
         "appName": {"type": "string", "minLength": 1, "maxLength": 512},
         "appId": {"type": "string", "minLength": 1},
@@ -106,7 +94,7 @@ HTTP_SOURCE_SCHEMA = {
         type={"type": "string", "enum": ["http"]},
         url={"type": "string"},
         username={"type": "string"},
-        password=SECRET_PROPERTY,
+        password={"type": "string"},
         **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "url", "layout"],
@@ -119,9 +107,8 @@ S3_SOURCE_SCHEMA = {
         type={"type": "string", "enum": ["s3"]},
         bucket={"type": "string"},
         region={"type": "string"},
-        # TODO: is this a secret?
         access_key={"type": "string"},
-        secret_key=SECRET_PROPERTY,
+        secret_key={"type": "string"},
         prefix={"type": "string"},
         **COMMON_SOURCE_PROPERTIES,
     ),
@@ -135,7 +122,7 @@ GCS_SOURCE_SCHEMA = {
         type={"type": "string", "enum": ["gcs"]},
         bucket={"type": "string"},
         client_email={"type": "string"},
-        private_key=SECRET_PROPERTY,
+        private_key={"type": "string"},
         prefix={"type": "string"},
         **COMMON_SOURCE_PROPERTIES,
     ),
@@ -314,6 +301,21 @@ def normalize_user_source(source):
     return source
 
 
+def secret_fields(source_type):
+    """
+    Returns a string list of all of the fields that contain a secret in a given source.
+    """
+    if source_type == "appStoreConnect":
+        yield from ["appconnectPrivateKey", "itunesPassword"]
+    elif source_type == "http":
+        yield "password"
+    elif source_type == "s3":
+        yield "secret_key"
+    elif source_type == "gcs":
+        yield "private_key"
+    yield from []
+
+
 def parse_sources(config, filter_appconnect=True):
     """
     Parses the given sources in the config string (from JSON).
@@ -347,7 +349,47 @@ def parse_sources(config, filter_appconnect=True):
     return sources
 
 
-def redact_sources(config_sources):
+def parse_backfill_sources(sources_json, original_sources):
+    """
+    Parses a json string of sources passed in from a client and backfills any redacted secrets by
+    finding their previous values stored in original_sources.
+    """
+
+    if not sources_json:
+        return []
+
+    try:
+        sources = json.loads(sources_json)
+    except Exception as e:
+        raise InvalidSourcesError(f"{e}")
+
+    orig_by_id = {src["id"]: src for src in original_sources}
+
+    ids = set()
+    for source in sources:
+        if is_internal_source_id(source["id"]):
+            raise InvalidSourcesError('Source ids must not start with "sentry:"')
+        if source["id"] in ids:
+            raise InvalidSourcesError("Duplicate source id: {}".format(source["id"]))
+
+        ids.add(source["id"])
+
+        for secret in secret_fields(source["type"]):
+            if secret in source and source[secret] == {"hidden-secret": True}:
+                orig_source = orig_by_id.get(source["id"])
+                # Should just omit the source entirely if it's referencing a previously stored
+                # secret that we can't find
+                source[secret] = orig_source.get(secret, "")
+
+    try:
+        jsonschema.validate(sources, SOURCES_SCHEMA)
+    except jsonschema.ValidationError as e:
+        raise InvalidSourcesError(f"{e}")
+
+    return sources
+
+
+def redact_source_secrets(config_sources):
     """
     Returns a json string with all of the secrets redacted from every source.
 
@@ -356,15 +398,9 @@ def redact_sources(config_sources):
 
     sources = parse_sources(config_sources, False)
     for source in sources:
-        for secret in [
-            "appconnectPrivateKey",
-            "itunesPassword",
-            "password",
-            "secret_key",
-            "private_key",
-        ]:
+        for secret in secret_fields(source["type"]):
             if secret in source:
-                source[secret] = {"_hidden-secret": True}
+                source[secret] = {"hidden-secret": True}
 
     return json.dumps(sources)
 

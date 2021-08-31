@@ -21,9 +21,10 @@ import {
   SessionStatus,
 } from 'app/types';
 import {defined} from 'app/utils';
+import {getDuration, getExactDuration} from 'app/utils/formatters';
 import {getCrashFreeRateSeries, getSessionStatusRateSeries} from 'app/utils/sessions';
 import {Theme} from 'app/utils/theme';
-import {displayCrashFreePercent} from 'app/views/releases/utils';
+import {displayCrashFreePercent, roundDuration} from 'app/views/releases/utils';
 
 import {
   generateReleaseMarkLines,
@@ -77,6 +78,10 @@ class ReleaseSessionsChart extends React.Component<Props> {
       case ReleaseComparisonChartType.ERRORED_USERS:
       case ReleaseComparisonChartType.CRASHED_USERS:
         return defined(value) ? `${value}%` : '\u2015';
+      case ReleaseComparisonChartType.SESSION_DURATION:
+        return defined(value) && typeof value === 'number'
+          ? getExactDuration(value, true)
+          : '\u2015';
       case ReleaseComparisonChartType.SESSION_COUNT:
       case ReleaseComparisonChartType.USER_COUNT:
       default:
@@ -112,6 +117,14 @@ class ReleaseSessionsChart extends React.Component<Props> {
             color: theme.chartLabel,
           },
         };
+      case ReleaseComparisonChartType.SESSION_DURATION:
+        return {
+          scale: true,
+          axisLabel: {
+            formatter: (value: number) => getDuration(value, undefined, true),
+            color: theme.chartLabel,
+          },
+        };
       case ReleaseComparisonChartType.SESSION_COUNT:
       case ReleaseComparisonChartType.USER_COUNT:
       default:
@@ -137,6 +150,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
       default:
         return AreaChart;
       case ReleaseComparisonChartType.SESSION_COUNT:
+      case ReleaseComparisonChartType.SESSION_DURATION:
       case ReleaseComparisonChartType.USER_COUNT:
         return StackedAreaChart;
     }
@@ -167,6 +181,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
       case ReleaseComparisonChartType.CRASHED_USERS:
         return [theme.red300];
       case ReleaseComparisonChartType.SESSION_COUNT:
+      case ReleaseComparisonChartType.SESSION_DURATION:
       case ReleaseComparisonChartType.USER_COUNT:
       default:
         return undefined;
@@ -457,6 +472,19 @@ class ReleaseSessionsChart extends React.Component<Props> {
               field: SessionField.SESSIONS,
               groupBy: 'session.status',
               chartData: initSessionsBreakdownChartData(theme),
+            })
+          ),
+          markLines,
+        };
+      case ReleaseComparisonChartType.SESSION_DURATION:
+        return {
+          series: Object.values(
+            fillChartDataFromSessionsResponse({
+              response: releaseSessions,
+              field: SessionField.DURATION,
+              groupBy: 'session.status',
+              chartData: initSessionsBreakdownChartData(theme),
+              valueFormatter: duration => roundDuration(duration ? duration / 1000 : 0),
             })
           ),
           markLines,

@@ -360,6 +360,13 @@ SILENCED_SYSTEM_CHECKS = (
     # the trailing slash. This confuses the warning as the regex is `/$` which
     # looks like it starts with a slash but it doesn't.
     "urls.W002",
+    # Our own AuthenticationMiddleware suffices as a replacement for
+    # django.contrib.auth.middleware.AuthenticationMiddleware; both add the
+    # authenticated user to the HttpRequest which is what's needed here.
+    "admin.E408",
+    # This is fixed in Django@7c08f26bf0439c1ed593b51b51ad847f7e262bc1.
+    # It's not our problem; refer to Django issue 32260.
+    "urls.E007",
 )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
@@ -974,6 +981,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable Jira AC for select organizations.
+    "organizations:jira-ac-plugin": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -989,8 +998,10 @@ SENTRY_FEATURES = {
     "organizations:performance-events-page": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Allow the user to create a sample transaction while onboarding
-    "organizations:performance-create-sample-transaction": False,
+    # Enable ingestion for suspect spans
+    "organizations:performance-suspect-spans-ingestion": False,
+    # Enable views for suspect tags
+    "organizations:performance-suspect-spans-view": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1137,10 +1148,13 @@ SENTRY_RELAY_ENDPOINT_APM_SAMPLING = 0
 SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
 
 # sample rate for Apple App Store Connect tasks transactions
-SENTRY_APPCONNECT_APM_SAMPLING = 1
+SENTRY_APPCONNECT_APM_SAMPLING = SENTRY_BACKEND_APM_SAMPLING
 
 # sample rate for suspect commits task
 SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
+
+# sample rate for post_process_group task
+SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
 
 # ----
 # end APM config

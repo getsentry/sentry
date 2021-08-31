@@ -51,10 +51,9 @@ To create and manage these credentials, several API endpoints exist:
 """
 import datetime
 import logging
-from typing import Optional
+from typing import Dict, Optional, Union
 from uuid import uuid4
 
-import jsonschema
 import requests
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -66,10 +65,12 @@ from sentry.api.exceptions import (
     AppConnectAuthenticationError,
     AppConnectMultipleSourcesError,
     ItunesAuthenticationError,
+    ItunesSmsBlocked,
     ItunesTwoFactorAuthenticationRequired,
 )
+from sentry.api.fields.secret import SecretField, validate_secret
 from sentry.lang.native import appconnect
-from sentry.lang.native.symbolicator import SECRET_PROPERTY
+from sentry.lang.native.symbolicator import secret_fields
 from sentry.models import AppConnectBuild, AuditLogEntryEvent, LatestAppConnectBuildsCheck, Project
 from sentry.tasks.app_store_connect import dsym_download
 from sentry.utils import json
@@ -89,11 +90,13 @@ class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ign
     """Input validation for :class:`AppStoreConnectAppsEndpoint."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
-    appconnectIssuer = serializers.CharField(max_length=36, min_length=36, required=True)
+    appconnectIssuer = serializers.CharField(max_length=36, min_length=36, required=False)
     # about 10 chars
-    appconnectKey = serializers.CharField(max_length=20, min_length=2, required=True)
+    appconnectKey = serializers.CharField(max_length=20, min_length=2, required=False)
     # 512 should fit a private key
-    appconnectPrivateKey = serializers.CharField(max_length=512, required=True)
+    appconnectPrivateKey = serializers.CharField(max_length=512, required=False)
+    # Optional ID to update existing credentials or simply list apps
+    id = serializers.CharField(max_length=40, min_length=1, required=False)
 
 
 class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
@@ -109,6 +112,16 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
     }
     ```
     See :class:`AppStoreConnectCredentialsSerializer` for input validation.
+
+    If you want to list the apps for an existing session you can use the ``id`` as created
+    by :class:`AppStoreConnectCreateCredentialsEndpoint`
+    (``projects/{org_slug}/{proj_slug}/appstoreconnect/``) instead:
+    ```json
+    {
+        "id": "xxx",
+    }
+    In this case it is also possible to provide the other fields if you want to change any
+    of them.
 
     Practically this is also the validation for the credentials, if they are invalid 401 is
     returned, otherwise the applications are returned as:
@@ -146,12 +159,33 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
-
         data = serializer.validated_data
+
+        cfg_id: Optional[str] = data.get("id")
+        apc_key: Optional[str] = data.get("appconnectKey")
+        apc_private_key: Optional[str] = data.get("appconnectPrivateKey")
+        apc_issuer: Optional[str] = data.get("appconnectIssuer")
+        if cfg_id:
+            try:
+                current_config = appconnect.AppStoreConnectConfig.from_project_config(
+                    project, cfg_id
+                )
+            except KeyError:
+                return Response(status=404)
+
+            if not apc_key:
+                apc_key = current_config.appconnectKey
+            if not apc_private_key:
+                apc_private_key = current_config.appconnectPrivateKey
+            if not apc_issuer:
+                apc_issuer = current_config.appconnectIssuer
+        if not apc_key or not apc_private_key or not apc_issuer:
+            return Response("Incomplete API credentials", status=400)
+
         credentials = appstore_connect.AppConnectCredentials(
-            key_id=data.get("appconnectKey"),
-            key=data.get("appconnectPrivateKey"),
-            issuer_id=data.get("appconnectIssuer"),
+            key_id=apc_key,
+            key=apc_private_key,
+            issuer_id=apc_issuer,
         )
         session = requests.Session()
 
@@ -203,7 +237,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
     ``projects/{org_slug}/{proj_slug}/appstoreconnect/2fa/`` so you must have gone through
     the iTunes login steps (endpoints 2-4 in module doc string).
 
-    The returned JSON contains an ``id`` field which can be used in other endpoints to refer
+    The returned JSON only contains an ``id`` field which can be used in other endpoints to refer
     to this set of credentials.
 
     Credentials as saved using the ``symbolSources`` field under project details page
@@ -268,11 +302,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             }
         )
 
-        config["appconnectPrivateKey"] = {"_hidden-secret": True}
-        config["itunesPassword"] = {"_hidden-secret": True}
-
-        # TODO: Just return the ID instead of the entire config
-        return Response(config, status=200)
+        return Response({"id": validated_config.id}, status=200)
 
 
 class UpdateSessionContextSerializer(serializers.Serializer):  # type: ignore
@@ -287,10 +317,9 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
     appconnectIssuer = serializers.CharField(max_length=36, min_length=36, required=False)
     # about 10 chars
     appconnectKey = serializers.CharField(max_length=20, min_length=2, required=False)
-    # 512 should fit a private key
-    appconnectPrivateKey = serializers.CharField(max_length=512, required=False)
+    appconnectPrivateKey = SecretField(required=False)
     itunesUser = serializers.CharField(max_length=100, min_length=1, required=False)
-    itunesPassword = serializers.CharField(max_length=512, min_length=1, required=False)
+    itunesPassword = SecretField(required=False)
     appName = serializers.CharField(max_length=512, min_length=1, required=False)
     appId = serializers.CharField(min_length=1, required=False)
     bundleId = serializers.CharField(min_length=1, required=False)
@@ -299,31 +328,15 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
     orgId = serializers.CharField(max_length=36, min_length=36, required=False)
     orgName = serializers.CharField(max_length=100, required=False)
 
-    def validate_secret(secret_json: str) -> Optional[json.JSONData]:
-        if not secret_json:
-            return secret_json
+    def validate_appconnectPrivateKey(
+        self, private_key_json: Optional[Union[str, Dict[str, bool]]]
+    ) -> Optional[json.JSONData]:
+        return validate_secret(private_key_json)
 
-        try:
-            secret = json.loads(secret_json)
-        except Exception as e:
-            raise serializers.ValidationError(str(e))
-
-        try:
-            jsonschema.validate(secret, SECRET_PROPERTY)
-        except jsonschema.ValidationError as e:
-            raise serializers.ValidationError(str(e))
-
-        # If an object was returned then it must be the special value representing the currently
-        # stored secret, i.e. no change was made to it
-        if isinstance(secret, dict):
-            return None
-        return secret
-
-    def validate_appconnectPrivateKey(self, private_key_json):
-        self.validate_secret(private_key_json)
-
-    def validate_itunesPassword(self, password_json):
-        self.validate_secret(password_json)
+    def validate_itunesPassword(
+        self, password_json: Optional[Union[str, Dict[str, bool]]]
+    ) -> Optional[json.JSONData]:
+        return validate_secret(password_json)
 
 
 class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
@@ -377,7 +390,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
 
         # Any secrets set to None during validation are meant to be no-ops, so remove them to avoid
         # erasing the existing values
-        for secret in ["appconnectPrivateKey", "itunesPassword"]:
+        for secret in secret_fields(symbol_source_config.type):
             if secret in data and data[secret] is None:
                 del data[secret]
 
@@ -405,10 +418,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             }
         )
 
-        symbol_source_config.appconnectPrivateKey = {"_hidden-secret": True}
-        symbol_source_config.itunesPassword = {"_hidden-secret": True}
-
-        return Response(symbol_source_config.to_json(), status=200)
+        return Response(symbol_source_config.to_redacted_json(), status=200)
 
 
 class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: ignore
@@ -663,7 +673,10 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):  # type: ignore
         except Exception:
             return Response({"session_context": ["Invalid client_state"]}, status=400)
 
-        itunes_client.request_sms_auth()
+        try:
+            itunes_client.request_sms_auth()
+        except itunes_connect.SmsBlockedError:
+            raise ItunesSmsBlocked
         return Response({"sessionContext": {"client_state": itunes_client.to_json()}}, status=200)
 
 

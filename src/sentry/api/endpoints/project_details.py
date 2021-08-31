@@ -24,7 +24,11 @@ from sentry.datascrubbing import validate_pii_config_update
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.lang.native.symbolicator import InvalidSourcesError, parse_sources
+from sentry.lang.native.symbolicator import (
+    InvalidSourcesError,
+    parse_backfill_sources,
+    parse_sources,
+)
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     AuditLogEntryEvent,
@@ -237,30 +241,14 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
 
         try:
-            sources = parse_sources(sources_json.strip(), filter_appconnect=False)
+            # We should really only grab and parse if there are sources in sources_json whose
+            # secrets are set to {"hidden-secret":true}
+            orig_sources = parse_sources(
+                self.context["project"].get_option("sentry:symbol_sources")
+            )
+            sources = parse_backfill_sources(sources_json.strip(), orig_sources)
         except InvalidSourcesError as e:
             raise serializers.ValidationError(str(e))
-
-        # We should really only grab and parse if there are sources whose secrets are set to
-        # {"_hidden-secret":true}, but checking for that would be very ugly right now
-        orig_sources = parse_sources(
-            self.context["project"].get_option("sentry:symbol_sources", filter_appconnect=False)
-        )
-        for source in sources:
-            for secret in [
-                "appconnectPrivateKey",
-                "itunesPassword",
-                "password",
-                "secret_key",
-                "private_key",
-            ]:
-                if secret in source and secret == {"_hidden-secret": True}:
-                    orig_source = next(
-                        filter(orig for orig in orig_sources if orig["id"] == source["id"]), None
-                    )
-                    # Should just omit the source entirely if it's referencing a previously stored
-                    # secret that we can't find
-                    source[secret] = orig_source[secret] if secret in orig_source else ""
 
         sources_json = json.dumps(sources) if sources else ""
 
