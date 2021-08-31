@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import {Location} from 'history';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
@@ -6,7 +6,7 @@ import ProjectActions from 'app/actions/projectActions';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
+import Confirm, {openConfirmModal} from 'app/components/confirm';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import {EventGroupingConfig, Organization, Project} from 'app/types';
@@ -18,6 +18,7 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import {getGroupingChanges, getGroupingRisk} from './utils';
 
 const upgradeGroupingId = 'upgrade-grouping';
+const confirmText = t('Upgrade');
 
 type Props = {
   groupingConfigs: EventGroupingConfig[];
@@ -38,6 +39,14 @@ function UpgradeGrouping({
   api,
   location,
 }: Props) {
+  useEffect(() => {
+    openUpgradeGroupingConfirmModal();
+  }, [location.hash]);
+
+  if (!groupingConfigs) {
+    return null;
+  }
+
   const hasAccess = organization.access.includes('project:write');
   const {updateNotes, riskLevel, latestGroupingConfig} = getGroupingChanges(
     project,
@@ -45,8 +54,30 @@ function UpgradeGrouping({
   );
   const {riskNote, alertType} = getGroupingRisk(riskLevel);
   const noUpdates = !latestGroupingConfig;
+  const priority = riskLevel >= 2 ? 'danger' : 'primary';
+
+  const modalMessage = (
+    <Fragment>
+      <TextBlock>
+        <strong>{t('Upgrade Grouping Strategy')}</strong>
+      </TextBlock>
+      <TextBlock>
+        {t(
+          'You can upgrade the grouping strategy to the latest but this is an irreversible operation.'
+        )}
+      </TextBlock>
+      <TextBlock>
+        <strong>{t('New Behavior')}</strong>
+        <div dangerouslySetInnerHTML={{__html: marked(updateNotes)}} />
+      </TextBlock>
+      <TextBlock>
+        <Alert type={alertType}>{riskNote}</Alert>
+      </TextBlock>
+    </Fragment>
+  );
 
   const newData: Record<string, string | number> = {};
+
   if (latestGroupingConfig) {
     const now = Math.floor(new Date().getTime() / 1000);
     const ninety_days = 3600 * 24 * 90;
@@ -56,7 +87,7 @@ function UpgradeGrouping({
     newData.secondaryGroupingExpiry = now + ninety_days;
   }
 
-  const handleUpgrade = async () => {
+  async function handleConfirmUpgrade() {
     addLoadingMessage(t('Changing grouping\u2026'));
     try {
       const response = await api.requestPromise(
@@ -72,38 +103,26 @@ function UpgradeGrouping({
     } catch {
       handleXhrErrorResponse(t('Unable to upgrade config'));
     }
-  };
-
-  if (!groupingConfigs) {
-    return null;
   }
 
-  function getModalMessage() {
-    return (
-      <Fragment>
-        <TextBlock>
-          <strong>{t('Upgrade Grouping Strategy')}</strong>
-        </TextBlock>
-        <TextBlock>
-          {t(
-            'You can upgrade the grouping strategy to the latest but this is an irreversible operation.'
-          )}
-        </TextBlock>
-        <TextBlock>
-          <strong>{t('New Behavior')}</strong>
-          <div dangerouslySetInnerHTML={{__html: marked(updateNotes)}} />
-        </TextBlock>
-        <TextBlock>
-          <Alert type={alertType}>{riskNote}</Alert>
-        </TextBlock>
-      </Fragment>
-    );
+  function openUpgradeGroupingConfirmModal() {
+    if (location.hash !== `#${upgradeGroupingId}` || noUpdates || !groupingConfigs) {
+      return;
+    }
+
+    openConfirmModal({
+      confirmText,
+      priority,
+      onConfirm: handleConfirmUpgrade,
+      message: modalMessage,
+    });
   }
 
   function getButtonTitle() {
     if (!hasAccess) {
       return t('You do not have sufficient permissions to do this');
     }
+
     if (noUpdates) {
       return t('You are already on the latest version');
     }
@@ -127,18 +146,17 @@ function UpgradeGrouping({
         >
           <Confirm
             disabled={noUpdates}
-            onConfirm={handleUpgrade}
-            priority={riskLevel >= 2 ? 'danger' : 'primary'}
-            confirmText={t('Upgrade')}
-            message={getModalMessage()}
-            isOpen={location.hash === `#${upgradeGroupingId}`}
+            onConfirm={handleConfirmUpgrade}
+            priority={priority}
+            confirmText={confirmText}
+            message={modalMessage}
           >
             <div>
               <Button
                 disabled={!hasAccess || noUpdates}
                 title={getButtonTitle()}
                 type="button"
-                priority={riskLevel >= 2 ? 'danger' : 'primary'}
+                priority={priority}
               >
                 {t('Upgrade Grouping Strategy')}
               </Button>

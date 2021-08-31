@@ -120,10 +120,6 @@ type Props = OpenConfirmOptions & {
    */
   disabled?: boolean;
   /**
-   * It immediately invokes confirm modal after the component is mounted
-   */
-  isOpen?: boolean;
-  /**
    * Stop event propagation when opening the confirm modal
    */
   stopPropagation?: boolean;
@@ -133,7 +129,7 @@ type Props = OpenConfirmOptions & {
  * Opens a confirmation modal when called. The procedural version of the
  * `Confirm` component
  */
-const openConfirmModal = ({
+export const openConfirmModal = ({
   bypass,
   onConfirming,
   priority = 'primary',
@@ -168,7 +164,6 @@ const openConfirmModal = ({
 function Confirm({
   disabled,
   children,
-  isOpen = false,
   stopPropagation = false,
   ...openConfirmOptions
 }: Props) {
@@ -183,12 +178,6 @@ function Confirm({
 
     openConfirmModal(openConfirmOptions);
   };
-
-  React.useEffect(() => {
-    if (isOpen) {
-      triggerModal();
-    }
-  }, [isOpen]);
 
   if (typeof children === 'function') {
     return children({open: triggerModal});
