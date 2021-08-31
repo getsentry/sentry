@@ -1505,7 +1505,7 @@ class DataPopulation:
     @catch_and_log_errors
     def send_session(self, sid, user_id, dsn, time, release, **kwargs):
         """
-        reates an envelope payload for a session and posts it to Relay
+        Creates an envelope payload for a session and posts it to Relay
         """
         formatted_time = time.isoformat()
         envelope_headers = "{}"

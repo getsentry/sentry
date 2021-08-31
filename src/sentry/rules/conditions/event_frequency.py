@@ -146,7 +146,7 @@ percent_intervals_to_display = {
     "30m": ("30 minutes", timedelta(minutes=30)),
     "1h": ("1 hour", timedelta(minutes=60)),
 }
-MIN_SESSIONS_TO_FIRE = 1
+MIN_SESSIONS_TO_FIRE = 50
 
 
 class EventFrequencyPercentForm(EventFrequencyForm):
