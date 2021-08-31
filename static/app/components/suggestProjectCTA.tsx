@@ -62,7 +62,7 @@ class SuggestProjectCTA extends Component<Props, State> {
     }
     // find the user agent header out of our list of headers
     const userAgent = (requestEntry as EntryRequest)?.data?.headers?.find(
-      item => item[0].toLowerCase() === 'user-agent'
+      item => item?.[0].toLowerCase() === 'user-agent'
     );
     if (!userAgent) {
       return '';
