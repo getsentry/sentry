@@ -18,7 +18,7 @@ Span = TypedDict(
     "Span",
     {
         "trace_id": str,
-        "parent_span_id": Optional[str],
+        "parent_span_id": str,
         "span_id": str,
         "start_timestamp": float,
         "timestamp": float,

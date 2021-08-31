@@ -27,7 +27,7 @@ def test_register_duplicate_confiig() -> None:
 class SpanBuilder:
     def __init__(self) -> None:
         self.trace_id: str = "a" * 32
-        self.parent_span_id: Optional[str] = None
+        self.parent_span_id: Optional[str] = "a" * 16
         self.span_id: str = "b" * 16
         self.start_timestamp: float = 0
         self.timestamp: float = 1
