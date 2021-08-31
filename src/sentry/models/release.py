@@ -223,7 +223,7 @@ class ReleaseQuerySet(models.QuerySet):
         from sentry.search.events.filter import to_list
 
         if not environments or len(environments) != 1:
-            raise InvalidSearchQuery("Must pick an environment to query by release.stage.")
+            raise InvalidSearchQuery("Choose a single environment to filter by release stage.")
 
         filters = {
             ReleaseStages.ADOPTED: Q(adopted__isnull=False, unadopted__isnull=True),
@@ -256,6 +256,9 @@ class ReleaseQuerySet(models.QuerySet):
 
         qs = self.filter(id__in=Subquery(rpes.filter(query).values_list("release_id", flat=True)))
         return qs
+
+    def order_by_recent(self):
+        return self.order_by("-date_added", "-id")
 
 
 class ReleaseModelManager(models.Manager):
@@ -298,6 +301,9 @@ class ReleaseModelManager(models.Manager):
         return self.get_queryset().filter_by_stage(
             organization_id, operator, value, project_ids, environments
         )
+
+    def order_by_recent(self):
+        return self.get_queryset().order_by_recent()
 
     @staticmethod
     def _convert_build_code_to_build_number(build_code):
@@ -467,6 +473,10 @@ class Release(Model):
         separately for serialization purposes.
         """
         return Model.__eq__(self, other) and self._for_project_id == other._for_project_id
+
+    def __hash__(self):
+        # https://code.djangoproject.com/ticket/30333
+        return super().__hash__()
 
     @staticmethod
     def is_valid_version(value):
