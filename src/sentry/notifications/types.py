@@ -57,11 +57,15 @@ class NotificationSettingTypes(Enum):
     # Sub category of quotas for warnings before hitting the actual limit
     QUOTA_WARNINGS = 54
 
+    # Weekly user reports.
+    REPORTS = 60
+
 
 NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.DEFAULT: "default",
     NotificationSettingTypes.DEPLOY: "deploy",
     NotificationSettingTypes.ISSUE_ALERTS: "alerts",
+    NotificationSettingTypes.REPORTS: "reports",
     NotificationSettingTypes.WORKFLOW: "workflow",
     NotificationSettingTypes.APPROVAL: "approval",
     NotificationSettingTypes.QUOTA: "quota",
@@ -177,6 +181,9 @@ VALID_VALUES_FOR_KEY = {
     NotificationSettingTypes.WORKFLOW: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.REPORTS: {
         NotificationSettingOptionValues.NEVER,
     },
 }

@@ -1,5 +1,6 @@
 from sentry import features
 from sentry.models import Organization, OrganizationStatus, Project, Team, User, UserOption
+from sentry.notifications.notifications.weekly_reports import WeeklyReportNotification
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.reports.types import Skipped
 from sentry.tasks.reports.utils.util import _to_interval, has_valid_aggregates
@@ -116,10 +117,7 @@ def deliver_organization_user_report(
         )
         return Skipped.NoReports
 
-    from sentry.tasks.reports.utils.notification import build_message
-
-    message = build_message(timestamp, duration, organization, user, reports)
-
+    notification = WeeklyReportNotification(timestamp, duration, organization, user, reports)
     if not dry_run:
         if features.has("organizations:weekly-report-debugging", organization):
             logger.info(
@@ -129,4 +127,4 @@ def deliver_organization_user_report(
                     "organization_id": organization.id,
                 },
             )
-        message.send()
+        notification.send()

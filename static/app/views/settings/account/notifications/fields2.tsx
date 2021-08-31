@@ -36,6 +36,16 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     ],
     help: t('Release, environment, and commit overviews.'),
   },
+  reports: {
+    name: 'reports',
+    type: 'select',
+    label: t('Weekly Reports'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
+    help: t('A summary of the past week for an organization.'),
+  },
   provider: {
     name: 'provider',
     type: 'select',
@@ -65,12 +75,6 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       ['never', t('Off')],
     ],
     help: t('Error, transaction, and attachment quota limits.'),
-  },
-  reports: {
-    name: 'weekly reports',
-    type: 'blank',
-    label: t('Weekly Reports'),
-    help: t('A summary of the past week for an organization.'),
   },
   email: {
     name: 'email routing',

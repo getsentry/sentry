@@ -16,6 +16,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.utils.strings import oxfordize_list
 
 if TYPE_CHECKING:
     from sentry.models import (
@@ -240,15 +241,17 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
         NotificationSettingTypes.QUOTA_TRANSACTIONS,
         NotificationSettingTypes.QUOTA_ATTACHMENTS,
         NotificationSettingTypes.QUOTA_WARNINGS,
+        NotificationSettingTypes.REPORTS,
     ]:
         return NotificationScopeType.ORGANIZATION
 
     if type in [NotificationSettingTypes.WORKFLOW, NotificationSettingTypes.ISSUE_ALERTS]:
         return NotificationScopeType.PROJECT
 
-    raise Exception(
-        f"type {type}, must be alerts, deploy, workflow, approval, quota, quotaErrors, quotaTransactions, quotaAttachments, quotaWarnings"
+    types_list = oxfordize_list(
+        [type.name.lower() for type in list(NotificationSettingTypes)], conjunction="or"
     )
+    raise Exception(f"type {type}, must be in {types_list}")
 
 
 def get_scope(

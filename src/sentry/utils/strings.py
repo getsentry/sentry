@@ -4,6 +4,7 @@ import codecs
 import re
 import string
 import zlib
+from typing import Sequence
 
 from django.utils.encoding import force_text, smart_text
 
@@ -216,7 +217,7 @@ def codec_lookup(encoding, default="utf-8"):
     return info
 
 
-def oxfordize_list(strings):
+def oxfordize_list(strings: Sequence[str], conjunction: str = "and") -> str:
     """Given a list of strings, formats them correctly given the length of the
     list. For example:
 
@@ -232,9 +233,9 @@ def oxfordize_list(strings):
     elif len(strings) == 1:
         return strings[0]
     elif len(strings) == 2:
-        return f"{strings[0]} and {strings[1]}"
+        return f"{strings[0]} {conjunction} {strings[1]}"
 
-    return f"{', '.join(strings[:-1])}, and {strings[-1]}"
+    return f"{', '.join(strings[:-1])}, {conjunction} {strings[-1]}"
 
 
 def to_single_line_str(original_str):

@@ -71,6 +71,7 @@ class NotificationSetting(Model):
             (NotificationSettingTypes.DEFAULT, "default"),
             (NotificationSettingTypes.DEPLOY, "deploy"),
             (NotificationSettingTypes.ISSUE_ALERTS, "issue"),
+            (NotificationSettingTypes.REPORTS, "reports"),
             (NotificationSettingTypes.WORKFLOW, "workflow"),
             (NotificationSettingTypes.APPROVAL, "approval"),
             (NotificationSettingTypes.QUOTA, "quota"),

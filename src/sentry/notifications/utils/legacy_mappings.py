@@ -128,6 +128,7 @@ def get_type_from_fine_tuning_key(key: FineTuningAPIKey) -> NotificationSettingT
     return {
         FineTuningAPIKey.ALERTS: NotificationSettingTypes.ISSUE_ALERTS,
         FineTuningAPIKey.DEPLOY: NotificationSettingTypes.DEPLOY,
+        FineTuningAPIKey.REPORTS: NotificationSettingTypes.REPORTS,
         FineTuningAPIKey.WORKFLOW: NotificationSettingTypes.WORKFLOW,
     }.get(key)
 
