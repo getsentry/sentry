@@ -4,6 +4,7 @@ import random
 import sys
 import time
 import uuid
+from copy import deepcopy
 from urllib.parse import urljoin
 
 import jsonschema
@@ -389,20 +390,16 @@ def parse_backfill_sources(sources_json, original_sources):
     return sources
 
 
-def redact_source_secrets(config_sources):
-    """
-    Returns a json string with all of the secrets redacted from every source.
+def redact_source_secrets(config_sources: json.JSONData) -> json.JSONData:
+    """Returns a JSONData with all of the secrets redacted from every source."""
 
-    May raise InvalidSourcesError if the provided sources are invalid.
-    """
-
-    sources = parse_sources(config_sources, False)
-    for source in sources:
+    redacted_sources = deepcopy(config_sources)
+    for source in redacted_sources:
         for secret in secret_fields(source["type"]):
             if secret in source:
                 source[secret] = {"hidden-secret": True}
 
-    return json.dumps(sources)
+    return redacted_sources
 
 
 def get_options_for_project(project):
