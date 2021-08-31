@@ -1,3 +1,5 @@
+# NOTE: Do not rely on `make` commands here as this action is used across different repos
+# where the Makefile will not be available
 name: 'Sentry Setup'
 description: 'Sets up a Sentry test environment'
 inputs:
@@ -21,6 +23,10 @@ inputs:
     description: 'Is chartcuterie required?'
     required: false
     default: 'false'
+  pip-cache-version:
+    description: 'pip cache version in order to bust cache'
+    required: false
+    default: '1630355466247'
 
 outputs:
   yarn-cache-dir:
@@ -28,7 +34,13 @@ outputs:
     value: ${{ steps.config.outputs.yarn-cache-dir }}
   pip-cache-dir:
     description: "Path to pip cache"
-    value: ${{ steps.pip-cache.outputs.pip-cache }}
+    value: ${{ steps.setup-python.outputs.pip-cache-dir }}
+  pip-version:
+    description: "pip version"
+    value: ${{ steps.setup-python.outputs.pip-version }}
+  python-version:
+    description: "python version"
+    value: ${{ steps.setup-python.outputs.python-version }}
   acceptance-dir:
     description: "Path to acceptance visual snapshot artifacts"
     value: ${{ steps.config.outputs.acceptance-dir }}
@@ -79,6 +91,13 @@ runs:
           echo "SENTRY_KAFKA_HOSTS=127.0.0.1:9092" >> $GITHUB_ENV
           echo "SENTRY_ZOOKEEPER_HOSTS=127.0.0.1:2181" >> $GITHUB_ENV
         fi
+
+    - name: Setup python
+      id: setup-python
+      uses: ./.github/actions/setup-python
+      with:
+        pip-cache-version: ${{ inputs.pip-cache-version }}
+        workdir: ${{ inputs.workdir }}
 
     - name: Install system dependencies
       shell: bash

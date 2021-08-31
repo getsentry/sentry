@@ -34,7 +34,12 @@ import {
 import {defined} from 'app/utils';
 import {formatPercentage} from 'app/utils/formatters';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
-import {getCount, getCrashFreeRate, getSessionStatusRate} from 'app/utils/sessions';
+import {
+  getCount,
+  getCrashFreeRate,
+  getSeriesAverage,
+  getSessionStatusRate,
+} from 'app/utils/sessions';
 import {Color} from 'app/utils/theme';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {
@@ -389,10 +394,18 @@ function ReleaseComparisonChart({
   const allUsersCount = getCount(allSessions?.groups, SessionField.USERS);
 
   const sessionDurationTotal = roundDuration(
-    getCount(releaseSessions?.groups, SessionField.DURATION) / 1000
+    (getSeriesAverage(
+      releaseSessions?.groups,
+      SessionField.DURATION,
+      SessionStatus.HEALTHY
+    ) ?? 0) / 1000
   );
   const allSessionDurationTotal = roundDuration(
-    getCount(allSessions?.groups, SessionField.DURATION) / 1000
+    (getSeriesAverage(
+      allSessions?.groups,
+      SessionField.DURATION,
+      SessionStatus.HEALTHY
+    ) ?? 0) / 1000
   );
 
   const diffFailure =

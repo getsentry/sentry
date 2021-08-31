@@ -474,6 +474,10 @@ class Release(Model):
         """
         return Model.__eq__(self, other) and self._for_project_id == other._for_project_id
 
+    def __hash__(self):
+        # https://code.djangoproject.com/ticket/30333
+        return super().__hash__()
+
     @staticmethod
     def is_valid_version(value):
         return not (
