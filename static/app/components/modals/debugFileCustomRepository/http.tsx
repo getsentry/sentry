@@ -12,6 +12,7 @@ import {
 import {IconClose} from 'app/icons/iconClose';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import {uniqueId} from 'app/utils/guid';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
 import SelectField from 'app/views/settings/components/forms/selectField';
@@ -74,7 +75,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
   function handleSubmit() {
     const validData = data as Omit<SubmitData, 'id'>;
     onSubmit({
-      id: Math.random().toString(36).substring(2),
+      id: uniqueId(),
       name: validData.name,
       url: validData.url,
       'layout.type': validData['layout.type'],
@@ -122,7 +123,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
             }
           />
         </Field>
-        <Divider />
+        <hr />
         <Field
           label={t('Download Url')}
           inline={false}
@@ -197,7 +198,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
             />
           )}
         </Field>
-        <Divider />
+        <hr />
         <StyledSelectField
           name="layout.type"
           label={t('Directory Layout')}
@@ -256,15 +257,8 @@ const StyledSelectField = styled(SelectField)`
   padding-right: 0;
 `;
 
-const Divider = styled('div')`
-  height: 1px;
-  background-color: ${p => p.theme.gray200};
-  margin-bottom: ${space(2)};
-`;
-
 const PasswordInput = styled(Input)`
-  /* 10px of the input default padding-right + 22px of button size */
-  padding-right: 32px;
+  padding-right: 32px; /* 10px of the input default padding-right + 22px of button size */
 `;
 
 const ClearPasswordButton = styled(ActionButton)`
