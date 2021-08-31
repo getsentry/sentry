@@ -93,6 +93,8 @@ runs:
     - name: Setup python
       id: setup-python
       uses: ./.github/actions/setup-python
+      with:
+        pip-cache-version: ${{ inputs.pip-cache-version }}
 
     - name: Install system dependencies
       shell: bash
