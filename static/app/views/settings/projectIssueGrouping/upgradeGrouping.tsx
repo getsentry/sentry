@@ -6,7 +6,7 @@ import ProjectActions from 'app/actions/projectActions';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
-import Confirm, {openConfirmModal} from 'app/components/confirm';
+import {openConfirmModal} from 'app/components/confirm';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import {EventGroupingConfig, Organization, Project} from 'app/types';
@@ -55,7 +55,6 @@ function UpgradeGrouping({
   const {riskNote, alertType} = getGroupingRisk(riskLevel);
   const noUpdates = !latestGroupingConfig;
   const priority = riskLevel >= 2 ? 'danger' : 'primary';
-
   const modalMessage = (
     <Fragment>
       <TextBlock>
@@ -118,6 +117,15 @@ function UpgradeGrouping({
     });
   }
 
+  function handleOpenUpgradeGroupingConfirmModal() {
+    openConfirmModal({
+      confirmText,
+      priority,
+      onConfirm: handleConfirmUpgrade,
+      message: modalMessage,
+    });
+  }
+
   function getButtonTitle() {
     if (!hasAccess) {
       return t('You do not have sufficient permissions to do this');
@@ -144,24 +152,15 @@ function UpgradeGrouping({
           )}
           disabled
         >
-          <Confirm
-            disabled={noUpdates}
-            onConfirm={handleConfirmUpgrade}
+          <Button
+            onClick={handleOpenUpgradeGroupingConfirmModal}
+            disabled={!hasAccess || noUpdates}
+            title={getButtonTitle()}
+            type="button"
             priority={priority}
-            confirmText={confirmText}
-            message={modalMessage}
           >
-            <div>
-              <Button
-                disabled={!hasAccess || noUpdates}
-                title={getButtonTitle()}
-                type="button"
-                priority={priority}
-              >
-                {t('Upgrade Grouping Strategy')}
-              </Button>
-            </div>
-          </Confirm>
+            {t('Upgrade Grouping Strategy')}
+          </Button>
         </Field>
       </PanelBody>
     </Panel>
