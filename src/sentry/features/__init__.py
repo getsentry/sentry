@@ -127,6 +127,11 @@ default_manager.add(
     "organizations:project-transaction-threshold-override", OrganizationFeature, True
 )
 default_manager.add("organizations:prompt-dashboards", OrganizationFeature)
+default_manager.add("organizations:prompt-additional-volume", OrganizationFeature)
+default_manager.add("organizations:prompt-additional-volume-on-demand", OrganizationFeature)
+default_manager.add("organizations:prompt-on-demand-orgs", OrganizationFeature)
+default_manager.add("organizations:prompt-release-health-adoption", OrganizationFeature)
+default_manager.add("organizations:prompt-upgrade-via-dashboards", OrganizationFeature)
 default_manager.add("organizations:related-events", OrganizationFeature)
 default_manager.add("organizations:relay", OrganizationFeature)
 default_manager.add("organizations:release-adoption-chart", OrganizationFeature, True)
