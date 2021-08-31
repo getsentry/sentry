@@ -337,10 +337,8 @@ from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
 from .endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
 from .endpoints.project_stats import ProjectStatsEndpoint
-from .endpoints.project_symbolsources import (
-    ProjectSymbolSourcesConfigEndpoint,
-    ProjectSymbolSourcesEndpoint,
-)
+from .endpoints.project_symbol_sources_details import ProjectSymbolSourcesDetailsEndpoint
+from .endpoints.project_symbol_sources_index import ProjectSymbolSourcesIndexEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_tags import ProjectTagsEndpoint
@@ -1964,13 +1962,13 @@ urlpatterns = [
                     name="sentry-api-0-project-appstoreconnect-credentials-update",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/symbolsources/(?P<cfg_id>[^\/]+)/$",
-                    ProjectSymbolSourcesEndpoint.as_view(),
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/symbolsources/$",
+                    ProjectSymbolSourcesIndexEndpoint.as_view(),
                     name="sentry-api-0-project-symbolsources",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/symbolsources/(?P<cfg_id>[^\/]+)/$",
-                    ProjectSymbolSourcesConfigEndpoint.as_view(),
+                    ProjectSymbolSourcesDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-symbolsources-config",
                 ),
             ]

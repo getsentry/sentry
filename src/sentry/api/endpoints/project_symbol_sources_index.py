@@ -11,6 +11,7 @@ Provides the following endpoints:
 
 2. ``POST /{org_slug}/{proj_slug}/symbolsources/`` to create a single new config object.
 
+The companion API in project_symbol_sources_details.py provides:
 
 3. ``PUT /{org_slug}/{proj_slug}/symbolsources/{id}`` to update an existing config object.
 
@@ -24,7 +25,7 @@ from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.models import Project
 
 
-class ProjectSymbolSourcesEndpoint(ProjectEndpoint):  # type: ignore
+class ProjectSymbolSourcesIndexEndpoint(ProjectEndpoint):  # type: ignore
     """Manages all the symbol sources for a project.
 
     1. ``GET /{org_slug}/{proj_slug}/symbolsources/`` retrieves an array of the config
@@ -45,32 +46,4 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):  # type: ignore
         pass
 
     def post(self, request: Request, project: Project) -> Response:
-        pass
-
-
-class ProjectSymbolSourcesConfigEndpoint(ProjectEndpoint):  # type: ignore
-    """Manages a single symbol source for a project.
-
-    1. ``PUT /{org_slug}/{proj_slug}/symbolsources/{id}`` returns the configuration object
-       for the symbol source with the given ID.  Secrets will not be returned and instead be
-       replaced with the object ``{_hidden-secret: true}``.
-
-    2. ``PUT /{org_slug}/{proj_slug}/symbolsources/{id}`` updates a symbol source's config.
-       The body must be the new JSON config object matching the JSON schema with one
-       exception: the value of any secret can be replaced with the object ``{_hidden-secret:
-       true}`` in which case the secret will not be modified from the previous value.
-
-    3. ``DELETE /{org_slug}/{proj_slug}/symbolsources/{id}`` deletes an existing config
-       object.
-    """
-
-    permission_classes = [StrictProjectPermission]
-
-    def get(self, request: Request, project: Project, cfg_id: str) -> Response:
-        pass
-
-    def put(self, request: Request, project: Project, cfg_id: str) -> Response:
-        pass
-
-    def delete(self, request: Request, project: Project, cfg_id: str) -> Response:
         pass
