@@ -332,7 +332,7 @@ class MergingOffsetPaginator(OffsetPaginator):
             extra_limit = limit - len(results) + 1
             total_data_count = self.data_count_func()
             total_offset = offset + len(results)
-            qs_offset = total_offset - total_data_count
+            qs_offset = max(0, total_offset - total_data_count)
             qs_results = self.queryset_load_func(
                 self.queryset, total_offset, qs_offset, extra_limit
             )
