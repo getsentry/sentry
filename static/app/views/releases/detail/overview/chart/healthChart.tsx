@@ -125,7 +125,7 @@ class HealthChart extends React.Component<Props> {
       case YAxis.SESSIONS:
       case YAxis.USERS:
       default:
-        return typeof value === 'number' ? value.toLocaleString() : value;
+        return typeof value === 'number' ? value.toLocaleString() : value ?? '';
     }
   };
 
