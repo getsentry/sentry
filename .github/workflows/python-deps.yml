@@ -28,19 +28,15 @@ jobs:
 
       - name: Install prerequisites
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade || brew bundle
+          # We remove the cache since there was a signature mismatch for the Docker image
+          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade || rm -rf $(brew --cache) && brew bundle
 
       - name: Setup python
         id: setup-python
         uses: ./.github/actions/setup-python
-
-      - name: Cache (pip)
-        uses: actions/cache@v2
         with:
-          path: |
-            ${{ steps.pip.outputs.pip-cache-dir }}
-          key: |
-            python-deps-${{ matrix.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements-*.txt') }}
+          # XXX: We need to pass this python-deps-${{ matrix.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements-*.txt') }}
+          cache-files-hash: ${{ hashFiles('requirements-*.txt') }}
 
       - name: Install dependencies
         run: |
