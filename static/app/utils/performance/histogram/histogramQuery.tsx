@@ -11,7 +11,7 @@ import withApi from 'app/utils/withApi';
 
 type Histograms = Record<string, HistogramData>;
 
-type HistogramProps = {
+export type HistogramProps = {
   fields: string[];
   numBuckets: number;
   min?: number;
@@ -23,13 +23,18 @@ type HistogramProps = {
 
 type RequestProps = DiscoverQueryProps & HistogramProps;
 
-type ChildrenProps = Omit<GenericChildrenProps<HistogramProps>, 'tableData'> & {
+export type HistogramChildrenProps = Omit<
+  GenericChildrenProps<HistogramProps>,
+  'tableData'
+> & {
   histograms: Histograms | null;
 };
 
-type Props = RequestProps & {
-  children: (props: ChildrenProps) => React.ReactNode;
+export type HistogramChildren = {
+  children: (props: HistogramChildrenProps) => React.ReactNode;
 };
+
+type Props = RequestProps & HistogramChildren;
 
 function getHistogramRequestPayload(props: RequestProps) {
   const {fields, numBuckets, min, max, precision, dataFilter, eventView, location} =

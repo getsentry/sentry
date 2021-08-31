@@ -77,6 +77,12 @@ describe('Performance > Landing > Index', function () {
       url: `/organizations/org-slug/key-transactions-list/`,
       body: [],
     });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/legacy-key-transactions-count/`,
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -110,5 +116,11 @@ describe('Performance > Landing > Index', function () {
     expect(wrapper.find('div[data-test-id="frontend-pageload-view"]').exists()).toBe(
       true
     );
+
+    expect(wrapper.find('_MiniChartContainer')).toHaveLength(3);
+    expect(
+      wrapper.find('_MiniChartContainer GenericPerformanceWidget').at(0).text()
+    ).toEqual('LCP Distribution');
+    expect(wrapper.find('Table')).toHaveLength(1);
   });
 });

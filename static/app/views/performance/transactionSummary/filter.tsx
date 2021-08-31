@@ -14,19 +14,19 @@ import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
 
+import {
+  SpanOperationBreakdownFilter,
+  useOpBreakdownFilter,
+} from '../contexts/operationBreakdownFilter';
+
 import {decodeHistogramZoom} from './latencyChart';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
-// Make sure to update other instances like trends column fields, discover field types.
-export enum SpanOperationBreakdownFilter {
-  None = 'none',
-  Http = 'http',
-  Db = 'db',
-  Browser = 'browser',
-  Resource = 'resource',
-}
+// TODO(k-fish): Re-export until other files use context
+export {SpanOperationBreakdownFilter} from '../contexts/operationBreakdownFilter';
 
+// Make sure to update other instances like trends column fields, discover field types.
 const OPTIONS: SpanOperationBreakdownFilter[] = [
   SpanOperationBreakdownFilter.Http,
   SpanOperationBreakdownFilter.Db,
@@ -38,12 +38,19 @@ export const spanOperationBreakdownSingleColumns = OPTIONS.map(o => `spans.${o}`
 
 type Props = {
   organization: OrganizationSummary;
-  currentFilter: SpanOperationBreakdownFilter;
-  onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  currentFilter?: SpanOperationBreakdownFilter;
+  onChangeFilter?: (newFilter: SpanOperationBreakdownFilter) => void;
 };
 
 function Filter(props: Props) {
-  const {currentFilter, onChangeFilter, organization} = props;
+  const {opBreakdownFilter, setOpBreakdownFilter} = useOpBreakdownFilter();
+  const {
+    currentFilter: _currentFilter,
+    onChangeFilter: _onChangeFilter,
+    organization,
+  } = props;
+  const currentFilter = _currentFilter ?? opBreakdownFilter;
+  const onChangeFilter = _onChangeFilter ?? setOpBreakdownFilter;
 
   if (!organization.features.includes('performance-ops-breakdown')) {
     return null;

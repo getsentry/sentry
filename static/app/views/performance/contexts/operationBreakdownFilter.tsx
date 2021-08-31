@@ -1,6 +1,13 @@
 import {createContext, useContext, useState} from 'react';
 
-import {SpanOperationBreakdownFilter} from '../../transactionSummary/filter';
+// Make sure to update other instances like trends column fields, discover field types.
+export enum SpanOperationBreakdownFilter {
+  None = 'none',
+  Http = 'http',
+  Db = 'db',
+  Browser = 'browser',
+  Resource = 'resource',
+}
 
 const OpBreakdownFilterContext = createContext<{
   opBreakdownFilter: SpanOperationBreakdownFilter;
@@ -11,13 +18,16 @@ const OpBreakdownFilterContext = createContext<{
 });
 
 export const OpBreakdownFilterProvider = ({
-  filter,
+  initialFilter,
   children,
 }: {
-  filter?: SpanOperationBreakdownFilter;
+  initialFilter?: SpanOperationBreakdownFilter;
   children: React.ReactNode;
 }) => {
-  const [opBreakdownFilter, setOpBreakdownFilter] = useState(filter);
+  const [opBreakdownFilter, setOpBreakdownFilter] = useState(
+    initialFilter ?? SpanOperationBreakdownFilter.None
+  );
+
   return (
     <OpBreakdownFilterContext.Provider
       value={{

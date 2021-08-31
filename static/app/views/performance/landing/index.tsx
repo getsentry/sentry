@@ -1,4 +1,4 @@
-import {FC, useState} from 'react';
+import {FC} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -19,15 +19,17 @@ import {generateAggregateFields} from 'app/utils/discover/fields';
 import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import withTeams from 'app/utils/withTeams';
 
-import Filter, {SpanOperationBreakdownFilter} from '../transactionSummary/filter';
+import {OpBreakdownFilterProvider} from '../contexts/operationBreakdownFilter';
+import {ErrorAlert, PageErrorProvider} from '../contexts/pageError';
+import Filter from '../transactionSummary/filter';
 import {getTransactionSearchQuery} from '../utils';
 
-import {OpBreakdownFilterProvider} from './contexts/operationBreakdownFilter';
 import {AllTransactionsView} from './views/allTransactionsView';
 import {BackendView} from './views/backendView';
 import {FrontendOtherView} from './views/frontendOtherView';
 import {FrontendPageloadView} from './views/frontendPageloadView';
 import {MobileView} from './views/mobileView';
+import {BasePerformanceViewProps} from './views/types';
 import {
   getCurrentLandingDisplay,
   handleLandingDisplayChange,
@@ -47,7 +49,7 @@ type Props = {
   handleTrendsClick: () => void;
 };
 
-const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
+const fieldToViewMap: Record<LandingDisplayField, FC<BasePerformanceViewProps>> = {
   [LandingDisplayField.ALL]: AllTransactionsView,
   [LandingDisplayField.BACKEND]: BackendView,
   [LandingDisplayField.FRONTEND_OTHER]: FrontendOtherView,
@@ -62,6 +64,7 @@ function _PerformanceLanding(props: Props) {
     eventView,
     projects,
     teams,
+
     handleSearch,
     handleTrendsClick,
     shouldShowOnboarding,
@@ -73,7 +76,6 @@ function _PerformanceLanding(props: Props) {
   const isSuperuser = isActiveSuperuser();
   const userTeams = teams.filter(({isMember}) => isMember || isSuperuser);
 
-  const [spanFilter, setSpanFilter] = useState(SpanOperationBreakdownFilter.None);
   const showOnboarding = shouldShowOnboarding;
 
   const shownLandingDisplays = LANDING_DISPLAYS.filter(
@@ -84,71 +86,75 @@ function _PerformanceLanding(props: Props) {
 
   return (
     <div data-test-id="performance-landing-v3">
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <StyledHeading>{t('Performance')}</StyledHeading>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          {!showOnboarding && (
-            <Button
-              priority="primary"
-              data-test-id="landing-header-trends"
-              onClick={() => handleTrendsClick()}
-            >
-              {t('View Trends')}
-            </Button>
-          )}
-        </Layout.HeaderActions>
+      <PageErrorProvider>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <StyledHeading>{t('Performance')}</StyledHeading>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            {!showOnboarding && (
+              <Button
+                priority="primary"
+                data-test-id="landing-header-trends"
+                onClick={() => handleTrendsClick()}
+              >
+                {t('View Trends')}
+              </Button>
+            )}
+          </Layout.HeaderActions>
 
-        <StyledNavTabs>
-          {shownLandingDisplays.map(({badge, label, field}) => (
-            <li
-              key={label}
-              className={currentLandingDisplay.field === field ? 'active' : ''}
-            >
-              <a href="#" onClick={() => handleLandingDisplayChange(field, location)}>
-                {t(label)}
-                {badge && <FeatureBadge type={badge} />}
-              </a>
-            </li>
-          ))}
-        </StyledNavTabs>
-      </Layout.Header>
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <GlobalSdkUpdateAlert />
-          <OpBreakdownFilterProvider>
-            <SearchContainerWithFilter>
-              <Filter
+          <StyledNavTabs>
+            {shownLandingDisplays.map(({badge, label, field}) => (
+              <li
+                key={label}
+                className={currentLandingDisplay.field === field ? 'active' : ''}
+              >
+                <a href="#" onClick={() => handleLandingDisplayChange(field, location)}>
+                  {t(label)}
+                  {badge && <FeatureBadge type={badge} />}
+                </a>
+              </li>
+            ))}
+          </StyledNavTabs>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <GlobalSdkUpdateAlert />
+            <ErrorAlert />
+            <OpBreakdownFilterProvider>
+              <SearchContainerWithFilter>
+                <Filter organization={organization} />
+                <SearchBar
+                  searchSource="performance_landing"
+                  organization={organization}
+                  projectIds={eventView.project}
+                  query={filterString}
+                  fields={generateAggregateFields(
+                    organization,
+                    [...eventView.fields, {field: 'tps()'}],
+                    ['epm()', 'eps()']
+                  )}
+                  onSearch={handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
+              </SearchContainerWithFilter>
+              <TeamKeyTransactionManager.Provider
                 organization={organization}
-                currentFilter={spanFilter}
-                onChangeFilter={setSpanFilter}
-              />
-              <SearchBar
-                searchSource="performance_landing"
-                organization={organization}
-                projectIds={eventView.project}
-                query={filterString}
-                fields={generateAggregateFields(
-                  organization,
-                  [...eventView.fields, {field: 'tps()'}],
-                  ['epm()', 'eps()']
-                )}
-                onSearch={handleSearch}
-                maxQueryLength={MAX_QUERY_LENGTH}
-              />
-            </SearchContainerWithFilter>
-            <TeamKeyTransactionManager.Provider
-              organization={organization}
-              teams={userTeams}
-              selectedTeams={['myteams']}
-              selectedProjects={eventView.project.map(String)}
-            >
-              <ViewComponent {...props} />
-            </TeamKeyTransactionManager.Provider>
-          </OpBreakdownFilterProvider>
-        </Layout.Main>
-      </Layout.Body>
+                teams={userTeams}
+                selectedTeams={['myteams']}
+                selectedProjects={eventView.project.map(String)}
+              >
+                <ViewComponent
+                  eventView={eventView}
+                  location={location}
+                  projects={projects}
+                  organization={organization}
+                />
+              </TeamKeyTransactionManager.Provider>
+            </OpBreakdownFilterProvider>
+          </Layout.Main>
+        </Layout.Body>
+      </PageErrorProvider>
     </div>
   );
 }

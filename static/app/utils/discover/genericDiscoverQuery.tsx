@@ -16,7 +16,7 @@ export type GenericChildrenProps<T> = {
   pageLinks: null | string;
 };
 
-export type DiscoverQueryProps = {
+type BaseDiscoverQueryProps = {
   api: Client;
   /**
    * Used as the default source for cursor values.
@@ -49,14 +49,18 @@ export type DiscoverQueryProps = {
   referrer?: string;
 };
 
+export type DiscoverQueryProps = BaseDiscoverQueryProps & {
+  orgSlug: string;
+};
+
 type RequestProps<P> = DiscoverQueryProps & P;
 
-type ReactProps<T> = {
+export type ReactChildrenProps<T> = {
   children?: (props: GenericChildrenProps<T>) => React.ReactNode;
 };
 
 type Props<T, P> = RequestProps<P> &
-  ReactProps<T> & {
+  ReactChildrenProps<T> & {
     /**
      * Route to the endpoint
      */
@@ -223,7 +227,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
       tableData,
       pageLinks,
     };
-    const children: ReactProps<T>['children'] = this.props.children; // Explicitly setting type due to issues with generics and React's children
+    const children: ReactChildrenProps<T>['children'] = this.props.children; // Explicitly setting type due to issues with generics and React's children
     return children?.(childrenProps);
   }
 }
