@@ -1,6 +1,7 @@
 from django.urls import reverse
 
 from sentry.models import OrganizationMember
+from sentry.models.auditlogentry import AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import SCIMAzureTestCase, SCIMTestCase
 
 CREATE_USER_POST_DATA = {
@@ -44,6 +45,10 @@ class SCIMMemberIndexTests(SCIMTestCase):
             "name": {"familyName": "N/A", "givenName": "N/A"},
             "meta": {"resourceType": "User"},
         }
+
+        assert AuditLogEntry.objects.filter(
+            target_object=member.id, event=AuditLogEntryEvent.MEMBER_INVITE
+        ).exists()
         assert correct_post_data == response.data
         assert member.email == "test.user@okta.local"
 

@@ -24,7 +24,11 @@ from sentry.datascrubbing import validate_pii_config_update
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.lang.native.symbolicator import InvalidSourcesError, parse_sources
+from sentry.lang.native.symbolicator import (
+    InvalidSourcesError,
+    parse_backfill_sources,
+    parse_sources,
+)
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     AuditLogEntryEvent,
@@ -237,10 +241,16 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
 
         try:
-            sources = parse_sources(sources_json.strip(), filter_appconnect=False)
-            sources_json = json.dumps(sources) if sources else ""
+            # We should really only grab and parse if there are sources in sources_json whose
+            # secrets are set to {"hidden-secret":true}
+            orig_sources = parse_sources(
+                self.context["project"].get_option("sentry:symbol_sources")
+            )
+            sources = parse_backfill_sources(sources_json.strip(), orig_sources)
         except InvalidSourcesError as e:
             raise serializers.ValidationError(str(e))
+
+        sources_json = json.dumps(sources) if sources else ""
 
         has_multiple_appconnect = features.has(
             "organizations:app-store-connect-multiple", organization, actor=request.user
