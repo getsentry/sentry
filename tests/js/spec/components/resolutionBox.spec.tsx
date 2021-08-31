@@ -15,6 +15,7 @@ describe('ResolutionBox', function () {
         <ResolutionBox
           statusDetails={{
             inNextRelease: true,
+            // @ts-expect-error
             actor: {id: '111', name: 'David Cramer', email: 'david@sentry.io'},
           }}
           projectId="1"
@@ -38,6 +39,7 @@ describe('ResolutionBox', function () {
         <ResolutionBox
           statusDetails={{
             inRelease: '1.0',
+            // @ts-expect-error
             actor: {id: '111', name: 'David Cramer', email: 'david@sentry.io'},
           }}
           projectId="1"
@@ -55,6 +57,7 @@ describe('ResolutionBox', function () {
       const {container} = mountWithTheme(
         <ResolutionBox
           statusDetails={{
+            // @ts-expect-error
             inCommit: TestStubs.Commit(),
           }}
           projectId="1"
