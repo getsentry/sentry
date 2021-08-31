@@ -18,7 +18,7 @@ describe('EventOrGroupExtraDetails', function () {
           firstSeen: '2017-07-01T02:06:02Z',
         }}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     expect(container).toSnapshot();
@@ -34,7 +34,7 @@ describe('EventOrGroupExtraDetails', function () {
           firstSeen: '2017-07-01T02:06:02Z',
         }}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     expect(container).toSnapshot();
@@ -50,7 +50,7 @@ describe('EventOrGroupExtraDetails', function () {
           lastSeen: '2017-07-25T22:56:12Z',
         }}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     expect(container).toSnapshot();
@@ -75,7 +75,7 @@ describe('EventOrGroupExtraDetails', function () {
           status: 'resolved',
         }}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     expect(container).toSnapshot();
@@ -102,7 +102,7 @@ describe('EventOrGroupExtraDetails', function () {
         }}
         showAssignee
       />,
-      routerContext
+      {context: routerContext}
     );
 
     expect(container).toSnapshot();
@@ -124,7 +124,7 @@ describe('EventOrGroupExtraDetails', function () {
           subscriptionDetails: {reason: 'mentioned'},
         }}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     expect(container).toSnapshot();
