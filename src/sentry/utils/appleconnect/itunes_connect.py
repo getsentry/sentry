@@ -190,10 +190,10 @@ class ITunesClient:
         if self.session_id is not None:
             context["session_id"] = self.session_id
         if self._scnt is not None:
-            context["scnt"] = self._scnt
         if self._trusted_phone is not None:
             context["phone_id"] = self._trusted_phone.id
             context["phone_push_mode"] = self._trusted_phone.push_mode
+            context["scnt"] = self.scnt
         if self.state is ClientState.AUTHENTICATED:
             context["session_cookie"] = self.session_cookie()
         return context
