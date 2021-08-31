@@ -145,8 +145,6 @@ class UserOption(Model):  # type: ignore
         - which language to display the app in
      - mail:email
         - which email address to send an email to
-     - reports:disabled-organizations
-        - which orgs to not send weekly reports to
      - seen_release_broadcast
         - unused
      - self_assign_issue
