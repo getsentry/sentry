@@ -815,28 +815,32 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def session_dict(self, project=None, release=None, environment_name=None):
-        if project is None:
-            project = self.project
-
-        release_version = release.version if release else None
-        received = time.time()
-        session_started = received // 60 * 60
-        return dict(
-            distinct_id=uuid4().hex,
-            session_id=uuid4().hex,
-            org_id=project.organization_id,
-            project_id=project.id,
-            status="ok",
-            seq=0,
-            release=release_version,
-            environment=environment_name,
-            retention_days=90,
-            duration=None,
-            errors=0,
-            started=session_started,
-            received=received,
-        )
+    def build_session(self, **kwargs):
+        session = {
+            "session_id": str(uuid4()),
+            "distinct_id": str(uuid4()),
+            "status": "ok",
+            "seq": 0,
+            "retention_days": 90,
+            "duration": 60.0,
+            "errors": 0,
+            "started": time.time() // 60 * 60,
+            "received": time.time(),
+        }
+        # Support both passing the values for these field directly, and the full objects
+        translators = [
+            ("release", "version", "release"),
+            ("environment", "name", "environment"),
+            ("project_id", "id", "project"),
+            ("org_id", "id", "organization"),
+        ]
+        for key, attr, default_attr in translators:
+            if key not in kwargs:
+                kwargs[key] = getattr(self, default_attr)
+            val = kwargs[key]
+            kwargs[key] = getattr(val, attr, val)
+        session.update(kwargs)
+        return session
 
     def store_session(self, session):
         self.bulk_store_sessions([session])
