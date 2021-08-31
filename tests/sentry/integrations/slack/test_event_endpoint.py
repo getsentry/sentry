@@ -225,8 +225,7 @@ class MessageIMEventTest(BaseEventTest):
     @responses.activate
     def test_user_message_im_notification_platform(self):
         responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        with self.feature("organizations:notification-platform"):
-            resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT))
+        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT))
         assert resp.status_code == 200, resp.content
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
@@ -246,8 +245,7 @@ class MessageIMEventTest(BaseEventTest):
         IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
 
         responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        with self.feature("organizations:notification-platform"):
-            resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_LINK))
+        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_LINK))
         assert resp.status_code == 200, resp.content
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
@@ -269,8 +267,7 @@ class MessageIMEventTest(BaseEventTest):
         )
 
         responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        with self.feature("organizations:notification-platform"):
-            resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_LINK))
+        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_LINK))
         assert resp.status_code == 200, resp.content
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
@@ -292,8 +289,7 @@ class MessageIMEventTest(BaseEventTest):
         )
 
         responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        with self.feature("organizations:notification-platform"):
-            resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_UNLINK))
+        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_UNLINK))
         assert resp.status_code == 200, resp.content
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
@@ -308,8 +304,7 @@ class MessageIMEventTest(BaseEventTest):
         IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
 
         responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        with self.feature("organizations:notification-platform"):
-            resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_UNLINK))
+        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_UNLINK))
         assert resp.status_code == 200, resp.content
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
