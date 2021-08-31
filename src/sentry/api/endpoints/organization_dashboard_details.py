@@ -15,7 +15,7 @@ EDIT_FEATURE = "organizations:dashboards-edit"
 READ_FEATURE = "organizations:dashboards-basic"
 
 
-class OrganizationDashboardDetailsEndpoint(OrganizationEndpoint):
+class OrganizationDashboardBase(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardsPermission,)
 
     def convert_args(self, request, organization_slug, dashboard_id, *args, **kwargs):
@@ -34,6 +34,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationEndpoint):
             return prebuilt
         return Dashboard.objects.get(id=dashboard_id, organization_id=organization.id)
 
+
+class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     def get(self, request, organization, dashboard):
         """
         Retrieve an Organization's Dashboard
@@ -130,25 +132,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationEndpoint):
         return self.respond(serialize(serializer.instance, request.user), status=200)
 
 
-class OrganizationDashboardVisitEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationDashboardsPermission,)
-
-    def convert_args(self, request, organization_slug, dashboard_id, *args, **kwargs):
-        args, kwargs = super().convert_args(request, organization_slug)
-
-        try:
-            kwargs["dashboard"] = self._get_dashboard(request, kwargs["organization"], dashboard_id)
-        except (Dashboard.DoesNotExist, ValueError):
-            raise ResourceDoesNotExist
-
-        return (args, kwargs)
-
-    def _get_dashboard(self, request, organization, dashboard_id):
-        prebuilt = Dashboard.get_prebuilt(dashboard_id)
-        if prebuilt:
-            return prebuilt
-        return Dashboard.objects.get(id=dashboard_id, organization_id=organization.id)
-
+class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
     def post(self, request, organization, dashboard):
         """
         Update last_visited and increment visits counter

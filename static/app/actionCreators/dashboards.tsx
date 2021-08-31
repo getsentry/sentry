@@ -37,7 +37,7 @@ export function updateDashboardVisit(
   orgId: string,
   dashboardId: string | string[]
 ): Promise<void> {
-  const promise: Promise<void> = api.requestPromise(
+  const promise = api.requestPromise(
     `/organizations/${orgId}/dashboards/${dashboardId}/visit/`,
     {
       method: 'POST',

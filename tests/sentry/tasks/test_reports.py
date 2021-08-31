@@ -278,6 +278,9 @@ class ReportTestCase(TestCase, SnubaTestCase):
         set_option_value([organization.id])
         assert user_subscribed_to_organization_reports(user, organization) is False
 
+        set_option_value("")
+        assert user_subscribed_to_organization_reports(user, organization) is True
+
     @mock.patch("sentry.tasks.reports.BATCH_SIZE", 1)
     def test_paginates_project_issue_summaries_and_reassembles_result(self):
         self.login_as(user=self.user)

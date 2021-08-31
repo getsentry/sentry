@@ -28,7 +28,7 @@ import ConfigStore from 'app/stores/configStore';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, SavedQuery} from 'app/types';
-import {generateQueryWithTag} from 'app/utils';
+import {defined, generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
@@ -106,7 +106,7 @@ class Results extends React.Component<Props, State> {
     addRoutePerformanceContext(selection);
     this.checkEventView();
     this.canLoadEvents();
-    if (location.query.id) {
+    if (defined(location.query.id)) {
       updateSavedQueryVisit(organization.slug, location.query.id);
     }
   }
@@ -502,15 +502,15 @@ class Results extends React.Component<Props, State> {
   }
 }
 
-export const StyledPageContent = styled(PageContent)`
+const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-export const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
 
-export const Top = styled(Layout.Main)`
+const Top = styled(Layout.Main)`
   flex-grow: 0;
 `;
 

@@ -7,6 +7,7 @@ import Button from 'app/components/button';
 import FeatureBadge from 'app/components/featureBadge';
 import SelectControl from 'app/components/forms/selectControl';
 import ExternalLink from 'app/components/links/externalLink';
+import {releaseHealth} from 'app/data/platformCategories';
 import {IconDelete, IconSettings} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -250,10 +251,30 @@ class RuleNode extends React.Component<Props> {
     const {data, project, organization} = this.props;
 
     if (data.id === EVENT_FREQUENCY_PERCENT_CONDITION) {
+      if (!project.platform || !releaseHealth.includes(project.platform)) {
+        return (
+          <MarginlessAlert type="error">
+            {tct(
+              "This project doesn't support sessions. [link:View supported platforms]",
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/releases/health/setup/" />
+                ),
+              }
+            )}
+          </MarginlessAlert>
+        );
+      }
+
       return (
         <MarginlessAlert type="warning">
-          {t(
-            'This is an approximation and will trigger when the ratio of the issue’s frequency to the number of sessions exceeds the threshold.'
+          {tct(
+            'Percent of sessions affected is approximated by the ratio of the issue frequency to the number of sessions in the project. [link:Learn more.]',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/issue-alert-config/" />
+              ),
+            }
           )}
         </MarginlessAlert>
       );
@@ -334,12 +355,12 @@ class RuleNode extends React.Component<Props> {
   render() {
     const {data, disabled, index, node, organization} = this.props;
     const ticketRule = node?.hasOwnProperty('actionType');
-    const isBeta = node?.id === EVENT_FREQUENCY_PERCENT_CONDITION;
+    const isNew = node?.id === EVENT_FREQUENCY_PERCENT_CONDITION;
     return (
       <RuleRowContainer>
         <RuleRow>
           <Rule>
-            {isBeta && <StyledFeatureBadge type="beta" />}
+            {isNew && <StyledFeatureBadge type="new" />}
             {data && <input type="hidden" name="id" value={data.id} />}
             {this.renderRow()}
             {ticketRule && node && (

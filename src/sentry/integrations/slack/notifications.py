@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 from typing import AbstractSet, Any, Mapping, Set, Union
 
+from sentry import analytics
 from sentry.integrations.slack.client import SlackClient  # NOQA
 from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
@@ -166,7 +167,12 @@ def send_notification_as_slack(
                         "is_multiple": is_multiple,
                     },
                 )
-                continue
+            analytics.record(
+                "notifications.sent",
+                organization_id=notification.organization.id,
+                project_id=notification.project.id,
+                category=notification.get_category(),
+            )
 
     key = get_key(notification)
     metrics.incr(

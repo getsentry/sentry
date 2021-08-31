@@ -35,16 +35,29 @@ class IntegrationExternalMappings extends Component<Props, State> {
             <HeaderLayout>
               <ExternalNameColumn>{tct('External [type]', {type})}</ExternalNameColumn>
               <SentryNameColumn>{tct('Sentry [type]', {type})}</SentryNameColumn>
-              <ButtonColumn>
-                <AddButton
-                  data-test-id="add-mapping-button"
-                  onClick={() => onCreateOrEdit()}
-                  size="xsmall"
-                  icon={<IconAdd size="xs" isCircled />}
-                >
-                  {tct('Add [type] Mapping', {type})}
-                </AddButton>
-              </ButtonColumn>
+              <Access access={['org:integrations']}>
+                {({hasAccess}) => (
+                  <ButtonColumn>
+                    <Tooltip
+                      title={tct(
+                        'You must be an organization owner, manager or admin to edit or remove a [type] mapping.',
+                        {type}
+                      )}
+                      disabled={hasAccess}
+                    >
+                      <AddButton
+                        data-test-id="add-mapping-button"
+                        onClick={() => onCreateOrEdit()}
+                        size="xsmall"
+                        icon={<IconAdd size="xs" isCircled />}
+                        disabled={!hasAccess}
+                      >
+                        {tct('Add [type] Mapping', {type})}
+                      </AddButton>
+                    </Tooltip>
+                  </ButtonColumn>
+                )}
+              </Access>
             </HeaderLayout>
           </PanelHeader>
           <PanelBody>
