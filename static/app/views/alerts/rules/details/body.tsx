@@ -48,7 +48,6 @@ type Props = {
   rule?: IncidentRule;
   incidents?: Incident[];
   timePeriod: TimePeriodType;
-  displayPeriod: string;
   selectedIncident?: Incident | null;
   organization: Organization;
   location: Location;
@@ -280,7 +279,6 @@ export default class DetailsBody extends React.Component<Props> {
       location,
       organization,
       timePeriod,
-      displayPeriod,
       selectedIncident,
       handleZoom,
       params: {orgId},
@@ -288,10 +286,6 @@ export default class DetailsBody extends React.Component<Props> {
 
     if (!rule) {
       return this.renderLoading();
-    }
-
-    if (!location.search) {
-      this.handlePeriodQuery(displayPeriod);
     }
 
     const {query, projects: projectSlugs} = rule;
