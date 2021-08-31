@@ -41,11 +41,15 @@ class NotificationSettingTypes(Enum):
     # Notifications for changes in assignment, resolution, comments, etc.
     WORKFLOW = 30
 
+    # Weekly user reports.
+    REPORTS = 40
+
 
 NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.DEFAULT: "default",
     NotificationSettingTypes.DEPLOY: "deploy",
     NotificationSettingTypes.ISSUE_ALERTS: "alerts",
+    NotificationSettingTypes.REPORTS: "reports",
     NotificationSettingTypes.WORKFLOW: "workflow",
 }
 
@@ -127,6 +131,9 @@ VALID_VALUES_FOR_KEY = {
     NotificationSettingTypes.WORKFLOW: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.REPORTS: {
         NotificationSettingOptionValues.NEVER,
     },
 }
