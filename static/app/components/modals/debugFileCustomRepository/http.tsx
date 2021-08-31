@@ -11,11 +11,15 @@ import {
 } from 'app/data/debugFileSources';
 import {IconClose} from 'app/icons/iconClose';
 import {t, tct} from 'app/locale';
+import {INPUT_PADDING} from 'app/styles/input';
 import space from 'app/styles/space';
 import {uniqueId} from 'app/utils/guid';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
 import SelectField from 'app/views/settings/components/forms/selectField';
+
+const CLEAR_PASSWORD_BUTTON_SIZE = 22;
+const PASSWORD_INPUT_PADDING_RIGHT = INPUT_PADDING + CLEAR_PASSWORD_BUTTON_SIZE;
 
 type InitialData = {
   name: string;
@@ -258,13 +262,13 @@ const StyledSelectField = styled(SelectField)`
 `;
 
 const PasswordInput = styled(Input)`
-  padding-right: 32px; /* 10px of the input default padding-right + 22px of button size */
+  padding-right: ${PASSWORD_INPUT_PADDING_RIGHT}px;
 `;
 
 const ClearPasswordButton = styled(ActionButton)`
   background: transparent;
-  height: 22px;
-  width: 22px;
+  height: ${CLEAR_PASSWORD_BUTTON_SIZE}px;
+  width: ${CLEAR_PASSWORD_BUTTON_SIZE}px;
   padding: 0;
   position: absolute;
   top: 50%;
