@@ -19,12 +19,12 @@ export {
   SpanDetailContainer as TransactionDetailsContainer,
 } from 'app/components/events/interfaces/spans/spanDetail';
 
-export const SearchContainer = styled('div')`
+export const TraceSearchContainer = styled('div')`
   display: flex;
   width: 100%;
 `;
 
-export const StyledSearchBar = styled(SearchBar)`
+export const TraceSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
 
