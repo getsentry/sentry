@@ -186,7 +186,11 @@ def update_existing_attachments(event):
     )
 
 
-@instrumented_task(name="sentry.tasks.post_process.post_process_group")
+@instrumented_task(
+    name="sentry.tasks.post_process.post_process_group",
+    time_limit=120,
+    soft_time_limit=110,
+)
 def post_process_group(
     is_new, is_regression, is_new_group_environment, cache_key, group_id=None, **kwargs
 ):
