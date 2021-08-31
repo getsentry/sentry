@@ -1,17 +1,17 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import ResolutionBox from 'app/components/resolutionBox';
 
 describe('ResolutionBox', function () {
   describe('render()', function () {
     it('handles inNextRelease', function () {
-      const wrapper = mountWithTheme(
+      const {container} = mountWithTheme(
         <ResolutionBox statusDetails={{inNextRelease: true}} projectId="1" />
       );
-      expect(wrapper).toSnapshot();
+      expect(container).toSnapshot();
     });
     it('handles inNextRelease with actor', function () {
-      const wrapper = mountWithTheme(
+      const {container} = mountWithTheme(
         <ResolutionBox
           statusDetails={{
             inNextRelease: true,
@@ -20,10 +20,10 @@ describe('ResolutionBox', function () {
           projectId="1"
         />
       );
-      expect(wrapper).toSnapshot();
+      expect(container).toSnapshot();
     });
     it('handles inRelease', function () {
-      const wrapper = mountWithTheme(
+      const {container} = mountWithTheme(
         <ResolutionBox
           statusDetails={{
             inRelease: '1.0',
@@ -31,10 +31,10 @@ describe('ResolutionBox', function () {
           projectId="1"
         />
       );
-      expect(wrapper).toSnapshot();
+      expect(container).toSnapshot();
     });
     it('handles inRelease with actor', function () {
-      const wrapper = mountWithTheme(
+      const {container} = mountWithTheme(
         <ResolutionBox
           statusDetails={{
             inRelease: '1.0',
@@ -43,14 +43,16 @@ describe('ResolutionBox', function () {
           projectId="1"
         />
       );
-      expect(wrapper).toSnapshot();
+      expect(container).toSnapshot();
     });
     it('handles default', function () {
-      const wrapper = mountWithTheme(<ResolutionBox statusDetails={{}} projectId="1" />);
-      expect(wrapper).toSnapshot();
+      const {container} = mountWithTheme(
+        <ResolutionBox statusDetails={{}} projectId="1" />
+      );
+      expect(container).toSnapshot();
     });
     it('handles inCommit', function () {
-      const wrapper = mountWithTheme(
+      const {container} = mountWithTheme(
         <ResolutionBox
           statusDetails={{
             inCommit: TestStubs.Commit(),
@@ -58,7 +60,7 @@ describe('ResolutionBox', function () {
           projectId="1"
         />
       );
-      expect(wrapper).toSnapshot();
+      expect(container).toSnapshot();
     });
   });
 });
