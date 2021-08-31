@@ -35,29 +35,29 @@ import {
   VITAL_GROUPS,
 } from 'app/views/performance/transactionSummary/transactionVitals/constants';
 
-import {isSummaryViewFrontend, isSummaryViewFrontendPageLoad} from '../utils';
-
-import TransactionSummaryCharts from './charts';
+import {isSummaryViewFrontend, isSummaryViewFrontendPageLoad} from '../../utils';
 import Filter, {
   decodeFilterFromLocation,
   filterToField,
   filterToSearchConditions,
   SpanOperationBreakdownFilter,
-} from './filter';
-import TransactionHeader from './header';
-import RelatedIssues from './relatedIssues';
-import SidebarCharts from './sidebarCharts';
-import StatusBreakdown from './statusBreakdown';
-import Tab from './tabs';
-import {TagExplorer} from './tagExplorer';
-import {TransactionThresholdMetric} from './transactionThresholdModal';
-import UserStats from './userStats';
+} from '../filter';
+import TransactionHeader from '../header';
+import Tab from '../tabs';
+import {TransactionThresholdMetric} from '../transactionThresholdModal';
 import {
   generateTraceLink,
   generateTransactionLink,
   SidebarSpacer,
   TransactionFilterOptions,
-} from './utils';
+} from '../utils';
+
+import TransactionSummaryCharts from './charts';
+import RelatedIssues from './relatedIssues';
+import SidebarCharts from './sidebarCharts';
+import StatusBreakdown from './statusBreakdown';
+import {TagExplorer} from './tagExplorer';
+import UserStats from './userStats';
 
 type Props = {
   location: Location;
