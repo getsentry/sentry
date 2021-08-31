@@ -3,7 +3,7 @@ import {act, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 import TeamStore from 'app/stores/teamStore';
 import {useLegacyStore} from 'app/stores/useLegacyStore';
 
-describe('abc', () => {
+describe('useLegacyStore', () => {
   // @ts-expect-error
   const team = TestStubs.Team();
 
