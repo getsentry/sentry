@@ -67,9 +67,6 @@ class AppStoreConnectConfig:
     type: str
 
     # The ID which identifies this symbol source for this project.
-    #
-    # Currently we only allow one appStoreConnect source per project, but we already
-    # identify them using an ID anyway for future safety.
     id: str
 
     # The name of the symbol source.
