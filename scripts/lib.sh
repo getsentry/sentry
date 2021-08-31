@@ -2,6 +2,9 @@
 # Module containing code shared across various shell scripts
 # Execute functions from this module via the script do.sh
 
+# NOTE: This file is sourced in CI across different repos (e.g. snuba),
+# so renaming this file or any functions can break CI!
+
 # Check if a command is available
 require() {
     command -v "$1" >/dev/null 2>&1

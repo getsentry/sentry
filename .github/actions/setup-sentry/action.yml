@@ -1,3 +1,5 @@
+# NOTE: Do not rely on `make` commands here as this action is used across different repos
+# where the Makefile will not be available
 name: 'Sentry Setup'
 description: 'Sets up a Sentry test environment'
 inputs:
@@ -95,6 +97,7 @@ runs:
       uses: ./.github/actions/setup-python
       with:
         pip-cache-version: ${{ inputs.pip-cache-version }}
+        workdir: ${{ inputs.workdir }}
 
     - name: Install system dependencies
       shell: bash
