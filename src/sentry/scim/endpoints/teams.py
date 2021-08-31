@@ -41,8 +41,8 @@ from .utils import (
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
-def _team_expand(query):
-    return None if "members" in query.get("excludedAttributes", []) else ["members"]
+def _team_expand(excluded_attributes):
+    return None if "members" in excluded_attributes else ["members"]
 
 
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
@@ -55,29 +55,31 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         return False
 
     def get(self, request, organization):
-        try:
-            filter_val = parse_filter_conditions(request.GET.get("filter"))
-        except SCIMFilterError:
-            raise ParseError(detail=SCIM_400_INVALID_FILTER)
+
+        query_params = self.get_query_parameters(request)
 
         queryset = Team.objects.filter(
             organization=organization, status=TeamStatus.VISIBLE
         ).order_by("slug")
-        if filter_val:
-            queryset = queryset.filter(name__iexact=filter_val)
+        if query_params["filter"]:
+            queryset = queryset.filter(name__iexact=query_params["filter"])
 
         def data_fn(offset, limit):
             return list(queryset[offset : offset + limit])
 
         def on_results(results):
-            results = serialize(results, None, TeamSCIMSerializer(expand=_team_expand(request.GET)))
-            return self.list_api_format(request, queryset.count(), results)
+            results = serialize(
+                results,
+                None,
+                TeamSCIMSerializer(expand=_team_expand(query_params["excluded_attributes"])),
+            )
+            return self.list_api_format(results, queryset.count(), query_params["start_index"])
 
         return self.paginate(
             request=request,
             on_results=on_results,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
-            default_per_page=int(request.GET.get("count", 100)),
+            default_per_page=query_params["count"],
             queryset=queryset,
             cursor_cls=SCIMCursor,
         )
@@ -113,7 +115,12 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return team
 
     def get(self, request, organization, team):
-        context = serialize(team, serializer=TeamSCIMSerializer(expand=_team_expand(request.GET)))
+        query_params = self.get_query_parameters(request)
+
+        context = serialize(
+            team,
+            serializer=TeamSCIMSerializer(expand=_team_expand(query_params["excluded_attributes"])),
+        )
         return Response(context)
 
     def _add_members_operation(self, request, operation, team):
