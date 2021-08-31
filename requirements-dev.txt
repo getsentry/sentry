@@ -1,6 +1,13 @@
 docker>=3.7.0,<3.8.0
 exam>=0.5.1
 freezegun==1.1.0
+google-api-core==1.25.1
+google-auth==1.24.0
+google-cloud-bigtable==1.6.1
+google-cloud-core==1.5.0
+googleapis-common-protos==1.52.0
+google-cloud-pubsub==2.2.0
+google-cloud-storage==1.35.0
 honcho>=1.0.0,<1.1.0
 mypy>=0.800,<0.900
 openapi-core @ https://github.com/getsentry/openapi-core/archive/master.zip#egg=openapi-core
@@ -9,4 +16,5 @@ pytest-cov==2.11.1
 pytest-django==3.10.0
 pytest-sentry==0.1.9
 pytest-rerunfailures==9.1.1
+python3-saml==1.10.1
 responses==0.10.12
