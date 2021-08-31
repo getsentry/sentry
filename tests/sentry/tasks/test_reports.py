@@ -9,9 +9,9 @@ from django.utils import timezone
 
 from sentry.app import tsdb
 from sentry.constants import DataCategory
-from sentry.models import GroupStatus, Project, UserOption
+from sentry.models import GroupStatus, NotificationSetting, Project
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.tasks.reports import (
-    DISABLED_ORGANIZATIONS_USER_OPTION_KEY,
     DummyReportBackend,
     Report,
     Skipped,
@@ -37,6 +37,7 @@ from sentry.tasks.reports import (
 from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import map, mock
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome
@@ -244,42 +245,36 @@ class ReportTestCase(TestCase, SnubaTestCase):
             assert self.organization.name in message.subject
 
     def test_deliver_organization_user_report_respects_settings(self):
-        user = self.user
-        organization = self.organization
-
-        set_option_value = functools.partial(
-            UserOption.objects.set_value, user, DISABLED_ORGANIZATIONS_USER_OPTION_KEY
-        )
-
         deliver_report = functools.partial(
-            deliver_organization_user_report, 0, 60 * 60 * 24 * 7, organization.id, user.id
+            deliver_organization_user_report,
+            0,
+            60 * 60 * 24 * 7,
+            self.organization.id,
+            self.user.id,
         )
 
-        set_option_value([])
         assert deliver_report() is not Skipped.NotSubscribed
 
-        set_option_value([organization.id])
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.REPORTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user,
+            organization=self.organization,
+        )
         assert deliver_report() is Skipped.NotSubscribed
 
     def test_user_subscribed_to_organization_reports(self):
-        user = self.user
-        organization = self.organization
+        assert user_subscribed_to_organization_reports(self.user, self.organization) is True
 
-        set_option_value = functools.partial(
-            UserOption.objects.set_value, user, DISABLED_ORGANIZATIONS_USER_OPTION_KEY
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.REPORTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user,
+            organization=self.organization,
         )
-
-        set_option_value([])
-        assert user_subscribed_to_organization_reports(user, organization) is True
-
-        set_option_value([-1])
-        assert user_subscribed_to_organization_reports(user, organization) is True
-
-        set_option_value([organization.id])
-        assert user_subscribed_to_organization_reports(user, organization) is False
-
-        set_option_value("")
-        assert user_subscribed_to_organization_reports(user, organization) is True
+        assert user_subscribed_to_organization_reports(self.user, self.organization) is False
 
     @mock.patch("sentry.tasks.reports.BATCH_SIZE", 1)
     def test_paginates_project_issue_summaries_and_reassembles_result(self):

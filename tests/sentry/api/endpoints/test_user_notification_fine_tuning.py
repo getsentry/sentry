@@ -1,7 +1,28 @@
+from typing import TYPE_CHECKING
+
 from sentry.models import NotificationSetting, UserEmail, UserOption
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import (
+    NotificationScopeType,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.testutils import APITestCase
 from sentry.types.integrations import ExternalProviders
+
+if TYPE_CHECKING:
+    from sentry.models import Organization, User
+
+
+def assert_organizations_are_disabled(user: "User", *organizations: "Organization") -> None:
+    assert {
+        notification_setting.scope_identifier
+        for notification_setting in NotificationSetting.objects._filter(
+            provider=ExternalProviders.EMAIL,
+            type=NotificationSettingTypes.REPORTS,
+            scope_type=NotificationScopeType.ORGANIZATION,
+            target_ids=[user.actor_id],
+        )
+    } == {organization.id for organization in organizations}
 
 
 class UserNotificationFineTuningTestBase(APITestCase):
@@ -42,11 +63,12 @@ class UserNotificationFineTuningGetTest(UserNotificationFineTuningTestBase):
         response = self.get_valid_response("me", "deploy")
         assert response.data.get(self.organization.id) == "2"
 
-        UserOption.objects.create(
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.REPORTS,
+            NotificationSettingOptionValues.NEVER,
             user=self.user,
-            organization=None,
-            key="reports:disabled-organizations",
-            value=[self.organization.id],
+            organization=self.organization,
         )
         response = self.get_valid_response("me", "reports")
         assert response.data.get(self.organization.id) == "0"
@@ -212,45 +234,32 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         data = {str(self.organization.id): 0, str(self.organization2.id): "0"}
         self.get_valid_response("me", "reports", status_code=204, **data)
 
-        assert set(
-            UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
-        ) == {self.organization.id, self.organization2.id}
+        assert_organizations_are_disabled(self.user, self.organization, self.organization2)
 
         data = {str(self.organization.id): 1}
         self.get_valid_response("me", "reports", status_code=204, **data)
-        assert set(
-            UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
-        ) == {self.organization2.id}
+        assert_organizations_are_disabled(self.user, self.organization2)
 
         data = {str(self.organization.id): 0}
         self.get_valid_response("me", "reports", status_code=204, **data)
-        assert set(
-            UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
-        ) == {self.organization.id, self.organization2.id}
+
+        assert_organizations_are_disabled(self.user, self.organization2, self.organization2)
 
     def test_enable_weekly_reports_from_default_setting(self):
         data = {str(self.organization.id): 1, str(self.organization2.id): "1"}
         self.get_valid_response("me", "reports", status_code=204, **data)
 
-        assert (
-            set(UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value)
-            == set()
-        )
+        assert_organizations_are_disabled(self.user)
 
         # can disable
         data = {str(self.organization.id): 0}
         self.get_valid_response("me", "reports", status_code=204, **data)
-        assert set(
-            UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
-        ) == {self.organization.id}
+        assert_organizations_are_disabled(self.user, self.organization)
 
         # re-enable
         data = {str(self.organization.id): 1}
         self.get_valid_response("me", "reports", status_code=204, **data)
-        assert (
-            set(UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value)
-            == set()
-        )
+        assert_organizations_are_disabled(self.user)
 
     def test_permissions(self):
         new_user = self.create_user(email="b@example.com")
