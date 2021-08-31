@@ -28,7 +28,7 @@ jobs:
 
       - name: Install prerequisites
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade
+          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade || brew bundle
 
       - name: Setup python
         id: setup-python
