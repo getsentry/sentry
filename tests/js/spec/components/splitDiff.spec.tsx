@@ -8,8 +8,8 @@ describe('SplitDiff', function () {
   afterEach(function () {});
 
   it('renders', function () {
-    const wrapper = mountWithTheme(<SplitDiff base="restaurant" target="aura" />);
-    expect(wrapper).toSnapshot();
+    const {container} = mountWithTheme(<SplitDiff base="restaurant" target="aura" />);
+    expect(container).toSnapshot();
   });
 
   it('renders with newlines', function () {
@@ -19,7 +19,7 @@ describe('SplitDiff', function () {
     const target = `aura
     and your aura
     common`;
-    const wrapper = mountWithTheme(<SplitDiff base={base} target={target} />);
-    expect(wrapper).toSnapshot();
+    const {container} = mountWithTheme(<SplitDiff base={base} target={target} />);
+    expect(container).toSnapshot();
   });
 });
