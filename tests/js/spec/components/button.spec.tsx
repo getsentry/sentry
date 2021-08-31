@@ -1,12 +1,10 @@
-import {cleanup, fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import Button from 'app/components/button';
 
 describe('Button', function () {
   // @ts-expect-error
   const routerContext = TestStubs.routerContext();
-
-  afterEach(cleanup);
 
   it('renders', function () {
     const {container} = mountWithTheme(<Button priority="primary">Button</Button>);

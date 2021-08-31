@@ -1,11 +1,9 @@
-import {cleanup, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 
 describe('ButtonBar', function () {
-  afterEach(cleanup);
-
   const createWrapper = () =>
     mountWithTheme(
       <ButtonBar active="2" merged>
