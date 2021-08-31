@@ -80,8 +80,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
 
   useEffect(() => {
     fetchGroupingLevels();
-    const unListener = browserHistory.listen(handleRouteLeave);
-    return () => unListener();
+    return browserHistory.listen(handleRouteLeave);
   }, []);
 
   useEffect(() => {
@@ -106,6 +105,8 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
       return true;
     }
 
+    // Removes cursor and level from the URL on route leave
+    // so that the parameters will not interfere with other pages
     browserHistory.replace({
       pathname: newLocation.pathname,
       query: {
