@@ -1,5 +1,3 @@
-import {Component} from 'react';
-
 import UserAvatar from 'app/components/avatar/userAvatar';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
@@ -23,8 +21,8 @@ const unknownUser: AvatarUser = {
   ip_address: '',
 };
 
-class LastCommit extends Component<Props> {
-  renderMessage(message: Commit['message']): string {
+function LastCommit({commit, headerClass}: Props) {
+  function renderMessage(message: Commit['message']) {
     if (!message) {
       return t('No message provided');
     }
@@ -38,33 +36,28 @@ class LastCommit extends Component<Props> {
         words.pop();
         truncated = words.join(' ');
       }
-      return truncated + '...';
+      return `${truncated}\u2026`;
     }
     return firstLine;
   }
 
-  render() {
-    const {commit, headerClass} = this.props;
-    const commitAuthor = commit && commit.author;
-    return (
-      <div>
-        <h6 className={headerClass}>Last commit</h6>
-        <div className="commit">
-          <div className="commit-avatar">
-            <UserAvatar user={commitAuthor || unknownUser} />
-          </div>
-          <div className="commit-message truncate">
-            {this.renderMessage(commit.message)}
-          </div>
-          <div className="commit-meta">
-            <strong>{(commitAuthor && commitAuthor.name) || t('Unknown Author')}</strong>
-            &nbsp;
-            <TimeSince date={commit.dateCreated} />
-          </div>
+  const commitAuthor = commit?.author;
+  return (
+    <div>
+      <h6 className={headerClass}>Last commit</h6>
+      <div className="commit">
+        <div className="commit-avatar">
+          <UserAvatar user={commitAuthor || unknownUser} />
+        </div>
+        <div className="commit-message truncate">{renderMessage(commit.message)}</div>
+        <div className="commit-meta">
+          <strong>{commitAuthor?.name || t('Unknown Author')}</strong>
+          &nbsp;
+          <TimeSince date={commit.dateCreated} />
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 }
 
 export default LastCommit;
