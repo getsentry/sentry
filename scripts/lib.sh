@@ -52,7 +52,7 @@ get-pyenv-version() {
 
 query-valid-python-version() {
     python_version=$(python3 -V 2>&1 | awk '{print $2}')
-    if [ "${python_version}" == 3.6.13 ] || [ "${python_version}" == 3.8.10 ]; then
+    if [ "${python_version}" == 3.6.13 ] || [ "${python_version}" == 3.8.11 ]; then
         return 0
     else
         return 1
