@@ -2,21 +2,18 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.api.validators.notifications import validate, validate_type_option
+from sentry.features.helpers import any_organization_has_feature
 from sentry.models import NotificationSetting, User
 
 
 def validate_has_feature(user: User) -> None:
-    if not any(
-        [
-            features.has("organizations:notification-platform", organization, actor=user)
-            for organization in user.get_orgs()
-        ]
+    if not any_organization_has_feature(
+        "organizations:notification-platform", user.get_orgs(), actor=user
     ):
         raise ResourceDoesNotExist
 

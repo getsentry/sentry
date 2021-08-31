@@ -90,7 +90,10 @@ class NotificationHelpersTest(TestCase):
 
     def test_get_deploy_values_by_provider_empty_settings(self):
         values_by_provider = get_values_by_provider_by_type(
-            {}, notification_providers(), NotificationSettingTypes.DEPLOY
+            {},
+            notification_providers(),
+            NotificationSettingTypes.DEPLOY,
+            organization=self.organization,
         )
         assert values_by_provider == {
             ExternalProviders.EMAIL: NotificationSettingOptionValues.COMMITTED_ONLY,
@@ -110,6 +113,7 @@ class NotificationHelpersTest(TestCase):
             notification_settings_by_scope,
             notification_providers(),
             NotificationSettingTypes.DEPLOY,
+            organization=self.organization,
         )
         assert values_by_provider == {
             ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,

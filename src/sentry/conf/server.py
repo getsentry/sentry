@@ -1012,6 +1012,8 @@ SENTRY_FEATURES = {
     # Enable option to send alert, workflow, and deploy notifications
     # to 3rd parties (e.g. Slack) in addition to email
     "organizations:notification-platform": False,
+    # Automatically opt IN users to receiving Slack notifications.
+    "organizations:notification-slack-automatic": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
