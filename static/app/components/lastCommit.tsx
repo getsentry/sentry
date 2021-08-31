@@ -51,7 +51,7 @@ function LastCommit({commit, headerClass}: Props) {
         </div>
         <div className="commit-message truncate">{renderMessage(commit.message)}</div>
         <div className="commit-meta">
-          <strong>{(commitAuthor && commitAuthor.name) || t('Unknown Author')}</strong>
+          <strong>{commitAuthor?.name || t('Unknown Author')}</strong>
           &nbsp;
           <TimeSince date={commit.dateCreated} />
         </div>
