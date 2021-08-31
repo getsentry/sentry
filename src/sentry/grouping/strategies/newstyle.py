@@ -50,7 +50,9 @@ RECURSION_COMPARISON_FIELDS = [
 
 
 def is_recursion_v1(frame1, frame2):
-    "Returns a boolean indicating whether frames are recursive calls."
+    """
+    Returns a boolean indicating whether frames are recursive calls.
+    """
     if frame2 is None:
         return False
 
@@ -61,11 +63,18 @@ def is_recursion_v1(frame1, frame2):
     return True
 
 
+def get_basename(string):
+    """
+    Returns best-effort basename of a string irrespective of platform.
+    """
+    return _basename_re.split(string)[-1]
+
+
 def get_package_component(package, platform):
     if package is None or platform != "native":
         return GroupingComponent(id="package")
 
-    package = _basename_re.split(package)[-1].lower()
+    package = get_basename(package).lower()
     package_component = GroupingComponent(
         id="package", values=[package], similarity_encoder=ident_encoder
     )
@@ -96,6 +105,12 @@ def get_filename_component(abs_path, filename, platform, allow_file_origin=False
         new_filename = _java_assist_enhancer_re.sub(r"\1<auto>", filename)
         if new_filename != filename:
             filename_component.update(values=[new_filename], hint="cleaned javassist parts")
+            filename = new_filename
+
+    # Best-effort to show a very short filename in the title. We truncate it to
+    # basename so technically there can be two issues that differ in filename
+    # paths but end up having the same title.
+    filename_component.update(tree_label={"filebase": get_basename(filename)})
 
     return filename_component
 
