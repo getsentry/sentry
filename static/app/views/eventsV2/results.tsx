@@ -498,15 +498,15 @@ class Results extends React.Component<Props, State> {
   }
 }
 
-export const StyledPageContent = styled(PageContent)`
+const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-export const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
 
-export const Top = styled(Layout.Main)`
+const Top = styled(Layout.Main)`
   flex-grow: 0;
 `;
 

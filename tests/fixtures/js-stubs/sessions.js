@@ -22,40 +22,60 @@ export function SessionUserCountByStatus() {
         by: {
           'session.status': 'crashed',
         },
-        totals: {'sum(session)': 492, 'count_unique(user)': 92},
+        totals: {
+          'sum(session)': 492,
+          'count_unique(user)': 92,
+          'p50(session.duration)': 195,
+        },
         series: {
           'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 490],
           'count_unique(user)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 90],
+          'p50(session.duration)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 193],
         },
       },
       {
         by: {
           'session.status': 'healthy',
         },
-        totals: {'sum(session)': 9260, 'count_unique(user)': 260},
+        totals: {
+          'sum(session)': 9260,
+          'count_unique(user)': 260,
+          'p50(session.duration)': 195,
+        },
         series: {
           'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9167, 93],
           'count_unique(user)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 258],
+          'p50(session.duration)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 193],
         },
       },
       {
         by: {
           'session.status': 'abnormal',
         },
-        totals: {'sum(session)': 0, 'count_unique(user)': 0},
+        totals: {
+          'sum(session)': 0,
+          'count_unique(user)': 0,
+          'p50(session.duration)': 0,
+        },
         series: {
           'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           'count_unique(user)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          'p50(session.duration)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         },
       },
       {
         by: {
           'session.status': 'errored',
         },
-        totals: {'sum(session)': 99, 'count_unique(user)': 9},
+        totals: {
+          'sum(session)': 99,
+          'count_unique(user)': 9,
+          'p50(session.duration)': 195,
+        },
         series: {
           'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 99, 0],
           'count_unique(user)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 8],
+          'p50(session.duration)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 194],
         },
       },
     ],
@@ -88,40 +108,60 @@ export function SessionUserCountByStatus2() {
         by: {
           'session.status': 'crashed',
         },
-        totals: {'sum(session)': 992, 'count_unique(user)': 92},
+        totals: {
+          'sum(session)': 992,
+          'count_unique(user)': 92,
+          'p50(session.duration)': 802,
+        },
         series: {
           'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 990],
           'count_unique(user)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 90],
+          'p50(session.duration)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 800],
         },
       },
       {
         by: {
           'session.status': 'abnormal',
         },
-        totals: {'sum(session)': 0, 'count_unique(user)': 0},
+        totals: {
+          'sum(session)': 0,
+          'count_unique(user)': 0,
+          'p50(session.duration)': 0,
+        },
         series: {
           'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           'count_unique(user)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          'p50(session.duration)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         },
       },
       {
         by: {
           'session.status': 'healthy',
         },
-        totals: {'sum(session)': 202136, 'count_unique(user)': 99136},
+        totals: {
+          'sum(session)': 202136,
+          'count_unique(user)': 99136,
+          'p50(session.duration)': 108404,
+        },
         series: {
           'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3404, 198732],
           'count_unique(user)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 404, 98732],
+          'p50(session.duration)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 404, 108000],
         },
       },
       {
         by: {
           'session.status': 'errored',
         },
-        totals: {'sum(session)': 1954, 'count_unique(user)': 915},
+        totals: {
+          'sum(session)': 1954,
+          'count_unique(user)': 915,
+          'p50(session.duration)': 800,
+        },
         series: {
           'sum(session)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 40, 1914],
           'count_unique(user)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 914],
+          'p50(session.duration)': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 799],
         },
       },
     ],

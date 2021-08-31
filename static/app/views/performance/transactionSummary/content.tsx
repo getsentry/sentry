@@ -44,10 +44,11 @@ import Filter, {
   filterToSearchConditions,
   SpanOperationBreakdownFilter,
 } from './filter';
-import TransactionHeader, {Tab} from './header';
+import TransactionHeader from './header';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
+import Tab from './tabs';
 import {TagExplorer} from './tagExplorer';
 import {TransactionThresholdMetric} from './transactionThresholdModal';
 import UserStats from './userStats';

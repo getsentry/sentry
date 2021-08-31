@@ -2132,6 +2132,7 @@ export type SessionApiResponse = SeriesApi & {
 export enum SessionField {
   SESSIONS = 'sum(session)',
   USERS = 'count_unique(user)',
+  DURATION = 'p50(session.duration)',
 }
 
 export enum SessionStatus {
@@ -2157,6 +2158,7 @@ export enum ReleaseComparisonChartType {
   ERROR_COUNT = 'errorCount',
   TRANSACTION_COUNT = 'transactionCount',
   FAILURE_RATE = 'failureRate',
+  SESSION_DURATION = 'sessionDuration',
 }
 
 export enum HealthStatsPeriodOption {
@@ -2187,6 +2189,7 @@ export type CodeOwner = {
     missing_external_users: string[];
     missing_user_emails: string[];
     teams_without_access: string[];
+    users_without_access: string[];
   };
 };
 
