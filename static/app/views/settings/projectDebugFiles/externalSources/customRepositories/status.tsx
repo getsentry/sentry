@@ -21,6 +21,10 @@ type Props = {
 };
 
 function Status({theme, details, onEditRepository, onRevalidateItunesSession}: Props) {
+  if (!details) {
+    return <Placeholder height="14px" />;
+  }
+
   const {
     pendingDownloads,
     updateAlertMessage,
@@ -97,7 +101,7 @@ function Status({theme, details, onEditRepository, onRevalidateItunesSession}: P
     );
   }
 
-  return <Placeholder height="14px" />;
+  return null;
 }
 
 export default withTheme(Status);

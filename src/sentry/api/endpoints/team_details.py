@@ -1,4 +1,3 @@
-import logging
 from uuid import uuid4
 
 from rest_framework import serializers, status
@@ -8,10 +7,7 @@ from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer as ModelTeamSerializer
-from sentry.models import AuditLogEntryEvent, Team, TeamStatus
-from sentry.tasks.deletion import delete_team
-
-delete_logger = logging.getLogger("sentry.deletions.api")
+from sentry.models import AuditLogEntryEvent, ScheduledDeletion, Team, TeamStatus
 
 
 class TeamSerializer(serializers.ModelSerializer):
@@ -101,33 +97,22 @@ class TeamDetailsEndpoint(TeamEndpoint):
         Schedules a team for deletion.
 
         **Note:** Deletion happens asynchronously and therefore is not
-        immediate.  However once deletion has begun the state of a project
-        changes and will be hidden from most public views.
+        immediate. Teams will have their slug released while waiting for deletion.
         """
+        suffix = uuid4().hex
+        new_slug = f"{team.slug}-{suffix}"[0:50]
         updated = Team.objects.filter(id=team.id, status=TeamStatus.VISIBLE).update(
-            status=TeamStatus.PENDING_DELETION
+            slug=new_slug, status=TeamStatus.PENDING_DELETION
         )
         if updated:
-            transaction_id = uuid4().hex
-
+            scheduled = ScheduledDeletion.schedule(team, days=0, actor=request.user)
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,
                 target_object=team.id,
                 event=AuditLogEntryEvent.TEAM_REMOVE,
                 data=team.get_audit_log_data(),
-                transaction_id=transaction_id,
-            )
-
-            delete_team.apply_async(kwargs={"object_id": team.id, "transaction_id": transaction_id})
-
-            delete_logger.info(
-                "object.delete.queued",
-                extra={
-                    "object_id": team.id,
-                    "transaction_id": transaction_id,
-                    "model": type(team).__name__,
-                },
+                transaction_id=scheduled.id,
             )
 
         return Response(status=204)

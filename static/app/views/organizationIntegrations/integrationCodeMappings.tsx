@@ -5,6 +5,7 @@ import * as qs from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
+import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
@@ -16,6 +17,7 @@ import RepositoryProjectPathConfigRow, {
   NameRepoColumn,
   OutputPathColumn,
 } from 'app/components/repositoryProjectPathConfigRow';
+import Tooltip from 'app/components/tooltip';
 import {IconAdd} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -194,15 +196,29 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
               <NameRepoColumn>{t('Code Mappings')}</NameRepoColumn>
               <InputPathColumn>{t('Stack Trace Root')}</InputPathColumn>
               <OutputPathColumn>{t('Source Code Root')}</OutputPathColumn>
-              <ButtonColumn>
-                <AddButton
-                  onClick={() => this.openModal()}
-                  size="xsmall"
-                  icon={<IconAdd size="xs" isCircled />}
-                >
-                  {t('Add Mapping')}
-                </AddButton>
-              </ButtonColumn>
+
+              <Access access={['org:integrations']}>
+                {({hasAccess}) => (
+                  <ButtonColumn>
+                    <Tooltip
+                      title={t(
+                        'You must be an organization owner, manager or admin to edit or remove a code mapping.'
+                      )}
+                      disabled={hasAccess}
+                    >
+                      <AddButton
+                        data-test-id="add-mapping-button"
+                        onClick={() => this.openModal()}
+                        size="xsmall"
+                        icon={<IconAdd size="xs" isCircled />}
+                        disabled={!hasAccess}
+                      >
+                        {t('Add Code Mapping')}
+                      </AddButton>
+                    </Tooltip>
+                  </ButtonColumn>
+                )}
+              </Access>
             </HeaderLayout>
           </PanelHeader>
           <PanelBody>
