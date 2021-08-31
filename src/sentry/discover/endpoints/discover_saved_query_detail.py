@@ -1,3 +1,5 @@
+from django.db.models import F
+from django.utils import timezone
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
@@ -83,5 +85,30 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         model.delete()
+
+        return Response(status=204)
+
+
+class DiscoverSavedQueryVisitEndpoint(OrganizationEndpoint):
+    permission_classes = (DiscoverSavedQueryPermission,)
+
+    def has_feature(self, organization, request):
+        return features.has("organizations:discover-query", organization, actor=request.user)
+
+    def post(self, request, organization, query_id):
+        """
+        Update last_visited and increment visits counter
+        """
+        if not self.has_feature(organization, request):
+            return self.respond(status=404)
+
+        try:
+            model = DiscoverSavedQuery.objects.get(id=query_id, organization=organization)
+        except DiscoverSavedQuery.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        model.visits = F("visits") + 1
+        model.last_visited = timezone.now()
+        model.save(update_fields=["visits", "last_visited"])
 
         return Response(status=204)

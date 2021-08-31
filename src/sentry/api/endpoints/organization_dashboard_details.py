@@ -1,4 +1,6 @@
 from django.db import IntegrityError, transaction
+from django.db.models import F
+from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry import features
@@ -13,7 +15,7 @@ EDIT_FEATURE = "organizations:dashboards-edit"
 READ_FEATURE = "organizations:dashboards-basic"
 
 
-class OrganizationDashboardDetailsEndpoint(OrganizationEndpoint):
+class OrganizationDashboardBase(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardsPermission,)
 
     def convert_args(self, request, organization_slug, dashboard_id, *args, **kwargs):
@@ -32,6 +34,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationEndpoint):
             return prebuilt
         return Dashboard.objects.get(id=dashboard_id, organization_id=organization.id)
 
+
+class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     def get(self, request, organization, dashboard):
         """
         Retrieve an Organization's Dashboard
@@ -126,3 +130,21 @@ class OrganizationDashboardDetailsEndpoint(OrganizationEndpoint):
             return self.respond({"Dashboard with that title already exists."}, status=409)
 
         return self.respond(serialize(serializer.instance, request.user), status=200)
+
+
+class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
+    def post(self, request, organization, dashboard):
+        """
+        Update last_visited and increment visits counter
+        """
+        if not features.has(EDIT_FEATURE, organization, actor=request.user):
+            return Response(status=404)
+
+        if isinstance(dashboard, dict):
+            return Response(status=204)
+
+        dashboard.visits = F("visits") + 1
+        dashboard.last_visited = timezone.now()
+        dashboard.save(update_fields=["visits", "last_visited"])
+
+        return Response(status=204)

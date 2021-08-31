@@ -7,6 +7,7 @@ from sentry.models import (
     DashboardWidgetDisplayTypes,
 )
 from sentry.testutils import OrganizationDashboardWidgetTestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.compat import zip
 
 
@@ -92,6 +93,50 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             if not forward_sort:
                 values = list(reversed(values))
             assert list(sorted(values)) == values
+
+    def test_get_sortby_most_popular(self):
+        Dashboard.objects.create(
+            title="A",
+            created_by=self.user,
+            organization=self.organization,
+            visits=3,
+            last_visited=before_now(minutes=5),
+        )
+
+        for forward_sort in [True, False]:
+            sorting = "mostPopular" if forward_sort else "-mostPopular"
+            response = self.client.get(self.url, data={"sort": sorting})
+
+            assert response.status_code == 200
+            values = [row["title"] for row in response.data]
+            expected = ["A", "Dashboard 2", "Dashboard 1"]
+
+            if not forward_sort:
+                expected = ["Dashboard 2", "Dashboard 1", "A"]
+
+            assert values == ["Dashboard"] + expected
+
+    def test_get_sortby_recently_viewed(self):
+        Dashboard.objects.create(
+            title="A",
+            created_by=self.user,
+            organization=self.organization,
+            visits=3,
+            last_visited=before_now(minutes=5),
+        )
+
+        for forward_sort in [True, False]:
+            sorting = "recentlyViewed" if forward_sort else "-recentlyViewed"
+            response = self.client.get(self.url, data={"sort": sorting})
+
+            assert response.status_code == 200
+            values = [row["title"] for row in response.data]
+            expected = ["Dashboard 2", "Dashboard 1", "A"]
+
+            if not forward_sort:
+                expected = list(reversed(expected))
+
+            assert values == ["Dashboard"] + expected
 
     def test_get_sortby_mydashboards(self):
         user_1 = self.create_user(username="user_1")

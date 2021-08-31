@@ -47,22 +47,41 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                     queryset = queryset.none()
 
         sort_by = request.query_params.get("sortBy")
-        if sort_by in ("name", "-name"):
+        if sort_by and sort_by.startswith("-"):
+            sort_by, desc = sort_by[1:], True
+        else:
+            desc = False
+
+        if sort_by == "name":
             order_by = [
-                "-lower_name" if sort_by.startswith("-") else "lower_name",
+                "-lower_name" if desc else "lower_name",
                 "-date_created",
             ]
-        elif sort_by in ("dateCreated", "-dateCreated"):
-            order_by = "-date_created" if sort_by.startswith("-") else "date_created"
-        elif sort_by in ("dateUpdated", "-dateUpdated"):
-            order_by = "-date_updated" if sort_by.startswith("-") else "date_updated"
+
+        elif sort_by == "dateCreated":
+            order_by = "-date_created" if desc else "date_created"
+
+        elif sort_by == "dateUpdated":
+            order_by = "-date_updated" if desc else "date_updated"
+
+        elif sort_by == "mostPopular":
+            order_by = [
+                "visits" if desc else "-visits",
+                "-date_updated",
+            ]
+
+        elif sort_by == "recentlyViewed":
+            order_by = "last_visited" if desc else "-last_visited"
+
         elif sort_by == "myqueries":
             order_by = [
                 Case(When(created_by_id=request.user.id, then=-1), default="created_by_id"),
                 "-date_created",
             ]
+
         else:
             order_by = "lower_name"
+
         if not isinstance(order_by, list):
             order_by = [order_by]
         queryset = queryset.order_by(*order_by)

@@ -54,20 +54,38 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         prebuilt = Dashboard.get_prebuilt_list(organization, query)
 
         sort_by = request.query_params.get("sort")
-        if sort_by in ("title", "-title"):
+        if sort_by and sort_by.startswith("-"):
+            sort_by, desc = sort_by[1:], True
+        else:
+            desc = False
+
+        if sort_by == "title":
             order_by = [
-                "-title" if sort_by.startswith("-") else "title",
+                "-title" if desc else "title",
                 "-date_added",
             ]
-        elif sort_by in ("dateCreated", "-dateCreated"):
-            order_by = "-date_added" if sort_by.startswith("-") else "date_added"
+
+        elif sort_by == "dateCreated":
+            order_by = "-date_added" if desc else "date_added"
+
+        elif sort_by == "mostPopular":
+            order_by = [
+                "visits" if desc else "-visits",
+                "-date_added",
+            ]
+
+        elif sort_by == "recentlyViewed":
+            order_by = "last_visited" if desc else "-last_visited"
+
         elif sort_by == "mydashboards":
             order_by = [
                 Case(When(created_by_id=request.user.id, then=-1), default="created_by_id"),
                 "-date_added",
             ]
+
         else:
             order_by = "title"
+
         if not isinstance(order_by, list):
             order_by = [order_by]
 
