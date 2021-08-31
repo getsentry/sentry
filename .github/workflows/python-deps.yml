@@ -30,16 +30,11 @@ jobs:
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade
 
-      # Until GH composite actions can use `uses`, we need to setup python here
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
+      - name: Setup python
+        id: setup-python
+        uses: ./.github/actions/setup-python
 
-      - name: Setup pip
-        uses: ./.github/actions/setup-pip
-        id: pip
-
-      - name: Cache
+      - name: Cache (pip)
         uses: actions/cache@v2
         with:
           path: |
