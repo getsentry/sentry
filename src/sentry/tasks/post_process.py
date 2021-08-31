@@ -245,6 +245,7 @@ def post_process_group(
             return
 
         is_reprocessed = is_reprocessed_event(event.data)
+        sentry_sdk.set_tag("is_reprocessed", is_reprocessed)
 
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
@@ -268,8 +269,9 @@ def post_process_group(
 
         _capture_stats(event, is_new)
 
-        if is_reprocessed and is_new:
-            add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
+        with sentry_sdk.start_span(op="tasks.post_process_group.add_group_to_inbox"):
+            if is_reprocessed and is_new:
+                add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
 
         if not is_reprocessed:
             # we process snoozes before rules as it might create a regression
@@ -281,17 +283,19 @@ def post_process_group(
                 elif is_regression:
                     add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
 
-            handle_owner_assignment(event.project, event.group, event)
+            with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
+                handle_owner_assignment(event.project, event.group, event)
 
             rp = RuleProcessor(
                 event, is_new, is_regression, is_new_group_environment, has_reappeared
             )
             has_alert = False
-            # TODO(dcramer): ideally this would fanout, but serializing giant
-            # objects back and forth isn't super efficient
-            for callback, futures in rp.apply():
-                has_alert = True
-                safe_execute(callback, event, futures, _with_transaction=False)
+            with sentry_sdk.start_span(op="tasks.post_process_group.rule_processor_callbacks"):
+                # TODO(dcramer): ideally this would fanout, but serializing giant
+                # objects back and forth isn't super efficient
+                for callback, futures in rp.apply():
+                    has_alert = True
+                    safe_execute(callback, event, futures, _with_transaction=False)
 
             try:
                 lock = locks.get(
