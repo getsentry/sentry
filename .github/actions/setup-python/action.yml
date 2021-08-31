@@ -44,7 +44,7 @@ runs:
     - name: Install pip
       shell: bash
       run: |
-        make upgrade-pip
+        source "$WORKDIR/scripts/lib.sh" && upgrade-pip
 
     - name: Get pip cache dir & version
       id: pip-info
