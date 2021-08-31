@@ -34,7 +34,10 @@ type ChartProps = {
   timeseriesData: Series[];
   showLegend?: boolean;
   legendOptions?: EChartOption.Legend;
-  chartOptions?: EChartOption;
+  chartOptions?: Omit<EChartOption, 'xAxis' | 'yAxis'> & {
+    xAxis?: EChartOption.XAxis;
+    yAxis?: EChartOption.YAxis;
+  };
   currentSeriesName?: string;
   releaseSeries?: Series[];
   previousTimeseriesData?: Series | null;
@@ -207,7 +210,6 @@ class Chart extends React.Component<ChartProps, State> {
     if (previousSeriesTransformer) {
       previousSeries = previousSeriesTransformer(previousTimeseriesData);
     }
-
     const chartOptions = {
       colors: timeseriesData.length
         ? colors?.slice(0, series.length) ?? [
