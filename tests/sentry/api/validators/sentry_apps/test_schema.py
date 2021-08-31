@@ -51,15 +51,20 @@ class TestSchemaValidation(TestCase):
                 },
                 {
                     "type": "alert-rule-action",
-                    "required_fields": [
-                        {"type": "text", "name": "channel", "label": "Channel"},
-                        {
-                            "type": "select",
-                            "name": "send_email",
-                            "label": "Send Email?",
-                            "options": [["Yes", "yes"], ["No", "no"]],
-                        },
-                    ],
+                    "title": "Create task",
+                    "settings": {
+                        "type": "alert-rule-settings",
+                        "uri": "/sentry/alert-rule",
+                        "required_fields": [
+                            {"type": "text", "name": "channel", "label": "Channel"},
+                            {
+                                "type": "select",
+                                "name": "send_email",
+                                "label": "Send Email?",
+                                "options": [["Yes", "yes"], ["No", "no"]],
+                            },
+                        ],
+                    },
                 },
                 {
                     "type": "issue-media",
