@@ -1,7 +1,7 @@
 from django.conf import settings
 
 
-def get_unversioned_asset_url(module, key, cache_bust=False):
+def get_webpack_asset_url(module, key, cache_bust=False):
     """
     Returns an asset URL that is unversioned. These assets should have a
     `Cache-Control: max-age=0, must-revalidate` so that clients must validate with the origin
@@ -13,13 +13,13 @@ def get_unversioned_asset_url(module, key, cache_bust=False):
     for frontend only deploys.
 
     Example:
-      {% unversioned_asset_url 'sentry' 'sentry.css' %}
+      {% webpack_asset_url 'sentry' 'sentry.css' %}
       =>  "/_static/dist/sentry/sentry.css"
 
-      {% unversioned_asset_url 'sentry' 'sentry.css' cache_bust=True %}
+      {% webpack_asset_url 'sentry' 'sentry.css' cache_bust=True %}
       =>  "/_static/dist/sentry/sentry.css?v=xxx"
     """
-    args = (settings.STATIC_UNVERSIONED_URL.rstrip("/"), module, key.lstrip("/"))
+    args = (settings.STATIC_WEBPACK_URL.rstrip("/"), module, key.lstrip("/"))
 
     if not cache_bust:
         return "{}/{}/{}".format(*args)

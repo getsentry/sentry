@@ -373,7 +373,7 @@ STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
 # webpack assets live at a different URL that is unversioned
 # as we configure webpack to include file content based hash in the filename
-STATIC_UNVERSIONED_URL = "/_static/dist/"
+STATIC_WEBPACK_URL = "/_static/dist/"
 
 # The webpack output directory
 STATICFILES_DIRS = [
