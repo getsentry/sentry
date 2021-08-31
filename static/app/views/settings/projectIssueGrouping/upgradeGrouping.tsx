@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {Location} from 'history';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import ProjectActions from 'app/actions/projectActions';
@@ -16,6 +17,8 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 
 import {getGroupingChanges, getGroupingRisk} from './utils';
 
+const upgradeGroupingId = 'upgrade-grouping';
+
 type Props = {
   groupingConfigs: EventGroupingConfig[];
   organization: Organization;
@@ -23,6 +26,7 @@ type Props = {
   project: Project;
   onUpgrade: () => void;
   api: Client;
+  location: Location;
 };
 
 function UpgradeGrouping({
@@ -32,6 +36,7 @@ function UpgradeGrouping({
   project,
   onUpgrade,
   api,
+  location,
 }: Props) {
   const hasAccess = organization.access.includes('project:write');
   const {updateNotes, riskLevel, latestGroupingConfig} = getGroupingChanges(
@@ -107,7 +112,7 @@ function UpgradeGrouping({
   }
 
   return (
-    <Panel id="upgrade-grouping">
+    <Panel id={upgradeGroupingId}>
       <PanelHeader>{t('Upgrade Grouping')}</PanelHeader>
       <PanelBody>
         <Field
@@ -126,6 +131,7 @@ function UpgradeGrouping({
             priority={riskLevel >= 2 ? 'danger' : 'primary'}
             confirmText={t('Upgrade')}
             message={getModalMessage()}
+            isOpen={location.hash === `#${upgradeGroupingId}`}
           >
             <div>
               <Button
