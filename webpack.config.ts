@@ -10,7 +10,7 @@ import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import webpack from 'webpack';
 import {Configuration as DevServerConfig} from 'webpack-dev-server';
-import WebpackManifestPlugin from 'webpack-manifest-plugin';
+import {WebpackManifestPlugin} from 'webpack-manifest-plugin';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
 import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
