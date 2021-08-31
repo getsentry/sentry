@@ -278,7 +278,16 @@ let appConfig: Configuration = {
       {
         test: /\.less$/,
         include: [staticPrefix],
-        use: [MiniCssExtractPlugin.loader, 'css-loader', 'less-loader'],
+        use: [
+          {
+            loader: MiniCssExtractPlugin.loader,
+            options: {
+              publicPath: 'auto',
+            },
+          },
+          'css-loader',
+          'less-loader',
+        ],
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
@@ -314,7 +323,7 @@ let appConfig: Configuration = {
      * Extract CSS into separate files.
      */
     new MiniCssExtractPlugin({
-      filename: '[name].[contenthash:6].css',
+      filename: 'entrypoints/[name].[contenthash:6].css',
     }),
 
     /**
@@ -411,7 +420,7 @@ let appConfig: Configuration = {
     clean: true, // Clean the output directory before emit.
     path: distPath,
     publicPath: '',
-    filename: '[name].[contenthash].js',
+    filename: 'entrypoints/[name].[contenthash].js',
     chunkFilename: 'chunks/[name].[contenthash].js',
     sourceMapFilename: 'sourcemaps/[name].[contenthash].js.map',
     assetModuleFilename: 'assets/[name].[contenthash][ext]',
