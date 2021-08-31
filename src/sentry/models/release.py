@@ -257,6 +257,9 @@ class ReleaseQuerySet(models.QuerySet):
         qs = self.filter(id__in=Subquery(rpes.filter(query).values_list("release_id", flat=True)))
         return qs
 
+    def order_by_recent(self):
+        return self.order_by("-date_added", "-id")
+
 
 class ReleaseModelManager(models.Manager):
     def get_queryset(self):
@@ -298,6 +301,9 @@ class ReleaseModelManager(models.Manager):
         return self.get_queryset().filter_by_stage(
             organization_id, operator, value, project_ids, environments
         )
+
+    def order_by_recent(self):
+        return self.get_queryset().order_by_recent()
 
     @staticmethod
     def _convert_build_code_to_build_number(build_code):
@@ -469,6 +475,7 @@ class Release(Model):
         return Model.__eq__(self, other) and self._for_project_id == other._for_project_id
 
     def __hash__(self):
+        # https://code.djangoproject.com/ticket/30333
         return super().__hash__()
 
     @staticmethod

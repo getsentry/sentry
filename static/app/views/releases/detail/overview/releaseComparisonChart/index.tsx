@@ -34,7 +34,12 @@ import {
 import {defined} from 'app/utils';
 import {formatPercentage} from 'app/utils/formatters';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
-import {getCount, getCrashFreeRate, getSessionStatusRate} from 'app/utils/sessions';
+import {
+  getCount,
+  getCrashFreeRate,
+  getSeriesAverage,
+  getSessionStatusRate,
+} from 'app/utils/sessions';
 import {Color} from 'app/utils/theme';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {
@@ -43,6 +48,7 @@ import {
   getReleaseHandledIssuesUrl,
   getReleaseParams,
   getReleaseUnhandledIssuesUrl,
+  roundDuration,
 } from 'app/views/releases/utils';
 
 import {releaseComparisonChartLabels} from '../../utils';
@@ -387,8 +393,20 @@ function ReleaseComparisonChart({
   const releaseUsersCount = getCount(releaseSessions?.groups, SessionField.USERS);
   const allUsersCount = getCount(allSessions?.groups, SessionField.USERS);
 
-  const sessionDurationTotal = getCount(releaseSessions?.groups, SessionField.DURATION);
-  const allSessionDurationTotal = getCount(allSessions?.groups, SessionField.DURATION);
+  const sessionDurationTotal = roundDuration(
+    (getSeriesAverage(
+      releaseSessions?.groups,
+      SessionField.DURATION,
+      SessionStatus.HEALTHY
+    ) ?? 0) / 1000
+  );
+  const allSessionDurationTotal = roundDuration(
+    (getSeriesAverage(
+      allSessions?.groups,
+      SessionField.DURATION,
+      SessionStatus.HEALTHY
+    ) ?? 0) / 1000
+  );
 
   const diffFailure =
     eventsTotals?.releaseFailureRate && eventsTotals?.allFailureRate
