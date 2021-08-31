@@ -36,7 +36,7 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
     def has_tag_page_feature(self, organization, request):
         return features.has("organizations:performance-tag-page", organization, actor=request.user)
 
-    def _need_better_name(self, request, organization):
+    def setup(self, request, organization):
         if not (
             self.has_feature(organization, request)
             or self.has_tag_page_feature(organization, request)
@@ -63,7 +63,7 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
 class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerformanceEndpointBase):
     def get(self, request, organization):
         try:
-            params, aggregate_column, filter_query = self._need_better_name(request, organization)
+            params, aggregate_column, filter_query = self.setup(request, organization)
         except NoProjects:
             return Response([])
 
@@ -134,7 +134,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
 
     def get(self, request, organization):
         try:
-            params, aggregate_column, filter_query = self._need_better_name(request, organization)
+            params, aggregate_column, filter_query = self.setup(request, organization)
         except NoProjects:
             return Response([])
 
