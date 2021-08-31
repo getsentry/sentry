@@ -17,7 +17,7 @@ export function useLegacyStore<T extends LegacyStoreShape>(
   store: T
 ): ReturnType<T['get']> {
   const [state, setState] = useState(store.get());
-  useEffect(() => store.listen(setState, undefined) as () => void);
+  useEffect(() => store.listen(() => setState(store.get()), undefined) as () => void);
 
   return state;
 }
