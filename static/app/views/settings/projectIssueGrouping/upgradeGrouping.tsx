@@ -18,7 +18,6 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import {getGroupingChanges, getGroupingRisk} from './utils';
 
 const upgradeGroupingId = 'upgrade-grouping';
-const confirmText = t('Upgrade');
 
 type Props = {
   groupingConfigs: EventGroupingConfig[];
@@ -39,14 +38,6 @@ function UpgradeGrouping({
   api,
   location,
 }: Props) {
-  useEffect(() => {
-    openUpgradeGroupingConfirmModal();
-  }, [location.hash]);
-
-  if (!groupingConfigs) {
-    return null;
-  }
-
   const hasAccess = organization.access.includes('project:write');
   const {updateNotes, riskLevel, latestGroupingConfig} = getGroupingChanges(
     project,
@@ -55,38 +46,30 @@ function UpgradeGrouping({
   const {riskNote, alertType} = getGroupingRisk(riskLevel);
   const noUpdates = !latestGroupingConfig;
   const priority = riskLevel >= 2 ? 'danger' : 'primary';
-  const modalMessage = (
-    <Fragment>
-      <TextBlock>
-        <strong>{t('Upgrade Grouping Strategy')}</strong>
-      </TextBlock>
-      <TextBlock>
-        {t(
-          'You can upgrade the grouping strategy to the latest but this is an irreversible operation.'
-        )}
-      </TextBlock>
-      <TextBlock>
-        <strong>{t('New Behavior')}</strong>
-        <div dangerouslySetInnerHTML={{__html: marked(updateNotes)}} />
-      </TextBlock>
-      <TextBlock>
-        <Alert type={alertType}>{riskNote}</Alert>
-      </TextBlock>
-    </Fragment>
-  );
 
-  const newData: Record<string, string | number> = {};
+  useEffect(() => {
+    if (location.hash !== `#${upgradeGroupingId}` || noUpdates || !groupingConfigs) {
+      return;
+    }
+    handleOpenConfirmModal();
+  }, [location.hash]);
 
-  if (latestGroupingConfig) {
-    const now = Math.floor(new Date().getTime() / 1000);
-    const ninety_days = 3600 * 24 * 90;
-
-    newData.groupingConfig = latestGroupingConfig.id;
-    newData.secondaryGroupingConfig = project.groupingConfig;
-    newData.secondaryGroupingExpiry = now + ninety_days;
+  if (!groupingConfigs) {
+    return null;
   }
 
   async function handleConfirmUpgrade() {
+    const newData: Record<string, string | number> = {};
+
+    if (latestGroupingConfig) {
+      const now = Math.floor(new Date().getTime() / 1000);
+      const ninety_days = 3600 * 24 * 90;
+
+      newData.groupingConfig = latestGroupingConfig.id;
+      newData.secondaryGroupingConfig = project.groupingConfig;
+      newData.secondaryGroupingExpiry = now + ninety_days;
+    }
+
     addLoadingMessage(t('Changing grouping\u2026'));
     try {
       const response = await api.requestPromise(
@@ -104,25 +87,30 @@ function UpgradeGrouping({
     }
   }
 
-  function openUpgradeGroupingConfirmModal() {
-    if (location.hash !== `#${upgradeGroupingId}` || noUpdates || !groupingConfigs) {
-      return;
-    }
-
+  function handleOpenConfirmModal() {
     openConfirmModal({
-      confirmText,
+      confirmText: t('Upgrade'),
       priority,
       onConfirm: handleConfirmUpgrade,
-      message: modalMessage,
-    });
-  }
-
-  function handleOpenUpgradeGroupingConfirmModal() {
-    openConfirmModal({
-      confirmText,
-      priority,
-      onConfirm: handleConfirmUpgrade,
-      message: modalMessage,
+      message: (
+        <Fragment>
+          <TextBlock>
+            <strong>{t('Upgrade Grouping Strategy')}</strong>
+          </TextBlock>
+          <TextBlock>
+            {t(
+              'You can upgrade the grouping strategy to the latest but this is an irreversible operation.'
+            )}
+          </TextBlock>
+          <TextBlock>
+            <strong>{t('New Behavior')}</strong>
+            <div dangerouslySetInnerHTML={{__html: marked(updateNotes)}} />
+          </TextBlock>
+          <TextBlock>
+            <Alert type={alertType}>{riskNote}</Alert>
+          </TextBlock>
+        </Fragment>
+      ),
     });
   }
 
@@ -154,7 +142,7 @@ function UpgradeGrouping({
         >
           <div>
             <Button
-              onClick={handleOpenUpgradeGroupingConfirmModal}
+              onClick={handleOpenConfirmModal}
               disabled={!hasAccess || noUpdates}
               title={getButtonTitle()}
               type="button"
