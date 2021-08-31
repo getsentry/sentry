@@ -193,19 +193,21 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 role=result["role"],
                 inviter=request.user,
             )
-            self.create_audit_entry(
-                request=request,
-                organization_id=organization.id,
-                target_object=member.id,
-                data=member.get_audit_log_data(),
-                event=AuditLogEntryEvent.MEMBER_INVITE
-                if settings.SENTRY_ENABLE_INVITES
-                else AuditLogEntryEvent.MEMBER_ADD,
-            )
+
             # TODO: are invite tokens needed for SAML orgs?
             if settings.SENTRY_ENABLE_INVITES:
                 member.token = member.generate_token()
             member.save()
+
+        self.create_audit_entry(
+            request=request,
+            organization_id=organization.id,
+            target_object=member.id,
+            data=member.get_audit_log_data(),
+            event=AuditLogEntryEvent.MEMBER_INVITE
+            if settings.SENTRY_ENABLE_INVITES
+            else AuditLogEntryEvent.MEMBER_ADD,
+        )
 
         if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
             member.send_invite_email()

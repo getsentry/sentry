@@ -1,8 +1,9 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import FeatureBadge from 'app/components/featureBadge';
 import LoadingError from 'app/components/loadingError';
 import {Panel} from 'app/components/panels';
 import {t, tct} from 'app/locale';
@@ -73,9 +74,14 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
         };
       case 'project_not_hierarchical':
         return {
-          title: t('Update your Grouping Config'),
+          title: (
+            <Fragment>
+              {t('Update your Grouping Config')}
+              <FeatureBadge type="beta" />
+            </Fragment>
+          ),
           subTitle: (
-            <React.Fragment>
+            <Fragment>
               <p>
                 {t(
                   'Enable advanced grouping insights and functionality by updating this project to the latest Grouping Config:'
@@ -96,7 +102,7 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
                   )}
                 </li>
               </ul>
-            </React.Fragment>
+            </Fragment>
           ),
           leftAligned: true,
           action: (
