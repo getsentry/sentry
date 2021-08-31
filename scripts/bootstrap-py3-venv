@@ -31,7 +31,7 @@ gitroot="$(git rev-parse --show-toplevel)"
 cd "$gitroot"
 # This executes very quickly if the Python versions are already installed
 make setup-pyenv
-export PYENV_ENV=$(SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh get-pyenv-version)
+export PYENV_VERSION=$(SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh get-pyenv-version)
 venv_name="${PWD}/.venv"
 
 if [[ -f "${venv_name}/bin/activate" ]]; then
