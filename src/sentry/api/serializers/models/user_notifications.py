@@ -19,7 +19,6 @@ def handle_legacy(notification_type: FineTuningAPIKey, users: Iterable) -> Itera
 
     key = {
         FineTuningAPIKey.EMAIL: "mail:email",
-        FineTuningAPIKey.REPORTS: "reports:disabled-organizations",
     }.get(notification_type)
 
     return UserOption.objects.filter(key=key, user__in=users, **filter_args).select_related(
@@ -30,8 +29,7 @@ def handle_legacy(notification_type: FineTuningAPIKey, users: Iterable) -> Itera
 class UserNotificationsSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         notification_type = kwargs["notification_type"]
-        type = get_type_from_fine_tuning_key(notification_type)
-        if not type:
+        if not get_type_from_fine_tuning_key(notification_type):
             data = handle_legacy(notification_type, item_list)
         else:
             actor_mapping = {user.actor_id: user for user in item_list}
@@ -49,18 +47,4 @@ class UserNotificationsSerializer(Serializer):
         return results
 
     def serialize(self, obj, attrs, user, **kwargs):
-        notification_type = kwargs["notification_type"]
-        data = {}
-
-        for uo in attrs:
-            if notification_type == FineTuningAPIKey.REPORTS:
-                # UserOption for key=reports:disabled-organizations saves a list of orgIds
-                # that should not receive reports
-                # This UserOption should have both project + organization = None
-                for org_id in uo.value:
-                    data[org_id] = "0"
-            elif uo.project is not None:
-                data[uo.project.id] = str(uo.value)
-            elif uo.organization is not None:
-                data[uo.organization.id] = str(uo.value)
-        return data
+        return {(uo.project.id if uo.project else uo.organization): str(uo.value) for uo in attrs}

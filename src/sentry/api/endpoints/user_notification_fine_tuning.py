@@ -6,7 +6,8 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserNotificationsSerializer
 from sentry.models import NotificationSetting, Project, UserEmail, UserOption
-from sentry.notifications.types import FineTuningAPIKey
+from sentry.notifications.helpers import get_scope_type
+from sentry.notifications.types import FineTuningAPIKey, NotificationScopeType
 from sentry.notifications.utils.legacy_mappings import (
     get_option_value_from_int,
     get_type_from_fine_tuning_key,
@@ -72,9 +73,6 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        if notification_type == FineTuningAPIKey.REPORTS:
-            return self._handle_put_reports(user, request.data)
-
         # Validate that all of the IDs are integers.
         try:
             ids_to_update = {int(i) for i in request.data.keys()}
@@ -86,8 +84,11 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
 
         # Make sure that the IDs we are going to update are a subset of the
         # user's list of organizations or projects.
+        parent_type = get_scope_type(get_type_from_fine_tuning_key(notification_type))
         parents = (
-            user.get_orgs() if notification_type == FineTuningAPIKey.DEPLOY else user.get_projects()
+            user.get_orgs()
+            if parent_type == NotificationScopeType.ORGANIZATION
+            else user.get_projects()
         )
         parent_ids = {parent.id for parent in parents}
         if not ids_to_update.issubset(parent_ids):
@@ -108,39 +109,6 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         return self._handle_put_notification_settings(
             user, notification_type, parents, request.data
         )
-
-    @staticmethod
-    def _handle_put_reports(user, data):
-        user_option, _ = UserOption.objects.get_or_create(
-            user=user,
-            key="reports:disabled-organizations",
-        )
-
-        value = set(user_option.value or [])
-
-        # The set of IDs of the organizations of which the user is a member.
-        org_ids = {organization.id for organization in user.get_orgs()}
-        for org_id, enabled in data.items():
-            org_id = int(org_id)
-            # We want "0" to be falsey
-            enabled = int(enabled)
-
-            # make sure user is in org
-            if org_id not in org_ids:
-                return Response(
-                    {"detail": INVALID_USER_MSG % org_id}, status=status.HTTP_403_FORBIDDEN
-                )
-
-            # The list contains organization IDs that should have reports
-            # DISABLED. If enabled, we need to check if org_id exists in list
-            # (because by default they will have reports enabled.)
-            if enabled and org_id in value:
-                value.remove(org_id)
-            elif not enabled:
-                value.add(org_id)
-
-        user_option.update(value=list(value))
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @staticmethod
     def _handle_put_emails(user, data):
@@ -177,9 +145,10 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                     continue
 
                 # This partitioning always does the same thing because notification_type stays constant.
+                parent_type = get_scope_type(get_type_from_fine_tuning_key(notification_type))
                 project_option, organization_option = (
                     (None, parent)
-                    if notification_type == FineTuningAPIKey.DEPLOY
+                    if parent_type == NotificationScopeType.PROJECT
                     else (parent, None)
                 )
 

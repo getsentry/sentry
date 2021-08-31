@@ -27,15 +27,17 @@ from sentry.constants import DataCategory
 from sentry.models import (
     Activity,
     GroupStatus,
+    NotificationSetting,
     Organization,
     OrganizationStatus,
     Project,
     Team,
     User,
-    UserOption,
 )
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, redis
 from sentry.utils.compat import filter, map, zip
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
@@ -664,13 +666,15 @@ def build_message(timestamp, duration, organization, user, reports):
     return message
 
 
-DISABLED_ORGANIZATIONS_USER_OPTION_KEY = "reports:disabled-organizations"
-
-
-def user_subscribed_to_organization_reports(user, organization):
-    return organization.id not in (
-        UserOption.objects.get_value(user, key=DISABLED_ORGANIZATIONS_USER_OPTION_KEY)
-        or []  # A small number of users have incorrect data stored
+def user_subscribed_to_organization_reports(user: User, organization: Organization) -> bool:
+    return (
+        NotificationSetting.objects.get_settings(
+            provider=ExternalProviders.EMAIL,
+            type=NotificationSettingTypes.REPORTS,
+            user=user,
+            organization=organization,
+        )
+        == NotificationSettingOptionValues.NEVER
     )
 
 
