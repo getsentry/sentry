@@ -46,7 +46,7 @@ describe('Sidebar', function () {
       TestStubs.routerContext()
     );
 
-    expect(wrapper.find('StyledSidebar')).toHaveLength(1);
+    expect(wrapper.find('SidebarWrapper')).toHaveLength(1);
   });
 
   it('renders without org and router', function () {
