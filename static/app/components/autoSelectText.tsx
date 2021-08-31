@@ -1,32 +1,29 @@
-import {CSSProperties, useRef} from 'react';
+import {forwardRef, useImperativeHandle, useRef} from 'react';
 import * as React from 'react';
 import classNames from 'classnames';
 
-import {isRenderFunc} from 'app/utils/isRenderFunc';
 import {selectText} from 'app/utils/selectText';
 
-type ChildRenderProps = {
-  doSelect: () => void;
-  doMount: (el: HTMLElement) => void;
-};
-
-type ChildFunction = (props: ChildRenderProps) => React.ReactNode;
-
-type Props = {
-  /**
-   * Can be a `node` for a simple auto select div container.
-   * When children is a render function, it is passed 2 functions:
-   * - `doMount` - should be applied on parent element's `ref` whose
-   * children is the text to be copied
-   * - `doSelect` - selects text
-   */
-  children: React.ReactNode | ChildFunction;
+type Props = React.PropsWithChildren<{
   className?: string;
-  style?: CSSProperties;
+  style?: React.CSSProperties;
+}>;
+
+type AutoSelectHandle = {
+  selectText: () => void;
 };
 
-function AutoSelectText({children, className, ...props}: Props) {
+const AutoSelectText: React.ForwardRefRenderFunction<AutoSelectHandle, Props> = (
+  {children, className, ...props},
+  forwardedRef
+) => {
   const element = useRef<HTMLElement>();
+
+  // We need to expose a selectText method to parent components
+  // and need an imperitive ref handle.
+  useImperativeHandle(forwardedRef, () => ({
+    selectText: () => handleClick(),
+  }));
 
   function handleClick() {
     if (!element.current) {
@@ -37,13 +34,6 @@ function AutoSelectText({children, className, ...props}: Props) {
 
   function handleMount(el: HTMLElement) {
     element.current = el;
-  }
-
-  if (isRenderFunc<ChildFunction>(children)) {
-    return children({
-      doMount: handleMount,
-      doSelect: handleClick,
-    });
   }
 
   // use an inner span here for the selection as otherwise the selectText
@@ -59,6 +49,6 @@ function AutoSelectText({children, className, ...props}: Props) {
       <span ref={handleMount}>{children}</span>
     </div>
   );
-}
+};
 
-export default AutoSelectText;
+export default forwardRef(AutoSelectText);
