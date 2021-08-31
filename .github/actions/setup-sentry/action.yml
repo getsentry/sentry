@@ -97,6 +97,7 @@ runs:
       uses: ./.github/actions/setup-python
       with:
         pip-cache-version: ${{ inputs.pip-cache-version }}
+        workdir: ${{ inputs.workdir }}
 
     - name: Install system dependencies
       shell: bash

@@ -1,7 +1,13 @@
+# NOTE: Do not rely on `make` commands here as this action is used across different repos
+# where the Makefile will not be available
 name: 'python setup'
 description: 'Configures python, pip, and configures pip cache dir as output.'
 
 inputs:
+  workdir:
+    description: 'Directory where the sentry source is located'
+    required: false
+    default: '.'
   cache-files-hash:
     description: 'A single hash for a set of files. Used for caching.'
     required: false
