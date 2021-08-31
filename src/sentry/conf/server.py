@@ -327,6 +327,7 @@ INSTALLED_APPS = (
     "django.contrib.sites",
     "crispy_forms",
     "rest_framework",
+    "manifest_loader",
     "sentry",
     "sentry.analytics",
     "sentry.incidents.apps.Config",
@@ -375,10 +376,13 @@ STATIC_URL = "/_static/{version}/"
 # as we configure webpack to include file content based hash in the filename
 STATIC_FRONTEND_APP_URL = "/_static/dist/"
 
-# The webpack output directory
+# The webpack output directory, used by django-manifest-loader
 STATICFILES_DIRS = [
     os.path.join(STATIC_ROOT, "sentry", "dist"),
 ]
+
+# django-manifest-loader settings
+MANIFEST_LOADER = {"cache": True}
 
 # various middleware will use this to identify resources which should not access
 # cookies

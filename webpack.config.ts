@@ -10,6 +10,7 @@ import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import webpack from 'webpack';
 import {Configuration as DevServerConfig} from 'webpack-dev-server';
+import WebpackManifestPlugin from 'webpack-manifest-plugin';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
 import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
@@ -277,16 +278,7 @@ let appConfig: Configuration = {
       {
         test: /\.less$/,
         include: [staticPrefix],
-        use: [
-          {
-            loader: MiniCssExtractPlugin.loader,
-            options: {
-              publicPath: 'auto',
-            },
-          },
-          'css-loader',
-          'less-loader',
-        ],
+        use: [MiniCssExtractPlugin.loader, 'css-loader', 'less-loader'],
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
@@ -301,6 +293,8 @@ let appConfig: Configuration = {
     ],
   },
   plugins: [
+    new WebpackManifestPlugin({}),
+
     // Do not bundle moment's locale files as we will lazy load them using
     // dynamic imports in the application code
     new webpack.IgnorePlugin({
@@ -320,9 +314,7 @@ let appConfig: Configuration = {
      * Extract CSS into separate files.
      */
     new MiniCssExtractPlugin({
-      // We want the sentry css file to be unversioned for frontend-only deploys
-      // We will cache using `Cache-Control` headers
-      filename: 'entrypoints/[name].css',
+      filename: '[name].[contenthash:6].css',
     }),
 
     /**
@@ -419,7 +411,7 @@ let appConfig: Configuration = {
     clean: true, // Clean the output directory before emit.
     path: distPath,
     publicPath: '',
-    filename: 'entrypoints/[name].js',
+    filename: '[name].[contenthash].js',
     chunkFilename: 'chunks/[name].[contenthash].js',
     sourceMapFilename: 'sourcemaps/[name].[contenthash].js.map',
     assetModuleFilename: 'assets/[name].[contenthash][ext]',
@@ -509,6 +501,9 @@ if (
         '/api/{1..9}*({0..9})/**': relayAddress,
         '/api/0/relays/outcomes/': relayAddress,
         '!/_static/dist/sentry/**': backendAddress,
+      },
+      writeToDisk: filePath => {
+        return /manifest\.json/.test(filePath);
       },
     };
   }
