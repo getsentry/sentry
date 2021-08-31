@@ -2189,20 +2189,14 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
             date_from=self.base_datetime - timedelta(days=29),
         )
 
-    # TODO: This is blocked by a bug in snuba, uncomment once it's fixed
-    #     def test_sort_priority(self):
-    #         results = self.make_query(search_filter_query="is:unresolved", sort_by="priority",
-    #                                   date_from=self.base_datetime - timedelta(days=30),
-    # )
-    #         assert list(results) == [self.group1, self.group2]
-    #
-    #         results = self.make_query(
-    #             search_filter_query="is:unresolved",
-    #             sort_by="user",
-    #             # Change the date range to bust the cache
-    #             date_from=self.base_datetime - timedelta(days=29),
-    #         )
-    #         assert list(results) == [self.group2, self.group1]
+    def test_sort_priority(self):
+        self.run_test(
+            "is:unresolved",
+            [self.group1, self.group2],
+            2,
+            sort_by="priority",
+            date_from=self.base_datetime - timedelta(days=30),
+        )
 
     def test_cursor(self):
         group3 = self.store_event(
@@ -2222,7 +2216,13 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
             project_id=self.project.id,
         ).group
 
-        results = self.run_test("is:unresolved", [group4], 4, limit=1)
-        results = self.run_test("is:unresolved", [group3], 4, limit=1, cursor=results.next)
-        results = self.run_test("is:unresolved", [group4], 4, limit=1, cursor=results.prev)
-        self.run_test("is:unresolved", [group3, self.group1], 4, limit=2, cursor=results.next)
+        results = self.run_test("is:unresolved", [group4], 4, limit=1, count_hits=True)
+        results = self.run_test(
+            "is:unresolved", [group3], 4, limit=1, cursor=results.next, count_hits=True
+        )
+        results = self.run_test(
+            "is:unresolved", [group4], 4, limit=1, cursor=results.prev, count_hits=True
+        )
+        self.run_test(
+            "is:unresolved", [group3, self.group1], 4, limit=2, cursor=results.next, count_hits=True
+        )

@@ -639,23 +639,26 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "event": Entity("events", alias="e"),
         "group": Entity("groupedmessage", alias="g"),
     }
+    times_seen_aggregation = Function("count", [Column("group_id", entities["event"])])
+    first_seen_aggregation = Function(
+        "multiply",
+        [
+            Function("toUInt64", [Function("min", [Column("timestamp", entities["event"])])]),
+            1000,
+        ],
+    )
+    last_seen_aggregation = Function(
+        "multiply",
+        [
+            Function("toUInt64", [Function("max", [Column("timestamp", entities["event"])])]),
+            1000,
+        ],
+    )
 
     aggregation_defs = {
-        "times_seen": Function("count", [Column("group_id", entities["event"])]),
-        "first_seen": Function(
-            "multiply",
-            [
-                Function("toUInt64", [Function("min", [Column("timestamp", entities["event"])])]),
-                1000,
-            ],
-        ),
-        "last_seen": Function(
-            "multiply",
-            [
-                Function("toUInt64", [Function("max", [Column("timestamp", entities["event"])])]),
-                1000,
-            ],
-        ),
+        "times_seen": times_seen_aggregation,
+        "first_seen": first_seen_aggregation,
+        "last_seen": last_seen_aggregation,
         # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
         "priority": Function(
             "toUInt64",
@@ -668,30 +671,12 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                             [
                                 Function(
                                     "log",
-                                    [Function("count", [Column("group_id", entities["event"])])],
+                                    [times_seen_aggregation],
                                 ),
                                 600,
                             ],
                         ),
-                        Function(
-                            "multiply",
-                            [
-                                Function(
-                                    "toUInt64",
-                                    [
-                                        Function(
-                                            "toUInt64",
-                                            [
-                                                Function(
-                                                    "max", [Column("timestamp", entities["event"])]
-                                                )
-                                            ],
-                                        )
-                                    ],
-                                ),
-                                1000,
-                            ],
-                        ),
+                        last_seen_aggregation,
                     ],
                 )
             ],
