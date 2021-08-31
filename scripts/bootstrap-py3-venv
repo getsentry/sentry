@@ -29,6 +29,8 @@ command -v direnv >/dev/null || {
 
 gitroot="$(git rev-parse --show-toplevel)"
 cd "$gitroot"
+# This executes very quickly if the Python versions are already installed
+make setup-pyenv
 venv_name="${PWD}/.venv"
 
 if [[ -f "${venv_name}/bin/activate" ]]; then
@@ -45,7 +47,7 @@ fi
 deactivate 2>/dev/null || true
 rm -rf "$venv_name"
 
-if [[ -z "$SENTRY_PYTHON_VERSION" ]] && ! query-valid-python-versions; then
+if [[ -z "$SENTRY_PYTHON_VERSION" ]] && ! query-valid-python-version; then
     echo "Your python3 version isn't as expected. Please run: make setup-pyenv"
     return 1
 fi

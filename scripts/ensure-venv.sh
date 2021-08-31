@@ -35,18 +35,18 @@ EOF
 
     # Let's make sure they know that they're not using a different version by mistake
 
-    if ! query-valid-python-versions; then
+    if ! query-valid-python-version; then
         cat <<EOF
     ${yellow}${bold}
     WARNING! You are running a virtualenv with a Python version ($(which python))
-    different than 3.6.13 or 3.8.10. We recommend you start with a fresh virtualenv OR"
+    different than 3.6.13 or 3.8.11. We recommend you start with a fresh virtualenv OR"
     use SENTRY_PYTHON_VERSION to by-pass this check.
     ${reset}
 EOF
     fi
 else
     if [[ ! -f "${venv_name}/bin/activate" ]]; then
-        die "You don't seem to have a virtualenv. Please create one by running: python3.6 -m venv ${venv_name}"
+        die "You don't seem to have a virtualenv. Please create one by running: source ./scripts/bootstrap-py3-venv"
     fi
     die "You have a virtualenv, but it doesn't seem to be activated. Please run: source ${venv_name}/bin/activate"
 fi

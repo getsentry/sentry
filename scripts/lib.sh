@@ -41,15 +41,16 @@ query-apple-m1() {
     query-mac && [[ $(uname -m) = 'arm64' ]]
 }
 
-query-pyenv-version() {
+get-pyenv-version() {
     local PYENV_VERSION
     PYENV_VERSION=3.6.13
-    query-apple-m1 && PYENV_VERSION=3.8.10 || :
+    if query-apple-m1; then
+        PYENV_VERSION=3.8.11
+    fi
     echo "${PYENV_VERSION}"
 }
 
-# XXX: Fix this check to be more lenient
-query-valid-python-versions() {
+query-valid-python-version() {
     python_version=$(python3 -V 2>&1 | awk '{print $2}')
     if [ "${python_version}" == 3.6.13 ] || [ "${python_version}" == 3.8.10 ]; then
         return 0

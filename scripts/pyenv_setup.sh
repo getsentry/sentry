@@ -15,7 +15,7 @@ HERE="$(
 source "${HERE}/lib.sh"
 
 # We can use PYENV_VERSION to define different Python versions, otherwise, determine load default values
-[ -z ${PYENV_VERSION+x} ] && export PYENV_VERSION=$(query-pyenv-version)
+[ -z ${PYENV_VERSION+x} ] && export PYENV_VERSION=$(get-pyenv-version)
 
 get_shell_startup_script() {
   local _startup_script=''
