@@ -1,5 +1,5 @@
 ---
-created: '2021-08-23T08:27:22.645640Z'
+created: '2021-08-30T08:43:02.178421Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -250,7 +250,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "252dc79eb5653bf822e2684d90734cb8"
-  tree_label: "eventFromException | captureException | invokeClient | captureException | finalReturnValue | mockConstructor [as captureException] | withScope"
+  tree_label: "eventFromException | captureException | invokeClient | captureException | <anonymous> | finalReturnValue | <anonymous> | mockConstructor [as captureException] | withScope"
   component:
     system*
       exception*

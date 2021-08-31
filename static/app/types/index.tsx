@@ -378,6 +378,7 @@ export type TreeLabelPart =
       package?: string;
       type?: string;
       classbase?: string;
+      filebase?: string;
       datapath?: (string | number)[];
       is_sentinel?: boolean;
       is_prefix?: boolean;
