@@ -1799,21 +1799,13 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
         other_project_release_1 = self.create_release(other_project)
         self.bulk_store_sessions(
             [
-                generate_session_default_args(
-                    {
-                        "org_id": self.organization.id,
-                        "environment": "prod",
-                        "project_id": self.project.id,
-                        "release": project_release_1.version,
-                    }
+                self.build_session(
+                    environment=self.environment.name, release=project_release_1.version
                 ),
-                generate_session_default_args(
-                    {
-                        "org_id": self.organization.id,
-                        "environment": "staging",
-                        "project_id": other_project.id,
-                        "release": other_project_release_1.version,
-                    }
+                self.build_session(
+                    environment="staging",
+                    project_id=other_project.id,
+                    release=other_project_release_1.version,
                 ),
             ]
         )
@@ -1836,7 +1828,7 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
                 self.organization.id,
                 [self.project.id, other_project.id],
                 "sessions",
-                environments=["prod"],
+                environments=[self.environment.name],
             )
             == 1
         )
@@ -1872,27 +1864,9 @@ class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
         release_2 = self.create_release(other_project, version="2")
         self.bulk_store_sessions(
             [
-                generate_session_default_args(
-                    {
-                        "org_id": self.organization.id,
-                        "project_id": self.project.id,
-                        "release": release_1.version,
-                    }
-                ),
-                generate_session_default_args(
-                    {
-                        "org_id": self.organization.id,
-                        "project_id": other_project.id,
-                        "release": release_1.version,
-                    }
-                ),
-                generate_session_default_args(
-                    {
-                        "org_id": self.organization.id,
-                        "project_id": other_project.id,
-                        "release": release_2.version,
-                    }
-                ),
+                self.build_session(release=release_1),
+                self.build_session(project_id=other_project, release=release_1),
+                self.build_session(project_id=other_project, release=release_2),
             ]
         )
         self.run_test([release_1], [self.project], [release_1])
