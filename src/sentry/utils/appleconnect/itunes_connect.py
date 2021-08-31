@@ -190,9 +190,6 @@ class ITunesClient:
         if self.session_id is not None:
             context["session_id"] = self.session_id
         if self._scnt is not None:
-        if self._trusted_phone is not None:
-            context["phone_id"] = self._trusted_phone.id
-            context["phone_push_mode"] = self._trusted_phone.push_mode
             context["scnt"] = self.scnt
         if self.state is ClientState.AUTHENTICATED:
             context["session_cookie"] = self.session_cookie()
@@ -218,10 +215,6 @@ class ITunesClient:
         ]:
             obj._session_id = context["session_id"]
             obj._scnt = context["scnt"]
-        if obj.state is ClientState.SMS_AUTH_REQUESTED:
-            obj._trusted_phone = TrustedPhoneInfo(
-                id=context["phone_id"], push_mode=context["phone_push_mode"]
-            )
         if obj.state in [ClientState.AUTHENTICATED, ClientState.EXPIRED]:
             obj.load_session_cookie(context["session_cookie"])
         return obj
@@ -388,15 +381,15 @@ class ITunesClient:
         :raises InvalidSmsAuthError:
         """
         assert self.state is ClientState.SMS_AUTH_REQUESTED, f"Actual client state: {self.state}"
-        assert self._trusted_phone is not None
         url = "https://idmsa.apple.com/appleauth/auth/verify/phone/securitycode"
         logger.debug("PUT %s", url)
+        trusted_phone = self._request_trusted_phone_info()
         response = self.session.post(
             url,
             json={
                 "securityCode": {"code": code},
-                "phoneNumber": {"id": self._trusted_phone.id},
-                "mode": self._trusted_phone.push_mode,
+                "phoneNumber": {"id": trusted_phone.id},
+                "mode": trusted_phone.push_mode,
             },
             headers={
                 "scnt": self.scnt,
