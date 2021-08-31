@@ -1,16 +1,6 @@
 from typing import Optional
 
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    NotificationSetting,
-    Organization,
-    OrganizationIntegration,
-    Project,
-    User,
-)
+from sentry.models import Integration, NotificationSetting, OrganizationIntegration, Project, User
 from sentry.notifications.helpers import NOTIFICATION_SETTING_DEFAULTS
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase
@@ -24,30 +14,8 @@ class SlackUninstallTest(APITestCase):
     method = "delete"
 
     def setUp(self) -> None:
-        self.integration = self.create_integration(self.organization, "TXXXXXXX1")
+        self.integration = self.create_integration(self.organization, ExternalProviders.SLACK)
         self.login_as(self.user)
-
-    def create_integration(self, organization: Organization, external_id: str):
-        integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
-            external_id=external_id,
-            metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-        integration.add_organization(organization)
-
-        idp = IdentityProvider.objects.create(type="slack", external_id=external_id, config={})
-        Identity.objects.create(
-            external_id="UXXXXXXX1",
-            idp=idp,
-            user=self.user,
-            status=IdentityStatus.VALID,
-            scopes=[],
-        )
-        return integration
 
     def uninstall(self) -> None:
         assert OrganizationIntegration.objects.filter(
@@ -120,7 +88,7 @@ class SlackUninstallTest(APITestCase):
 
     def test_uninstall_with_multiple_organizations(self):
         organization = self.create_organization(owner=self.user)
-        integration = self.create_integration(organization, "TXXXXXXX2")
+        integration = self.create_integration(organization, ExternalProviders.SLACK, "TXXXXXXX2")
 
         self.set_setting(ExternalProviders.EMAIL, NotificationSettingOptionValues.NEVER)
         self.set_setting(ExternalProviders.SLACK, NotificationSettingOptionValues.ALWAYS)
