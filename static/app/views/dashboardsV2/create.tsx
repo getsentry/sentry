@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
@@ -11,7 +11,7 @@ import withOrganization from 'app/utils/withOrganization';
 import {EMPTY_DASHBOARD} from './data';
 import DashboardDetail from './detail';
 import {DashboardState} from './types';
-import {cloneDashboard} from './utils';
+import {cloneDashboard, constructWidgetFromQuery} from './utils';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
@@ -19,6 +19,7 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 };
 
 function CreateDashboard(props: Props) {
+  const {location} = props;
   function renderDisabled() {
     return (
       <PageContent>
@@ -28,6 +29,10 @@ function CreateDashboard(props: Props) {
   }
 
   const dashboard = cloneDashboard(EMPTY_DASHBOARD);
+  const newWidget = constructWidgetFromQuery(location.query);
+  if (newWidget) {
+    browserHistory.replace(location.pathname);
+  }
   return (
     <Feature
       features={['dashboards-edit']}
@@ -39,6 +44,7 @@ function CreateDashboard(props: Props) {
         initialState={DashboardState.CREATE}
         dashboard={dashboard}
         dashboards={[]}
+        newWidget={newWidget}
       />
     </Feature>
   );
