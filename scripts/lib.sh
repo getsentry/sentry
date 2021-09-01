@@ -67,7 +67,7 @@ setup-docker() {
 
     set -x
     # Generate dynamic plist to allow starting Docker up without GUI prompt
-    sudo-askpass .github/workflows/scripts/write-docker-plist.sh
+    sudo-askpass ./.github/workflows/scripts/write-docker-plist.sh
     sudo-askpass /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
     sudo-askpass /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
 }
