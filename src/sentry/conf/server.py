@@ -729,6 +729,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=15),
         "options": {"expires": 60 * 25},
     },
+    "reattempt-deletions": {
+        "task": "sentry.tasks.deletion.reattempt_deletions",
+        "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
+        "options": {"expires": 60 * 25},
+    },
     "schedule-weekly-organization-reports": {
         "task": "sentry.tasks.reports.prepare_reports",
         "schedule": crontab(

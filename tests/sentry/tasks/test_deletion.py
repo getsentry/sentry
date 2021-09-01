@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 import pytest
@@ -32,10 +33,12 @@ from sentry.models import (
     ReleaseEnvironment,
     Repository,
     Rule,
+    ScheduledDeletion,
     Team,
     TeamStatus,
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
+from sentry.signals import pending_delete
 from sentry.tasks.deletion import (
     delete_api_application,
     delete_groups,
@@ -44,11 +47,89 @@ from sentry.tasks.deletion import (
     delete_repository,
     delete_team,
     generic_delete,
+    reattempt_deletions,
     revoke_api_tokens,
+    run_scheduled_deletions,
 )
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat.mock import patch
+
+
+class RunScheduledDeletionTest(TestCase):
+    def test_simple(self):
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+        schedule = ScheduledDeletion.schedule(instance=team, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert Team.objects.filter(id=team.id).exists() is False
+        assert ScheduledDeletion.objects.filter(id=schedule.id).exists() is False
+
+    def test_ignore_in_progress(self):
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+        schedule = ScheduledDeletion.schedule(instance=team, days=0)
+        schedule.update(in_progress=True)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert Team.objects.filter(id=team.id).exists()
+        assert ScheduledDeletion.objects.filter(id=schedule.id, in_progress=True).exists()
+
+    def test_future_schedule(self):
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+        schedule = ScheduledDeletion.schedule(instance=team, days=1)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert Team.objects.filter(id=team.id).exists()
+        assert ScheduledDeletion.objects.filter(id=schedule.id, in_progress=False).exists()
+
+    def test_triggers_pending_delete_signal(self):
+        signal_handler = Mock()
+        pending_delete.connect(signal_handler)
+
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+        ScheduledDeletion.schedule(instance=team, actor=self.user, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert signal_handler.call_count == 1
+        args = signal_handler.call_args_list[0][1]
+        assert args["instance"] == team
+        assert args["actor"] == self.user
+        pending_delete.disconnect(signal_handler)
+
+
+class ReattemptDeletionsTest(TestCase):
+    def test_simple(self):
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+        schedule = ScheduledDeletion.schedule(instance=team, days=-3)
+        schedule.update(in_progress=True)
+        with self.tasks():
+            reattempt_deletions()
+
+        schedule.refresh_from_db()
+        assert schedule.in_progress is False
+
+    def test_ignore_recent_jobs(self):
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+        schedule = ScheduledDeletion.schedule(instance=team, days=0)
+        schedule.update(in_progress=True)
+        with self.tasks():
+            reattempt_deletions()
+
+        schedule.refresh_from_db()
+        assert schedule.in_progress is True
 
 
 class DeleteOrganizationTest(TestCase):
