@@ -10,7 +10,11 @@ from sentry_plugins.jira_ac.utils import get_query_hash
 class JiraTenant(Model):
     __include_in_export__ = False
     organization = FlexibleForeignKey(
-        "sentry.Organization", null=True, blank=True, related_name="jira_tenant_set"
+        "sentry.Organization",
+        null=True,
+        blank=True,
+        related_name="jira_tenant_set",
+        db_constraint=False,
     )
     client_key = models.CharField(max_length=50, unique=True)
     secret = models.CharField(max_length=100)
