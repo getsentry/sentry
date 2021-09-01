@@ -492,6 +492,7 @@ type UserEnrolledAuthenticator = {
   dateCreated: EnrolledAuthenticator['createdAt'];
   type: Authenticator['id'];
   id: EnrolledAuthenticator['authId'];
+  name: EnrolledAuthenticator['name'];
 };
 
 export type User = Omit<AvatarUser, 'options'> & {
@@ -733,6 +734,7 @@ export type EnrolledAuthenticator = {
   lastUsedAt: string | null;
   createdAt: string;
   authId: string;
+  name: string;
 };
 
 export interface Config {
