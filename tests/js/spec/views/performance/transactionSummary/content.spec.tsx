@@ -2,8 +2,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import EventView from 'app/utils/discover/eventView';
-import SummaryContent from 'app/views/performance/transactionSummary/content';
 import {SpanOperationBreakdownFilter} from 'app/views/performance/transactionSummary/filter';
+import SummaryContent from 'app/views/performance/transactionSummary/transactionOverview/content';
 
 function initialize(projects, query, additionalFeatures: string[] = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
