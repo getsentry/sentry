@@ -1,5 +1,5 @@
 import re
-from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 from django.core.cache import cache
 
@@ -165,7 +165,7 @@ def build_footer(group: Group, project: Project, rules: Optional[Sequence[Rule]]
 
 
 def build_tag_fields(
-    event_for_tags: Any, tags: Optional[Mapping[str, str]] = None
+    event_for_tags: Any, tags: Optional[Set[str]] = None
 ) -> Sequence[Mapping[str, Union[str, bool]]]:
     fields = []
     if tags:
@@ -306,7 +306,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self,
         group: Group,
         event: Optional[Event] = None,
-        tags: Optional[Mapping[str, str]] = None,
+        tags: Optional[Set[str]] = None,
         identity: Optional[Identity] = None,
         actions: Optional[Sequence[Any]] = None,
         rules: Optional[List[Rule]] = None,
@@ -367,7 +367,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
 def build_group_attachment(
     group: Group,
     event: Optional[Event] = None,
-    tags: Optional[Mapping[str, str]] = None,
+    tags: Optional[Set[str]] = None,
     identity: Optional[Identity] = None,
     actions: Optional[Sequence[Any]] = None,
     rules: Optional[List[Rule]] = None,

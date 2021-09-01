@@ -50,7 +50,7 @@ def unfurl_issues(
     return out
 
 
-handler = Handler(
+handler: Handler = Handler(
     fn=unfurl_issues,
     matcher=re.compile(
         r"^https?\://[^/]+/[^/]+/[^/]+/issues/(?P<issue_id>\d+)(?:/events/(?P<event_id>\w+))?"

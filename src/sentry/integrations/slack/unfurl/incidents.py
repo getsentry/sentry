@@ -51,7 +51,7 @@ def unfurl_incidents(
     }
 
 
-handler = Handler(
+handler: Handler = Handler(
     fn=unfurl_incidents,
     matcher=re.compile(
         r"^https?\://[^/]+/organizations/(?P<org_slug>[^/]+)/alerts/rules/details/(?P<incident_id>\d+)"

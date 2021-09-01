@@ -1,12 +1,13 @@
 from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
 from sentry.models import Team, User
+from sentry.notifications.notifications.base import BaseNotification
 from sentry.types.integrations import ExternalProviders
 
 # Shortcut so that types don't explode.
 Notifiable = Callable[
     [
-        Any,
+        BaseNotification,
         Union[Set[User], Set[Team]],
         Mapping[str, Any],
         Optional[Mapping[int, Mapping[str, Any]]],
