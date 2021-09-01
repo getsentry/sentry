@@ -77,15 +77,13 @@ type TeamActor = {
   name: string;
 };
 
-type SelectableTeam = {
-  value: string;
+type TeamOption = {
+  value: string | null;
   label: React.ReactElement;
   searchKey: string;
-  actor: TeamActor;
+  actor: TeamActor | null;
   disabled?: boolean;
 };
-
-type TeamOption = SelectableTeam | typeof unassignedOption;
 
 type State = {
   options: TeamOption[];
@@ -107,10 +105,12 @@ class TeamSelector extends React.Component<Props, State> {
     const {teams, teamFilter, includeUnassigned, project} = this.props;
     const filteredTeams = teamFilter ? teams.filter(teamFilter) : teams;
     if (project) {
-      const teamsInProjectIdSet = new Set(project.teams.map(({id}) => id));
-      const teamsInProject = filteredTeams.filter(({id}) => teamsInProjectIdSet.has(id));
+      const teamsInProjectIdSet = new Set(project.teams.map(team => team.id));
+      const teamsInProject = filteredTeams.filter(team =>
+        teamsInProjectIdSet.has(team.id)
+      );
       const teamsNotInProject = filteredTeams.filter(
-        ({id}) => !teamsInProjectIdSet.has(id)
+        team => !teamsInProjectIdSet.has(team.id)
       );
 
       return [
@@ -119,14 +119,13 @@ class TeamSelector extends React.Component<Props, State> {
         ...(includeUnassigned ? [unassignedOption] : []),
       ];
     }
-    const teamOptions: TeamOption[] = filteredTeams.map(this.createTeamOption);
-    if (includeUnassigned) {
-      teamOptions.push(unassignedOption);
-    }
-    return teamOptions;
+    return [
+      ...filteredTeams.map(this.createTeamOption),
+      ...(includeUnassigned ? [unassignedOption] : []),
+    ];
   }
 
-  createTeamOption = (team: Team): SelectableTeam => ({
+  createTeamOption = (team: Team): TeamOption => ({
     value: this.props.useId ? team.id : team.slug,
     label: <IdBadge team={team} />,
     searchKey: `#${team.slug}`,
@@ -158,6 +157,11 @@ class TeamSelector extends React.Component<Props, State> {
     const {api, organization, project, value} = this.props;
     const {options} = this.state;
 
+    if (!project) {
+      this.closeSelectMenu();
+      return;
+    }
+
     // Copy old value
     const oldValue = value ? [...value] : {value};
 
@@ -165,21 +169,18 @@ class TeamSelector extends React.Component<Props, State> {
     this.props.onChange?.(this.createTeamOption(team));
 
     try {
-      // Try to add team to project
-      if (project) {
-        await addTeamToProject(api, organization.slug, project.slug, team);
+      await addTeamToProject(api, organization.slug, project.slug, team);
 
-        // Remove add to project button without changing order
-        const newOptions = options!.map(option => {
-          if (option.actor?.id === team.id) {
-            option.disabled = false;
-            option.label = <IdBadge team={team} />;
-          }
+      // Remove add to project button without changing order
+      const newOptions = options.map(option => {
+        if (option.actor?.id === team.id) {
+          option.disabled = false;
+          option.label = <IdBadge team={team} />;
+        }
 
-          return option;
-        });
-        this.setState({options: newOptions});
-      }
+        return option;
+      });
+      this.setState({options: newOptions});
     } catch (err) {
       // Unable to add team to project, revert select menu value
       this.props.onChange?.(oldValue);
