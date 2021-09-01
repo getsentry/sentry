@@ -138,7 +138,7 @@ class TeamDetails extends React.Component<Props, State> {
   };
 
   render() {
-    const {children, organization, params, routes} = this.props;
+    const {children, params, routes} = this.props;
     const {team, loading, requesting, error} = this.state;
 
     if (loading) {
@@ -183,17 +183,10 @@ class TeamDetails extends React.Component<Props, State> {
       <ListLink key={2} to={`${routePrefix}settings/`}>
         {t('Settings')}
       </ListLink>,
+      <ListLink key="x" to={`${routePrefix}notifications/`}>
+        {t('Notifications')}
+      </ListLink>,
     ];
-
-    if (organization.features.includes('notification-platform')) {
-      navigationTabs.splice(
-        2,
-        0,
-        <ListLink key="x" to={`${routePrefix}notifications/`}>
-          {t('Notifications')}
-        </ListLink>
-      );
-    }
 
     return (
       <div>
