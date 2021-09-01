@@ -1,6 +1,7 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 
+import {updateDashboardVisit} from 'app/actionCreators/dashboards';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
@@ -23,7 +24,16 @@ type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
 };
 
 function ViewEditDashboard(props: Props) {
-  const {organization, params, api, location} = props;
+  const {api, organization, params, location} = props;
+  const dashboardId = params.dashboardId;
+  const orgSlug = organization.slug;
+
+  useEffect(() => {
+    if (dashboardId && dashboardId !== 'default-overview') {
+      updateDashboardVisit(api, orgSlug, dashboardId);
+    }
+  }, [api, orgSlug, dashboardId]);
+
   return (
     <DashboardBasicFeature organization={organization}>
       <OrgDashboards

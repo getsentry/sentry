@@ -1,0 +1,257 @@
+---
+created: '2021-08-27T14:37:16.077166Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "dbfdfa9b4ca52c948eaa7ada4bff306a"
+  tree_label: "callback"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/utils/handleXhrErrorResponse"
+            filename (module takes precedence)
+              "handlexhrerrorresponse.tsx"
+            function*
+              "callback"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "Unable to save a recent search"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "e61ad0fd02c88e22581b7f4b5849c2d1"
+  tree_label: "callback | apply"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "@sentry/hub/esm/hub"
+            filename (module takes precedence)
+              "hub.js"
+            function*
+              "apply"
+          frame*
+            module*
+              "app/utils/handleXhrErrorResponse"
+            filename (module takes precedence)
+              "handlexhrerrorresponse.tsx"
+            function*
+              "callback"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "Unable to save a recent search"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "b1fa3c0a9289db9c8b7471d50ff2e4e0"
+  tree_label: "callback | apply | callOnHub"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "@sentry/minimal/esm/index"
+            filename (module takes precedence)
+              "index.js"
+            function*
+              "callOnHub"
+          frame*
+            module*
+              "@sentry/hub/esm/hub"
+            filename (module takes precedence)
+              "hub.js"
+            function*
+              "apply"
+          frame*
+            module*
+              "app/utils/handleXhrErrorResponse"
+            filename (module takes precedence)
+              "handlexhrerrorresponse.tsx"
+            function*
+              "callback"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "Unable to save a recent search"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "2f0afd41cbd4f4a3954d0afda56b47ed"
+  tree_label: "callback | apply | callOnHub | Sentry"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "@sentry/minimal/esm/index"
+            filename (module takes precedence)
+              "index.js"
+            function*
+              "Sentry"
+          frame*
+            module*
+              "@sentry/minimal/esm/index"
+            filename (module takes precedence)
+              "index.js"
+            function*
+              "callOnHub"
+          frame*
+            module*
+              "@sentry/hub/esm/hub"
+            filename (module takes precedence)
+              "hub.js"
+            function*
+              "apply"
+          frame*
+            module*
+              "app/utils/handleXhrErrorResponse"
+            filename (module takes precedence)
+              "handlexhrerrorresponse.tsx"
+            function*
+              "callback"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "Unable to save a recent search"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "2a8970581cc3478959e826ee278af1d5"
+  tree_label: "callback | apply | callOnHub | Sentry"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/utils/handleXhrErrorResponse"
+            filename (module takes precedence)
+              "handlexhrerrorresponse.tsx"
+          frame*
+            module*
+              "@sentry/minimal/esm/index"
+            filename (module takes precedence)
+              "index.js"
+            function*
+              "Sentry"
+          frame*
+            module*
+              "@sentry/minimal/esm/index"
+            filename (module takes precedence)
+              "index.js"
+            function*
+              "callOnHub"
+          frame*
+            module*
+              "@sentry/hub/esm/hub"
+            filename (module takes precedence)
+              "hub.js"
+            function*
+              "apply"
+          frame*
+            module*
+              "app/utils/handleXhrErrorResponse"
+            filename (module takes precedence)
+              "handlexhrerrorresponse.tsx"
+            function*
+              "callback"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "Unable to save a recent search"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "2a8970581cc3478959e826ee278af1d5"
+  tree_label: "callback | apply | callOnHub | Sentry"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/utils/handleXhrErrorResponse"
+            filename (module takes precedence)
+              "handlexhrerrorresponse.tsx"
+          frame*
+            module*
+              "@sentry/minimal/esm/index"
+            filename (module takes precedence)
+              "index.js"
+            function*
+              "Sentry"
+          frame*
+            module*
+              "@sentry/minimal/esm/index"
+            filename (module takes precedence)
+              "index.js"
+            function*
+              "callOnHub"
+          frame*
+            module*
+              "@sentry/hub/esm/hub"
+            filename (module takes precedence)
+              "hub.js"
+            function*
+              "apply"
+          frame*
+            module*
+              "app/utils/handleXhrErrorResponse"
+            filename (module takes precedence)
+              "handlexhrerrorresponse.tsx"
+            function*
+              "callback"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "Unable to save a recent search"
+--------------------------------------------------------------------------
+system:
+  hash: "2a8970581cc3478959e826ee278af1d5"
+  tree_label: "callback | apply | callOnHub | Sentry"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/utils/handleXhrErrorResponse"
+            filename (module takes precedence)
+              "handlexhrerrorresponse.tsx"
+          frame*
+            module*
+              "@sentry/minimal/esm/index"
+            filename (module takes precedence)
+              "index.js"
+            function*
+              "Sentry"
+          frame*
+            module*
+              "@sentry/minimal/esm/index"
+            filename (module takes precedence)
+              "index.js"
+            function*
+              "callOnHub"
+          frame*
+            module*
+              "@sentry/hub/esm/hub"
+            filename (module takes precedence)
+              "hub.js"
+            function*
+              "apply"
+          frame*
+            module*
+              "app/utils/handleXhrErrorResponse"
+            filename (module takes precedence)
+              "handlexhrerrorresponse.tsx"
+            function*
+              "callback"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "Unable to save a recent search"
