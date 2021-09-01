@@ -7,9 +7,13 @@ import BaseRRWebReplayer from './rrWebReplayer';
 const RRWebReplayer = styled(BaseRRWebReplayer)`
   .rr-player {
     width: auto !important;
+    height: auto !important;
   }
   .rr-player__frame {
     width: 100% !important;
+    border-radius: 3px 3px 0 0;
+    border: 1px solid ${p => p.theme.border};
+    overflow: hidden;
   }
 
   .rr-player iframe {
@@ -43,32 +47,42 @@ const RRWebReplayer = styled(BaseRRWebReplayer)`
     display: block;
     padding: ${space(2)} 0;
     background: ${p => p.theme.background};
-    border-radius: 0 0 5px 5px;
-    box-shadow: 0 -1px 3px 0 rgba(0, 0, 0, 0.1);
+    border-radius: 0 0 3px 3px;
+    border: 1px solid ${p => p.theme.border};
+    border-top: none;
     position: relative;
+    color: ${p => p.theme.textColor};
   }
 
   .rr-timeline {
     width: 100%;
-    display: flex;
+    display: grid;
+    grid-template-columns: 90px 1fr 90px;
     align-items: center;
   }
 
   .rr-timeline__time {
-    padding: 0 20px;
-    color: #11103e;
+    text-align: center;
+    color: ${p => p.theme.textColor};
   }
 
   .rr-progress {
     width: 100%;
     height: 12px;
-    background: #eee;
     position: relative;
-    border-radius: 3px;
     cursor: pointer;
-    box-sizing: border-box;
-    border-top: solid 4px #fff;
-    border-bottom: solid 4px #fff;
+
+    &:before {
+      content: '';
+      background: ${p => p.theme.innerBorder};
+      border-radius: 3px;
+      display: block;
+      height: 6px;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 3px;
+    }
   }
 
   .rr-progress.disabled {
@@ -76,33 +90,38 @@ const RRWebReplayer = styled(BaseRRWebReplayer)`
   }
 
   .rr-progress__step {
-    height: 100%;
+    height: 6px;
     position: absolute;
     left: 0;
-    top: 0;
-    background: #e0e1fe;
+    top: 3px;
+    border-radius: 3px;
+    background: ${p => p.theme.purple200};
   }
 
   .rr-progress__handler {
     width: 20px;
     height: 20px;
-    border-radius: 10px;
+    border-radius: 50%;
     position: absolute;
-    top: 2px;
+    top: 6px;
     transform: translate(-50%, -50%);
     background: ${p => p.theme.purple300};
   }
 
   .rr-controller__btns {
-    display: flex;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    grid-gap: ${space(0.75)};
     align-items: center;
     justify-content: center;
-    font-size: 13px;
+    font-size: ${p => p.theme.fontSizeSmall};
   }
 
   .rr-controller__btns button {
-    width: 32px;
-    height: 32px;
+    color: ${p => p.theme.textColor};
+    width: 28px;
+    height: 28px;
     display: flex;
     padding: 0;
     align-items: center;
@@ -111,15 +130,20 @@ const RRWebReplayer = styled(BaseRRWebReplayer)`
     border: none;
     border-radius: 50%;
     cursor: pointer;
+    transition: background 200ms ease;
+
+    > svg {
+      fill: ${p => p.theme.textColor};
+    }
   }
 
   .rr-controller__btns button:active {
-    background: #e0e1fe;
+    background: ${p => p.theme.innerBorder};
   }
 
   .rr-controller__btns button.active {
-    color: #fff;
-    background: ${p => p.theme.purple300};
+    color: ${p => p.theme.white};
+    background: ${p => p.theme.active};
   }
 
   .rr-controller__btns button:disabled {
@@ -142,15 +166,18 @@ const RRWebReplayer = styled(BaseRRWebReplayer)`
 
   .switch input[type='checkbox'] {
     position: absolute;
-    opacity: 0;
+    visibility: hidden;
   }
 
   .switch label {
-    width: 2em;
-    height: 1em;
+    width: 32px;
+    height: 16px;
     position: relative;
     cursor: pointer;
-    display: block;
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: 2px 3px;
   }
 
   .switch.disabled label {
@@ -160,35 +187,27 @@ const RRWebReplayer = styled(BaseRRWebReplayer)`
   .switch label:before {
     content: '';
     position: absolute;
-    width: 2em;
-    height: 1em;
-    left: 0.1em;
-    transition: background 0.1s ease;
-    background: ${p => p.theme.purple300};
-    border-radius: 50px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 1px solid ${p => p.theme.border};
+    border-radius: 16px;
   }
 
   .switch label:after {
     content: '';
-    position: absolute;
-    width: 1em;
-    height: 1em;
-    border-radius: 50px;
-    left: 0;
-    transition: all 0.2s ease;
-    box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.3);
-    background: #fcfff4;
-    animation: switch-off 0.2s ease-out;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    transition: all 200ms ease;
+    background: ${p => p.theme.border};
     z-index: 2;
   }
 
-  .switch input[type='checkbox']:checked + label:before {
-    background: ${p => p.theme.purple300};
-  }
-
   .switch input[type='checkbox']:checked + label:after {
-    animation: switch-on 0.2s ease-out;
-    left: 1.1em;
+    background: ${p => p.theme.active};
+    transform: translateX(16px);
   }
 `;
 
