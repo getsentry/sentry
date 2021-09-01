@@ -13,7 +13,6 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.utils import json
-from sentry.utils.compat import filter
 from sentry.utils.compat.mock import Mock, patch
 
 UNSET = object()
@@ -198,29 +197,9 @@ class LinkSharedEventTest(BaseEventTest):
 
 
 class MessageIMEventTest(BaseEventTest):
-    def get_block_type_text(self, block_type, data):
-        block = filter(lambda x: x["type"] == block_type, data["blocks"])[0]
-        return block["elements"][0]["text"]["text"]
-
     def get_block_section_text(self, data):
         blocks = data["blocks"]
         return blocks[0]["text"]["text"], blocks[1]["text"]["text"]
-
-    @responses.activate
-    def test_user_message_im(self):
-        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT))
-        assert resp.status_code == 200, resp.content
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        data = json.loads(request.body)
-        heading, contents = self.get_block_section_text(data)
-        assert heading == "Unknown command: `helloo`"
-        assert (
-            contents
-            == "Want to learn more about configuring alerts in Sentry? Check out our documentation."
-        )
-        assert self.get_block_type_text("actions", data) == "Sentry Docs"
 
     @responses.activate
     def test_user_message_im_notification_platform(self):
