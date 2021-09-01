@@ -186,12 +186,11 @@ describe('Performance Transaction Events Content', function () {
         organization={organization}
         location={initialData.router.location}
         transactionName={transactionName}
-        projects={initialData.projects}
         spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
         onChangeSpanOperationBreakdownFilter={() => {}}
         eventsDisplayFilterName={EventsDisplayFilterName.p100}
         onChangeEventsDisplayFilter={() => {}}
-        isLoading={false}
+        setError={() => {}}
       />,
       initialData.routerContext
     );
@@ -203,7 +202,6 @@ describe('Performance Transaction Events Content', function () {
     expect(wrapper.find('SearchRowMenuItem')).toHaveLength(2);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
-    expect(wrapper.find('TransactionHeader')).toHaveLength(1);
 
     const columnTitles = wrapper.find('EventsTable').props().columnTitles;
     expect(columnTitles).toEqual([
@@ -223,13 +221,12 @@ describe('Performance Transaction Events Content', function () {
         organization={organization}
         location={initialData.router.location}
         transactionName={transactionName}
-        projects={initialData.projects}
         spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
         onChangeSpanOperationBreakdownFilter={() => {}}
         eventsDisplayFilterName={EventsDisplayFilterName.p100}
         onChangeEventsDisplayFilter={() => {}}
-        isLoading={false}
         webVital={WebVital.LCP}
+        setError={() => {}}
       />,
       initialData.routerContext
     );
@@ -241,7 +238,6 @@ describe('Performance Transaction Events Content', function () {
     expect(wrapper.find('SearchRowMenuItem')).toHaveLength(2);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
-    expect(wrapper.find('TransactionHeader')).toHaveLength(1);
 
     const columnTitles = wrapper.find('EventsTable').props().columnTitles;
     expect(columnTitles).toEqual([
