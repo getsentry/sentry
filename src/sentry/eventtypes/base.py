@@ -16,7 +16,7 @@ def get_tree_label_part_details(part):
         # 2021-06-09. Same for frontend version.
         return part
 
-    label = part.get("function") or part.get("package") or part.get("type")
+    label = part.get("function") or part.get("package") or part.get("filebase") or part.get("type")
 
     classbase = part.get("classbase")
 

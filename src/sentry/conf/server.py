@@ -360,6 +360,13 @@ SILENCED_SYSTEM_CHECKS = (
     # the trailing slash. This confuses the warning as the regex is `/$` which
     # looks like it starts with a slash but it doesn't.
     "urls.W002",
+    # Our own AuthenticationMiddleware suffices as a replacement for
+    # django.contrib.auth.middleware.AuthenticationMiddleware; both add the
+    # authenticated user to the HttpRequest which is what's needed here.
+    "admin.E408",
+    # This is fixed in Django@7c08f26bf0439c1ed593b51b51ad847f7e262bc1.
+    # It's not our problem; refer to Django issue 32260.
+    "urls.E007",
 )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
@@ -895,6 +902,8 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
+    # Enable discover top events queries with other & higher options
+    "organizations:discover-top-events": False,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable multi project selection
@@ -981,6 +990,11 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Display a global dashboard notification for this org
     "organizations:prompt-dashboards": False,
+    "organizations:prompt-additional-volume": False,
+    "organizations:prompt-additional-volume-on-demand": False,
+    "organizations:prompt-on-demand-orgs": False,
+    "organizations:prompt-release-health-adoption": False,
+    "organizations:prompt-upgrade-via-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable views for tag explorer
@@ -1005,6 +1019,8 @@ SENTRY_FEATURES = {
     # Enable option to send alert, workflow, and deploy notifications
     # to 3rd parties (e.g. Slack) in addition to email
     "organizations:notification-platform": False,
+    # Automatically opt IN users to receiving Slack notifications.
+    "organizations:notification-slack-automatic": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
