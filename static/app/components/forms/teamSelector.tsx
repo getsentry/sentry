@@ -56,11 +56,17 @@ type Props = {
   organization: Organization;
   teams: Team[];
   onChange: (value: any) => any;
-  // Function to control whether a team should be shown in the dropdown
+  /**
+   * Function to control whether a team should be shown in the dropdown
+   */
   teamFilter?: (team: Team) => boolean;
-  // Include only the provided Project's teams and allow user to add teams to projects on the fly
+  /**
+   * Can be used to restrict teams to a certain project and allow for new teams to be add to that project
+   */
   project?: Project;
-  // Controls whether the value in the dropdown is an id instead of slug
+  /**
+   * Controls whether the value in the dropdown is a team id or team slug
+   */
   useId?: boolean;
   includeUnassigned?: boolean;
 } & ControlProps;
@@ -79,11 +85,7 @@ type SelectableTeam = {
   disabled?: boolean;
 };
 
-type UnselectableTeam = SelectableTeam & {
-  disabled: true;
-};
-
-type TeamOption = SelectableTeam | UnselectableTeam | typeof unassignedOption;
+type TeamOption = SelectableTeam | typeof unassignedOption;
 
 type State = {
   options: TeamOption[];
@@ -185,7 +187,7 @@ class TeamSelector extends React.Component<Props, State> {
     this.closeSelectMenu();
   };
 
-  createTeamOutsideProjectOption = (team: Team): UnselectableTeam => {
+  createTeamOutsideProjectOption = (team: Team): TeamOption => {
     const {organization} = this.props;
     const canAddTeam = organization.access.includes('project:write');
 
