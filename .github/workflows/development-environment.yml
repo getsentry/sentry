@@ -50,8 +50,10 @@ jobs:
         run: |
           uname -a
           brew -v
+          brew update
           which brew
           set -x
+          brew install -v --cask docker || :
           echo $(brew --cache)
           ls -l $(brew --cache) | wc -l
           ls -l $(brew --cache)/downloads | wc -l
