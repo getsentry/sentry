@@ -28,7 +28,7 @@ jobs:
 
       - name: Install prerequisites
         run: |
-          # We remove the cache since there was a signature mismatch for the Docker image
+          # We remove the cache if we fail since signature mistmatches can happen
           HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade || rm -rf $(brew --cache) && brew bundle
 
       - name: Setup python
