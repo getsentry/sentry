@@ -1,11 +1,12 @@
 import logging
 import warnings
-from typing import Any, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.auth.signals import user_logged_out
 from django.db import IntegrityError, models, transaction
+from django.db.models import Count, Subquery
 from django.db.models.query import QuerySet
 from django.dispatch import receiver
 from django.urls import reverse
@@ -15,9 +16,13 @@ from django.utils.translation import ugettext_lazy as _
 from bitfield import BitField
 from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, FlexibleForeignKey, sane_repr
 from sentry.models import LostPasswordHash
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
 
 audit_logger = logging.getLogger("sentry.audit.user")
+
+if TYPE_CHECKING:
+    from sentry.models import Organization
 
 
 class UserManager(BaseManager, DjangoUserManager):
@@ -60,6 +65,37 @@ class UserManager(BaseManager, DjangoUserManager):
             sentry_orgmember_set__organizationmemberteam__team__projectteam__project__in=projects,
             sentry_orgmember_set__organizationmemberteam__is_active=True,
             is_active=True,
+        )
+
+    def get_from_organizations(self, organization_ids):
+        """Returns users associated with an Organization based on their teams."""
+        return self.filter(
+            sentry_orgmember_set__organization_id__in=organization_ids,
+            sentry_orgmember_set__organizationmemberteam__is_active=True,
+            is_active=True,
+        )
+
+    def get_users_with_only_one_integration_for_provider(
+        self, provider: ExternalProviders, organization: "Organization"
+    ) -> QuerySet:
+        """
+        For a given organization, get the list of members that are only
+        connected to a single integration.
+        """
+        return (
+            self.filter(
+                sentry_orgmember_set__organization__organizationintegration__integration__provider=EXTERNAL_PROVIDERS[
+                    provider
+                ],
+                id__in=Subquery(
+                    self.filter(
+                        is_active=True,
+                        sentry_orgmember_set__organization=organization,
+                    ).values("id")
+                ),
+            )
+            .annotate(row_count=Count("id"))
+            .filter(row_count=1)
         )
 
 
