@@ -240,12 +240,8 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
     The returned JSON only contains an ``id`` field which can be used in other endpoints to refer
     to this set of credentials.
 
-    Credentials as saved using the ``symbolSources`` field under project details page
-    (:class:`ProjectDetailsEndpoint` in :file:`src/sentry/api/endpoints/project_details.py`)
-    which contains a JSON blob containing all the symbol sources.
-
-    The UI itself is responsible for posting this blob, but this endpoint must be called
-    first with the results of authenticating to get the correct JSON format to save.
+    The config object is already stored so no further action must be taken by clients once
+    they receive the saved configuration.
     """
 
     permission_classes = [StrictProjectPermission]
