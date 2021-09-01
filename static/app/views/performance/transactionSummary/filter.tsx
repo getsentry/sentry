@@ -26,7 +26,6 @@ type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 // TODO(k-fish): Re-export until other files use context
 export {SpanOperationBreakdownFilter} from '../contexts/operationBreakdownFilter';
 
-// Make sure to update other instances like trends column fields, discover field types.
 const OPTIONS: SpanOperationBreakdownFilter[] = [
   SpanOperationBreakdownFilter.Http,
   SpanOperationBreakdownFilter.Db,
