@@ -28,13 +28,13 @@ import Tab from '../tabs';
 import {PERCENTILE, VITAL_GROUPS} from './constants';
 import VitalsContent from './content';
 
-type Props2 = {
+type Props = {
   location: Location;
   organization: Organization;
   projects: Project[];
 };
 
-function TransactionVitals(props: Props2) {
+function TransactionVitals(props: Props) {
   const {location, organization, projects} = props;
   const projectId = decodeScalar(location.query.project);
   const transactionName = getTransactionName(location);
@@ -58,8 +58,7 @@ function TransactionVitals(props: Props2) {
     setIncompatibleAlertNotice(notice);
   };
 
-  // TODO: remove `undefined` from the return type here
-  const eventView = generateEventView(location, transactionName)!;
+  const eventView = generateEventView(location, transactionName);
 
   return (
     <SentryDocumentTitle
