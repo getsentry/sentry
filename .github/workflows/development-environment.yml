@@ -74,13 +74,10 @@ jobs:
           eval "$(pyenv init --path)"
           python -m venv .venv
           source .venv/bin/activate
-          if [ docker system info &>/dev/null ]; then
-            make bootstrap
-          else
-            make develop init-config
-          fi
+          make develop init-config
 
       - name: Test direnv
         run: |
           brew install direnv
+          eval "$(direnv hook zsh)"
           direnv allow
