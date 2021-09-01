@@ -264,7 +264,7 @@ def get_function_component(
                 hint="ignored because sourcemap used and context line available",
             )
 
-    if context["hierarchical_grouping"]:
+    if function_component.values and context["hierarchical_grouping"]:
         function_component.update(tree_label={"function": function_component.values[0]})
 
     return function_component
@@ -321,7 +321,6 @@ def frame(frame, event, context, **meta):
         # cannot show. In that case we want to show something else instead
         # of hiding the frame from the title as if it didn't contribute.
         context_line_component.update(tree_label=function_component.tree_label)
-
         values.append(context_line_component)
 
     if (
