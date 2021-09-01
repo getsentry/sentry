@@ -27,7 +27,7 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers import Feature, faux
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.compat import mock, zip
@@ -752,7 +752,8 @@ class ProjectUpdateTest(APITestCase):
         expiry = response.data["secondaryGroupingExpiry"]
         assert (now + 3600 * 24 * 90) < expiry < (now + 3600 * 24 * 92)
 
-    def test_redacted_symbol_source_secrets(self):
+    @mock.patch("sentry.utils.audit.create_audit_entry")
+    def test_redacted_symbol_source_secrets(self, create_audit_entry):
         with Feature(
             {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
         ):
@@ -775,6 +776,14 @@ class ProjectUpdateTest(APITestCase):
 
             # redact password
             redacted_source["password"] = {"hidden-secret": True}
+
+            # check that audit entry was created with redacted password
+            assert create_audit_entry.called
+            call = faux.faux(create_audit_entry)
+            assert call.kwarg_equals(
+                "data", {"sentry:symbol_sources": json.dumps([redacted_source])}
+            )
+
             self.get_valid_response(
                 self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
             )
