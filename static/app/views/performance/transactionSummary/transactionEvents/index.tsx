@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
@@ -21,7 +21,7 @@ import {
 } from 'app/utils/discover/fields';
 import {removeHistogramQueryStrings} from 'app/utils/performance/histogram';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -48,7 +48,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   selection: GlobalSelection;
-} & Pick<WithRouterProps, 'router'>;
+};
 
 type State = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
@@ -157,8 +157,8 @@ class TransactionEvents extends Component<Props, State> {
     ];
     const filteredEventView = eventView?.clone();
     if (filteredEventView && filter?.query) {
-      const query = tokenizeSearch(filteredEventView.query);
-      filter.query.forEach(item => query.setTagValues(item[0], [item[1]]));
+      const query = new MutableSearch(filteredEventView.query);
+      filter.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
       filteredEventView.query = query.formatString();
     }
     return filteredEventView;
@@ -307,13 +307,13 @@ function generateEventsEventView(
     return undefined;
   }
   const query = decodeScalar(location.query.query, '');
-  const conditions = tokenizeSearch(query);
+  const conditions = new MutableSearch(query);
   conditions
-    .setTagValues('event.type', ['transaction'])
-    .setTagValues('transaction', [transactionName]);
+    .setFilterValues('event.type', ['transaction'])
+    .setFilterValues('transaction', [transactionName]);
 
-  Object.keys(conditions.tagValues).forEach(field => {
-    if (isAggregateField(field)) conditions.removeTag(field);
+  Object.keys(conditions.filters).forEach(field => {
+    if (isAggregateField(field)) conditions.removeFilter(field);
   });
 
   // Default fields for relative span view

@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -13,7 +13,7 @@ import {PageContent} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -27,7 +27,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   selection: GlobalSelection;
-} & Pick<WithRouterProps, 'router'>;
+};
 
 type State = {
   eventView: EventView | undefined;
@@ -140,7 +140,7 @@ function generateTagsEventView(
     return undefined;
   }
   const query = decodeScalar(location.query.query, '');
-  const conditions = tokenizeSearch(query);
+  const conditions = new MutableSearch(query);
   const eventView = EventView.fromNewQueryWithLocation(
     {
       id: undefined,
@@ -153,8 +153,8 @@ function generateTagsEventView(
     location
   );
 
-  eventView.additionalConditions.setTagValues('event.type', ['transaction']);
-  eventView.additionalConditions.setTagValues('transaction', [transactionName]);
+  eventView.additionalConditions.setFilterValues('event.type', ['transaction']);
+  eventView.additionalConditions.setFilterValues('transaction', [transactionName]);
   return eventView;
 }
 

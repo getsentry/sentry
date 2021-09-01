@@ -119,7 +119,7 @@ class ActivityNotificationTest(APITestCase):
         assert attachment["title"] == f"{self.group.title}"
         assert (
             attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=slack"
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=NoteActivitySlack"
         )
         assert attachment["text"] == "blah blah"
         assert (
@@ -240,7 +240,7 @@ class ActivityNotificationTest(APITestCase):
 
         assert (
             text
-            == f"Release {release.version[:12]} deployed to {self.environment.name} for this project"
+            == f"Release {release.version[:12]} was deployed to {self.environment.name} for this project"
         )
         assert (
             attachment["actions"][0]["url"]

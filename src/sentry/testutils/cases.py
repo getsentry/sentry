@@ -18,6 +18,8 @@ __all__ = (
     "ReleaseCommitPatchTest",
     "SetRefsTestCase",
     "OrganizationDashboardWidgetTestCase",
+    "SCIMTestCase",
+    "SCIMAzureTestCase",
 )
 
 import inspect
@@ -52,6 +54,7 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry import auth, eventstore
 from sentry.auth.authenticators import TotpInterface
 from sentry.auth.providers.dummy import DummyProvider
+from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
 from sentry.auth.superuser import COOKIE_NAME as SU_COOKIE_NAME
 from sentry.auth.superuser import COOKIE_PATH as SU_COOKIE_PATH
@@ -61,6 +64,7 @@ from sentry.auth.superuser import ORG_ID as SU_ORG_ID
 from sentry.auth.superuser import Superuser
 from sentry.constants import MODULE_ROOT
 from sentry.eventstream.snuba import SnubaEventStream
+from sentry.models import AuthProvider as AuthProviderModel
 from sentry.models import (
     Dashboard,
     DashboardWidget,
@@ -811,6 +815,33 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
+    def build_session(self, **kwargs):
+        session = {
+            "session_id": str(uuid4()),
+            "distinct_id": str(uuid4()),
+            "status": "ok",
+            "seq": 0,
+            "retention_days": 90,
+            "duration": 60.0,
+            "errors": 0,
+            "started": time.time() // 60 * 60,
+            "received": time.time(),
+        }
+        # Support both passing the values for these field directly, and the full objects
+        translators = [
+            ("release", "version", "release"),
+            ("environment", "name", "environment"),
+            ("project_id", "id", "project"),
+            ("org_id", "id", "organization"),
+        ]
+        for key, attr, default_attr in translators:
+            if key not in kwargs:
+                kwargs[key] = getattr(self, default_attr)
+            val = kwargs[key]
+            kwargs[key] = getattr(val, attr, val)
+        session.update(kwargs)
+        return session
+
     def store_session(self, session):
         self.bulk_store_sessions([session])
 
@@ -1176,3 +1207,20 @@ class TestMigrations(TestCase):
 
     def setup_before_migration(self, apps):
         pass
+
+
+class SCIMTestCase(APITestCase):
+    def setUp(self, provider="dummy"):
+        super().setUp()
+        self.auth_provider = AuthProviderModel(organization=self.organization, provider=provider)
+        with self.feature({"organizations:sso-scim": True}):
+            self.auth_provider.enable_scim(self.user)
+            self.auth_provider.save()
+        self.login_as(user=self.user)
+
+
+class SCIMAzureTestCase(SCIMTestCase):
+    def setUp(self):
+        auth.register(ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)
+        super().setUp(provider=ACTIVE_DIRECTORY_PROVIDER_NAME)
+        self.addCleanup(auth.unregister, ACTIVE_DIRECTORY_PROVIDER_NAME, DummyProvider)

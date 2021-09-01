@@ -8,6 +8,7 @@ import dataclasses
 import io
 import logging
 import pathlib
+import time
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -19,7 +20,7 @@ from django.db import transaction
 
 from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA
 from sentry.models import Project
-from sentry.utils import json
+from sentry.utils import json, sdk
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 
 logger = logging.getLogger(__name__)
@@ -28,12 +29,13 @@ logger = logging.getLogger(__name__)
 # The key in the project options under which all symbol sources are stored.
 SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 
-# The key in the project options under which all of the dates corresponding to the last time sentry
-# checked for new builds in App Store Connect are stored.
-APPSTORECONNECT_BUILD_REFRESHES_OPTION = "sentry:asc_build_refresh_dates"
-
 # The symbol source type for an App Store Connect symbol source.
 SYMBOL_SOURCE_TYPE_NAME = "appStoreConnect"
+
+# The key in the project options under which all of the dates corresponding to the last time sentry
+# checked for new builds in App Store Connect are stored.
+# TODO: Remove this before App Store Connect GA
+APPSTORECONNECT_BUILD_REFRESHES_OPTION = "sentry:asc_build_refresh_dates"
 
 
 class InvalidCredentialsError(Exception):
@@ -65,9 +67,6 @@ class AppStoreConnectConfig:
     type: str
 
     # The ID which identifies this symbol source for this project.
-    #
-    # Currently we only allow one appStoreConnect source per project, but we already
-    # identify them using an ID anyway for future safety.
     id: str
 
     # The name of the symbol source.
@@ -174,10 +173,25 @@ class AppStoreConnectConfig:
         else:
             raise KeyError(f"No {SYMBOL_SOURCE_TYPE_NAME} symbol source found with id {config_id}")
 
-    def to_json(self) -> Dict[str, Any]:
-        """Creates a dict which can be serialised to JSON.
+    @staticmethod
+    def all_config_ids(project: Project) -> List[str]:
+        """Return the config IDs of all appStoreConnect symbol sources configured in the project."""
+        raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
+        if not raw:
+            raw = "[]"
+        all_sources = json.loads(raw)
+        return [
+            s.get("id")
+            for s in all_sources
+            if s.get("type") == SYMBOL_SOURCE_TYPE_NAME and s.get("id")
+        ]
 
-        The generated dict will validate according to the schema.
+    def to_json(self) -> Dict[str, Any]:
+        """Creates a dict which can be serialised to JSON. This dict should only be
+        used internally and should never be sent to external clients, as it contains
+        the raw content of all of the secrets contained in the config.
+
+        The generated dict will be validated according to the schema.
 
         :raises InvalidConfigError: if somehow the data in the class is not valid, this
            should only occur if the class was created in a weird way.
@@ -194,31 +208,48 @@ class AppStoreConnectConfig:
             raise InvalidConfigError from e
         return data
 
-    def update_project_symbol_source(self, project: Project) -> json.JSONData:
+    def to_redacted_json(self) -> Dict[str, Any]:
+        """Creates a dict which can be serialised to JSON. This should be used when the
+        config is meant to be passed to some external consumer, like the front end client.
+        This dict will have its secrets redacted.
+
+        :raises InvalidConfigError: if somehow the data in the class is not valid, this
+           should only occur if the class was created in a weird way.
+        """
+        data = self.to_json()
+        data["itunesPassword"] = {"hidden-secret": True}
+        data["appconnectPrivateKey"] = {"hidden-secret": True}
+        return data
+
+    def update_project_symbol_source(self, project: Project, allow_multiple: bool) -> json.JSONData:
         """Updates this configuration in the Project's symbol sources.
 
         If a symbol source of type ``appStoreConnect`` already exists the ID must match and it
-        will be updated.  If not ``appStoreConnect`` source exists yet it is added.
+        will be updated.  If no ``appStoreConnect`` source exists yet it is added.
+
+        :param allow_multiple: Whether multiple appStoreConnect sources are allowed for this
+           project.
 
         :returns: The new value of the sources.  Use this in a call to
            `ProjectEndpoint.create_audit_entry()` to create an audit log.
 
         :raises ValueError: if an ``appStoreConnect`` source already exists but the ID does not
-           match.
+           match
         """
         with transaction.atomic():
             all_sources_raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
             all_sources = json.loads(all_sources_raw) if all_sources_raw else []
             for i, source in enumerate(all_sources):
                 if source.get("type") == SYMBOL_SOURCE_TYPE_NAME:
-                    if source.get("id") != self.id:
+                    if source.get("id") == self.id:
+                        all_sources[i] = self.to_json()
+                        break
+                    elif not allow_multiple:
                         raise ValueError(
                             "Existing appStoreConnect symbolSource config does not match id"
                         )
-                    all_sources[i] = self.to_json()
-                    break
             else:
-                # No existing appStoreConnect symbol source, simply append it.
+                # No matching existing appStoreConnect symbol source, append it.
                 all_sources.append(self.to_json())
             project.update_option(SYMBOL_SOURCES_PROP_NAME, json.dumps(all_sources))
         return all_sources
@@ -276,10 +307,19 @@ class ITunesClient:
             if not url:
                 raise NoDsymsError
             logger.debug("Fetching dSYM from: %s", url)
-            with requests.get(url, stream=True) as req:
+            # The 315s is just above how long it would take a 4MB/s connection to download
+            # 2GB.
+            with requests.get(url, stream=True, timeout=15) as req:
                 req.raise_for_status()
+                start = time.time()
+                bytes_count = 0
                 with open(path, "wb") as fp:
                     for chunk in req.iter_content(chunk_size=io.DEFAULT_BUFFER_SIZE):
+                        if (time.time() - start) > 315:
+                            with sdk.configure_scope() as scope:
+                                scope.set_extra("dSYM.bytes_fetched", bytes_count)
+                            raise requests.Timeout("Timeout during dSYM download")
+                        bytes_count += len(chunk)
                         fp.write(chunk)
 
 
@@ -338,7 +378,7 @@ class AppConnectClient:
     def itunes_client(self) -> ITunesClient:
         """Returns an iTunes client capable of downloading dSYMs.
 
-        This will raise an exception if the session cookie is expired.
+        :raises itunes_connect.SessionExpired: if the session cookie is expired.
         """
         return ITunesClient(itunes_cookie=self._itunes_cookie, itunes_org=self._itunes_org)
 

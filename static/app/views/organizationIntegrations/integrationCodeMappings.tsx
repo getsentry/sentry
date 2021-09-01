@@ -5,7 +5,7 @@ import * as qs from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
-import Alert from 'app/components/alert';
+import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
@@ -17,7 +17,8 @@ import RepositoryProjectPathConfigRow, {
   NameRepoColumn,
   OutputPathColumn,
 } from 'app/components/repositoryProjectPathConfigRow';
-import {IconAdd, IconInfo} from 'app/icons';
+import Tooltip from 'app/components/tooltip';
+import {IconAdd} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -26,7 +27,7 @@ import {
   Repository,
   RepositoryProjectPathConfig,
 } from 'app/types';
-import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {getIntegrationIcon, trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -94,13 +95,13 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     // We don't start new session if the user was coming from choosing
     // the manual setup option flow from the issue details page
     const startSession = referrer === 'stacktrace-issue-details' ? false : true;
-    trackIntegrationEvent(
+    trackIntegrationAnalytics(
       'integrations.code_mappings_viewed',
       {
         integration: this.props.integration.provider.key,
         integration_type: 'first_party',
+        organization: this.props.organization,
       },
-      this.props.organization,
       {startSession}
     );
   }
@@ -128,15 +129,12 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   };
 
   handleSubmitSuccess = (pathConfig: RepositoryProjectPathConfig) => {
-    trackIntegrationEvent(
-      'integrations.stacktrace_complete_setup',
-      {
-        setup_type: 'manual',
-        view: 'integration_configuration_detail',
-        provider: this.props.integration.provider.key,
-      },
-      this.props.organization
-    );
+    trackIntegrationAnalytics('integrations.stacktrace_complete_setup', {
+      setup_type: 'manual',
+      view: 'integration_configuration_detail',
+      provider: this.props.integration.provider.key,
+      organization: this.props.organization,
+    });
     let {pathConfigs} = this.state;
     pathConfigs = pathConfigs.filter(config => config.id !== pathConfig.id);
     // our getter handles the order of the configs
@@ -147,15 +145,12 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   openModal = (pathConfig?: RepositoryProjectPathConfig) => {
     const {organization, integration} = this.props;
-    trackIntegrationEvent(
-      'integrations.stacktrace_start_setup',
-      {
-        setup_type: 'manual',
-        view: 'integration_configuration_detail',
-        provider: this.props.integration.provider.key,
-      },
-      this.props.organization
-    );
+    trackIntegrationAnalytics('integrations.stacktrace_start_setup', {
+      setup_type: 'manual',
+      view: 'integration_configuration_detail',
+      provider: this.props.integration.provider.key,
+      organization: this.props.organization,
+    });
 
     openModal(({Body, Header, closeModal}) => (
       <Fragment>
@@ -184,11 +179,6 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
     return (
       <Fragment>
-        <Alert type="info" icon={<IconInfo />}>
-          {tct('Got feedback? Email [email:ecosystem-feedback@sentry.io].', {
-            email: <a href="mailto:ecosystem-feedback@sentry.io" />,
-          })}
-        </Alert>
         <TextBlock>
           {tct(
             `Code Mappings are used to map stack trace file paths to source code file paths. These mappings are the basis for features like Stack Trace Linking. To learn more, [link: read the docs].`,
@@ -206,15 +196,29 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
               <NameRepoColumn>{t('Code Mappings')}</NameRepoColumn>
               <InputPathColumn>{t('Stack Trace Root')}</InputPathColumn>
               <OutputPathColumn>{t('Source Code Root')}</OutputPathColumn>
-              <ButtonColumn>
-                <AddButton
-                  onClick={() => this.openModal()}
-                  size="xsmall"
-                  icon={<IconAdd size="xs" isCircled />}
-                >
-                  {t('Add Mapping')}
-                </AddButton>
-              </ButtonColumn>
+
+              <Access access={['org:integrations']}>
+                {({hasAccess}) => (
+                  <ButtonColumn>
+                    <Tooltip
+                      title={t(
+                        'You must be an organization owner, manager or admin to edit or remove a code mapping.'
+                      )}
+                      disabled={hasAccess}
+                    >
+                      <AddButton
+                        data-test-id="add-mapping-button"
+                        onClick={() => this.openModal()}
+                        size="xsmall"
+                        icon={<IconAdd size="xs" isCircled />}
+                        disabled={!hasAccess}
+                      >
+                        {t('Add Code Mapping')}
+                      </AddButton>
+                    </Tooltip>
+                  </ButtonColumn>
+                )}
+              </Access>
             </HeaderLayout>
           </PanelHeader>
           <PanelBody>
@@ -226,14 +230,11 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                     href={`https://docs.sentry.io/product/integrations/${integration.provider.key}/#stack-trace-linking`}
                     size="small"
                     onClick={() => {
-                      trackIntegrationEvent(
-                        'integrations.stacktrace_docs_clicked',
-                        {
-                          view: 'integration_configuration_detail',
-                          provider: this.props.integration.provider.key,
-                        },
-                        this.props.organization
-                      );
+                      trackIntegrationAnalytics('integrations.stacktrace_docs_clicked', {
+                        view: 'integration_configuration_detail',
+                        provider: this.props.integration.provider.key,
+                        organization: this.props.organization,
+                      });
                     }}
                   >
                     View Documentation

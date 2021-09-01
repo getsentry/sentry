@@ -1,3 +1,5 @@
+import isArray from 'lodash/isArray';
+
 import XAxis from 'app/components/charts/components/xAxis';
 import AreaSeries from 'app/components/charts/series/areaSeries';
 import BarSeries from 'app/components/charts/series/barSeries';
@@ -71,7 +73,29 @@ discoverCharts.push({
 
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_TOP5_PERIOD,
-  getOption: (data: {stats: Record<string, EventsStats>}) => {
+  getOption: (
+    data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
+  ) => {
+    if (isArray(data.stats.data)) {
+      const color = theme.charts.getColorPalette(data.stats.data.length - 2);
+
+      const areaSeries = AreaSeries({
+        data: data.stats.data.map(([timestamp, countsForTimestamp]) => [
+          timestamp * 1000,
+          countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+        ]),
+        lineStyle: {color: color?.[0], opacity: 1, width: 0.4},
+        areaStyle: {color: color?.[0], opacity: 1},
+      });
+
+      return {
+        ...slackChartDefaults,
+        useUTC: true,
+        color,
+        series: [areaSeries],
+      };
+    }
+
     const stats = Object.values(data.stats);
     const color = theme.charts.getColorPalette(stats.length - 2);
 
@@ -102,7 +126,29 @@ discoverCharts.push({
 
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_TOP5_DAILY,
-  getOption: (data: {stats: Record<string, EventsStats>}) => {
+  getOption: (
+    data: {stats: Record<string, EventsStats>} | {seriesName?: string; stats: EventsStats}
+  ) => {
+    if (isArray(data.stats.data)) {
+      const color = theme.charts.getColorPalette(data.stats.data.length - 2);
+
+      const areaSeries = AreaSeries({
+        data: data.stats.data.map(([timestamp, countsForTimestamp]) => [
+          timestamp * 1000,
+          countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+        ]),
+        lineStyle: {color: color?.[0], opacity: 1, width: 0.4},
+        areaStyle: {color: color?.[0], opacity: 1},
+      });
+
+      return {
+        ...slackChartDefaults,
+        useUTC: true,
+        color,
+        series: [areaSeries],
+      };
+    }
+
     const stats = Object.values(data.stats);
     const color = theme.charts.getColorPalette(stats.length - 2);
 

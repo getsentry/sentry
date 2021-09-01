@@ -5,6 +5,7 @@ import isEqual from 'lodash/isEqual';
 
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
@@ -20,7 +21,7 @@ import {GlobalSelection, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import {QueryResults, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -29,6 +30,7 @@ import withProjects from 'app/utils/withProjects';
 import LandingContent from './landing/content';
 import {DEFAULT_MAX_DURATION} from './trends/utils';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
+import {PerformanceLanding} from './landing';
 import Onboarding from './onboarding';
 import {addRoutePerformanceContext, getPerformanceTrendsUrl} from './utils';
 
@@ -128,7 +130,7 @@ class PerformanceContent extends Component<Props, State> {
     });
   };
 
-  handleTrendsClick() {
+  handleTrendsClick = () => {
     const {location, organization} = this.props;
 
     const newQuery = {
@@ -136,7 +138,7 @@ class PerformanceContent extends Component<Props, State> {
     };
 
     const query = decodeScalar(location.query.query, '');
-    const conditions = tokenizeSearch(query);
+    const conditions = new MutableSearch(query);
 
     trackAnalyticsEvent({
       eventKey: 'performance_views.change_view',
@@ -145,20 +147,20 @@ class PerformanceContent extends Component<Props, State> {
       view_name: 'TRENDS',
     });
 
-    const modifiedConditions = new QueryResults([]);
+    const modifiedConditions = new MutableSearch([]);
 
-    if (conditions.hasTag('tpm()')) {
-      modifiedConditions.setTagValues('tpm()', conditions.getTagValues('tpm()'));
+    if (conditions.hasFilter('tpm()')) {
+      modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
     } else {
-      modifiedConditions.setTagValues('tpm()', ['>0.01']);
+      modifiedConditions.setFilterValues('tpm()', ['>0.01']);
     }
-    if (conditions.hasTag('transaction.duration')) {
-      modifiedConditions.setTagValues(
+    if (conditions.hasFilter('transaction.duration')) {
+      modifiedConditions.setFilterValues(
         'transaction.duration',
-        conditions.getTagValues('transaction.duration')
+        conditions.getFilterValues('transaction.duration')
       );
     } else {
-      modifiedConditions.setTagValues('transaction.duration', [
+      modifiedConditions.setFilterValues('transaction.duration', [
         '>0',
         `<${DEFAULT_MAX_DURATION}`,
       ]);
@@ -169,7 +171,7 @@ class PerformanceContent extends Component<Props, State> {
       pathname: getPerformanceTrendsUrl(organization),
       query: {...newQuery},
     });
-  }
+  };
 
   shouldShowOnboarding() {
     const {projects, demoMode} = this.props;
@@ -202,7 +204,7 @@ class PerformanceContent extends Component<Props, State> {
   }
 
   renderBody() {
-    const {organization, projects} = this.props;
+    const {organization, projects, selection} = this.props;
     const eventView = this.state.eventView;
     const showOnboarding = this.shouldShowOnboarding();
 
@@ -215,7 +217,7 @@ class PerformanceContent extends Component<Props, State> {
               <Button
                 priority="primary"
                 data-test-id="landing-header-trends"
-                onClick={() => this.handleTrendsClick()}
+                onClick={this.handleTrendsClick}
               >
                 {t('View Trends')}
               </Button>
@@ -224,7 +226,18 @@ class PerformanceContent extends Component<Props, State> {
           <GlobalSdkUpdateAlert />
           {this.renderError()}
           {showOnboarding ? (
-            <Onboarding organization={organization} />
+            <Onboarding
+              organization={organization}
+              project={
+                selection.projects.length > 0
+                  ? // If some projects selected, use the first selection
+                    projects.find(
+                      project => selection.projects[0].toString() === project.id
+                    ) || projects[0]
+                  : // Otherwise, use the first project in the org
+                    projects[0]
+              }
+            />
           ) : (
             <LandingContent
               eventView={eventView}
@@ -236,6 +249,19 @@ class PerformanceContent extends Component<Props, State> {
           )}
         </LightWeightNoProjectMessage>
       </PageContent>
+    );
+  }
+
+  renderLandingV3() {
+    return (
+      <PerformanceLanding
+        eventView={this.state.eventView}
+        setError={this.setError}
+        handleSearch={this.handleSearch}
+        handleTrendsClick={this.handleTrendsClick}
+        shouldShowOnboarding={this.shouldShowOnboarding()}
+        {...this.props}
+      />
     );
   }
 
@@ -254,7 +280,9 @@ class PerformanceContent extends Component<Props, State> {
             },
           }}
         >
-          {this.renderBody()}
+          <Feature features={['organizations:performance-landing-widgets']}>
+            {({hasFeature}) => (hasFeature ? this.renderLandingV3() : this.renderBody())}
+          </Feature>
         </GlobalSelectionHeader>
       </SentryDocumentTitle>
     );

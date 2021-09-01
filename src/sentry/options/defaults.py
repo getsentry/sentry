@@ -213,7 +213,7 @@ register("snuba.search.max-total-chunk-time-seconds", default=30.0)
 register("snuba.search.hits-sample-size", default=100)
 register("snuba.track-outcomes-sample-rate", default=0.0)
 register("snuba.snql.referrer-rate", default=0.0)
-register("snuba.snql.snql_only", default=0.0)
+register("snuba.snql.snql_only", default=1.0)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register("snuba.tagstore.cache-tagkeys-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
@@ -315,11 +315,15 @@ register("store.reprocessing-force-disable", default=False)
 register("store.race-free-group-creation-force-disable", default=False)
 
 
-# Killswitch for dropping events if they were to create groups
+# ## sentry.killswitches
+#
+# The following options are documented in sentry.killswitches in more detail
 register("store.load-shed-group-creation-projects", type=Any, default=[])
-
-# Killswitch for dropping events in ingest consumer
 register("store.load-shed-pipeline-projects", type=Any, default=[])
+register("store.load-shed-parsed-pipeline-projects", type=Any, default=[])
+register("store.load-shed-save-event-projects", type=Any, default=[])
+register("store.load-shed-process-event-projects", type=Any, default=[])
+register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
 
 # Switch for more performant project counter incr
 register("store.projectcounter-modern-upsert-sample-rate", default=0.0)
@@ -332,15 +336,6 @@ register("store.background-grouping-sample-rate", default=0.0)
 
 # True if background grouping should run before secondary and primary grouping
 register("store.background-grouping-before", default=False)
-
-# Killswitch for dropping events in ingest consumer (after parsing them)
-register("store.load-shed-parsed-pipeline-projects", type=Any, default=[])
-
-# Killswitch for dropping events in process_event
-register("store.load-shed-process-event-projects", type=Any, default=[])
-
-# Killswitch for dropping events in symbolicate_event
-register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
 
 # Store release files bundled as zip files
 register("processing.save-release-archives", default=False)  # unused

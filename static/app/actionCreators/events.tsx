@@ -30,6 +30,7 @@ type Options = {
   topEvents?: number;
   orderby?: string;
   partial: boolean;
+  withoutZerofill?: boolean;
 };
 
 /**
@@ -65,6 +66,7 @@ export const doEventsRequest = (
     topEvents,
     orderby,
     partial,
+    withoutZerofill,
   }: Options
 ): Promise<EventsStats | MultiSeriesEventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
@@ -80,6 +82,7 @@ export const doEventsRequest = (
       topEvents,
       orderby,
       partial: partial ? '1' : undefined,
+      withoutZerofill: withoutZerofill ? '1' : undefined,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 

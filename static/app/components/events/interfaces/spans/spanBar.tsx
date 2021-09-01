@@ -23,11 +23,11 @@ import {
 } from 'app/components/performance/waterfall/rowTitle';
 import {
   ConnectorBar,
-  StyledIconChevron,
   TOGGLE_BORDER_BOX,
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
+  TreeToggleIcon,
 } from 'app/components/performance/waterfall/treeConnector';
 import {
   getDurationDisplay,
@@ -118,7 +118,8 @@ type SpanBarProps = {
     | ((props: {orgSlug: string; eventSlug: string}) => void)
     | undefined;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
-  hasCollapsedSpanGroup: boolean;
+  toggleSpanGroup: (() => void) | undefined;
+  numOfSpans: number;
 };
 
 type SpanBarState = {
@@ -309,7 +310,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       continuingTreeDepths,
       span,
       showSpanTree,
-      hasCollapsedSpanGroup,
     } = this.props;
 
     const spanID = getSpanID(span);
@@ -365,31 +365,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       );
     }
 
-    if (hasCollapsedSpanGroup) {
-      connectorBars.push(
-        <ConnectorBar
-          style={{
-            right: '16px',
-            height: `${ROW_HEIGHT / 2}px`,
-            top: '0',
-          }}
-          key={`${spanID}-last-top`}
-          orphanBranch={false}
-        />
-      );
-
-      return (
-        <TreeConnector
-          isLast
-          hasToggler={hasToggler}
-          orphanBranch={isOrphanSpan(span)}
-          hasCollapsedSpanGroup
-        >
-          {connectorBars}
-        </TreeConnector>
-      );
-    }
-
     return (
       <TreeConnector
         isLast={isLast}
@@ -404,7 +379,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderSpanTreeToggler({left, errored}: {left: number; errored: boolean}) {
     const {numOfSpanChildren, isRoot, showSpanTree} = this.props;
 
-    const chevron = <StyledIconChevron direction={showSpanTree ? 'up' : 'down'} />;
+    const chevron = <TreeToggleIcon direction={showSpanTree ? 'up' : 'down'} />;
 
     if (numOfSpanChildren <= 0) {
       return (
@@ -445,16 +420,38 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     errors: TraceError[] | null
   ) {
     const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
-    const {span, treeDepth} = this.props;
+    const {span, treeDepth, toggleSpanGroup} = this.props;
 
-    const operationName = getSpanOperation(span) ? (
-      <strong>
-        {getSpanOperation(span)}
-        {' \u2014 '}
-      </strong>
-    ) : (
-      ''
-    );
+    let titleFragments: React.ReactNode[] = [];
+
+    if (typeof toggleSpanGroup === 'function') {
+      titleFragments.push(
+        <Regroup
+          onClick={event => {
+            event.stopPropagation();
+            event.preventDefault();
+            toggleSpanGroup();
+          }}
+        >
+          <a
+            href="#regroup"
+            onClick={event => {
+              event.preventDefault();
+            }}
+          >
+            {t('Regroup')}
+          </a>
+        </Regroup>
+      );
+    }
+
+    const spanOperationName = getSpanOperation(span);
+    if (spanOperationName) {
+      titleFragments.push(spanOperationName);
+    }
+
+    titleFragments = titleFragments.flatMap(current => [current, ' \u2014 ']);
+
     const description = span?.description ?? getSpanID(span);
 
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
@@ -473,7 +470,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           }}
         >
           <RowTitleContent errored={errored}>
-            {operationName}
+            <strong>{titleFragments}</strong>
             {description}
           </RowTitleContent>
         </RowTitle>
@@ -525,8 +522,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             return;
           }
 
-          const shouldMoveMinimap =
-            this.props.trace.numOfSpans > NUM_OF_SPANS_FIT_IN_MINI_MAP;
+          const shouldMoveMinimap = this.props.numOfSpans > NUM_OF_SPANS_FIT_IN_MINI_MAP;
 
           if (!shouldMoveMinimap) {
             return;
@@ -620,10 +616,10 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           const panYPixels =
             totalHeightOfHiddenSpans + currentSpanHiddenRatio * MINIMAP_SPAN_BAR_HEIGHT;
 
-          // invariant: this.props.trace.numOfSpansend - spanNumberToStopMoving + 1 = NUM_OF_SPANS_FIT_IN_MINI_MAP
+          // invariant: this.props.numOfSpans - spanNumberToStopMoving + 1 = NUM_OF_SPANS_FIT_IN_MINI_MAP
 
           const spanNumberToStopMoving =
-            this.props.trace.numOfSpans + 1 - NUM_OF_SPANS_FIT_IN_MINI_MAP;
+            this.props.numOfSpans + 1 - NUM_OF_SPANS_FIT_IN_MINI_MAP;
 
           if (spanNumber > spanNumberToStopMoving) {
             // if the last span bar appears on the minimap, we do not want the minimap
@@ -748,7 +744,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               {showEmbeddedChildren
                 ? t('This span is showing a direct child. Remove transaction to hide')
                 : t('This span has a direct child. Add transaction to view')}
-              <FeatureBadge type="beta" noTooltip />
+              <FeatureBadge type="new" noTooltip />
             </span>
           }
           position="top"
@@ -977,5 +973,7 @@ const StyledIconWarning = styled(IconWarning)`
   margin-left: ${space(0.25)};
   margin-bottom: ${space(0.25)};
 `;
+
+const Regroup = styled('span')``;
 
 export default SpanBar;

@@ -14,6 +14,7 @@ from typing import (
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
+from sentry import analytics
 from sentry.db.models.manager import BaseManager
 from sentry.notifications.helpers import (
     get_scope,
@@ -29,12 +30,13 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.types.integrations import ExternalProviders
+from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
     from sentry.models import NotificationSetting, Organization, Project, Team, User
 
 
-class NotificationsManager(BaseManager):  # type: ignore
+class NotificationsManager(BaseManager["NotificationSetting"]):
     """
     TODO(mgaeta): Add a caching layer for notification settings
     """
@@ -73,17 +75,22 @@ class NotificationsManager(BaseManager):  # type: ignore
         target_id: int,
     ) -> None:
         """Save a NotificationSettings row."""
-        with transaction.atomic():
-            setting, created = self.get_or_create(
-                provider=provider.value,
-                type=type.value,
-                scope_type=scope_type.value,
-                scope_identifier=scope_identifier,
-                target_id=target_id,
-                defaults={"value": value.value},
-            )
-            if not created and setting.value != value.value:
-                setting.update(value=value.value)
+        with configure_scope() as scope:
+            with transaction.atomic():
+                setting, created = self.get_or_create(
+                    provider=provider.value,
+                    type=type.value,
+                    scope_type=scope_type.value,
+                    scope_identifier=scope_identifier,
+                    target_id=target_id,
+                    defaults={"value": value.value},
+                )
+                if not created and setting.value != value.value:
+                    scope.set_tag("notif_setting_type", setting.type_str)
+                    scope.set_tag("notif_setting_value", setting.value_str)
+                    scope.set_tag("notif_setting_provider", setting.provider_str)
+                    scope.set_tag("notif_setting_scope", setting.scope_str)
+                    setting.update(value=value.value)
 
     def update_settings(
         self,
@@ -102,6 +109,11 @@ class NotificationsManager(BaseManager):  # type: ignore
           * Updating a user's per-project preferences
           * Updating a user's per-organization preferences
         """
+        analytics.record(
+            "notifications.settings_updated",
+            target_type="user" if user else "team",
+        )
+
         # A missing DB row is equivalent to DEFAULT.
         if value == NotificationSettingOptionValues.DEFAULT:
             return self.remove_settings(
@@ -323,13 +335,14 @@ class NotificationsManager(BaseManager):  # type: ignore
     def update_settings_bulk(
         self,
         notification_settings: Sequence["NotificationSetting"],
-        target_id: int,
+        user: Optional["User"] = None,
+        team: Optional["Team"] = None,
     ) -> None:
         """
         Given a list of _valid_ notification settings as tuples of column
         values, save them to the DB. This does not execute as a transaction.
         """
-
+        target_id = get_target_id(user, team)
         for (provider, type, scope_type, scope_identifier, value) in notification_settings:
             # A missing DB row is equivalent to DEFAULT.
             if value == NotificationSettingOptionValues.DEFAULT:
@@ -338,3 +351,7 @@ class NotificationsManager(BaseManager):  # type: ignore
                 self._update_settings(
                     provider, type, value, scope_type, scope_identifier, target_id
                 )
+        analytics.record(
+            "notifications.settings_updated",
+            target_type="user" if user else "team",
+        )

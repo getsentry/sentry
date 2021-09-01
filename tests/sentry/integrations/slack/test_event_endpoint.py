@@ -48,6 +48,13 @@ MESSAGE_IM_EVENT = """{
     "message_ts": "123456789.9875"
 }"""
 
+MESSAGE_IM_EVENT_NO_TEXT = """{
+    "type": "message",
+    "channel": "DOxxxxxx",
+    "user": "Uxxxxxxx",
+    "message_ts": "123456789.9875"
+}"""
+
 MESSAGE_IM_EVENT_UNLINK = """{
         "type": "message",
         "text": "unlink",
@@ -193,10 +200,11 @@ class LinkSharedEventTest(BaseEventTest):
 class MessageIMEventTest(BaseEventTest):
     def get_block_type_text(self, block_type, data):
         block = filter(lambda x: x["type"] == block_type, data["blocks"])[0]
-        if block_type == "section":
-            return block["text"]["text"]
-
         return block["elements"][0]["text"]["text"]
+
+    def get_block_section_text(self, data):
+        blocks = data["blocks"]
+        return blocks[0]["text"]["text"], blocks[1]["text"]["text"]
 
     @responses.activate
     def test_user_message_im(self):
@@ -206,8 +214,10 @@ class MessageIMEventTest(BaseEventTest):
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         data = json.loads(request.body)
+        heading, contents = self.get_block_section_text(data)
+        assert heading == "Unknown command: `helloo`"
         assert (
-            self.get_block_type_text("section", data)
+            contents
             == "Want to learn more about configuring alerts in Sentry? Check out our documentation."
         )
         assert self.get_block_type_text("actions", data) == "Sentry Docs"
@@ -221,8 +231,10 @@ class MessageIMEventTest(BaseEventTest):
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         data = json.loads(request.body)
+        heading, contents = self.get_block_section_text(data)
+        assert heading == "Unknown command: `helloo`"
         assert (
-            self.get_block_type_text("section", data)
+            contents
             == "Here are the commands you can use. Commands not working? Re-install the app!"
         )
 
@@ -307,3 +319,10 @@ class MessageIMEventTest(BaseEventTest):
     def test_bot_message_im(self):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_BOT_EVENT))
         assert resp.status_code == 200, resp.content
+
+    @responses.activate
+    def test_user_message_im_no_text(self):
+        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
+        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_NO_TEXT))
+        assert resp.status_code == 200, resp.content
+        assert len(responses.calls) == 0

@@ -6,12 +6,11 @@ import {MessageRow} from 'app/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'app/components/performance/waterfall/utils';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
-import {assert} from 'app/types/utils';
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
-import SpanGroupBar, {isCollapsedSpanGroup} from './spanGroupBar';
+import SpanGroupBar from './spanGroupBar';
 import {
   EnhancedProcessedSpanType,
   EnhancedSpan,
@@ -157,6 +156,20 @@ class SpanTree extends React.Component<PropType> {
       spanNumber: number;
     };
 
+    const numOfSpans = spans.reduce((sum: number, payload: EnhancedProcessedSpanType) => {
+      switch (payload.type) {
+        case 'root_span':
+        case 'span':
+        case 'span_group_chain': {
+          return sum + 1;
+        }
+
+        default: {
+          return sum;
+        }
+      }
+    }, 0);
+
     const {spanTree, numOfSpansOutOfViewAbove, numOfFilteredSpansAbove} = spans.reduce(
       (acc: AccType, payload: EnhancedProcessedSpanType) => {
         const {type} = payload;
@@ -188,36 +201,13 @@ class SpanTree extends React.Component<PropType> {
           acc.spanTree.push(infoMessage);
         }
 
-        const {span} = payload;
+        const spanNumber = acc.spanNumber;
+        const {span, treeDepth, continuingTreeDepths} = payload;
 
-        let spanNumber = acc.spanNumber;
-
-        const key = getSpanID(span, `span-${spanNumber}`);
-        const isLast = payload.isLastSibling;
-        const isRoot = type === 'root_span';
-        const spanBarColor: string = pickBarColor(getSpanOperation(span));
-        const numOfSpanChildren = payload.numOfSpanChildren;
-        const treeDepth = payload.treeDepth;
-        const continuingTreeDepths = payload.continuingTreeDepths;
-
-        acc.numOfFilteredSpansAbove = 0;
-        acc.numOfSpansOutOfViewAbove = 0;
-
-        const hasCollapsedSpanGroup: boolean =
-          (payload.type === 'span' || payload.type === 'root_span') &&
-          isCollapsedSpanGroup({
-            spanGrouping: payload.spanGrouping,
-            showSpanGroup: payload.showSpanGroup,
-            toggleSpanGroup: payload.toggleSpanGroup,
-          });
-
-        if (hasCollapsedSpanGroup) {
-          assert(payload.type === 'span' || payload.type === 'root_span');
-          // If the span has a collapsed span group, then we render it above the associated span.
-          // The associated span will be the last span of the span group.
+        if (payload.type === 'span_group_chain') {
           acc.spanTree.push(
             <SpanGroupBar
-              key={`${key}-span-group`}
+              key={`${spanNumber}-span-group`}
               event={waterfallModel.event}
               span={span}
               generateBounds={generateBounds}
@@ -228,8 +218,22 @@ class SpanTree extends React.Component<PropType> {
               toggleSpanGroup={payload.toggleSpanGroup as () => void}
             />
           );
+          acc.spanNumber = spanNumber + 1;
+          return acc;
+        }
 
-          spanNumber = spanNumber + 1;
+        const key = getSpanID(span, `span-${spanNumber}`);
+        const isLast = payload.isLastSibling;
+        const isRoot = type === 'root_span';
+        const spanBarColor: string = pickBarColor(getSpanOperation(span));
+        const numOfSpanChildren = payload.numOfSpanChildren;
+
+        acc.numOfFilteredSpansAbove = 0;
+        acc.numOfSpansOutOfViewAbove = 0;
+
+        let toggleSpanGroup: (() => void) | undefined = undefined;
+        if (payload.type === 'span') {
+          toggleSpanGroup = payload.toggleSpanGroup;
         }
 
         acc.spanTree.push(
@@ -253,7 +257,8 @@ class SpanTree extends React.Component<PropType> {
             showEmbeddedChildren={payload.showEmbeddedChildren}
             toggleEmbeddedChildren={payload.toggleEmbeddedChildren}
             fetchEmbeddedChildrenState={payload.fetchEmbeddedChildrenState}
-            hasCollapsedSpanGroup={hasCollapsedSpanGroup}
+            toggleSpanGroup={toggleSpanGroup}
+            numOfSpans={numOfSpans}
           />
         );
 

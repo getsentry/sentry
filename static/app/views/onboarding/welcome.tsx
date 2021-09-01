@@ -6,7 +6,7 @@ import {preloadIcons} from 'platformicons';
 import Button from 'app/components/button';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'app/utils/testableTransition';
 
 import FallingError from './components/fallingError';
@@ -40,11 +40,9 @@ class OnboardingWelcome extends Component<Props> {
     // icons). Keep things smooth by prefetching them. Preload a bit late to
     // avoid jank on welcome animations.
     setTimeout(preloadIcons, 1500);
-    trackAdvancedAnalyticsEvent(
-      'growth.onboarding_start_onboarding',
-      {},
-      this.props.organization ?? null
-    );
+    trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
+      organization: this.props.organization ?? null,
+    });
   }
 
   render() {

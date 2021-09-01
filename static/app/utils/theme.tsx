@@ -255,6 +255,11 @@ const lightAliases = {
    * Count on button
    */
   buttonCount: colors.gray400,
+
+  /**
+   * Background of alert banners at the top
+   */
+  bannerBackground: colors.black,
 };
 
 const dataCategory = {
@@ -525,6 +530,12 @@ const commonTheme = {
     hovercard: 10002,
     tooltip: 10003,
 
+    // On mobile views org stats dropdowns overlap
+    orgStats: {
+      dataCategory: 1,
+      timeRange: 2,
+    },
+
     // On mobile views issue list dropdowns overlap
     issuesList: {
       stickyHeader: 1,
@@ -677,6 +688,7 @@ const darkAliases = {
 
   buttonCountActive: colors.gray100,
   buttonCount: colors.gray400,
+  bannerBackground: colors.purple100,
 };
 
 export const lightTheme = {

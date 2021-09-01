@@ -1,11 +1,12 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
+import {updateSavedQueryVisit} from 'app/actionCreators/discoverSavedQueries';
 import {fetchTotalCount} from 'app/actionCreators/events';
 import {fetchProjectsCount} from 'app/actionCreators/projects';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
@@ -23,10 +24,11 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'app/constants';
 import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, SavedQuery} from 'app/types';
-import {generateQueryWithTag} from 'app/utils';
+import {defined, generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
@@ -47,7 +49,7 @@ import {generateTitle} from './utils';
 
 type Props = {
   api: Client;
-  router: ReactRouter.InjectedRouter;
+  router: InjectedRouter;
   location: Location;
   organization: Organization;
   selection: GlobalSelection;
@@ -99,11 +101,14 @@ class Results extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    const {organization, selection} = this.props;
+    const {organization, selection, location} = this.props;
     loadOrganizationTags(this.tagsApi, organization.slug, selection);
     addRoutePerformanceContext(selection);
     this.checkEventView();
     this.canLoadEvents();
+    if (defined(location.query.id)) {
+      updateSavedQueryVisit(organization.slug, location.query.id);
+    }
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -245,9 +250,7 @@ class Results extends React.Component<Props, State> {
       nextEventView.query = decodeScalar(location.query.query, '');
     }
 
-    ReactRouter.browserHistory.replace(
-      nextEventView.getResultsViewUrlTarget(organization.slug)
-    );
+    browserHistory.replace(nextEventView.getResultsViewUrlTarget(organization.slug));
   }
 
   handleChangeShowTags = () => {
@@ -499,15 +502,15 @@ class Results extends React.Component<Props, State> {
   }
 }
 
-export const StyledPageContent = styled(PageContent)`
+const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-export const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
 
-export const Top = styled(Layout.Main)`
+const Top = styled(Layout.Main)`
   flex-grow: 0;
 `;
 
@@ -550,6 +553,17 @@ function ResultsContainer(props: Props) {
    * you no longer need to enforce a project if it is empty. We assume an empty project is
    * the desired behavior because saved queries can contain a project filter.
    */
+
+  const {location, router} = props;
+  const user = ConfigStore.get('user');
+
+  if (user.id !== location.query.user) {
+    router.push({
+      pathname: location.pathname,
+      query: {...location.query, user: user.id},
+    });
+  }
+
   return (
     <GlobalSelectionHeader
       skipLoadLastUsed={props.organization.features.includes('global-views')}

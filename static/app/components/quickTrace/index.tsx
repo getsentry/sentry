@@ -42,9 +42,9 @@ import {
   EventNode,
   ExternalDropdownLink,
   QuickTraceContainer,
+  QuickTraceValue,
   SectionSubtext,
   SingleEventHoverText,
-  StyledTruncate,
   TraceConnector,
 } from './styles';
 
@@ -458,7 +458,7 @@ function DropdownNodeItem({
           }}
         </Projects>
         {isQuickTraceEvent(event) ? (
-          <StyledTruncate
+          <QuickTraceValue
             value={event.transaction}
             // expand in the opposite direction of the anchor
             expandDirection={anchor === 'left' ? 'right' : 'left'}
@@ -467,7 +467,7 @@ function DropdownNodeItem({
             trimRegex={/\.|\//g}
           />
         ) : (
-          <StyledTruncate
+          <QuickTraceValue
             value={event.title}
             // expand in the opposite direction of the anchor
             expandDirection={anchor === 'left' ? 'right' : 'left'}

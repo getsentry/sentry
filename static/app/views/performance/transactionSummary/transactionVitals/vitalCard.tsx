@@ -25,7 +25,7 @@ import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogr
 import {Vital} from 'app/utils/performance/vitals/types';
 import {VitalData} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {Theme} from 'app/utils/theme';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {EventsDisplayFilterName} from 'app/views/performance/transactionSummary/transactionEvents/utils';
 
 import {VitalBar} from '../../landing/vitalsCards';
@@ -193,15 +193,15 @@ class VitalCard extends Component<Props, State> {
         },
       ]);
 
-    const query = tokenizeSearch(newEventView.query ?? '');
-    query.addTagValues('has', [column]);
+    const query = new MutableSearch(newEventView.query ?? '');
+    query.addFilterValues('has', [column]);
     // add in any range constraints if any
     if (min !== undefined || max !== undefined) {
       if (min !== undefined) {
-        query.addTagValues(column, [`>=${min}`]);
+        query.addFilterValues(column, [`>=${min}`]);
       }
       if (max !== undefined) {
-        query.addTagValues(column, [`<=${max}`]);
+        query.addFilterValues(column, [`<=${max}`]);
       }
     }
     newEventView.query = query.formatString();

@@ -45,8 +45,6 @@ export type AppStoreConnectValidationData = {
   id: string;
   appstoreCredentialsValid: boolean;
   itunesSessionValid: boolean;
-  /** Approximate expiration Date of AppStore Connect iTunes session as an ISO DateTime */
-  itunesSessionRefreshAt: string | null;
   /** Indicates if the itunesSession is actually *needed* to complete any downloads that are pending. */
   pendingDownloads: number;
   /**
@@ -61,6 +59,11 @@ export type AppStoreConnectValidationData = {
    * be found.
    */
   latestBuildVersion: string | null;
+  /**
+   * Whether the UI should show an alert indicating we need the user to refresh their iTunes
+   * session.
+   */
+  promptItunesSession: boolean;
   lastCheckedBuilds: string | null;
   updateAlertMessage?: string;
 };
@@ -80,7 +83,7 @@ type CustomRepoAppStoreConnect = {
   itunesSession: string;
   itunesUser: string;
   name: string;
-  orgId: number;
+  orgPublicId: number;
   orgName: string;
   details?: AppStoreConnectValidationData;
 };

@@ -1,13 +1,9 @@
+import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
-import {
-  cleanup,
-  fireEvent,
-  mountWithTheme,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as memberActionCreators from 'app/actionCreators/members';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -17,6 +13,7 @@ import AlertBuilderProjectProvider from 'app/views/alerts/builder/projectProvide
 import ProjectAlertsCreate from 'app/views/alerts/create';
 
 jest.unmock('app/utils/recreateRoute');
+jest.mock('react-router');
 jest.mock('app/utils/analytics', () => ({
   metric: {
     startTransaction: jest.fn(() => ({
@@ -111,12 +108,11 @@ describe('ProjectAlertsCreate', function () {
   });
 
   afterEach(function () {
-    cleanup();
     MockApiClient.clearMockResponses();
     trackAnalyticsEvent.mockClear();
   });
 
-  const createWrapper = (props = {}) => {
+  const createWrapper = (props = {}, location = {}) => {
     const {organization, project, routerContext, router} = initializeOrg(props);
     ProjectsStore.loadInitialData([project]);
     const params = {orgId: organization.slug, projectId: project.slug};
@@ -127,6 +123,8 @@ describe('ProjectAlertsCreate', function () {
             params={params}
             location={{
               pathname: `/organizations/org-slug/alerts/rules/${project.slug}/new/`,
+              query: {createFromWizard: true},
+              ...location,
             }}
             routes={projectAlertRuleDetailsRoutes}
             router={router}
@@ -144,6 +142,16 @@ describe('ProjectAlertsCreate', function () {
       router,
     };
   };
+
+  it('redirects to wizard', async function () {
+    const location = {query: {}};
+    createWrapper(undefined, location);
+    await waitFor(() => {
+      expect(browserHistory.replace).toHaveBeenCalledWith(
+        '/organizations/org-slug/alerts/project-slug/wizard'
+      );
+    });
+  });
 
   describe('Issue Alert', function () {
     it('loads default values', async function () {

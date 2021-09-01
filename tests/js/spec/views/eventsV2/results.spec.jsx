@@ -28,7 +28,7 @@ const generateFields = () => ({
 describe('EventsV2 > Results', function () {
   const eventTitle = 'Oh no something bad';
   const features = ['discover-basic'];
-  let eventResultsMock, mockSaved, eventsStatsMock;
+  let eventResultsMock, mockSaved, eventsStatsMock, mockVisit;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -120,6 +120,12 @@ describe('EventsV2 > Results', function () {
         },
       ],
     });
+    mockVisit = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/saved/1/visit/',
+      method: 'POST',
+      body: [],
+      statusCode: 200,
+    });
     mockSaved = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/saved/1/',
       method: 'GET',
@@ -196,6 +202,52 @@ describe('EventsV2 > Results', function () {
     expect(eventResultsMock).toHaveBeenCalled();
   });
 
+  it('pushes to router when user id is wrong', async function () {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), cursor: '0%3A50%3A0', user: '2'}},
+      },
+    });
+
+    ProjectsStore.loadInitialData(initialData.organization.projects);
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(initialData.router.location).toEqual({
+      query: {
+        ...generateFields(),
+        cursor: '0%3A50%3A0',
+        user: '2',
+      },
+    });
+
+    expect(initialData.router.push).toHaveBeenCalledWith({
+      pathname: undefined,
+      query: {
+        ...generateFields(),
+        cursor: '0%3A50%3A0',
+        user: '1',
+      },
+    });
+    wrapper.unmount();
+  });
+
   it('pagination cursor should be cleared when making a search', async function () {
     const organization = TestStubs.Organization({
       features,
@@ -238,6 +290,9 @@ describe('EventsV2 > Results', function () {
       preventDefault() {},
     });
     await tick();
+
+    // should only be called with saved queries
+    expect(mockVisit).not.toHaveBeenCalled();
 
     // cursor query string should be omitted from the query string
     expect(initialData.router.push).toHaveBeenCalledWith({
@@ -537,6 +592,7 @@ describe('EventsV2 > Results', function () {
     expect(savedQuery.projects).toEqual([]);
     expect(savedQuery.range).toEqual('24h');
     expect(mockSaved).toHaveBeenCalled();
+    expect(mockVisit).toHaveBeenCalledTimes(1);
     wrapper.unmount();
   });
 
@@ -612,6 +668,7 @@ describe('EventsV2 > Results', function () {
     expect(eventView.project).toEqual([2]);
     expect(eventView.statsPeriod).toEqual('7d');
     expect(eventView.environment).toEqual(['production']);
+    expect(mockVisit).toHaveBeenCalledTimes(1);
     wrapper.unmount();
   });
 

@@ -24,7 +24,7 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import Pagination from 'app/components/pagination';
+import Pagination, {CursorHandler} from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
 import QueryCount from 'app/components/queryCount';
 import StreamGroup from 'app/components/stream/group';
@@ -595,14 +595,14 @@ class IssueListOverview extends React.Component<Props, State> {
     this._lastRequest = this.props.api.request(this.getGroupListEndpoint(), {
       method: 'GET',
       data: qs.stringify(requestParams),
-      success: (data, _, jqXHR) => {
-        if (!jqXHR) {
+      success: (data, _, resp) => {
+        if (!resp) {
           return;
         }
 
         const {orgId} = this.props.params;
         // If this is a direct hit, we redirect to the intended result directly.
-        if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+        if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
           let redirect: string;
           if (data[0] && data[0].matchingEventId) {
             const {id, matchingEventId} = data[0];
@@ -622,13 +622,13 @@ class IssueListOverview extends React.Component<Props, State> {
         this._streamManager.push(data);
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
-        const hits = jqXHR.getResponseHeader('X-Hits');
+        const hits = resp.getResponseHeader('X-Hits');
         const queryCount =
           typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
-        const maxHits = jqXHR.getResponseHeader('X-Max-Hits');
+        const maxHits = resp.getResponseHeader('X-Max-Hits');
         const queryMaxCount =
           typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
-        const pageLinks = jqXHR.getResponseHeader('Link');
+        const pageLinks = resp.getResponseHeader('Link');
 
         this.fetchCounts(queryCount, fetchAllCounts);
 
@@ -752,11 +752,11 @@ class IssueListOverview extends React.Component<Props, State> {
     this.transitionTo({display});
   };
 
-  onCursorChange = (cursor: string | undefined, _path, query, pageDiff: number) => {
-    const queryPageInt = parseInt(query.page, 10);
-    let nextPage: number | undefined = isNaN(queryPageInt)
-      ? pageDiff
-      : queryPageInt + pageDiff;
+  onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
+    const queryPageInt = parseInt(this.props.location.query.page, 10);
+    let nextPage: number | undefined = isNaN(queryPageInt) ? delta : queryPageInt + delta;
+
+    let cursor: undefined | string = nextCursor;
 
     // unset cursor and page when we navigate back to the first page
     // also reset cursor if somehow the previous button is enabled on
@@ -1077,7 +1077,6 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     const projectIds = selection?.projects?.map(p => p.toString());
-    const orgSlug = organization.slug;
 
     const showReprocessingTab = this.displayReprocessingTab();
     const displayReprocessingActions = this.displayReprocessingLayout(
@@ -1095,8 +1094,6 @@ class IssueListOverview extends React.Component<Props, State> {
           queryCounts={queryCounts}
           realtimeActive={realtimeActive}
           onRealtimeChange={this.onRealtimeChange}
-          projectIds={projectIds}
-          orgSlug={orgSlug}
           router={router}
           savedSearchList={savedSearches}
           onSavedSearchSelect={this.onSavedSearchSelect}
@@ -1147,17 +1144,13 @@ class IssueListOverview extends React.Component<Props, State> {
                 {this.renderStreamBody()}
               </PanelBody>
             </Panel>
-            <PaginationWrapper>
-              {groupIds?.length > 0 && (
-                <div>
-                  {/* total includes its own space */}
-                  {tct('Showing [displayCount] issues', {
-                    displayCount,
-                  })}
-                </div>
-              )}
-              <StyledPagination pageLinks={pageLinks} onCursor={this.onCursorChange} />
-            </PaginationWrapper>
+            <StyledPagination
+              caption={tct('Showing [displayCount] issues', {
+                displayCount,
+              })}
+              pageLinks={pageLinks}
+              onCursor={this.onCursorChange}
+            />
           </StreamContent>
 
           <SidebarContainer showSidebar={isSidebarVisible}>
@@ -1222,16 +1215,8 @@ const SidebarContainer = styled('div')<{showSidebar: boolean}>`
   }
 `;
 
-const PaginationWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
 const StyledPagination = styled(Pagination)`
   margin-top: 0;
-  margin-left: ${space(2)};
 `;
 
 const StyledQueryCount = styled(QueryCount)`

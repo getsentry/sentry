@@ -4,7 +4,7 @@ import * as queryString from 'query-string';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import {IntegrationProvider, IntegrationWithConfig, Organization} from 'app/types';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 
 type Props = {
   children: (
@@ -63,15 +63,12 @@ export default class AddIntegration extends React.Component<Props> {
   }
 
   openDialog = (urlParams?: {[key: string]: string}) => {
-    trackIntegrationEvent(
-      'integrations.installation_start',
-      {
-        integration: this.props.provider.key,
-        integration_type: 'first_party',
-        ...this.props.analyticsParams,
-      },
-      this.props.organization
-    );
+    trackIntegrationAnalytics('integrations.installation_start', {
+      integration: this.props.provider.key,
+      integration_type: 'first_party',
+      organization: this.props.organization,
+      ...this.props.analyticsParams,
+    });
     const name = 'sentryAddIntegration';
     const {url, width, height} = this.props.provider.setupDialog;
     const {left, top} = this.computeCenteredWindow(width, height);
@@ -113,15 +110,12 @@ export default class AddIntegration extends React.Component<Props> {
     if (!data) {
       return;
     }
-    trackIntegrationEvent(
-      'integrations.installation_complete',
-      {
-        integration: this.props.provider.key,
-        integration_type: 'first_party',
-        ...this.props.analyticsParams,
-      },
-      this.props.organization
-    );
+    trackIntegrationAnalytics('integrations.installation_complete', {
+      integration: this.props.provider.key,
+      integration_type: 'first_party',
+      organization: this.props.organization,
+      ...this.props.analyticsParams,
+    });
     addSuccessMessage(t('%s added', this.props.provider.name));
     this.props.onInstall(data);
   };

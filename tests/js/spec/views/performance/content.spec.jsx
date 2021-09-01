@@ -516,4 +516,43 @@ describe('Performance > Content', function () {
       expect(link).toHaveLength(1);
     }
   });
+
+  it('Display Create Sample Transaction Button with feature flag on', async function () {
+    const projects = [
+      TestStubs.Project({id: 1, firstTransactionEvent: false}),
+      TestStubs.Project({id: 2, firstTransactionEvent: false}),
+    ];
+    const data = initializeData(projects, {view: undefined});
+
+    const wrapper = mountWithTheme(
+      <PerformanceContent
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    expect(
+      wrapper.find('Button[data-test-id="create-sample-transaction-btn"]').exists()
+    ).toBe(true);
+  });
+
+  it('Displays new landing component with feature flag on', async function () {
+    const projects = [TestStubs.Project({id: 1, firstTransactionEvent: false})];
+    const data = initializeData(projects, {view: undefined}, [
+      'performance-landing-widgets',
+    ]);
+
+    const wrapper = mountWithTheme(
+      <PerformanceContent
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    expect(wrapper.find('div[data-test-id="performance-landing-v3"]').exists()).toBe(
+      true
+    );
+  });
 });

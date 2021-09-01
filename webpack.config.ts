@@ -4,7 +4,6 @@
 import fs from 'fs';
 import path from 'path';
 
-import {CleanWebpackPlugin} from 'clean-webpack-plugin';
 import CompressionPlugin from 'compression-webpack-plugin';
 import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
@@ -296,15 +295,12 @@ let appConfig: Configuration = {
     ],
     noParse: [
       // don't parse known, pre-built javascript files (improves webpack perf)
-      /dist\/jquery\.js/,
       /jed\/jed\.js/,
       /marked\/lib\/marked\.js/,
       /terser\/dist\/bundle\.min\.js/,
     ],
   },
   plugins: [
-    new CleanWebpackPlugin(),
-
     // Do not bundle moment's locale files as we will lazy load them using
     // dynamic imports in the application code
     new webpack.IgnorePlugin({
@@ -313,13 +309,9 @@ let appConfig: Configuration = {
     }),
 
     /**
-     * jQuery must be provided in the global scope specifically and only for
-     * bootstrap, as it will not import jQuery itself.
-     *
-     * We discourage the use of global jQuery through eslint rules
+     * TODO(epurkhiser): Figure out if we still need these
      */
     new webpack.ProvidePlugin({
-      jQuery: 'jquery',
       process: 'process/browser',
       Buffer: ['buffer', 'Buffer'],
     }),
@@ -424,6 +416,7 @@ let appConfig: Configuration = {
     extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
   },
   output: {
+    clean: true, // Clean the output directory before emit.
     path: distPath,
     publicPath: '',
     filename: 'entrypoints/[name].js',

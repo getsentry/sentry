@@ -126,6 +126,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["missing_external_users"] == []
         assert errors["missing_user_emails"] == []
         assert errors["teams_without_access"] == []
+        assert errors["users_without_access"] == []
 
     def test_empty_codeowners_text(self):
         self.data["raw"] = ""
@@ -149,6 +150,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["missing_external_users"] == []
         assert errors["missing_user_emails"] == []
         assert errors["teams_without_access"] == []
+        assert errors["users_without_access"] == []
 
     def test_cannot_find_external_user_name_association(self):
         self.data["raw"] = "docs/*  @MeredithAnya"
@@ -165,6 +167,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert set(errors["missing_external_users"]) == {"@MeredithAnya"}
         assert errors["missing_user_emails"] == []
         assert errors["teams_without_access"] == []
+        assert errors["users_without_access"] == []
 
     def test_cannot_find_sentry_user_with_email(self):
         self.data["raw"] = "docs/*  someuser@sentry.io"
@@ -181,6 +184,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["missing_external_users"] == []
         assert set(errors["missing_user_emails"]) == {"someuser@sentry.io"}
         assert errors["teams_without_access"] == []
+        assert errors["users_without_access"] == []
 
     def test_cannot_find_external_team_name_association(self):
         self.data["raw"] = "docs/*  @getsentry/frontend\nstatic/* @getsentry/frontend"
@@ -197,6 +201,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["missing_external_users"] == []
         assert errors["missing_user_emails"] == []
         assert errors["teams_without_access"] == []
+        assert errors["users_without_access"] == []
 
     def test_cannot_find__multiple_external_name_association(self):
         self.data["raw"] = "docs/*  @AnotherUser @getsentry/frontend @getsentry/docs"
@@ -213,6 +218,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert set(errors["missing_external_users"]) == {"@AnotherUser"}
         assert errors["missing_user_emails"] == []
         assert errors["teams_without_access"] == []
+        assert errors["users_without_access"] == []
 
     def test_missing_code_mapping_id(self):
         self.data.pop("codeMappingId")
@@ -315,3 +321,35 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["missing_external_users"] == []
         assert set(errors["missing_user_emails"]) == {self.user2.email}
         assert errors["teams_without_access"] == []
+        assert errors["users_without_access"] == []
+
+    def test_multiple_codeowners_for_project(self):
+        code_mapping_2 = self.create_code_mapping(stack_root="src/")
+        self.create_codeowners(code_mapping=code_mapping_2)
+        with self.feature({"organizations:integrations-codeowners": True}):
+            response = self.client.post(self.url, self.data)
+        assert response.status_code == 201
+
+    def test_users_without_access(self):
+        user_2 = self.create_user("bar@example.com")
+        self.create_member(organization=self.organization, user=user_2, role="member")
+        team_2 = self.create_team(name="foo", organization=self.organization, members=[user_2])
+        self.create_project(organization=self.organization, teams=[team_2], slug="bass")
+        self.create_external_user(
+            user=user_2, external_name="@foobarSentry", integration=self.integration
+        )
+        self.data["raw"] = "docs/*  @foobarSentry\nstatic/* @foobarSentry"
+        with self.feature({"organizations:integrations-codeowners": True}):
+            response = self.client.post(self.url, self.data)
+        assert response.status_code == 201
+        assert response.data["raw"] == "docs/*  @foobarSentry\nstatic/* @foobarSentry"
+        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["provider"] == "github"
+        assert response.data["ownershipSyntax"] == ""
+
+        errors = response.data["errors"]
+        assert errors["missing_external_teams"] == []
+        assert errors["missing_external_users"] == []
+        assert errors["missing_user_emails"] == []
+        assert errors["teams_without_access"] == []
+        assert set(errors["users_without_access"]) == {user_2.email}

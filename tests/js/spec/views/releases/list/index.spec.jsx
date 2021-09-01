@@ -219,6 +219,24 @@ describe('ReleasesList', function () {
     });
   });
 
+  it('disables adoption sort when more than one environment is selected', function () {
+    wrapper.unmount();
+    const adoptionProps = {
+      ...props,
+      organization: {...organization, features: ['release-adoption-stage']},
+    };
+    wrapper = mountWithTheme(
+      <ReleasesList
+        {...adoptionProps}
+        location={{query: {sort: SortOption.ADOPTION}}}
+        selection={{...props.selection, environments: ['a', 'b']}}
+      />,
+      routerContext
+    );
+    const sortDropdown = wrapper.find('ReleaseListSortOptions');
+    expect(sortDropdown.find('ButtonLabel').text()).toBe('Sort ByDate Created');
+  });
+
   it('display the right Crash Free column', async function () {
     const displayDropdown = wrapper.find('ReleaseListDisplayOptions');
 
@@ -435,7 +453,7 @@ describe('ReleasesList', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('[data-test-id="search-autocomplete-item"]').at(0).text()).toBe(
+    expect(wrapper.find('[data-test-id="search-autocomplete-item"]').at(4).text()).toBe(
       'sentry@0.5.3'
     );
   });

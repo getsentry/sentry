@@ -15,9 +15,9 @@ import platforms from 'app/data/platforms';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {IntegrationProvider, Organization} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'app/utils/getDynamicText';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
@@ -95,20 +95,17 @@ class IntegrationSetup extends Component<Props, State> {
 
   handleFullDocsClick = () => {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {}, organization);
+    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {organization});
   };
 
   trackSwitchToManual = () => {
     const {organization, integrationSlug} = this.props;
-    trackIntegrationEvent(
-      'integrations.switch_manual_sdk_setup',
-      {
-        integration_type: 'first_party',
-        integration: integrationSlug,
-        view: 'onboarding',
-      },
-      organization
-    );
+    trackIntegrationAnalytics('integrations.switch_manual_sdk_setup', {
+      integration_type: 'first_party',
+      integration: integrationSlug,
+      view: 'onboarding',
+      organization,
+    });
   };
 
   handleAddIntegration = () => {

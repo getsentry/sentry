@@ -25,6 +25,21 @@ export function getCrashFreeRate(
   return defined(crashedRate) ? getCrashFreePercent(100 - crashedRate) : null;
 }
 
+export function getSeriesAverage(
+  groups: SessionApiResponse['groups'] = [],
+  field: SessionField,
+  status: SessionStatus
+) {
+  const totalCount = getCount(groups, field);
+
+  const dataPoints =
+    groups.find(({by}) => by['session.status'] === status)?.series[field].length ?? null;
+
+  return !defined(totalCount) || dataPoints === null || totalCount === 0
+    ? null
+    : totalCount / dataPoints;
+}
+
 export function getSessionStatusRate(
   groups: SessionApiResponse['groups'] = [],
   field: SessionField,
@@ -144,6 +159,11 @@ export function getSessionsInterval(
 ) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
+  if (moment(datetimeObj.start).isSameOrBefore(moment().subtract(30, 'days'))) {
+    // we cannot use sub-hour session resolution on buckets older than 30 days
+    highFidelity = false;
+  }
+
   if (diffInMinutes > TWO_WEEKS) {
     return '1d';
   }
@@ -177,7 +197,9 @@ export function filterSessionsInTimeWindow(
   const filteredIndexes: number[] = [];
 
   const intervals = sessions.intervals.filter((interval, index) => {
-    const isBetween = moment(interval).isBetween(start, end, undefined, '[]');
+    const isBetween = moment
+      .utc(interval)
+      .isBetween(moment.utc(start), moment.utc(end), undefined, '[]');
     if (isBetween) {
       filteredIndexes.push(index);
     }

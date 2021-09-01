@@ -124,7 +124,7 @@
             "required": true
         },
         "responses": {
-            "200": {
+            "204": {
                 "description": "Success"
             },
             "401": {

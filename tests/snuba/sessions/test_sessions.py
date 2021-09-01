@@ -8,10 +8,12 @@ from django.utils import timezone
 from sentry.snuba.sessions import (
     _make_stats,
     check_has_health_data,
+    check_releases_have_health_data,
     get_adjacent_releases_based_on_adoption,
     get_current_and_previous_crash_free_rates,
     get_oldest_health_data_for_releases,
     get_project_releases_by_stability,
+    get_project_releases_count,
     get_release_adoption,
     get_release_health_data_overview,
     get_release_sessions_time_bounds,
@@ -1775,3 +1777,100 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
                 "previousCrashFreeRate": None,
             },
         }
+
+
+class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
+    def test_empty(self):
+        # Test no errors when no session data
+        org = self.create_organization()
+        proj = self.create_project(organization=org)
+        assert (
+            get_project_releases_count(
+                org.id,
+                [proj.id],
+                "",
+            )
+            == 0
+        )
+
+    def test(self):
+        project_release_1 = self.create_release(self.project)
+        other_project = self.create_project()
+        other_project_release_1 = self.create_release(other_project)
+        self.bulk_store_sessions(
+            [
+                self.build_session(
+                    environment=self.environment.name, release=project_release_1.version
+                ),
+                self.build_session(
+                    environment="staging",
+                    project_id=other_project.id,
+                    release=other_project_release_1.version,
+                ),
+            ]
+        )
+        assert get_project_releases_count(self.organization.id, [self.project.id], "sessions") == 1
+        assert get_project_releases_count(self.organization.id, [self.project.id], "users") == 1
+        assert (
+            get_project_releases_count(
+                self.organization.id, [self.project.id, other_project.id], "sessions"
+            )
+            == 2
+        )
+        assert (
+            get_project_releases_count(
+                self.organization.id, [self.project.id, other_project.id], "users"
+            )
+            == 2
+        )
+        assert (
+            get_project_releases_count(
+                self.organization.id,
+                [self.project.id, other_project.id],
+                "sessions",
+                environments=[self.environment.name],
+            )
+            == 1
+        )
+
+
+class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
+    def run_test(self, expected, projects, releases, start=None, end=None):
+        if not start:
+            start = datetime.now() - timedelta(days=1)
+        if not end:
+            end = datetime.now()
+        assert (
+            check_releases_have_health_data(
+                self.organization.id,
+                [p.id for p in projects],
+                [r.version for r in releases],
+                start,
+                end,
+            )
+            == {v.version for v in expected}
+        )
+
+    def test_empty(self):
+        # Test no errors when no session data
+        project_release_1 = self.create_release(self.project)
+        self.run_test([], [self.project], [project_release_1])
+
+    def test(self):
+        other_project = self.create_project()
+        release_1 = self.create_release(
+            self.project, version="1", additional_projects=[other_project]
+        )
+        release_2 = self.create_release(other_project, version="2")
+        self.bulk_store_sessions(
+            [
+                self.build_session(release=release_1),
+                self.build_session(project_id=other_project, release=release_1),
+                self.build_session(project_id=other_project, release=release_2),
+            ]
+        )
+        self.run_test([release_1], [self.project], [release_1])
+        self.run_test([release_1], [self.project], [release_1, release_2])
+        self.run_test([release_1], [other_project], [release_1])
+        self.run_test([release_1, release_2], [other_project], [release_1, release_2])
+        self.run_test([release_1, release_2], [self.project, other_project], [release_1, release_2])

@@ -6,8 +6,8 @@ import ReleaseListDropdown from './releaseListDropdown';
 import {DisplayOption} from './utils';
 
 const displayOptions = {
-  [DisplayOption.SESSIONS]: t('Sessions'),
-  [DisplayOption.USERS]: t('Users'),
+  [DisplayOption.SESSIONS]: {label: t('Sessions')},
+  [DisplayOption.USERS]: {label: t('Users')},
 };
 
 type Props = {

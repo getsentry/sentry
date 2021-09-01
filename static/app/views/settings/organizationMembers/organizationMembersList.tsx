@@ -17,7 +17,7 @@ import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {Member, MemberRole, Organization, Team} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import routeTitleGen from 'app/utils/routeTitle';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
@@ -188,14 +188,11 @@ class OrganizationMembersList extends AsyncView<Props, State> {
 
       this.removeInviteRequest(inviteRequest.id);
       addSuccessMessage(successMessage);
-      trackAdvancedAnalyticsEvent(
-        eventKey,
-        {
-          member_id: parseInt(inviteRequest.id, 10),
-          invite_status: inviteRequest.inviteStatus,
-        },
-        organization
-      );
+      trackAdvancedAnalyticsEvent(eventKey, {
+        member_id: parseInt(inviteRequest.id, 10),
+        invite_status: inviteRequest.inviteStatus,
+        organization,
+      });
     } catch {
       addErrorMessage(errorMessage);
     }

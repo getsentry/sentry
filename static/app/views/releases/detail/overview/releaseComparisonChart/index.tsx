@@ -9,6 +9,7 @@ import {Client} from 'app/api';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import {ChartContainer} from 'app/components/charts/styles';
 import Count from 'app/components/count';
+import Duration from 'app/components/duration';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import NotAvailable from 'app/components/notAvailable';
 import {Panel, PanelTable} from 'app/components/panels';
@@ -33,15 +34,21 @@ import {
 import {defined} from 'app/utils';
 import {formatPercentage} from 'app/utils/formatters';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
-import {getCount, getCrashFreeRate, getSessionStatusRate} from 'app/utils/sessions';
+import {
+  getCount,
+  getCrashFreeRate,
+  getSeriesAverage,
+  getSessionStatusRate,
+} from 'app/utils/sessions';
 import {Color} from 'app/utils/theme';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {
   displaySessionStatusPercent,
   getReleaseBounds,
   getReleaseHandledIssuesUrl,
   getReleaseParams,
   getReleaseUnhandledIssuesUrl,
+  roundDuration,
 } from 'app/views/releases/utils';
 
 import {releaseComparisonChartLabels} from '../../utils';
@@ -159,7 +166,7 @@ function ReleaseComparisonChart({
         api.requestPromise(url, {
           query: {
             field: ['failure_rate()', 'count()'],
-            query: new QueryResults([
+            query: new MutableSearch([
               'event.type:transaction',
               `release:${release.version}`,
             ]).formatString(),
@@ -169,14 +176,14 @@ function ReleaseComparisonChart({
         api.requestPromise(url, {
           query: {
             field: ['failure_rate()', 'count()'],
-            query: new QueryResults(['event.type:transaction']).formatString(),
+            query: new MutableSearch(['event.type:transaction']).formatString(),
             ...commonQuery,
           },
         }),
         api.requestPromise(url, {
           query: {
             field: ['count()'],
-            query: new QueryResults([
+            query: new MutableSearch([
               'event.type:error',
               `release:${release.version}`,
             ]).formatString(),
@@ -186,7 +193,7 @@ function ReleaseComparisonChart({
         api.requestPromise(url, {
           query: {
             field: ['count()'],
-            query: new QueryResults(['event.type:error']).formatString(),
+            query: new MutableSearch(['event.type:error']).formatString(),
             ...commonQuery,
           },
         }),
@@ -385,6 +392,21 @@ function ReleaseComparisonChart({
 
   const releaseUsersCount = getCount(releaseSessions?.groups, SessionField.USERS);
   const allUsersCount = getCount(allSessions?.groups, SessionField.USERS);
+
+  const sessionDurationTotal = roundDuration(
+    (getSeriesAverage(
+      releaseSessions?.groups,
+      SessionField.DURATION,
+      SessionStatus.HEALTHY
+    ) ?? 0) / 1000
+  );
+  const allSessionDurationTotal = roundDuration(
+    (getSeriesAverage(
+      allSessions?.groups,
+      SessionField.DURATION,
+      SessionStatus.HEALTHY
+    ) ?? 0) / 1000
+  );
 
   const diffFailure =
     eventsTotals?.releaseFailureRate && eventsTotals?.allFailureRate
@@ -700,6 +722,20 @@ function ReleaseComparisonChart({
         diffColor: null,
       },
       {
+        type: ReleaseComparisonChartType.SESSION_DURATION,
+        role: 'default',
+        drilldown: null,
+        thisRelease: defined(sessionDurationTotal) ? (
+          <Duration seconds={sessionDurationTotal} abbreviation />
+        ) : null,
+        allReleases: defined(allSessionDurationTotal) ? (
+          <Duration seconds={allSessionDurationTotal} abbreviation />
+        ) : null,
+        diff: null,
+        diffDirection: null,
+        diffColor: null,
+      },
+      {
         type: ReleaseComparisonChartType.USER_COUNT,
         role: 'default',
         drilldown: null,
@@ -766,7 +802,11 @@ function ReleaseComparisonChart({
     return diff ? (
       <Change color={defined(diffColor) ? diffColor : undefined}>
         {diff}{' '}
-        {defined(diffDirection) && <IconArrow direction={diffDirection} size="xs" />}
+        {defined(diffDirection) ? (
+          <IconArrow direction={diffDirection} size="xs" />
+        ) : (
+          <StyledNotAvailable />
+        )}
       </Change>
     ) : null;
   }
@@ -799,6 +839,11 @@ function ReleaseComparisonChart({
     );
   }
 
+  const titleChartDiff =
+    chart.diff !== '0%' && chart.thisRelease !== '0%'
+      ? getChartDiff(chart.diff, chart.diffColor, chart.diffDirection)
+      : null;
+
   return (
     <Fragment>
       <ChartPanel>
@@ -809,14 +854,15 @@ function ReleaseComparisonChart({
             ReleaseComparisonChartType.FAILURE_RATE,
           ].includes(activeChart) ? (
             <ReleaseEventsChart
-              version={release.version}
+              release={release}
+              project={project}
               chartType={activeChart}
               period={period ?? undefined}
               start={start}
               end={end}
               utc={utc === 'true'}
               value={chart.thisRelease}
-              diff={getChartDiff(chart.diff, chart.diffColor, chart.diffDirection)}
+              diff={titleChartDiff}
             />
           ) : (
             <ReleaseSessionsChart
@@ -831,7 +877,7 @@ function ReleaseComparisonChart({
               end={end}
               utc={utc === 'true'}
               value={chart.thisRelease}
-              diff={getChartDiff(chart.diff, chart.diffColor, chart.diffDirection)}
+              diff={titleChartDiff}
               loading={loading}
               reloading={reloading}
             />
@@ -845,6 +891,7 @@ function ReleaseComparisonChart({
           <Cell key="release">{t('This Release')}</Cell>,
           <Cell key="change">{t('Change')}</Cell>,
         ]}
+        data-test-id="release-comparison-table"
       >
         {charts.map(
           ({
@@ -937,9 +984,16 @@ const TitleWrapper = styled('div')`
   background: ${p => p.theme.background};
 
   input {
+    width: ${space(2)};
+    height: ${space(2)};
     flex-shrink: 0;
     background-color: ${p => p.theme.background};
     margin-right: ${space(1)} !important;
+
+    &:checked:after {
+      width: ${space(1)};
+      height: ${space(1)};
+    }
 
     &:hover {
       cursor: pointer;
@@ -962,7 +1016,7 @@ const ChartTableRow = styled('label')<{
   margin-bottom: 0;
 
   > * {
-    padding: ${space(2)};
+    padding: ${space(1)} ${space(2)};
   }
 
   ${p =>
@@ -1005,7 +1059,7 @@ const ChartTableRow = styled('label')<{
     p.role === 'children' &&
     css`
       ${DescriptionCell} {
-        padding-left: 50px;
+        padding-left: 44px;
         position: relative;
         &:before {
           content: '';
@@ -1013,7 +1067,7 @@ const ChartTableRow = styled('label')<{
           height: 36px;
           position: absolute;
           top: -17px;
-          left: 27px;
+          left: 24px;
           border-bottom: 1px solid ${p.theme.border};
           border-left: 1px solid ${p.theme.border};
         }
@@ -1043,6 +1097,10 @@ const ChartTable = styled(PanelTable)`
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     grid-template-columns: repeat(4, minmax(min-content, 1fr));
   }
+`;
+
+const StyledNotAvailable = styled(NotAvailable)`
+  display: inline-block;
 `;
 
 export default ReleaseComparisonChart;

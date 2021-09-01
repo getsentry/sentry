@@ -12,7 +12,7 @@ import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {formatVersion} from 'app/utils/formatters';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {Theme} from 'app/utils/theme';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {getCrashFreePercent} from 'app/views/releases/utils';
 import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
@@ -85,7 +85,7 @@ export function getReleaseEventView(
       );
       return EventView.fromSavedQuery({
         ...baseQuery,
-        query: new QueryResults(
+        query: new MutableSearch(
           ['event.type:transaction', releaseFilter, ...statusFilters].filter(Boolean)
         ).formatString(),
       });
@@ -98,7 +98,7 @@ export function getReleaseEventView(
           : WEB_VITAL_DETAILS[vitalType].poorThreshold;
       return EventView.fromSavedQuery({
         ...baseQuery,
-        query: new QueryResults(
+        query: new MutableSearch(
           [
             'event.type:transaction',
             releaseFilter,
@@ -111,7 +111,7 @@ export function getReleaseEventView(
         eventType === EventType.ALL ? '' : `event.type:${eventType}`;
       return EventView.fromSavedQuery({
         ...baseQuery,
-        query: new QueryResults(
+        query: new MutableSearch(
           [releaseFilter, eventTypeFilter].filter(Boolean)
         ).formatString(),
       });
@@ -119,7 +119,7 @@ export function getReleaseEventView(
       return EventView.fromSavedQuery({
         ...baseQuery,
         fields: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
-        query: new QueryResults([
+        query: new MutableSearch([
           `release:${version}`,
           '!event.type:transaction',
         ]).formatString(),

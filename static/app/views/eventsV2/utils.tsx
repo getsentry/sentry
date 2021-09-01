@@ -29,7 +29,7 @@ import {
 } from 'app/utils/discover/fields';
 import {getTitle} from 'app/utils/events';
 import localStorage from 'app/utils/localStorage';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 import {FieldValue, FieldValueKind, TableColumn} from './table/types';
 import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
@@ -374,14 +374,14 @@ function generateExpandedConditions(
   additionalConditions: Record<string, string>,
   dataRow?: TableDataRow | Event
 ): string {
-  const parsedQuery = tokenizeSearch(eventView.query);
+  const parsedQuery = new MutableSearch(eventView.query);
 
   // Remove any aggregates from the search conditions.
   // otherwise, it'll lead to an invalid query result.
-  for (const key in parsedQuery.tagValues) {
+  for (const key in parsedQuery.filters) {
     const column = explodeFieldString(key);
     if (column.kind === 'function') {
-      parsedQuery.removeTag(key);
+      parsedQuery.removeFilter(key);
     }
   }
 
@@ -396,7 +396,7 @@ function generateExpandedConditions(
     const value = conditions[key];
 
     if (Array.isArray(value)) {
-      parsedQuery.setTagValues(key, value);
+      parsedQuery.setFilterValues(key, value);
       continue;
     }
 
@@ -416,7 +416,7 @@ function generateExpandedConditions(
       continue;
     }
 
-    parsedQuery.setTagValues(key, [value]);
+    parsedQuery.setFilterValues(key, [value]);
   }
 
   return parsedQuery.formatString();
@@ -446,10 +446,6 @@ export function generateFieldOptions({
   if (!organization.features.includes('performance-view')) {
     fieldKeys = fieldKeys.filter(item => !TRACING_FIELDS.includes(item));
     functions = functions.filter(item => !TRACING_FIELDS.includes(item));
-  }
-  // Feature flagged by arithmetic for now
-  if (!organization.features.includes('discover-arithmetic')) {
-    functions = functions.filter(item => item !== 'count_if');
   }
   const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
 

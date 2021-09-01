@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:44:01.507032Z'
+created: '2021-08-30T08:43:02.178421Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -134,21 +134,19 @@ app-depth-4:
           "bla"
 --------------------------------------------------------------------------
 app-depth-5:
-  hash: "20741a4530d240adb9910aefac03e4b1"
-  tree_label: "eventFromException | captureException | invokeClient | captureException | <anonymous>"
+  hash: "d50c59998b650da06b01b9f2b8ecc2f7"
+  tree_label: "eventFromException | captureException | invokeClient | captureException"
   component:
     app-depth-5*
       exception*
         stacktrace*
           frame*
             module*
-              "jest-mock.build:index"
+              "onunhandledrejection.ts"
             filename (module takes precedence)
-              "index.js"
+              "onunhandledrejection.ts"
             function (ignored unknown function name)
               "<anonymous>"
-            context-line*
-              "return original.apply(this, arguments);"
           frame*
             module*
               "hub.ts"
@@ -189,8 +187,8 @@ app-depth-5:
           "bla"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "252dc79eb5653bf822e2684d90734cb8"
-  tree_label: "eventFromException | captureException | invokeClient | captureException | <anonymous> | finalReturnValue | <anonymous> | mockConstructor [as captureException] | <anonymous> | withScope"
+  hash: "a20509269752c9a1bea6078851e4d39c"
+  tree_label: "eventFromException | captureException | invokeClient | captureException | withScope"
   component:
     app-depth-max*
       exception*
@@ -211,42 +209,6 @@ app-depth-max:
               "onunhandledrejection.ts"
             function (ignored unknown function name)
               "<anonymous>"
-          frame*
-            module*
-              "jest-mock.build:index"
-            filename (module takes precedence)
-              "index.js"
-            function* (trimmed javascript function)
-              "mockConstructor [as captureException]"
-            context-line*
-              "return fn.apply(this, arguments);"
-          frame*
-            module*
-              "jest-mock.build:index"
-            filename (module takes precedence)
-              "index.js"
-            function (ignored unknown function name)
-              "<anonymous>"
-            context-line*
-              "})();"
-          frame*
-            module*
-              "jest-mock.build:index"
-            filename (module takes precedence)
-              "index.js"
-            function*
-              "finalReturnValue"
-            context-line*
-              "return specificMockImpl.apply(this, arguments);"
-          frame*
-            module*
-              "jest-mock.build:index"
-            filename (module takes precedence)
-              "index.js"
-            function (ignored unknown function name)
-              "<anonymous>"
-            context-line*
-              "return original.apply(this, arguments);"
           frame*
             module*
               "hub.ts"
@@ -288,7 +250,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "252dc79eb5653bf822e2684d90734cb8"
-  tree_label: "eventFromException | captureException | invokeClient | captureException | <anonymous> | finalReturnValue | <anonymous> | mockConstructor [as captureException] | <anonymous> | withScope"
+  tree_label: "eventFromException | captureException | invokeClient | captureException | <anonymous> | finalReturnValue | <anonymous> | mockConstructor [as captureException] | withScope"
   component:
     system*
       exception*

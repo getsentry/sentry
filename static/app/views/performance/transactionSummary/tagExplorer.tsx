@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptorObject, Query} from 'history';
+import {Location, LocationDescriptorObject} from 'history';
 
 import Feature from 'app/components/acl/feature';
 import {GuideAnchor} from 'app/components/assistant/guideAnchor';
@@ -15,7 +15,7 @@ import GridEditable, {
 } from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
-import Pagination from 'app/components/pagination';
+import Pagination, {CursorHandler} from 'app/components/pagination';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -28,7 +28,7 @@ import SegmentExplorerQuery, {
   TableDataRow,
 } from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
@@ -283,9 +283,9 @@ class _TagExplorer extends React.Component<Props> {
     });
 
     const queryString = decodeScalar(location.query.query);
-    const conditions = tokenizeSearch(queryString || '');
+    const conditions = new MutableSearch(queryString ?? '');
 
-    conditions.addTagValues(tagKey, [tagValue]);
+    conditions.addFilterValues(tagKey, [tagValue]);
 
     const query = conditions.formatString();
     browserHistory.push({
@@ -310,10 +310,10 @@ class _TagExplorer extends React.Component<Props> {
         organization_id: parseInt(organization.id, 10),
       });
 
-      const searchConditions = tokenizeSearch(eventView.query);
+      const searchConditions = new MutableSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeTag('event.type');
+      searchConditions.removeFilter('event.type');
 
       updateQuery(searchConditions, action, {...column, name: actionRow.id}, tagValue);
 
@@ -525,9 +525,11 @@ type HeaderProps = {
   location: Location;
   pageLinks: string | null;
 };
+
 function TagsHeader(props: HeaderProps) {
   const {pageLinks, organization, location, transactionName} = props;
-  const handleCursor = (cursor: string, pathname: string, query: Query) => {
+
+  const handleCursor: CursorHandler = (cursor, pathname, query) => {
     trackAnalyticsEvent({
       eventKey: 'performance_views.summary.tag_explorer.change_page',
       eventName: 'Performance Views: Tag Explorer Change Page',
@@ -559,7 +561,7 @@ function TagsHeader(props: HeaderProps) {
     <Header>
       <div>
         <SectionHeading>{t('Suspect Tags')}</SectionHeading>
-        <FeatureBadge type="beta" />
+        <FeatureBadge type="new" />
       </div>
       <Feature features={['performance-tag-page']} organization={organization}>
         <Button

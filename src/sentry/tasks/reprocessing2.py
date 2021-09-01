@@ -4,7 +4,7 @@ import time
 import sentry_sdk
 from django.db import transaction
 
-from sentry import eventstore, eventstream, models, nodestore
+from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.query import celery_run_batch_query
@@ -158,14 +158,13 @@ def handle_remaining_events(
 
     from sentry import buffer
     from sentry.models.group import Group
+    from sentry.reprocessing2 import EVENT_MODELS_TO_MIGRATE
 
     assert remaining_events in ("delete", "keep")
 
     if remaining_events == "delete":
-        models.EventAttachment.objects.filter(
-            project_id=project_id, event_id__in=event_ids
-        ).delete()
-        models.UserReport.objects.filter(project_id=project_id, event_id__in=event_ids).delete()
+        for cls in EVENT_MODELS_TO_MIGRATE:
+            cls.objects.filter(project_id=project_id, event_id__in=event_ids).delete()
 
         # Remove from nodestore
         node_ids = [Event.generate_node_id(project_id, event_id) for event_id in event_ids]
@@ -176,6 +175,11 @@ def handle_remaining_events(
             project_id, event_ids, from_timestamp=from_timestamp, to_timestamp=to_timestamp
         )
     elif remaining_events == "keep":
+        for cls in EVENT_MODELS_TO_MIGRATE:
+            cls.objects.filter(project_id=project_id, event_id__in=event_ids).update(
+                group_id=new_group_id
+            )
+
         eventstream.replace_group_unsafe(
             project_id,
             event_ids,

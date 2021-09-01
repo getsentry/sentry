@@ -176,12 +176,12 @@ def test_has_valid_aggregates(interval):
 def test_percentiles():
     values = [3, 6, 7, 8, 8, 9, 10, 13, 15, 16, 20]
 
-    get_percentile([], 0.25) == 0
-    get_percentile([], 1) == 0
-    get_percentile(values, 0.25) == 7
-    get_percentile(values, 0.50) == 9
-    get_percentile(values, 0.75) == 15
-    get_percentile(values, 1.00) == 20
+    assert get_percentile([], 0.25) == 0
+    assert get_percentile([], 1) == 0
+    assert get_percentile(values, 0.25) == 7
+    assert get_percentile(values, 0.50) == 9
+    assert get_percentile(values, 0.75) == 15
+    assert get_percentile(values, 1.00) == 20
 
 
 def test_colorize():
@@ -277,6 +277,9 @@ class ReportTestCase(TestCase, SnubaTestCase):
 
         set_option_value([organization.id])
         assert user_subscribed_to_organization_reports(user, organization) is False
+
+        set_option_value("")
+        assert user_subscribed_to_organization_reports(user, organization) is True
 
     @mock.patch("sentry.tasks.reports.BATCH_SIZE", 1)
     def test_paginates_project_issue_summaries_and_reassembles_result(self):

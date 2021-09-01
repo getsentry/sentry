@@ -101,7 +101,7 @@ function getFormatter({
     // an object with value/label keys.
     const value = getSeriesValue(seriesParam, 0);
     if (typeof filter === 'function') {
-      return filter(value);
+      return filter(value, seriesParam);
     }
 
     return true;

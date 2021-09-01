@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {browserHistory} from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
@@ -15,12 +15,12 @@ import {IconStar} from 'app/icons';
 import {tct} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
@@ -95,10 +95,8 @@ class Table extends React.Component<Props, State> {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location, organization, projects} = this.props;
 
-      trackAnalyticsEvent({
-        eventKey: 'performance_views.overview.cellaction',
-        eventName: 'Performance Views: Cell Action Clicked',
-        organization_id: parseInt(organization.id, 10),
+      trackAdvancedAnalyticsEvent('performance_views.overview.cellaction', {
+        organization,
         action,
       });
 
@@ -141,14 +139,14 @@ class Table extends React.Component<Props, State> {
         return;
       }
 
-      const searchConditions = tokenizeSearch(eventView.query);
+      const searchConditions = new MutableSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeTag('event.type');
+      searchConditions.removeFilter('event.type');
 
       updateQuery(searchConditions, action, column, value);
 
-      ReactRouter.browserHistory.push({
+      browserHistory.push({
         pathname: location.pathname,
         query: {
           ...location.query,
@@ -190,7 +188,7 @@ class Table extends React.Component<Props, State> {
       const projectID = getProjectID(dataRow, projects);
       const summaryView = eventView.clone();
       if (dataRow['http.method']) {
-        summaryView.additionalConditions.setTagValues('http.method', [
+        summaryView.additionalConditions.setFilterValues('http.method', [
           dataRow['http.method'] as string,
         ]);
       }
@@ -268,10 +266,8 @@ class Table extends React.Component<Props, State> {
 
   onSortClick(currentSortKind?: string, currentSortField?: string) {
     const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.landingv2.transactions.sort',
-      eventName: 'Performance Views: Landing Transactions Sorted',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('performance_views.landingv2.transactions.sort', {
+      organization,
       field: currentSortField,
       direction: currentSortKind,
     });
@@ -394,10 +390,8 @@ class Table extends React.Component<Props, State> {
 
   handleSummaryClick = () => {
     const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.overview.navigate.summary',
-      eventName: 'Performance Views: Overview view summary',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('performance_views.overview.navigate.summary', {
+      organization,
     });
   };
 

@@ -25,7 +25,7 @@ function mountModal({tagKeys, columns, onApply}, initialData) {
 describe('EventsV2 -> ColumnEditModal', function () {
   const initialData = initializeOrg({
     organization: {
-      features: ['performance-view', 'discover-arithmetic'],
+      features: ['performance-view'],
       apdexThreshold: 400,
     },
   });
@@ -610,13 +610,14 @@ describe('EventsV2 -> ColumnEditModal', function () {
 
       expect(newWrapper.find('QueryField')).toHaveLength(2);
 
-      // Last row cannot be removed or dragged.
+      // Can still remove the equation
       expect(
         newWrapper.find('RowContainer button[aria-label="Remove column"]')
-      ).toHaveLength(0);
+      ).toHaveLength(1);
+      // And both are draggable
       expect(
         newWrapper.find('RowContainer button[aria-label="Drag to reorder"]')
-      ).toHaveLength(0);
+      ).toHaveLength(2);
     });
     it('handles equations being deleted', function () {
       const newWrapper = mountModal(

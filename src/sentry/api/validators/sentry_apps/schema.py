@@ -130,14 +130,24 @@ SCHEMA = {
             },
             "required": ["type", "link", "create"],
         },
+        "alert-rule-settings": {
+            "type": "object",
+            "properties": {
+                "type": {"type": "string", "enum": ["alert-rule-settings"]},
+                "uri": {"$ref": "#/definitions/uri"},
+                "required_fields": {"$ref": "#/definitions/fieldset"},
+                "optional_fields": {"$ref": "#/definitions/fieldset"},
+            },
+            "required": ["type", "uri", "required_fields"],
+        },
         "alert-rule-action": {
             "type": "object",
             "properties": {
                 "type": {"type": "string", "enum": ["alert-rule-action"]},
-                "required_fields": {"$ref": "#/definitions/fieldset"},
-                "optional_fields": {"$ref": "#/definitions/fieldset"},
+                "title": {"type": "string"},
+                "settings": {"$ref": "#/definitions/alert-rule-settings"},
             },
-            "required": ["type", "required_fields"],
+            "required": ["type", "title", "settings"],
         },
         "issue-media": {
             "type": "object",
@@ -222,7 +232,9 @@ def check_each_element_for_error(instance):
             validate_component(element)
         except SchemaValidationError as e:
             # catch the validation error and re-write the error so the user knows which element has the issue
-            raise SchemaValidationError(f"{e.message} for element of type '{found_type}'")
+            raise SchemaValidationError(
+                f"{e.message} for element of type '{found_type}'"  # noqa: B306
+            )
 
 
 def validate_ui_element_schema(instance):

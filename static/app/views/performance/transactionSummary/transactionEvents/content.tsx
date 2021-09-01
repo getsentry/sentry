@@ -21,13 +21,13 @@ import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
-import {getCurrentLandingDisplay, LandingDisplayField} from '../../landing/utils';
 import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from '../filter';
-import TransactionHeader, {Tab} from '../header';
+import TransactionHeader from '../header';
+import Tab from '../tabs';
 
 import EventsTable from './eventsTable';
 import {EventsDisplayFilterName, getEventsFilterOptions} from './utils';
@@ -62,13 +62,13 @@ class EventsPageContent extends React.Component<Props, State> {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location} = this.props;
 
-      const searchConditions = tokenizeSearch(eventView.query);
+      const searchConditions = new MutableSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeTag('event.type');
+      searchConditions.removeFilter('event.type');
 
       // no need to include transaction as its already in the query params
-      searchConditions.removeTag('transaction');
+      searchConditions.removeFilter('transaction');
 
       updateQuery(searchConditions, action, column, value);
 
@@ -124,10 +124,7 @@ class EventsPageContent extends React.Component<Props, State> {
           projects={projects}
           transactionName={transactionName}
           currentTab={Tab.Events}
-          hasWebVitals={
-            getCurrentLandingDisplay(location, projects, eventView).field ===
-            LandingDisplayField.FRONTEND_PAGELOAD
-          }
+          hasWebVitals="maybe"
           handleIncompatibleQuery={this.handleIncompatibleQuery}
         />
         <Layout.Body>

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {Link} from 'react-router';
+import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 
 import Badge from 'app/components/badge';
@@ -10,7 +10,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 type Props = {
-  to: React.ComponentProps<Link>['to'];
+  to: React.ComponentProps<RouterLink>['to'];
   label: React.ReactNode;
   badge?: string | number | null;
   index?: boolean;
@@ -24,7 +24,8 @@ const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
     defaultComponent: ({children}) => <React.Fragment>{children}</React.Fragment>,
   });
 
-  let renderedBadge;
+  let renderedBadge: React.ReactNode;
+
   if (badge === 'new') {
     renderedBadge = <FeatureBadge type="new" />;
   } else if (badge === 'beta') {
@@ -47,7 +48,7 @@ const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
   );
 };
 
-const StyledNavItem = styled(Link)`
+const StyledNavItem = styled(RouterLink)`
   display: block;
   color: ${p => p.theme.gray300};
   font-size: 14px;

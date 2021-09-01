@@ -14,7 +14,7 @@ import TransactionsList, {DropdownOption} from 'app/components/discover/transact
 import {Body, Main, Side} from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {ChangeData} from 'app/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'app/components/organizations/timeRangeSelector/pageTimeRangeSelector';
+import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {backend, frontend, mobile, serverless} from 'app/data/platformCategories';
 import {t} from 'app/locale';
@@ -863,14 +863,14 @@ function getDropdownOptions(): DropdownOption[] {
     },
     {
       sort: {kind: 'desc', field: 'trend_percentage()'},
-      query: [['t_test()', '<-6']],
+      query: [['confidence()', '>6']],
       trendType: TrendChangeType.REGRESSION,
       value: TransactionsListOption.REGRESSION,
       label: t('Trending Regressions'),
     },
     {
       sort: {kind: 'asc', field: 'trend_percentage()'},
-      query: [['t_test()', '>6']],
+      query: [['confidence()', '>6']],
       trendType: TrendChangeType.IMPROVED,
       value: TransactionsListOption.IMPROVEMENT,
       label: t('Trending Improvements'),

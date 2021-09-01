@@ -19,7 +19,7 @@ import ListItem from 'app/components/list/listItem';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'app/utils/withApi';
 import EmailField from 'app/views/settings/components/forms/emailField';
 import Form from 'app/views/settings/components/forms/form';
@@ -41,21 +41,19 @@ class SuggestProjectModal extends Component<Props, State> {
 
   handleGetStartedClick = () => {
     const {matchedUserAgentString, organization} = this.props;
-    trackAdvancedAnalyticsEvent(
-      'growth.clicked_mobile_prompt_setup_project',
-      {matchedUserAgentString},
-      organization
-    );
+    trackAdvancedAnalyticsEvent('growth.clicked_mobile_prompt_setup_project', {
+      matchedUserAgentString,
+      organization,
+    });
   };
 
   handleAskTeammate = () => {
     const {matchedUserAgentString, organization} = this.props;
     this.setState({askTeammate: true});
-    trackAdvancedAnalyticsEvent(
-      'growth.clicked_mobile_prompt_ask_teammate',
-      {matchedUserAgentString},
-      organization
-    );
+    trackAdvancedAnalyticsEvent('growth.clicked_mobile_prompt_ask_teammate', {
+      matchedUserAgentString,
+      organization,
+    });
   };
 
   goBack = () => {
@@ -65,11 +63,10 @@ class SuggestProjectModal extends Component<Props, State> {
   handleSubmitSuccess = () => {
     const {matchedUserAgentString, organization, closeModal} = this.props;
     addSuccessMessage('Notified teammate successfully');
-    trackAdvancedAnalyticsEvent(
-      'growth.submitted_mobile_prompt_ask_teammate',
-      {matchedUserAgentString},
-      organization
-    );
+    trackAdvancedAnalyticsEvent('growth.submitted_mobile_prompt_ask_teammate', {
+      matchedUserAgentString,
+      organization,
+    });
     closeModal();
   };
 

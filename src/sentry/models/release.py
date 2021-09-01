@@ -36,7 +36,7 @@ from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
-from sentry.utils.hashlib import md5_text
+from sentry.utils.hashlib import hash_values, md5_text
 from sentry.utils.numbers import validate_bigint
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.strings import truncatechars
@@ -199,15 +199,15 @@ class ReleaseQuerySet(models.QuerySet):
 
         if semver_filter.version_parts:
             filter_func = Func(
-                *[
+                *(
                     Value(part) if isinstance(part, str) else part
                     for part in semver_filter.version_parts
-                ],
+                ),
                 function="ROW",
             )
             cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
             qs = qs.annotate(
-                semver=Func(*[F(col) for col in cols], function="ROW", output_field=ArrayField())
+                semver=Func(*(F(col) for col in cols), function="ROW", output_field=ArrayField())
             ).filter(**{f"semver__{semver_filter.operator}": filter_func})
         return qs
 
@@ -217,9 +217,13 @@ class ReleaseQuerySet(models.QuerySet):
         operator: str,
         value,
         project_ids: Sequence[int] = None,
+        environments: List[str] = None,
     ) -> models.QuerySet:
         from sentry.models import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
+
+        if not environments or len(environments) != 1:
+            raise InvalidSearchQuery("Choose a single environment to filter by release stage.")
 
         filters = {
             ReleaseStages.ADOPTED: Q(adopted__isnull=False, unadopted__isnull=True),
@@ -252,6 +256,9 @@ class ReleaseQuerySet(models.QuerySet):
 
         qs = self.filter(id__in=Subquery(rpes.filter(query).values_list("release_id", flat=True)))
         return qs
+
+    def order_by_recent(self):
+        return self.order_by("-date_added", "-id")
 
 
 class ReleaseModelManager(models.Manager):
@@ -289,8 +296,14 @@ class ReleaseModelManager(models.Manager):
         operator: str,
         value,
         project_ids: Sequence[int] = None,
+        environments: Optional[List[str]] = None,
     ) -> models.QuerySet:
-        return self.get_queryset().filter_by_stage(organization_id, operator, value, project_ids)
+        return self.get_queryset().filter_by_stage(
+            organization_id, operator, value, project_ids, environments
+        )
+
+    def order_by_recent(self):
+        return self.get_queryset().order_by_recent()
 
     @staticmethod
     def _convert_build_code_to_build_number(build_code):
@@ -460,6 +473,10 @@ class Release(Model):
         separately for serialization purposes.
         """
         return Model.__eq__(self, other) and self._for_project_id == other._for_project_id
+
+    def __hash__(self):
+        # https://code.djangoproject.com/ticket/30333
+        return super().__hash__()
 
     @staticmethod
     def is_valid_version(value):
@@ -1096,35 +1113,45 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
         Boolean that indicates if we should follow semantic version or not
     """
     # ToDo(ahmed): Move this function else where to be easily accessible for re-use
-    follows_semver = True
+    cache_key = "follows_semver:1:%s" % hash_values([org_id, project_id])
+    follows_semver = cache.get(cache_key)
 
-    # Check if the latest ten releases are semver compliant
-    releases_list = Release.objects.filter(
-        organization=org_id, projects__id__in=[project_id]
-    ).order_by("-date_added")[:10]
+    if follows_semver is None:
 
-    # ToDo(ahmed): re-visit/replace these conditions once we enable project wide `semver` setting
-    # A project is said to be following semver versioning schemes if it satisfies the following
-    # conditions:-
-    # 1: Atleast one semver compliant in the most recent 3 releases
-    # 2: Atleast 3 semver compliant releases in the most recent 10 releases
-    if len(releases_list) <= 2:
-        # Most recent release is considered to decide if project follows semver
-        follows_semver = follows_semver and releases_list[0].is_semver_release
-    elif len(releases_list) < 10:
-        # We forego condition 2 and it is enough if condition 1 is satisfied to consider this
-        # project to have semver compliant releases
-        follows_semver = follows_semver and any(
-            release.is_semver_release for release in releases_list[0:3]
+        # Check if the latest ten releases are semver compliant
+        releases_list = list(
+            Release.objects.filter(organization_id=org_id, projects__id__in=[project_id]).order_by(
+                "-date_added"
+            )[:10]
         )
-    else:
-        # Count number of semver releases in the last ten
-        semver_matches = sum(map(lambda release: release.is_semver_release, releases_list))
 
-        atleast_three_in_last_ten = semver_matches >= 3
-        atleast_one_in_last_three = any(release.is_semver_release for release in releases_list[0:3])
+        if not releases_list:
+            cache.set(cache_key, False, 3600)
+            return False
 
-        follows_semver = follows_semver and atleast_one_in_last_three and atleast_three_in_last_ten
+        # ToDo(ahmed): re-visit/replace these conditions once we enable project wide `semver` setting
+        # A project is said to be following semver versioning schemes if it satisfies the following
+        # conditions:-
+        # 1: Atleast one semver compliant in the most recent 3 releases
+        # 2: Atleast 3 semver compliant releases in the most recent 10 releases
+        if len(releases_list) <= 2:
+            # Most recent release is considered to decide if project follows semver
+            follows_semver = releases_list[0].is_semver_release
+        elif len(releases_list) < 10:
+            # We forego condition 2 and it is enough if condition 1 is satisfied to consider this
+            # project to have semver compliant releases
+            follows_semver = any(release.is_semver_release for release in releases_list[0:3])
+        else:
+            # Count number of semver releases in the last ten
+            semver_matches = sum(map(lambda release: release.is_semver_release, releases_list))
+
+            atleast_three_in_last_ten = semver_matches >= 3
+            atleast_one_in_last_three = any(
+                release.is_semver_release for release in releases_list[0:3]
+            )
+
+            follows_semver = atleast_one_in_last_three and atleast_three_in_last_ten
+        cache.set(cache_key, follows_semver, 3600)
 
     # Check release_version that is passed is semver compliant
     if release_version:

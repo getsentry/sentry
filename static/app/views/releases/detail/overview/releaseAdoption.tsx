@@ -1,5 +1,4 @@
-import {withRouter} from 'react-router';
-import {WithRouterProps} from 'react-router/lib/withRouter';
+import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -173,6 +172,17 @@ function ReleaseComparisonChart({
       truncate: 80,
       valueFormatter: (value: number, label?: string) =>
         label && Object.values(releaseMarkLinesLabels).includes(label) ? '' : `${value}%`,
+      filter: (_, seriesParam) => {
+        const {seriesName, axisIndex} = seriesParam;
+        // do not display tooltips for "Users Adopted" marklines
+        if (
+          axisIndex === 1 &&
+          Object.values(releaseMarkLinesLabels).includes(seriesName)
+        ) {
+          return false;
+        }
+        return true;
+      },
     },
   };
 

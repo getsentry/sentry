@@ -2,8 +2,7 @@ import * as React from 'react';
 import {Location} from 'history';
 
 import {EventQuery} from 'app/actionCreators/events';
-import {Client} from 'app/api';
-import ReleaseTableData from 'app/components/discover/performanceCardTable';
+import {Client, ResponseMeta} from 'app/api';
 import {t} from 'app/locale';
 import EventView, {
   isAPIPayloadSimilar,
@@ -204,15 +203,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     beforeFetch?.(api);
 
     try {
-      const [data, , jqXHR] = await doDiscoverQuery<T>(api, url, apiPayload[0]);
-      const [releaseData] = apiPayload[1]
-        ? await doDiscoverQuery<T>(api, url, apiPayload[1])
-        : await doDiscoverQuery<T>(api, url, apiPayload[0]);
-      const tableData = afterFetch ? afterFetch(data, this.props) : data;
-      const releaseTableData = afterFetch
-        ? afterFetch(releaseData, this.props)
-        : releaseData;
-      didFetch?.(tableData);
+      const [data, , resp] = await doDiscoverQuery<T>(api, url, apiPayload);
 
       if (this.state.tableFetchID !== tableFetchID) {
         // invariant: a different request was initiated after this request
@@ -223,7 +214,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
         isLoading: false,
         tableFetchID: undefined,
         error: null,
-        pageLinks: jqXHR?.getResponseHeader('Link') ?? prevState.pageLinks,
+        pageLinks: resp?.getResponseHeader('Link') ?? prevState.pageLinks,
         tableData,
         releaseTableData,
       }));
@@ -263,7 +254,7 @@ export async function doDiscoverQuery<T>(
   api: Client,
   url: string,
   params: DiscoverQueryRequestParams
-): Promise<[T, string | undefined, JQueryXHR | undefined]> {
+): Promise<[T, string | undefined, ResponseMeta | undefined]> {
   return api.requestPromise(url, {
     method: 'GET',
     includeAllArgs: true,

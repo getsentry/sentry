@@ -11,7 +11,7 @@ type Props = {
   event: Event;
   newestFirst: boolean;
   platform: PlatformType;
-  hasGroupingTreeUI: boolean;
+  hasHierarchicalGrouping: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   stackView?: STACK_VIEW;
 } & Pick<ExceptionType, 'values'>;
@@ -23,7 +23,7 @@ const Exception = ({
   values,
   event,
   newestFirst,
-  hasGroupingTreeUI,
+  hasHierarchicalGrouping,
   groupingCurrentLevel,
   platform = 'other',
 }: Props) => (
@@ -44,7 +44,7 @@ const Exception = ({
         platform={platform}
         newestFirst={newestFirst}
         event={event}
-        hasGroupingTreeUI={hasGroupingTreeUI}
+        hasHierarchicalGrouping={hasHierarchicalGrouping}
         groupingCurrentLevel={groupingCurrentLevel}
       />
     )}

@@ -51,7 +51,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   transactionName: string;
-  tagKey: string;
+  tagKey?: string;
 };
 
 const findRowKey = row => {
@@ -295,15 +295,17 @@ const TagsHeatMap = (
                 const currentBucketEnd =
                   currentBucketStart + histogramBucketInfo.bucketSize;
 
-                newTransactionEventView.additionalConditions.setTagValues(
+                newTransactionEventView.additionalConditions.setFilterValues(
                   aggregateColumn,
                   [`>=${currentBucketStart}`, `<${currentBucketEnd}`]
                 );
               }
 
-              newTransactionEventView.additionalConditions.setTagValues(tagKey, [
-                tagValue,
-              ]);
+              if (tagKey) {
+                newTransactionEventView.additionalConditions.setFilterValues(tagKey, [
+                  tagValue,
+                ]);
+              }
 
               setTransactionEventView(newTransactionEventView);
               trackTagPageInteraction(organization);

@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 import pytest
 from django.conf import settings
 from django.test import override_settings
@@ -9,6 +11,7 @@ from sentry import newsletter, options
 from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.models import OrganizationMember, User
 from sentry.testutils import TestCase
+from sentry.utils import json
 from sentry.utils.compat import mock
 
 
@@ -97,6 +100,10 @@ class AuthLoginTest(TestCase):
         assert resp.status_code == 302, (
             resp.context["register_form"].errors if resp.status_code == 200 else None
         )
+        frontend_events = {"event_name": "Sign Up"}
+        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
+        assert marketing_query in resp.url
+
         user = User.objects.get(username="test-a-really-long-email-address@example.com")
         assert user.email == "test-a-really-long-email-address@example.com"
         assert user.check_password("foobar")

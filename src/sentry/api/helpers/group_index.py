@@ -5,12 +5,13 @@ from uuid import uuid4
 
 import sentry_sdk
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import eventstream, features, search
+from sentry import analytics, eventstream, features, search
 from sentry.api.base import audit_logger
 from sentry.api.fields import ActorField
 from sentry.api.issue_search import convert_query_values, parse_search_query
@@ -729,6 +730,79 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
                             resolution_params.update(
                                 {"current_release_version": current_release_version}
                             )
+
+                            # Sets `current_release_version` for activity, since there is no point
+                            # waiting for when a new release is created i.e.
+                            # clear_expired_resolutions task to be run.
+                            # Activity should look like "... resolved in version
+                            # >current_release_version" in the UI
+                            if follows_semver:
+                                activity_data.update(
+                                    {"current_release_version": current_release_version}
+                                )
+
+                                # In semver projects, and thereby semver releases, we determine
+                                # resolutions by comparing against an expression rather than a
+                                # specific release (i.e. >current_release_version). Consequently,
+                                # at this point we can consider this GroupResolution as resolved
+                                # in release
+                                resolution_params.update(
+                                    {
+                                        "type": GroupResolution.Type.in_release,
+                                        "status": GroupResolution.Status.resolved,
+                                    }
+                                )
+                            else:
+                                # If we already know the `next` release in date based ordering
+                                # when clicking on `resolvedInNextRelease` because it is already
+                                # been released, there is no point in setting GroupResolution to
+                                # be of type in_next_release but rather in_release would suffice
+
+                                try:
+                                    # Get current release object from current_release_version
+                                    current_release_obj = Release.objects.get(
+                                        version=current_release_version,
+                                        organization_id=projects[0].organization_id,
+                                    )
+
+                                    date_order_q = Q(
+                                        date_added__gt=current_release_obj.date_added
+                                    ) | Q(
+                                        date_added=current_release_obj.date_added,
+                                        id__gt=current_release_obj.id,
+                                    )
+
+                                    # Find the next release after the current_release_version
+                                    # i.e. the release that resolves the issue
+                                    resolved_in_release = (
+                                        Release.objects.filter(
+                                            date_order_q,
+                                            projects=projects[0],
+                                            organization_id=projects[0].organization_id,
+                                        )
+                                        .extra(
+                                            select={"sort": "COALESCE(date_released, date_added)"}
+                                        )
+                                        .order_by("sort", "id")[:1]
+                                        .get()
+                                    )
+
+                                    # If we get here, we assume it exists and so we update
+                                    # GroupResolution and Activity
+                                    resolution_params.update(
+                                        {
+                                            "release": resolved_in_release,
+                                            "type": GroupResolution.Type.in_release,
+                                            "status": GroupResolution.Status.resolved,
+                                        }
+                                    )
+                                    activity_data.update({"version": resolved_in_release.version})
+                                except Release.DoesNotExist:
+                                    # If it gets here, it means we don't know the upcoming
+                                    # release yet because it does not exist, and so we should
+                                    # fall back to our current model
+                                    ...
+
                     resolution, created = GroupResolution.objects.get_or_create(
                         group=group, defaults=resolution_params
                     )
@@ -927,20 +1001,55 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
                         kwargs={"project_id": group.project_id, "group_id": group.id}
                     )
 
+    # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
+    # what performance impact this might have & this possibly should be moved else where
+    try:
+        if len(group_list) == 1:
+            if res_type in (
+                GroupResolution.Type.in_next_release,
+                GroupResolution.Type.in_release,
+            ):
+                result["activity"] = serialize(
+                    Activity.get_activities_for_group(group=group_list[0], num=100), acting_user
+                )
+    except UnboundLocalError:
+        pass
+
     if "assignedTo" in result:
         assigned_actor = result["assignedTo"]
+        assigned_by = (
+            request.data.get("assignedBy")
+            if request.data.get("assignedBy") in ["assignee_selector", "suggested_assignee"]
+            else None
+        )
         if assigned_actor:
             for group in group_list:
                 resolved_actor = assigned_actor.resolve()
 
-                GroupAssignee.objects.assign(group, resolved_actor, acting_user)
+                assignment = GroupAssignee.objects.assign(group, resolved_actor, acting_user)
+                analytics.record(
+                    "manual.issue_assignment",
+                    organization_id=project_lookup[group.project_id].organization_id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    assigned_by=assigned_by,
+                    had_to_deassign=assignment["updated_assignment"],
+                )
             result["assignedTo"] = serialize(
                 assigned_actor.resolve(), acting_user, ActorSerializer()
             )
+
         else:
             for group in group_list:
                 GroupAssignee.objects.deassign(group, acting_user)
-
+                analytics.record(
+                    "manual.issue_assignment",
+                    organization_id=project_lookup[group.project_id].organization_id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    assigned_by=assigned_by,
+                    had_to_deassign=True,
+                )
     is_member_map = {
         project.id: project.member_set.filter(user=acting_user).exists() for project in projects
     }

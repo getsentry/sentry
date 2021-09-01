@@ -11,8 +11,8 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import ErrorBoundary from 'app/components/errorBoundary';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {ChangeData} from 'app/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'app/components/organizations/timeRangeSelector/pageTimeRangeSelector';
 import PageHeading from 'app/components/pageHeading';
+import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
@@ -331,6 +331,7 @@ const DropdownDataCategory = styled(DropdownControl)`
   grid-column: auto / span 1;
   justify-self: stretch;
   align-self: stretch;
+  z-index: ${p => p.theme.zIndex.orgStats.dataCategory};
 
   button {
     width: 100%;
@@ -352,6 +353,7 @@ const DropdownDataCategory = styled(DropdownControl)`
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   grid-column: auto / span 1;
+  z-index: ${p => p.theme.zIndex.orgStats.timeRange};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-column: auto / span 2;

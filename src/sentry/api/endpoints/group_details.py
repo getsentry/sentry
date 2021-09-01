@@ -18,7 +18,7 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.models import Activity, Group, GroupSeen, User, UserReport
+from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
 from sentry.models.groupinbox import get_inbox_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
@@ -31,33 +31,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     def _get_activity(self, request, group, num):
-        activity_items = set()
-        activity = []
-        activity_qs = (
-            Activity.objects.filter(group=group).order_by("-datetime").select_related("user")
-        )
-        # we select excess so we can filter dupes
-        for item in activity_qs[: num * 2]:
-            sig = (item.type, item.ident, item.user_id)
-            # TODO: we could just generate a signature (hash(text)) for notes
-            # so there's no special casing
-            if item.type == Activity.NOTE:
-                activity.append(item)
-            elif sig not in activity_items:
-                activity_items.add(sig)
-                activity.append(item)
-
-        activity.append(
-            Activity(
-                id=0,
-                project=group.project,
-                group=group,
-                type=Activity.FIRST_SEEN,
-                datetime=group.first_seen,
-            )
-        )
-
-        return activity[:num]
+        return Activity.get_activities_for_group(group, num)
 
     def _get_seen_by(self, request, group):
         seen_by = list(
@@ -183,11 +157,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 3600 * 24,
             )[group.id]
 
-            participants = list(
-                User.objects.filter(
-                    groupsubscription__is_active=True, groupsubscription__group=group
-                )
-            )
+            participants = GroupSubscriptionManager.get_participating_users(group)
 
             if "inbox" in expand:
                 inbox_map = get_inbox_details([group])
@@ -247,6 +217,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                                   this issue. Can be of the form ``"<user_id>"``,
                                   ``"user:<user_id>"``, ``"<username>"``,
                                   ``"<user_primary_email>"``, or ``"team:<team_id>"``.
+        :param string assignedBy: ``"suggested_assignee"`` | ``"assignee_selector"``
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the
