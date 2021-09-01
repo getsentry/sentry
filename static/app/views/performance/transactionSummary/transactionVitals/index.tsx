@@ -1,147 +1,135 @@
-import {Component} from 'react';
+import {ReactNode, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
+import * as Layout from 'app/components/layouts/thirds';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
-import {GlobalSelection, Organization, Project} from 'app/types';
+import {Organization, Project} from 'app/types';
+import {defined} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
 import {isAggregateField, WebVital} from 'app/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {decodeScalar} from 'app/utils/queryString';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
 import {getTransactionName} from '../../utils';
+import TransactionHeader from '../header';
+import Tab from '../tabs';
 
 import {PERCENTILE, VITAL_GROUPS} from './constants';
-import RumContent from './content';
+import VitalsContent from './content';
 
-type Props = {
+type Props2 = {
   location: Location;
   organization: Organization;
   projects: Project[];
-  selection: GlobalSelection;
 };
 
-type State = {
-  eventView: EventView | undefined;
-};
+function TransactionVitals(props: Props2) {
+  const {location, organization, projects} = props;
+  const projectId = decodeScalar(location.query.project);
+  const transactionName = getTransactionName(location);
 
-class TransactionVitals extends Component<Props> {
-  state: State = {
-    eventView: generateRumEventView(
-      this.props.location,
-      getTransactionName(this.props.location)
-    ),
-  };
-
-  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    return {
-      ...prevState,
-      eventView: generateRumEventView(
-        nextProps.location,
-        getTransactionName(nextProps.location)
-      ),
-    };
+  if (!defined(projectId) || !defined(transactionName)) {
+    // If there is no transaction name, redirect to the Performance landing page
+    browserHistory.replace({
+      pathname: `/organizations/${organization.slug}/performance/`,
+      query: {
+        ...location.query,
+      },
+    });
+    return null;
   }
 
-  getDocumentTitle(): string {
-    const name = getTransactionName(this.props.location);
+  const project = projects.find(p => p.id === projectId);
 
-    const hasTransactionName = typeof name === 'string' && String(name).trim().length > 0;
-
-    if (hasTransactionName) {
-      return [String(name).trim(), t('Vitals')].join(' \u2014 ');
-    }
-
-    return [t('Summary'), t('Vitals')].join(' \u2014 ');
-  }
-
-  renderNoAccess = () => {
-    return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+  const [incompatibleAlertNotice, setIncompatibleAlertNotice] = useState<ReactNode>(null);
+  const handleIncompatibleQuery = (incompatibleAlertNoticeFn, _errors) => {
+    const notice = incompatibleAlertNoticeFn(() => setIncompatibleAlertNotice(null));
+    setIncompatibleAlertNotice(notice);
   };
 
-  render() {
-    const {organization, projects, location} = this.props;
-    const {eventView} = this.state;
-    const transactionName = getTransactionName(location);
-    if (!eventView || transactionName === undefined) {
-      // If there is no transaction name, redirect to the Performance landing page
-      browserHistory.replace({
-        pathname: `/organizations/${organization.slug}/performance/`,
-        query: {
-          ...location.query,
-        },
-      });
-      return null;
-    }
+  // TODO: remove `undefined` from the return type here
+  const eventView = generateEventView(location, transactionName)!;
 
-    const shouldForceProject = eventView.project.length === 1;
-    const forceProject = shouldForceProject
-      ? projects.find(p => parseInt(p.id, 10) === eventView.project[0])
-      : undefined;
-    const projectSlugs = eventView.project
-      .map(projectId => projects.find(p => parseInt(p.id, 10) === projectId))
-      .filter((p: Project | undefined): p is Project => p !== undefined)
-      .map(p => p.slug);
-
-    return (
-      <SentryDocumentTitle
-        title={this.getDocumentTitle()}
-        orgSlug={organization.slug}
-        projectSlug={forceProject?.slug}
+  return (
+    <SentryDocumentTitle
+      title={getDocumentTitle(transactionName)}
+      orgSlug={organization.slug}
+      projectSlug={project?.slug}
+    >
+      <Feature
+        features={['performance-view']}
+        organization={organization}
+        renderDisabled={NoAccess}
       >
-        <Feature
-          features={['performance-view']}
-          organization={organization}
-          renderDisabled={this.renderNoAccess}
+        <GlobalSelectionHeader
+          lockedMessageSubject={t('transaction')}
+          shouldForceProject={defined(project)}
+          forceProject={project}
+          specificProjectSlugs={defined(project) ? [project.slug] : []}
+          disableMultipleProjectSelection
+          showProjectSettingsLink
         >
-          <GlobalSelectionHeader
-            lockedMessageSubject={t('transaction')}
-            shouldForceProject={shouldForceProject}
-            forceProject={forceProject}
-            specificProjectSlugs={projectSlugs}
-            disableMultipleProjectSelection
-            showProjectSettingsLink
-          >
-            <StyledPageContent>
-              <LightWeightNoProjectMessage organization={organization}>
-                <RumContent
+          <StyledPageContent>
+            <LightWeightNoProjectMessage organization={organization}>
+              <TransactionHeader
+                eventView={eventView}
+                location={location}
+                organization={organization}
+                projects={projects}
+                transactionName={transactionName}
+                currentTab={Tab.WebVitals}
+                hasWebVitals="yes"
+                handleIncompatibleQuery={handleIncompatibleQuery}
+              />
+              <Layout.Body>
+                {incompatibleAlertNotice && (
+                  <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
+                )}
+                <VitalsContent
                   location={location}
-                  eventView={eventView}
-                  transactionName={transactionName}
                   organization={organization}
-                  projects={projects}
+                  eventView={eventView}
                 />
-              </LightWeightNoProjectMessage>
-            </StyledPageContent>
-          </GlobalSelectionHeader>
-        </Feature>
-      </SentryDocumentTitle>
-    );
+              </Layout.Body>
+            </LightWeightNoProjectMessage>
+          </StyledPageContent>
+        </GlobalSelectionHeader>
+      </Feature>
+    </SentryDocumentTitle>
+  );
+}
+
+function getDocumentTitle(transactionName): string {
+  const hasTransactionName =
+    typeof transactionName === 'string' && String(transactionName).trim().length > 0;
+
+  if (hasTransactionName) {
+    return [String(transactionName).trim(), t('Vitals')].join(' \u2014 ');
   }
+
+  return [t('Summary'), t('Vitals')].join(' \u2014 ');
+}
+
+function NoAccess() {
+  return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
 }
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-function generateRumEventView(
-  location: Location,
-  transactionName: string | undefined
-): EventView | undefined {
-  if (transactionName === undefined) {
-    return undefined;
-  }
+function generateEventView(location: Location, transactionName: string): EventView {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
   conditions
@@ -176,4 +164,4 @@ function generateRumEventView(
   );
 }
 
-export default withGlobalSelection(withProjects(withOrganization(TransactionVitals)));
+export default withProjects(withOrganization(TransactionVitals));
