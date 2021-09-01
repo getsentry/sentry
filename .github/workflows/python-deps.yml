@@ -29,7 +29,7 @@ jobs:
       - name: Install prerequisites
         # Sometimes, brew needs to be updated before brew bundle would work
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade || brew bundle -q
+          brew update && brew bundle -q
 
       - name: Setup python
         id: setup-python
