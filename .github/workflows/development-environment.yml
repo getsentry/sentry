@@ -49,8 +49,11 @@ jobs:
         # After installing Docker (via homebrew) we need to make sure that it is properly initialized on Mac
         run: |
           echo $(brew --cache)
-          ls -l $(brew --cache)/downloads
-          rm -rf $(brew --cache)/downloads
+          ls -l $(brew --cache)
+          brew cleanup --prune=all
+          ls -l $(brew --cache)
+          rm -rf $(brew --cache)
+          ls -l $(brew --cache)
           HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask docker || rm -rf $(brew --cache) && brew install --cask docker
           # This code is mentioned in our dev docs. Only remove if you adjust the docs as well
           SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh init-docker
