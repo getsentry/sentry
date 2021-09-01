@@ -55,7 +55,7 @@ function TransactionTags(props: Props) {
     setIncompatibleAlertNotice(notice);
   };
 
-  const eventView = generateEventView(location, transactionName)!;
+  const eventView = generateEventView(location, transactionName);
 
   return (
     <SentryDocumentTitle
@@ -127,13 +127,7 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-function generateEventView(
-  location: Location,
-  transactionName: string | undefined
-): EventView | undefined {
-  if (transactionName === undefined) {
-    return undefined;
-  }
+function generateEventView(location: Location, transactionName: string): EventView {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
   const eventView = EventView.fromNewQueryWithLocation(
