@@ -32,11 +32,6 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
-                    """DROP INDEX CONCURRENTLY IF EXISTS sentry_audi_organiz_c8bd18_idx;""",
-                    reverse_sql="""CREATE INDEX CONCURRENTLY "sentry_audi_organiz_c8bd18_idx" ON "sentry_auditlogentry" ("organization_id", "datetime");""",
-                    hints={"tables": ["sentry_auditlogentry"]},
-                ),
-                migrations.RunSQL(
                     """
                     CREATE INDEX CONCURRENTLY "sentry_audi_organiz_588b1e_idx" ON "sentry_auditlogentry" ("organization_id", "event", "datetime");
                     """,
@@ -47,18 +42,10 @@ class Migration(migrations.Migration):
                 ),
             ],
             state_operations=[
-                migrations.RemoveIndex(
-                    model_name="auditlogentry",
-                    name="sentry_audi_organiz_c8bd18_idx",
-                ),
-                migrations.AlterIndexTogether(
-                    name="auditlogentry",
-                    index_together=set(),
-                ),
                 migrations.AddIndex(
                     model_name="auditlogentry",
                     index=models.Index(
-                        fields=["organization", "event" "datetime"],
+                        fields=["organization", "event", "datetime"],
                         name="sentry_audi_organiz_588b1e_idx",
                     ),
                 ),
