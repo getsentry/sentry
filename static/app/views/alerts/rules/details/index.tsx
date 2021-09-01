@@ -31,14 +31,13 @@ type Props = {
 type State = {
   isLoading: boolean;
   hasError: boolean;
-  displayPeriod: string;
   rule?: IncidentRule;
   incidents?: Incident[];
   selectedIncident?: Incident | null;
 };
 
 class AlertRuleDetails extends Component<Props, State> {
-  state: State = {isLoading: false, hasError: false, displayPeriod: ''};
+  state: State = {isLoading: false, hasError: false};
 
   componentDidMount() {
     const {api, params} = this.props;
@@ -53,9 +52,7 @@ class AlertRuleDetails extends Component<Props, State> {
       prevProps.location.search !== this.props.location.search ||
       prevProps.params.orgId !== this.props.params.orgId ||
       prevProps.params.ruleId !== this.props.params.ruleId ||
-      (prevState.displayPeriod &&
-        prevState.displayPeriod !== this.state.displayPeriod &&
-        !this.props.location.search)
+      prevState.rule?.id !== this.state.rule?.id
     ) {
       this.fetchData();
       this.trackView();
@@ -76,17 +73,13 @@ class AlertRuleDetails extends Component<Props, State> {
 
   getTimePeriod(): TimePeriodType {
     const {location} = this.props;
-    const {rule, displayPeriod} = this.state;
+    const {rule} = this.state;
 
     const defaultPeriod =
       rule?.timeWindow && rule?.timeWindow > TimeWindow.ONE_HOUR
         ? TimePeriod.SEVEN_DAYS
         : TimePeriod.ONE_DAY;
     const period = location.query.period ?? defaultPeriod;
-
-    if (period !== displayPeriod) {
-      this.setState({displayPeriod: period});
-    }
 
     if (location.query.start && location.query.end) {
       return {
@@ -129,19 +122,14 @@ class AlertRuleDetails extends Component<Props, State> {
       moment(moment.utc().diff(TIME_WINDOWS[timeOption.value]))
     );
     const end = getUtcDateString(moment.utc());
-    const timeline = {
+
+    return {
       start,
       end,
       period,
       label: timeOption.label as string,
       display: timeOption.label as string,
     };
-
-    if (period !== displayPeriod && displayPeriod) {
-      return timeline;
-    } else {
-      return timeline;
-    }
   }
 
   fetchData = async () => {
@@ -150,7 +138,6 @@ class AlertRuleDetails extends Component<Props, State> {
       params: {orgId, ruleId},
       location,
     } = this.props;
-
     this.setState({isLoading: true, hasError: false});
 
     if (location.query.alert) {
@@ -164,16 +151,16 @@ class AlertRuleDetails extends Component<Props, State> {
     const timePeriod = this.getTimePeriod();
     const {start, end} = timePeriod;
 
-    this.setState({displayPeriod: timePeriod.period});
-
     try {
       const rulePromise = fetchAlertRule(orgId, ruleId).then(rule =>
         this.setState({rule})
       );
-      const incidentsPromise = fetchIncidentsForRule(orgId, ruleId, start, end).then(
-        incidents => this.setState({incidents})
-      );
-      await Promise.all([rulePromise, incidentsPromise]);
+      if (this.state.rule?.id) {
+        const incidentsPromise = fetchIncidentsForRule(orgId, ruleId, start, end).then(
+          incidents => this.setState({incidents})
+        );
+        await Promise.all([rulePromise, incidentsPromise]);
+      }
       this.setState({isLoading: false, hasError: false});
     } catch (_err) {
       this.setState({isLoading: false, hasError: true});
