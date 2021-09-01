@@ -783,7 +783,12 @@ class Factories:
     def create_alert_rule_action_schema():
         return {
             "type": "alert-rule-action",
-            "required_fields": [{"type": "text", "name": "channel", "label": "Channel"}],
+            "title": "Create Task with App",
+            "settings": {
+                "type": "alert-rule-settings",
+                "uri": "/sentry/alert-rule",
+                "required_fields": [{"type": "text", "name": "channel", "label": "Channel"}],
+            },
         }
 
     @staticmethod
