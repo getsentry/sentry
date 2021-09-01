@@ -62,7 +62,7 @@ describe('TraceMetaQuery', function () {
     await tick();
     wrapper.update();
 
-    expect(getMock).toHaveBeenCalledTimes(2);
+    expect(getMock).toHaveBeenCalledTimes(1);
     expect(wrapper.find('div[data-test-id="projects"]').text()).toEqual('4');
     expect(wrapper.find('div[data-test-id="transactions"]').text()).toEqual('5');
     expect(wrapper.find('div[data-test-id="errors"]').text()).toEqual('2');

@@ -20,7 +20,7 @@ type AdditionalQueryProps = {
   eventId: string;
 };
 
-type TraceLiteQueryChildrenProps = Omit<BaseTraceChildrenProps, 'releaseTableData'> &
+type TraceLiteQueryChildrenProps = BaseTraceChildrenProps &
   Omit<PartialQuickTrace, 'trace'> & {
     trace: TraceLite | null;
   };

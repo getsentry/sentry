@@ -73,7 +73,7 @@ describe('HistogramQuery', function () {
     await tick();
     wrapper.update();
 
-    expect(getMock).toHaveBeenCalledTimes(2);
+    expect(getMock).toHaveBeenCalledTimes(1);
     expect(wrapper.find('p')).toHaveLength(1);
     expect(wrapper.find('li')).toHaveLength(10);
   });

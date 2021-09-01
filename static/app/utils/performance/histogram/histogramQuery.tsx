@@ -23,10 +23,7 @@ type HistogramProps = {
 
 type RequestProps = DiscoverQueryProps & HistogramProps;
 
-type ChildrenProps = Omit<
-  GenericChildrenProps<HistogramProps>,
-  'tableData' | 'releaseTableData'
-> & {
+type ChildrenProps = Omit<GenericChildrenProps<HistogramProps>, 'tableData'> & {
   histograms: Histograms | null;
 };
 

@@ -22,7 +22,7 @@ type AdditionalQueryProps = {
   detailed?: boolean;
 };
 
-type TraceFullQueryChildrenProps<T> = Omit<BaseTraceChildrenProps, 'releaseTableData'> &
+type TraceFullQueryChildrenProps<T> = BaseTraceChildrenProps &
   Omit<FullQuickTrace, 'trace'> & {
     /**
      * The `event-trace` endpoint returns a full trace with the parent-child

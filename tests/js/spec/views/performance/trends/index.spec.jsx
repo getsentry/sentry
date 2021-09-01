@@ -427,7 +427,9 @@ describe('Performance > Trends', function () {
       wrapper.update();
       await tick();
 
-      expect(trendsStatsMock).toHaveBeenCalledTimes(4);
+      expect(trendsStatsMock).toHaveBeenCalledTimes(2);
+
+      const sort = 'trend_percentage()';
 
       const defaultTrendsFields = ['project'];
 
@@ -437,10 +439,37 @@ describe('Performance > Trends', function () {
       expect(transactionFields).toHaveLength(2);
       expect(projectFields).toHaveLength(transactionFields.length - 1);
 
-      expect(trendsStatsMock).toHaveBeenCalled();
+      // Improved transactions call
+      expect(trendsStatsMock).toHaveBeenNthCalledWith(
+        1,
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            trendFunction: `${trendFunction.field}(transaction.duration)`,
+            sort,
+            query: expect.stringContaining('trend_percentage():>0%'),
+            interval: '30m',
+            field: transactionFields,
+            statsPeriod: '14d',
+          }),
+        })
+      );
 
       // Regression transactions call
-      expect(trendsStatsMock).toHaveBeenCalled();
+      expect(trendsStatsMock).toHaveBeenNthCalledWith(
+        2,
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            trendFunction: `${trendFunction.field}(transaction.duration)`,
+            sort: '-' + sort,
+            query: expect.stringContaining('trend_percentage():>0%'),
+            interval: '30m',
+            field: transactionFields,
+            statsPeriod: '14d',
+          }),
+        })
+      );
     }
   }, 10000);
 

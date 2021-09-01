@@ -36,10 +36,7 @@ type VitalsProps = {
 
 type RequestProps = DiscoverQueryProps & VitalsProps;
 
-type ChildrenProps = Omit<
-  GenericChildrenProps<VitalsProps>,
-  'tableData' | 'releaseTableData'
-> & {
+type ChildrenProps = Omit<GenericChildrenProps<VitalsProps>, 'tableData'> & {
   vitalsData: VitalsData | null;
 };
 

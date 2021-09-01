@@ -13,10 +13,7 @@ import {
 } from 'app/utils/performance/quickTrace/utils';
 import withApi from 'app/utils/withApi';
 
-export type TraceMetaQueryChildrenProps = Omit<
-  BaseTraceChildrenProps,
-  'releaseTableData'
-> & {
+export type TraceMetaQueryChildrenProps = BaseTraceChildrenProps & {
   meta: TraceMeta | null;
 };
 

@@ -38,10 +38,15 @@ describe('TraceLiteQuery', function () {
   });
 
   it('fetches data on mount and passes the event id', async function () {
-    const getMock = MockApiClient.addMockResponse({
-      url: `/organizations/test-org/events-trace-light/${traceId}/`,
-      body: [],
-    });
+    const getMock = MockApiClient.addMockResponse(
+      {
+        url: `/organizations/test-org/events-trace-light/${traceId}/`,
+        body: [],
+      },
+      {
+        predicate: (_, {query}) => query.event_id === eventId,
+      }
+    );
     const wrapper = mountWithTheme(
       <TraceLiteQuery
         api={api}
@@ -57,7 +62,7 @@ describe('TraceLiteQuery', function () {
     await tick();
     wrapper.update();
 
-    expect(getMock).toHaveBeenCalledTimes(2);
+    expect(getMock).toHaveBeenCalledTimes(1);
     expect(wrapper.find('div[data-test-id="type"]').text()).toEqual('partial');
   });
 });

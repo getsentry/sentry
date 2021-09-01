@@ -49,7 +49,7 @@ describe('DiscoverQuery', function () {
     wrapper.update();
 
     // Children should be rendered, and API should be called.
-    expect(getMock).toHaveBeenCalledTimes(2);
+    expect(getMock).toHaveBeenCalledTimes(1);
     expect(wrapper.find('p')).toHaveLength(1);
   });
 
@@ -81,7 +81,16 @@ describe('DiscoverQuery', function () {
     await tick();
     wrapper.update();
 
-    expect(getMock).toHaveBeenCalledTimes(2);
-    expect(getMock).toHaveBeenCalled();
+    expect(getMock).toHaveBeenCalledTimes(1);
+    expect(getMock).toHaveBeenCalledWith(
+      '/organizations/test-org/eventsv2/',
+      expect.objectContaining({
+        method: 'GET',
+        query: expect.objectContaining({
+          per_page: 3,
+          cursor: '1:0:1',
+        }),
+      })
+    );
   });
 });
