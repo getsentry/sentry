@@ -688,10 +688,6 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "user_count": Function("uniq", [Column("tags[sentry:user]", entities["event"])]),
     }
 
-    def __init__(self):
-        super().__init__()
-        self.postres_executor = PostgresSnubaQueryExecutor()
-
     def calculate_start_end(
         self,
         retention_window_start: Optional[datetime],
@@ -733,7 +729,6 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         # TODO: For the moment, the assumption is that this backend will only ever be passed
         # search_filters derived from `is:unresolved`. We'll hardcode that case and handle more
         # later.
-
         if search_filters != [SearchFilter(SearchKey("status"), "IN", SearchValue([0]))]:
             raise InvalidQueryForExecutor("Search filters invalid for this query executor")
 
