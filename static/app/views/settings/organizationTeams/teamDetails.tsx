@@ -180,11 +180,11 @@ class TeamDetails extends React.Component<Props, State> {
       <ListLink key={1} to={`${routePrefix}projects/`}>
         {t('Projects')}
       </ListLink>,
-      <ListLink key={2} to={`${routePrefix}settings/`}>
-        {t('Settings')}
-      </ListLink>,
       <ListLink key="x" to={`${routePrefix}notifications/`}>
         {t('Notifications')}
+      </ListLink>,
+      <ListLink key={2} to={`${routePrefix}settings/`}>
+        {t('Settings')}
       </ListLink>,
     ];
 

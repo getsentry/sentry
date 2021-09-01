@@ -256,4 +256,4 @@ const Heading = styled('div')`
   flex: 1;
 `;
 
-export default withOrganizations(AccountNotificationFineTuning);
+export default AccountNotificationFineTuning;

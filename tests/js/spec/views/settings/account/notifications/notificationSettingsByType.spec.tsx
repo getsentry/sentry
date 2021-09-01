@@ -42,7 +42,7 @@ const createWrapper = (
 ) => {
   const {routerContext} = initializeOrg();
   // @ts-expect-error
-  const org = TestStubs.Organization({features: ['notification-platform']});
+  const org = TestStubs.Organization();
   addMockResponses(notificationSettings, identities, organizationIntegrations);
   return mountWithTheme(
     <NotificationSettingsByType notificationType="alerts" organizations={[org]} />,
@@ -77,7 +77,7 @@ describe('NotificationSettingsByType', function () {
 
   it('should render warning modal when identity not linked', function () {
     // @ts-expect-error
-    const org = TestStubs.Organization({features: ['notification-platform']});
+    const org = TestStubs.Organization();
     const wrapper = createWrapper(
       {
         alerts: {user: {me: {email: 'always', slack: 'always'}}},
@@ -95,7 +95,7 @@ describe('NotificationSettingsByType', function () {
 
   it('should not render warning modal when identity is linked', function () {
     // @ts-expect-error
-    const org = TestStubs.Organization({features: ['notification-platform']});
+    const org = TestStubs.Organization();
     const wrapper = createWrapper(
       {
         alerts: {user: {me: {email: 'always', slack: 'always'}}},
