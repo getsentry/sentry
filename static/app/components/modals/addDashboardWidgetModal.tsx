@@ -110,7 +110,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     };
   }
 
-  async componentDidMount() {
+  componentDidMount() {
     const {fromDiscover} = this.props;
     if (fromDiscover) this.fetchDashboards();
   }
