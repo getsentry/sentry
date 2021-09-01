@@ -70,7 +70,7 @@ from sentry.api.exceptions import (
 )
 from sentry.api.fields.secret import SecretField, validate_secret
 from sentry.lang.native import appconnect
-from sentry.lang.native.symbolicator import secret_fields
+from sentry.lang.native.symbolicator import redact_source_secrets, secret_fields
 from sentry.models import AppConnectBuild, AuditLogEntryEvent, LatestAppConnectBuildsCheck, Project
 from sentry.tasks.app_store_connect import dsym_download
 from sentry.utils import json
@@ -287,12 +287,14 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             new_sources = validated_config.update_project_symbol_source(project, allow_multiple)
         except ValueError:
             raise AppConnectMultipleSourcesError
+
+        redacted_sources = redact_source_secrets(new_sources)
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=project.id,
             event=AuditLogEntryEvent.PROJECT_EDIT,
-            data={appconnect.SYMBOL_SOURCES_PROP_NAME: new_sources},
+            data={appconnect.SYMBOL_SOURCES_PROP_NAME: redacted_sources},
         )
 
         dsym_download.apply_async(
@@ -403,12 +405,13 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             project, allow_multiple=True
         )
 
+        redacted_sources = redact_source_secrets(new_sources)
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=project.id,
             event=AuditLogEntryEvent.PROJECT_EDIT,
-            data={appconnect.SYMBOL_SOURCES_PROP_NAME: new_sources},
+            data={appconnect.SYMBOL_SOURCES_PROP_NAME: redacted_sources},
         )
 
         dsym_download.apply_async(
