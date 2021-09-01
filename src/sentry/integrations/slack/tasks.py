@@ -38,6 +38,7 @@ from sentry.models import (
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
+from sentry.utils.json import JSONData
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
@@ -66,7 +67,7 @@ class RedisRuleStatus:
         value = self._format_value(status, rule_id, error_message)
         self.client.set(self._get_redis_key(), f"{value}", ex=60 * 60)
 
-    def get_value(self) -> Any:
+    def get_value(self) -> JSONData:
         key = self._get_redis_key()
         value = self.client.get(key)
         return json.loads(value)

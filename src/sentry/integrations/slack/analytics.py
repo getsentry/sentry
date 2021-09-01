@@ -17,7 +17,7 @@ class SlackIntegrationStatus(analytics.Event):  # type: ignore
     )
 
 
-class SlackIntegrationNotificationSent(analytics.Event):
+class SlackIntegrationNotificationSent(analytics.Event):  # type: ignore
     type = "integrations.slack.notification_sent"
 
     attributes = (

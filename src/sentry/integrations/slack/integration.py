@@ -18,6 +18,7 @@ from sentry.models import Integration, Organization
 from sentry.pipeline import NestedPipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
+from sentry.utils.json import JSONData
 
 from .client import SlackClient
 from .utils import get_integration_type, logger
@@ -119,7 +120,7 @@ class SlackIntegrationProvider(IntegrationProvider):  # type: ignore
 
         return [identity_pipeline_view]
 
-    def get_team_info(self, access_token: str) -> Any:
+    def get_team_info(self, access_token: str) -> JSONData:
         headers = {"Authorization": f"Bearer {access_token}"}
 
         client = SlackClient()
