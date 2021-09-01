@@ -1,10 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import ReturnButton from 'app/views/settings/components/forms/returnButton';
 
 describe('returnButton', function () {
   it('renders', function () {
-    const wrapper = mountWithTheme(<ReturnButton />);
-    expect(wrapper).toSnapshot();
+    const {container} = mountWithTheme(<ReturnButton />);
+    expect(container).toSnapshot();
   });
 });
