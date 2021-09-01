@@ -55,14 +55,15 @@ jobs:
           echo $(brew --cache)
           ls -l $(brew --cache) | wc -l
           ls -l $(brew --cache)/downloads | wc -l
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask docker || brew cleanup docker
-          ls -l $(brew --cache) | wc -l
-          ls -l $(brew --cache)/downloads | wc -l
-          brew cleanup --prune=all
-          ls -l $(brew --cache) | wc -l
-          ls -l $(brew --cache)/downloads | wc -l
-          brew install --cask docker ||  brew cleanup docker
+          # HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask docker || brew cleanup docker
+          # ls -l $(brew --cache) | wc -l
+          # ls -l $(brew --cache)/downloads | wc -l
+          # # brew cleanup -q --prune=all
+          # ls -l $(brew --cache) | wc -l
+          # ls -l $(brew --cache)/downloads | wc -l
+          # brew install --cask docker ||  brew cleanup docker
           brew install --cask docker ||  rm -rf $(brew --cache); mkdir $(brew --cache)
+          ls -l $(brew --cache) | grep "dr"
           ls -l $(brew --cache) | wc -l
           ls -l $(brew --cache)/downloads | wc -l
           HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask docker || rm -rf $(brew --cache); mkdir $(brew --cache) && brew install --cask docker
