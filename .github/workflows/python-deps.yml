@@ -2,6 +2,7 @@ name: python deps
 on:
   pull_request:
     paths:
+      - '.github/actions/*'
       - '.github/workflows/python-deps.yml'
       - 'requirements*'
 
@@ -26,17 +27,25 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Set brew cache path
+        id: brew-info
+        run: |
+          echo "::set-output name=brew-cache-dir::$(brew --cache)"
+
+      - name: Cache (brew)
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.brew-info.outputs.brew-cache-dir }}
+          key: devenv-${{ runner.os }}-brew-${{ hashFiles('Brewfile') }}
+          restore-keys: devenv-${{ runner.os }}-brew
+
       - name: Install prerequisites
         # Sometimes, brew needs to be updated before brew bundle would work
         run: |
-          brew update && brew bundle -q
+          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade || brew bundle -q
 
-      - name: Setup python
-        id: setup-python
+      - name: Setup Python
         uses: ./.github/actions/setup-python
-        with:
-          # XXX: We need to pass this python-deps-${{ matrix.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements-*.txt') }}
-          cache-files-hash: ${{ hashFiles('requirements-*.txt') }}
 
       - name: Install dependencies
         run: |
