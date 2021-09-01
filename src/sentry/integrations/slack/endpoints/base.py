@@ -4,7 +4,6 @@ from typing import Any, Sequence, Tuple
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.features.helpers import any_organization_has_feature
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequest
 from sentry.integrations.slack.views.link_identity import build_linking_url
