@@ -10,6 +10,7 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
+    UserOption,
 )
 from sentry.testutils import APITestCase
 from sentry.utils.compat import map
@@ -341,6 +342,31 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_success_response(self.organization.slug, member_om.id)
 
         assert not OrganizationMember.objects.filter(id=member_om.id).exists()
+
+    def test_simple_related_user_options_are_deleted(self):
+        """
+        Test that ensures that when a member is removed from an org, their corresponding
+        `UserOption` instances for that the projects in that org are deleted as well
+        """
+        org = self.create_organization()
+        project2 = self.create_project(organization=org)
+        member = self.create_user("ahmed@ahmed.io")
+        u1 = UserOption.objects.create(
+            user=member, project=self.project, key="mail:email", value="ahmed@ahmed.io"
+        )
+        u2 = UserOption.objects.create(
+            user=member, project=project2, key="mail:email", value="ahmed@ahmed.io"
+        )
+
+        member_om = self.create_member(organization=self.organization, user=member, role="member")
+
+        self.get_success_response(self.organization.slug, member_om.id)
+
+        assert not OrganizationMember.objects.filter(id=member_om.id).exists()
+        assert not UserOption.objects.filter(id=u1.id).exists()
+        # Ensure that `UserOption` for a user in a different org does not get deleted when that
+        # same member is deleted from another org
+        assert UserOption.objects.filter(id=u2.id).exists()
 
     def test_invalid_id(self):
         member = self.create_user("bar@example.com")

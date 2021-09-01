@@ -213,6 +213,9 @@ class UserEmailsEndpoint(UserEndpoint):
         email = validator.validated_data["email"]
         primary_email = UserEmail.get_primary_email(user)
         del_email = UserEmail.objects.filter(user=user, email__iexact=email).first()
+        del_useroption_email_list = UserOption.objects.filter(
+            user=user, key="mail:email", value=email
+        )
 
         # Don't allow deleting primary email?
         if primary_email == del_email:
@@ -220,6 +223,9 @@ class UserEmailsEndpoint(UserEndpoint):
 
         if del_email:
             del_email.delete()
+
+        for useroption in del_useroption_email_list:
+            useroption.delete()
 
         logger.info(
             "user.email.remove",
