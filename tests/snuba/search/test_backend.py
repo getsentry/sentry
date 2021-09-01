@@ -24,6 +24,7 @@ from sentry.search.snuba.backend import (
     CdcEventsDatasetSnubaSearchBackend,
     EventsDatasetSnubaSearchBackend,
 )
+from sentry.search.snuba.executors import InvalidQueryForExecutor
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat import mock
@@ -2066,23 +2067,27 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         return results
 
     def test(self):
-        self.run_test("is:unresolved", [self.group1, self.group2], 2)
+        self.run_test("is:unresolved", [self.group1, self.group2], None)
+
+    def test_invalid(self):
+        with self.assertRaises(InvalidQueryForExecutor):
+            self.make_query(search_filter_query="is:unresolved abc:123")
 
     def test_resolved_group(self):
         self.group2.status = GroupStatus.RESOLVED
         self.group2.save()
         self.store_group(self.group2)
-        self.run_test("is:unresolved", [self.group1], 1)
+        self.run_test("is:unresolved", [self.group1], None)
 
     def test_environment(self):
-        self.run_test("is:unresolved", [self.group1], 1, environments=[self.env1])
-        self.run_test("is:unresolved", [self.group1, self.group2], 2, environments=[self.env2])
+        self.run_test("is:unresolved", [self.group1], None, environments=[self.env1])
+        self.run_test("is:unresolved", [self.group1, self.group2], None, environments=[self.env2])
 
     def test_sort_times_seen(self):
         self.run_test(
             "is:unresolved",
             [self.group1, self.group2],
-            2,
+            None,
             sort_by="freq",
             date_from=self.base_datetime - timedelta(days=30),
         )
@@ -2106,7 +2111,7 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.run_test(
             "is:unresolved",
             [self.group2, self.group1],
-            2,
+            None,
             sort_by="freq",
             # Change the date range to bust the cache
             date_from=self.base_datetime - timedelta(days=29),
@@ -2116,7 +2121,7 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.run_test(
             "is:unresolved",
             [self.group2, self.group1],
-            2,
+            None,
             sort_by="new",
             date_from=self.base_datetime - timedelta(days=30),
         )
@@ -2132,7 +2137,7 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.run_test(
             "is:unresolved",
             [group3, self.group2, self.group1],
-            3,
+            None,
             sort_by="new",
             # Change the date range to bust the cache
             date_from=self.base_datetime - timedelta(days=29),
@@ -2142,7 +2147,7 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.run_test(
             "is:unresolved",
             [self.group1, self.group2],
-            2,
+            None,
             sort_by="user",
             date_from=self.base_datetime - timedelta(days=30),
         )
@@ -2183,7 +2188,7 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.run_test(
             "is:unresolved",
             [self.group2, self.group1],
-            2,
+            None,
             sort_by="user",
             # Change the date range to bust the cache
             date_from=self.base_datetime - timedelta(days=29),
@@ -2193,7 +2198,7 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.run_test(
             "is:unresolved",
             [self.group1, self.group2],
-            2,
+            None,
             sort_by="priority",
             date_from=self.base_datetime - timedelta(days=30),
         )

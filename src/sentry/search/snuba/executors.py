@@ -626,6 +626,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         return None
 
 
+class InvalidQueryForExecutor(Exception):
+    pass
+
+
 class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
     sort_strategies = {
         "date": "last_seen",
@@ -731,26 +735,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         # later.
 
         if search_filters != [SearchFilter(SearchKey("status"), "IN", SearchValue([0]))]:
-            logging.error(
-                "Received invalid search_filters in `CdcPostgresSnubaQueryExecutor`, "
-                "passing through to base class",
-                extra={"search_filters": search_filters},
-            )
-            return self.postres_executor.query(
-                projects,
-                retention_window_start,
-                group_queryset,
-                environments,
-                sort_by,
-                limit,
-                cursor,
-                count_hits,
-                paginator_options,
-                search_filters,
-                date_from,
-                date_to,
-                max_hits=None,
-            )
+            raise InvalidQueryForExecutor("Search filters invalid for this query executor")
 
         start, end, retention_date = self.calculate_start_end(
             retention_window_start, search_filters, date_from, date_to
@@ -815,7 +800,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             ],
             where=where_conditions,
         )
-        hits = len(data)
+        hits = None
         if count_hits:
             hits = snuba.raw_snql_query(hits_query, referrer="search.snuba.cdc_search.hits")[
                 "data"
