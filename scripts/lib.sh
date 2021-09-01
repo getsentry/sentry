@@ -12,6 +12,9 @@ if [ -z "${CI+x}" ]; then
     reset="$(tput sgr0)"
 fi
 
+# NOTE: This file is sourced in CI across different repos (e.g. snuba),
+# so renaming this file or any functions can break CI!
+
 # Check if a command is available
 require() {
     command -v "$1" >/dev/null 2>&1

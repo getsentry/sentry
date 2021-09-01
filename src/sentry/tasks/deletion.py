@@ -191,6 +191,8 @@ def delete_team(object_id, transaction_id=None, **kwargs):
 )
 @retry(exclude=(DeleteAborted,))
 def delete_project(object_id, transaction_id=None, **kwargs):
+    # TODO this method is no longer in use and should be removed when jobs are
+    # no longer being enqueued for it.
     from sentry import deletions
     from sentry.models import Project, ProjectStatus
 
