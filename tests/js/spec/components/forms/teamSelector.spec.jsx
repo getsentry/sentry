@@ -28,7 +28,6 @@ const teams = teamData.map(data => TestStubs.Team(data));
 const project = TestStubs.Project({teams: [teams[0]]});
 
 function createWrapper(props = {}) {
-  // const {organization} = initializeOrg({organization: });
   const organization = TestStubs.Organization({access: ['project:write']});
   return mountWithTheme(
     <TeamSelector
