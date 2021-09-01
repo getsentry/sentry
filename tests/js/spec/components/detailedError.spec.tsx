@@ -1,18 +1,18 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import DetailedError from 'app/components/errors/detailedError';
 
 describe('DetailedError', function () {
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const {container} = mountWithTheme(
       <DetailedError heading="Error heading" message={<div>Message</div>} />
     );
 
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('renders with "Retry" button', function () {
-    const wrapper = mountWithTheme(
+    const {container} = mountWithTheme(
       <DetailedError
         onRetry={() => {}}
         heading="Error heading"
@@ -20,11 +20,11 @@ describe('DetailedError', function () {
       />
     );
 
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('can hide support links', function () {
-    const wrapper = mountWithTheme(
+    const {container} = mountWithTheme(
       <DetailedError
         hideSupportLinks
         onRetry={() => {}}
@@ -33,11 +33,11 @@ describe('DetailedError', function () {
       />
     );
 
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('hides footer when no "Retry" and no support links', function () {
-    const wrapper = mountWithTheme(
+    const {container} = mountWithTheme(
       <DetailedError
         hideSupportLinks
         heading="Error heading"
@@ -45,6 +45,6 @@ describe('DetailedError', function () {
       />
     );
 
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 });

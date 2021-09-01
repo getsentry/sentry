@@ -24,9 +24,10 @@ from sentry.models import (
     ProjectStatus,
     ProjectTeam,
     Rule,
+    ScheduledDeletion,
 )
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers import Feature, faux
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.compat import mock, zip
@@ -751,11 +752,12 @@ class ProjectUpdateTest(APITestCase):
         expiry = response.data["secondaryGroupingExpiry"]
         assert (now + 3600 * 24 * 90) < expiry < (now + 3600 * 24 * 92)
 
-    def test_redacted_symbol_source_secrets(self):
+    @mock.patch("sentry.api.base.create_audit_entry")
+    def test_redacted_symbol_source_secrets(self, create_audit_entry):
         with Feature(
             {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
         ):
-            redacted_source = {
+            config = {
                 "id": "honk",
                 "name": "honk source",
                 "layout": {
@@ -768,12 +770,19 @@ class ProjectUpdateTest(APITestCase):
                 "password": "beepbeep",
             }
             self.get_valid_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
             )
-            assert self.project.get_option("sentry:symbol_sources") == json.dumps([redacted_source])
+            assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
 
             # redact password
+            redacted_source = config.copy()
             redacted_source["password"] = {"hidden-secret": True}
+
+            # check that audit entry was created with redacted password
+            assert create_audit_entry.called
+            call = faux.faux(create_audit_entry)
+            assert call.kwarg_equals("data", {"sentry:symbol_sources": [redacted_source]})
+
             self.get_valid_response(
                 self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
             )
@@ -981,11 +990,8 @@ class ProjectDeleteTest(APITestCase):
     method = "delete"
 
     @mock.patch("sentry.db.mixin.uuid4")
-    @mock.patch("sentry.api.endpoints.project_details.uuid4")
-    @mock.patch("sentry.api.endpoints.project_details.delete_project")
-    def test_simple(self, mock_delete_project, mock_uuid4_project, mock_uuid4_mixin):
+    def test_simple(self, mock_uuid4_mixin):
         mock_uuid4_mixin.return_value = self.get_mock_uuid()
-        mock_uuid4_project.return_value = self.get_mock_uuid()
         project = self.create_project()
 
         self.login_as(user=self.user)
@@ -993,9 +999,7 @@ class ProjectDeleteTest(APITestCase):
         with self.settings(SENTRY_PROJECT=0):
             self.get_valid_response(project.organization.slug, project.slug, status_code=204)
 
-        mock_delete_project.apply_async.assert_called_once_with(
-            kwargs={"object_id": project.id, "transaction_id": "abc123"}, countdown=3600
-        )
+        assert ScheduledDeletion.objects.filter(model_name="Project", object_id=project.id).exists()
 
         deleted_project = Project.objects.get(id=project.id)
         assert deleted_project.status == ProjectStatus.PENDING_DELETION
@@ -1007,8 +1011,7 @@ class ProjectDeleteTest(APITestCase):
         deleted_project = DeletedProject.objects.get(slug=project.slug)
         self.assert_valid_deleted_log(deleted_project, project)
 
-    @mock.patch("sentry.api.endpoints.project_details.delete_project")
-    def test_internal_project(self, mock_delete_project):
+    def test_internal_project(self):
         project = self.create_project()
 
         self.login_as(user=self.user)
@@ -1016,7 +1019,9 @@ class ProjectDeleteTest(APITestCase):
         with self.settings(SENTRY_PROJECT=project.id):
             self.get_valid_response(project.organization.slug, project.slug, status_code=403)
 
-        assert not mock_delete_project.delay.mock_calls
+        assert not ScheduledDeletion.objects.filter(
+            model_name="Project", object_id=project.id
+        ).exists()
 
 
 @pytest.mark.parametrize(
