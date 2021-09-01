@@ -156,12 +156,6 @@ def process_builds(
             if not build_state.fetched:
                 pending_builds.append((build, build_state))
 
-    # All existing usages of this option are internal, so it's fine if we don't carry these over
-    # to the table
-    # TODO: Clean this up by App Store Connect GA
-    if projectoptions.isset(project, appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION):
-        project.delete_option(appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION)
-
     LatestAppConnectBuildsCheck.objects.create_or_update(
         project=project, source_id=config.id, values={"last_checked": timezone.now()}
     )

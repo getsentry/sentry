@@ -500,12 +500,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
             latestBuildVersion = latest_build.bundle_short_version
             latestBuildNumber = latest_build.bundle_version
 
-        # All existing usages of this option are internal, so it's fine if we don't carry these over
-        # to the table
-        # TODO: Clean this up by App Store Connect GA
-        if projectoptions.isset(project, appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION):
-            project.delete_option(appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION)
-
         try:
             check_entry = LatestAppConnectBuildsCheck.objects.get(
                 project=project, source_id=symbol_source_cfg.id
