@@ -16,7 +16,7 @@ describe('Dashboards > Detail', function () {
 
   describe('prebuilt dashboards', function () {
     let wrapper;
-    let initialData;
+    let initialData, mockVisit;
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -39,6 +39,12 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
         body: TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'}),
+      });
+      mockVisit = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/visit/',
+        method: 'POST',
+        body: [],
+        statusCode: 200,
       });
     });
 
@@ -158,13 +164,12 @@ describe('Dashboards > Detail', function () {
         .find('Controls Button[data-test-id="dashboard-edit"]')
         .props();
       expect(editProps.disabled).toBe(true);
+      expect(mockVisit).not.toHaveBeenCalled();
     });
   });
 
   describe('custom dashboards', function () {
-    let wrapper;
-    let initialData;
-    let widgets;
+    let wrapper, initialData, widgets, mockVisit;
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -200,7 +205,12 @@ describe('Dashboards > Detail', function () {
           }
         ),
       ];
-
+      mockVisit = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/visit/',
+        method: 'POST',
+        body: [],
+        statusCode: 200,
+      });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/',
         body: [],
@@ -247,6 +257,8 @@ describe('Dashboards > Detail', function () {
       await tick();
       wrapper.update();
 
+      expect(mockVisit).toHaveBeenCalledTimes(1);
+
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
 
@@ -279,6 +291,9 @@ describe('Dashboards > Detail', function () {
           }),
         })
       );
+
+      // Visit should not be called again on dashboard update
+      expect(mockVisit).toHaveBeenCalledTimes(1);
     });
 
     it('can enter edit mode for widgets', async function () {

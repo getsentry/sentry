@@ -37,11 +37,11 @@ import Breadcrumb from 'app/views/performance/breadcrumb';
 import {MetaData} from 'app/views/performance/transactionDetails/styles';
 
 import {
-  SearchContainer,
-  StyledSearchBar,
   TraceDetailBody,
   TraceDetailHeader,
   TracePanel,
+  TraceSearchBar,
+  TraceSearchContainer,
   TraceViewContainer,
   TraceViewHeaderContainer,
 } from './styles';
@@ -185,14 +185,14 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
   renderSearchBar() {
     return (
-      <SearchContainer>
-        <StyledSearchBar
+      <TraceSearchContainer>
+        <TraceSearchBar
           defaultQuery=""
           query={this.state.searchQuery || ''}
           placeholder={t('Search for transactions')}
           onSearch={this.handleTransactionFilter}
         />
-      </SearchContainer>
+      </TraceSearchContainer>
     );
   }
 
