@@ -354,7 +354,9 @@ class RuleNode extends React.Component<Props> {
 
   render() {
     const {data, disabled, index, node, organization} = this.props;
-    const ticketRule = node?.hasOwnProperty('actionType');
+    const ticketRule = node?.hasOwnProperty('actionType') && node.actionType === 'ticket';
+    const sentryAppRule =
+      node?.hasOwnProperty('actionType') && node.actionType === 'sentryapp';
     const isNew = node?.id === EVENT_FREQUENCY_PERCENT_CONDITION;
     return (
       <RuleRowContainer>
@@ -384,6 +386,18 @@ class RuleNode extends React.Component<Props> {
                 }
               >
                 {t('Issue Link Settings')}
+              </Button>
+            )}
+            {sentryAppRule && node && (
+              <Button
+                size="small"
+                icon={<IconSettings size="xs" />}
+                type="button"
+                onClick={() => {
+                  // TODO(nisanthan): Placeholder. Modal will be implemented in next PR.
+                }}
+              >
+                {t('Settings')}
               </Button>
             )}
           </Rule>
