@@ -62,12 +62,8 @@ setup-docker() {
     sudo-askpass /bin/cp /Applications/Docker.app/Contents/Library/LaunchServices/com.docker.vmnetd /Library/PrivilegedHelperTools/
     sudo-askpass /bin/chmod 544 /Library/PrivilegedHelperTools/com.docker.vmnetd
 
-    # # This file used to be generated as part of brew's installation
-    if [ -f /Applications/Docker.app/Contents/Resources/com.docker.vmnetd.plist ]; then
-        sudo-askpass /bin/cp /Applications/Docker.app/Contents/Resources/com.docker.vmnetd.plist /Library/LaunchDaemons/
-    else
-        sudo-askpass /bin/cp .github/workflows/files/com.docker.vmnetd.plist /Library/LaunchDaemons/
-    fi
+    # Generate dynamic plist to allow starting Docker up without GUI prompt
+    sudo-askpass /bin/cp .github/workflows/scripts/write-docker-plist.sh
     sudo-askpass /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
     sudo-askpass /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
 }

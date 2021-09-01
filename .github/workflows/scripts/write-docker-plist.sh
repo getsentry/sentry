@@ -1,3 +1,9 @@
+#!/bin/bash
+# This is a script to generate a dynamic plist for the Docker installation on Mac
+# Major hack. See details: https://github.com/docker/for-mac/issues/2359#issuecomment-908628717
+version=$(defaults read /Applications/Docker.app/Contents/Info.plist VmnetdVersion)
+
+cat >/Library/LaunchDaemons/com.docker.vmnetd.plist <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -23,6 +29,7 @@
 		</dict>
 	</dict>
 	<key>Version</key>
-	<string>61</string>
+	<string>${version}</string>
 </dict>
 </plist>
+EOF
