@@ -47,12 +47,11 @@ class AlertRuleDetails extends Component<Props, State> {
     this.trackView();
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
+  componentDidUpdate(prevProps: Props) {
     if (
       prevProps.location.search !== this.props.location.search ||
       prevProps.params.orgId !== this.props.params.orgId ||
-      prevProps.params.ruleId !== this.props.params.ruleId ||
-      prevState.rule?.id !== this.state.rule?.id
+      prevProps.params.ruleId !== this.props.params.ruleId
     ) {
       this.fetchData();
       this.trackView();
@@ -148,19 +147,19 @@ class AlertRuleDetails extends Component<Props, State> {
       this.setState({selectedIncident: null});
     }
 
-    const timePeriod = this.getTimePeriod();
-    const {start, end} = timePeriod;
-
     try {
-      const rulePromise = fetchAlertRule(orgId, ruleId).then(rule =>
-        this.setState({rule})
+      const rulePromise = fetchAlertRule(orgId, ruleId).then(rule => {
+        this.setState({rule});
+      });
+      await Promise.resolve(rulePromise);
+
+      const timePeriod = this.getTimePeriod();
+      const {start, end} = timePeriod;
+
+      const incidentsPromise = fetchIncidentsForRule(orgId, ruleId, start, end).then(
+        incidents => this.setState({incidents})
       );
-      if (this.state.rule?.id) {
-        const incidentsPromise = fetchIncidentsForRule(orgId, ruleId, start, end).then(
-          incidents => this.setState({incidents})
-        );
-        await Promise.all([rulePromise, incidentsPromise]);
-      }
+      await Promise.resolve(incidentsPromise);
       this.setState({isLoading: false, hasError: false});
     } catch (_err) {
       this.setState({isLoading: false, hasError: true});
