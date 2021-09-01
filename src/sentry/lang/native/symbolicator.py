@@ -391,7 +391,12 @@ def parse_backfill_sources(sources_json, original_sources):
 
 
 def redact_source_secrets(config_sources: json.JSONData) -> json.JSONData:
-    """Returns a JSONData with all of the secrets redacted from every source."""
+    """
+    Returns a JSONData with all of the secrets redacted from every source.
+
+    The original value is not mutated in the process; A clone is created
+    and returned by this function.
+    """
 
     redacted_sources = deepcopy(config_sources)
     for source in redacted_sources:
