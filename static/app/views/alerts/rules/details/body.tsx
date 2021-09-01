@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
@@ -115,15 +115,6 @@ export default class DetailsBody extends React.Component<Props> {
     return (
       <Filters>{parsedQuery && <HighlightQuery parsedQuery={parsedQuery} />}</Filters>
     );
-  }
-
-  handlePeriodQuery(value: string) {
-    browserHistory.push({
-      pathname: this.props.location.pathname,
-      query: {
-        period: value,
-      },
-    });
   }
 
   renderTrigger(trigger: Trigger): React.ReactNode {
