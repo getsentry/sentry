@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import SimilarScoreCard from 'app/components/similarScoreCard';
 
@@ -8,12 +8,12 @@ describe('SimilarScoreCard', function () {
   afterEach(function () {});
 
   it('renders', function () {
-    const wrapper = mountWithTheme(<SimilarScoreCard />);
-    expect(wrapper).toSnapshot();
+    const {container} = mountWithTheme(<SimilarScoreCard />);
+    expect(container.firstChild).toBeNull();
   });
 
   it('renders with score list', function () {
-    const wrapper = mountWithTheme(
+    const {container} = mountWithTheme(
       <SimilarScoreCard
         scoreList={[
           ['exception:message:character-shingles', null],
@@ -24,6 +24,6 @@ describe('SimilarScoreCard', function () {
         ]}
       />
     );
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 });

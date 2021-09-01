@@ -1,14 +1,14 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import Tag from 'app/components/tagDeprecated';
 
 describe('Tag', function () {
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const {container} = mountWithTheme(
       <Tag priority="info" border size="small">
         Text to Copy
       </Tag>
     );
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 });

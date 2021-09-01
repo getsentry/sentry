@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import SimilarSpectrum from 'app/components/similarSpectrum';
 
@@ -8,7 +8,7 @@ describe('SimilarSpectrum', function () {
   afterEach(function () {});
 
   it('renders', function () {
-    const wrapper = mountWithTheme(<SimilarSpectrum />);
-    expect(wrapper).toSnapshot();
+    const {container} = mountWithTheme(<SimilarSpectrum />);
+    expect(container).toSnapshot();
   });
 });
