@@ -77,6 +77,8 @@ jobs:
           make develop init-config
 
       - name: Test direnv
+        shell: zsh
+        if: ${{ matrix.os == 'macos-11.0' }}
         run: |
           brew install direnv
           eval "$(direnv hook zsh)"
