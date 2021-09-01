@@ -64,8 +64,8 @@ class RunScheduledDeletionTest(TestCase):
         with self.tasks():
             run_scheduled_deletions()
 
-        assert Team.objects.filter(id=team.id).exists() is False
-        assert ScheduledDeletion.objects.filter(id=schedule.id).exists() is False
+        assert not Team.objects.filter(id=team.id).exists()
+        assert not ScheduledDeletion.objects.filter(id=schedule.id).exists()
 
     def test_should_proceed_check(self):
         org = self.create_organization(name="test")
@@ -79,7 +79,7 @@ class RunScheduledDeletionTest(TestCase):
             run_scheduled_deletions()
 
         assert Repository.objects.filter(id=repo.id).exists()
-        assert ScheduledDeletion.objects.filter(id=schedule.id, in_progress=True).exists() is False
+        assert not ScheduledDeletion.objects.filter(id=schedule.id, in_progress=True).exists()
 
     def test_ignore_in_progress(self):
         org = self.create_organization(name="test")
@@ -132,7 +132,7 @@ class ReattemptDeletionsTest(TestCase):
             reattempt_deletions()
 
         schedule.refresh_from_db()
-        assert schedule.in_progress is False
+        assert not schedule.in_progress
 
     def test_ignore_recent_jobs(self):
         org = self.create_organization(name="test")

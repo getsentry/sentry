@@ -47,7 +47,7 @@ class DeleteRepositoryTest(TestCase):
 
         with self.tasks():
             run_deletion(deletion.id)
-        assert Repository.objects.filter(id=repo.id).exists() is True
+        assert Repository.objects.filter(id=repo.id).exists()
 
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.delete_repository")
     def test_delete_fail_email(self, mock_delete_repo):
