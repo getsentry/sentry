@@ -2,8 +2,8 @@ name: python deps
 on:
   pull_request:
     paths:
-    - '.github/workflows/python-deps.yml'
-    - 'requirements*'
+      - '.github/workflows/python-deps.yml'
+      - 'requirements*'
 
 jobs:
   # This workflow makes sure that Python dependencies install correctly for
@@ -14,8 +14,8 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        os: [ macos-11.0, ubuntu-20.04 ]
-        python-version: [ 3.6.13, 3.8.10 ]
+        os: [macos-11.0, ubuntu-20.04]
+        python-version: [3.6.13, 3.8.11]
       fail-fast: false
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
@@ -27,25 +27,16 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Install prerequisites
+        # Sometimes, brew needs to be updated before brew bundle would work
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade
+          brew update && brew bundle -q
 
-      # Until GH composite actions can use `uses`, we need to setup python here
-      - uses: actions/setup-python@v2
+      - name: Setup python
+        id: setup-python
+        uses: ./.github/actions/setup-python
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Setup pip
-        uses: ./.github/actions/setup-pip
-        id: pip
-
-      - name: Cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ${{ steps.pip.outputs.pip-cache-dir }}
-          key: |
-            python-deps-${{ matrix.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements-*.txt') }}
+          # XXX: We need to pass this python-deps-${{ matrix.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements-*.txt') }}
+          cache-files-hash: ${{ hashFiles('requirements-*.txt') }}
 
       - name: Install dependencies
         run: |
