@@ -16,8 +16,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 import {vitalsRouteWithQuery} from 'app/views/performance/transactionSummary/transactionVitals/utils';
 import {SidebarSpacer} from 'app/views/performance/transactionSummary/utils';
-
-import VitalInfo from '../vitalDetail/vitalInfo';
+import VitalInfo from 'app/views/performance/vitalDetail/vitalInfo';
 
 type Props = {
   eventView: EventView;

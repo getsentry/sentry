@@ -58,7 +58,6 @@ jobs:
 
       - name: Setup Python
         uses: ./.github/actions/setup-python
-        id: python-setup
 
       - name: Cache (pyenv)
         uses: actions/cache@v2

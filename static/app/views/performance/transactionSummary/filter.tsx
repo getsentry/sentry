@@ -14,7 +14,7 @@ import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
 
-import {decodeHistogramZoom} from './latencyChart';
+import {decodeHistogramZoom} from './transactionOverview/latencyChart';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 

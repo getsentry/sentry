@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-11.0, ubuntu-20.04]
-        python-version: [3.6.13, 3.8.10]
+        python-version: [3.6.13, 3.8.11]
       fail-fast: false
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
@@ -52,7 +52,9 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-python
         with:
-          python-version: ${{ matrix.python-version }}
+          # TODO:
+          # XXX: We need to pass this python-deps-${{ matrix.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements-*.txt') }}
+          cache-files-hash: ${{ hashFiles('requirements-*.txt') }}
 
       - name: Install dependencies
         run: |

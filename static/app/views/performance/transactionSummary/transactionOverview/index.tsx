@@ -29,20 +29,20 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
-import {addRoutePerformanceContext, getTransactionName} from '../utils';
-
-import {
-  PERCENTILE as VITAL_PERCENTILE,
-  VITAL_GROUPS,
-} from './transactionVitals/constants';
-import SummaryContent from './content';
+import {addRoutePerformanceContext, getTransactionName} from '../../utils';
 import {
   decodeFilterFromLocation,
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
-} from './filter';
+} from '../filter';
+import {TransactionThresholdMetric} from '../transactionThresholdModal';
+import {
+  PERCENTILE as VITAL_PERCENTILE,
+  VITAL_GROUPS,
+} from '../transactionVitals/constants';
+
+import SummaryContent from './content';
 import {ZOOM_END, ZOOM_START} from './latencyChart';
-import {TransactionThresholdMetric} from './transactionThresholdModal';
 
 type Props = RouteComponentProps<{}, {}> & {
   api: Client;

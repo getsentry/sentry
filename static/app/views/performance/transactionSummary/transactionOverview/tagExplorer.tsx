@@ -36,10 +36,9 @@ import {
   PerformanceDuration,
   platformAndConditionsToPerformanceType,
   PROJECT_PERFORMANCE_TYPE,
-} from '../utils';
-
-import {tagsRouteWithQuery} from './transactionTags/utils';
-import {SpanOperationBreakdownFilter} from './filter';
+} from '../../utils';
+import {SpanOperationBreakdownFilter} from '../filter';
+import {tagsRouteWithQuery} from '../transactionTags/utils';
 
 const TAGS_CURSOR_NAME = 'tags_cursor';
 

@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
@@ -13,6 +14,7 @@ import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import DropdownControl from 'app/components/dropdownControl';
 import Hovercard from 'app/components/hovercard';
+import MenuItem from 'app/components/menuItem';
 import {IconDelete, IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -24,6 +26,7 @@ import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 import InputControl from 'app/views/settings/components/forms/controls/input';
 
+import DiscoverQueryMenu from './discoverQueryMenu';
 import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
 
 type DefaultProps = {
@@ -207,6 +210,17 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     });
   };
 
+  handleAddDashboardWidget = () => {
+    const {organization, eventView, savedQuery} = this.props;
+    openAddDashboardWidgetModal({
+      organization,
+      defaultQuery: eventView.query,
+      defaultTitle:
+        savedQuery?.name ?? eventView.name !== 'All Events' ? eventView.name : undefined,
+      fromDiscover: true,
+    });
+  };
+
   renderButtonSaveAs(disabled: boolean) {
     const {queryName} = this.state;
     /**
@@ -321,6 +335,19 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     );
   }
 
+  renderDiscoverQueryMenu() {
+    const menuOptions: React.ReactNode[] = [];
+    menuOptions.push(
+      <MenuItem
+        key="add-dashboard-widget-from-discover"
+        onClick={this.handleAddDashboardWidget}
+      >
+        {t('Add to Dashboard')}
+      </MenuItem>
+    );
+    return <DiscoverQueryMenu>{menuOptions}</DiscoverQueryMenu>;
+  }
+
   render() {
     const {organization} = this.props;
 
@@ -359,6 +386,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
         </Feature>
         {renderQueryButton(disabled => this.renderButtonDelete(disabled))}
+        <Feature
+          organization={organization}
+          features={['connect-discover-and-dashboards', 'dashboards-edit']}
+        >
+          {({hasFeature}) => hasFeature && this.renderDiscoverQueryMenu()}
+        </Feature>
       </ResponsiveButtonBar>
     );
   }
