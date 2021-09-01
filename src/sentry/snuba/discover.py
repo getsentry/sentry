@@ -696,7 +696,7 @@ def top_events_timeseries(
         translated_groupby.sort()
 
         results = (
-            {"other": {"order": limit + 1, "data": other_result["data"]}}
+            {"Other": {"order": limit + 1, "data": other_result["data"]}}
             if len(other_result.get("data", []))
             else {}
         )
