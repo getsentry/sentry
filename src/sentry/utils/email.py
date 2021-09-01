@@ -21,7 +21,7 @@ from django.utils.encoding import force_bytes, force_str, force_text
 
 from sentry import options
 from sentry.logging import LoggingFormat
-from sentry.models import Activity, Group, GroupEmailThread, Project, User, UserOption
+from sentry.models import Activity, Group, GroupEmailThread, Project, User, UserEmail, UserOption
 from sentry.utils import metrics
 from sentry.utils.compat import map
 from sentry.utils.safe import safe_execute
@@ -168,8 +168,12 @@ def get_email_addresses(user_ids: Iterable[int], project: Project = None) -> Map
     if project:
         queryset = UserOption.objects.filter(project=project, user__in=pending, key="mail:email")
         for option in (o for o in queryset if o.value and not is_fake_email(o.value)):
-            results[option.user_id] = option.value
-            pending.discard(option.user_id)
+            if UserEmail.objects.filter(user=option.user, email=option.value).exists():
+                results[option.user_id] = option.value
+                pending.discard(option.user_id)
+            else:
+                pending.discard(option.user_id)
+                option.delete()
 
     if pending:
         queryset = User.objects.filter(pk__in=pending, is_active=True)
