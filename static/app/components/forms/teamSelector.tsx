@@ -144,8 +144,6 @@ class TeamSelector extends React.Component<Props, State> {
       return;
     }
 
-    // @ts-ignore The types for react-select don't cover this property
-    // or the type of selectRef is incorrect.
     const select = this.selectRef.current.select;
     const input: HTMLInputElement = select.inputRef;
     if (input) {
