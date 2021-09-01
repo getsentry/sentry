@@ -32,7 +32,7 @@ import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
 } from '../filter';
-import {ZOOM_END, ZOOM_START} from '../latencyChart';
+import {ZOOM_END, ZOOM_START} from '../transactionOverview/latencyChart';
 
 import EventsPageContent from './content';
 import {
