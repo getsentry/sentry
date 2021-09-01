@@ -63,6 +63,7 @@ jobs:
           # ls -l $(brew --cache)/downloads | wc -l
           # brew install --cask docker ||  brew cleanup docker
           brew install --cask docker ||  rm -rf $(brew --cache); mkdir $(brew --cache)
+          brew doctor
           ls -l $(brew --cache) | grep "dr"
           ls -l $(brew --cache) | wc -l
           ls -l $(brew --cache)/downloads | wc -l
