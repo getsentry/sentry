@@ -52,11 +52,17 @@ jobs:
           brew -v
           which brew
           echo $(brew --cache)
-          ls -l $(brew --cache)
+          ls -l $(brew --cache) | wc -l
+          ls -l $(brew --cache)/downloads | wc -l
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask docker || rm -rf $(brew --cache)
+          ls -l $(brew --cache) | wc -l
+          ls -l $(brew --cache)/downloads | wc -l
           brew cleanup --prune=all
-          ls -l $(brew --cache)
+          ls -l $(brew --cache) | wc -l
+          ls -l $(brew --cache)/downloads | wc -l
           rm -rf $(brew --cache)
-          ls -l $(brew --cache)
+          ls -l $(brew --cache) | wc -l
+          ls -l $(brew --cache)/downloads | wc -l
           HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask docker || rm -rf $(brew --cache) && brew install --cask docker
           # This code is mentioned in our dev docs. Only remove if you adjust the docs as well
           SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh init-docker
