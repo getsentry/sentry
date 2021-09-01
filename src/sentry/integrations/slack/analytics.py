@@ -18,7 +18,7 @@ class SlackIntegrationStatus(analytics.Event):
 
 
 class SlackIntegrationNotificationSent(analytics.Event):
-    type = "integrations.slack.notification.sent"
+    type = "integrations.slack.notification_sent"
 
     attributes = (
         analytics.Attribute("organization_id"),
