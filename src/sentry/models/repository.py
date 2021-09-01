@@ -6,7 +6,6 @@ from sentry.constants import ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import BoundedPositiveIntegerField, JSONField, Model, sane_repr
 from sentry.signals import pending_delete
-from sentry.utils import metrics
 
 
 class Repository(Model, PendingDeletionMixin):
@@ -78,9 +77,6 @@ class Repository(Model, PendingDeletionMixin):
 
 
 def on_delete(instance, actor=None, **kwargs):
-    # TODO(mark) Remove this metric and code path once it is proven to have no callers.
-    metrics.incr("repository.on_delete", sample_rate=1.0)
-
     # If there is no provider, we don't have any webhooks, etc to delete
     if not instance.provider:
         return

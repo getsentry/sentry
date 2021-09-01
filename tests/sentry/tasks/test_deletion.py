@@ -67,6 +67,20 @@ class RunScheduledDeletionTest(TestCase):
         assert Team.objects.filter(id=team.id).exists() is False
         assert ScheduledDeletion.objects.filter(id=schedule.id).exists() is False
 
+    def test_should_proceed_check(self):
+        org = self.create_organization(name="test")
+        project = self.create_project(organization=org)
+        repo = self.create_repo(project=project, name="example/example")
+        assert repo.status == ObjectStatus.ACTIVE
+
+        schedule = ScheduledDeletion.schedule(instance=repo, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert Repository.objects.filter(id=repo.id).exists()
+        assert ScheduledDeletion.objects.filter(id=schedule.id, in_progress=True).exists() is False
+
     def test_ignore_in_progress(self):
         org = self.create_organization(name="test")
         team = self.create_team(organization=org, name="delete")
