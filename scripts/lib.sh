@@ -40,11 +40,13 @@ sudo-askpass() {
 init-docker() {
     # Need to start docker if it was freshly installed or updated
     # You will know that Docker is ready for devservices when the icon on the menu bar stops flashing
-    # This block might succeed, thus, on following runs /Applications/Docker.app should exist
-    if query-mac && ! require docker && [ -d "/Applications/Docker.app" ]; then
-        setup-docker
+    if query-mac; then
+        if ! require docker && [ -d "/Applications/Docker.app" ]; then
+            setup-docker
+        fi
+        start-docker
+        ensure-docker-server
     fi
-    start-docker
 }
 
 setup-docker() {
@@ -74,16 +76,9 @@ setup-docker() {
 # We need this for Mac since the executable docker won't work properly
 # until the app is opened once
 start-docker() {
-    if query-mac && ! docker system info &>/dev/null; then
+    if ! docker system info &>/dev/null; then
         echo "About to open Docker.app"
-        if ! open -g -a Docker.app; then
-            # If the step above fails, at least we can get some debugging information to determine why
-            sudo-askpass ls -l /Library/PrivilegedHelperTools/com.docker.vmnetd
-            ls -l /Library/LaunchDaemons/
-            cat /Library/LaunchDaemons/com.docker.vmnetd.plist
-            ls -l /Applications/Docker.app
-        fi
-        ensure-docker-server
+        open -g -a Docker.app
     fi
 }
 
@@ -95,7 +90,6 @@ ensure-docker-server() {
     while ! docker system info &>/dev/null; do
         ((i++ == 0)) && printf %s '-- Waiting for Docker to finish starting up...' || printf '.'
         sleep 1
-        docker system info
     done
     ((i)) && printf '\n'
 
