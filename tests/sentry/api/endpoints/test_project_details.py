@@ -752,12 +752,12 @@ class ProjectUpdateTest(APITestCase):
         expiry = response.data["secondaryGroupingExpiry"]
         assert (now + 3600 * 24 * 90) < expiry < (now + 3600 * 24 * 92)
 
-    @mock.patch("sentry.utils.audit.create_audit_entry")
+    @mock.patch("sentry.api.base.create_audit_entry")
     def test_redacted_symbol_source_secrets(self, create_audit_entry):
         with Feature(
             {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
         ):
-            redacted_source = {
+            config = {
                 "id": "honk",
                 "name": "honk source",
                 "layout": {
@@ -770,19 +770,18 @@ class ProjectUpdateTest(APITestCase):
                 "password": "beepbeep",
             }
             self.get_valid_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
             )
-            assert self.project.get_option("sentry:symbol_sources") == json.dumps([redacted_source])
+            assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
 
             # redact password
+            redacted_source = config.copy()
             redacted_source["password"] = {"hidden-secret": True}
 
             # check that audit entry was created with redacted password
             assert create_audit_entry.called
             call = faux.faux(create_audit_entry)
-            assert call.kwarg_equals(
-                "data", {"sentry:symbol_sources": json.dumps([redacted_source])}
-            )
+            assert call.kwarg_equals("data", {"sentry:symbol_sources": [redacted_source]})
 
             self.get_valid_response(
                 self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
