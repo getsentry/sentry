@@ -1,3 +1,5 @@
+# NOTE: Do not rely on `make` commands here as this action is used across different repos
+# where the Makefile will not be available
 name: 'Sentry Setup'
 description: 'Sets up a Sentry test environment'
 inputs:
@@ -21,6 +23,13 @@ inputs:
     description: 'Is chartcuterie required?'
     required: false
     default: 'false'
+  cache-files-hash:
+    description: 'A single hash for a set of files. Used for caching.'
+    required: false
+    default: ${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
+  python-version:
+    description: "python version to install"
+    required: false
   pip-cache-version:
     description: 'pip cache version in order to bust cache'
     required: false
@@ -94,7 +103,10 @@ runs:
       id: setup-python
       uses: ./.github/actions/setup-python
       with:
+        python-version: ${{ inputs.python-version }}
+        cache-files-hash: ${{ inputs.cache-files-hash }}
         pip-cache-version: ${{ inputs.pip-cache-version }}
+        workdir: ${{ inputs.workdir }}
 
     - name: Install system dependencies
       shell: bash

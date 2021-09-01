@@ -1,13 +1,22 @@
+# NOTE: Do not rely on `make` commands here as this action is used across different repos
+# where the Makefile will not be available
 name: 'python setup'
 description: 'Configures python, pip, and configures pip cache dir as output.'
 
 inputs:
+  workdir:
+    description: 'Directory where the sentry source is located'
+    required: false
+    default: '.'
   cache-files-hash:
     description: 'A single hash for a set of files. Used for caching.'
     required: false
     default: ${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
   pip-cache-version:
     description: 'pip cache version in order to bust cache'
+    required: false
+  python-version:
+    description: 'python version to install'
     required: false
 
 outputs:
@@ -28,7 +37,11 @@ runs:
       id: python-version
       shell: bash
       run: |
-        echo "::set-output name=python-version::$(cat .python-version)"
+        if [ "${{ inputs.python-version }}" == "" ]; then
+          echo "::set-output name=python-version::$(SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh get-pyenv-version)"
+        else
+          echo "::set-output name=python-version::${{ inputs.python-version }}"
+        fi
 
     - name: Setup default environment variables
       shell: bash
@@ -43,8 +56,10 @@ runs:
 
     - name: Install pip
       shell: bash
+      env:
+        WORKDIR: ${{ inputs.workdir }}
       run: |
-        make upgrade-pip
+        source "$WORKDIR/scripts/lib.sh" && upgrade-pip
 
     - name: Get pip cache dir & version
       id: pip-info
