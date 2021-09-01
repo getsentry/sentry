@@ -30,7 +30,7 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
-import {DisplayModes} from 'app/views/performance/transactionSummary/charts';
+import {DisplayModes} from 'app/views/performance/transactionSummary/transactionOverview/charts';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
 

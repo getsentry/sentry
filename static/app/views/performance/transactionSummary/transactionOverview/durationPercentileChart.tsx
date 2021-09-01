@@ -19,7 +19,7 @@ import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
 import {Theme} from 'app/utils/theme';
 
-import {filterToColor, filterToField, SpanOperationBreakdownFilter} from './filter';
+import {filterToColor, filterToField, SpanOperationBreakdownFilter} from '../filter';
 
 const QUERY_KEYS = [
   'environment',

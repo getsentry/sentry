@@ -9,7 +9,7 @@ import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 
 import {getTransactionDetailsUrl} from '../utils';
 
-import {DisplayModes} from './charts';
+import {DisplayModes} from './transactionOverview/charts';
 
 export enum TransactionFilterOptions {
   FASTEST = 'fastest',

@@ -24,7 +24,7 @@ import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAct
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import {PerformanceDuration} from '../../utils';
-import {TagValue} from '../tagExplorer';
+import {TagValue} from '../transactionOverview/tagExplorer';
 
 import {
   TAGS_TABLE_COLUMN_ORDER,

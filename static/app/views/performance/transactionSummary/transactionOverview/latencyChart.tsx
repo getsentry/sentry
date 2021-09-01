@@ -20,7 +20,7 @@ import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogr
 import {decodeInteger} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
-import {filterToColor, filterToField, SpanOperationBreakdownFilter} from './filter';
+import {filterToColor, filterToField, SpanOperationBreakdownFilter} from '../filter';
 
 export const ZOOM_START = 'startDuration';
 export const ZOOM_END = 'endDuration';

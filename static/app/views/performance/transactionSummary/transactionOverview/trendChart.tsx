@@ -26,7 +26,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
-import {transformEventStatsSmoothed} from '../trends/utils';
+import {transformEventStatsSmoothed} from '../../trends/utils';
 
 const QUERY_KEYS = [
   'environment',

@@ -20,16 +20,16 @@ import {decodeScalar} from 'app/utils/queryString';
 import {TransactionsListOption} from 'app/views/releases/detail/overview';
 import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartControls';
 
-import {TrendColumnField, TrendFunctionField} from '../trends/types';
+import {TrendColumnField, TrendFunctionField} from '../../trends/types';
 import {
   generateTrendFunctionAsString,
   getTrendsParameters,
   TRENDS_FUNCTIONS,
-} from '../trends/utils';
+} from '../../trends/utils';
+import {SpanOperationBreakdownFilter} from '../filter';
 
 import DurationChart from './durationChart';
 import DurationPercentileChart from './durationPercentileChart';
-import {SpanOperationBreakdownFilter} from './filter';
 import LatencyChart, {LatencyChartControls, ZOOM_END, ZOOM_START} from './latencyChart';
 import TrendChart from './trendChart';
 import VitalsChart from './vitalsChart';
