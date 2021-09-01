@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 
@@ -8,7 +8,7 @@ describe('EventOrGroupExtraDetails', function () {
   const {routerContext} = initializeOrg();
 
   it('renders last and first seen', function () {
-    const component = mountWithTheme(
+    const {container} = mountWithTheme(
       <EventOrGroupExtraDetails
         data={{
           orgId: 'orgId',
@@ -18,14 +18,14 @@ describe('EventOrGroupExtraDetails', function () {
           firstSeen: '2017-07-01T02:06:02Z',
         }}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    expect(component).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('renders only first seen', function () {
-    const component = mountWithTheme(
+    const {container} = mountWithTheme(
       <EventOrGroupExtraDetails
         data={{
           orgId: 'orgId',
@@ -34,14 +34,14 @@ describe('EventOrGroupExtraDetails', function () {
           firstSeen: '2017-07-01T02:06:02Z',
         }}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    expect(component).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('renders only last seen', function () {
-    const component = mountWithTheme(
+    const {container} = mountWithTheme(
       <EventOrGroupExtraDetails
         data={{
           orgId: 'orgId',
@@ -50,14 +50,14 @@ describe('EventOrGroupExtraDetails', function () {
           lastSeen: '2017-07-25T22:56:12Z',
         }}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    expect(component).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('renders all details', function () {
-    const component = mountWithTheme(
+    const {container} = mountWithTheme(
       <EventOrGroupExtraDetails
         data={{
           orgId: 'orgId',
@@ -75,14 +75,14 @@ describe('EventOrGroupExtraDetails', function () {
           status: 'resolved',
         }}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    expect(component).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('renders assignee and status', function () {
-    const component = mountWithTheme(
+    const {container} = mountWithTheme(
       <EventOrGroupExtraDetails
         data={{
           orgId: 'orgId',
@@ -102,14 +102,14 @@ describe('EventOrGroupExtraDetails', function () {
         }}
         showAssignee
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    expect(component).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('details when mentioned', function () {
-    const component = mountWithTheme(
+    const {container} = mountWithTheme(
       <EventOrGroupExtraDetails
         data={{
           orgId: 'orgId',
@@ -124,9 +124,9 @@ describe('EventOrGroupExtraDetails', function () {
           subscriptionDetails: {reason: 'mentioned'},
         }}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    expect(component).toSnapshot();
+    expect(container).toSnapshot();
   });
 });

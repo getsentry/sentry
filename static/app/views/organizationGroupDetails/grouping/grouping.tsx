@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {InjectedRouter} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
@@ -27,12 +27,12 @@ import NewIssue from './newIssue';
 type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 
 type Props = {
+  api: Client;
   organization: Organization;
   groupId: Group['id'];
   projSlug: Project['slug'];
-  location: Location<{level?: number; cursor?: string}>;
-  api: Client;
   router: InjectedRouter;
+  location: Location<{level?: number; cursor?: string}>;
 };
 
 type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
@@ -80,6 +80,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
 
   useEffect(() => {
     fetchGroupingLevels();
+    return browserHistory.listen(handleRouteLeave);
   }, []);
 
   useEffect(() => {
@@ -93,6 +94,30 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
   useEffect(() => {
     fetchGroupingLevelDetails();
   }, [activeGroupingLevel, cursor]);
+
+  function handleRouteLeave(newLocation: Location<{level?: number; cursor?: string}>) {
+    if (
+      newLocation.pathname === location.pathname ||
+      (newLocation.pathname !== location.pathname &&
+        newLocation.query.cursor === undefined &&
+        newLocation.query.level === undefined)
+    ) {
+      return true;
+    }
+
+    // Removes cursor and level from the URL on route leave
+    // so that the parameters will not interfere with other pages
+    browserHistory.replace({
+      pathname: newLocation.pathname,
+      query: {
+        ...newLocation.query,
+        cursor: undefined,
+        level: undefined,
+      },
+    });
+
+    return false;
+  }
 
   const handleSetActiveGroupingLevel = debounce((groupingLevelId: number | '') => {
     setActiveGroupingLevel(Number(groupingLevelId));
@@ -193,6 +218,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
           error={error}
           projSlug={projSlug}
           orgSlug={organization.slug}
+          hasProjectWriteAccess={organization.access.includes('project:write')}
         />
         <LinkFooter />
       </React.Fragment>

@@ -10,7 +10,7 @@ import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 describe('Dashboards > WidgetCard', function () {
   const initialData = initializeOrg({
     organization: TestStubs.Organization({
-      features: ['connect-discover-and-dashboards', 'discover-basic'],
+      features: ['connect-discover-and-dashboards', 'dashboards-edit', 'discover-basic'],
       projects: [TestStubs.Project()],
     }),
   });
