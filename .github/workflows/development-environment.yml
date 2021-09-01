@@ -30,15 +30,16 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
-      - name: Set environment variables & others
-        id: brew-info
+      - name: Set variables for caches
+        id: info
         run: |
-          echo "::set-output name=brew-cache::$(brew --cache)"
+          echo "::set-output name=brew-cache-dir::$(brew --cache)"
+          echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
 
       - name: Cache (brew)
         uses: actions/cache@v2
         with:
-          path: ${{ steps.brew-info.outputs.brew-cache }}
+          path: ${{ steps.info.outputs.brew-cache-dir }}
           key: devenv-${{ runner.os }}-brew-${{ hashFiles('Brewfile') }}
           restore-keys: devenv-${{ runner.os }}-brew
 
@@ -47,39 +48,33 @@ jobs:
         # Sometimes, brew needs to be updated before brew bundle would work
         # After installing Docker (via homebrew) we need to make sure that it is properly initialized on Mac
         run: |
-          # If we have a sha mistmatch we can clean up and try again
-          [ $(uname) == "Darwin" ] && brew update -q && brew install --cask docker || brew cleanup -v docker && brew install --cask docker
-          # This code is mentioned in our dev docs. Only remove if you adjust the docs as well
-          SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh init-docker
-          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade || brew bundle
+          if [ $(uname) == "Darwin" ]; then
+            # If we have a sha mistmatch we can clean up and try again
+            brew update -q && brew install --cask docker || brew cleanup -v docker && brew install --cask docker
+            # This code is mentioned in our dev docs. Only remove if you adjust the docs as well
+            SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh init-docker
+          fi
+          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade || brew bundle -q
 
       # The next few steps are to set up the cache quickly
-      - name: Set environment variables & others
+      - name: Set variables
         id: info
         run: |
           echo "::set-output name=python-version::$(cat .python-version)"
           echo "::set-output name=pip-cache-dir::$(pip3 cache dir)"
           echo "::set-output name=pip-version::$(pip -V | awk -F ' ' '{print $2}')"
-          echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
 
-      # In a sense, we set up Python two times (once here and once via pyenv). Setting
-      # it up here is instant and it helps us to get the cache primed sooner
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: ./.github/actions/setup-python
+        id: python-setup
         with:
-          python-version: ${{ steps.info.outputs.python-version }}
+          python-version: ${{ steps. }}
 
       - name: Cache (pyenv)
         uses: actions/cache@v2
         with:
           path: ~/.pyenv
           key: devenv-${{ matrix.os }}-pyenv-${{ hashFiles('.python-version') }}
-
-      - name: Cache (pip)
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.info.outputs.pip-cache-dir }}
-          key: devenv-${{ matrix.os }}-py${{ steps.info.outputs.python-version }}-pip${{ steps.info.outputs.pip-version }}-${{ hashFiles('**/requirements.txt') }}
 
       - name: Cache (yarn)
         uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
