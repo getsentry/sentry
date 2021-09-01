@@ -14,7 +14,7 @@ describe('QueryCount', function () {
 
   it('does not render if count is 0', function () {
     const {container} = mountWithTheme(<QueryCount count={0} />);
-    expect(container).toSnapshot();
+    expect(container.firstChild).toBeNull();
   });
 
   it('can render when count is 0 when `hideIfEmpty` is false', function () {
