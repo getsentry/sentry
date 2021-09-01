@@ -228,7 +228,6 @@ class TeamSelector extends React.Component<Props, State> {
   render() {
     const {includeUnassigned, styles, ...props} = this.props;
     const {options} = this.state;
-    console.log(options);
     return (
       <SelectControl
         ref={this.selectRef}
