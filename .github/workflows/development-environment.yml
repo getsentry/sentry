@@ -30,7 +30,6 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
-      # The next few steps are to set up the cache quickly
       - name: Set environment variables & others
         id: brew-info
         run: |

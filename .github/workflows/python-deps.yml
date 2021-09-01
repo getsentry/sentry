@@ -26,27 +26,29 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Set environment variables & others
+        id: brew-info
+        run: |
+          echo "::set-output name=brew-cache::$(brew --cache)"
+
+      - name: Cache (brew)
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.brew-info.outputs.brew-cache }}
+          key: devenv-${{ runner.os }}-brew-${{ hashFiles('Brewfile') }}
+          restore-keys: devenv-${{ runner.os }}-brew
+
       - name: Install prerequisites
         # Sometimes, brew needs to be updated before brew bundle would work
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade || brew bundle
+          # If we have a sha mistmatch we can clean up and try again
+          time brew update -q && brew install --cask docker || brew cleanup -v docker && brew install --cask docker
+          brew bundle -q
 
-      # Until GH composite actions can use `uses`, we need to setup python here
-      - uses: actions/setup-python@v2
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Setup pip
-        uses: ./.github/actions/setup-pip
-        id: pip
-
-      - name: Cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ${{ steps.pip.outputs.pip-cache-dir }}
-          key: |
-            python-deps-${{ matrix.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements-*.txt') }}
 
       - name: Install dependencies
         run: |
