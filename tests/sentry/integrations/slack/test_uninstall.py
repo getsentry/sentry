@@ -14,7 +14,7 @@ class SlackUninstallTest(APITestCase):
     method = "delete"
 
     def setUp(self) -> None:
-        self.integration = self.create_integration(self.organization, ExternalProviders.SLACK)
+        self.integration = self.create_slack_integration(self.organization)
         self.login_as(self.user)
 
     def uninstall(self) -> None:
@@ -88,7 +88,7 @@ class SlackUninstallTest(APITestCase):
 
     def test_uninstall_with_multiple_organizations(self):
         organization = self.create_organization(owner=self.user)
-        integration = self.create_integration(organization, ExternalProviders.SLACK, "TXXXXXXX2")
+        integration = self.create_slack_integration(organization, "TXXXXXXX2")
 
         self.set_setting(ExternalProviders.EMAIL, NotificationSettingOptionValues.NEVER)
         self.set_setting(ExternalProviders.SLACK, NotificationSettingOptionValues.ALWAYS)

@@ -83,7 +83,7 @@ from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.models import QueryDatasets
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, loremipsum
 
 
@@ -1017,11 +1017,11 @@ class Factories:
         )
 
     @staticmethod
-    def create_integration(
-        organization: Organization, provider: ExternalProviders, external_id: str, **kwargs: Any
-    ) -> Identity:
+    def create_slack_integration(
+        organization: Organization, external_id: str, **kwargs: Any
+    ) -> Integration:
         integration = Integration.objects.create(
-            provider=EXTERNAL_PROVIDERS[provider],
+            provider="slack",
             name="Team A",
             external_id=external_id,
             metadata={

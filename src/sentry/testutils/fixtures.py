@@ -13,7 +13,6 @@ from sentry.models import (
 )
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.types.integrations import ExternalProviders
 
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -344,15 +343,14 @@ class Fixtures:
 
         return Factories.create_codeowners(project=project, code_mapping=code_mapping, **kwargs)
 
-    def create_integration(
+    def create_slack_integration(
         self,
         organization: "Organization",
-        provider: ExternalProviders = ExternalProviders.SLACK,
         external_id: str = "TXXXXXXX1",
         **kwargs: Any,
     ):
-        integration = Factories.create_integration(
-            organization=organization, provider=provider, external_id=external_id, **kwargs
+        integration = Factories.create_slack_integration(
+            organization=organization, external_id=external_id, **kwargs
         )
         idp = Factories.create_identity_provider(integration=integration)
         Factories.create_identity(organization.get_default_owner(), idp, "UXXXXXXX1")
