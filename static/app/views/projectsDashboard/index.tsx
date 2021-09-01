@@ -12,6 +12,7 @@ import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NavTabs from 'app/components/navTabs';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import PageHeading from 'app/components/pageHeading';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -84,23 +85,37 @@ class Dashboard extends Component<Props> {
           orgSlug={organization.slug}
         />
         {projects.length > 0 && (
-          <ProjectsHeader>
-            <PageHeading>Projects</PageHeading>
-            <Button
-              size="small"
-              disabled={!canCreateProjects}
-              title={
-                !canCreateProjects
-                  ? t('You do not have permission to create projects')
-                  : undefined
-              }
-              to={`/organizations/${organization.slug}/projects/new/`}
-              icon={<IconAdd size="xs" isCircled />}
-              data-test-id="create-project"
-            >
-              {t('Create Project')}
-            </Button>
-          </ProjectsHeader>
+          <Fragment>
+            <ProjectsHeader>
+              <PageHeading>Projects</PageHeading>
+              <Button
+                size="small"
+                disabled={!canCreateProjects}
+                title={
+                  !canCreateProjects
+                    ? t('You do not have permission to create projects')
+                    : undefined
+                }
+                to={`/organizations/${organization.slug}/projects/new/`}
+                icon={<IconAdd size="xs" isCircled />}
+                data-test-id="create-project"
+              >
+                {t('Create Project')}
+              </Button>
+            </ProjectsHeader>
+            <ProjectsTabs underlined>
+              <li className="active">
+                <Link to={`/organizations/${organization.slug}/projects/`}>
+                  {t('Projects Overview')}
+                </Link>
+              </li>
+              <li>
+                <Link to={`/organizations/${organization.slug}/teamInsights/`}>
+                  {t('Team Insights')}
+                </Link>
+              </li>
+            </ProjectsTabs>
+          </Fragment>
         )}
 
         {filteredTeams.map((team, index) => {
@@ -149,6 +164,10 @@ const ProjectsHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+`;
+
+const ProjectsTabs = styled(NavTabs)`
+  padding: ${space(3)} ${space(4)} 0 ${space(4)};
 `;
 
 const OrganizationDashboardWrapper = styled('div')`
