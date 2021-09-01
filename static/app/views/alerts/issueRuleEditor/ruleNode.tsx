@@ -354,9 +354,8 @@ class RuleNode extends React.Component<Props> {
 
   render() {
     const {data, disabled, index, node, organization} = this.props;
-    const ticketRule = node?.hasOwnProperty('actionType') && node.actionType === 'ticket';
-    const sentryAppRule =
-      node?.hasOwnProperty('actionType') && node.actionType === 'sentryapp';
+    const ticketRule = node?.actionType === 'ticket';
+    const sentryAppRule = node?.actionType === 'sentryapp';
     const isNew = node?.id === EVENT_FREQUENCY_PERCENT_CONDITION;
     return (
       <RuleRowContainer>
