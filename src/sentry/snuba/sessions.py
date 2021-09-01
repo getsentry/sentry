@@ -269,7 +269,7 @@ def get_project_releases_count(
     query = Query(
         dataset="sessions",
         match=Entity("sessions"),
-        select=[Function("uniq", [Column("release"), Column("project_id")], alias="count")],
+        select=[Function("uniqExact", [Column("release"), Column("project_id")], alias="count")],
         where=where,
         having=having,
     )
