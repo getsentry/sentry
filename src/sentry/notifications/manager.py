@@ -109,9 +109,11 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
           * Updating a user's per-project preferences
           * Updating a user's per-organization preferences
         """
+        target_id = get_target_id(user, team)
         analytics.record(
             "notifications.settings_updated",
             target_type="user" if user else "team",
+            actor_id=target_id,
         )
 
         # A missing DB row is equivalent to DEFAULT.
@@ -129,8 +131,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             raise Exception(f"value '{value}' is not valid for type '{type}'")
 
         scope_type, scope_identifier = get_scope(user, team, project, organization)
-        target_id = get_target_id(user, team)
-
         self._update_settings(provider, type, value, scope_type, scope_identifier, target_id)
 
     def remove_settings(
@@ -354,4 +354,5 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         analytics.record(
             "notifications.settings_updated",
             target_type="user" if user else "team",
+            actor_id=target_id,
         )
