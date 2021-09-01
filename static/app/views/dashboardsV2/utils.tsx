@@ -50,7 +50,7 @@ function coerceStringToArray(value?: string | string[] | null) {
   return typeof value === 'string' ? [value] : value;
 }
 
-export function constructWidgetFromQuery(query: Query): Widget | undefined {
+export function constructWidgetFromQuery(query?: Query): Widget | undefined {
   if (query) {
     const queryNames = coerceStringToArray(query.queryNames);
     const queryConditions = coerceStringToArray(query.queryConditions);

@@ -112,7 +112,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
   async componentDidMount() {
     const {fromDiscover} = this.props;
-    if (fromDiscover) await this.fetchDashboards();
+    if (fromDiscover) this.fetchDashboards();
   }
 
   handleSubmit = async (event: React.FormEvent) => {
