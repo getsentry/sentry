@@ -58,14 +58,3 @@ class MockIndexer(StringIndexer):
 
     def reverse_resolve(self, project: Project, use_case: UseCase, id: int) -> Optional[str]:
         return _REVERSE.get(id)
-
-    def list_metrics(self, project: Project) -> List[str]:
-        return _METRICS
-
-    def list_tag_keys(self, project: Project, metric: Optional[str] = None) -> List[str]:
-        return sorted(_TAGS.keys())
-
-    def list_tag_values(
-        self, project: Project, tag_key: str, metric: Optional[str] = None
-    ) -> List[str]:
-        return _TAGS.get(tag_key, [])
