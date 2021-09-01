@@ -314,7 +314,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
               limit={PROJECTS_PER_PAGE}
               slugs={specificProjectSlugs}
             >
-              {({projects, hasMore, onSearch, fetching}) => {
+              {({projects, hasMore, handleSearch, fetching}) => {
                 const paginatedProjectSelectorCallbacks = {
                   onScroll: ({clientHeight, scrollHeight, scrollTop}) => {
                     // check if no new projects are being fetched and the user has
@@ -324,11 +324,11 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                       scrollTop + clientHeight >= scrollHeight - clientHeight &&
                       hasMore
                     ) {
-                      this.scrollFetchDispatcher(onSearch, {append: true});
+                      this.scrollFetchDispatcher(handleSearch, {append: true});
                     }
                   },
                   onFilterChange: event => {
-                    this.searchDispatcher(onSearch, event.target.value, {
+                    this.searchDispatcher(handleSearch, event.target.value, {
                       append: false,
                     });
                   },

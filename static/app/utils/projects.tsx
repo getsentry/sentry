@@ -67,7 +67,7 @@ export type RenderProps = {
    * Calls API and searches for project, accepts a callback function with signature:
    * fn(searchTerm, {append: bool})
    */
-  onSearch: (searchTerm: string, {append: boolean}) => void;
+  handleSearch: (searchTerm: string, {append: boolean}) => void;
 } & Pick<
   State,
   'isIncomplete' | 'fetching' | 'hasMore' | 'initiallyLoaded' | 'fetchError'
@@ -366,7 +366,7 @@ class Projects extends React.Component<Props, State> {
       // Calls API and searches for project, accepts a callback function with signature:
       //
       // fn(searchTerm, {append: bool})
-      onSearch: this.handleSearch,
+      handleSearch: this.handleSearch,
 
       // Reflects whether or not the initial fetch for the requested projects
       // was fulfilled
