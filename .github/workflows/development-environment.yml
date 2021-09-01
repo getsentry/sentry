@@ -56,19 +56,9 @@ jobs:
           fi
           HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade || brew bundle -q
 
-      # The next few steps are to set up the cache quickly
-      - name: Set variables
-        id: info
-        run: |
-          echo "::set-output name=python-version::$(cat .python-version)"
-          echo "::set-output name=pip-cache-dir::$(pip3 cache dir)"
-          echo "::set-output name=pip-version::$(pip -V | awk -F ' ' '{print $2}')"
-
       - name: Setup Python
         uses: ./.github/actions/setup-python
         id: python-setup
-        with:
-          python-version: ${{ steps. }}
 
       - name: Cache (pyenv)
         uses: actions/cache@v2
