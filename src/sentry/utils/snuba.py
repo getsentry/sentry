@@ -839,7 +839,13 @@ def _snuba_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult
                 # We want debug in the body, but not in the logger, so dump the json twice
                 logger.info(f"{referrer}.body: {json.dumps(query_params)}")
                 query_params["debug"] = True
-            body = json.dumps(query_params)
+
+            with thread_hub.start_span(op="snuba", description=f"json encode query {referrer}"):
+                scope = thread_hub.scope
+                if scope.transaction:
+                    query_params["parent_api"] = scope.transaction.name
+                body = json.dumps(query_params)
+
             with thread_hub.start_span(op="snuba", description=f"query {referrer}") as span:
                 span.set_tag("referrer", referrer)
                 for param_key, param_data in query_params.items():
@@ -889,7 +895,14 @@ def _raw_snql_query(
             logger.info(f"{referrer}.body: {query}")
             query = query.set_debug(True)
 
-        body = query.snuba()
+        with thread_hub.start_span(
+            op="snuba_snql_validate", description=f"validate query {referrer}"
+        ):
+            scope = thread_hub.scope
+            if scope.transaction:
+                query.set_parent_api(scope.transaction.name)
+            body = query.snuba()
+
         with thread_hub.start_span(op="snuba_snql", description=f"query {referrer}") as span:
             span.set_tag("referrer", referrer)
             span.set_data("snql", str(query))
