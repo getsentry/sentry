@@ -28,7 +28,7 @@ import {MutableSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
-import {DisplayModes} from '../transactionSummary/charts';
+import {DisplayModes} from '../transactionSummary/transactionOverview/charts';
 import {
   TransactionFilterOptions,
   transactionSummaryRouteWithQuery,

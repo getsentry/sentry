@@ -9,6 +9,7 @@ import {Client} from 'app/api';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import {ChartContainer} from 'app/components/charts/styles';
 import Count from 'app/components/count';
+import Duration from 'app/components/duration';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import NotAvailable from 'app/components/notAvailable';
 import {Panel, PanelTable} from 'app/components/panels';
@@ -33,7 +34,12 @@ import {
 import {defined} from 'app/utils';
 import {formatPercentage} from 'app/utils/formatters';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
-import {getCount, getCrashFreeRate, getSessionStatusRate} from 'app/utils/sessions';
+import {
+  getCount,
+  getCrashFreeRate,
+  getSeriesAverage,
+  getSessionStatusRate,
+} from 'app/utils/sessions';
 import {Color} from 'app/utils/theme';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {
@@ -42,6 +48,7 @@ import {
   getReleaseHandledIssuesUrl,
   getReleaseParams,
   getReleaseUnhandledIssuesUrl,
+  roundDuration,
 } from 'app/views/releases/utils';
 
 import {releaseComparisonChartLabels} from '../../utils';
@@ -386,6 +393,21 @@ function ReleaseComparisonChart({
   const releaseUsersCount = getCount(releaseSessions?.groups, SessionField.USERS);
   const allUsersCount = getCount(allSessions?.groups, SessionField.USERS);
 
+  const sessionDurationTotal = roundDuration(
+    (getSeriesAverage(
+      releaseSessions?.groups,
+      SessionField.DURATION,
+      SessionStatus.HEALTHY
+    ) ?? 0) / 1000
+  );
+  const allSessionDurationTotal = roundDuration(
+    (getSeriesAverage(
+      allSessions?.groups,
+      SessionField.DURATION,
+      SessionStatus.HEALTHY
+    ) ?? 0) / 1000
+  );
+
   const diffFailure =
     eventsTotals?.releaseFailureRate && eventsTotals?.allFailureRate
       ? eventsTotals.releaseFailureRate - eventsTotals.allFailureRate
@@ -694,6 +716,20 @@ function ReleaseComparisonChart({
         ) : null,
         allReleases: defined(allSessionsCount) ? (
           <Count value={allSessionsCount} />
+        ) : null,
+        diff: null,
+        diffDirection: null,
+        diffColor: null,
+      },
+      {
+        type: ReleaseComparisonChartType.SESSION_DURATION,
+        role: 'default',
+        drilldown: null,
+        thisRelease: defined(sessionDurationTotal) ? (
+          <Duration seconds={sessionDurationTotal} abbreviation />
+        ) : null,
+        allReleases: defined(allSessionDurationTotal) ? (
+          <Duration seconds={allSessionDurationTotal} abbreviation />
         ) : null,
         diff: null,
         diffDirection: null,

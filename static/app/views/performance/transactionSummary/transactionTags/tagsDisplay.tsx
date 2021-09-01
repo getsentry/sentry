@@ -12,7 +12,7 @@ import TagKeyHistogramQuery from 'app/utils/performance/segmentExplorer/tagKeyHi
 import {decodeScalar} from 'app/utils/queryString';
 
 import {SpanOperationBreakdownFilter} from '../filter';
-import {getTransactionField} from '../tagExplorer';
+import {getTransactionField} from '../transactionOverview/tagExplorer';
 
 import TagsHeatMap from './tagsHeatMap';
 import {TagValueTable} from './tagValueTable';
@@ -28,7 +28,7 @@ type Props = {
 };
 
 const HISTOGRAM_TAG_KEY_LIMIT = 8;
-const HISTOGRAM_BUCKET_LIMIT = 20;
+const HISTOGRAM_BUCKET_LIMIT = 40;
 const TAG_PAGE_TABLE_CURSOR = 'tableCursor';
 
 export type TagsTableColumnKeys =

@@ -10,6 +10,7 @@ import * as queryString from 'query-string';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import SelectControl from 'app/components/forms/selectControl';
+import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -32,7 +33,7 @@ import {
   isDocumentIntegration,
   isPlugin,
   isSentryApp,
-  trackIntegrationEvent,
+  trackIntegrationAnalytics,
 } from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -147,7 +148,7 @@ export class IntegrationListDirectory extends AsyncComponent<
         integrationsInstalled.add(plugin.slug);
       }
     });
-    trackIntegrationEvent(
+    trackIntegrationAnalytics(
       'integrations.index_viewed',
       {
         integrations_installed: integrationsInstalled.size,
@@ -268,7 +269,7 @@ export class IntegrationListDirectory extends AsyncComponent<
   }
 
   debouncedTrackIntegrationSearch = debounce((search: string, numResults: number) => {
-    trackIntegrationEvent('integrations.directory_item_searched', {
+    trackIntegrationAnalytics('integrations.directory_item_searched', {
       view: 'integrations_directory',
       search_term: search,
       num_results: numResults,
@@ -346,7 +347,7 @@ export class IntegrationListDirectory extends AsyncComponent<
       this.updateDisplayedList();
 
       if (category) {
-        trackIntegrationEvent('integrations.directory_category_selected', {
+        trackIntegrationAnalytics('integrations.directory_category_selected', {
           view: 'integrations_directory',
           category,
           organization: this.props.organization,
@@ -380,7 +381,6 @@ export class IntegrationListDirectory extends AsyncComponent<
 
   renderPlugin = (plugin: PluginWithProjectList) => {
     const {organization} = this.props;
-
     const isLegacy = plugin.isHidden;
     const displayName = `${plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
     // hide legacy integrations if we don't have any projects with them
@@ -399,6 +399,7 @@ export class IntegrationListDirectory extends AsyncComponent<
         publishStatus="published"
         configurations={plugin.projectList.length}
         categories={getCategoriesForIntegration(plugin)}
+        plugin={plugin}
       />
     );
   };
@@ -508,7 +509,7 @@ export class IntegrationListDirectory extends AsyncComponent<
                 <EmptyResultsBody>
                   {tct('[link:Build it on the Sentry Integration Platform.]', {
                     link: (
-                      <a href="https://docs.sentry.io/product/integrations/integration-platform/" />
+                      <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/" />
                     ),
                   })}
                 </EmptyResultsBody>

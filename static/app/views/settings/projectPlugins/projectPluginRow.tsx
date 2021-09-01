@@ -11,7 +11,7 @@ import {t} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import {Organization, Plugin, Project} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import recreateRoute from 'app/utils/recreateRoute';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -31,7 +31,7 @@ class ProjectPluginRow extends PureComponent<Props> {
     const {onChange, id, enabled} = this.props;
     onChange(id, !enabled);
     const eventKey = !enabled ? 'integrations.enabled' : 'integrations.disabled';
-    trackIntegrationEvent(eventKey, {
+    trackIntegrationAnalytics(eventKey, {
       integration: id,
       integration_type: 'plugin',
       view: 'legacy_integrations',

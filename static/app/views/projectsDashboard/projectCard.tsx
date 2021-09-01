@@ -12,8 +12,8 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import ScoreCard, {
   HeaderTitle,
   Score,
+  ScorePanel,
   ScoreWrapper,
-  StyledPanel,
   Trend,
 } from 'app/components/scoreCard';
 import {releaseHealth} from 'app/data/platformCategories';
@@ -28,7 +28,7 @@ import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import MissingReleasesButtons, {
-  StyledButtonBar,
+  MissingReleaseButtonBar,
 } from 'app/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 import {
   CRASH_FREE_DECIMAL_THRESHOLD,
@@ -330,7 +330,7 @@ const FooterWrapper = styled('div')`
     font-size: ${p => p.theme.fontSizeMedium};
     padding: 0;
   }
-  ${StyledButtonBar} {
+  ${MissingReleaseButtonBar} {
     a {
       background-color: ${p => p.theme.background};
       border: 1px solid ${p => p.theme.border};
@@ -342,7 +342,7 @@ const FooterWrapper = styled('div')`
 
 const ScoreCardWrapper = styled('div')`
   margin: ${space(2)} 0 0 ${space(2)};
-  ${StyledPanel} {
+  ${ScorePanel} {
     min-height: auto;
   }
   ${HeaderTitle} {

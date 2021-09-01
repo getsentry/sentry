@@ -494,22 +494,20 @@ def query_facet_performance_key_histogram(
 
     tag_values = [x["tags_value"] for x in top_tags]
 
-    num_buckets = num_buckets_per_key * limit
-
     results = discover.histogram_query(
         fields=[
             aggregate_column,
         ],
         user_query=filter_query,
         params=params,
-        num_buckets=num_buckets,
+        num_buckets=num_buckets_per_key,
         precision=precision,
         group_by=["tags_value", "tags_key"],
-        limit_by=[num_buckets_per_key, "tags_value"],
         extra_conditions=[
             ["tags_key", "IN", [tag_key]],
             ["tags_value", "IN", tag_values],
         ],
+        histogram_rows=limit,
         referrer="api.organization-events-facets-performance-histogram",
         normalize_results=False,
     )

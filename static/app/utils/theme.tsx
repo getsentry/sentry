@@ -530,6 +530,12 @@ const commonTheme = {
     hovercard: 10002,
     tooltip: 10003,
 
+    // On mobile views org stats dropdowns overlap
+    orgStats: {
+      dataCategory: 1,
+      timeRange: 2,
+    },
+
     // On mobile views issue list dropdowns overlap
     issuesList: {
       stickyHeader: 1,

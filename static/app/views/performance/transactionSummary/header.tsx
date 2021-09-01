@@ -25,17 +25,31 @@ import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
+import Tab from './tabs';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
 import TransactionThresholdButton from './transactionThresholdButton';
 import {TransactionThresholdMetric} from './transactionThresholdModal';
 import {transactionSummaryRouteWithQuery} from './utils';
 
-export enum Tab {
-  TransactionSummary,
-  RealUserMonitoring,
-  Tags,
-  Events,
-}
+type AnalyticInfo = {
+  eventKey: string;
+  eventName: string;
+};
+
+const TAB_ANALYTICS: Partial<Record<Tab, AnalyticInfo>> = {
+  [Tab.WebVitals]: {
+    eventKey: 'performance_views.vitals.vitals_tab_clicked',
+    eventName: 'Performance Views: Vitals tab clicked',
+  },
+  [Tab.Tags]: {
+    eventKey: 'performance_views.tags.tags_tab_clicked',
+    eventName: 'Performance Views: Tags tab clicked',
+  },
+  [Tab.Events]: {
+    eventKey: 'performance_views.events.events_tab_clicked',
+    eventName: 'Performance Views: Events tab clicked',
+  },
+};
 
 type Props = {
   eventView: EventView;
@@ -64,30 +78,15 @@ class TransactionHeader extends React.Component<Props> {
     });
   }
 
-  trackVitalsTabClick = () => {
-    const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.vitals.vitals_tab_clicked',
-      eventName: 'Performance Views: Vitals tab clicked',
-      organization_id: organization.id,
-    });
-  };
+  trackTabClick = (tab: Tab) => () => {
+    const analyticKeys = TAB_ANALYTICS[tab];
+    if (!analyticKeys) {
+      return;
+    }
 
-  trackTagsTabClick = () => {
-    const {organization} = this.props;
     trackAnalyticsEvent({
-      eventKey: 'performance_views.tags.tags_tab_clicked',
-      eventName: 'Performance Views: Tags tab clicked',
-      organization_id: organization.id,
-    });
-  };
-
-  trackEventsTabClick = () => {
-    const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.events.events_tab_clicked',
-      eventName: 'Performance Views: Events tab clicked',
-      organization_id: organization.id,
+      ...analyticKeys,
+      organization_id: this.props.organization.id,
     });
   };
 
@@ -184,8 +183,8 @@ class TransactionHeader extends React.Component<Props> {
       <ListLink
         data-test-id="web-vitals-tab"
         to={vitalsTarget}
-        isActive={() => currentTab === Tab.RealUserMonitoring}
-        onClick={this.trackVitalsTabClick}
+        isActive={() => currentTab === Tab.WebVitals}
+        onClick={this.trackTabClick(Tab.WebVitals)}
       >
         {t('Web Vitals')}
       </ListLink>
@@ -257,7 +256,7 @@ class TransactionHeader extends React.Component<Props> {
             organization={organization}
             location={location}
             transactionName={transactionName}
-            realUserMonitoring={currentTab === Tab.RealUserMonitoring}
+            tab={currentTab}
           />
           <Layout.Title>{transactionName}</Layout.Title>
         </Layout.HeaderContent>
@@ -283,7 +282,7 @@ class TransactionHeader extends React.Component<Props> {
               <ListLink
                 to={tagsTarget}
                 isActive={() => currentTab === Tab.Tags}
-                onClick={this.trackTagsTabClick}
+                onClick={this.trackTabClick(Tab.Tags)}
               >
                 {t('Tags')}
                 <FeatureBadge type="new" noTooltip />
@@ -293,10 +292,9 @@ class TransactionHeader extends React.Component<Props> {
               <ListLink
                 to={eventsTarget}
                 isActive={() => currentTab === Tab.Events}
-                onClick={this.trackEventsTabClick}
+                onClick={this.trackTabClick(Tab.Events)}
               >
                 {t('All Events')}
-                <FeatureBadge type="new" noTooltip />
               </ListLink>
             </Feature>
           </StyledNavTabs>

@@ -2,7 +2,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import EventView from 'app/utils/discover/eventView';
-import TransactionHeader, {Tab} from 'app/views/performance/transactionSummary/header';
+import TransactionHeader from 'app/views/performance/transactionSummary/header';
+import Tab from 'app/views/performance/transactionSummary/tabs';
 
 function initializeData(opts?: {platform?: string}) {
   // @ts-expect-error
