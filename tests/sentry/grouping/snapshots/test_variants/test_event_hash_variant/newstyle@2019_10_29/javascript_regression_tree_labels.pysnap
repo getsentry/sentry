@@ -1,5 +1,5 @@
 ---
-created: '2021-08-27T14:37:14.312382Z'
+created: '2021-09-01T09:11:07.313744Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,41 +14,51 @@ app:
               "app/utils/handleXhrErrorResponse"
             filename (module takes precedence)
               "handlexhrerrorresponse.tsx"
+            context-line*
+              "Sentry.withScope(scope => {"
           frame (non app frame)
             module*
               "@sentry/minimal/esm/index"
             filename (module takes precedence)
               "index.js"
-            function*
+            function (ignored because sourcemap used and context line available)
               "Sentry"
+            context-line*
+              "callOnHub('withScope', callback);"
           frame (non app frame)
             module*
               "@sentry/minimal/esm/index"
             filename (module takes precedence)
               "index.js"
-            function*
+            function (ignored because sourcemap used and context line available)
               "callOnHub"
+            context-line*
+              "return hub[method].apply(hub, __spread(args));"
           frame (non app frame)
             module*
               "@sentry/hub/esm/hub"
             filename (module takes precedence)
               "hub.js"
-            function*
+            function (ignored because sourcemap used and context line available)
               "apply"
+            context-line*
+              "callback(scope);"
           frame (non app frame)
             module*
               "app/utils/handleXhrErrorResponse"
             filename (module takes precedence)
               "handlexhrerrorresponse.tsx"
-            function*
+            function (ignored because sourcemap used and context line available)
               "callback"
+            context-line*
+              "Sentry.captureException(new Error(message));"
         type*
           "Error"
         value*
           "Unable to save a recent search"
 --------------------------------------------------------------------------
 system:
-  hash: "2a8970581cc3478959e826ee278af1d5"
+  hash: "8fb2eda9663c3c026c23475d6da30363"
   component:
     system*
       exception*
@@ -58,34 +68,44 @@ system:
               "app/utils/handleXhrErrorResponse"
             filename (module takes precedence)
               "handlexhrerrorresponse.tsx"
+            context-line*
+              "Sentry.withScope(scope => {"
           frame*
             module*
               "@sentry/minimal/esm/index"
             filename (module takes precedence)
               "index.js"
-            function*
+            function (ignored because sourcemap used and context line available)
               "Sentry"
+            context-line*
+              "callOnHub('withScope', callback);"
           frame*
             module*
               "@sentry/minimal/esm/index"
             filename (module takes precedence)
               "index.js"
-            function*
+            function (ignored because sourcemap used and context line available)
               "callOnHub"
+            context-line*
+              "return hub[method].apply(hub, __spread(args));"
           frame*
             module*
               "@sentry/hub/esm/hub"
             filename (module takes precedence)
               "hub.js"
-            function*
+            function (ignored because sourcemap used and context line available)
               "apply"
+            context-line*
+              "callback(scope);"
           frame*
             module*
               "app/utils/handleXhrErrorResponse"
             filename (module takes precedence)
               "handlexhrerrorresponse.tsx"
-            function*
+            function (ignored because sourcemap used and context line available)
               "callback"
+            context-line*
+              "Sentry.captureException(new Error(message));"
         type*
           "Error"
         value (ignored because stacktrace takes precedence)

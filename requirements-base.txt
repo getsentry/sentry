@@ -8,7 +8,7 @@ confluent-kafka==1.6.0; python_version == '3.9'
 croniter==0.3.37
 dataclasses==0.8; python_version <= '3.6'
 datadog==0.29.3
-django-crispy-forms==1.7.2
+django-crispy-forms==1.8.1
 django-picklefield==1.0.0
 Django==2.1.15
 djangorestframework==3.11.2
@@ -20,6 +20,9 @@ google-cloud-core==1.5.0
 googleapis-common-protos==1.52.0
 google-cloud-pubsub==2.2.0
 google-cloud-storage==1.35.0
+# Only necessary to prevent installing the latest version
+# https://github.com/googleapis/python-crc32c/issues/83
+google-crc32c==1.1.2; python_version == '3.8'
 jsonschema==3.2.0
 lxml==4.6.3
 maxminddb==2.0.3
