@@ -24,16 +24,8 @@ type MentionableUser = {
     id: string;
     name: string;
   };
+  disabled?: boolean;
 };
-
-type Unmentionable = {
-  disabled: boolean;
-  label: React.ReactElement;
-};
-
-type UnmentionableUser = MentionableUser & Unmentionable;
-
-type AllMentionable = MentionableUser & Partial<Unmentionable>;
 
 type Props = {
   api: Client;
@@ -52,7 +44,7 @@ type State = {
   loading: boolean;
   memberListLoading: boolean;
   inputValue: string;
-  options: AllMentionable[] | null;
+  options: MentionableUser[] | null;
 };
 
 type FilterOption<T> = {
@@ -149,7 +141,7 @@ class SelectMembers extends React.Component<Props, State> {
       );
   }, 250);
 
-  handleLoadOptions = (): Promise<AllMentionable[]> => {
+  handleLoadOptions = (): Promise<MentionableUser[]> => {
     const usersInProject = this.getMentionableUsers();
     const usersInProjectById = usersInProject.map(({actor}) => actor.id);
 
@@ -171,9 +163,9 @@ class SelectMembers extends React.Component<Props, State> {
             ? (members as Member[])
                 .filter(({user}) => user && usersInProjectById.indexOf(user.id) === -1)
                 .map(this.createUnmentionableUser)
-            : []) as UnmentionableUser[]
+            : []) as MentionableUser[]
       )
-      .then((members: UnmentionableUser[]) => {
+      .then((members: MentionableUser[]) => {
         const options = [...usersInProject, ...members];
         this.setState({options});
         return options;
@@ -192,7 +184,7 @@ class SelectMembers extends React.Component<Props, State> {
 
     return (
       <StyledSelectControl
-        filterOption={(option: FilterOption<AllMentionable>, filterText: string) =>
+        filterOption={(option: FilterOption<MentionableUser>, filterText: string) =>
           option?.data?.searchKey?.indexOf(filterText) > -1
         }
         loadOptions={this.handleLoadOptions}
