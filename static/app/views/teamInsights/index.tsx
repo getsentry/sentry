@@ -1,24 +1,28 @@
 import {Fragment, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import {LocationDescriptorObject} from 'history';
+import omit from 'lodash/omit';
+import pick from 'lodash/pick';
 import moment from 'moment';
 
 import {Client} from 'app/api';
 import {DateTimeObject} from 'app/components/charts/utils';
 import * as Layout from 'app/components/layouts/thirds';
 import Link from 'app/components/links/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {ChangeData} from 'app/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, SavedQueryVersions, TeamWithProjects} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
+import {DateString, Organization, RelativePeriod, TeamWithProjects} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeamsForUser from 'app/utils/withTeamsForUser';
-import Table from 'app/views/performance/table';
 
+import TeamKeyTransactions from './keyTransactions';
 import TeamDropdown from './teamDropdown';
 
 type Props = {
@@ -29,13 +33,75 @@ type Props = {
   error: Error | null;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-function TeamInsightsContainer({organization, teams, location}: Props) {
+const PAGE_QUERY_PARAMS = [
+  'pageStatsPeriod',
+  'pageStart',
+  'pageEnd',
+  'pageUtc',
+  'dataCategory',
+  'transform',
+  'sort',
+  'query',
+  'cursor',
+];
+
+function TeamInsightsContainer({
+  organization,
+  teams,
+  loadingTeams,
+  location,
+  router,
+}: Props) {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const currentTeamId = selectedTeam ?? teams[0]?.id;
   const currentTeam = teams.find(team => team.id === currentTeamId);
   const projects = currentTeam?.projects ?? [];
 
-  function handleUpdateDatetime() {}
+  function handleUpdateDatetime(datetime: ChangeData): LocationDescriptorObject {
+    const {start, end, relative, utc} = datetime;
+
+    if (start && end) {
+      const parser = utc ? moment.utc : moment;
+
+      return setStateOnUrl({
+        pageStatsPeriod: undefined,
+        pageStart: parser(start).format(),
+        pageEnd: parser(end).format(),
+        pageUtc: utc ?? undefined,
+      });
+    }
+
+    return setStateOnUrl({
+      pageStatsPeriod: (relative as RelativePeriod) || undefined,
+      pageStart: undefined,
+      pageEnd: undefined,
+      pageUtc: undefined,
+    });
+  }
+
+  function setStateOnUrl(nextState: {
+    pageStatsPeriod?: RelativePeriod;
+    pageStart?: DateString;
+    pageEnd?: DateString;
+    pageUtc?: boolean | null;
+    sort?: string;
+    query?: string;
+    cursor?: string;
+  }): LocationDescriptorObject {
+    const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
+
+    const nextLocation = {
+      ...location,
+      query: {
+        ...location?.query,
+        ...nextQueryParams,
+      },
+    };
+
+    router.push(nextLocation);
+
+    return nextLocation;
+  }
 
   function dataDatetime(): DateTimeObject {
     const query = location?.query ?? {};
@@ -79,39 +145,14 @@ function TeamInsightsContainer({organization, teams, location}: Props) {
   }
   const {period, start, end, utc} = dataDatetime();
 
-  const eventView = EventView.fromSavedQuery({
-    id: undefined,
-    name: 'Performance',
-    query: 'transaction.duration:<15m team_key_transaction:true',
-    projects: projects.map(project => Number(project.id)),
-    version: 2 as SavedQueryVersions,
-    orderby: '-tpm',
-    // statsPeriod: period,
-    start: start?.toString(),
-    end: start?.toString(),
-    fields: [
-      'team_key_transaction',
-      'transaction',
-      'project',
-      'tpm()',
-      'p50()',
-      'p95()',
-      'failure_rate()',
-      'apdex()',
-      'count_unique(user)',
-      'count_miserable(user)',
-      'user_misery()',
-    ],
-  });
-
   return (
     <Fragment>
       <BorderlessHeader>
-        <Layout.HeaderContent>
+        <StyledHeaderContent>
           <StyledLayoutTitle>{t('Team Insights')}</StyledLayoutTitle>
-        </Layout.HeaderContent>
+        </StyledHeaderContent>
       </BorderlessHeader>
-      <TabLayoutHeader>
+      <Layout.Header>
         <Layout.HeaderNavTabs underlined>
           <li>
             <Link to={`/organizations/${organization.slug}/projects/`}>
@@ -124,34 +165,42 @@ function TeamInsightsContainer({organization, teams, location}: Props) {
             </Link>
           </li>
         </Layout.HeaderNavTabs>
-      </TabLayoutHeader>
+      </Layout.Header>
+
       <Layout.Body>
-        <Layout.Main fullWidth>
-          <ControlsWrapper>
-            <TeamDropdown
-              teams={teams}
-              selectedTeam={currentTeamId}
-              handleChangeFilter={selectedTeams => setSelectedTeam([...selectedTeams][0])}
-            />
-            <PageTimeRangeSelector
+        {loadingTeams && <LoadingIndicator />}
+        {!loadingTeams && (
+          <LayoutMain fullWidth>
+            <ControlsWrapper>
+              <TeamDropdown
+                teams={teams}
+                selectedTeam={currentTeamId}
+                handleChangeFilter={selectedTeams =>
+                  setSelectedTeam([...selectedTeams][0])
+                }
+              />
+              <PageTimeRangeSelector
+                organization={organization}
+                relative={period ?? ''}
+                start={start ?? null}
+                end={end ?? null}
+                utc={utc ?? null}
+                onUpdate={handleUpdateDatetime}
+                relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
+              />
+            </ControlsWrapper>
+
+            <Layout.Title>{t('Performance')}</Layout.Title>
+            <TeamKeyTransactions
               organization={organization}
-              relative={period ?? ''}
-              start={start ?? null}
-              end={end ?? null}
-              utc={utc ?? null}
-              onUpdate={handleUpdateDatetime}
-              relativeOptions={DEFAULT_RELATIVE_PERIODS}
+              projects={projects}
+              period={period}
+              start={start?.toString()}
+              end={end?.toString()}
+              location={location}
             />
-          </ControlsWrapper>
-          <Table
-            eventView={eventView}
-            projects={projects}
-            organization={organization}
-            location={location}
-            setError={() => {}}
-            summaryConditions={eventView.getQueryWithAdditionalConditions()}
-          />
-        </Layout.Main>
+          </LayoutMain>
+        )}
       </Layout.Body>
     </Fragment>
   );
@@ -163,12 +212,13 @@ const BorderlessHeader = styled(Layout.Header)`
   border-bottom: 0;
 `;
 
-const TabLayoutHeader = styled(Layout.Header)`
-  padding-top: 0;
+const StyledHeaderContent = styled(Layout.HeaderContent)`
+  margin-bottom: 0;
+`;
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    padding-top: 0;
-  }
+const LayoutMain = styled(Layout.Main)`
+  display: grid;
+  gap: ${space(2)};
 `;
 
 const StyledLayoutTitle = styled(Layout.Title)`
@@ -179,5 +229,4 @@ const ControlsWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  margin-bottom: ${space(2)};
 `;
