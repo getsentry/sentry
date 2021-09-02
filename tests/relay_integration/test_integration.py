@@ -191,7 +191,17 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             event = self.post_and_retrieve_event(event_data)
             raw_event = event.get_raw_data()
 
-            assert raw_event["spans"] == event_data["spans"]
+            exclusive_times = [
+                pytest.approx(50),
+                pytest.approx(0),
+                pytest.approx(200),
+                pytest.approx(0),
+                pytest.approx(200),
+            ]
+            assert raw_event["spans"] == [
+                dict(span, exclusive_time=exclusive_time)
+                for span, exclusive_time in zip(event_data["spans"], exclusive_times)
+            ]
             assert raw_event["breakdowns"] == {
                 "span_ops": {
                     "ops.browser": {"value": pytest.approx(200)},
@@ -201,11 +211,3 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                     "total.time": {"value": pytest.approx(1050)},
                 }
             }
-
-            assert [span["exclusive-time"] for span in raw_event["spans"]] == [
-                pytest.approx(50),
-                pytest.approx(0),
-                pytest.approx(200),
-                pytest.approx(0),
-                pytest.approx(200),
-            ]
