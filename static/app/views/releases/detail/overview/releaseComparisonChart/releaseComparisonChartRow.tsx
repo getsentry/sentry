@@ -7,6 +7,7 @@ import NotAvailable from 'app/components/notAvailable';
 import Placeholder from 'app/components/placeholder';
 import Radio from 'app/components/radio';
 import {IconChevron} from 'app/icons';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {ReleaseComparisonChartType} from 'app/types';
@@ -23,6 +24,7 @@ type Props = Omit<ReleaseComparisonRow, 'diffDirection' | 'diffColor'> & {
   chartDiff: ReactNode;
   onExpanderToggle: (type: ReleaseComparisonChartType) => void;
   expanded: boolean;
+  withExpanders: boolean;
 };
 
 function ReleaseComparisonChartRow({
@@ -38,6 +40,7 @@ function ReleaseComparisonChartRow({
   onChartChange,
   onExpanderToggle,
   expanded,
+  withExpanders,
 }: Props) {
   return (
     <ChartTableRow
@@ -84,16 +87,19 @@ function ReleaseComparisonChartRow({
           <NotAvailable />
         )}
       </Cell>
-      <Cell>
-        {role === 'parent' && (
-          <ToggleButton
-            onClick={() => onExpanderToggle(type)}
-            borderless
-            size="zero"
-            icon={<IconChevron direction={expanded ? 'up' : 'down'} />}
-          />
-        )}
-      </Cell>
+      {withExpanders && (
+        <Cell>
+          {role === 'parent' && (
+            <ToggleButton
+              onClick={() => onExpanderToggle(type)}
+              borderless
+              size="zero"
+              icon={<IconChevron direction={expanded ? 'up' : 'down'} />}
+              label={t('Toggle chart group')}
+            />
+          )}
+        </Cell>
+      )}
     </ChartTableRow>
   );
 }

@@ -749,22 +749,20 @@ function ReleaseComparisonChart({
       diffDirection: null,
       diffColor: null,
     });
-    additionalCharts.push(
-      {
-        type: ReleaseComparisonChartType.SESSION_COUNT,
-        role: 'default',
-        drilldown: null,
-        thisRelease: defined(releaseSessionsCount) ? (
-          <Count value={releaseSessionsCount} />
-        ) : null,
-        allReleases: defined(allSessionsCount) ? (
-          <Count value={allSessionsCount} />
-        ) : null,
-        diff: null,
-        diffDirection: null,
-        diffColor: null,
-      },
-      {
+    additionalCharts.push({
+      type: ReleaseComparisonChartType.SESSION_COUNT,
+      role: 'default',
+      drilldown: null,
+      thisRelease: defined(releaseSessionsCount) ? (
+        <Count value={releaseSessionsCount} />
+      ) : null,
+      allReleases: defined(allSessionsCount) ? <Count value={allSessionsCount} /> : null,
+      diff: null,
+      diffDirection: null,
+      diffColor: null,
+    });
+    if (hasUsers || loading) {
+      additionalCharts.push({
         type: ReleaseComparisonChartType.USER_COUNT,
         role: 'default',
         drilldown: null,
@@ -775,8 +773,8 @@ function ReleaseComparisonChart({
         diff: null,
         diffDirection: null,
         diffColor: null,
-      }
-    );
+      });
+    }
   }
 
   if (hasDiscover) {
@@ -832,6 +830,19 @@ function ReleaseComparisonChart({
     }
   }
 
+  function getTableHeaders(withExpanders: boolean) {
+    const headers = [
+      <DescriptionCell key="description">{t('Description')}</DescriptionCell>,
+      <Cell key="releases">{t('All Releases')}</Cell>,
+      <Cell key="release">{t('This Release')}</Cell>,
+      <Cell key="change">{t('Change')}</Cell>,
+    ];
+    if (withExpanders) {
+      headers.push(<Cell key="expanders" />);
+    }
+    return headers;
+  }
+
   function getChartDiff(
     diff: ReleaseComparisonRow['diff'],
     diffColor: ReleaseComparisonRow['diffColor'],
@@ -847,6 +858,12 @@ function ReleaseComparisonChart({
         )}
       </Change>
     ) : null;
+  }
+
+  // if there are no sessions, we do not need to do row toggling because there won't be as many rows
+  if (!hasHealthData) {
+    charts.push(...additionalCharts);
+    additionalCharts.splice(0, additionalCharts.length);
   }
 
   let activeChart = decodeScalar(
@@ -866,6 +883,7 @@ function ReleaseComparisonChart({
   }
 
   const showPlaceholders = loading || eventsLoading;
+  const withExpanders = hasHealthData || additionalCharts.length > 0;
 
   if (errored || !chart) {
     return (
@@ -899,6 +917,7 @@ function ReleaseComparisonChart({
         chartDiff={getChartDiff(diff, diffColor, diffDirection)}
         onExpanderToggle={handleExpanderToggle}
         expanded={expanded.has(rest.type)}
+        withExpanders={withExpanders}
       />
     );
   }
@@ -944,31 +963,28 @@ function ReleaseComparisonChart({
         </ChartContainer>
       </ChartPanel>
       <ChartTable
-        headers={[
-          <DescriptionCell key="description">{t('Description')}</DescriptionCell>,
-          <Cell key="releases">{t('All Releases')}</Cell>,
-          <Cell key="release">{t('This Release')}</Cell>,
-          <Cell key="change">{t('Change')}</Cell>,
-          null,
-        ]}
+        headers={getTableHeaders(withExpanders)}
         data-test-id="release-comparison-table"
+        withExpanders={withExpanders}
       >
         {charts.map(chartRow => renderChartRow(chartRow))}
-        <ShowMoreWrapper onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
-          <ShowMoreTitle>
-            <IconActivity />
-            {isOtherExpanded
-              ? tn('Hide %s Other', 'Hide %s Others', additionalCharts.length)
-              : tn('Show %s Other', 'Show %s Others', additionalCharts.length)}
-          </ShowMoreTitle>
-          <ShowMoreButton>
-            <Button
-              borderless
-              size="zero"
-              icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
-            />
-          </ShowMoreButton>
-        </ShowMoreWrapper>
+        {additionalCharts.length > 0 && (
+          <ShowMoreWrapper onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
+            <ShowMoreTitle>
+              <IconActivity size="xs" />
+              {isOtherExpanded
+                ? tn('Hide %s Other', 'Hide %s Others', additionalCharts.length)
+                : tn('Show %s Other', 'Show %s Others', additionalCharts.length)}
+            </ShowMoreTitle>
+            <ShowMoreButton>
+              <Button
+                borderless
+                size="zero"
+                icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
+              />
+            </ShowMoreButton>
+          </ShowMoreWrapper>
+        )}
         {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
       </ChartTable>
     </Fragment>
@@ -997,10 +1013,11 @@ const Change = styled('div')<{color?: Color}>`
   ${p => p.color && `color: ${p.theme[p.color]}`}
 `;
 
-const ChartTable = styled(PanelTable)`
+const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-  grid-template-columns: minmax(424px, auto) repeat(3, minmax(min-content, 1fr)) 75px;
+  grid-template-columns: minmax(400px, auto) repeat(3, minmax(min-content, 1fr)) ${p =>
+      p.withExpanders ? '75px' : ''};
 
   > * {
     border-bottom: 1px solid ${p => p.theme.border};
@@ -1029,9 +1046,10 @@ const ShowMoreTitle = styled('div')`
   color: ${p => p.theme.gray300};
   display: inline-grid;
   grid-template-columns: auto auto;
-  gap: ${space(1.5)};
+  gap: 10px;
   align-items: center;
   justify-content: flex-start;
+  margin-left: ${space(0.25)};
 `;
 
 const ShowMoreButton = styled('div')`
