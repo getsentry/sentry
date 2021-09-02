@@ -57,9 +57,8 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
   const projects = uniqBy(flatten(teams.map(teamObj => teamObj.projects)), 'id');
   const favorites = projects.filter(project => project.isBookmarked);
 
-  const access = new Set(organization.access);
-  const canCreateProjects = access.has('project:admin');
-  const hasTeamAdminAccess = access.has('team:admin');
+  const canCreateProjects = organization.access.includes('project:admin');
+  const hasTeamAdminAccess = organization.access.includes('team:admin');
 
   const showEmptyMessage = projects.length === 0 && favorites.length === 0;
   const showResources = projects.length === 1 && !projects[0].firstEvent;
@@ -81,7 +80,7 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
       <SentryDocumentTitle title={t('Projects Dashboard')} orgSlug={organization.slug} />
       {projects.length > 0 && (
         <ProjectsHeader>
-          <PageHeading>Projects</PageHeading>
+          <PageHeading>{t('Projects')}</PageHeading>
           <Button
             size="small"
             disabled={!canCreateProjects}
