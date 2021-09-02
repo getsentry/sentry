@@ -99,16 +99,16 @@ class NotificationSettings extends AsyncComponent<Props, State> {
         getData: data => this.getStateToPutForDefault(data, notificationType),
         help: (
           <React.Fragment>
-              <p>
-                {NOTIFICATION_SETTING_FIELDS[notificationType].help}
-                &nbsp;
-                <Link
-                  data-test-id="fine-tuning"
-                  to={`/settings/account/notifications/${notificationType}`}
-                >
-                  Fine tune
-                </Link>
-              </p>
+            <p>
+              {NOTIFICATION_SETTING_FIELDS[notificationType].help}
+              &nbsp;
+              <Link
+                data-test-id="fine-tuning"
+                to={`/settings/account/notifications/${notificationType}`}
+              >
+                Fine tune
+              </Link>
+            </p>
           </React.Fragment>
         ),
       }) as any;
