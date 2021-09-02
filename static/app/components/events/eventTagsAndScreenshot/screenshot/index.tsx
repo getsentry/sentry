@@ -19,24 +19,21 @@ import DataSection from '../dataSection';
 import ImageVisualization from './imageVisualization';
 import Modal, {modalCss} from './modal';
 
+type Screenshot = Omit<EventAttachment, 'event_id'>;
+
 type Props = {
   event: Event;
   organization: Organization;
   projectSlug: Project['slug'];
-  attachments: EventAttachment[];
-  onDelete: (attachmentId: EventAttachment['id']) => void;
+  screenshot: Screenshot;
+  onDelete: (attachmentId: Screenshot['id']) => void;
 };
 
-function Screenshot({event, attachments, organization, projectSlug, onDelete}: Props) {
+function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Props) {
   const orgSlug = organization.slug;
 
-  function hasScreenshot(attachment: EventAttachment) {
-    const {mimetype} = attachment;
-    return mimetype === 'image/jpeg' || mimetype === 'image/png';
-  }
-
   function handleOpenVisualizationModal(
-    eventAttachment: EventAttachment,
+    eventAttachment: Screenshot,
     downloadUrl: string
   ) {
     openModal(
@@ -55,7 +52,7 @@ function Screenshot({event, attachments, organization, projectSlug, onDelete}: P
     );
   }
 
-  function renderContent(screenshotAttachment: EventAttachment) {
+  function renderContent(screenshotAttachment: Screenshot) {
     const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/attachments/${screenshotAttachment.id}/`;
 
     return (
@@ -118,22 +115,20 @@ function Screenshot({event, attachments, organization, projectSlug, onDelete}: P
   }
 
   return (
-    <Role role={organization.attachmentsRole}>
+    <Role organization={organization} role={organization.attachmentsRole}>
       {({hasRole}) => {
-        const screenshotAttachment = attachments.find(hasScreenshot);
-
-        if (!hasRole || !screenshotAttachment) {
+        if (!hasRole) {
           return null;
         }
 
         return (
           <DataSection
-            title={t('Screenshots')}
+            title={t('Screenshot')}
             description={t(
-              'Screenshots help identify what the user saw when the event happened'
+              'Screenshot help identify what the user saw when the event happened'
             )}
           >
-            <StyledPanel>{renderContent(screenshotAttachment)}</StyledPanel>
+            <StyledPanel>{renderContent(screenshot)}</StyledPanel>
           </DataSection>
         );
       }}

@@ -36,6 +36,7 @@ class Role extends React.Component<Props> {
     const user = ConfigStore.get('user');
     const {organization, role} = this.props;
     const {availableRoles} = organization;
+
     const currentRole = organization.role ?? '';
 
     if (!user) {
