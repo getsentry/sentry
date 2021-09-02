@@ -65,7 +65,7 @@ query-valid-python-version() {
             return 1
         fi
     # For everything else, we only allow 3.6
-    elif [ "$minor" -ne 8 ]; then
+    elif [ "$minor" -ne 6 ]; then
         return 1
     fi
     return 0
