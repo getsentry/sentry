@@ -95,8 +95,7 @@ function TransactionOverview(props: Props) {
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
-  // TODO: make not undefined
-  const eventView = generateEventView(location, transactionName)!;
+  const eventView = generateEventView(location, transactionName);
   const totalsView = getTotalsEventView(organization, eventView);
 
   const onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
