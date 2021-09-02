@@ -88,6 +88,7 @@ export default FieldControl;
 // * can NOT have overflow hidden because "control error message" overflows
 const FieldControlErrorWrapper = styled('div')<{inline?: boolean}>`
   ${p => (p.inline ? 'width: 50%; padding-left: 10px;' : '')};
+  position: relative;
 `;
 
 const FieldControlStyled = styled('div')<{alignRight?: boolean}>`

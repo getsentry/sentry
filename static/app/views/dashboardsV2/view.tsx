@@ -1,6 +1,7 @@
-import React from 'react';
-import {RouteComponentProps} from 'react-router';
+import React, {useEffect, useState} from 'react';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
+import {updateDashboardVisit} from 'app/actionCreators/dashboards';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
@@ -14,7 +15,8 @@ import withOrganization from 'app/utils/withOrganization';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
-import {DashboardState} from './types';
+import {DashboardState, Widget} from './types';
+import {constructWidgetFromQuery} from './utils';
 
 type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
   api: Client;
@@ -23,7 +25,24 @@ type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
 };
 
 function ViewEditDashboard(props: Props) {
-  const {organization, params, api, location} = props;
+  const {api, organization, params, location} = props;
+  const dashboardId = params.dashboardId;
+  const orgSlug = organization.slug;
+  const [newWidget, setNewWidget] = useState<Widget | undefined>();
+
+  useEffect(() => {
+    if (dashboardId && dashboardId !== 'default-overview') {
+      updateDashboardVisit(api, orgSlug, dashboardId);
+    }
+
+    const constructedWidget = constructWidgetFromQuery(location.query);
+    setNewWidget(constructedWidget);
+    // Clean up url after constructing widget from query string
+    if (constructedWidget) {
+      browserHistory.replace(location.pathname);
+    }
+  }, [api, orgSlug, dashboardId]);
+
   return (
     <DashboardBasicFeature organization={organization}>
       <OrgDashboards
@@ -38,10 +57,16 @@ function ViewEditDashboard(props: Props) {
           ) : dashboard ? (
             <DashboardDetail
               {...props}
-              initialState={DashboardState.VIEW}
+              initialState={newWidget ? DashboardState.EDIT : DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
-              reloadData={reloadData}
+              reloadData={(...args) => {
+                if (newWidget) {
+                  setNewWidget(undefined);
+                }
+                return reloadData(...args);
+              }}
+              newWidget={newWidget}
             />
           ) : (
             <LoadingIndicator />

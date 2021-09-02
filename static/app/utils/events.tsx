@@ -64,7 +64,7 @@ export function getTreeLabelPartDetails(part: TreeLabelPart) {
     };
   }
 
-  let label = part?.function || part?.package || part?.type;
+  let label = part?.function || part?.package || part?.filebase || part?.type;
   const classbase = part?.classbase;
   if (classbase) {
     if (label) {

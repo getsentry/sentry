@@ -35,7 +35,7 @@ const HookedAppStoreConnectItem = HookOrDefault({
 type Props = {
   api: Client;
   organization: Organization;
-  projectSlug: Project['slug'];
+  projSlug: Project['slug'];
   customRepositories: CustomRepo[];
   router: InjectedRouter;
   location: Location;
@@ -45,7 +45,7 @@ function CustomRepositories({
   api,
   organization,
   customRepositories: repositories,
-  projectSlug,
+  projSlug,
   router,
   location,
 }: Props) {
@@ -55,6 +55,7 @@ function CustomRepositories({
     openDebugFileSourceDialog();
   }, [location.query, appStoreConnectContext]);
 
+  const orgSlug = organization.slug;
   const hasAppStoreConnectFeatureFlag =
     !!organization.features?.includes('app-store-connect');
 
@@ -130,7 +131,7 @@ function CustomRepositories({
     const symbolSources = JSON.stringify(items.map(expandKeys));
 
     const promise: Promise<any> = api.requestPromise(
-      `/projects/${organization.slug}/${projectSlug}/`,
+      `/projects/${orgSlug}/${projSlug}/`,
       {
         method: 'PUT',
         data: {symbolSources},

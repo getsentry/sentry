@@ -14,6 +14,7 @@ from typing import (
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
+from sentry import analytics
 from sentry.db.models.manager import BaseManager
 from sentry.notifications.helpers import (
     get_scope,
@@ -24,6 +25,7 @@ from sentry.notifications.helpers import (
     where_should_user_be_notified,
 )
 from sentry.notifications.types import (
+    VALID_VALUES_FOR_KEY,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
@@ -33,6 +35,8 @@ from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
     from sentry.models import NotificationSetting, Organization, Project, Team, User
+
+REMOVE_SETTING_BATCH_SIZE = 1000
 
 
 class NotificationsManager(BaseManager["NotificationSetting"]):
@@ -108,6 +112,13 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
           * Updating a user's per-project preferences
           * Updating a user's per-organization preferences
         """
+        target_id = get_target_id(user, team)
+        analytics.record(
+            "notifications.settings_updated",
+            target_type="user" if user else "team",
+            actor_id=target_id,
+        )
+
         # A missing DB row is equivalent to DEFAULT.
         if value == NotificationSettingOptionValues.DEFAULT:
             return self.remove_settings(
@@ -123,8 +134,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             raise Exception(f"value '{value}' is not valid for type '{type}'")
 
         scope_type, scope_identifier = get_scope(user, team, project, organization)
-        target_id = get_target_id(user, team)
-
         self._update_settings(provider, type, value, scope_type, scope_identifier, target_id)
 
     def remove_settings(
@@ -329,12 +338,14 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def update_settings_bulk(
         self,
         notification_settings: Sequence["NotificationSetting"],
-        target_id: int,
+        user: Optional["User"] = None,
+        team: Optional["Team"] = None,
     ) -> None:
         """
         Given a list of _valid_ notification settings as tuples of column
         values, save them to the DB. This does not execute as a transaction.
         """
+        target_id = get_target_id(user, team)
         for (provider, type, scope_type, scope_identifier, value) in notification_settings:
             # A missing DB row is equivalent to DEFAULT.
             if value == NotificationSettingOptionValues.DEFAULT:
@@ -342,4 +353,47 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             else:
                 self._update_settings(
                     provider, type, value, scope_type, scope_identifier, target_id
+                )
+        analytics.record(
+            "notifications.settings_updated",
+            target_type="user" if user else "team",
+            actor_id=target_id,
+        )
+
+    def remove_parent_settings_for_organization(
+        self, organization: "Organization", provider: Optional[ExternalProviders] = None
+    ) -> None:
+        """Delete all parent-specific notification settings referencing this organization."""
+        kwargs = {}
+        if provider:
+            kwargs["provider"] = provider.value
+
+        project_ids = [project.id for project in organization.project_set.all()]
+        self.filter(
+            Q(scope_type=NotificationScopeType.PROJECT.value, scope_identifier__in=project_ids)
+            | Q(
+                scope_type=NotificationScopeType.ORGANIZATION.value,
+                scope_identifier=organization.id,
+            ),
+            **kwargs,
+        ).delete()
+
+    def disable_settings_for_users(
+        self, provider: ExternalProviders, users: Sequence["User"]
+    ) -> None:
+        """
+        Given a list of users, overwrite all of their parent-independent
+        notification settings to NEVER.
+        TODO(mgaeta): Django 3 has self.bulk_create() which would allow us to do
+         this in a single query.
+        """
+        for user in users:
+            for type in VALID_VALUES_FOR_KEY.keys():
+                self.update_or_create(
+                    provider=provider.value,
+                    type=type.value,
+                    scope_type=NotificationScopeType.USER.value,
+                    scope_identifier=user.id,
+                    target_id=user.actor_id,
+                    defaults={"value": NotificationSettingOptionValues.NEVER.value},
                 )

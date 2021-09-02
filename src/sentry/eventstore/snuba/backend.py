@@ -216,6 +216,8 @@ class SnubaEventStorage(EventStorage):
                         "group_id": group_id,
                         "event_datetime": event.datetime,
                         "event_timestamp": event.timestamp,
+                        "nodestore_insert": event.data.get("nodestore_insert"),
+                        "received": event.data.get("received"),
                         "len_data": len(result["data"]),
                     },
                 )

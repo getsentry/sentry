@@ -7,7 +7,7 @@ import {Client} from 'app/api';
 import ProjectsStore from 'app/stores/projectsStore';
 import EventView from 'app/utils/discover/eventView';
 import {SpanOperationBreakdownFilter} from 'app/views/performance/transactionSummary/filter';
-import {TagExplorer} from 'app/views/performance/transactionSummary/tagExplorer';
+import {TagExplorer} from 'app/views/performance/transactionSummary/transactionOverview/tagExplorer';
 
 function initialize(projects, query, additionalFeatures = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
