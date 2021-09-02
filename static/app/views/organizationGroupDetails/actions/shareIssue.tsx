@@ -21,7 +21,7 @@ type ContainerProps = {
   onCancel: () => void;
 };
 
-type UrlRef = AutoSelectText | null;
+type UrlRef = React.ElementRef<typeof AutoSelectText> | null;
 
 class ShareUrlContainer extends React.Component<ContainerProps> {
   urlRef?: UrlRef;
@@ -31,19 +31,13 @@ class ShareUrlContainer extends React.Component<ContainerProps> {
     this.urlRef?.selectText();
   };
 
-  handleUrlMount = (ref: UrlRef) => {
-    this.urlRef = ref;
-    // Always select url if it's available
-    this.urlRef?.selectText();
-  };
-
   render() {
     const {shareUrl, onConfirming, onCancel, onConfirm} = this.props;
 
     return (
       <UrlContainer>
         <TextContainer>
-          <StyledAutoSelectText ref={ref => this.handleUrlMount(ref)}>
+          <StyledAutoSelectText ref={ref => (this.urlRef = ref)}>
             {shareUrl}
           </StyledAutoSelectText>
         </TextContainer>
