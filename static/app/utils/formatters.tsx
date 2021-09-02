@@ -120,7 +120,7 @@ export function getDuration(
 }
 
 export function getExactDuration(seconds: number, abbreviation: boolean = false) {
-  const convertDuration = (secs: number, abbr: boolean) => {
+  const convertDuration = (secs: number, abbr: boolean): string => {
     // value in milliseconds
     const msValue = round(secs * 1000);
     const value = round(Math.abs(secs * 1000));

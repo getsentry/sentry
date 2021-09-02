@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from uuid import uuid4
 
 from django.apps import apps
@@ -16,7 +17,25 @@ logger = logging.getLogger(__name__)
 MAX_RETRIES = 5
 
 
-@instrumented_task(name="sentry.tasks.deletion.run_scheduled_deletions", queue="cleanup")
+@instrumented_task(
+    name="sentry.tasks.deletion.reattempt_deletions", queue="cleanup", acks_late=True
+)
+def reattempt_deletions():
+    from sentry.models import ScheduledDeletion
+
+    # If a deletion is in progress and was scheduled to run more than
+    # a day ago we can assume the previous job died/failed.
+    # Turning off the in_progress flag will result in the job being picked
+    # up in the next deletion run allowing us to start over.
+    queryset = ScheduledDeletion.objects.filter(
+        in_progress=True, aborted=False, date_scheduled__lte=timezone.now() - timedelta(days=1)
+    )
+    queryset.update(in_progress=False)
+
+
+@instrumented_task(
+    name="sentry.tasks.deletion.run_scheduled_deletions", queue="cleanup", acks_late=True
+)
 def run_scheduled_deletions():
     from sentry.models import ScheduledDeletion
 
@@ -39,9 +58,10 @@ def run_scheduled_deletions():
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
-def run_deletion(deletion_id):
+def run_deletion(deletion_id, first_pass=True):
     from sentry import deletions
     from sentry.models import ScheduledDeletion
 
@@ -53,12 +73,10 @@ def run_deletion(deletion_id):
     if deletion.aborted:
         raise DeleteAborted
 
-    if not deletion.in_progress:
+    if first_pass:
         actor = deletion.get_actor()
         instance = deletion.get_instance()
-        with transaction.atomic():
-            deletion.update(in_progress=True)
-            pending_delete.send(sender=type(instance), instance=instance, actor=actor)
+        pending_delete.send(sender=type(instance), instance=instance, actor=actor)
 
     task = deletions.get(
         model=deletion.get_model(),
@@ -68,8 +86,11 @@ def run_deletion(deletion_id):
     )
     has_more = task.chunk()
     if has_more:
-        run_deletion.apply_async(kwargs={"deletion_id": deletion_id}, countdown=15)
-    deletion.delete()
+        run_deletion.apply_async(
+            kwargs={"deletion_id": deletion_id, "first_pass": False}, countdown=15
+        )
+    else:
+        deletion.delete()
 
 
 @instrumented_task(
@@ -77,6 +98,7 @@ def run_deletion(deletion_id):
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def revoke_api_tokens(object_id, transaction_id=None, timestamp=None, **kwargs):
@@ -110,6 +132,7 @@ def revoke_api_tokens(object_id, transaction_id=None, timestamp=None, **kwargs):
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def delete_organization(object_id, transaction_id=None, actor_id=None, **kwargs):
@@ -147,9 +170,11 @@ def delete_organization(object_id, transaction_id=None, actor_id=None, **kwargs)
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def delete_team(object_id, transaction_id=None, **kwargs):
+    # TODO this method is deleted and should be removed/nerfed when it is no longer enqueuing jobs.
     from sentry import deletions
     from sentry.incidents.models import AlertRule
     from sentry.models import Rule, Team, TeamStatus
@@ -180,9 +205,12 @@ def delete_team(object_id, transaction_id=None, **kwargs):
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def delete_project(object_id, transaction_id=None, **kwargs):
+    # TODO this method is no longer in use and should be removed when jobs are
+    # no longer being enqueued for it.
     from sentry import deletions
     from sentry.models import Project, ProjectStatus
 
@@ -209,6 +237,7 @@ def delete_project(object_id, transaction_id=None, **kwargs):
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation
@@ -245,6 +274,7 @@ def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwa
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def delete_api_application(object_id, transaction_id=None, **kwargs):
@@ -274,6 +304,7 @@ def delete_api_application(object_id, transaction_id=None, **kwargs):
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def generic_delete(app_label, model_name, object_id, transaction_id=None, actor_id=None, **kwargs):
@@ -322,6 +353,7 @@ def generic_delete(app_label, model_name, object_id, transaction_id=None, actor_
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def delete_repository(object_id, transaction_id=None, actor_id=None, **kwargs):
@@ -363,6 +395,7 @@ def delete_repository(object_id, transaction_id=None, actor_id=None, **kwargs):
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
+    acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
 def delete_organization_integration(object_id, transaction_id=None, actor_id=None, **kwargs):

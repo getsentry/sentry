@@ -20,8 +20,9 @@ import {decodeScalar} from 'app/utils/queryString';
 import {SidebarSpacer} from 'app/views/performance/transactionSummary/utils';
 
 import {SpanOperationBreakdownFilter} from '../filter';
-import TransactionHeader, {Tab} from '../header';
-import {getTransactionField} from '../tagExplorer';
+import TransactionHeader from '../header';
+import Tab from '../tabs';
+import {getTransactionField} from '../transactionOverview/tagExplorer';
 
 import TagsDisplay from './tagsDisplay';
 import {decodeSelectedTagKey} from './utils';

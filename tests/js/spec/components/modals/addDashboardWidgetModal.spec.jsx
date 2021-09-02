@@ -1,13 +1,16 @@
+import {browserHistory} from 'react-router';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {getOptionByLabel, selectByLabel} from 'sentry-test/select-new';
 
 import AddDashboardWidgetModal from 'app/components/modals/addDashboardWidgetModal';
+import {t} from 'app/locale';
 import TagStore from 'app/stores/tagStore';
 
 const stubEl = props => <div>{props.children}</div>;
 
-function mountModal({initialData, onAddWidget, onUpdateWidget, widget}) {
+function mountModal({initialData, onAddWidget, onUpdateWidget, widget, fromDiscover}) {
   return mountWithTheme(
     <AddDashboardWidgetModal
       Header={stubEl}
@@ -18,6 +21,7 @@ function mountModal({initialData, onAddWidget, onUpdateWidget, widget}) {
       onUpdateWidget={onUpdateWidget}
       widget={widget}
       closeModal={() => void 0}
+      fromDiscover={fromDiscover}
     />,
     initialData.routerContext
   );
@@ -34,6 +38,11 @@ async function clickSubmit(wrapper) {
 
 function getDisplayType(wrapper) {
   return wrapper.find('input[name="displayType"]');
+}
+
+function selectDashboard(wrapper, dashboard) {
+  const input = wrapper.find('SelectControl[name="dashboard"]');
+  input.props().onChange(dashboard);
 }
 
 async function setSearchConditions(el, query) {
@@ -86,10 +95,42 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [{id: '1', title: t('Test Dashboard')}],
+    });
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+  });
+
+  it('redirects correctly when creating a new dashboard', async function () {
+    const wrapper = mountModal({initialData, fromDiscover: true});
+    // @ts-expect-error
+    await tick();
+    selectDashboard(wrapper, {label: t('+ Create New Dashboard'), value: 'new'});
+    await clickSubmit(wrapper);
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/dashboards/new/',
+      })
+    );
+    wrapper.unmount();
+  });
+
+  it('redirects correctly when choosing an existing dashboard', async function () {
+    const wrapper = mountModal({initialData, fromDiscover: true});
+    // @ts-expect-error
+    await tick();
+    selectDashboard(wrapper, {label: t('Test Dashboard'), value: '1'});
+    await clickSubmit(wrapper);
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/dashboard/1/',
+      })
+    );
+    wrapper.unmount();
   });
 
   it('can update the title', async function () {
