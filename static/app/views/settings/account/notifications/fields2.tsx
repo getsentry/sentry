@@ -1,3 +1,5 @@
+import * as React from 'react';
+
 import {t} from 'app/locale';
 
 export type NotificationSettingField = {
@@ -8,6 +10,7 @@ export type NotificationSettingField = {
   defaultValue?: string;
   defaultFieldName?: string;
   help?: string;
+  confirm?: {[key: string]: React.ReactNode | string};
 };
 
 export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingField> = {

@@ -31,8 +31,6 @@ export const FieldType = [
 
 export type FieldValue = any;
 
-type ConfirmKeyType = 'true' | 'false';
-
 // TODO(ts): A lot of these attributes are missing correct types. We'll likely
 // need to introduce some generics in here to get rid of some of these anys.
 
@@ -53,7 +51,7 @@ type BaseField = {
   updatesForm?: boolean;
   /** Does editing this field need to clear all other fields? */
   resetsForm?: boolean;
-  confirm?: {[key in ConfirmKeyType]?: string};
+  confirm?: {[key: string]: string};
   autosize?: boolean;
   maxRows?: number;
   extraHelp?: string;
