@@ -76,9 +76,3 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
           make develop init-config
-
-      - name: Test direnv
-        if: ${{ matrix.os == 'macos-11.0' }}
-        run: |
-          brew install direnv
-          direnv allow .
