@@ -17,7 +17,7 @@ const AutoSelectText: React.ForwardRefRenderFunction<AutoSelectHandle, Props> = 
   {children, className, ...props},
   forwardedRef
 ) => {
-  const element = useRef<HTMLElement>();
+  const element = useRef<HTMLSpanElement>(null);
 
   // We need to expose a selectText method to parent components
   // and need an imperitive ref handle.
@@ -32,10 +32,6 @@ const AutoSelectText: React.ForwardRefRenderFunction<AutoSelectHandle, Props> = 
     selectText(element.current);
   }
 
-  function handleMount(el: HTMLElement) {
-    element.current = el;
-  }
-
   // use an inner span here for the selection as otherwise the selectText
   // function will create a range that includes the entire part of the
   // div (including the div itself) which causes newlines to be selected
@@ -46,7 +42,7 @@ const AutoSelectText: React.ForwardRefRenderFunction<AutoSelectHandle, Props> = 
       onClick={handleClick}
       className={classNames('auto-select-text', className)}
     >
-      <span ref={handleMount}>{children}</span>
+      <span ref={element}>{children}</span>
     </div>
   );
 };
