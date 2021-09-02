@@ -48,7 +48,7 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
   }
 
   if (error) {
-    return <LoadingError message="An error occurred while fetching your projects" />;
+    return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
 
   const filteredTeams = teams.filter(team => team.projects.length);
@@ -69,9 +69,7 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
         organization={organization}
         projects={projects}
         superuserNeedsToBeProjectMember
-      >
-        {null}
-      </NoProjectMessage>
+      />
     );
   }
 
@@ -98,30 +96,26 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
         </ProjectsHeader>
       )}
 
-      {filteredTeams.map((team, index) => {
-        const showBorder = index !== teams.length - 1;
-        return (
-          <LazyLoad key={team.slug} once debounce={50} height={300} offset={300}>
-            <TeamSection
-              orgId={params.orgId}
-              team={team}
-              showBorder={showBorder}
-              title={
-                hasTeamAdminAccess ? (
-                  <TeamLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
-                    <IdBadge team={team} avatarSize={22} />
-                  </TeamLink>
-                ) : (
+      {filteredTeams.map((team, index) => (
+        <LazyLoad key={team.slug} once debounce={50} height={300} offset={300}>
+          <TeamSection
+            orgId={params.orgId}
+            team={team}
+            showBorder={index !== teams.length - 1}
+            title={
+              hasTeamAdminAccess ? (
+                <TeamLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
                   <IdBadge team={team} avatarSize={22} />
-                )
-              }
-              projects={sortProjects(team.projects)}
-              access={access}
-            />
-          </LazyLoad>
-        );
-      })}
-
+                </TeamLink>
+              ) : (
+                <IdBadge team={team} avatarSize={22} />
+              )
+            }
+            projects={sortProjects(team.projects)}
+            access={new Set(organization.access)}
+          />
+        </LazyLoad>
+      ))}
       {showResources && <Resources organization={organization} />}
     </Fragment>
   );
