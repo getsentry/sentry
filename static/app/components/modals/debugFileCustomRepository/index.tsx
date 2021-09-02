@@ -12,11 +12,14 @@ import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig
 import Form from 'app/views/settings/components/forms/form';
 
 import AppStoreConnect from './appStoreConnect';
+import Http from './http';
 import {getFinalData, getFormFieldsAndInitialData} from './utils';
 
 type AppStoreConnectInitialData = React.ComponentProps<
   typeof AppStoreConnect
 >['initialData'];
+
+type HttpInitialData = React.ComponentProps<typeof Http>['initialData'];
 
 type RouteParams = {
   orgId: string;
@@ -73,9 +76,21 @@ function DebugFileCustomRepository({
         orgSlug={orgId}
         projectSlug={projectSlug}
         onSubmit={handleSave}
-        initialData={sourceConfig as AppStoreConnectInitialData | undefined}
+        initialData={sourceConfig as AppStoreConnectInitialData}
         location={location as Location}
         appStoreConnectContext={appStoreConnectContext}
+      />
+    );
+  }
+
+  if (sourceType === CustomRepoType.HTTP) {
+    return (
+      <Http
+        Header={Header}
+        Body={Body}
+        Footer={Footer}
+        onSubmit={handleSave}
+        initialData={sourceConfig as HttpInitialData}
       />
     );
   }

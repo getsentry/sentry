@@ -2,6 +2,8 @@ import {css} from '@emotion/react';
 
 import {Theme} from 'app/utils/theme';
 
+export const INPUT_PADDING = 10;
+
 type Props = {
   disabled?: boolean;
   monospace?: boolean;
@@ -18,7 +20,7 @@ const inputStyles = (props: Props) =>
     border: 1px solid ${props.theme.border};
     border-radius: ${props.theme.borderRadius};
     box-shadow: inset ${props.theme.dropShadowLight};
-    padding: 10px;
+    padding: ${INPUT_PADDING}px;
     transition: border 0.1s linear;
     resize: vertical;
     height: 40px;

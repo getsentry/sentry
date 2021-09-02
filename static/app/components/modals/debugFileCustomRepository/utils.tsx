@@ -13,6 +13,7 @@ import {Field} from 'app/views/settings/components/forms/type';
 function objectToChoices(obj: Record<string, string>): [key: string, value: string][] {
   return Object.entries(obj).map(([key, value]) => [key, t(value)]);
 }
+
 type FieldMap = Record<string, Field>;
 
 const commonFields: FieldMap = {
@@ -64,54 +65,16 @@ export function getFormFieldsAndInitialData(
   type: CustomRepoType,
   sourceConfig?: Record<string, any>
 ) {
-  const {password, secret_key, layout, private_key, ...config} = sourceConfig ?? {};
+  if (type === CustomRepoType.HTTP || type === CustomRepoType.APP_STORE_CONNECT) {
+    return {};
+  }
+
+  const {secret_key, layout, private_key, ...config} = sourceConfig ?? {};
   const initialData = layout
     ? {...config, 'layout.casing': layout.casing, 'layout.type': layout.type}
     : config;
 
   switch (type) {
-    case 'http':
-      return {
-        fields: [
-          commonFields.id,
-          commonFields.name,
-          commonFields.separator,
-          {
-            name: 'url',
-            type: 'url',
-            required: true,
-            label: t('Download Url'),
-            placeholder: 'https://msdl.microsoft.com/download/symbols/',
-            help: t('Full URL to the symbol server'),
-          },
-          {
-            name: 'username',
-            type: 'string',
-            required: false,
-            label: t('User'),
-            placeholder: 'admin',
-            help: t('User for HTTP basic auth'),
-          },
-          {
-            name: 'password',
-            type: 'string',
-            required: false,
-            label: t('Password'),
-            placeholder:
-              typeof password === 'object' ? t('(Password unchanged)') : 'open-sesame',
-            help: t('Password for HTTP basic auth'),
-          },
-          commonFields.separator,
-          commonFields.layoutType,
-          commonFields.layoutCasing,
-        ],
-        initialData: !initialData
-          ? undefined
-          : {
-              ...initialData,
-              password: typeof password === 'object' ? undefined : password,
-            },
-      };
     case 's3':
       return {
         fields: [
@@ -177,7 +140,7 @@ export function getFormFieldsAndInitialData(
           ? undefined
           : {
               ...initialData,
-              secret_key: typeof secret_key === 'object' ? undefined : secret_key,
+              secret_key: undefined,
             },
       };
     case 'gcs':
@@ -237,7 +200,7 @@ export function getFormFieldsAndInitialData(
           ? undefined
           : {
               ...initialData,
-              private_key: typeof private_key === 'object' ? undefined : private_key,
+              private_key: undefined,
             },
       };
     default: {
@@ -248,14 +211,11 @@ export function getFormFieldsAndInitialData(
 }
 
 export function getFinalData(type: CustomRepoType, data: Record<string, any>) {
+  if (type === CustomRepoType.HTTP || type === CustomRepoType.APP_STORE_CONNECT) {
+    return data;
+  }
+
   switch (type) {
-    case 'http':
-      return {
-        ...data,
-        password: data.password ?? {
-          'hidden-secret': true,
-        },
-      };
     case 's3':
       return {
         ...data,
