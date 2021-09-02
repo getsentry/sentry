@@ -20,7 +20,7 @@ from sentry.api.event_search import (
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Organization, Project, Release, SemverFilter
+from sentry.models import Environment, Organization, Project, Release, SemverFilter
 from sentry.models.group import Group
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
@@ -362,12 +362,14 @@ def _release_stage_filter_converter(
 
     organization_id: int = params["organization_id"]
     project_ids: Optional[list[int]] = params.get("project_id")
+    environments: Optional[list[int]] = params.get("environment")
     qs = (
         Release.objects.filter_by_stage(
             organization_id,
             search_filter.operator,
             search_filter.value.value,
             project_ids=project_ids,
+            environments=environments,
         )
         .values_list("version", flat=True)
         .order_by("date_added")[:MAX_SEARCH_RELEASES]
@@ -1627,12 +1629,19 @@ class QueryFilter(QueryFields):
 
         organization_id: int = self.params["organization_id"]
         project_ids: Optional[list[int]] = self.params.get("project_id")
+        environment_ids: Optional[list[int]] = self.params.get("environment_id", [])
+        environments = list(
+            Environment.objects.filter(
+                organization_id=organization_id, id__in=environment_ids
+            ).values_list("name", flat=True)
+        )
         qs = (
             Release.objects.filter_by_stage(
                 organization_id,
                 search_filter.operator,
                 search_filter.value.value,
                 project_ids=project_ids,
+                environments=environments,
             )
             .values_list("version", flat=True)
             .order_by("date_added")[:MAX_SEARCH_RELEASES]

@@ -16,7 +16,7 @@ type Props = {
   type: string;
   data: ExceptionType;
   projectId: string;
-  hasGroupingTreeUI: boolean;
+  hasHierarchicalGrouping: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
@@ -26,7 +26,7 @@ function Exception({
   type,
   data,
   projectId,
-  hasGroupingTreeUI,
+  hasHierarchicalGrouping,
   groupingCurrentLevel,
   hideGuide = false,
 }: Props) {
@@ -83,7 +83,7 @@ function Exception({
           stackView={stackView}
           platform={event.platform}
           exception={data}
-          hasGroupingTreeUI={hasGroupingTreeUI}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
           {...commonCrashHeaderProps}
         />
       }
@@ -96,8 +96,8 @@ function Exception({
         stackView={stackView}
         newestFirst={newestFirst}
         exception={data}
-        hasGroupingTreeUI={hasGroupingTreeUI}
         groupingCurrentLevel={groupingCurrentLevel}
+        hasHierarchicalGrouping={hasHierarchicalGrouping}
       />
     </EventDataSection>
   );

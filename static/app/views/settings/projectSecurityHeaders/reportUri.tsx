@@ -1,5 +1,4 @@
-import {Link} from 'react-router';
-
+import Link from 'app/components/links/link';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import {ProjectKey} from 'app/types';

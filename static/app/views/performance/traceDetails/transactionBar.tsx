@@ -6,6 +6,7 @@ import Count from 'app/components/count';
 import * as AnchorLinkManager from 'app/components/events/interfaces/spans/anchorLinkManager';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
 import {Row, RowCell, RowCellContainer} from 'app/components/performance/waterfall/row';
 import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
@@ -22,11 +23,11 @@ import {
 } from 'app/components/performance/waterfall/rowTitle';
 import {
   ConnectorBar,
-  StyledIconChevron,
   TOGGLE_BORDER_BOX,
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
+  TreeToggleIcon,
 } from 'app/components/performance/waterfall/treeConnector';
 import {
   getDurationDisplay,
@@ -39,7 +40,7 @@ import {TraceFullDetailed} from 'app/utils/performance/quickTrace/types';
 import {isTraceFullDetailed} from 'app/utils/performance/quickTrace/utils';
 import Projects from 'app/utils/projects';
 
-import {StyledProjectBadge} from './styles';
+import {ProjectBadgeContainer} from './styles';
 import TransactionDetail from './transactionDetail';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
 
@@ -186,7 +187,7 @@ class TransactionBar extends React.Component<Props, State> {
           <Count value={children.length} />
           {!isRoot && (
             <div>
-              <StyledIconChevron direction={isExpanded ? 'up' : 'down'} />
+              <TreeToggleIcon direction={isExpanded ? 'up' : 'down'} />
             </div>
           )}
         </TreeToggle>
@@ -210,13 +211,15 @@ class TransactionBar extends React.Component<Props, State> {
           {({projects}) => {
             const project = projects.find(p => p.slug === transaction.project_slug);
             return (
-              <Tooltip title={transaction.project_slug}>
-                <StyledProjectBadge
-                  project={project ? project : {slug: transaction.project_slug}}
-                  avatarSize={16}
-                  hideName
-                />
-              </Tooltip>
+              <ProjectBadgeContainer>
+                <Tooltip title={transaction.project_slug}>
+                  <ProjectBadge
+                    project={project ? project : {slug: transaction.project_slug}}
+                    avatarSize={16}
+                    hideName
+                  />
+                </Tooltip>
+              </ProjectBadgeContainer>
             );
           }}
         </Projects>

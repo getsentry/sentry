@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import moment from 'moment';
@@ -27,14 +27,13 @@ import Status from '../status';
 import {Incident, IncidentStats} from '../types';
 import {isOpen} from '../utils';
 
-type Props = {
+type Props = Pick<RouteComponentProps<{orgId: string}, {}>, 'params'> & {
   className?: string;
   hasIncidentDetailsError: boolean;
   incident?: Incident;
   stats?: IncidentStats;
   onSubscriptionChange: (event: React.MouseEvent) => void;
   onStatusChange: (eventKey: any) => void;
-  params: Params;
 };
 
 export default class DetailsHeader extends React.Component<Props> {

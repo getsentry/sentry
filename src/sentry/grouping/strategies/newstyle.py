@@ -50,7 +50,9 @@ RECURSION_COMPARISON_FIELDS = [
 
 
 def is_recursion_v1(frame1, frame2):
-    "Returns a boolean indicating whether frames are recursive calls."
+    """
+    Returns a boolean indicating whether frames are recursive calls.
+    """
     if frame2 is None:
         return False
 
@@ -61,11 +63,18 @@ def is_recursion_v1(frame1, frame2):
     return True
 
 
+def get_basename(string):
+    """
+    Returns best-effort basename of a string irrespective of platform.
+    """
+    return _basename_re.split(string)[-1]
+
+
 def get_package_component(package, platform):
     if package is None or platform != "native":
         return GroupingComponent(id="package")
 
-    package = _basename_re.split(package)[-1].lower()
+    package = get_basename(package).lower()
     package_component = GroupingComponent(
         id="package", values=[package], similarity_encoder=ident_encoder
     )
@@ -96,6 +105,12 @@ def get_filename_component(abs_path, filename, platform, allow_file_origin=False
         new_filename = _java_assist_enhancer_re.sub(r"\1<auto>", filename)
         if new_filename != filename:
             filename_component.update(values=[new_filename], hint="cleaned javassist parts")
+            filename = new_filename
+
+    # Best-effort to show a very short filename in the title. We truncate it to
+    # basename so technically there can be two issues that differ in filename
+    # paths but end up having the same title.
+    filename_component.update(tree_label={"filebase": get_basename(filename)})
 
     return filename_component
 
@@ -133,6 +148,11 @@ def get_module_component(abs_path, module, platform):
             module = _clojure_enhancer_re.sub(r"\1<auto>", module)
             if module != old_module:
                 module_component.update(values=[module], hint="removed codegen marker")
+
+        for part in reversed(module.split(".")):
+            if "$" not in part:
+                module_component.update(tree_label={"classbase": part})
+                break
 
     return module_component
 
@@ -283,17 +303,24 @@ def frame(frame, event, context, **meta):
             context=context,
         )
 
+    context_line_available = context_line_component and context_line_component.contributes
+
     function_component = get_function_component(
         context=context,
         function=frame.function,
         raw_function=frame.raw_function,
         platform=platform,
         sourcemap_used=frame.data and frame.data.get("sourcemap") is not None,
-        context_line_available=context_line_component and context_line_component.contributes,
+        context_line_available=context_line_available,
     )
 
     values = [module_component, filename_component, function_component]
     if context_line_component is not None:
+        # Typically we want to add whichever frame component contributes to
+        # the title. In JS, frames are hashed by source context, which we
+        # cannot show. In that case we want to show something else instead
+        # of hiding the frame from the title as if it didn't contribute.
+        context_line_component.update(tree_label=function_component.tree_label)
         values.append(context_line_component)
 
     if (
@@ -363,8 +390,20 @@ def frame(frame, event, context, **meta):
     if context["is_recursion"]:
         rv.update(contributes=False, hint="ignored due to recursion")
 
-    if rv.tree_label:
-        rv.tree_label = {"datapath": frame.datapath, **rv.tree_label}
+    if rv.contributes:
+        tree_label = {}
+
+        for value in rv.values:
+            if isinstance(value, GroupingComponent) and value.contributes and value.tree_label:
+                tree_label.update(value.tree_label)
+
+        if tree_label and context["hierarchical_grouping"]:
+            tree_label["datapath"] = frame.datapath
+            rv.tree_label = tree_label
+        else:
+            # The frame contributes (somehow) but we have nothing meaningful to
+            # show.
+            rv.tree_label = None
 
     return {context["variant"]: rv}
 

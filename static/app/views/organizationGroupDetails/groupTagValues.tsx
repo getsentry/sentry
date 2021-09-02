@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Link, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
@@ -12,6 +12,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import UserBadge from 'app/components/idBadge/userBadge';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import Pagination from 'app/components/pagination';
 import {PanelTable} from 'app/components/panels';
 import TimeSince from 'app/components/timeSince';

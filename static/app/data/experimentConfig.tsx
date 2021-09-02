@@ -26,7 +26,19 @@ export const experimentList = [
     assignments: [0, 1],
   },
   {
+    key: 'OverageNotificationExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'exposed',
+    assignments: [0, 1],
+  },
+  {
     key: 'CheckoutDefaultBusinessExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'exposed',
+    assignments: [0, 1],
+  },
+  {
+    key: 'HighlightBusinessPlanExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],

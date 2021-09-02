@@ -14,7 +14,10 @@ from sentry.discover.endpoints.discover_key_transactions import (
 )
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
-from sentry.discover.endpoints.discover_saved_query_detail import DiscoverSavedQueryDetailEndpoint
+from sentry.discover.endpoints.discover_saved_query_detail import (
+    DiscoverSavedQueryDetailEndpoint,
+    DiscoverSavedQueryVisitEndpoint,
+)
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
 )
@@ -90,6 +93,7 @@ from .endpoints.external_team_details import ExternalTeamDetailsEndpoint
 from .endpoints.external_user import ExternalUserEndpoint
 from .endpoints.external_user_details import ExternalUserDetailsEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
+from .endpoints.group_activities import GroupActivitiesEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
@@ -149,7 +153,10 @@ from .endpoints.organization_code_mapping_details import OrganizationCodeMapping
 from .endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
 from .endpoints.organization_config_integrations import OrganizationConfigIntegrationsEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
-from .endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
+from .endpoints.organization_dashboard_details import (
+    OrganizationDashboardDetailsEndpoint,
+    OrganizationDashboardVisitEndpoint,
+)
 from .endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
@@ -403,12 +410,14 @@ from .endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_emails import UserEmailsEndpoint
 from .endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
+from .endpoints.user_identity import UserIdentityEndpoint
 from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
 from .endpoints.user_notification_settings_details import UserNotificationSettingsDetailsEndpoint
+from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_password import UserPasswordEndpoint
 from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
@@ -420,6 +429,7 @@ from .endpoints.useravatar import UserAvatarEndpoint
 # to the organization (and queryable via short ID)
 GROUP_URLS = [
     url(r"^(?P<issue_id>[^\/]+)/$", GroupDetailsEndpoint.as_view()),
+    url(r"^(?P<issue_id>[^\/]+)/activities/$", GroupActivitiesEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/$", GroupEventsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/latest/$", GroupEventsLatestEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/events/oldest/$", GroupEventsOldestEndpoint.as_view()),
@@ -634,6 +644,11 @@ urlpatterns = [
                     name="sentry-api-0-user-identity-details",
                 ),
                 url(
+                    r"^(?P<user_id>[^\/]+)/identities/$",
+                    UserIdentityEndpoint.as_view(),
+                    name="sentry-api-0-user-identity",
+                ),
+                url(
                     r"^(?P<user_id>[^\/]+)/ips/$",
                     UserIPsEndpoint.as_view(),
                     name="sentry-api-0-user-ips",
@@ -677,6 +692,11 @@ urlpatterns = [
                     r"^(?P<user_id>[^\/]+)/subscriptions/$",
                     UserSubscriptionsEndpoint.as_view(),
                     name="sentry-api-0-user-subscriptions",
+                ),
+                url(
+                    r"^(?P<user_id>[^\/]+)/organization-integrations/$",
+                    UserOrganizationIntegrationsEndpoint.as_view(),
+                    name="sentry-api-0-user-organization-integrations",
                 ),
             ]
         ),
@@ -803,6 +823,11 @@ urlpatterns = [
                     name="sentry-api-0-discover-saved-query-detail",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/discover/saved/(?P<query_id>\d+)/visit/$",
+                    DiscoverSavedQueryVisitEndpoint.as_view(),
+                    name="sentry-api-0-discover-saved-query-visit",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/key-transactions/$",
                     KeyTransactionEndpoint.as_view(),
                     name="sentry-api-0-organization-key-transactions",
@@ -847,6 +872,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/$",
                     OrganizationDashboardDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-dashboard-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/visit/$",
+                    OrganizationDashboardVisitEndpoint.as_view(),
+                    name="sentry-api-0-organization-dashboard-visit",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$",
@@ -1054,6 +1084,7 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/$",
                     OrganizationIntegrationDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-integration-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repos/$",

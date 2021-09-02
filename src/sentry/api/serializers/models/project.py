@@ -18,6 +18,7 @@ from sentry.digests import backend as digests
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
+from sentry.lang.native.symbolicator import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
@@ -33,11 +34,14 @@ from sentry.models import (
     User,
     UserReport,
 )
-from sentry.notifications.helpers import transform_to_notification_settings_by_parent_id
+from sentry.notifications.helpers import (
+    get_most_specific_notification_setting_value,
+    transform_to_notification_settings_by_scope,
+)
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba import discover
 from sentry.snuba.sessions import check_has_health_data, get_current_and_previous_crash_free_rates
-from sentry.types.integrations import ExternalProviders
+from sentry.utils import json
 from sentry.utils.compat import zip
 
 STATUS_LABELS = {
@@ -183,23 +187,16 @@ class ProjectSerializer(Serializer):
                     ).values_list("project_id", flat=True)
                 )
 
-                notification_settings = NotificationSetting.objects.get_for_user_by_projects(
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    user,
-                    item_list,
+                notification_settings_by_scope = transform_to_notification_settings_by_scope(
+                    NotificationSetting.objects.get_for_user_by_projects(
+                        NotificationSettingTypes.ISSUE_ALERTS,
+                        user,
+                        item_list,
+                    )
                 )
-                (
-                    notification_settings_by_project_id_by_provider,
-                    default_subscribe_by_provider,
-                ) = transform_to_notification_settings_by_parent_id(notification_settings)
-                notification_settings_by_project_id = (
-                    notification_settings_by_project_id_by_provider.get(ExternalProviders.EMAIL, {})
-                )
-                default_subscribe = default_subscribe_by_provider.get(ExternalProviders.EMAIL)
             else:
                 bookmarks = set()
-                notification_settings_by_project_id = {}
-                default_subscribe = None
+                notification_settings_by_scope = {}
 
         with measure_span("stats"):
             stats = None
@@ -233,10 +230,13 @@ class ProjectSerializer(Serializer):
 
         with measure_span("other"):
             for project, serialized in result.items():
-                is_subscribed = (
-                    notification_settings_by_project_id.get(project.id, default_subscribe)
-                    == NotificationSettingOptionValues.ALWAYS
+                value = get_most_specific_notification_setting_value(
+                    notification_settings_by_scope,
+                    user=user,
+                    parent_id=project.id,
+                    type=NotificationSettingTypes.ISSUE_ALERTS,
                 )
+                is_subscribed = value == NotificationSettingOptionValues.ALWAYS
                 serialized.update(
                     {
                         "is_bookmarked": project.id in bookmarks,
@@ -793,8 +793,24 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
-                "symbolSources": attrs["options"].get("sentry:symbol_sources"),
                 "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
+            }
+        )
+        custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")
+        try:
+            sources = parse_sources(custom_symbol_sources_json, False)
+        except Exception:
+            # In theory sources stored on the project should be valid. If they are invalid, we don't
+            # want to abort serialization just for sources, so just return an empty list instead of
+            # returning sources with their secrets included.
+            serialized_sources = "[]"
+        else:
+            redacted_sources = redact_source_secrets(sources)
+            serialized_sources = json.dumps(redacted_sources)
+
+        data.update(
+            {
+                "symbolSources": serialized_sources,
             }
         )
 

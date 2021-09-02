@@ -23,11 +23,11 @@ import {
 } from 'app/components/performance/waterfall/rowTitle';
 import {
   ConnectorBar,
-  StyledIconChevron,
   TOGGLE_BORDER_BOX,
   TreeConnector,
   TreeToggle,
   TreeToggleContainer,
+  TreeToggleIcon,
 } from 'app/components/performance/waterfall/treeConnector';
 import {
   getDurationDisplay,
@@ -119,6 +119,7 @@ type SpanBarProps = {
     | undefined;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   toggleSpanGroup: (() => void) | undefined;
+  numOfSpans: number;
 };
 
 type SpanBarState = {
@@ -378,7 +379,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderSpanTreeToggler({left, errored}: {left: number; errored: boolean}) {
     const {numOfSpanChildren, isRoot, showSpanTree} = this.props;
 
-    const chevron = <StyledIconChevron direction={showSpanTree ? 'up' : 'down'} />;
+    const chevron = <TreeToggleIcon direction={showSpanTree ? 'up' : 'down'} />;
 
     if (numOfSpanChildren <= 0) {
       return (
@@ -521,8 +522,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             return;
           }
 
-          const shouldMoveMinimap =
-            this.props.trace.numOfSpans > NUM_OF_SPANS_FIT_IN_MINI_MAP;
+          const shouldMoveMinimap = this.props.numOfSpans > NUM_OF_SPANS_FIT_IN_MINI_MAP;
 
           if (!shouldMoveMinimap) {
             return;
@@ -616,10 +616,10 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           const panYPixels =
             totalHeightOfHiddenSpans + currentSpanHiddenRatio * MINIMAP_SPAN_BAR_HEIGHT;
 
-          // invariant: this.props.trace.numOfSpansend - spanNumberToStopMoving + 1 = NUM_OF_SPANS_FIT_IN_MINI_MAP
+          // invariant: this.props.numOfSpans - spanNumberToStopMoving + 1 = NUM_OF_SPANS_FIT_IN_MINI_MAP
 
           const spanNumberToStopMoving =
-            this.props.trace.numOfSpans + 1 - NUM_OF_SPANS_FIT_IN_MINI_MAP;
+            this.props.numOfSpans + 1 - NUM_OF_SPANS_FIT_IN_MINI_MAP;
 
           if (spanNumber > spanNumberToStopMoving) {
             // if the last span bar appears on the minimap, we do not want the minimap
@@ -744,7 +744,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               {showEmbeddedChildren
                 ? t('This span is showing a direct child. Remove transaction to hide')
                 : t('This span has a direct child. Add transaction to view')}
-              <FeatureBadge type="beta" noTooltip />
+              <FeatureBadge type="new" noTooltip />
             </span>
           }
           position="top"

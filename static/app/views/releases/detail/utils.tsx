@@ -20,7 +20,7 @@ import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 import {decodeList} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {isProjectMobileForReleases} from 'app/views/releases/list';
 
 import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';
@@ -127,7 +127,7 @@ export function getReleaseEventView(
     version: 2,
     name: `${t('Release Apdex')}`,
     fields: [apdexField],
-    query: new QueryResults([
+    query: new MutableSearch([
       `release:${version}`,
       'event.type:transaction',
       'count():>0',
@@ -154,6 +154,7 @@ export const releaseComparisonChartLabels = {
   [ReleaseComparisonChartType.ERRORED_USERS]: t('Errored'),
   [ReleaseComparisonChartType.CRASHED_USERS]: t('Crashed User Rate'),
   [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
+  [ReleaseComparisonChartType.SESSION_DURATION]: t('Session Duration p50'),
   [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
   [ReleaseComparisonChartType.ERROR_COUNT]: t('Error Count'),
   [ReleaseComparisonChartType.TRANSACTION_COUNT]: t('Transaction Count'),
@@ -172,6 +173,7 @@ export const releaseComparisonChartTitles = {
   [ReleaseComparisonChartType.ERRORED_USERS]: t('Errored User Rate'),
   [ReleaseComparisonChartType.CRASHED_USERS]: t('Crashed User Rate'),
   [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
+  [ReleaseComparisonChartType.SESSION_DURATION]: t('Session Duration'),
   [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
   [ReleaseComparisonChartType.ERROR_COUNT]: t('Error Count'),
   [ReleaseComparisonChartType.TRANSACTION_COUNT]: t('Transaction Count'),

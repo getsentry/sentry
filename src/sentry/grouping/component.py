@@ -140,7 +140,7 @@ class GroupingComponent:
             self.contributes = contributes
         if contributes_to_similarity is not None:
             self.contributes_to_similarity = contributes_to_similarity
-        if self.contributes and tree_label is not None:
+        if tree_label is not None:
             self.tree_label = tree_label
         if is_prefix_frame is not None:
             self.is_prefix_frame = is_prefix_frame

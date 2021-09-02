@@ -1,6 +1,20 @@
 #!/bin/bash
 # Module containing code shared across various shell scripts
 # Execute functions from this module via the script do.sh
+# shellcheck disable=SC2034 # Unused variables
+# shellcheck disable=SC2001 # https://github.com/koalaman/shellcheck/wiki/SC2001
+
+# This block is a safe-guard since in CI calling tput will fail and abort scripts
+if [ -z "${CI+x}" ]; then
+    bold="$(tput bold)"
+    red="$(tput setaf 1)"
+    green="$(tput setaf 2)"
+    yellow="$(tput setaf 3)"
+    reset="$(tput sgr0)"
+fi
+
+# NOTE: This file is sourced in CI across different repos (e.g. snuba),
+# so renaming this file or any functions can break CI!
 
 # Check if a command is available
 require() {
@@ -20,11 +34,41 @@ query-mac() {
     [[ $(uname -s) = 'Darwin' ]]
 }
 
-query_big_sur() {
+query-big-sur() {
     if require sw_vers && sw_vers -productVersion | grep -E "11\." >/dev/null; then
         return 0
     fi
     return 1
+}
+
+query-apple-m1() {
+    query-mac && [[ $(uname -m) = 'arm64' ]]
+}
+
+get-pyenv-version() {
+    local PYENV_VERSION
+    PYENV_VERSION=3.6.13
+    if query-apple-m1; then
+        PYENV_VERSION=3.8.11
+    fi
+    echo "${PYENV_VERSION}"
+}
+
+query-valid-python-version() {
+    python_version=$(python3 -V 2>&1 | awk '{print $2}')
+    minor=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\1/')
+    patch=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\2/')
+
+    # For Apple M1, we only allow 3.8 and at least patch version 10
+    if query-apple-m1; then
+        if [ "$minor" -ne 8 ] || [ "$patch" -lt 10 ]; then
+            return 1
+        fi
+    # For everything else, we only allow 3.6
+    elif [ "$minor" -ne 6 ]; then
+        return 1
+    fi
+    return 0
 }
 
 sudo-askpass() {

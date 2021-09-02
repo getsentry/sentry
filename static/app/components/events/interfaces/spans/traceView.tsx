@@ -38,6 +38,15 @@ class TraceView extends PureComponent<Props> {
             event={waterfallModel.event}
             virtualScrollBarContainerRef={this.virtualScrollBarContainerRef}
             operationNameFilters={waterfallModel.operationNameFilters}
+            rootSpan={waterfallModel.rootSpan.span}
+            spans={waterfallModel.getWaterfall({
+              viewStart: 0,
+              viewEnd: 1,
+            })}
+            generateBounds={waterfallModel.generateBounds({
+              viewStart: 0,
+              viewEnd: 1,
+            })}
           />
         );
       }}

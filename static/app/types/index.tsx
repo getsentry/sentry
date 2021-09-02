@@ -377,6 +377,8 @@ export type TreeLabelPart =
       function?: string;
       package?: string;
       type?: string;
+      classbase?: string;
+      filebase?: string;
       datapath?: (string | number)[];
       is_sentinel?: boolean;
       is_prefix?: boolean;
@@ -490,6 +492,7 @@ type UserEnrolledAuthenticator = {
   dateCreated: EnrolledAuthenticator['createdAt'];
   type: Authenticator['id'];
   id: EnrolledAuthenticator['authId'];
+  name: EnrolledAuthenticator['name'];
 };
 
 export type User = Omit<AvatarUser, 'options'> & {
@@ -594,6 +597,9 @@ export type PluginNoProject = {
   author?: {name: string; url: string};
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
+  altIsSentryApp?: boolean;
+  deprecationDate?: string;
+  firstPartyAlternative?: string;
 };
 
 export type Plugin = PluginNoProject & {
@@ -728,6 +734,7 @@ export type EnrolledAuthenticator = {
   lastUsedAt: string | null;
   createdAt: string;
   authId: string;
+  name: string;
 };
 
 export interface Config {
@@ -786,6 +793,9 @@ export enum DataCategory {
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
 }
+
+export type EventType = 'error' | 'transaction' | 'attachment';
+
 export const DataCategoryName = {
   [DataCategory.ERRORS]: 'Errors',
   [DataCategory.TRANSACTIONS]: 'Transactions',
@@ -1987,9 +1997,9 @@ export type Frame = {
   rawFunction: string | null;
   symbol: string | null;
   symbolAddr: string | null;
-  symbolicatorStatus: SymbolicatorStatus;
   trust: any | null;
   vars: Record<string, any> | null;
+  symbolicatorStatus?: SymbolicatorStatus;
   addrMode?: string;
   origAbsPath?: string | null;
   mapUrl?: string | null;
@@ -2125,6 +2135,7 @@ export type SessionApiResponse = SeriesApi & {
 export enum SessionField {
   SESSIONS = 'sum(session)',
   USERS = 'count_unique(user)',
+  DURATION = 'p50(session.duration)',
 }
 
 export enum SessionStatus {
@@ -2150,6 +2161,7 @@ export enum ReleaseComparisonChartType {
   ERROR_COUNT = 'errorCount',
   TRANSACTION_COUNT = 'transactionCount',
   FAILURE_RATE = 'failureRate',
+  SESSION_DURATION = 'sessionDuration',
 }
 
 export enum HealthStatsPeriodOption {
@@ -2180,6 +2192,7 @@ export type CodeOwner = {
     missing_external_users: string[];
     missing_user_emails: string[];
     teams_without_access: string[];
+    users_without_access: string[];
   };
 };
 

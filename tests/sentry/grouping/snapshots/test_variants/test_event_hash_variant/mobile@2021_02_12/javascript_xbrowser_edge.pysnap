@@ -1,5 +1,5 @@
 ---
-created: '2021-08-04T15:53:48.116738Z'
+created: '2021-08-31T10:25:51.777028Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -71,7 +71,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "01b5dfbc3a7cf58591f53b2da01832da"
-  tree_label: "aha | callAnotherThing | callback | Anonymous function"
+  tree_label: "aha | callAnotherThing | callback | test.html"
   component:
     app-depth-4*
       exception*
@@ -103,7 +103,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "4b0afdab89c9fdf5c0ddcfa2098bd6e8"
-  tree_label: "aha | callAnotherThing | callback | Anonymous function | test"
+  tree_label: "aha | callAnotherThing | callback | test.html | test"
   component:
     app-depth-5*
       exception*
@@ -140,7 +140,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "c63e8727af1a8fe75872b6a762797113"
-  tree_label: "aha | callAnotherThing | callback | Anonymous function | test | aha | testMethod | Anonymous function"
+  tree_label: "aha | callAnotherThing | callback | test.html | test | aha | testMethod | test.html"
   component:
     app-depth-max*
       exception*
@@ -192,7 +192,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "c63e8727af1a8fe75872b6a762797113"
-  tree_label: "aha | callAnotherThing | callback | Anonymous function | test | aha | testMethod | Anonymous function"
+  tree_label: "aha | callAnotherThing | callback | test.html | test | aha | testMethod | test.html"
   component:
     system*
       exception*

@@ -20,7 +20,6 @@ function EventTagsAndScreenshots({
   projectId: projectSlug,
   isShare,
   hasContext,
-  hasQueryFeature,
   location,
   isBorderless,
   event,
@@ -50,7 +49,6 @@ function EventTagsAndScreenshots({
         event={event}
         projectSlug={projectSlug}
         hasContext={hasContext}
-        hasQueryFeature={hasQueryFeature}
         location={location}
       />
     </Wrapper>
@@ -72,7 +70,7 @@ const Wrapper = styled(DataSection)<{isBorderless: boolean}>`
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding-bottom: ${space(2)};
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: 1fr auto;
     grid-gap: ${space(4)};
 
     > *:first-child {

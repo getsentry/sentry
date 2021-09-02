@@ -277,12 +277,12 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
-        response.data["user_count"]["order"] == 0
+        assert response.data["user_count"]["order"] == 0
         assert [attrs for time, attrs in response.data["user_count"]["data"]] == [
             [{"count": 5}],
             [{"count": 0}],
         ]
-        response.data["apdex()"]["order"] == 1
+        assert response.data["apdex()"]["order"] == 1
         assert [attrs for time, attrs in response.data["apdex()"]["data"]] == [
             [{"count": 0.2}],
             [{"count": 0}],
@@ -610,19 +610,19 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
-        response.data["user_count"]["order"] == 0
+        assert response.data["user_count"]["order"] == 0
         assert [attrs for time, attrs in response.data["user_count"]["data"]] == [
             [{"count": 1}],
             [{"count": 1}],
         ]
-        response.data["event_count"]["order"] == 1
+        assert response.data["event_count"]["order"] == 1
         assert [attrs for time, attrs in response.data["event_count"]["data"]] == [
             [{"count": 1}],
             [{"count": 2}],
         ]
 
     def test_equation_yaxis(self):
-        with self.feature(["organizations:discover-arithmetic", "organizations:discover-basic"]):
+        with self.feature(["organizations:discover-basic"]):
             response = self.client.get(
                 self.url,
                 data={
@@ -642,7 +642,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_equation_mixed_multi_yaxis(self):
-        with self.feature(["organizations:discover-arithmetic", "organizations:discover-basic"]):
+        with self.feature(["organizations:discover-basic"]):
             response = self.client.get(
                 self.url,
                 data={
@@ -667,7 +667,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_equation_multi_yaxis(self):
-        with self.feature(["organizations:discover-arithmetic", "organizations:discover-basic"]):
+        with self.feature(["organizations:discover-basic"]):
             response = self.client.get(
                 self.url,
                 data={
@@ -1655,7 +1655,6 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         )
 
     def test_top_events_with_equations(self):
-        self.enabled_features["organizations:discover-arithmetic"] = True
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,

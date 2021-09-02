@@ -91,6 +91,7 @@ class TransactionRuleModal extends Form<Props, State> {
         [DynamicSamplingInnerName.TRACE_ENVIRONMENT, t('Environments')],
         [DynamicSamplingInnerName.TRACE_USER_ID, t('User Id')],
         [DynamicSamplingInnerName.TRACE_USER_SEGMENT, t('User Segment')],
+        [DynamicSamplingInnerName.TRACE_TRANSACTION, t('Transactions')],
       ];
     }
 
@@ -106,6 +107,7 @@ class TransactionRuleModal extends Form<Props, State> {
       [DynamicSamplingInnerName.EVENT_IP_ADDRESSES, t('IP Addresses')],
       [DynamicSamplingInnerName.EVENT_CSP, t('Content Security Policy')],
       [DynamicSamplingInnerName.EVENT_ERROR_MESSAGES, t('Error Messages')],
+      [DynamicSamplingInnerName.EVENT_TRANSACTION, t('Transactions')],
     ];
   }
 

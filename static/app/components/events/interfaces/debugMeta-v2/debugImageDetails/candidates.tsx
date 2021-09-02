@@ -11,7 +11,6 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {BuiltinSymbolSource} from 'app/types/debugFiles';
 import {CandidateDownloadStatus, Image, ImageStatus} from 'app/types/debugImage';
 import {defined} from 'app/utils';
 
@@ -36,7 +35,6 @@ type Props = {
   organization: Organization;
   projectId: Project['id'];
   baseUrl: string;
-  builtinSymbolSources: Array<BuiltinSymbolSource> | null;
   isLoading: boolean;
   hasReprocessWarning: boolean;
   onDelete: (debugId: string) => void;
@@ -292,7 +290,6 @@ class Candidates extends React.Component<Props, State> {
       organization,
       projectId,
       baseUrl,
-      builtinSymbolSources,
       onDelete,
       isLoading,
       candidates,
@@ -358,7 +355,6 @@ class Candidates extends React.Component<Props, State> {
             <Candidate
               key={index}
               candidate={candidate}
-              builtinSymbolSources={builtinSymbolSources}
               organization={organization}
               baseUrl={baseUrl}
               projectId={projectId}

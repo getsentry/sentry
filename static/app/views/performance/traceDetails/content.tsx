@@ -1,7 +1,6 @@
 import * as React from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
 
 import Alert from 'app/components/alert';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -38,11 +37,11 @@ import Breadcrumb from 'app/views/performance/breadcrumb';
 import {MetaData} from 'app/views/performance/transactionDetails/styles';
 
 import {
-  SearchContainer,
-  StyledPanel,
-  StyledSearchBar,
   TraceDetailBody,
   TraceDetailHeader,
+  TracePanel,
+  TraceSearchBar,
+  TraceSearchContainer,
   TraceViewContainer,
   TraceViewHeaderContainer,
 } from './styles';
@@ -61,10 +60,8 @@ type AccType = {
   numberOfHiddenTransactionsAbove: number;
 };
 
-type Props = {
-  location: Location;
+type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
   organization: Organization;
-  params: Params;
   traceSlug: string;
   traceEventView: EventView;
   dateSelected: boolean;
@@ -188,14 +185,14 @@ class TraceDetailsContent extends React.Component<Props, State> {
 
   renderSearchBar() {
     return (
-      <SearchContainer>
-        <StyledSearchBar
+      <TraceSearchContainer>
+        <TraceSearchBar
           defaultQuery=""
           query={this.state.searchQuery || ''}
           placeholder={t('Search for transactions')}
           onSearch={this.handleTransactionFilter}
         />
-      </SearchContainer>
+      </TraceSearchContainer>
     );
   }
 
@@ -518,7 +515,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                 dividerPosition={dividerPosition}
                 interactiveLayerRef={this.virtualScrollbarContainerRef}
               >
-                <StyledPanel>
+                <TracePanel>
                   <TraceViewHeaderContainer>
                     <ScrollbarManager.Consumer>
                       {({
@@ -587,7 +584,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
                     })}
                     {this.renderLimitExceededMessage(traceInfo)}
                   </TraceViewContainer>
-                </StyledPanel>
+                </TracePanel>
               </ScrollbarManager.Provider>
             )}
           </DividerHandlerManager.Consumer>

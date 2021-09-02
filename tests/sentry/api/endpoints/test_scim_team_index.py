@@ -153,6 +153,28 @@ class SCIMGroupIndexTests(SCIMTestCase):
             ],
         }
 
+    def test_team_filter_case_insensitive(self):
+        url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
+        team = self.create_team(organization=self.organization, name="Name WithASpace")
+        response = self.client.get(
+            f"{url}?startIndex=1&count=100&filter=displayName eq %22{team.name.upper()}%22"
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+            "totalResults": 1,
+            "startIndex": 1,
+            "itemsPerPage": 1,
+            "Resources": [
+                {
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+                    "id": str(team.id),
+                    "displayName": team.name,
+                    "members": [],
+                    "meta": {"resourceType": "Group"},
+                }
+            ],
+        }
+
     def test_team_exclude_members_param(self):
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
         response = self.client.get(
@@ -173,7 +195,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
             ],
         }
 
-    def test_invalid_filter(self):
+    def test_scim_invalid_filter(self):
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
         response = self.client.get(f"{url}?startIndex=1&count=1&filter=bad filter eq 23")
         assert response.status_code == 400, response.data
@@ -181,3 +203,17 @@ class SCIMGroupIndexTests(SCIMTestCase):
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
             "scimType": "invalidFilter",
         }
+
+    def test_scim_invalid_startIndex(self):
+        url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
+        response = self.client.get(f"{url}?startIndex=0")
+        assert response.status_code == 400, response.data
+
+    def test_scim_team_no_duplicate_names(self):
+        self.create_team(organization=self.organization, name=CREATE_TEAM_POST_DATA["displayName"])
+        url = reverse(
+            "sentry-api-0-organization-scim-team-index",
+            args=[self.organization.slug],
+        )
+        response = self.client.post(url, CREATE_TEAM_POST_DATA)
+        assert response.status_code == 409, response.content

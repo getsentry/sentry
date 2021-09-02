@@ -61,7 +61,7 @@ function Screenshot({event, attachments, organization, projectSlug, onDelete}: P
     return (
       <Fragment>
         <StyledPanelBody>
-          <ImageVisualization
+          <StyledImageVisualization
             attachment={screenshotAttachment}
             orgId={orgSlug}
             projectId={projectSlug}
@@ -151,10 +151,12 @@ const StyledPanel = styled(Panel)`
   margin-bottom: 0;
   min-height: 200px;
   min-width: 175px;
+  height: 100%;
 `;
 
 const StyledPanelBody = styled(PanelBody)`
-  height: 175px;
+  min-height: 175px;
+  height: 100%;
   overflow: hidden;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
@@ -162,10 +164,16 @@ const StyledPanelBody = styled(PanelBody)`
   width: calc(100% + 2px);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
+  position: relative;
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`
   padding: ${space(1)};
+  width: 100%;
+`;
+
+const StyledImageVisualization = styled(ImageVisualization)`
+  position: absolute;
   width: 100%;
 `;
 
