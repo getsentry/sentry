@@ -37,12 +37,13 @@ EOF
 
     if ! query-valid-python-version; then
         cat <<EOF
-    ${yellow}${bold}
+    ${red}${bold}
     WARNING! You are running a virtualenv with a Python version ($(which python))
-    different than 3.6.13 or 3.8.11. We recommend you start with a fresh virtualenv OR"
-    use SENTRY_PYTHON_VERSION to by-pass this check.
+    different than 3.6 (or at least 3.8.10 on M1 Macs). Either run "rm -rf ${venv_name} && direnv allow"
+    OR use SENTRY_PYTHON_VERSION to by-pass this check."
     ${reset}
 EOF
+        exit 1
     fi
 else
     if [[ ! -f "${venv_name}/bin/activate" ]]; then
