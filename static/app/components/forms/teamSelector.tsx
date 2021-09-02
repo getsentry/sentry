@@ -104,6 +104,7 @@ class TeamSelector extends React.Component<Props, State> {
   get teamOptions() {
     const {teams, teamFilter, includeUnassigned, project} = this.props;
     const filteredTeams = teamFilter ? teams.filter(teamFilter) : teams;
+
     if (project) {
       const teamsInProjectIdSet = new Set(project.teams.map(team => team.id));
       const teamsInProject = filteredTeams.filter(team =>
@@ -119,6 +120,7 @@ class TeamSelector extends React.Component<Props, State> {
         ...(includeUnassigned ? [unassignedOption] : []),
       ];
     }
+
     return [
       ...filteredTeams.map(this.createTeamOption),
       ...(includeUnassigned ? [unassignedOption] : []),
@@ -147,6 +149,7 @@ class TeamSelector extends React.Component<Props, State> {
 
     const select = this.selectRef.current.select;
     const input: HTMLInputElement = select.inputRef;
+
     if (input) {
       // I don't think there's another way to close `react-select`
       input.blur();
@@ -154,7 +157,7 @@ class TeamSelector extends React.Component<Props, State> {
   }
 
   handleAddTeamToProject = async (team: Team) => {
-    const {api, organization, project, value} = this.props;
+    const {api, organization, project, value, multiple} = this.props;
     const {options} = this.state;
 
     if (!project) {
@@ -163,8 +166,7 @@ class TeamSelector extends React.Component<Props, State> {
     }
 
     // Copy old value
-    const oldValue = value ? [...value] : {value};
-
+    const oldValue = multiple ? [...(value ?? [])] : {value};
     // Optimistic update
     this.props.onChange?.(this.createTeamOption(team));
 
@@ -180,11 +182,13 @@ class TeamSelector extends React.Component<Props, State> {
 
         return option;
       });
+
       this.setState({options: newOptions});
     } catch (err) {
       // Unable to add team to project, revert select menu value
       this.props.onChange?.(oldValue);
     }
+
     this.closeSelectMenu();
   };
 
@@ -229,6 +233,7 @@ class TeamSelector extends React.Component<Props, State> {
   render() {
     const {includeUnassigned, styles, ...props} = this.props;
     const {options} = this.state;
+
     return (
       <SelectControl
         ref={this.selectRef}
