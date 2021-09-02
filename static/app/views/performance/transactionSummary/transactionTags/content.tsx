@@ -1,10 +1,11 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {SectionHeading} from 'app/components/charts/styles';
 import SearchBar from 'app/components/events/searchBar';
+import * as Layout from 'app/components/layouts/thirds';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import QuestionTooltip from 'app/components/questionTooltip';
@@ -20,8 +21,6 @@ import {decodeScalar} from 'app/utils/queryString';
 import {SidebarSpacer} from 'app/views/performance/transactionSummary/utils';
 
 import {SpanOperationBreakdownFilter} from '../filter';
-import TransactionHeader from '../header';
-import Tab from '../tabs';
 import {getTransactionField} from '../transactionOverview/tagExplorer';
 
 import TagsDisplay from './tagsDisplay';
@@ -38,9 +37,7 @@ type Props = {
 type TagOption = string;
 
 const TagsPageContent = (props: Props) => {
-  const {eventView, location, organization, projects, transactionName} = props;
-
-  const handleIncompatibleQuery = () => {};
+  const {eventView, location, organization, projects} = props;
 
   const aggregateColumn = getTransactionField(
     SpanOperationBreakdownFilter.None,
@@ -49,18 +46,7 @@ const TagsPageContent = (props: Props) => {
   );
 
   return (
-    <Fragment>
-      <TransactionHeader
-        eventView={eventView}
-        location={location}
-        organization={organization}
-        projects={projects}
-        transactionName={transactionName}
-        currentTab={Tab.Tags}
-        hasWebVitals="maybe"
-        handleIncompatibleQuery={handleIncompatibleQuery}
-      />
-
+    <Layout.Main fullWidth>
       <SegmentExplorerQuery
         eventView={eventView}
         orgSlug={organization.slug}
@@ -74,7 +60,7 @@ const TagsPageContent = (props: Props) => {
           return <InnerContent {...props} isLoading={isLoading} tableData={tableData} />;
         }}
       </SegmentExplorerQuery>
-    </Fragment>
+    </Layout.Main>
   );
 };
 
@@ -276,14 +262,9 @@ const StyledSectionHeading = styled(SectionHeading)`
 
 // TODO(k-fish): Adjust thirds layout to allow for this instead.
 const ReversedLayoutBody = styled('div')`
-  padding: ${space(2)};
   margin: 0;
   background-color: ${p => p.theme.background};
   flex-grow: 1;
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    padding: ${space(3)} ${space(4)};
-  }
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
