@@ -41,6 +41,7 @@ function Tags({event, organization, projectSlug, location, hasContext}: Props) {
 export default Tags;
 
 const StyledDataSection = styled(DataSection)`
+  overflow: hidden;
   ${SectionContents} {
     overflow: hidden;
   }
