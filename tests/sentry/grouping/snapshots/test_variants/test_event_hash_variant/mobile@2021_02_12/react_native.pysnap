@@ -1,10 +1,11 @@
 ---
-created: '2021-08-04T15:53:47.789973Z'
+created: '2021-09-01T10:07:54.631051Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "f3c55d92b61d1734b37445f461758449"
+  tree_label: "Button"
   component:
     app-depth-1*
       exception*
@@ -25,6 +26,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "73470e545e51eea9cff8a6c006f68f57"
+  tree_label: "Button | onPress"
   component:
     app-depth-2*
       exception*
@@ -54,6 +56,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "73470e545e51eea9cff8a6c006f68f57"
+  tree_label: "Button | onPress"
   component:
     app-depth-max*
       exception*
@@ -83,7 +86,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "ecd413627f0d90a5a25cb28d1ba9c39f"
-  tree_label: "[native code] forEach"
+  tree_label: "Button | onPress | this | _performSideEffectsForTransition | _receiveSignal | arguments | apply | apply | invokeGuardedCallbackAndCatchFirstError | executeDispatch | D | [native code] forEach | forEachAccumulated | fn | _batchedUpdates | batchedUpdates | _receiveRootNodeIDEvent | _lastFlush | flushedQueue | _inCall | flushedQueue | value"
   component:
     system*
       exception*
