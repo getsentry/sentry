@@ -32,6 +32,7 @@ type ProjectsStoreInterface = {
   onAddTeam: (team: Team, projectSlug: string) => void;
   removeTeamFromProject: (teamSlug: string, project: Project) => void;
   getWithTeam: (teamSlug: string) => Project[];
+  get: () => Project[];
   getAll: () => Project[];
   getBySlugs: (slug: string[]) => Project[];
   getState: (slugs?: string[]) => State;
@@ -191,6 +192,10 @@ const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface =
    */
   getWithTeam(teamSlug: string) {
     return this.getAll().filter(({teams}) => teams.find(({slug}) => slug === teamSlug));
+  },
+
+  get() {
+    return this.getAll();
   },
 
   getAll() {
