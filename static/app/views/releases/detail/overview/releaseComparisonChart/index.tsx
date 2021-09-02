@@ -165,6 +165,17 @@ function ReleaseComparisonChart({
     ) {
       setExpanded(new Set(expanded.add(ReleaseComparisonChartType.CRASH_FREE_USERS)));
     }
+
+    if (
+      [
+        ReleaseComparisonChartType.SESSION_COUNT,
+        ReleaseComparisonChartType.USER_COUNT,
+        ReleaseComparisonChartType.ERROR_COUNT,
+        ReleaseComparisonChartType.TRANSACTION_COUNT,
+      ].includes(chartInUrl)
+    ) {
+      setIsOtherExpanded(true);
+    }
   }, [location.query.chart]);
 
   async function fetchEventsTotals() {
@@ -969,7 +980,10 @@ function ReleaseComparisonChart({
       >
         {charts.map(chartRow => renderChartRow(chartRow))}
         {additionalCharts.length > 0 && (
-          <ShowMoreWrapper onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
+          <ShowMoreWrapper
+            onClick={() => setIsOtherExpanded(!isOtherExpanded)}
+            isExpanded={isOtherExpanded}
+          >
             <ShowMoreTitle>
               <IconActivity size="xs" />
               {isOtherExpanded
@@ -1032,13 +1046,14 @@ const StyledNotAvailable = styled(NotAvailable)`
   display: inline-block;
 `;
 
-const ShowMoreWrapper = styled('div')`
+const ShowMoreWrapper = styled('div')<{isExpanded: boolean}>`
   display: contents;
   &:hover {
     cursor: pointer;
   }
   > * {
     padding: ${space(1)} ${space(2)};
+    ${p => p.isExpanded && `border-bottom: 1px solid ${p.theme.border};`}
   }
 `;
 
@@ -1049,12 +1064,16 @@ const ShowMoreTitle = styled('div')`
   gap: 10px;
   align-items: center;
   justify-content: flex-start;
-  margin-left: ${space(0.25)};
+  svg {
+    margin-left: ${space(0.25)};
+  }
 `;
 
 const ShowMoreButton = styled('div')`
   grid-column: 2 / -1;
-  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 `;
 
 export default ReleaseComparisonChart;

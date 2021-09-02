@@ -48,6 +48,7 @@ function ReleaseComparisonChartRow({
       isActive={type === activeChart}
       isLoading={showPlaceholders}
       role={role}
+      expanded={expanded}
     >
       <DescriptionCell>
         <TitleWrapper>
@@ -88,7 +89,7 @@ function ReleaseComparisonChartRow({
         )}
       </Cell>
       {withExpanders && (
-        <Cell>
+        <ExpanderCell>
           {role === 'parent' && (
             <ToggleButton
               onClick={() => onExpanderToggle(type)}
@@ -98,7 +99,7 @@ function ReleaseComparisonChartRow({
               label={t('Toggle chart group')}
             />
           )}
-        </Cell>
+        </ExpanderCell>
       )}
     </ChartTableRow>
   );
@@ -106,12 +107,20 @@ function ReleaseComparisonChartRow({
 
 const Cell = styled('div')`
   text-align: right;
+  color: ${p => p.theme.subText};
   ${overflowEllipsis}
 `;
 
 const DescriptionCell = styled(Cell)`
   text-align: left;
   overflow: visible;
+  color: ${p => p.theme.textColor};
+`;
+
+const ExpanderCell = styled(Cell)`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 `;
 
 const TitleWrapper = styled('div')`
@@ -142,6 +151,7 @@ const TitleWrapper = styled('div')`
 const ChartTableRow = styled('label')<{
   isActive: boolean;
   role: ReleaseComparisonRow['role'];
+  expanded: boolean;
   isLoading: boolean;
 }>`
   display: contents;
@@ -156,35 +166,27 @@ const ChartTableRow = styled('label')<{
     p.isActive &&
     !p.isLoading &&
     css`
-      ${Cell}, ${DescriptionCell}, ${TitleWrapper} {
+      ${Cell}, ${DescriptionCell}, ${TitleWrapper}, ${ExpanderCell} {
         background-color: ${p.theme.bodyBackground};
       }
     `}
 
   &:hover {
     cursor: pointer;
-    ${/* sc-selector */ Cell}, ${/* sc-selector */ DescriptionCell}, ${
-      /* sc-selector */ TitleWrapper
-    } {
+    ${/* sc-selector */ Cell}, ${/* sc-selector */ DescriptionCell},${
+      /* sc-selector */ ExpanderCell
+    }, ${/* sc-selector */ TitleWrapper} {
       ${p => !p.isLoading && `background-color: ${p.theme.bodyBackground}`}
     }
   }
 
   ${p =>
-    p.role === 'default' &&
+    (p.role === 'default' || (p.role === 'parent' && !p.expanded)) &&
     css`
       &:not(:last-child) {
-        ${Cell}, ${DescriptionCell} {
+        ${Cell}, ${DescriptionCell}, ${ExpanderCell} {
           border-bottom: 1px solid ${p.theme.border};
         }
-      }
-    `}
-
-  ${p =>
-    p.role === 'parent' &&
-    css`
-      ${Cell}, ${DescriptionCell} {
-        margin-top: ${space(0.75)};
       }
     `}
 
@@ -208,9 +210,9 @@ const ChartTableRow = styled('label')<{
     `}
 
     ${p =>
-    (p.role === 'parent' || p.role === 'children') &&
+    p.role === 'children' &&
     css`
-      ${Cell}, ${DescriptionCell} {
+      ${Cell}, ${DescriptionCell}, ${ExpanderCell} {
         padding-bottom: ${space(0.75)};
         padding-top: ${space(0.75)};
         border-bottom: 0;
