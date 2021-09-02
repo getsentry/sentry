@@ -182,9 +182,6 @@ class ModelDeletionTask(BaseDeletionTask):
         query_limit = self.query_limit
         remaining = self.chunk_size
         has_more = True
-        # TODO(mark) This loop results in all of the work being done in
-        # one chunk/task. This loop would need to be removed if we want
-        # smaller chunks of work.
         while remaining > 0:
             queryset = getattr(self.model, self.manager_name).filter(**self.query)
             if self.order_by:
