@@ -303,13 +303,15 @@ def frame(frame, event, context, **meta):
             context=context,
         )
 
+    context_line_available = context_line_component and context_line_component.contributes
+
     function_component = get_function_component(
         context=context,
         function=frame.function,
         raw_function=frame.raw_function,
         platform=platform,
         sourcemap_used=frame.data and frame.data.get("sourcemap") is not None,
-        context_line_available=context_line_component and context_line_component.contributes,
+        context_line_available=context_line_available,
     )
 
     values = [module_component, filename_component, function_component]
