@@ -36,6 +36,15 @@ export const SELF_NOTIFICATION_SETTINGS_TYPES = [
   'selfAssignOnResolve',
 ];
 
-export const CONFIRMATION_MESSAGE = t(
-  'Setting the default to "never" will irreversibly overwrite all of your fine-tuning settings. Continue?'
+export const CONFIRMATION_MESSAGE = (
+  <div>
+    <p style={{marginBottom: '20px'}}>
+      <strong>Are you sure you want to disable these notifications?</strong>
+    </p>
+    <p>
+      {t(
+        'Turning this off will irreversibly overwrite all of your fine-tuning settings to "off".'
+      )}
+    </p>
+  </div>
 );
