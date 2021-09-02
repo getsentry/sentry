@@ -12,6 +12,8 @@ from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.query import SelectableExpression
 
 from sentry.models import Project
+from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     InvalidField,
     InvalidParams,
@@ -369,49 +371,6 @@ class MockDataSource(IndexMockingDataSource):
         }
 
 
-class StringType(enum.Enum):
-    """Type for string indexing"""
-
-    METRIC = 1
-    TAG_KEY = 2
-    TAG_VALUE = 3
-
-
-class StringIndexer:
-    """
-    Converts metrics tags from integer to string and vice versa.
-
-    Currently mocked & limited to a set of known metrics / tags.
-
-    TODO: Make this a utils.Service
-    """
-
-    _to_int = {
-        "abnormal": 0,
-        "crashed": 1,
-        "environment": 2,
-        "errored": 3,
-        "healthy": 4,
-        "production": 5,
-        "release": 6,
-        "session.duration": 7,
-        "session.status": 8,
-        "session": 9,
-        "staging": 10,
-        "user": 11,
-    }
-    _to_string = {value: key for key, value in _to_int.items()}
-
-    def get_string(self, project_id: int, type: StringType, n: int) -> str:
-        return self._to_string[n]
-
-    def get_int(self, project_id: int, type: StringType, s: str) -> int:
-        return self._to_int[s]
-
-
-STRING_INDEXER = StringIndexer()
-
-
 PERCENTILE_INDEX = {}
 
 
@@ -460,7 +419,7 @@ class SnubaQueryBuilder:
 
         def to_int(string_type, string):
             try:
-                return STRING_INDEXER.get_int(self._project.id, string_type, string)
+                return indexer.resolve(self._project.id, string_type, string)
             except KeyError:
                 return None
 
@@ -471,9 +430,9 @@ class SnubaQueryBuilder:
                     And,
                     [
                         Condition(
-                            Column(f"tags[{to_int(StringType.TAG_KEY, tag)}]"),
+                            Column(f"tags[{to_int(UseCase.TAG_KEY, tag)}]"),
                             Op.EQ,
-                            to_int(StringType.TAG_VALUE, value),
+                            to_int(UseCase.TAG_VALUE, value),
                         )
                         for tag, value in or_operand["and"]
                     ],
@@ -492,7 +451,7 @@ class SnubaQueryBuilder:
                 Column("metric_id"),
                 Op.IN,
                 [
-                    STRING_INDEXER.get_int(self._project.id, StringType.METRIC, name)
+                    indexer.resolve(self._project.id, UseCase.METRIC, name)
                     for _, name in query_definition.fields.values()
                 ],
             ),
@@ -507,7 +466,7 @@ class SnubaQueryBuilder:
 
     def _build_groupby(self, query_definition: QueryDefinition) -> List[SelectableExpression]:
         return [Column("metric_id")] + [
-            Column(f"tags[{STRING_INDEXER.get_int(self._project.id, StringType.TAG_KEY, field)}]")
+            Column(f"tags[{indexer.resolve(self._project.id, UseCase.TAG_KEY, field)}]")
             for field in query_definition.groupby
         ]
 
@@ -577,7 +536,7 @@ class SnubaResultConverter:
 
     def _parse_tag(self, tag_string: str) -> str:
         tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
-        return STRING_INDEXER.get_string(self._project_id, StringType.TAG_KEY, tag_key)
+        return indexer.reverse_resolve(self._project_id, UseCase.TAG_KEY, tag_key)
 
     def _extract_data(self, entity, data, groups):
         tags = tuple((key, data[key]) for key in sorted(data.keys()) if key.startswith("tags["))
@@ -592,9 +551,7 @@ class SnubaResultConverter:
             # Create an entry for current timestamp
             target = tag_data["series"].setdefault(timestamp, {})
 
-        metric_name = STRING_INDEXER.get_string(
-            self._project_id, StringType.METRIC, data["metric_id"]
-        )
+        metric_name = indexer.reverse_resolve(self._project_id, UseCase.METRIC, data["metric_id"])
 
         ops = self._ops_by_metric[metric_name]
         for op in ops:
@@ -627,8 +584,8 @@ class SnubaResultConverter:
         groups = [
             dict(
                 by={
-                    self._parse_tag(key): STRING_INDEXER.get_string(
-                        project_id, StringType.TAG_VALUE, value
+                    self._parse_tag(key): indexer.reverse_resolve(
+                        project_id, UseCase.TAG_VALUE, value
                     )
                     for key, value in tags
                 },
