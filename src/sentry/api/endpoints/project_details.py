@@ -26,6 +26,7 @@ from sentry.lang.native.symbolicator import (
     InvalidSourcesError,
     parse_backfill_sources,
     parse_sources,
+    redact_source_secrets,
 )
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
@@ -559,7 +560,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ]
         if result.get("symbolSources") is not None:
             if project.update_option("sentry:symbol_sources", result["symbolSources"]):
-                changed_proj_settings["sentry:symbol_sources"] = result["symbolSources"] or None
+                # Redact secrets so they don't get logged directly to the Audit Log
+                sources_json = result["symbolSources"] or None
+                try:
+                    sources = parse_sources(sources_json)
+                except Exception:
+                    sources = []
+                redacted_sources = redact_source_secrets(sources)
+                changed_proj_settings["sentry:symbol_sources"] = redacted_sources
         if "defaultEnvironment" in result:
             if result["defaultEnvironment"] is None:
                 project.delete_option("sentry:default_environment")

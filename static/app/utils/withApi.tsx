@@ -9,6 +9,8 @@ type InjectedApiProps = {
 type WrappedProps<P> = Omit<P, keyof InjectedApiProps> & Partial<InjectedApiProps>;
 
 /**
+ * XXX: Prefer useApi if you are wrapping a Function Component!
+ *
  * React Higher-Order Component (HoC) that provides "api" client when mounted,
  * and clears API requests when component is unmounted.
  *

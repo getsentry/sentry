@@ -2,6 +2,7 @@
 # Module containing code shared across various shell scripts
 # Execute functions from this module via the script do.sh
 # shellcheck disable=SC2034 # Unused variables
+# shellcheck disable=SC2001 # https://github.com/koalaman/shellcheck/wiki/SC2001
 
 # This block is a safe-guard since in CI calling tput will fail and abort scripts
 if [ -z "${CI+x}" ]; then
@@ -55,11 +56,19 @@ get-pyenv-version() {
 
 query-valid-python-version() {
     python_version=$(python3 -V 2>&1 | awk '{print $2}')
-    if [ "${python_version}" == 3.6.13 ] || [ "${python_version}" == 3.8.11 ]; then
-        return 0
-    else
+    minor=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\1/')
+    patch=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\2/')
+
+    # For Apple M1, we only allow 3.8 and at least patch version 10
+    if query-apple-m1; then
+        if [ "$minor" -ne 8 ] || [ "$patch" -lt 10 ]; then
+            return 1
+        fi
+    # For everything else, we only allow 3.6
+    elif [ "$minor" -ne 6 ]; then
         return 1
     fi
+    return 0
 }
 
 sudo-askpass() {

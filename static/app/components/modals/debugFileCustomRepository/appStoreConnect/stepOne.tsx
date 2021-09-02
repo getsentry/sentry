@@ -58,7 +58,7 @@ function StepOne({stepOneData, onSetStepOneData}: Props) {
           placeholder={
             stepOneData.privateKey === undefined
               ? t('(Private Key unchanged)')
-              : t('Private Key')
+              : '-----BEGIN PRIVATE KEY-----\n[PRIVATE-KEY]\n-----END PRIVATE KEY-----'
           }
           onChange={e =>
             onSetStepOneData({
