@@ -27,7 +27,7 @@ export type ConfirmMessageRenderProps = {
    * This should be called in the components componentDidMount.
    */
   setConfirmCallback: (cb: () => void) => void;
-  selectedValue?: string;
+  selectedValue?: any;
 };
 
 export type ConfirmButtonsRenderProps = {
@@ -50,7 +50,7 @@ export type OpenConfirmOptions = {
   /**
    * Callback when user confirms
    */
-  onConfirm?: () => void;
+  onConfirm?: (selectedValue?: any) => void;
   /**
    * Custom function to render the confirm button
    */
@@ -241,12 +241,12 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
   };
 
   handleConfirm = () => {
-    const {onConfirm, closeModal} = this.props;
+    const {onConfirm, closeModal, selectedValue} = this.props;
 
     // `confirming` is used to ensure `onConfirm` or the confirm callback is
     // only called once
     if (!this.confirming) {
-      onConfirm?.();
+      onConfirm?.(selectedValue);
       this.state.confirmCallback?.();
     }
 

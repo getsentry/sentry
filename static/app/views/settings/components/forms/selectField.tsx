@@ -90,7 +90,7 @@ export default class SelectField<
           <Confirm
             renderMessage={({selectedValue}) =>
               confirm && selectedValue
-                ? confirm[selectedValue]
+                ? confirm[selectedValue.value]
                 : // Set a default confirm message
                   t('Continue with these changes?')
             }
@@ -103,14 +103,10 @@ export default class SelectField<
                 clearable={allowClear}
                 multiple={multiple}
                 onChange={val => {
-                  const previousValue = props.value.toString();
-                  const newValue = val.value.toString();
-                  if (
-                    confirm &&
-                    (!confirm.values || confirm.values.includes(newValue)) &&
-                    previousValue !== newValue
-                  ) {
-                    open(undefined, newValue);
+                  const previousValue = props.value?.toString();
+                  const newValue = val.value?.toString();
+                  if (confirm && confirm[newValue] && previousValue !== newValue) {
+                    open(undefined, val);
                     return;
                   }
                   this.handleChange.bind(this, onBlur, onChange)(val);
