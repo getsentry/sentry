@@ -1,8 +1,9 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import FeatureBadge from 'app/components/featureBadge';
 import LoadingError from 'app/components/loadingError';
 import {Panel} from 'app/components/panels';
 import {t, tct} from 'app/locale';
@@ -32,10 +33,18 @@ type Props = {
   groupId: Group['id'];
   orgSlug: Organization['slug'];
   projSlug: Project['slug'];
+  hasProjectWriteAccess: boolean;
   onRetry: () => void;
 };
 
-function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
+function ErrorMessage({
+  error,
+  groupId,
+  onRetry,
+  orgSlug,
+  projSlug,
+  hasProjectWriteAccess,
+}: Props) {
   function getErrorDetails(errorCode: ErrorCode) {
     switch (errorCode) {
       case 'merged_issues':
@@ -73,9 +82,14 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
         };
       case 'project_not_hierarchical':
         return {
-          title: t('Update your Grouping Config'),
+          title: (
+            <Fragment>
+              {t('Update your Grouping Config')}
+              <FeatureBadge type="beta" />
+            </Fragment>
+          ),
           subTitle: (
-            <React.Fragment>
+            <Fragment>
               <p>
                 {t(
                   'Enable advanced grouping insights and functionality by updating this project to the latest Grouping Config:'
@@ -96,7 +110,7 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
                   )}
                 </li>
               </ul>
-            </React.Fragment>
+            </Fragment>
           ),
           leftAligned: true,
           action: (
@@ -104,8 +118,14 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
               <Button
                 priority="primary"
                 to={`/settings/${orgSlug}/projects/${projSlug}/issue-grouping/#upgrade-grouping`}
+                disabled={!hasProjectWriteAccess}
+                title={
+                  !hasProjectWriteAccess
+                    ? t('You do not have permission to update this project')
+                    : undefined
+                }
               >
-                {t('Upgrade Grouping Config')}
+                {t('Upgrade Grouping Strategy')}
               </Button>
               <Button href="https://docs.sentry.io/product/data-management-settings/event-grouping/grouping-breakdown/">
                 {t('Read the docs')}

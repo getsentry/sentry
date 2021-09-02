@@ -22,7 +22,7 @@ import {SidebarSpacer} from 'app/views/performance/transactionSummary/utils';
 import {SpanOperationBreakdownFilter} from '../filter';
 import TransactionHeader from '../header';
 import Tab from '../tabs';
-import {getTransactionField} from '../tagExplorer';
+import {getTransactionField} from '../transactionOverview/tagExplorer';
 
 import TagsDisplay from './tagsDisplay';
 import {decodeSelectedTagKey} from './utils';

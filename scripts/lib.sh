@@ -1,6 +1,19 @@
 #!/bin/bash
 # Module containing code shared across various shell scripts
 # Execute functions from this module via the script do.sh
+# shellcheck disable=SC2034 # Unused variables
+
+# This block is a safe-guard since in CI calling tput will fail and abort scripts
+if [ -z "${CI+x}" ]; then
+    bold="$(tput bold)"
+    red="$(tput setaf 1)"
+    green="$(tput setaf 2)"
+    yellow="$(tput setaf 3)"
+    reset="$(tput sgr0)"
+fi
+
+# NOTE: This file is sourced in CI across different repos (e.g. snuba),
+# so renaming this file or any functions can break CI!
 
 # Check if a command is available
 require() {
@@ -20,11 +33,33 @@ query-mac() {
     [[ $(uname -s) = 'Darwin' ]]
 }
 
-query_big_sur() {
+query-big-sur() {
     if require sw_vers && sw_vers -productVersion | grep -E "11\." >/dev/null; then
         return 0
     fi
     return 1
+}
+
+query-apple-m1() {
+    query-mac && [[ $(uname -m) = 'arm64' ]]
+}
+
+get-pyenv-version() {
+    local PYENV_VERSION
+    PYENV_VERSION=3.6.13
+    if query-apple-m1; then
+        PYENV_VERSION=3.8.11
+    fi
+    echo "${PYENV_VERSION}"
+}
+
+query-valid-python-version() {
+    python_version=$(python3 -V 2>&1 | awk '{print $2}')
+    if [ "${python_version}" == 3.6.13 ] || [ "${python_version}" == 3.8.11 ]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 sudo-askpass() {
