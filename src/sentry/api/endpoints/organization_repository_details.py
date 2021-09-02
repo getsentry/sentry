@@ -93,21 +93,22 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         except Repository.DoesNotExist:
             raise ResourceDoesNotExist
 
-        updated = Repository.objects.filter(
-            id=repo.id, status__in=[ObjectStatus.VISIBLE, ObjectStatus.DISABLED]
-        ).update(status=ObjectStatus.PENDING_DELETION)
-        if updated:
-            repo.status = ObjectStatus.PENDING_DELETION
+        with transaction.atomic():
+            updated = Repository.objects.filter(
+                id=repo.id, status__in=[ObjectStatus.VISIBLE, ObjectStatus.DISABLED]
+            ).update(status=ObjectStatus.PENDING_DELETION)
+            if updated:
+                repo.status = ObjectStatus.PENDING_DELETION
 
-            # if repo doesn't have commits, delete immediately
-            has_commits = Commit.objects.filter(
-                repository_id=repo.id, organization_id=organization.id
-            ).exists()
-            repo.rename_on_pending_deletion()
+                # if repo doesn't have commits, delete immediately
+                has_commits = Commit.objects.filter(
+                    repository_id=repo.id, organization_id=organization.id
+                ).exists()
+                repo.rename_on_pending_deletion()
 
-            if has_commits:
-                ScheduledDeletion.schedule(repo, days=0, hours=1, actor=request.user)
-            else:
-                ScheduledDeletion.schedule(repo, days=0, actor=request.user)
+                if has_commits:
+                    ScheduledDeletion.schedule(repo, days=0, hours=1, actor=request.user)
+                else:
+                    ScheduledDeletion.schedule(repo, days=0, actor=request.user)
 
         return Response(serialize(repo, request.user), status=202)
