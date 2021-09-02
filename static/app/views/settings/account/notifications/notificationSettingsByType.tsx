@@ -5,6 +5,7 @@ import {t} from 'app/locale';
 import {Organization, OrganizationSummary} from 'app/types';
 import withOrganizations from 'app/utils/withOrganizations';
 import {
+  CONFIRMATION_MESSAGE,
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
 } from 'app/views/settings/account/notifications/constants';
@@ -175,11 +176,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       }
     );
     if (isSufficientlyComplex(notificationType, notificationSettings)) {
-      defaultField.confirm = {
-        never: t(
-          'Setting the default to "never" will irreversibly overwrite all of your fine-tuning settings. Continue?'
-        ),
-      };
+      defaultField.confirm = {never: CONFIRMATION_MESSAGE};
     }
 
     const fields = [defaultField];

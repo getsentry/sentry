@@ -1,3 +1,5 @@
+import {t} from 'app/locale';
+
 export const ALL_PROVIDERS = {
   email: 'default',
   slack: 'never',
@@ -33,3 +35,7 @@ export const SELF_NOTIFICATION_SETTINGS_TYPES = [
   'personalActivityNotifications',
   'selfAssignOnResolve',
 ];
+
+export const CONFIRMATION_MESSAGE = t(
+  'Setting the default to "never" will irreversibly overwrite all of your fine-tuning settings. Continue?'
+);

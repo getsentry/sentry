@@ -6,6 +6,7 @@ import Link from 'app/components/links/link';
 import {IconMail} from 'app/icons';
 import {t} from 'app/locale';
 import {
+  CONFIRMATION_MESSAGE,
   NOTIFICATION_SETTINGS_TYPES,
   NotificationSettingsObject,
   SELF_NOTIFICATION_SETTINGS_TYPES,
@@ -111,11 +112,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
         isSufficientlyComplex(notificationType, notificationSettings) &&
         typeof field !== 'function'
       ) {
-        field.confirm = {
-          never: t(
-            'Setting the default to "never" will irreversibly overwrite all of your fine-tuning settings. Continue?'
-          ),
-        };
+        field.confirm = {never: CONFIRMATION_MESSAGE};
       }
 
       fields.push(field);
