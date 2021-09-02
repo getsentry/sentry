@@ -176,7 +176,7 @@ class ProjectRuleConfigurationTest(APITestCase):
             "actionType": "sentryapp",
             "prompt": sentry_app.name,
             "enabled": True,
-            "label": "Create Task with App",
+            "label": "Create Task with App with these ",
             "formfields": {
                 "type": "alert-rule-settings",
                 "uri": "/sentry/alert-rule",

@@ -27,7 +27,7 @@ export type IssueAlertRuleActionTemplate = {
   label: string;
   prompt: string;
   enabled: boolean;
-  actionType?: 'ticket';
+  actionType?: 'ticket' | 'sentryapp';
   formFields?: {
     [key: string]: IssueAlertRuleFormField;
   };
