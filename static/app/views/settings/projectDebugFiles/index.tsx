@@ -187,7 +187,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
               api={this.api}
               location={location}
               router={router}
-              projectSlug={project.slug}
+              projSlug={project.slug}
               organization={organization}
               customRepositories={
                 (project.symbolSources
@@ -202,7 +202,6 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
 
         <Wrapper>
           <TextBlock noMargin>{t('Uploaded debug information files')}</TextBlock>
-
           <Filters>
             <Label>
               <Checkbox

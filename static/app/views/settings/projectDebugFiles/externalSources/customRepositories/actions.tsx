@@ -11,10 +11,12 @@ import DropdownLink from 'app/components/dropdownLink';
 import {IconEllipsis} from 'app/icons/iconEllipsis';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {CustomRepoType} from 'app/types/debugFiles';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
 type Props = {
   repositoryName: string;
+  repositoryType: string;
   isDetailsExpanded: boolean;
   isDetailsDisabled: boolean;
   onToggleDetails: () => void;
@@ -25,6 +27,7 @@ type Props = {
 
 function Actions({
   repositoryName,
+  repositoryType,
   isDetailsExpanded,
   isDetailsDisabled,
   onToggleDetails,
@@ -37,18 +40,35 @@ function Actions({
       <ConfirmDelete
         confirmText={t('Delete Repository')}
         message={
-          <Fragment>
-            <TextBlock>
-              <strong>
-                {t('Removing this repository applies instantly to new events.')}
-              </strong>
-            </TextBlock>
-            <TextBlock>
-              {t(
-                'Debug files from this repository will not be used to symbolicate future events. This may create new issues and alert members in your organization.'
-              )}
-            </TextBlock>
-          </Fragment>
+          repositoryType === CustomRepoType.APP_STORE_CONNECT ? (
+            <Fragment>
+              <TextBlock>
+                <strong>
+                  {t(
+                    'Removing App Store Connect symbol source does not remove current dSYMs.'
+                  )}
+                </strong>
+              </TextBlock>
+              <TextBlock>
+                {t(
+                  'The App Store Connect symbol source periodically imports dSYMs into the "Uploaded debug information files". Removing this symbol source does not delete those files and they will remain available for symbolication until deleted directly.'
+                )}
+              </TextBlock>
+            </Fragment>
+          ) : (
+            <Fragment>
+              <TextBlock>
+                <strong>
+                  {t('Removing this repository applies instantly to new events.')}
+                </strong>
+              </TextBlock>
+              <TextBlock>
+                {t(
+                  'Debug files from this repository will not be used to symbolicate future events. This may create new issues and alert members in your organization.'
+                )}
+              </TextBlock>
+            </Fragment>
+          )
         }
         confirmInput={repositoryName}
         priority="danger"
