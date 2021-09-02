@@ -1,6 +1,6 @@
-from typing import List, Optional, Tuple
+from typing import Optional
 
-from sentry.models import Project
+from sentry.models import Organization
 
 from .base import StringIndexer, UseCase
 
@@ -20,41 +20,22 @@ _STRINGS = {
 }
 _REVERSE = {v: k for k, v in _STRINGS.items()}
 
-_METRICS = [
-    "session.duration",
-    "session",
-    "user",
-]
-
-_TAGS = {
-    "environment": [
-        "production",
-        "staging",
-    ],
-    "session.status": [
-        "abnormal",
-        "crashed",
-        "errored",
-        "healthy",
-    ],
-}
-
 
 class MockIndexer(StringIndexer):
     """
     Mock string indexer
     """
 
-    def record_metric(self, project: Project, string: str) -> int:
+    def record(self, organization: Organization, use_case: UseCase, string: str) -> int:
         """Mock indexer cannot record."""
-        raise NotImplementedError
+        raise NotImplementedError()
 
-    def record_tag(self, project: Project, metric: str, key: str, value: str) -> Tuple[int, int]:
-        """Mock indexer cannot record."""
-        raise NotImplementedError
-
-    def resolve(self, project: Project, use_case: UseCase, string: str) -> Optional[int]:
+    def resolve(self, organization: Organization, use_case: UseCase, string: str) -> Optional[int]:
+        # NOTE: Ignores ``use_case`` for simplicity.
         return _STRINGS.get(string)
 
-    def reverse_resolve(self, project: Project, use_case: UseCase, id: int) -> Optional[str]:
+    def reverse_resolve(
+        self, organization: Organization, use_case: UseCase, id: int
+    ) -> Optional[str]:
+        # NOTE: Ignores ``use_case`` for simplicity.
         return _REVERSE.get(id)
