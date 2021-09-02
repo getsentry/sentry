@@ -524,7 +524,7 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
                 "latestBuildVersion": latestBuildVersion,
                 "latestBuildNumber": latestBuildNumber,
                 "lastCheckedBuilds": last_checked_builds,
-                "promptItunesSession": pending_downloads and itunes_session_info is None,
+                "promptItunesSession": bool(pending_downloads and itunes_session_info is None),
             },
             status=200,
         )
