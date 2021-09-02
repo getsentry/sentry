@@ -821,6 +821,7 @@ def _tsdb_record_all_metrics(jobs):
 
 @metrics.wraps("save_event.nodestore_save_many")
 def _nodestore_save_many(jobs):
+    inserted_time = datetime.utcnow().replace(tzinfo=UTC).timestamp()
     for job in jobs:
         # Write the event to Nodestore
         subkeys = {}
@@ -834,6 +835,7 @@ def _nodestore_save_many(jobs):
             if data is not None:
                 subkeys["unprocessed"] = data
 
+        job["event"].data["nodestore_insert"] = inserted_time
         job["event"].data.save(subkeys=subkeys)
 
 
