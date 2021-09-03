@@ -197,10 +197,6 @@ class Endpoint(APIView):
         # the request (happens via middleware/stats.py).
         request._metric_tags = {}
 
-        if hasattr(self.request.successful_authenticator, "token_name"):
-            if self.request.successful_authenticator.token_name == "bearer":
-                request._metric_tags["backend_request"] = True
-
         if settings.SENTRY_API_RESPONSE_DELAY:
             start_time = time.time()
 
@@ -237,6 +233,10 @@ class Endpoint(APIView):
                 if getattr(request, "access", None) is None:
                     # setup default access
                     request.access = access.from_request(request)
+
+            if hasattr(self.request.successful_authenticator, "token_name"):
+                if self.request.successful_authenticator.token_name == "bearer":
+                    request._metric_tags["backend_request"] = True
 
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
