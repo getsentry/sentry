@@ -19,21 +19,19 @@ import DataSection from '../dataSection';
 import ImageVisualization from './imageVisualization';
 import Modal, {modalCss} from './modal';
 
-type Screenshot = Omit<EventAttachment, 'event_id'>;
-
 type Props = {
   event: Event;
   organization: Organization;
   projectSlug: Project['slug'];
-  screenshot: Screenshot;
-  onDelete: (attachmentId: Screenshot['id']) => void;
+  screenshot: EventAttachment;
+  onDelete: (attachmentId: EventAttachment['id']) => void;
 };
 
 function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Props) {
   const orgSlug = organization.slug;
 
   function handleOpenVisualizationModal(
-    eventAttachment: Screenshot,
+    eventAttachment: EventAttachment,
     downloadUrl: string
   ) {
     openModal(
@@ -52,7 +50,7 @@ function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Pr
     );
   }
 
-  function renderContent(screenshotAttachment: Screenshot) {
+  function renderContent(screenshotAttachment: EventAttachment) {
     const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/attachments/${screenshotAttachment.id}/`;
 
     return (

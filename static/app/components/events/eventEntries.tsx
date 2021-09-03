@@ -27,9 +27,9 @@ import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
-  EventAttachment,
   ExceptionValue,
   Group,
+  IssueAttachment,
   Organization,
   Project,
   SharedViewOrganization,
@@ -88,7 +88,7 @@ const EventEntries = memo(
   }: Props) => {
     const [isLoading, setIsLoading] = useState(true);
     const [proGuardErrors, setProGuardErrors] = useState<ProGuardErrors>([]);
-    const [attachments, setAttachments] = useState<EventAttachment[]>([]);
+    const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
 
     const orgSlug = organization.slug;
     const projectSlug = project.slug;
@@ -325,7 +325,7 @@ const EventEntries = memo(
       ));
     }
 
-    async function handleDeleteAttachment(attachmentId: EventAttachment['id']) {
+    async function handleDeleteAttachment(attachmentId: IssueAttachment['id']) {
       if (!event) {
         return;
       }

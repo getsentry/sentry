@@ -5,9 +5,7 @@ export type ViewerProps = {
   event: Event;
   orgId: string;
   projectId: string;
-  attachment: Omit<EventAttachment, 'event_id'> & {
-    event_id?: string;
-  };
+  attachment: EventAttachment;
   className?: string;
 };
 

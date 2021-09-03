@@ -17,10 +17,8 @@ import getDynamicText from 'app/utils/getDynamicText';
 
 import ImageVisualization from './imageVisualization';
 
-type Screenshot = Omit<EventAttachment, 'event_id'>;
-
 type Props = ModalRenderProps & {
-  eventAttachment: Screenshot;
+  eventAttachment: EventAttachment;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   event: Event;
