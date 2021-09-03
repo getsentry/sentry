@@ -5,80 +5,21 @@ from typing import AbstractSet, Any, Mapping, MutableMapping, Optional, Set, Uni
 from sentry import analytics
 from sentry.integrations.slack.client import SlackClient  # NOQA
 from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
-from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
-from sentry.notifications.notifications.activity.base import ActivityNotification
+from sentry.models import Organization, Team, User
+from sentry.notifications.integrations import (
+    get_channel_and_integration_by_team,
+    get_channel_and_integration_by_user,
+    get_context,
+    get_key,
+)
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, metrics
 
 logger = logging.getLogger("sentry.notifications")
 SLACK_TIMEOUT = 5
-
-
-def get_context(
-    notification: BaseNotification,
-    recipient: Union[User, Team],
-    shared_context: Mapping[str, Any],
-    extra_context: Mapping[str, Any],
-) -> Mapping[str, Any]:
-    """Compose the various levels of context and add Slack-specific fields."""
-    return {
-        **shared_context,
-        **notification.get_user_context(recipient, extra_context),
-    }
-
-
-def get_channel_and_integration_by_user(
-    user: User, organization: Organization
-) -> Mapping[str, Integration]:
-
-    identities = Identity.objects.filter(
-        idp__type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
-        user=user.id,
-    ).select_related("idp")
-
-    if not identities:
-        # The user may not have linked their identity so just move on
-        # since there are likely other users or teams in the list of
-        # recipients.
-        return {}
-
-    integrations = Integration.objects.filter(
-        provider=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
-        organizations=organization,
-        external_id__in=[identity.idp.external_id for identity in identities],
-    )
-
-    channels_to_integration = {}
-    for identity in identities:
-        for integration in integrations:
-            if identity.idp.external_id == integration.external_id:
-                channels_to_integration[identity.external_id] = integration
-                break
-
-    return channels_to_integration
-
-
-def get_channel_and_integration_by_team(
-    team: Team, organization: Organization
-) -> Mapping[str, Integration]:
-    try:
-        external_actor = (
-            ExternalActor.objects.filter(
-                provider=ExternalProviders.SLACK.value,
-                actor_id=team.actor_id,
-                organization=organization,
-            )
-            .select_related("integration")
-            .get()
-        )
-    except ExternalActor.DoesNotExist:
-        return {}
-
-    return {external_actor.external_id: external_actor.integration}
 
 
 def get_channel_and_token_by_recipient(
@@ -87,9 +28,11 @@ def get_channel_and_token_by_recipient(
     output: MutableMapping[Union[User, Team], MutableMapping[str, str]] = defaultdict(dict)
     for recipient in recipients:
         channels_to_integrations = (
-            get_channel_and_integration_by_user(recipient, organization)
+            get_channel_and_integration_by_user(recipient, organization, ExternalProviders.SLACK)
             if isinstance(recipient, User)
-            else get_channel_and_integration_by_team(recipient, organization)
+            else get_channel_and_integration_by_team(
+                recipient, organization, ExternalProviders.SLACK
+            )
         )
         for channel, integration in channels_to_integrations.items():
             try:
@@ -107,15 +50,6 @@ def get_channel_and_token_by_recipient(
 
             output[recipient][channel] = token
     return output
-
-
-def get_key(notification: BaseNotification) -> str:
-    if isinstance(notification, ActivityNotification):
-        return "activity"
-    elif isinstance(notification, AlertRuleNotification):
-        return "issue_alert"
-    else:
-        return ""
 
 
 @register_notification_provider(ExternalProviders.SLACK)

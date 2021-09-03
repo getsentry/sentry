@@ -49,6 +49,7 @@ logger = logging.getLogger(__name__)
 AVAILABLE_PROVIDERS = {
     ExternalProviders.EMAIL,
     ExternalProviders.SLACK,
+    ExternalProviders.MSTEAMS,
 }
 
 

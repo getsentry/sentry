@@ -62,6 +62,7 @@ class NotificationSetting(Model):
     provider = BoundedPositiveIntegerField(
         choices=(
             (ExternalProviders.EMAIL, "email"),
+            (ExternalProviders.MSTEAMS, "msteams"),
             (ExternalProviders.SLACK, "slack"),
         ),
         null=False,
