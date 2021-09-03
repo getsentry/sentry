@@ -1,8 +1,8 @@
 from abc import ABC
 from typing import Any, Optional
 
+from sentry.integrations.base import AbstractMessageBuilder
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackAttachment, SlackBody
-from sentry.integrations.slack.message_builder.base import AbstractMessageBuilder
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 

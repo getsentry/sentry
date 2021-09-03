@@ -1,4 +1,5 @@
 __all__ = [
+    "AbstractMessageBuilder",
     "IntegrationInstallation",
     "IntegrationFeatures",
     "IntegrationProvider",
@@ -8,6 +9,7 @@ __all__ = [
 
 import logging
 import sys
+from abc import ABC
 from collections import namedtuple
 from enum import Enum
 from typing import Any, Dict, FrozenSet, Mapping, Optional, Sequence
@@ -387,3 +389,7 @@ class IntegrationInstallation:
         task.
         """
         pass
+
+
+class AbstractMessageBuilder(ABC):
+    pass
