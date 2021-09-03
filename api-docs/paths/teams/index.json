@@ -184,11 +184,11 @@
             "properties": {
               "name": {
                 "type": "string",
-                "description": "The name of the team.",
+                "description": "The name of the team."
               },
               "slug": {
                 "type": "string",
-                "description": "The optional slug for this team. If not provided it will be auto generated from the name.",
+                "description": "The optional slug for this team. If not provided it will be auto generated from the name."
               }
             }
           },

@@ -134,7 +134,7 @@
                                 "type": "string"
                             },
                             "groups": {
-                                "type": "array"
+                                "$ref": "../../components/schemas/scim/group_list.json#/GroupList"
                             }
                         }
                     },
