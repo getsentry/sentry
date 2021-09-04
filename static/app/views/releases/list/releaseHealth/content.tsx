@@ -32,7 +32,7 @@ import {DisplayOption} from '../utils';
 import Header from './header';
 import ProjectLink from './projectLink';
 
-const ADOPTION_STAGE_LABELS: Record<
+export const ADOPTION_STAGE_LABELS: Record<
   string,
   {name: string; tooltipTitle: string; type: keyof Theme['tag']}
 > = {

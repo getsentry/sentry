@@ -7,6 +7,7 @@ import {SectionHeading} from 'app/components/charts/styles';
 import Count from 'app/components/count';
 import DeployBadge from 'app/components/deployBadge';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import SidebarSection from 'app/components/group/sidebarSection';
 import NotAvailable from 'app/components/notAvailable';
 import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
@@ -113,28 +114,30 @@ function ReleaseStats({
   return (
     <Container>
       <div>
-        <SectionHeading>
-          {lastDeploy?.dateFinished ? t('Date Deployed') : t('Date Created')}
-        </SectionHeading>
-        <SectionContent>
-          <TimeSince date={lastDeploy?.dateFinished ?? dateCreated} />
-        </SectionContent>
+        <StyledSidebarSection
+          title={lastDeploy?.dateFinished ? t('Date Deployed') : t('Date Created')}
+        >
+          <SectionContent>
+            <TimeSince date={lastDeploy?.dateFinished ?? dateCreated} />
+          </SectionContent>
+        </StyledSidebarSection>
       </div>
 
       <div>
-        <SectionHeading>{t('Last Deploy')}</SectionHeading>
-        <SectionContent>
-          {lastDeploy?.dateFinished ? (
-            <DeployBadge
-              deploy={lastDeploy}
-              orgSlug={organization.slug}
-              version={version}
-              projectId={project.id}
-            />
-          ) : (
-            <NotAvailable />
-          )}
-        </SectionContent>
+        <StyledSidebarSection title={t('Last Deploy')}>
+          <SectionContent>
+            {lastDeploy?.dateFinished ? (
+              <DeployBadge
+                deploy={lastDeploy}
+                orgSlug={organization.slug}
+                version={version}
+                projectId={project.id}
+              />
+            ) : (
+              <NotAvailable />
+            )}
+          </SectionContent>
+        </StyledSidebarSection>
       </div>
 
       {!organization.features.includes('release-comparison') && (
@@ -339,10 +342,22 @@ const Container = styled('div')`
   display: grid;
   grid-template-columns: 50% 50%;
   grid-row-gap: ${space(2)};
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(1)};
+`;
+const StyledSidebarSection = styled(SidebarSection)`
+  margin-bottom: ${space(1)};
+  &:after {
+    flex: 1;
+    display: block;
+    content: '';
+    border: none;
+    margin-left: ${space(1)};
+  }
 `;
 
-const SectionContent = styled('div')``;
+const SectionContent = styled('div')`
+  color: ${p => p.theme.gray400};
+`;
 
 const CrashFreeSection = styled('div')`
   grid-column: 1/3;

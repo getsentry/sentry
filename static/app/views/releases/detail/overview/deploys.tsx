@@ -1,13 +1,14 @@
 import styled from '@emotion/styled';
 
 import DeployBadge from 'app/components/deployBadge';
+import SidebarSection from 'app/components/group/sidebarSection';
 import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Deploy} from 'app/types';
 
-import {SectionHeading, Wrapper} from './styles';
+import {Wrapper} from './styles';
 
 type Props = {
   version: string;
@@ -19,21 +20,21 @@ type Props = {
 const Deploys = ({version, orgSlug, projectId, deploys}: Props) => {
   return (
     <Wrapper>
-      <SectionHeading>{t('Deploys')}</SectionHeading>
-
-      {deploys.map(deploy => (
-        <Row key={deploy.id}>
-          <StyledDeployBadge
-            deploy={deploy}
-            orgSlug={orgSlug}
-            version={version}
-            projectId={projectId}
-          />
-          <TextOverflow>
-            <TimeSince date={deploy.dateFinished} />
-          </TextOverflow>
-        </Row>
-      ))}
+      <SidebarSection title={t('Deploys')}>
+        {deploys.map(deploy => (
+          <Row key={deploy.id}>
+            <StyledDeployBadge
+              deploy={deploy}
+              orgSlug={orgSlug}
+              version={version}
+              projectId={projectId}
+            />
+            <TextOverflow>
+              <TimeSince date={deploy.dateFinished} />
+            </TextOverflow>
+          </Row>
+        ))}
+      </SidebarSection>
     </Wrapper>
   );
 };
