@@ -45,7 +45,7 @@
       "series": {
         "type": "object",
         "description": "These are key/value pairs, the key being the requested `field`, and the value is an array of aggregated values. The array corresponds to the times given in the `intervals` array.",
-        "additionalProperties": {"type": "array"}
+        "additionalProperties": {"type": "array", "items": {"type": "integer"}}
       }
     }
   }
