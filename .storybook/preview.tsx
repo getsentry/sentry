@@ -8,6 +8,8 @@ import {ThemeProvider} from 'emotion-theming';
 import ColorChip from '../docs-ui/components/colorChip';
 import DocsLinks from '../docs-ui/components/docsLinks';
 import DoDont from '../docs-ui/components/doDont';
+import Surface from '../docs-ui/components/surface';
+import TableOfContents from '../docs-ui/components/tableOfContents';
 import GlobalStyles from '../static/app/styles/global';
 import {darkTheme, lightTheme} from '../static/app/utils/theme';
 
@@ -48,6 +50,7 @@ const withThemeDocs: DecoratorFn = ({children, context}) => {
       <GlobalStyles isDark={isDark} theme={currentTheme} />
       <PreviewGlobalStyles theme={currentTheme} />
       <DocsContainer context={context}>{children}</DocsContainer>
+      <TableOfContents />
     </ThemeProvider>
   );
 };
@@ -56,7 +59,7 @@ const withThemeDocs: DecoratorFn = ({children, context}) => {
 addParameters({
   docs: {
     container: withThemeDocs,
-    components: {Meta, ColorChip, DocsLinks, DoDont},
+    components: {Meta, ColorChip, DocsLinks, DoDont, Surface},
   },
   options: {
     /**
