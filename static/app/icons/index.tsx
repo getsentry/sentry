@@ -19,6 +19,7 @@ export {IconClickup} from './iconClickup';
 export {IconClock} from './iconClock';
 export {IconClose} from './iconClose';
 export {IconClubhouse} from './iconClubhouse';
+export {IconCode} from './iconCode';
 export {IconCommit} from './iconCommit';
 export {IconCopy} from './iconCopy';
 export {IconDashboard} from './iconDashboard';
