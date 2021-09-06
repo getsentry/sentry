@@ -1,0 +1,218 @@
+import {CodeTable, ScaleTable, TabularFigureTable} from './typography';
+
+<Meta title="Core/Typography" />
+
+# Typography
+
+Typography refers to text content that either stands by itself (headings, body text) or is inside another element (buttons, table headers).
+
+We've built Sentry's type system around Rubik - a playful open-source typeface. For code and code-like elements, we use Roboto Mono.
+
+---
+
+## Type scale
+
+Type scales are hierarchical type systems each consisting of styles like Heading 1, Heading 2, Paragraph, and Button/Label.
+
+Sentry's type scale is based on the Rubik typeface and has been fine-tuned for readability and reusability:
+
+<ScaleTable />
+
+---
+
+## Styling rules
+
+The type scale above should cover a large majority of use cases. However, if an element requires a custom style outside of the type scale, make sure to follow the rules below.
+
+### Weight
+
+Use Medium (600) for headings, button labels, and elements that need to stand out from the rest of the user interface (for example, table headers).
+
+For all other elements, use Regular (400).
+
+### Size
+
+Use a value from the type scale above, which is also available in `theme.fontSizes`.
+
+Be mindful of the type hierarchy. If the element has low importance, use a smaller size (and a lighter color, like <ColorChip value="gray300" />).
+
+### Line height
+
+For headings and short, single-line text like buttons labels and table headers, use 1.2.
+
+For body text (content that can wrap to multiple lines), use 1.4.
+
+### Letter spacing
+
+For large headings (Heading 1 to Heading 3), remove 0.01em (for Heading 3) to 0.02em (for Heading 1). This makes headings more condensed, thereby reinforcing their high order in the type hierarchy.
+
+For text that is smaller than 16px (with the exception of code and code-like elements), add 0.02em to the letter spacing. This makes the text easier to read.
+
+---
+
+## OpenType features
+
+### Tabular figures
+
+Numeric characters in Rubik have proportional widths, which make numbers look more even and visually appealing.
+
+However, this can be a problem in large tables with a lot of numbers. Different numbers of the same order of magnitude vary greatly in length, making it harder to compare between them in a long column (see below).
+
+Fortunately, Rubik also supports tabular figures - alternative numeric characters that have consistent spacing and have been optimized for legibility.
+
+<TabularFigureTable />
+
+Use tabular figures inside numeric columns in tables. Add `font-variant-numeric: tabular-nums;` to elements inside these columns to enable tabular figures.
+
+However, don't use tabular figures outside tables. When there is no need to compare between multiple large numbers, proportional figures are the better choice given their more even appearance.
+
+### Ligatures
+
+Ligatures are special glyphs that replace two or more glyphs in order to better connect them. Common glyph pairs with ligature replacements include ff, fi, and fl.
+
+Without ligatures, the characters are all separate:
+
+<Surface>
+  <h1 style={{fontFeatureSettings: "'liga' 0", margin: 0}}>ff, fi, fl</h1>
+</Surface>
+
+With ligatures, the characters are connected into a single glyph:
+
+<Surface>
+  <h1 style={{margin: 0}}>ff, fi, fl</h1>
+</Surface>
+
+Use ligatures whenever possible. Add `font-feature-settings: 'liga'` to the body element to enable ligatures on all text elements.
+
+### Fractions
+
+Rubik also contains special formatting for fractions. Without this formatting, numbers in fractions are just rendered as separate characters:
+
+<Surface>
+  <h1 style={{margin: 0}}>1/12</h1>
+</Surface>
+
+Fractional formatting shrinks the numbers and connects them with a diagonal slash, forming a proportional, condensed visual block:
+
+<Surface>
+  <h1 style={{fontFeatureSettings: "'frac'", margin: 0}}>1/12</h1>
+</Surface>
+
+Use fractional formatting whenever possible. This can be enabled by adding `font-feature-settings: 'frac'` to elements containing fractions. But be careful: this also changes the appearance of normal, non-fractional numbers, so only apply it to immediate ancestors of texts with fractions.
+
+---
+
+## Links
+
+### In a longer sentence
+
+When a link appears inside a longer sentence
+
+<Surface>
+  <p>
+    like this&nbsp;
+    <a href="" target="_blank">
+      link to nowhere
+    </a>
+  </p>
+</Surface>
+
+- Use <ColorChip value="blue300" /> as the text color
+- Add a solid underline in <ColorChip value="blue100" />
+- Don't include any preceding articles (a, the, this, our) in the link
+- On hover:
+  - Use a pointer cursor (`cursor: pointer`)
+  - Change the underline color to <ColorChip value="blue200" />
+
+### On its own
+
+When a link appears on its own and the user likely knows that it's a link given the context, like inside a footer:
+
+<Surface>
+  <a href="" target="_blank" className="gray-link">
+    Privacy Policy
+  </a>
+  <br />
+  <a href="" target="_blank" className="gray-link">
+    Terms of Use
+  </a>
+</Surface>
+
+- Use <ColorChip value="gray500" />, <ColorChip value="gray400" />, or <ColorChip value="gray300" />, depending on the context
+- Don't add any underline
+- On hover:
+  - Use a pointer cursor (`cursor: pointer`)
+  - Add a solid underline in <ColorChip value="gray200" />
+
+---
+
+## Code
+
+Use Roboto Mono in <ColorChip value="gray500" />, <ColorChip value="gray400" />, or <ColorChip value="gray300" /> depending on the placement of the code.
+
+There are two styles for code elements, one for short, single-line elements, and another for longer, multi-line code chunks:
+
+<CodeTable />
+
+These two styles are mostly the same, except for two particular places:
+
+- Line height: multi-line code chunks have a taller line height (2) than single-line code (1.4), for easier code skimming
+- Letter spacing: single-line code has reduced letter spacing (-0.02em) to offset Roboto Mono's large default letter spacing, bringing it more in line with non-code elements in Rubik
+
+---
+
+## Lists
+
+### Unordered
+
+Use solid bullets for the first level, and circle bullets for the second:
+
+<Surface>
+  <ul>
+    <li>
+      Camelus
+      <ul>
+        <li>Bactrian camel</li>
+        <li>Dromedary</li>
+      </ul>
+    </li>
+    <li>
+      Lama
+      <ul>
+        <li>Llama</li>
+        <li>Alpaca</li>
+      </ul>
+    </li>
+  </ul>
+</Surface>
+
+Don't add full stop (.) to the end of list items, unless the item contains multiple sentences.
+
+Avoid using custom symbols and icons as bullet characters, as they usually look out of place and distract from the main text content.
+
+### Ordered
+
+Use Arabic numerals for the first level, and lowercase letters for the second:
+
+<Surface>
+  <ol>
+    <li>
+      Camelus
+      <ol>
+        <li>Bactrian camel</li>
+        <li>Dromedary</li>
+      </ol>
+    </li>
+    <li>
+      Lama
+      <ol>
+        <li>Llama</li>
+        <li>Alpaca</li>
+      </ol>
+    </li>
+  </ol>
+</Surface>
+
+Add a single dot (.) followed by two blank spaces between the counters (1, 2, a, b) and the text content.
+
+Avoid using custom symbols and icons as counters.
