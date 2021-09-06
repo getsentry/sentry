@@ -1,4 +1,5 @@
 import compact from 'lodash/compact';
+import mean from 'lodash/mean';
 import moment from 'moment';
 
 import {
@@ -119,6 +120,31 @@ export function getSessionStatusRateSeries(
       return {
         name: interval,
         value: getSessionStatusPercent(statusSessionsPercent),
+      };
+    })
+  );
+}
+
+export function getSessionP50Series(
+  groups: SessionApiResponse['groups'] = [],
+  intervals: SessionApiResponse['intervals'] = [],
+  field: SessionField,
+  valueFormatter?: (value: number) => number
+): SeriesDataUnit[] {
+  return compact(
+    intervals.map((interval, i) => {
+      const meanValue = mean(
+        groups.map(group => group.series[field][i]).filter(v => !!v)
+      );
+
+      if (!meanValue) {
+        return null;
+      }
+
+      return {
+        name: interval,
+        value:
+          typeof valueFormatter === 'function' ? valueFormatter(meanValue) : meanValue,
       };
     })
   );
