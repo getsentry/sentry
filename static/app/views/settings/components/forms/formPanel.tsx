@@ -1,6 +1,8 @@
 import * as React from 'react';
+import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {IconChevron} from 'app/icons';
 import {Scope} from 'app/types';
 import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
@@ -44,11 +46,28 @@ type Props = DefaultProps & {
    * Disables the entire form
    */
   disabled?: boolean;
+
+  /** Can the PanelBody be hidden with a click? */
+  collapsible?: boolean;
 };
 
-export default class FormPanel extends React.Component<Props> {
+type State = {
+  collapsed: boolean;
+};
+
+export default class FormPanel extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
     additionalFieldProps: {},
+  };
+
+  state: State = {
+    collapsed: false,
+  };
+
+  handleToggleEvents = () => {
+    const {collapsed} = this.state;
+
+    this.setState({collapsed: !collapsed});
   };
 
   render() {
@@ -60,44 +79,61 @@ export default class FormPanel extends React.Component<Props> {
       additionalFieldProps,
       renderFooter,
       renderHeader,
+      collapsible,
       ...otherProps
     } = this.props;
+    const {collapsed} = this.state;
 
     return (
       <Panel id={typeof title === 'string' ? sanitizeQuerySelector(title) : undefined}>
-        {title && <PanelHeader>{title}</PanelHeader>}
-        <PanelBody>
-          {typeof renderHeader === 'function' && renderHeader({title, fields})}
+        {title && (
+          <PanelHeader>
+            {title}
+            {collapsible && (
+              <Collapse onClick={this.handleToggleEvents}>
+                <IconChevron direction={collapsed ? 'down' : 'up'} size="xs" />
+              </Collapse>
+            )}
+          </PanelHeader>
+        )}
+        {!collapsed && (
+          <PanelBody>
+            {typeof renderHeader === 'function' && renderHeader({title, fields})}
 
-          {fields.map(field => {
-            if (typeof field === 'function') {
-              return field();
-            }
+            {fields.map(field => {
+              if (typeof field === 'function') {
+                return field();
+              }
 
-            const {defaultValue: _, ...fieldWithoutDefaultValue} = field;
+              const {defaultValue: _, ...fieldWithoutDefaultValue} = field;
 
-            // Allow the form panel disabled prop to override the fields
-            // disabled prop, with fallback to the fields disabled state.
-            if (disabled === true) {
-              fieldWithoutDefaultValue.disabled = true;
-              fieldWithoutDefaultValue.disabledReason = undefined;
-            }
+              // Allow the form panel disabled prop to override the fields
+              // disabled prop, with fallback to the fields disabled state.
+              if (disabled === true) {
+                fieldWithoutDefaultValue.disabled = true;
+                fieldWithoutDefaultValue.disabledReason = undefined;
+              }
 
-            return (
-              <FieldFromConfig
-                access={access}
-                disabled={disabled}
-                key={field.name}
-                {...otherProps}
-                {...additionalFieldProps}
-                field={fieldWithoutDefaultValue}
-                highlighted={this.props.highlighted === `#${field.name}`}
-              />
-            );
-          })}
-          {typeof renderFooter === 'function' && renderFooter({title, fields})}
-        </PanelBody>
+              return (
+                <FieldFromConfig
+                  access={access}
+                  disabled={disabled}
+                  key={field.name}
+                  {...otherProps}
+                  {...additionalFieldProps}
+                  field={fieldWithoutDefaultValue}
+                  highlighted={this.props.highlighted === `#${field.name}`}
+                />
+              );
+            })}
+            {typeof renderFooter === 'function' && renderFooter({title, fields})}
+          </PanelBody>
+        )}
       </Panel>
     );
   }
 }
+
+const Collapse = styled('span')`
+  cursor: pointer;
+`;

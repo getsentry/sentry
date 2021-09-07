@@ -87,7 +87,7 @@ function Native({
   }
 
   function scrollToImage(event: MouseEvent<HTMLAnchorElement>) {
-    event.stopPropagation(); // to prevent collapsing if collapsable
+    event.stopPropagation(); // to prevent collapsing if collapsible
 
     if (instructionAddr) {
       DebugMetaActions.updateFilter(makeFilter(instructionAddr));

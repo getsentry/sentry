@@ -161,7 +161,7 @@ export class Line extends React.Component<Props, State> {
   }
 
   scrollToImage = event => {
-    event.stopPropagation(); // to prevent collapsing if collapsable
+    event.stopPropagation(); // to prevent collapsing if collapsible
 
     const {instructionAddr, addrMode} = this.props.data;
     if (instructionAddr) {
