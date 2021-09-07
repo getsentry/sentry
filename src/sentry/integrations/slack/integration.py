@@ -52,7 +52,7 @@ setup_alert = {
 
 discover_unfurl_alert = {
     "type": "warning",
-    "text": "Project permissions will not apply when unfurling Sentry Discover charts your Slack workspace.",
+    "text": "Project permissions will not apply when unfurling Sentry Discover charts from within your Slack workspace.",
     "icon": "icon-warning-sm",
     "feature": "chart-unfurls",
 }
