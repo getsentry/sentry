@@ -121,6 +121,18 @@ class RunScheduledDeletionTest(TestCase):
         assert args["actor"] == self.user
         pending_delete.disconnect(signal_handler)
 
+    def test_handle_missing_record(self):
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+        schedule = ScheduledDeletion.schedule(instance=team, days=0)
+        # Delete the team, the deletion should remove itself, as its work is done.
+        team.delete()
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not ScheduledDeletion.objects.filter(id=schedule.id).exists()
+
 
 class ReattemptDeletionsTest(TestCase):
     def test_simple(self):
