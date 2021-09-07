@@ -30,6 +30,8 @@ const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('Dashboard Name (A-Z)'), value: 'title'},
   {label: t('Date Created (Newest)'), value: '-dateCreated'},
   {label: t('Date Created (Oldest)'), value: 'dateCreated'},
+  {label: t('Most Popular'), value: 'mostPopular'},
+  {label: t('Recently Viewed'), value: 'recentlyViewed'},
 ];
 
 type Props = {
