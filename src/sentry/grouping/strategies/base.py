@@ -1,5 +1,24 @@
 import inspect
-from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+)
+
+# TODO(3.8): This is a hack so we can get Protocols before 3.8
+if TYPE_CHECKING:
+    from typing_extensions import Protocol
+else:
+    Protocol = object
 
 import sentry_sdk
 
@@ -9,7 +28,7 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.interfaces.base import Interface
 
-STRATEGIES: Dict[str, "Strategy"] = {}
+STRATEGIES: Dict[str, "Strategy[Any]"] = {}
 
 RISK_LEVEL_LOW = 0
 RISK_LEVEL_MEDIUM = 1
@@ -25,7 +44,23 @@ ContextDict = Dict[str, ContextValue]
 DEFAULT_GROUPING_ENHANCEMENTS_BASE = "common:2019-03-23"
 
 ReturnedVariants = Dict[str, GroupingComponent]
-StrategyFunc = Callable[..., ReturnedVariants]  # TODO
+ConcreteInterface = TypeVar("ConcreteInterface", bound=Interface, contravariant=True)
+
+
+class StrategyFunc(Protocol):
+    # TODO(markus): Stronger typing of interface param
+    #
+    # Double-underscore to indicate positional-only argument:
+    # https://github.com/python/mypy/issues/5235
+    def __call__(self, __interface: ConcreteInterface, **kwargs: Any) -> ReturnedVariants:
+        ...
+
+
+class VariantProcessor(Protocol):
+    def __call__(
+        self, variants: ReturnedVariants, context: "GroupingContext", **meta: Any
+    ) -> ReturnedVariants:
+        ...
 
 
 def strategy(
@@ -33,7 +68,7 @@ def strategy(
     ids: Optional[Sequence[str]] = None,
     interfaces: Optional[Sequence[str]] = None,
     score: Optional[int] = None,
-) -> Callable[[StrategyFunc], "Strategy"]:
+) -> Callable[[StrategyFunc], "Strategy[ConcreteInterface]"]:
     """Registers a strategy"""
 
     if not interfaces:
@@ -49,15 +84,18 @@ def strategy(
     if not ids:
         raise TypeError("neither id nor ids given")
 
-    def decorator(f: StrategyFunc) -> Strategy:
+    def decorator(f: StrategyFunc) -> Strategy[ConcreteInterface]:
         assert interfaces
         assert ids
+
+        rv: Optional[Strategy[ConcreteInterface]] = None
 
         for id in ids:
             STRATEGIES[id] = rv = Strategy(
                 id=id, name=name, interfaces=interfaces, score=score, func=f
             )
 
+        assert rv is not None
         return rv
 
     return decorator
@@ -117,7 +155,7 @@ class GroupingContext:
         return rv
 
 
-def lookup_strategy(strategy_id: str) -> "Strategy":
+def lookup_strategy(strategy_id: str) -> "Strategy[Any]":
     """Looks up a strategy by id."""
     try:
         return STRATEGIES[strategy_id]
@@ -125,7 +163,7 @@ def lookup_strategy(strategy_id: str) -> "Strategy":
         raise LookupError("Unknown strategy %r" % strategy_id)
 
 
-class Strategy:
+class Strategy(Generic[ConcreteInterface]):
     """Baseclass for all strategies."""
 
     def __init__(
@@ -166,7 +204,7 @@ class Strategy:
 
     def get_grouping_component(
         self, event: Event, context: GroupingContext, variant: Optional[str] = None
-    ) -> Optional[ReturnedVariants]:
+    ) -> Union[None, GroupingComponent, ReturnedVariants]:
         """Given a specific variant this calculates the grouping component."""
         args = []
         for iface_path in self.interfaces:
@@ -253,8 +291,8 @@ class StrategyConfiguration:
     id: Optional[str] = None
     base: Optional[Type["StrategyConfiguration"]] = None
     config_class = None
-    strategies: Dict[str, Strategy] = {}
-    delegates: Dict[str, Strategy] = {}
+    strategies: Dict[str, Strategy[Any]] = {}
+    delegates: Dict[str, Strategy[Any]] = {}
     changelog: Optional[str] = None
     hidden = False
     risk = RISK_LEVEL_LOW
@@ -271,7 +309,7 @@ class StrategyConfiguration:
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.id!r}>"
 
-    def iter_strategies(self) -> Iterator[Strategy]:
+    def iter_strategies(self) -> Iterator[Strategy[Any]]:
         """Iterates over all strategies by highest score to lowest."""
         return iter(sorted(self.strategies.values(), key=lambda x: x.score and -x.score or 0))
 
