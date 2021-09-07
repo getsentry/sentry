@@ -11,7 +11,7 @@ type Props = {
 };
 
 const Item = ({children, icon, className}: Props) => (
-  <Wrapper className={classNames('context-item', className)}>
+  <Wrapper className={classNames('context-item', className)} data-test-id="context-item">
     {icon}
     {children && <Details>{children}</Details>}
   </Wrapper>

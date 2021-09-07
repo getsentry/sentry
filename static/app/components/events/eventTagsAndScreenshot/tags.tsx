@@ -26,6 +26,7 @@ function Tags({event, organization, projectSlug, location, hasContext}: Props) {
       description={t(
         'Tags help you quickly both access related events and view the tag distribution for a set of events'
       )}
+      data-test-id="event-tags"
     >
       {hasContext && <TagsHighlight event={event} />}
       <EventTags

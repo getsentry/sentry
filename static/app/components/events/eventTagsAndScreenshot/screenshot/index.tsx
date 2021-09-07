@@ -23,17 +23,12 @@ type Props = {
   event: Event;
   organization: Organization;
   projectSlug: Project['slug'];
-  attachments: EventAttachment[];
+  screenshot: EventAttachment;
   onDelete: (attachmentId: EventAttachment['id']) => void;
 };
 
-function Screenshot({event, attachments, organization, projectSlug, onDelete}: Props) {
+function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Props) {
   const orgSlug = organization.slug;
-
-  function hasScreenshot(attachment: EventAttachment) {
-    const {mimetype} = attachment;
-    return mimetype === 'image/jpeg' || mimetype === 'image/png';
-  }
 
   function handleOpenVisualizationModal(
     eventAttachment: EventAttachment,
@@ -118,22 +113,20 @@ function Screenshot({event, attachments, organization, projectSlug, onDelete}: P
   }
 
   return (
-    <Role role={organization.attachmentsRole}>
+    <Role organization={organization} role={organization.attachmentsRole}>
       {({hasRole}) => {
-        const screenshotAttachment = attachments.find(hasScreenshot);
-
-        if (!hasRole || !screenshotAttachment) {
+        if (!hasRole) {
           return null;
         }
 
         return (
           <DataSection
-            title={t('Screenshots')}
+            title={t('Screenshot')}
             description={t(
-              'Screenshots help identify what the user saw when the event happened'
+              'Screenshot help identify what the user saw when the event happened'
             )}
           >
-            <StyledPanel>{renderContent(screenshotAttachment)}</StyledPanel>
+            <StyledPanel>{renderContent(screenshot)}</StyledPanel>
           </DataSection>
         );
       }}

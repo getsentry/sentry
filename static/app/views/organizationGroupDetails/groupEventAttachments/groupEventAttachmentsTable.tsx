@@ -1,9 +1,9 @@
 import {t} from 'app/locale';
-import {EventAttachment} from 'app/types';
+import {IssueAttachment} from 'app/types';
 import GroupEventAttachmentsTableRow from 'app/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsTableRow';
 
 type Props = {
-  attachments: EventAttachment[];
+  attachments: IssueAttachment[];
   orgId: string;
   projectId: string;
   groupId: string;
