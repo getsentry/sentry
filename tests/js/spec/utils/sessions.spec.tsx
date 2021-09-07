@@ -322,7 +322,7 @@ describe('utils/sessions', () => {
           {
             by: {'session.status': 'errored'},
             totals: {
-              'count_unique(user)': 414,
+              'count_unique(user)': 379,
               'sum(session)': 226,
               'p50(session.duration)': 3295.641025641026,
             },
@@ -346,7 +346,7 @@ describe('utils/sessions', () => {
           {
             by: {'session.status': 'crashed'},
             totals: {
-              'count_unique(user)': 462,
+              'count_unique(user)': 341,
               'sum(session)': 1763,
               'p50(session.duration)': 3228.4615384615386,
             },
@@ -371,7 +371,7 @@ describe('utils/sessions', () => {
           {
             by: {'session.status': 'healthy'},
             totals: {
-              'count_unique(user)': 11347,
+              'count_unique(user)': 6585,
               'sum(session)': 136419,
               'p50(session.duration)': 3228.769230769231,
             },
