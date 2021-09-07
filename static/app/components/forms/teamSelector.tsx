@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addTeamToProject} from 'app/actionCreators/projects';
@@ -9,7 +9,7 @@ import {IconAdd, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, Team} from 'app/types';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 
@@ -85,50 +85,19 @@ type TeamOption = {
   disabled?: boolean;
 };
 
-type State = {
-  options: TeamOption[];
-};
+function TeamSelector(props: Props) {
+  const {includeUnassigned, styles, ...extraProps} = props;
+  const {teams, teamFilter, organization, project, multiple, value, useId, onChange} =
+    props;
 
-class TeamSelector extends React.Component<Props, State> {
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      options: this.teamOptions,
-    };
-  }
+  const api = useApi();
+  const [options, setOptions] = useState<TeamOption[]>([]);
 
   // TODO(ts) This type could be improved when react-select types are better.
-  selectRef = React.createRef<any>();
+  const selectRef = useRef<any>(null);
 
-  get teamOptions() {
-    const {teams, teamFilter, includeUnassigned, project} = this.props;
-    const filteredTeams = teamFilter ? teams.filter(teamFilter) : teams;
-
-    if (project) {
-      const teamsInProjectIdSet = new Set(project.teams.map(team => team.id));
-      const teamsInProject = filteredTeams.filter(team =>
-        teamsInProjectIdSet.has(team.id)
-      );
-      const teamsNotInProject = filteredTeams.filter(
-        team => !teamsInProjectIdSet.has(team.id)
-      );
-
-      return [
-        ...teamsInProject.map(this.createTeamOption),
-        ...teamsNotInProject.map(this.createTeamOutsideProjectOption),
-        ...(includeUnassigned ? [unassignedOption] : []),
-      ];
-    }
-
-    return [
-      ...filteredTeams.map(this.createTeamOption),
-      ...(includeUnassigned ? [unassignedOption] : []),
-    ];
-  }
-
-  createTeamOption = (team: Team): TeamOption => ({
-    value: this.props.useId ? team.id : team.slug,
+  const createTeamOption = (team: Team): TeamOption => ({
+    value: useId ? team.id : team.slug,
     label: <IdBadge team={team} />,
     searchKey: `#${team.slug}`,
     actor: {
@@ -139,15 +108,15 @@ class TeamSelector extends React.Component<Props, State> {
   });
 
   /**
-   * Closes the select menu by blurring input if possible since that seems to be the only
-   * way to close it.
+   * Closes the select menu by blurring input if possible since that seems to
+   * be the only way to close it.
    */
-  closeSelectMenu() {
-    if (!this.selectRef.current) {
+  function closeSelectMenu() {
+    if (!selectRef.current) {
       return;
     }
 
-    const select = this.selectRef.current.select;
+    const select = selectRef.current.select;
     const input: HTMLInputElement = select.inputRef;
 
     if (input) {
@@ -156,19 +125,16 @@ class TeamSelector extends React.Component<Props, State> {
     }
   }
 
-  handleAddTeamToProject = async (team: Team) => {
-    const {api, organization, project, value, multiple} = this.props;
-    const {options} = this.state;
-
+  async function handleAddTeamToProject(team: Team) {
     if (!project) {
-      this.closeSelectMenu();
+      closeSelectMenu();
       return;
     }
 
     // Copy old value
     const oldValue = multiple ? [...(value ?? [])] : {value};
     // Optimistic update
-    this.props.onChange?.(this.createTeamOption(team));
+    onChange?.(createTeamOption(team));
 
     try {
       await addTeamToProject(api, organization.slug, project.slug, team);
@@ -183,21 +149,20 @@ class TeamSelector extends React.Component<Props, State> {
         return option;
       });
 
-      this.setState({options: newOptions});
+      setOptions(newOptions);
     } catch (err) {
       // Unable to add team to project, revert select menu value
-      this.props.onChange?.(oldValue);
+      onChange?.(oldValue);
     }
 
-    this.closeSelectMenu();
-  };
+    closeSelectMenu();
+  }
 
-  createTeamOutsideProjectOption = (team: Team): TeamOption => {
-    const {organization} = this.props;
+  function createTeamOutsideProjectOption(team: Team): TeamOption {
     const canAddTeam = organization.access.includes('project:write');
 
     return {
-      ...this.createTeamOption(team),
+      ...createTeamOption(team),
       disabled: true,
       label: (
         <TeamOutsideProject>
@@ -221,32 +186,55 @@ class TeamSelector extends React.Component<Props, State> {
               size="zero"
               borderless
               disabled={!canAddTeam}
-              onClick={() => this.handleAddTeamToProject(team)}
+              onClick={() => handleAddTeamToProject(team)}
               icon={<IconAdd isCircled />}
             />
           </Tooltip>
         </TeamOutsideProject>
       ),
     };
-  };
-
-  render() {
-    const {includeUnassigned, styles, ...props} = this.props;
-    const {options} = this.state;
-
-    return (
-      <SelectControl
-        ref={this.selectRef}
-        options={options}
-        isOptionDisabled={option => option.disabled}
-        styles={{
-          styles,
-          ...(includeUnassigned ? unassignedSelectStyles : {}),
-        }}
-        {...props}
-      />
-    );
   }
+
+  function getInitaliOptions() {
+    const filteredTeams = teamFilter ? teams.filter(teamFilter) : teams;
+
+    if (project) {
+      const teamsInProjectIdSet = new Set(project.teams.map(team => team.id));
+      const teamsInProject = filteredTeams.filter(team =>
+        teamsInProjectIdSet.has(team.id)
+      );
+      const teamsNotInProject = filteredTeams.filter(
+        team => !teamsInProjectIdSet.has(team.id)
+      );
+
+      return [
+        ...teamsInProject.map(createTeamOption),
+        ...teamsNotInProject.map(createTeamOutsideProjectOption),
+        ...(includeUnassigned ? [unassignedOption] : []),
+      ];
+    }
+
+    return [
+      ...filteredTeams.map(createTeamOption),
+      ...(includeUnassigned ? [unassignedOption] : []),
+    ];
+  }
+
+  // XXX: Are the dependencies for this hook correct?
+  useEffect(() => void setOptions(getInitaliOptions()), []);
+
+  return (
+    <SelectControl
+      ref={selectRef}
+      options={options}
+      isOptionDisabled={option => option.disabled}
+      styles={{
+        styles,
+        ...(includeUnassigned ? unassignedSelectStyles : {}),
+      }}
+      {...extraProps}
+    />
+  );
 }
 
 const TeamOutsideProject = styled('div')`
@@ -267,4 +255,4 @@ const AddToProjectButton = styled(Button)`
 
 export {TeamSelector};
 
-export default withApi(withTeams(withOrganization(TeamSelector)));
+export default withTeams(withOrganization(TeamSelector));
