@@ -64,6 +64,7 @@ export type ResultItem = {
   // Used to store groups and events
   model?: any;
   configUrl?: string;
+  disabled?: boolean;
 };
 
 /**
