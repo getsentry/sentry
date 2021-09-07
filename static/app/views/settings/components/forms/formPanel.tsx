@@ -48,7 +48,7 @@ type Props = DefaultProps & {
   disabled?: boolean;
 
   /** Can the PanelBody be hidden with a click? */
-  collapsable?: boolean;
+  collapsible?: boolean;
 };
 
 type State = {
@@ -79,7 +79,7 @@ export default class FormPanel extends React.Component<Props, State> {
       additionalFieldProps,
       renderFooter,
       renderHeader,
-      collapsable,
+      collapsible,
       ...otherProps
     } = this.props;
     const {collapsed} = this.state;
@@ -89,7 +89,7 @@ export default class FormPanel extends React.Component<Props, State> {
         {title && (
           <PanelHeader>
             {title}
-            {collapsable && (
+            {collapsible && (
               <Collapse onClick={this.handleToggleEvents}>
                 <IconChevron direction={collapsed ? 'down' : 'up'} size="xs" />
               </Collapse>

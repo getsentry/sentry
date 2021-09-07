@@ -127,7 +127,7 @@ class JsonForm extends React.Component<Props, State> {
   render() {
     const {
       access,
-      collapsable,
+      collapsible,
       fields,
       title,
       forms,
@@ -148,7 +148,7 @@ class JsonForm extends React.Component<Props, State> {
       renderFooter,
       renderHeader,
       highlighted: this.state.highlighted,
-      collapsable,
+      collapsible,
     };
 
     return (

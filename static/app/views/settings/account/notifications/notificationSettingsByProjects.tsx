@@ -102,7 +102,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
           ) : (
             Object.entries(this.getGroupedProjects()).map(([groupTitle, parents]) => (
               <JsonForm
-                collapsable
+                collapsible
                 key={groupTitle}
                 title={groupTitle}
                 fields={parents.map(parent =>
