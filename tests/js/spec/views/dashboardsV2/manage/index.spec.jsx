@@ -95,7 +95,21 @@ describe('Dashboards > Detail', function () {
 
     const dropdownItems = wrapper.find('DropdownItem span');
 
-    expect(dropdownItems).toHaveLength(4);
+    expect(dropdownItems).toHaveLength(6);
+
+    const expectedSorts = [
+      'My Dashboards',
+      'Dashboard Name (A-Z)',
+      'Date Created (Newest)',
+      'Date Created (Oldest)',
+      'Most Popular',
+      'Recently Viewed',
+    ];
+
+    expect(dropdownItems.children().map(element => element.text())).toEqual(
+      expectedSorts
+    );
+
     dropdownItems.at(1).simulate('click');
 
     await tick();
