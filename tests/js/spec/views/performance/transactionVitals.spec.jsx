@@ -109,6 +109,14 @@ describe('Performance > Web Vitals', function () {
       url: `/organizations/org-slug/key-transactions-list/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
   });
 
   it('render no access without feature', async function () {

@@ -107,6 +107,14 @@ describe('Performance > Transaction Tags', function () {
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {},
+    });
   });
 
   afterEach(function () {
