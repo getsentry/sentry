@@ -3,6 +3,7 @@ from datetime import timedelta
 from uuid import uuid4
 
 from django.apps import apps
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.utils import timezone
 
@@ -71,7 +72,20 @@ def run_deletion(deletion_id, first_pass=True):
     except ScheduledDeletion.DoesNotExist:
         return
 
-    instance = deletion.get_instance()
+    try:
+        instance = deletion.get_instance()
+    except ObjectDoesNotExist:
+        logger.info(
+            "object.delete.object-missing",
+            extra={
+                "object_id": deletion.object_id,
+                "transaction_id": deletion.guid,
+                "model": deletion.model_name,
+            },
+        )
+        deletion.delete()
+        return
+
     if first_pass:
         actor = deletion.get_actor()
         pending_delete.send(sender=type(instance), instance=instance, actor=actor)
