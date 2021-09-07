@@ -1,18 +1,5 @@
 import inspect
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    Iterator,
-    List,
-    Optional,
-    Sequence,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Type, Union
 
 import sentry_sdk
 
@@ -22,7 +9,7 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.interfaces.base import Interface
 
-STRATEGIES: Dict[str, "Strategy[Any]"] = {}
+STRATEGIES: Dict[str, "Strategy"] = {}
 
 RISK_LEVEL_LOW = 0
 RISK_LEVEL_MEDIUM = 1
@@ -38,36 +25,14 @@ ContextDict = Dict[str, ContextValue]
 DEFAULT_GROUPING_ENHANCEMENTS_BASE = "common:2019-03-23"
 
 ReturnedVariants = Dict[str, GroupingComponent]
-ConcreteInterface = TypeVar("ConcreteInterface", bound=Interface, contravariant=True)
-
-# TODO(3.8): This is a hack so we can get Protocols before 3.8
-if TYPE_CHECKING:
-    from typing_extensions import Protocol
-
-    # XXX(markus): Too hard to mock out Protocol at runtime for as long as
-    # we're not on 3.8, so let's just conditionally define all of our types.
-    class StrategyFunc(Protocol[ConcreteInterface]):
-        def __call__(
-            self,
-            interface: ConcreteInterface,
-            event: Event,
-            context: "GroupingContext",
-            **meta: Any,
-        ) -> ReturnedVariants:
-            ...
-
-    class VariantProcessor(Protocol):
-        def __call__(
-            self, variants: ReturnedVariants, context: "GroupingContext", **meta: Any
-        ) -> ReturnedVariants:
-            ...
+StrategyFunc = Callable[..., ReturnedVariants]  # TODO
 
 
 def strategy(
     ids: Sequence[str],
     interface: Type[Interface],
     score: Optional[int] = None,
-) -> Callable[["StrategyFunc[ConcreteInterface]"], "Strategy[ConcreteInterface]"]:
+) -> Callable[[StrategyFunc], "Strategy"]:
     """
     Registers a strategy
 
@@ -83,15 +48,13 @@ def strategy(
     if not ids:
         raise TypeError("neither id nor ids given")
 
-    def decorator(f: "StrategyFunc[ConcreteInterface]") -> Strategy[ConcreteInterface]:
-        rv: Optional[Strategy[ConcreteInterface]] = None
-
+    def decorator(f: StrategyFunc) -> Strategy:
+        assert ids
         for id in ids:
             STRATEGIES[id] = rv = Strategy(
                 id=id, name=name, interface=interface.path, score=score, func=f
             )
 
-        assert rv is not None
         return rv
 
     return decorator
@@ -152,7 +115,7 @@ class GroupingContext:
         return rv
 
 
-def lookup_strategy(strategy_id: str) -> "Strategy[Any]":
+def lookup_strategy(strategy_id: str) -> "Strategy":
     """Looks up a strategy by id."""
     try:
         return STRATEGIES[strategy_id]
@@ -160,7 +123,7 @@ def lookup_strategy(strategy_id: str) -> "Strategy[Any]":
         raise LookupError("Unknown strategy %r" % strategy_id)
 
 
-class Strategy(Generic[ConcreteInterface]):
+class Strategy:
     """Baseclass for all strategies."""
 
     def __init__(
@@ -169,7 +132,7 @@ class Strategy(Generic[ConcreteInterface]):
         name: str,
         interface: str,
         score: Optional[int],
-        func: "StrategyFunc[ConcreteInterface]",
+        func: StrategyFunc,
     ):
         self.id = id
         self.strategy_class = id.split(":", 1)[0]
@@ -177,14 +140,12 @@ class Strategy(Generic[ConcreteInterface]):
         self.interface = interface
         self.score = score
         self.func = func
-        self.variant_processor_func: Optional["VariantProcessor"] = None
+        self.variant_processor_func: Optional[StrategyFunc] = None
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} id={self.id!r}>"
 
-    def _invoke(
-        self, func: Callable[..., ReturnedVariants], *args: Any, **kwargs: Any
-    ) -> ReturnedVariants:
+    def _invoke(self, func: StrategyFunc, *args: Any, **kwargs: Any) -> ReturnedVariants:
         # We forcefully override strategy here.  This lets a strategy
         # function always access its metadata and directly forward it to
         # subcomponents without having to filter out strategy.
@@ -194,7 +155,7 @@ class Strategy(Generic[ConcreteInterface]):
     def __call__(self, *args: Any, **kwargs: Any) -> ReturnedVariants:
         return self._invoke(self.func, *args, **kwargs)
 
-    def variant_processor(self, func: "VariantProcessor") -> "VariantProcessor":
+    def variant_processor(self, func: StrategyFunc) -> StrategyFunc:
         """Registers a variant reducer function that can be used to postprocess
         all variants created from this strategy.
         """
@@ -203,7 +164,7 @@ class Strategy(Generic[ConcreteInterface]):
 
     def get_grouping_component(
         self, event: Event, context: GroupingContext, variant: Optional[str] = None
-    ) -> Union[None, GroupingComponent, ReturnedVariants]:
+    ) -> Optional[ReturnedVariants]:
         """Given a specific variant this calculates the grouping component."""
         args = []
         iface = event.interfaces.get(self.interface)
@@ -289,8 +250,8 @@ class StrategyConfiguration:
     id: Optional[str] = None
     base: Optional[Type["StrategyConfiguration"]] = None
     config_class = None
-    strategies: Dict[str, Strategy[Any]] = {}
-    delegates: Dict[str, Strategy[Any]] = {}
+    strategies: Dict[str, Strategy] = {}
+    delegates: Dict[str, Strategy] = {}
     changelog: Optional[str] = None
     hidden = False
     risk = RISK_LEVEL_LOW
@@ -307,7 +268,7 @@ class StrategyConfiguration:
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.id!r}>"
 
-    def iter_strategies(self) -> Iterator[Strategy[Any]]:
+    def iter_strategies(self) -> Iterator[Strategy]:
         """Iterates over all strategies by highest score to lowest."""
         return iter(sorted(self.strategies.values(), key=lambda x: x.score and -x.score or 0))
 
@@ -397,9 +358,7 @@ def create_strategy_configuration(
     return NewStrategyConfiguration
 
 
-def produces_variants(
-    variants: Sequence[str],
-) -> Callable[["StrategyFunc[ConcreteInterface]"], "StrategyFunc[ConcreteInterface]"]:
+def produces_variants(variants: Sequence[str]) -> Callable[[StrategyFunc], StrategyFunc]:
     """
     A grouping strategy can either:
 
@@ -429,7 +388,7 @@ def produces_variants(
         @produces_variants(["!system", "app"])
     """
 
-    def decorator(f: "StrategyFunc[ConcreteInterface]") -> "StrategyFunc[ConcreteInterface]":
+    def decorator(f: StrategyFunc) -> StrategyFunc:
         def inner(*args: Any, **kwargs: Any) -> ReturnedVariants:
             return call_with_variants(f, variants, *args, **kwargs)
 
@@ -439,7 +398,7 @@ def produces_variants(
 
 
 def call_with_variants(
-    f: Callable[..., ReturnedVariants], variants: Sequence[str], *args: Any, **kwargs: Any
+    f: StrategyFunc, variants: Sequence[str], *args: Any, **kwargs: Any
 ) -> ReturnedVariants:
     context = kwargs["context"]
     if context["variant"] is not None:

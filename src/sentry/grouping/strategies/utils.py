@@ -1,8 +1,7 @@
-from sentry.grouping.strategies.base import ReturnedVariants
 from sentry.grouping.variants import HIERARCHICAL_VARIANTS
 
 
-def remove_non_stacktrace_variants(variants: ReturnedVariants) -> ReturnedVariants:
+def remove_non_stacktrace_variants(variants):
     """This is a utility function that when given multiple variants will
     mark all variants as non contributing that do not contain any stacktraces
     if any of the other variants contain a stacktrace that contributes.
@@ -43,7 +42,7 @@ def remove_non_stacktrace_variants(variants: ReturnedVariants) -> ReturnedVarian
     return variants
 
 
-def has_url_origin(path: str, allow_file_origin: bool = False) -> bool:
+def has_url_origin(path, allow_file_origin=False):
     # URLs can be generated such that they are:
     #   blob:http://example.com/7f7aaadf-a006-4217-9ed5-5fbf8585c6c0
     # https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL

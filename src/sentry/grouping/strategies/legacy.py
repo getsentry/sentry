@@ -1,15 +1,9 @@
 import posixpath
 import re
-from typing import Any, Optional, Tuple
+from typing import Optional, Tuple
 
-from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.strategies.base import (
-    GroupingContext,
-    ReturnedVariants,
-    produces_variants,
-    strategy,
-)
+from sentry.grouping.strategies.base import produces_variants, strategy
 from sentry.grouping.strategies.similarity_encoders import ident_encoder, text_shingle_encoder
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
 from sentry.interfaces.exception import Exception as ChainedException
@@ -144,7 +138,7 @@ def remove_filename_outliers_legacy(filename: str, platform: str) -> Tuple[str, 
     return filename, None
 
 
-def remove_function_outliers_legacy(function: str) -> Tuple[str, Optional[str]]:
+def remove_function_outliers_legacy(function):
     """
     Attempt to normalize functions by removing common platform outliers.
 
@@ -161,40 +155,38 @@ def remove_function_outliers_legacy(function: str) -> Tuple[str, Optional[str]]:
 
 
 @strategy(ids=["single-exception:legacy"], interface=SingleException)
-def single_exception_legacy(
-    interface: SingleException, event: Event, context: GroupingContext, **meta: Any
-) -> ReturnedVariants:
+def single_exception_legacy(exception, event, context, **meta):
 
     type_component = GroupingComponent(
         id="type",
-        values=[interface.type] if interface.type else [],
+        values=[exception.type] if exception.type else [],
         similarity_encoder=ident_encoder,
         contributes=False,
     )
     value_component = GroupingComponent(
         id="value",
-        values=[interface.value] if interface.value else [],
+        values=[exception.value] if exception.value else [],
         similarity_encoder=text_shingle_encoder(5),
         contributes=False,
     )
     stacktrace_component = GroupingComponent(id="stacktrace")
 
-    if interface.stacktrace is not None:
+    if exception.stacktrace is not None:
         stacktrace_component = context.get_grouping_component(
-            interface.stacktrace, event=event, **meta
+            exception.stacktrace, event=event, **meta
         )
         if stacktrace_component.contributes:
-            if interface.type:
+            if exception.type:
                 type_component.update(contributes=True)
-                if interface.value:
+                if exception.value:
                     value_component.update(hint="stacktrace and type take precedence")
-            elif interface.value:
+            elif exception.value:
                 value_component.update(hint="stacktrace takes precedence")
 
     if not stacktrace_component.contributes:
-        if interface.type:
+        if exception.type:
             type_component.update(contributes=True)
-        if interface.value:
+        if exception.value:
             value_component.update(contributes=True)
 
     return {
@@ -206,17 +198,14 @@ def single_exception_legacy(
 
 @strategy(ids=["chained-exception:legacy"], interface=ChainedException, score=2000)
 @produces_variants(["!system", "app"])
-def chained_exception_legacy(
-    interface: ChainedException, event: Event, context: GroupingContext, **meta: Any
-) -> ReturnedVariants:
+def chained_exception_legacy(chained_exception, event, context, **meta):
     # Case 1: we have a single exception, use the single exception
     # component directly
-    exceptions = interface.exceptions()
+    exceptions = chained_exception.exceptions()
     if len(exceptions) == 1:
-        single_variant: GroupingComponent = context.get_grouping_component(
-            exceptions[0], event=event, **meta
-        )
-        return {context["variant"]: single_variant}
+        return {
+            context["variant"]: context.get_grouping_component(exceptions[0], event=event, **meta)
+        }
 
     # Case 2: try to build a new component out of the individual
     # errors however with a trick.  In case any exception has a
@@ -224,9 +213,7 @@ def chained_exception_legacy(
     any_stacktraces = False
     values = []
     for exception in exceptions:
-        exception_component: GroupingComponent = context.get_grouping_component(
-            exception, event=event, **meta
-        )
+        exception_component = context.get_grouping_component(exception, event=event, **meta)
         stacktrace_component = exception_component.get_subcomponent("stacktrace")
         if stacktrace_component is not None and stacktrace_component.contributes:
             any_stacktraces = True
@@ -242,17 +229,13 @@ def chained_exception_legacy(
 
 
 @chained_exception_legacy.variant_processor
-def chained_exception_legacy_variant_processor(
-    variants: ReturnedVariants, context: GroupingContext, **meta: Any
-) -> ReturnedVariants:
+def chained_exception_legacy_variant_processor(variants, context, **meta):
     return remove_non_stacktrace_variants(variants)
 
 
 @strategy(ids=["frame:legacy"], interface=Frame)
-def frame_legacy(
-    interface: Frame, event: Event, context: GroupingContext, **meta: Any
-) -> ReturnedVariants:
-    platform = interface.platform or event.platform
+def frame_legacy(frame, event, context, **meta):
+    platform = frame.platform or event.platform
 
     # In certain situations we want to disregard the entire frame.
     contributes = None
@@ -264,36 +247,34 @@ def frame_legacy(
     # and the original value moved to raw_function.  This requires us to
     # prioritize raw_function over function in the legacy grouping code to
     # avoid creating new groups.
-    func = interface.raw_function or interface.function
+    func = frame.raw_function or frame.function
 
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
     # so that they're more likely to group together
     filename_component = GroupingComponent(id="filename", similarity_encoder=ident_encoder)
-    if interface.filename == "<anonymous>":
+    if frame.filename == "<anonymous>":
         filename_component.update(
-            contributes=False, values=[interface.filename], hint="anonymous filename discarded"
+            contributes=False, values=[frame.filename], hint="anonymous filename discarded"
         )
-    elif interface.filename == "[native code]":
+    elif frame.filename == "[native code]":
         contributes = False
         hint = "native code indicated by filename"
-    elif interface.filename:
-        if has_url_origin(interface.abs_path):
+    elif frame.filename:
+        if has_url_origin(frame.abs_path):
             filename_component.update(
-                contributes=False,
-                values=[interface.filename],
-                hint="ignored because filename is a URL",
+                contributes=False, values=[frame.filename], hint="ignored because filename is a URL"
             )
         # XXX(dcramer): don't compute hash using frames containing the 'Caused by'
         # text as it contains an exception value which may may contain dynamic
         # values (see raven-java#125)
-        elif interface.filename.startswith("Caused by: "):
+        elif frame.filename.startswith("Caused by: "):
             filename_component.update(
-                values=[interface.filename], contributes=False, hint="ignored because invalid"
+                values=[frame.filename], contributes=False, hint="ignored because invalid"
             )
         else:
             hashable_filename, hashable_filename_hint = remove_filename_outliers_legacy(
-                interface.filename, platform
+                frame.filename, platform
             )
             filename_component.update(values=[hashable_filename], hint=hashable_filename_hint)
 
@@ -301,8 +282,8 @@ def frame_legacy(
     # take precedence over the filename, even if the module is
     # considered unhashable.
     module_component = GroupingComponent(id="module", similarity_encoder=ident_encoder)
-    if interface.module:
-        if is_unhashable_module_legacy(interface, platform):
+    if frame.module:
+        if is_unhashable_module_legacy(frame, platform):
             module_component.update(
                 values=[
                     GroupingComponent(
@@ -316,22 +297,22 @@ def frame_legacy(
             # similarity
             module_component.similarity_encoder = None
         else:
-            module_name, module_hint = remove_module_outliers_legacy(interface.module, platform)
+            module_name, module_hint = remove_module_outliers_legacy(frame.module, platform)
             module_component.update(values=[module_name], hint=module_hint)
-        if interface.filename:
+        if frame.filename:
             filename_component.update(
-                values=[interface.filename], contributes=False, hint="module takes precedence"
+                values=[frame.filename], contributes=False, hint="module takes precedence"
             )
 
     # Context line when available is the primary contributor
     context_line_component = GroupingComponent(id="context-line", similarity_encoder=ident_encoder)
-    if interface.context_line is not None:
-        if len(interface.context_line) > 120:
+    if frame.context_line is not None:
+        if len(frame.context_line) > 120:
             context_line_component.update(hint="discarded because line too long")
-        elif has_url_origin(interface.abs_path) and not func:
+        elif has_url_origin(frame.abs_path) and not func:
             context_line_component.update(hint="discarded because from URL origin")
         else:
-            context_line_component.update(values=[interface.context_line])
+            context_line_component.update(values=[frame.context_line])
 
     symbol_component = GroupingComponent(id="symbol", similarity_encoder=ident_encoder)
     function_component = GroupingComponent(id="function", similarity_encoder=ident_encoder)
@@ -344,15 +325,15 @@ def frame_legacy(
     if not context_line_component.contributes and (
         module_component.contributes or filename_component.contributes
     ):
-        if interface.symbol:
-            symbol_component.update(values=[interface.symbol])
+        if frame.symbol:
+            symbol_component.update(values=[frame.symbol])
             if func:
                 function_component.update(
                     contributes=False, values=[func], hint="symbol takes precedence"
                 )
-            if interface.lineno:
+            if frame.lineno:
                 lineno_component.update(
-                    contributes=False, values=[interface.lineno], hint="symbol takes precedence"
+                    contributes=False, values=[frame.lineno], hint="symbol takes precedence"
                 )
         elif func:
             if is_unhashable_function_legacy(func):
@@ -369,28 +350,28 @@ def frame_legacy(
             else:
                 function, function_hint = remove_function_outliers_legacy(func)
                 function_component.update(values=[function], hint=function_hint)
-            if interface.lineno:
+            if frame.lineno:
                 lineno_component.update(
-                    contributes=False, values=[interface.lineno], hint="function takes precedence"
+                    contributes=False, values=[frame.lineno], hint="function takes precedence"
                 )
-        elif interface.lineno:
-            lineno_component.update(values=[interface.lineno])
+        elif frame.lineno:
+            lineno_component.update(values=[frame.lineno])
     else:
         if context_line_component.contributes:
             fallback_hint = "is not used if context-line is available"
         else:
             fallback_hint = "is not used if module or filename are available"
-        if interface.symbol:
+        if frame.symbol:
             symbol_component.update(
-                contributes=False, values=[interface.symbol], hint="symbol " + fallback_hint
+                contributes=False, values=[frame.symbol], hint="symbol " + fallback_hint
             )
         if func:
             function_component.update(
                 contributes=False, values=[func], hint="function name " + fallback_hint
             )
-        if interface.lineno:
+        if frame.lineno:
             lineno_component.update(
-                contributes=False, values=[interface.lineno], hint="line number " + fallback_hint
+                contributes=False, values=[frame.lineno], hint="line number " + fallback_hint
             )
 
     return {
@@ -412,11 +393,9 @@ def frame_legacy(
 
 @strategy(ids=["stacktrace:legacy"], interface=Stacktrace, score=1800)
 @produces_variants(["!system", "app"])
-def stacktrace_legacy(
-    interface: Stacktrace, event: Event, context: GroupingContext, **meta: Any
-) -> ReturnedVariants:
+def stacktrace_legacy(stacktrace, event, context, **meta):
     variant = context["variant"]
-    frames = interface.frames
+    frames = stacktrace.frames
     contributes = None
     hint = None
     all_frames_considered_in_app = False
@@ -469,10 +448,8 @@ def stacktrace_legacy(
 
 @strategy(ids=["threads:legacy"], interface=Threads, score=1900)
 @produces_variants(["!system", "app"])
-def threads_legacy(
-    interface: Threads, event: Event, context: GroupingContext, **meta: Any
-) -> ReturnedVariants:
-    thread_count = len(interface.values)
+def threads_legacy(threads_interface, event, context, **meta):
+    thread_count = len(threads_interface.values)
     if thread_count != 1:
         return {
             context["variant"]: GroupingComponent(
@@ -482,7 +459,7 @@ def threads_legacy(
             )
         }
 
-    stacktrace = interface.values[0].get("stacktrace")
+    stacktrace = threads_interface.values[0].get("stacktrace")
     if not stacktrace:
         return {
             context["variant"]: GroupingComponent(
