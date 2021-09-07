@@ -5,7 +5,6 @@ import moment from 'moment';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Count from 'app/components/count';
-import SidebarSection from 'app/components/group/sidebarSection';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t, tn} from 'app/locale';
@@ -16,7 +15,7 @@ import {defined} from 'app/utils';
 
 import {displayCrashFreePercent} from '../../utils';
 
-import {Wrapper} from './styles';
+import {SectionHeading, Wrapper} from './styles';
 
 type Props = AsyncComponent['props'] & {
   location: Location;
@@ -91,29 +90,28 @@ class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
 
     return (
       <Wrapper>
-        <SidebarSection title={t('Total Crash Free Users')}>
-          <Timeline>
-            {timeline.map(row => (
-              <Row key={row.date.toString()}>
-                <InnerRow>
-                  <Text bold>{row.date.format('MMMM D')}</Text>
-                  <Text bold right>
-                    <Count value={row.crashFreeUserCount} />{' '}
-                    {tn('user', 'users', row.crashFreeUserCount)}
-                  </Text>
-                </InnerRow>
-                <InnerRow>
-                  <Text>{row.dateLabel}</Text>
-                  <Text right>
-                    {defined(row.crashFreeUsers)
-                      ? displayCrashFreePercent(row.crashFreeUsers)
-                      : '-'}
-                  </Text>
-                </InnerRow>
-              </Row>
-            ))}
-          </Timeline>
-        </SidebarSection>
+        <SectionHeading>{t('Total Crash Free Users')}</SectionHeading>
+        <Timeline>
+          {timeline.map(row => (
+            <Row key={row.date.toString()}>
+              <InnerRow>
+                <Text bold>{row.date.format('MMMM D')}</Text>
+                <Text bold right>
+                  <Count value={row.crashFreeUserCount} />{' '}
+                  {tn('user', 'users', row.crashFreeUserCount)}
+                </Text>
+              </InnerRow>
+              <InnerRow>
+                <Text>{row.dateLabel}</Text>
+                <Text right>
+                  {defined(row.crashFreeUsers)
+                    ? displayCrashFreePercent(row.crashFreeUsers)
+                    : '-'}
+                </Text>
+              </InnerRow>
+            </Row>
+          ))}
+        </Timeline>
       </Wrapper>
     );
   }

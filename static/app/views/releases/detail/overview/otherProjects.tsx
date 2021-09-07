@@ -3,7 +3,6 @@ import {Location} from 'history';
 
 import Button from 'app/components/button';
 import Collapsible from 'app/components/collapsible';
-import SidebarSection from 'app/components/group/sidebarSection';
 import IdBadge from 'app/components/idBadge';
 import {tn} from 'app/locale';
 import space from 'app/styles/space';
@@ -11,7 +10,7 @@ import {Organization, ReleaseProject} from 'app/types';
 
 import ProjectLink from '../../list/releaseHealth/projectLink';
 
-import {Wrapper} from './styles';
+import {SectionHeading, Wrapper} from './styles';
 
 type Props = {
   projects: ReleaseProject[];
@@ -23,37 +22,36 @@ type Props = {
 function OtherProjects({projects, location, version, organization}: Props) {
   return (
     <Wrapper>
-      <SidebarSection
-        title={tn(
+      <SectionHeading>
+        {tn(
           'Other Project for This Release',
           'Other Projects for This Release',
           projects.length
         )}
+      </SectionHeading>
+      <Collapsible
+        expandButton={({onExpand, numberOfHiddenItems}) => (
+          <Button priority="link" onClick={onExpand}>
+            {tn(
+              'Show %s collapsed project',
+              'Show %s collapsed projects',
+              numberOfHiddenItems
+            )}
+          </Button>
+        )}
       >
-        <Collapsible
-          expandButton={({onExpand, numberOfHiddenItems}) => (
-            <Button priority="link" onClick={onExpand}>
-              {tn(
-                'Show %s collapsed project',
-                'Show %s collapsed projects',
-                numberOfHiddenItems
-              )}
-            </Button>
-          )}
-        >
-          {projects.map(project => (
-            <Row key={project.id}>
-              <IdBadge project={project} avatarSize={16} />
-              <ProjectLink
-                location={location}
-                orgSlug={organization.slug}
-                releaseVersion={version}
-                project={project}
-              />
-            </Row>
-          ))}
-        </Collapsible>
-      </SidebarSection>
+        {projects.map(project => (
+          <Row key={project.id}>
+            <IdBadge project={project} avatarSize={16} />
+            <ProjectLink
+              location={location}
+              orgSlug={organization.slug}
+              releaseVersion={version}
+              project={project}
+            />
+          </Row>
+        ))}
+      </Collapsible>
     </Wrapper>
   );
 }

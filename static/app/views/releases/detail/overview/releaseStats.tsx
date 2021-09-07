@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
+import {SectionHeading} from 'app/components/charts/styles';
 import Count from 'app/components/count';
 import DeployBadge from 'app/components/deployBadge';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import SidebarSection from 'app/components/group/sidebarSection';
-import SidebarSectionTitle from 'app/components/group/sidebarSectionTitle';
 import NotAvailable from 'app/components/notAvailable';
 import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
@@ -114,243 +113,221 @@ function ReleaseStats({
   return (
     <Container>
       <div>
-        <StyledSidebarSection
-          title={lastDeploy?.dateFinished ? t('Date Deployed') : t('Date Created')}
-        >
-          <SectionContent>
-            <TimeSince date={lastDeploy?.dateFinished ?? dateCreated} />
-          </SectionContent>
-        </StyledSidebarSection>
+        <SectionHeading>
+          {lastDeploy?.dateFinished ? t('Date Deployed') : t('Date Created')}
+        </SectionHeading>
+        <SectionContent>
+          <TimeSince date={lastDeploy?.dateFinished ?? dateCreated} />
+        </SectionContent>
       </div>
 
       <div>
-        <StyledSidebarSection title={t('Last Deploy')}>
-          <SectionContent>
-            {lastDeploy?.dateFinished ? (
-              <DeployBadge
-                deploy={lastDeploy}
-                orgSlug={organization.slug}
-                version={version}
-                projectId={project.id}
-              />
-            ) : (
-              <NotAvailable />
-            )}
-          </SectionContent>
-        </StyledSidebarSection>
+        <SectionHeading>{t('Last Deploy')}</SectionHeading>
+        <SectionContent>
+          {lastDeploy?.dateFinished ? (
+            <DeployBadge
+              deploy={lastDeploy}
+              orgSlug={organization.slug}
+              version={version}
+              projectId={project.id}
+            />
+          ) : (
+            <NotAvailable />
+          )}
+        </SectionContent>
       </div>
 
       {!organization.features.includes('release-comparison') && (
         <Fragment>
           <CrashFreeSection>
-            <SidebarSectionTitle
-              title={t('Crash Free Rate')}
-              icon={
-                <QuestionTooltip
-                  position="top"
-                  title={getSessionTermDescription(
-                    SessionTerm.CRASH_FREE,
-                    project.platform
-                  )}
-                  size="sm"
-                />
-              }
-            >
-              {isHealthLoading ? (
-                <Placeholder height="58px" />
-              ) : (
-                <SectionContent>
-                  {defined(crashFreeSessions) || defined(crashFreeUsers) ? (
-                    <CrashFreeWrapper>
-                      {defined(crashFreeSessions) && (
-                        <div>
-                          <CrashFree
-                            percent={crashFreeSessions}
-                            iconSize="md"
-                            displayOption={DisplayOption.SESSIONS}
-                          />
-                        </div>
-                      )}
+            <SectionHeading>
+              {t('Crash Free Rate')}
+              <QuestionTooltip
+                position="top"
+                title={getSessionTermDescription(
+                  SessionTerm.CRASH_FREE,
+                  project.platform
+                )}
+                size="sm"
+              />
+            </SectionHeading>
 
-                      {defined(crashFreeUsers) && (
-                        <div>
-                          <CrashFree
-                            percent={crashFreeUsers}
-                            iconSize="md"
-                            displayOption={DisplayOption.USERS}
-                          />
-                        </div>
-                      )}
-                    </CrashFreeWrapper>
-                  ) : (
-                    <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
-                  )}
-                </SectionContent>
-              )}
-            </SidebarSectionTitle>
+            {isHealthLoading ? (
+              <Placeholder height="58px" />
+            ) : (
+              <SectionContent>
+                {defined(crashFreeSessions) || defined(crashFreeUsers) ? (
+                  <CrashFreeWrapper>
+                    {defined(crashFreeSessions) && (
+                      <div>
+                        <CrashFree
+                          percent={crashFreeSessions}
+                          iconSize="md"
+                          displayOption={DisplayOption.SESSIONS}
+                        />
+                      </div>
+                    )}
+
+                    {defined(crashFreeUsers) && (
+                      <div>
+                        <CrashFree
+                          percent={crashFreeUsers}
+                          iconSize="md"
+                          displayOption={DisplayOption.USERS}
+                        />
+                      </div>
+                    )}
+                  </CrashFreeWrapper>
+                ) : (
+                  <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
+                )}
+              </SectionContent>
+            )}
           </CrashFreeSection>
 
           <AdoptionSection>
-            <SidebarSectionTitle
-              title={t('Adoption')}
-              icon={
-                <QuestionTooltip
-                  position="top"
-                  title={getSessionTermDescription(
-                    SessionTerm.ADOPTION,
-                    project.platform
-                  )}
-                  size="sm"
-                />
-              }
-            >
-              {isHealthLoading ? (
-                <Placeholder height="88px" />
-              ) : (
-                <SectionContent>
-                  {get24hSessionCountByProject || get24hUserCountByProject ? (
-                    <AdoptionWrapper>
-                      {defined(get24hSessionCountByProject) &&
-                        get24hSessionCountByProject > 0 && (
-                          <ReleaseAdoption
-                            releaseCount={get24hSessionCountByRelease ?? 0}
-                            projectCount={get24hSessionCountByProject ?? 0}
-                            adoption={sessionAdoption ?? 0}
-                            displayOption={DisplayOption.SESSIONS}
-                            withLabels
-                          />
-                        )}
+            <SectionHeading>
+              {t('Adoption')}
+              <QuestionTooltip
+                position="top"
+                title={getSessionTermDescription(SessionTerm.ADOPTION, project.platform)}
+                size="sm"
+              />
+            </SectionHeading>
+            {isHealthLoading ? (
+              <Placeholder height="88px" />
+            ) : (
+              <SectionContent>
+                {get24hSessionCountByProject || get24hUserCountByProject ? (
+                  <AdoptionWrapper>
+                    {defined(get24hSessionCountByProject) &&
+                      get24hSessionCountByProject > 0 && (
+                        <ReleaseAdoption
+                          releaseCount={get24hSessionCountByRelease ?? 0}
+                          projectCount={get24hSessionCountByProject ?? 0}
+                          adoption={sessionAdoption ?? 0}
+                          displayOption={DisplayOption.SESSIONS}
+                          withLabels
+                        />
+                      )}
 
-                      {defined(get24hUserCountByProject) &&
-                        get24hUserCountByProject > 0 && (
-                          <ReleaseAdoption
-                            releaseCount={get24hUserCountByRelease ?? 0}
-                            projectCount={get24hUserCountByProject ?? 0}
-                            adoption={userAdoption ?? 0}
-                            displayOption={DisplayOption.USERS}
-                            withLabels
-                          />
-                        )}
-                    </AdoptionWrapper>
-                  ) : (
-                    <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
-                  )}
-                </SectionContent>
-              )}
-            </SidebarSectionTitle>
+                    {defined(get24hUserCountByProject) &&
+                      get24hUserCountByProject > 0 && (
+                        <ReleaseAdoption
+                          releaseCount={get24hUserCountByRelease ?? 0}
+                          projectCount={get24hUserCountByProject ?? 0}
+                          adoption={userAdoption ?? 0}
+                          displayOption={DisplayOption.USERS}
+                          withLabels
+                        />
+                      )}
+                  </AdoptionWrapper>
+                ) : (
+                  <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
+                )}
+              </SectionContent>
+            )}
           </AdoptionSection>
 
           <LinkedStatsSection>
             <div>
-              <SidebarSectionTitle title={t('New Issues')}>
-                <SectionContent>
-                  <Tooltip title={t('Open in Issues')}>
-                    <GlobalSelectionLink
-                      to={getReleaseNewIssuesUrl(organization.slug, project.id, version)}
-                    >
-                      <Count value={project.newGroups} />
-                    </GlobalSelectionLink>
-                  </Tooltip>
-                </SectionContent>
-              </SidebarSectionTitle>
+              <SectionHeading>{t('New Issues')}</SectionHeading>
+              <SectionContent>
+                <Tooltip title={t('Open in Issues')}>
+                  <GlobalSelectionLink
+                    to={getReleaseNewIssuesUrl(organization.slug, project.id, version)}
+                  >
+                    <Count value={project.newGroups} />
+                  </GlobalSelectionLink>
+                </Tooltip>
+              </SectionContent>
             </div>
 
             <div>
-              <StyledidebarSectionTitle
-                title={sessionTerm.crashes}
-                icon={
-                  <QuestionTooltip
-                    position="top"
-                    title={getSessionTermDescription(
-                      SessionTerm.CRASHES,
-                      project.platform
-                    )}
-                    size="sm"
-                  />
-                }
-              >
-                {isHealthLoading ? (
-                  <Placeholder height="24px" />
-                ) : (
-                  <SectionContent>
-                    {hasHealthData ? (
-                      <Tooltip title={t('Open in Issues')}>
-                        <GlobalSelectionLink
-                          to={getReleaseUnhandledIssuesUrl(
-                            organization.slug,
-                            project.id,
-                            version
-                          )}
-                        >
-                          <Count value={crashCount ?? 0} />
-                        </GlobalSelectionLink>
-                      </Tooltip>
+              <SectionHeading>
+                {sessionTerm.crashes}
+                <QuestionTooltip
+                  position="top"
+                  title={getSessionTermDescription(SessionTerm.CRASHES, project.platform)}
+                  size="sm"
+                />
+              </SectionHeading>
+              {isHealthLoading ? (
+                <Placeholder height="24px" />
+              ) : (
+                <SectionContent>
+                  {hasHealthData ? (
+                    <Tooltip title={t('Open in Issues')}>
+                      <GlobalSelectionLink
+                        to={getReleaseUnhandledIssuesUrl(
+                          organization.slug,
+                          project.id,
+                          version
+                        )}
+                      >
+                        <Count value={crashCount ?? 0} />
+                      </GlobalSelectionLink>
+                    </Tooltip>
+                  ) : (
+                    <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
+                  )}
+                </SectionContent>
+              )}
+            </div>
+
+            <div>
+              <SectionHeading>
+                {t('Apdex')}
+                <QuestionTooltip
+                  position="top"
+                  title={getTermHelp(organization, apdexPerformanceTerm)}
+                  size="sm"
+                />
+              </SectionHeading>
+              <SectionContent>
+                <Feature features={['performance-view']}>
+                  {hasFeature =>
+                    hasFeature ? (
+                      <DiscoverQuery
+                        eventView={getReleaseEventView(
+                          selection,
+                          release?.version,
+                          organization
+                        )}
+                        location={location}
+                        orgSlug={organization.slug}
+                      >
+                        {({isLoading, error, tableData}) => {
+                          if (isLoading) {
+                            return <Placeholder height="24px" />;
+                          }
+                          if (error || !tableData || tableData.data.length === 0) {
+                            return <NotAvailable />;
+                          }
+                          return (
+                            <GlobalSelectionLink
+                              to={{
+                                pathname: `/organizations/${organization.slug}/performance/`,
+                                query: {
+                                  query: `release:${release?.version}`,
+                                },
+                              }}
+                            >
+                              <Tooltip title={t('Open in Performance')}>
+                                <Count
+                                  value={tableData.data[0][getAggregateAlias(apdexField)]}
+                                />
+                              </Tooltip>
+                            </GlobalSelectionLink>
+                          );
+                        }}
+                      </DiscoverQuery>
                     ) : (
-                      <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
-                    )}
-                  </SectionContent>
-                )}
-              </StyledidebarSectionTitle>
-            </div>
-
-            <div>
-              <StyledidebarSectionTitle
-                title={t('Apdex')}
-                icon={
-                  <QuestionTooltip
-                    position="top"
-                    title={getTermHelp(organization, apdexPerformanceTerm)}
-                    size="sm"
-                  />
-                }
-              >
-                <SectionContent>
-                  <Feature features={['performance-view']}>
-                    {hasFeature =>
-                      hasFeature ? (
-                        <DiscoverQuery
-                          eventView={getReleaseEventView(
-                            selection,
-                            release?.version,
-                            organization
-                          )}
-                          location={location}
-                          orgSlug={organization.slug}
-                        >
-                          {({isLoading, error, tableData}) => {
-                            if (isLoading) {
-                              return <Placeholder height="24px" />;
-                            }
-                            if (error || !tableData || tableData.data.length === 0) {
-                              return <NotAvailable />;
-                            }
-                            return (
-                              <GlobalSelectionLink
-                                to={{
-                                  pathname: `/organizations/${organization.slug}/performance/`,
-                                  query: {
-                                    query: `release:${release?.version}`,
-                                  },
-                                }}
-                              >
-                                <Tooltip title={t('Open in Performance')}>
-                                  <Count
-                                    value={
-                                      tableData.data[0][getAggregateAlias(apdexField)]
-                                    }
-                                  />
-                                </Tooltip>
-                              </GlobalSelectionLink>
-                            );
-                          }}
-                        </DiscoverQuery>
-                      ) : (
-                        <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.performance} />
-                      )
-                    }
-                  </Feature>
-                </SectionContent>
-              </StyledidebarSectionTitle>
+                      <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.performance} />
+                    )
+                  }
+                </Feature>
+              </SectionContent>
             </div>
           </LinkedStatsSection>
         </Fragment>
@@ -363,28 +340,10 @@ const Container = styled('div')`
   display: grid;
   grid-template-columns: 50% 50%;
   grid-row-gap: ${space(2)};
-  margin-top: ${space(1)};
-`;
-const StyledSidebarSection = styled(SidebarSection)`
-  margin-bottom: ${space(1)};
-  &:after {
-    flex: 1;
-    display: block;
-    content: '';
-    border: none;
-    margin-left: ${space(1)};
-  }
+  margin-bottom: ${space(3)};
 `;
 
-const StyledidebarSectionTitle = styled(SidebarSectionTitle)`
-  span {
-    display: block;
-  }
-`;
-
-const SectionContent = styled('div')`
-  color: ${p => p.theme.gray400};
-`;
+const SectionContent = styled('div')``;
 
 const CrashFreeSection = styled('div')`
   grid-column: 1/3;

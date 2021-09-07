@@ -2,15 +2,15 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
 import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import SidebarSection from 'app/components/group/sidebarSection';
-import SidebarSectionTitle from 'app/components/group/sidebarSectionTitle';
 import NotAvailable from 'app/components/notAvailable';
 import QuestionTooltip from 'app/components/questionTooltip';
+import SidebarSectionTitle from 'app/components/sidebarSectionTitle';
 import Tag from 'app/components/tag';
 import Tooltip from 'app/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
@@ -28,6 +28,8 @@ import {ADOPTION_STAGE_LABELS} from 'app/views/releases/list/releaseHealth/conte
 
 import {getReleaseBounds, getReleaseParams} from '../../utils';
 import {generateReleaseMarkLines, releaseMarkLinesLabels} from '../utils';
+
+import {SectionHeading, Wrapper} from './styles';
 
 type Props = {
   release: ReleaseWithHealth;
@@ -210,16 +212,15 @@ function ReleaseComparisonChart({
   const multipleEnvironments = environment.length > 1;
 
   return (
-    <div>
-      <SidebarSection
-        title={
-          allEnvironments
+    <Wrapper>
+      <Feature features={['release-adoption-stage']}>
+        <SectionHeading>
+          {allEnvironments
             ? t('All Environments')
             : multipleEnvironments
             ? t(`${environment.join(', ')}`)
-            : t(`${environment}`)
-        }
-      >
+            : t(`${environment}`)}
+        </SectionHeading>
         <SidebarSectionTitle title={t('Adoption Stage')}>
           {adoptionStageLabel && !allEnvironments && !multipleEnvironments ? (
             <Tooltip title={adoptionStageLabel.tooltipTitle}>
@@ -229,7 +230,7 @@ function ReleaseComparisonChart({
             <NotAvailable />
           )}
         </SidebarSectionTitle>
-      </SidebarSection>
+      </Feature>
       <RelativeBox>
         <ChartLabel top="0px">
           <ChartTitle
@@ -286,7 +287,7 @@ function ReleaseComparisonChart({
           </TransitionChart>
         )}
       </RelativeBox>
-    </div>
+    </Wrapper>
   );
 }
 
