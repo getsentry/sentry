@@ -151,7 +151,6 @@ function ReleaseStats({
                 size="sm"
               />
             </SectionHeading>
-
             {isHealthLoading ? (
               <Placeholder height="58px" />
             ) : (

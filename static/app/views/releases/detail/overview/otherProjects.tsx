@@ -29,6 +29,7 @@ function OtherProjects({projects, location, version, organization}: Props) {
           projects.length
         )}
       </SectionHeading>
+
       <Collapsible
         expandButton={({onExpand, numberOfHiddenItems}) => (
           <Button priority="link" onClick={onExpand}>

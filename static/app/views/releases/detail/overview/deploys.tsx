@@ -20,6 +20,7 @@ const Deploys = ({version, orgSlug, projectId, deploys}: Props) => {
   return (
     <Wrapper>
       <SectionHeading>{t('Deploys')}</SectionHeading>
+
       {deploys.map(deploy => (
         <Row key={deploy.id}>
           <StyledDeployBadge
