@@ -74,6 +74,7 @@ const Wrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray400};
   padding-top: ${space(2)};
+  padding-bottom: ${space(1)};
 `;
 
 const BrowserWrapper = styled('div')`
