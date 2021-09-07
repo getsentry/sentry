@@ -388,8 +388,8 @@ class ParseSearchQueryBackendTest(unittest.TestCase):
             parse_search_query("avg(stack.colno):>500s")
 
     def test_invalid_numeric_aggregate_filter(self):
-        with self.assertRaisesRegexp(
-            InvalidSearchQuery, expected_regex="is not a valid number suffix, must be k, m or b"
+        with self.assertRaisesMessage(
+            InvalidSearchQuery, "is not a valid number suffix, must be k, m or b"
         ):
             parse_search_query("min(measurements.size):3s")
 
