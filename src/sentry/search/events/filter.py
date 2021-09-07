@@ -1349,10 +1349,12 @@ class QueryFilter(QueryFields):
         }:
             value = int(to_timestamp(value)) * 1000
 
-        # Validate event ids are uuids
+        # Validate event ids and trace ids are uuids
         if name in {"id", "trace"}:
             if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery("Wildcard conditions are not permitted on `id` field.")
+                raise InvalidSearchQuery(
+                    f"Wildcard conditions are not permitted on `{name}` field."
+                )
             elif not search_filter.value.is_event_id():
                 label = "Filter ID" if name == "id" else "Filter Trace ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
