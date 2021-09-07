@@ -3,19 +3,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.api.validators.notifications import validate, validate_type_option
-from sentry.features.helpers import any_organization_has_feature
 from sentry.models import NotificationSetting, User
-
-
-def validate_has_feature(user: User) -> None:
-    if not any_organization_has_feature(
-        "organizations:notification-platform", user.get_orgs(), actor=user
-    ):
-        raise ResourceDoesNotExist
 
 
 class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
@@ -36,7 +27,6 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
 
         :auth required:
         """
-        validate_has_feature(user)
 
         type_option = validate_type_option(request.GET.get("type"))
 
@@ -84,7 +74,6 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
 
         :auth required:
         """
-        validate_has_feature(user)
 
         notification_settings = validate(request.data, user=user)
         NotificationSetting.objects.update_settings_bulk(notification_settings, user=user)
