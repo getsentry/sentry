@@ -290,11 +290,14 @@ def get_function_component(
     return function_component
 
 
-@strategy(  # type: ignore
+@strategy(
     ids=["frame:v1"],
     interfaces=["frame"],
 )
-def frame(frame: Frame, event: Event, context: GroupingContext, **meta: Any) -> ReturnedVariants:
+def frame(
+    interface: Frame, event: Event, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
+    frame = interface
     platform = frame.platform or event.platform
 
     # Safari throws [native code] frames in for calls like ``forEach``
@@ -460,18 +463,20 @@ def get_contextline_component(
     return component
 
 
-@strategy(id="stacktrace:v1", interfaces=["stacktrace"], score=1800)  # type: ignore
-def stacktrace(stacktrace: Stacktrace, context: GroupingContext, **meta: Any) -> ReturnedVariants:
+@strategy(id="stacktrace:v1", interfaces=["stacktrace"], score=1800)
+def stacktrace(
+    interface: Stacktrace, event: Event, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
     assert context["variant"] is None
 
     if context["hierarchical_grouping"]:
         with context:
             context["variant"] = "system"
-            return _single_stacktrace_variant(stacktrace, context=context, meta=meta)
+            return _single_stacktrace_variant(interface, context=context, meta=meta)
 
     else:
         return call_with_variants(
-            _single_stacktrace_variant, ["!system", "app"], stacktrace, context=context, meta=meta  # type: ignore
+            _single_stacktrace_variant, ["!system", "app"], interface, context=context, meta=meta  # type: ignore
         )
 
 
@@ -534,7 +539,7 @@ def _single_stacktrace_variant(
     return all_variants
 
 
-@stacktrace.variant_processor  # type: ignore
+@stacktrace.variant_processor
 def stacktrace_variant_processor(
     variants: ReturnedVariants, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
@@ -571,24 +576,24 @@ def _stacktrace_encoder(id: str, stacktrace: Stacktrace) -> StacktraceEncoderRet
     yield (id, "frames-pairs"), shingle(2, encoded_frames)
 
 
-@strategy(  # type: ignore
+@strategy(
     ids=["single-exception:v1"],
     interfaces=["singleexception"],
 )
 def single_exception(
-    exception: SingleException, context: GroupingContext, **meta: Any
+    interface: SingleException, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
     type_component = GroupingComponent(
         id="type",
-        values=[exception.type] if exception.type else [],
+        values=[interface.type] if interface.type else [],
         similarity_encoder=ident_encoder,
     )
     system_type_component = type_component.shallow_copy()
 
     ns_error_component = None
 
-    if exception.mechanism:
-        if exception.mechanism.synthetic:
+    if interface.mechanism:
+        if interface.mechanism.synthetic:
             # Ignore synthetic exceptions as they are produced from platform
             # specific error codes.
             #
@@ -599,19 +604,19 @@ def single_exception(
             # can be continuously modified without unnecessarily creating new
             # groups.
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
-        if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
+        if interface.mechanism.meta and "ns_error" in interface.mechanism.meta:
             ns_error_component = GroupingComponent(
                 id="ns-error",
                 values=[
-                    exception.mechanism.meta["ns_error"].get("domain"),
-                    exception.mechanism.meta["ns_error"].get("code"),
+                    interface.mechanism.meta["ns_error"].get("domain"),
+                    interface.mechanism.meta["ns_error"].get("code"),
                 ],
             )
 
-    if exception.stacktrace is not None:
+    if interface.stacktrace is not None:
         with context:
-            context["exception_data"] = exception.to_json()
-            stacktrace_variants = context.get_grouping_component(exception.stacktrace, **meta)
+            context["exception_data"] = interface.to_json()
+            stacktrace_variants = context.get_grouping_component(interface.stacktrace, **meta)
     else:
         stacktrace_variants = {
             "app": GroupingComponent(id="stacktrace"),
@@ -633,7 +638,7 @@ def single_exception(
                 id="value", similarity_encoder=text_shingle_encoder(5)
             )
 
-            value_in = exception.value
+            value_in = interface.value
             if value_in is not None:
                 value_trimmed = trim_message_for_grouping(value_in)
                 hint = "stripped common values" if value_in != value_trimmed else None
@@ -665,13 +670,13 @@ def single_exception(
     return rv
 
 
-@strategy(id="chained-exception:v1", interfaces=["exception"], score=2000)  # type: ignore
+@strategy(id="chained-exception:v1", interfaces=["exception"], score=2000)
 def chained_exception(
-    chained_exception: ChainedException, context: GroupingContext, **meta: Any
+    interface: ChainedException, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
     # Case 1: we have a single exception, use the single exception
     # component directly to avoid a level of nesting
-    exceptions = chained_exception.exceptions()
+    exceptions = interface.exceptions()
     if len(exceptions) == 1:
         return context.get_grouping_component(exceptions[0], **meta)
 
@@ -694,7 +699,7 @@ def chained_exception(
     return rv
 
 
-@chained_exception.variant_processor  # type: ignore
+@chained_exception.variant_processor
 def chained_exception_variant_processor(
     variants: ReturnedVariants, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
@@ -754,7 +759,7 @@ def _filtered_threads(
     return rv
 
 
-@threads.variant_processor  # type: ignore
+@threads.variant_processor
 def threads_variant_processor(
     variants: ReturnedVariants, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:

@@ -4,7 +4,6 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Generic,
     Iterator,
     List,
     Optional,
@@ -28,7 +27,7 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.interfaces.base import Interface
 
-STRATEGIES: Dict[str, "Strategy[Any]"] = {}
+STRATEGIES: Dict[str, "Strategy"] = {}
 
 RISK_LEVEL_LOW = 0
 RISK_LEVEL_MEDIUM = 1
@@ -49,10 +48,9 @@ ConcreteInterface = TypeVar("ConcreteInterface", bound=Interface, contravariant=
 
 class StrategyFunc(Protocol):
     # TODO(markus): Stronger typing of interface param
-    #
-    # Double-underscore to indicate positional-only argument:
-    # https://github.com/python/mypy/issues/5235
-    def __call__(self, __interface: ConcreteInterface, **kwargs: Any) -> ReturnedVariants:
+    def __call__(
+        self, interface: ConcreteInterface, event: Event, context: "GroupingContext", **meta: Any
+    ) -> ReturnedVariants:
         ...
 
 
@@ -68,7 +66,7 @@ def strategy(
     ids: Optional[Sequence[str]] = None,
     interfaces: Optional[Sequence[str]] = None,
     score: Optional[int] = None,
-) -> Callable[[StrategyFunc], "Strategy[ConcreteInterface]"]:
+) -> Callable[[StrategyFunc], "Strategy"]:
     """Registers a strategy"""
 
     if not interfaces:
@@ -84,11 +82,11 @@ def strategy(
     if not ids:
         raise TypeError("neither id nor ids given")
 
-    def decorator(f: StrategyFunc) -> Strategy[ConcreteInterface]:
+    def decorator(f: StrategyFunc) -> Strategy:
         assert interfaces
         assert ids
 
-        rv: Optional[Strategy[ConcreteInterface]] = None
+        rv: Optional[Strategy] = None
 
         for id in ids:
             STRATEGIES[id] = rv = Strategy(
@@ -155,7 +153,7 @@ class GroupingContext:
         return rv
 
 
-def lookup_strategy(strategy_id: str) -> "Strategy[Any]":
+def lookup_strategy(strategy_id: str) -> "Strategy":
     """Looks up a strategy by id."""
     try:
         return STRATEGIES[strategy_id]
@@ -163,7 +161,7 @@ def lookup_strategy(strategy_id: str) -> "Strategy[Any]":
         raise LookupError("Unknown strategy %r" % strategy_id)
 
 
-class Strategy(Generic[ConcreteInterface]):
+class Strategy:
     """Baseclass for all strategies."""
 
     def __init__(
@@ -180,12 +178,14 @@ class Strategy(Generic[ConcreteInterface]):
         self.interfaces = interfaces
         self.score = score
         self.func = func
-        self.variant_processor_func: Optional[StrategyFunc] = None
+        self.variant_processor_func: Optional[VariantProcessor] = None
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} id={self.id!r}>"
 
-    def _invoke(self, func: StrategyFunc, *args: Any, **kwargs: Any) -> ReturnedVariants:
+    def _invoke(
+        self, func: Callable[..., ReturnedVariants], *args: Any, **kwargs: Any
+    ) -> ReturnedVariants:
         # We forcefully override strategy here.  This lets a strategy
         # function always access its metadata and directly forward it to
         # subcomponents without having to filter out strategy.
@@ -195,7 +195,7 @@ class Strategy(Generic[ConcreteInterface]):
     def __call__(self, *args: Any, **kwargs: Any) -> ReturnedVariants:
         return self._invoke(self.func, *args, **kwargs)
 
-    def variant_processor(self, func: StrategyFunc) -> StrategyFunc:
+    def variant_processor(self, func: VariantProcessor) -> VariantProcessor:
         """Registers a variant reducer function that can be used to postprocess
         all variants created from this strategy.
         """
@@ -291,8 +291,8 @@ class StrategyConfiguration:
     id: Optional[str] = None
     base: Optional[Type["StrategyConfiguration"]] = None
     config_class = None
-    strategies: Dict[str, Strategy[Any]] = {}
-    delegates: Dict[str, Strategy[Any]] = {}
+    strategies: Dict[str, Strategy] = {}
+    delegates: Dict[str, Strategy] = {}
     changelog: Optional[str] = None
     hidden = False
     risk = RISK_LEVEL_LOW
@@ -309,7 +309,7 @@ class StrategyConfiguration:
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.id!r}>"
 
-    def iter_strategies(self) -> Iterator[Strategy[Any]]:
+    def iter_strategies(self) -> Iterator[Strategy]:
         """Iterates over all strategies by highest score to lowest."""
         return iter(sorted(self.strategies.values(), key=lambda x: x.score and -x.score or 0))
 
