@@ -55,12 +55,9 @@ describe('Team Selector', function () {
     const wrapper = createWrapper();
     openSelectMenu(wrapper);
 
-    let option = wrapper.getByText('#team1');
-    expect(option).toBeTruthy();
-    option = wrapper.getByText('#team2');
-    expect(option).toBeTruthy();
-    option = wrapper.getByText('#team3');
-    expect(option).toBeTruthy();
+    expect(wrapper.getByText('#team1')).toBeTruthy();
+    expect(wrapper.getByText('#team2')).toBeTruthy();
+    expect(wrapper.getByText('#team3')).toBeTruthy();
   });
 
   it('selects an option', function () {
@@ -78,26 +75,21 @@ describe('Team Selector', function () {
     const wrapper = createWrapper({teamFilter});
     openSelectMenu(wrapper);
 
-    let option = wrapper.getByText('#team1');
-    expect(option).toBeTruthy();
+    expect(wrapper.getByText('#team1')).toBeTruthy();
 
     // These options should be filtered out
-    option = wrapper.queryByText('#team2');
-    expect(option).toBeFalsy();
-    option = wrapper.queryByText('#team3');
-    expect(option).toBeFalsy();
+    expect(wrapper.queryByText('#team2')).toBeFalsy();
+    expect(wrapper.queryByText('#team3')).toBeFalsy();
   });
 
   it('respects the project filter', async function () {
     const wrapper = createWrapper({project});
     openSelectMenu(wrapper);
 
-    const option = wrapper.getByText('#team1');
-    expect(option).toBeTruthy();
+    expect(wrapper.getByText('#team1')).toBeTruthy();
 
     // team2 and team3 should have add to project buttons
-    const addToProjectButtons = wrapper.getAllByRole('button');
-    expect(addToProjectButtons.length).toBe(2);
+    expect(wrapper.getAllByRole('button').length).toBe(2);
   });
 
   it('respects the team and project filter', async function () {
@@ -105,24 +97,20 @@ describe('Team Selector', function () {
     const wrapper = createWrapper({teamFilter, project});
     openSelectMenu(wrapper);
 
-    let option = wrapper.getByText('#team1');
-    expect(option).toBeTruthy();
+    expect(wrapper.getByText('#team1')).toBeTruthy();
 
     // team3 should be filtered out
-    option = wrapper.queryByText('#team3');
-    expect(option).toBeFalsy();
+    expect(wrapper.queryByText('#team3')).toBeFalsy();
 
     // team2 should have add to project buttons
-    const addToProjectButtons = wrapper.getAllByRole('button');
-    expect(addToProjectButtons.length).toBe(1);
+    expect(wrapper.getAllByRole('button').length).toBe(1);
   });
 
   it('allows you to add teams outside of project', async function () {
     const wrapper = createWrapper({project});
     openSelectMenu(wrapper);
 
-    const option = wrapper.getByText('#team1');
-    expect(option).toBeTruthy();
+    expect(wrapper.getByText('#team1')).toBeTruthy();
 
     // team2 and team3 should have add to project buttons
     const addToProjectButtons = wrapper.getAllByRole('button');
