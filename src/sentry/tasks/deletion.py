@@ -146,6 +146,7 @@ def revoke_api_tokens(object_id, transaction_id=None, timestamp=None, **kwargs):
 )
 @retry(exclude=(DeleteAborted,))
 def delete_organization(object_id, transaction_id=None, actor_id=None, **kwargs):
+    # TODO(mark) remove this task once all in flight jobs have been processed.
     from sentry import deletions
     from sentry.models import Organization, OrganizationStatus
 
