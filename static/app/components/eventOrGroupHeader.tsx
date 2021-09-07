@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -18,10 +18,7 @@ import {TagAndMessageWrapper} from 'app/views/organizationGroupDetails/unhandled
 
 import EventTitleError from './eventTitleError';
 
-type DefaultProps = {
-  includeLink: boolean;
-  size: 'small' | 'normal';
-};
+type Size = 'small' | 'normal';
 
 type Props = WithRouterProps<{orgId: string}> & {
   organization: Organization;
@@ -33,27 +30,36 @@ type Props = WithRouterProps<{orgId: string}> & {
   /** Group link clicked */
   onClick?: () => void;
   index?: number;
-} & Partial<DefaultProps>;
+  includeLink?: boolean;
+  size?: Size;
+};
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
  */
-class EventOrGroupHeader extends Component<Props> {
-  static defaultProps: DefaultProps = {
-    includeLink: true,
-    size: 'normal',
-  };
+function EventOrGroupHeader({
+  data,
+  index,
+  organization,
+  params,
+  query,
+  onClick,
+  className,
+  hideIcons,
+  hideLevel,
+  location: loc,
+  includeLink = true,
+  size = 'normal',
+}: Props) {
+  const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
 
-  getTitleChildren() {
-    const {hideIcons, hideLevel, data, index, organization} = this.props;
+  function getTitleChildren() {
     const {level, status, isBookmarked, hasSeen} = data as Group;
-    const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
-
     return (
       <Fragment>
         {!hideLevel && level && (
           <GroupLevel level={level}>
-            <Tooltip title={`Error level: ${capitalize(level)}`}>
+            <Tooltip title={tct('Error level: [level]', {level: capitalize(level)})}>
               <span />
             </Tooltip>
           </GroupLevel>
@@ -68,10 +74,10 @@ class EventOrGroupHeader extends Component<Props> {
             <IconStar isSolid color="yellow300" />
           </IconWrapper>
         )}
-
         <ErrorBoundary customComponent={<EventTitleError />} mini>
           <StyledEventOrGroupTitle
-            {...this.props}
+            data={data}
+            organization={organization}
             hasSeen={hasGroupingTreeUI && hasSeen === undefined ? true : hasSeen}
             withStackTracePreview
             hasGuideAnchor={index === 0}
@@ -82,9 +88,7 @@ class EventOrGroupHeader extends Component<Props> {
     );
   }
 
-  getTitle() {
-    const {includeLink, data, params, location, onClick} = this.props;
-
+  function getTitle() {
     const orgId = params?.orgId;
 
     const {id, status} = data as Group;
@@ -104,38 +108,37 @@ class EventOrGroupHeader extends Component<Props> {
               eventID ? `events/${eventID}/` : ''
             }`,
             query: {
-              query: this.props.query,
-              ...(location.query.sort !== undefined ? {sort: location.query.sort} : {}), // This adds sort to the query if one was selected from the issues list page
-              ...(location.query.project !== undefined ? {} : {_allp: 1}), // This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
+              query,
+              ...(loc.query.sort !== undefined ? {sort: loc.query.sort} : {}), // This adds sort to the query if one was selected from the issues list page
+              ...(loc.query.project !== undefined ? {} : {_allp: 1}), // This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
             },
           }}
           onClick={onClick}
         >
-          {this.getTitleChildren()}
+          {getTitleChildren()}
         </GlobalSelectionLink>
       );
-    } else {
-      return <span {...props}>{this.getTitleChildren()}</span>;
     }
+
+    return <span {...props}>{getTitleChildren()}</span>;
   }
 
-  render() {
-    const {className, size, data} = this.props;
-    const location = getLocation(data);
-    const message = getMessage(data);
+  const location = getLocation(data);
+  const message = getMessage(data);
 
-    return (
-      <div className={className} data-test-id="event-issue-header">
-        <Title size={size}>{this.getTitle()}</Title>
-        {location && <Location size={size}>{location}</Location>}
-        {message && (
-          <StyledTagAndMessageWrapper size={size}>
-            {message && <Message>{message}</Message>}
-          </StyledTagAndMessageWrapper>
-        )}
-      </div>
-    );
-  }
+  return (
+    <div className={className} data-test-id="event-issue-header">
+      <Title size={size} hasGroupingTreeUI={hasGroupingTreeUI}>
+        {getTitle()}
+      </Title>
+      {location && <Location size={size}>{location}</Location>}
+      {message && (
+        <StyledTagAndMessageWrapper size={size}>
+          {message && <Message>{message}</Message>}
+        </StyledTagAndMessageWrapper>
+      )}
+    </div>
+  );
 }
 
 const truncateStyles = css`
@@ -145,7 +148,7 @@ const truncateStyles = css`
   white-space: nowrap;
 `;
 
-const getMargin = ({size}) => {
+const getMargin = ({size}: {size: Size}) => {
   if (size === 'small') {
     return 'margin: 0;';
   }
@@ -153,8 +156,7 @@ const getMargin = ({size}) => {
   return 'margin: 0 0 5px';
 };
 
-const Title = styled('div')`
-  ${truncateStyles};
+const Title = styled('div')<{size: Size; hasGroupingTreeUI: boolean}>`
   line-height: 1;
   ${getMargin};
   & em {
@@ -163,6 +165,16 @@ const Title = styled('div')`
     font-weight: 300;
     color: ${p => p.theme.subText};
   }
+  ${p =>
+    !p.hasGroupingTreeUI
+      ? css`
+          ${truncateStyles}
+        `
+      : css`
+          > a:first-child {
+            display: flex;
+          }
+        `}
 `;
 
 const LocationWrapper = styled('div')`
