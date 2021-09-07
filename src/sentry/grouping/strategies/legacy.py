@@ -1,6 +1,5 @@
 import posixpath
 import re
-from typing import Optional, Tuple
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import produces_variants, strategy
@@ -58,7 +57,7 @@ RECURSION_COMPARISON_FIELDS = [
 ]
 
 
-def is_unhashable_module_legacy(frame: Frame, platform: str) -> bool:
+def is_unhashable_module_legacy(frame, platform):
     # Fix for the case where module is a partial copy of the URL
     # and should not be hashed
     if (
@@ -73,14 +72,14 @@ def is_unhashable_module_legacy(frame: Frame, platform: str) -> bool:
     return False
 
 
-def is_unhashable_function_legacy(func: str) -> bool:
+def is_unhashable_function_legacy(func):
     # TODO(dcramer): lambda$ is Java specific
     # TODO(dcramer): [Anonymous is PHP specific (used for things like SQL
     # queries and JSON data)
     return func.startswith(("lambda$", "[Anonymous"))
 
 
-def is_recursion_legacy(frame1: Frame, frame2: Frame) -> bool:
+def is_recursion_legacy(frame1, frame2):
     "Returns a boolean indicating whether frames are recursive calls."
     for field in RECURSION_COMPARISON_FIELDS:
         if getattr(frame1, field, None) != getattr(frame2, field, None):
@@ -89,7 +88,7 @@ def is_recursion_legacy(frame1: Frame, frame2: Frame) -> bool:
     return True
 
 
-def remove_module_outliers_legacy(module: str, platform: str) -> Tuple[str, Optional[str]]:
+def remove_module_outliers_legacy(module, platform):
     """Remove things that augment the module but really should not."""
     if platform == "java":
         if module[:35] == "sun.reflect.GeneratedMethodAccessor":
@@ -106,7 +105,7 @@ def remove_module_outliers_legacy(module: str, platform: str) -> Tuple[str, Opti
     return module, None
 
 
-def remove_filename_outliers_legacy(filename: str, platform: str) -> Tuple[str, Optional[str]]:
+def remove_filename_outliers_legacy(filename, platform):
     """
     Attempt to normalize filenames by removing common platform outliers.
 
