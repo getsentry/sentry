@@ -13,10 +13,11 @@ type Props = {
   className?: string;
 };
 
-function DataSection({title, description, children, className}: Props) {
+function DataSection({title, description, children, className, ...props}: Props) {
   const type = kebabCase(title);
   return (
     <StyledEventDataSection
+      {...props}
       className={className}
       type={type}
       title={
