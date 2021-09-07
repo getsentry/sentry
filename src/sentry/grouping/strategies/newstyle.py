@@ -476,7 +476,7 @@ def stacktrace(
 
     else:
         return call_with_variants(
-            _single_stacktrace_variant, ["!system", "app"], interface, context=context, meta=meta  # type: ignore
+            _single_stacktrace_variant, ["!system", "app"], interface, context=context, meta=meta
         )
 
 

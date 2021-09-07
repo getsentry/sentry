@@ -440,7 +440,7 @@ def produces_variants(variants: Sequence[str]) -> Callable[[StrategyFunc], Strat
 
 
 def call_with_variants(
-    f: StrategyFunc, variants: Sequence[str], *args: Any, **kwargs: Any
+    f: Callable[..., ReturnedVariants], variants: Sequence[str], *args: Any, **kwargs: Any
 ) -> ReturnedVariants:
     context = kwargs["context"]
     if context["variant"] is not None:
