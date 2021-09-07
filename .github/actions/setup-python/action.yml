@@ -15,6 +15,9 @@ inputs:
   pip-cache-version:
     description: 'pip cache version in order to bust cache'
     required: false
+  python-version:
+    description: 'python version to install'
+    required: false
 
 outputs:
   python-version:
@@ -34,7 +37,11 @@ runs:
       id: python-version
       shell: bash
       run: |
-        echo "::set-output name=python-version::$(cat .python-version)"
+        if [ "${{ inputs.python-version }}" == "" ]; then
+          echo "::set-output name=python-version::$(SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh get-pyenv-version)"
+        else
+          echo "::set-output name=python-version::${{ inputs.python-version }}"
+        fi
 
     - name: Setup default environment variables
       shell: bash

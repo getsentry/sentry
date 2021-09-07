@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
-import TransactionSummary from 'app/views/performance/transactionSummary';
+import TransactionSummary from 'app/views/performance/transactionSummary/transactionOverview';
 
 const teams = [
   TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
@@ -26,7 +26,7 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
       location: {
         query: {
           transaction: '/performance',
-          project: 2,
+          project: '2',
           transactionCursor: '1:0:0',
           ...query,
         },
@@ -267,6 +267,9 @@ describe('Performance > TransactionSummary', function () {
     await tick();
     wrapper.update();
 
+    // It shows the header
+    expect(wrapper.find('TransactionHeader')).toHaveLength(1);
+
     // It shows a chart
     expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
 
@@ -405,7 +408,7 @@ describe('Performance > TransactionSummary', function () {
       pathname: undefined,
       query: {
         transaction: '/performance',
-        project: 2,
+        project: '2',
         statsPeriod: '14d',
         query: 'user.email:uhoh*',
         transactionCursor: '1:0:0',
@@ -469,7 +472,7 @@ describe('Performance > TransactionSummary', function () {
       pathname: undefined,
       query: {
         transaction: '/performance',
-        project: 2,
+        project: '2',
         showTransactions: 'slow',
         transactionCursor: undefined,
       },
@@ -499,7 +502,7 @@ describe('Performance > TransactionSummary', function () {
       pathname: undefined,
       query: {
         transaction: '/performance',
-        project: 2,
+        project: '2',
         transactionCursor: '2:0:0',
       },
     });

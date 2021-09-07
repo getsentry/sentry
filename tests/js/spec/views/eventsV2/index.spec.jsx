@@ -53,6 +53,11 @@ describe('EventsV2 > Landing', function () {
       },
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/saved/',
       method: 'GET',
       body: [],
@@ -85,5 +90,36 @@ describe('EventsV2 > Landing', function () {
 
     const content = wrapper.find('PageContent');
     expect(content.text()).toContain("You don't have access to this feature");
+  });
+
+  it('has the right sorts', async function () {
+    const org = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+    });
+    const wrapper = mountWithTheme(
+      <DiscoverLanding organization={org} location={{query: {}}} router={{}} />,
+      TestStubs.routerContext()
+    );
+
+    await tick();
+
+    const dropdownItems = wrapper.find('DropdownItem span');
+    expect(dropdownItems).toHaveLength(8);
+
+    const expectedSorts = [
+      'My Queries',
+      'Recently Edited',
+      'Query Name (A-Z)',
+      'Date Created (Newest)',
+      'Date Created (Oldest)',
+      'Most Outdated',
+      'Most Popular',
+      'Recently Viewed',
+    ];
+
+    expect(dropdownItems.children().map(element => element.text())).toEqual(
+      expectedSorts
+    );
   });
 });

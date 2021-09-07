@@ -13,7 +13,7 @@ import FileSize from 'app/components/fileSize';
 import {PanelTable} from 'app/components/panels';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {EventAttachment} from 'app/types';
+import {IssueAttachment} from 'app/types';
 import {Event} from 'app/types/event';
 import AttachmentUrl from 'app/utils/attachmentUrl';
 import withApi from 'app/utils/withApi';
@@ -26,8 +26,8 @@ type Props = {
   orgId: string;
   projectId: string;
   location: Location;
-  attachments: EventAttachment[];
-  onDeleteAttachment: (attachmentId: EventAttachment['id']) => void;
+  attachments: IssueAttachment[];
+  onDeleteAttachment: (attachmentId: IssueAttachment['id']) => void;
 };
 
 type State = {
@@ -41,7 +41,7 @@ class EventAttachments extends React.Component<Props, State> {
     attachmentPreviews: {},
   };
 
-  getInlineAttachmentRenderer(attachment: EventAttachment) {
+  getInlineAttachmentRenderer(attachment: IssueAttachment) {
     switch (attachment.mimetype) {
       case 'text/plain':
         return attachment.size > 0 ? LogFileViewer : undefined;
@@ -61,15 +61,15 @@ class EventAttachments extends React.Component<Props, State> {
     }
   }
 
-  hasInlineAttachmentRenderer(attachment: EventAttachment): boolean {
+  hasInlineAttachmentRenderer(attachment: IssueAttachment): boolean {
     return !!this.getInlineAttachmentRenderer(attachment);
   }
 
-  attachmentPreviewIsOpen = (attachment: EventAttachment) => {
+  attachmentPreviewIsOpen = (attachment: IssueAttachment) => {
     return !!this.state.attachmentPreviews[attachment.id];
   };
 
-  renderInlineAttachment(attachment: EventAttachment) {
+  renderInlineAttachment(attachment: IssueAttachment) {
     const Component = this.getInlineAttachmentRenderer(attachment);
     if (!Component || !this.attachmentPreviewIsOpen(attachment)) {
       return null;
@@ -86,7 +86,7 @@ class EventAttachments extends React.Component<Props, State> {
     );
   }
 
-  togglePreview(attachment: EventAttachment) {
+  togglePreview(attachment: IssueAttachment) {
     this.setState(({attachmentPreviews}) => ({
       attachmentPreviews: {
         ...attachmentPreviews,

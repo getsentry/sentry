@@ -1,57 +1,50 @@
-import {Component, createRef} from 'react';
+import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import rrwebPlayer from 'rrweb-player';
-
-import {Panel} from 'app/components/panels';
+import RRWebPlayer from 'rrweb-player';
 
 type Props = {
   url: string;
   className?: string;
 };
 
-class BaseRRWebReplayer extends Component<Props> {
-  componentDidMount() {
-    this.rrwebPlayer();
-  }
+type RRwebEvents = ConstructorParameters<typeof RRWebPlayer>[0]['props']['events'];
 
-  wrapperRef = createRef<HTMLDivElement>();
+const BaseRRWebReplayer = ({url, className}: Props) => {
+  const [playerEl, setPlayerEl] = useState<HTMLDivElement | null>(null);
+  const [events, setEvents] = useState<RRwebEvents>();
 
-  newRRWebPlayer: any;
-
-  rrwebPlayer = async () => {
-    const element = this.wrapperRef?.current;
-
-    if (!element) {
-      return;
-    }
-
-    const {url} = this.props;
-
+  const loadEvents = async () => {
     try {
       const resp = await fetch(url);
-      const payload = await resp.json();
+      const data = await resp.json();
 
-      this.newRRWebPlayer = new rrwebPlayer({
-        target: element,
-        data: payload,
-        autoplay: false,
-      });
+      setEvents(data.events);
     } catch (err) {
       Sentry.captureException(err);
     }
   };
 
-  render() {
-    const {className} = this.props;
+  useEffect(() => void loadEvents(), [url]);
 
-    const content = <div ref={this.wrapperRef} className={className} />;
-
-    if (this.newRRWebPlayer) {
-      return <Panel>{content}</Panel>;
+  const initPlayer = () => {
+    if (events === undefined) {
+      return;
     }
 
-    return content;
-  }
-}
+    if (playerEl === null) {
+      return;
+    }
+
+    // eslint-disable-next-line no-new
+    new RRWebPlayer({
+      target: playerEl,
+      props: {events, autoPlay: false},
+    });
+  };
+
+  useEffect(() => void initPlayer(), [events, playerEl]);
+
+  return <div ref={el => setPlayerEl(el)} className={className} />;
+};
 
 export default BaseRRWebReplayer;
