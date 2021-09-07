@@ -1,5 +1,5 @@
-import collections
 import warnings
+from collections.abc import Set
 
 
 class UnsupportedBackend(RuntimeWarning):
@@ -59,7 +59,7 @@ class WarningManager:
             handler(warning, **kwargs)
 
 
-class WarningSet(collections.Set):
+class WarningSet(Set):
     """
     Add-only set structure for storing unique warnings.
     """

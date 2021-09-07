@@ -1,7 +1,7 @@
-import collections
 import logging
 import pickle
 from base64 import b64encode
+from collections.abc import MutableMapping
 from uuid import uuid4
 
 from django.db.models.signals import post_delete
@@ -23,7 +23,7 @@ class NodeIntegrityFailure(Exception):
     pass
 
 
-class NodeData(collections.MutableMapping):
+class NodeData(MutableMapping):
     """
     A wrapper for nodestore data that fetches the underlying data
     from nodestore.

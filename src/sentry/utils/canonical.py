@@ -1,5 +1,5 @@
-import collections
 import copy
+from collections.abc import Mapping, MutableMapping
 
 from django.conf import settings
 
@@ -45,7 +45,7 @@ def get_legacy_name(key):
     return LEGACY_KEY_MAPPING.get(key, (key,))[0]
 
 
-class CanonicalKeyView(collections.Mapping):
+class CanonicalKeyView(Mapping):
     def __init__(self, data):
         self.data = data
         self._len = len({get_canonical_name(key) for key in self.data})
@@ -80,7 +80,7 @@ class CanonicalKeyView(collections.Mapping):
         return self.data.__repr__()
 
 
-class CanonicalKeyDict(collections.MutableMapping):
+class CanonicalKeyDict(MutableMapping):
     def __init__(self, data, legacy=None):
         self.legacy = legacy
         self.__init(data)
