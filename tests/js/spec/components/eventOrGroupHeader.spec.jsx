@@ -1,4 +1,4 @@
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
@@ -191,7 +191,7 @@ describe('EventOrGroupHeader', function () {
         sort: 'freq',
       };
 
-      const component = shallow(
+      const wrapper = mountWithTheme(
         <EventOrGroupHeader
           params={{orgId: 'orgId'}}
           data={{
@@ -202,15 +202,13 @@ describe('EventOrGroupHeader', function () {
         />
       );
 
-      const title = component.dive().dive().instance().getTitle();
-
-      expect(title.props.to.query.sort).toEqual('freq');
+      expect(wrapper.find('GlobalSelectionLink').props().to.query.sort).toEqual('freq');
     });
 
     it('lack of project adds allp parameter', function () {
       const query = {};
 
-      const component = shallow(
+      const wrapper = mountWithTheme(
         <EventOrGroupHeader
           params={{orgId: 'orgId'}}
           data={{
@@ -221,9 +219,7 @@ describe('EventOrGroupHeader', function () {
         />
       );
 
-      const title = component.dive().dive().instance().getTitle();
-
-      expect(title.props.to.query._allp).toEqual(1);
+      expect(wrapper.find('GlobalSelectionLink').props().to.query._allp).toEqual(1);
     });
   });
 });
