@@ -292,7 +292,7 @@ def get_function_component(
 
 @strategy(
     ids=["frame:v1"],
-    interfaces=["frame"],
+    interface=Frame,
 )
 def frame(
     interface: Frame, event: Event, context: GroupingContext, **meta: Any
@@ -463,7 +463,7 @@ def get_contextline_component(
     return component
 
 
-@strategy(id="stacktrace:v1", interfaces=[Stacktrace], score=1800)
+@strategy(id="stacktrace:v1", interface=Stacktrace, score=1800)
 def stacktrace(
     interface: Stacktrace, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
@@ -578,7 +578,7 @@ def _stacktrace_encoder(id: str, stacktrace: Stacktrace) -> StacktraceEncoderRet
 
 @strategy(
     ids=["single-exception:v1"],
-    interfaces=["singleexception"],
+    interface=SingleException,
 )
 def single_exception(
     interface: SingleException, event: Event, context: GroupingContext, **meta: Any
@@ -670,7 +670,7 @@ def single_exception(
     return rv
 
 
-@strategy(id="chained-exception:v1", interfaces=["exception"], score=2000)
+@strategy(id="chained-exception:v1", interface=ChainedException, score=2000)
 def chained_exception(
     interface: ChainedException, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
@@ -706,7 +706,7 @@ def chained_exception_variant_processor(
     return remove_non_stacktrace_variants(variants)
 
 
-@strategy(id="threads:v1", interfaces=["threads"], score=1900)
+@strategy(id="threads:v1", interface=Threads, score=1900)
 def threads(
     interface: Threads, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
