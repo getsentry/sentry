@@ -11,7 +11,7 @@ from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.deletions.api")
 
 
 MAX_RETRIES = 5
@@ -28,7 +28,7 @@ def reattempt_deletions():
     # Turning off the in_progress flag will result in the job being picked
     # up in the next deletion run allowing us to start over.
     queryset = ScheduledDeletion.objects.filter(
-        in_progress=True, aborted=False, date_scheduled__lte=timezone.now() - timedelta(days=1)
+        in_progress=True, date_scheduled__lte=timezone.now() - timedelta(days=1)
     )
     queryset.update(in_progress=False)
 
@@ -40,12 +40,13 @@ def run_scheduled_deletions():
     from sentry.models import ScheduledDeletion
 
     queryset = ScheduledDeletion.objects.filter(
-        in_progress=False, aborted=False, date_scheduled__lte=timezone.now()
+        in_progress=False, date_scheduled__lte=timezone.now()
     )
     for item in queryset:
         with transaction.atomic():
             affected = ScheduledDeletion.objects.filter(
-                id=item.id, in_progress=False, aborted=False
+                id=item.id,
+                in_progress=False,
             ).update(in_progress=True)
             if not affected:
                 continue
@@ -70,12 +71,9 @@ def run_deletion(deletion_id, first_pass=True):
     except ScheduledDeletion.DoesNotExist:
         return
 
-    if deletion.aborted:
-        raise DeleteAborted
-
+    instance = deletion.get_instance()
     if first_pass:
         actor = deletion.get_actor()
-        instance = deletion.get_instance()
         pending_delete.send(sender=type(instance), instance=instance, actor=actor)
 
     task = deletions.get(
@@ -84,6 +82,18 @@ def run_deletion(deletion_id, first_pass=True):
         transaction_id=deletion.guid,
         actor_id=deletion.actor_id,
     )
+    if not task.should_proceed(instance):
+        logger.info(
+            "object.delete.aborted",
+            extra={
+                "object_id": deletion.object_id,
+                "transaction_id": deletion.guid,
+                "model": deletion.model_name,
+            },
+        )
+        deletion.delete()
+        return
+
     has_more = task.chunk()
     if has_more:
         run_deletion.apply_async(

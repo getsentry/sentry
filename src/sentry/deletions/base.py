@@ -55,6 +55,14 @@ class BaseDeletionTask:
         """
         raise NotImplementedError
 
+    def should_proceed(self, instance):
+        """
+        Used by root tasks to ensure deletion is ok to proceed.
+        This allows deletes to be undone by API endpoints without
+        having to also update scheduled tasks.
+        """
+        return True
+
     def get_child_relations(self, instance):
         # TODO(dcramer): it'd be nice if we collected the default relationships
         return [
@@ -173,6 +181,7 @@ class ModelDeletionTask(BaseDeletionTask):
         """
         query_limit = self.query_limit
         remaining = self.chunk_size
+        has_more = True
         while remaining > 0:
             queryset = getattr(self.model, self.manager_name).filter(**self.query)
             if self.order_by:
@@ -187,9 +196,9 @@ class ModelDeletionTask(BaseDeletionTask):
             if not queryset:
                 return False
 
-            self.delete_bulk(queryset)
+            has_more = self.delete_bulk(queryset)
             remaining -= query_limit
-        return True
+        return has_more
 
     def delete_instance_bulk(self, instance_list):
         # slow, but ensures Django cascades are handled

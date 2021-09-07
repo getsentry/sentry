@@ -1,5 +1,6 @@
 from django.core import mail
 
+from sentry.constants import ObjectStatus
 from sentry.exceptions import PluginError
 from sentry.models import Commit, Repository, ScheduledDeletion
 from sentry.tasks.deletion import run_deletion
@@ -11,7 +12,10 @@ class DeleteRepositoryTest(TestCase):
     def test_simple(self):
         org = self.create_organization()
         repo = Repository.objects.create(
-            organization_id=org.id, provider="dummy", name="example/example"
+            organization_id=org.id,
+            provider="dummy",
+            name="example/example",
+            status=ObjectStatus.PENDING_DELETION,
         )
         repo2 = Repository.objects.create(
             organization_id=org.id, provider="dummy", name="example/example2"
@@ -33,13 +37,28 @@ class DeleteRepositoryTest(TestCase):
         assert not Commit.objects.filter(id=commit.id).exists()
         assert Commit.objects.filter(id=commit2.id).exists()
 
+    def test_no_delete_visible(self):
+        org = self.create_organization()
+        repo = Repository.objects.create(
+            organization_id=org.id, provider="dummy", name="example/example"
+        )
+        deletion = ScheduledDeletion.schedule(repo, days=0)
+        deletion.update(in_progress=True)
+
+        with self.tasks():
+            run_deletion(deletion.id)
+        assert Repository.objects.filter(id=repo.id).exists()
+
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.delete_repository")
     def test_delete_fail_email(self, mock_delete_repo):
         mock_delete_repo.side_effect = PluginError("foo")
 
         org = self.create_organization()
         repo = Repository.objects.create(
-            organization_id=org.id, provider="dummy", name="example/example"
+            organization_id=org.id,
+            provider="dummy",
+            name="example/example",
+            status=ObjectStatus.PENDING_DELETION,
         )
 
         deletion = ScheduledDeletion.schedule(repo, actor=self.user, days=0)
@@ -60,7 +79,10 @@ class DeleteRepositoryTest(TestCase):
 
         org = self.create_organization()
         repo = Repository.objects.create(
-            organization_id=org.id, provider="dummy", name="example/example"
+            organization_id=org.id,
+            provider="dummy",
+            name="example/example",
+            status=ObjectStatus.PENDING_DELETION,
         )
 
         deletion = ScheduledDeletion.schedule(repo, actor=self.user, days=0)
