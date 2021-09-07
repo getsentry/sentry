@@ -27,9 +27,9 @@ import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
-  EventAttachment,
   ExceptionValue,
   Group,
+  IssueAttachment,
   Organization,
   Project,
   SharedViewOrganization,
@@ -48,7 +48,7 @@ import {projectProcessingIssuesMessages} from 'app/views/settings/project/projec
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
-import EventTagAndScreenshot from './eventTagsAndScreenshot';
+import EventTagsAndScreenshot from './eventTagsAndScreenshot';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
   /^(([\w\$]\.[\w\$]{1,2})|([\w\$]{2}\.[\w\$]\.[\w\$]))(\.|$)/g;
@@ -88,7 +88,7 @@ const EventEntries = memo(
   }: Props) => {
     const [isLoading, setIsLoading] = useState(true);
     const [proGuardErrors, setProGuardErrors] = useState<ProGuardErrors>([]);
-    const [attachments, setAttachments] = useState<EventAttachment[]>([]);
+    const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
 
     const orgSlug = organization.slug;
     const projectSlug = project.slug;
@@ -325,7 +325,7 @@ const EventEntries = memo(
       ));
     }
 
-    async function handleDeleteAttachment(attachmentId: EventAttachment['id']) {
+    async function handleDeleteAttachment(attachmentId: IssueAttachment['id']) {
       if (!event) {
         return;
       }
@@ -393,7 +393,7 @@ const EventEntries = memo(
         )}
         {showTagSummary &&
           (hasMobileScreenshotsFeature ? (
-            <EventTagAndScreenshot
+            <EventTagsAndScreenshot
               event={event}
               organization={organization as Organization}
               projectId={projectSlug}

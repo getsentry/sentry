@@ -401,7 +401,8 @@ export type EventMetadata = {
   current_level?: number;
 };
 
-export type EventAttachment = {
+// endpoint: /api/0/issues/:issueId/attachments/?limit=50
+export type IssueAttachment = {
   id: string;
   dateCreated: string;
   headers: Object;
@@ -412,6 +413,9 @@ export type EventAttachment = {
   type: string;
   event_id: string;
 };
+
+// endpoint: /api/0/projects/:orgSlug/:projSlug/events/:eventId/attachments/
+export type EventAttachment = Omit<IssueAttachment, 'event_id'>;
 
 export type EntryData = Record<string, any | Array<any>>;
 
