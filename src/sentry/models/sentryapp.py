@@ -78,6 +78,7 @@ def track_response_code(status, integration_slug, webhook_event):
     )
 
 
+# TODO(leander): Remove this temporary log after debugging inconsitent internal webhook response
 def track_response_code_internal(status, integration_slug, webhook_event):
     metrics.incr(
         "integration-platform.http_response.internal",
