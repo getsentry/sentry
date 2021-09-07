@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 
-import {t} from 'app/locale';
+import Alert from 'app/components/alert';
+import ExternalLink from 'app/components/links/externalLink';
+import {t, tct} from 'app/locale';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
 
@@ -14,6 +16,14 @@ type Props = {
 function StepThree({stepThreeData, onSetStepOneData}: Props) {
   return (
     <Fragment>
+      <Alert type="info">
+        {tct(
+          'Please enter the iTunes credentials that Sentry should use to download dSYMs from App Store Connect. It is recommended to [docLink:create a new Apple ID] with the "Developer" role for this.',
+          {
+            docLink: <ExternalLink href="https://support.apple.com/en-us/HT204316" />,
+          }
+        )}
+      </Alert>
       <Field
         label={t('Username')}
         inline={false}

@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 
-import {t} from 'app/locale';
+import Alert from 'app/components/alert';
+import ExternalLink from 'app/components/links/externalLink';
+import {t, tct} from 'app/locale';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Textarea from 'app/views/settings/components/forms/controls/textarea';
 import Field from 'app/views/settings/components/forms/field';
@@ -15,6 +17,16 @@ type Props = {
 function StepOne({stepOneData, onSetStepOneData}: Props) {
   return (
     <Fragment>
+      <Alert type="info">
+        {tct(
+          'Please enter the [docLink:App Store Connect API Key] details. The key needs to have the "Developer" role for Sentry to discover the app builds.',
+          {
+            docLink: (
+              <ExternalLink href="https://developer.apple.com/documentation/appstoreconnectapi/creating_api_keys_for_app_store_connect_api" />
+            ),
+          }
+        )}
+      </Alert>
       <Field label={t('Issuer')} inline={false} flexibleControlStateSize stacked required>
         <Input
           type="text"
