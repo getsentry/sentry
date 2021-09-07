@@ -463,7 +463,7 @@ def get_contextline_component(
     return component
 
 
-@strategy(id="stacktrace:v1", interfaces=["stacktrace"], score=1800)
+@strategy(id="stacktrace:v1", interfaces=[Stacktrace], score=1800)
 def stacktrace(
     interface: Stacktrace, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
