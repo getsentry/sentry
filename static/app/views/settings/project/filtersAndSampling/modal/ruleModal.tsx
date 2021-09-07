@@ -211,6 +211,9 @@ function RuleModal({
             <StyledPanelHeader hasButtons>
               {t('Conditions')}
               <DropdownAutoComplete
+                onSelect={item => {
+                  handleAddCondition(item.value);
+                }}
                 alignMenu="right"
                 items={conditionCategories.map(conditionCategory => {
                   const disabled = conditions.some(
@@ -224,17 +227,7 @@ function RuleModal({
                         title={t('This condition has already been added')}
                         disabled={!disabled}
                       >
-                        <StyledMenuItem
-                          onClick={event => {
-                            if (disabled) {
-                              event.stopPropagation();
-                              return;
-                            }
-                            handleAddCondition(conditionCategory[0]);
-                            event.preventDefault();
-                          }}
-                          disabled={disabled}
-                        >
+                        <StyledMenuItem disabled={disabled}>
                           {conditionCategory[1]}
                         </StyledMenuItem>
                       </Tooltip>
