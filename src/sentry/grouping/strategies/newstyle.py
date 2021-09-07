@@ -95,7 +95,7 @@ def get_package_component(package: str, platform: Optional[str]) -> GroupingComp
 
 
 def get_filename_component(
-    abs_path: Optional[str],
+    abs_path: str,
     filename: Optional[str],
     platform: Optional[str],
     allow_file_origin: bool = False,
@@ -543,7 +543,7 @@ def _single_stacktrace_variant(
 def stacktrace_variant_processor(
     variants: ReturnedVariants, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    return remove_non_stacktrace_variants(variants)  # type: ignore
+    return remove_non_stacktrace_variants(variants)
 
 
 def _stacktrace_encoder(id: str, stacktrace: Stacktrace) -> StacktraceEncoderReturnValue:
@@ -703,24 +703,26 @@ def chained_exception(
 def chained_exception_variant_processor(
     variants: ReturnedVariants, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    return remove_non_stacktrace_variants(variants)  # type: ignore
+    return remove_non_stacktrace_variants(variants)
 
 
-@strategy(id="threads:v1", interfaces=["threads"], score=1900)  # type: ignore
-def threads(threads_interface: Threads, context: GroupingContext, **meta: Any) -> ReturnedVariants:
+@strategy(id="threads:v1", interfaces=["threads"], score=1900)
+def threads(
+    interface: Threads, event: Event, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
     thread_variants = _filtered_threads(
-        [thread for thread in threads_interface.values if thread.get("crashed")], context, meta
+        [thread for thread in interface.values if thread.get("crashed")], context, meta
     )
     if thread_variants is not None:
         return thread_variants
 
     thread_variants = _filtered_threads(
-        [thread for thread in threads_interface.values if thread.get("current")], context, meta
+        [thread for thread in interface.values if thread.get("current")], context, meta
     )
     if thread_variants is not None:
         return thread_variants
 
-    thread_variants = _filtered_threads(threads_interface.values, context, meta)
+    thread_variants = _filtered_threads(interface.values, context, meta)
     if thread_variants is not None:
         return thread_variants
 
@@ -731,7 +733,7 @@ def threads(threads_interface: Threads, context: GroupingContext, **meta: Any) -
             hint=(
                 "ignored because does not contain exactly one crashing, "
                 "one current or just one thread, instead contains %s threads"
-                % len(threads_interface.values)
+                % len(interface.values)
             ),
         )
     }
@@ -763,4 +765,4 @@ def _filtered_threads(
 def threads_variant_processor(
     variants: ReturnedVariants, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    return remove_non_stacktrace_variants(variants)  # type: ignore
+    return remove_non_stacktrace_variants(variants)

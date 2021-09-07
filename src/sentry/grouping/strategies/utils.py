@@ -43,7 +43,7 @@ def remove_non_stacktrace_variants(variants: ReturnedVariants) -> ReturnedVarian
     return variants
 
 
-def has_url_origin(path, allow_file_origin=False):
+def has_url_origin(path: str, allow_file_origin: bool = False) -> bool:
     # URLs can be generated such that they are:
     #   blob:http://example.com/7f7aaadf-a006-4217-9ed5-5fbf8585c6c0
     # https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL
