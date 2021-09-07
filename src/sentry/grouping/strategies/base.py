@@ -136,7 +136,7 @@ class GroupingContext:
         self._stack.pop()
 
     def get_grouping_component(
-        self, interface: Interface, event: Event, **kwargs: Any
+        self, interface: Interface, *, event: Event, **kwargs: Any
     ) -> Union[GroupingComponent, ReturnedVariants]:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
@@ -147,6 +147,7 @@ class GroupingContext:
             raise RuntimeError(f"failed to dispatch interface {path} to strategy")
 
         kwargs["context"] = self
+        kwargs["event"] = event
         with sentry_sdk.start_span(
             op="sentry.grouping.GroupingContext.get_grouping_component", description=path
         ):

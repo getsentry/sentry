@@ -30,7 +30,7 @@ def _security_v1(
 def expect_ct_v1(
     interface: ExpectCT, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    return _security_v1("expect-ct", interface, **meta)
+    return _security_v1("expect-ct", interface, context=context, **meta)
 
 
 @strategy(id="expect-staple:v1", interface=ExpectStaple, score=1001)
@@ -38,7 +38,7 @@ def expect_ct_v1(
 def expect_staple_v1(
     interface: ExpectStaple, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    return _security_v1("expect-staple", interface, **meta)
+    return _security_v1("expect-staple", interface, context=context, **meta)
 
 
 @strategy(id="hpkp:v1", interface=Hpkp, score=1002)
@@ -46,7 +46,7 @@ def expect_staple_v1(
 def hpkp_v1(
     interface: Hpkp, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    return _security_v1("hpkp", interface, **meta)
+    return _security_v1("hpkp", interface, context=context, **meta)
 
 
 @strategy(id="csp:v1", interface=Csp, score=1003)

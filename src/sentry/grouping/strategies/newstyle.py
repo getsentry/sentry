@@ -472,16 +472,21 @@ def stacktrace(
     if context["hierarchical_grouping"]:
         with context:
             context["variant"] = "system"
-            return _single_stacktrace_variant(interface, context=context, meta=meta)
+            return _single_stacktrace_variant(interface, event=event, context=context, meta=meta)
 
     else:
         return call_with_variants(
-            _single_stacktrace_variant, ["!system", "app"], interface, context=context, meta=meta
+            _single_stacktrace_variant,
+            ["!system", "app"],
+            interface,
+            event=event,
+            context=context,
+            meta=meta,
         )
 
 
 def _single_stacktrace_variant(
-    stacktrace: Stacktrace, context: GroupingContext, meta: Dict[str, Any]
+    stacktrace: Stacktrace, event: Event, context: GroupingContext, meta: Dict[str, Any]
 ) -> ReturnedVariants:
     variant = context["variant"]
 
@@ -493,7 +498,7 @@ def _single_stacktrace_variant(
     for frame in frames:
         with context:
             context["is_recursion"] = is_recursion_v1(frame, prev_frame)
-            frame_component = context.get_grouping_component(frame, **meta)
+            frame_component = context.get_grouping_component(frame, event=event, **meta)
         if not context["hierarchical_grouping"] and variant == "app" and not frame.in_app:
             frame_component.update(contributes=False, hint="non app frame")
         values.append(frame_component)
@@ -506,8 +511,7 @@ def _single_stacktrace_variant(
     if (
         len(frames) == 1
         and values[0].contributes
-        and get_behavior_family_for_platform(frames[0].platform or meta["event"].platform)
-        == "javascript"
+        and get_behavior_family_for_platform(frames[0].platform or event.platform) == "javascript"
         and not frames[0].function
         and frames[0].is_url()
     ):
@@ -516,7 +520,7 @@ def _single_stacktrace_variant(
     main_variant, inverted_hierarchy = context.config.enhancements.assemble_stacktrace_component(
         values,
         frames_for_filtering,
-        meta["event"].platform,
+        event.platform,
         exception_data=context["exception_data"],
         similarity_self_encoder=_stacktrace_encoder,
     )
@@ -616,7 +620,9 @@ def single_exception(
     if interface.stacktrace is not None:
         with context:
             context["exception_data"] = interface.to_json()
-            stacktrace_variants = context.get_grouping_component(interface.stacktrace, **meta)
+            stacktrace_variants = context.get_grouping_component(
+                interface.stacktrace, event=event, **meta
+            )
     else:
         stacktrace_variants = {
             "app": GroupingComponent(id="stacktrace"),
@@ -678,13 +684,15 @@ def chained_exception(
     # component directly to avoid a level of nesting
     exceptions = interface.exceptions()
     if len(exceptions) == 1:
-        return context.get_grouping_component(exceptions[0], **meta)
+        return context.get_grouping_component(exceptions[0], event=event, **meta)
 
     # Case 2: produce a component for each chained exception
     by_name: Dict[str, List[GroupingComponent]] = {}
 
     for exception in exceptions:
-        for name, component in context.get_grouping_component(exception, **meta).items():
+        for name, component in context.get_grouping_component(
+            exception, event=event, **meta
+        ).items():
             by_name.setdefault(name, []).append(component)
 
     rv = {}
@@ -711,18 +719,18 @@ def threads(
     interface: Threads, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
     thread_variants = _filtered_threads(
-        [thread for thread in interface.values if thread.get("crashed")], context, meta
+        [thread for thread in interface.values if thread.get("crashed")], event, context, meta
     )
     if thread_variants is not None:
         return thread_variants
 
     thread_variants = _filtered_threads(
-        [thread for thread in interface.values if thread.get("current")], context, meta
+        [thread for thread in interface.values if thread.get("current")], event, context, meta
     )
     if thread_variants is not None:
         return thread_variants
 
-    thread_variants = _filtered_threads(interface.values, context, meta)
+    thread_variants = _filtered_threads(interface.values, event, context, meta)
     if thread_variants is not None:
         return thread_variants
 
@@ -740,7 +748,7 @@ def threads(
 
 
 def _filtered_threads(
-    threads: List[Dict[str, Any]], context: GroupingContext, meta: Dict[str, Any]
+    threads: List[Dict[str, Any]], event: Event, context: GroupingContext, meta: Dict[str, Any]
 ) -> Optional[ReturnedVariants]:
     if len(threads) != 1:
         return None
@@ -755,7 +763,9 @@ def _filtered_threads(
 
     rv = {}
 
-    for name, stacktrace_component in context.get_grouping_component(stacktrace, **meta).items():
+    for name, stacktrace_component in context.get_grouping_component(
+        stacktrace, event=event, **meta
+    ).items():
         rv[name] = GroupingComponent(id="threads", values=[stacktrace_component])
 
     return rv

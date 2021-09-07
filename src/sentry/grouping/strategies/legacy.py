@@ -180,7 +180,9 @@ def single_exception_legacy(
     stacktrace_component = GroupingComponent(id="stacktrace")
 
     if interface.stacktrace is not None:
-        stacktrace_component = context.get_grouping_component(interface.stacktrace, **meta)
+        stacktrace_component = context.get_grouping_component(
+            interface.stacktrace, event=event, **meta
+        )
         if stacktrace_component.contributes:
             if interface.type:
                 type_component.update(contributes=True)
@@ -211,7 +213,9 @@ def chained_exception_legacy(
     # component directly
     exceptions = interface.exceptions()
     if len(exceptions) == 1:
-        single_variant: GroupingComponent = context.get_grouping_component(exceptions[0], **meta)
+        single_variant: GroupingComponent = context.get_grouping_component(
+            exceptions[0], event=event, **meta
+        )
         return {context["variant"]: single_variant}
 
     # Case 2: try to build a new component out of the individual
@@ -220,7 +224,9 @@ def chained_exception_legacy(
     any_stacktraces = False
     values = []
     for exception in exceptions:
-        exception_component: GroupingComponent = context.get_grouping_component(exception, **meta)
+        exception_component: GroupingComponent = context.get_grouping_component(
+            exception, event=event, **meta
+        )
         stacktrace_component = exception_component.get_subcomponent("stacktrace")
         if stacktrace_component is not None and stacktrace_component.contributes:
             any_stacktraces = True
@@ -441,7 +447,9 @@ def stacktrace_legacy(
     prev_frame = None
     frames_for_filtering = []
     for frame in frames:
-        frame_component = context.get_grouping_component(frame, variant=variant, **meta)
+        frame_component = context.get_grouping_component(
+            frame, event=event, variant=variant, **meta
+        )
         if variant == "app" and not frame.in_app and not all_frames_considered_in_app:
             frame_component.update(contributes=False, hint="non app frame")
         elif prev_frame is not None and is_recursion_legacy(frame, prev_frame):
@@ -453,7 +461,7 @@ def stacktrace_legacy(
         prev_frame = frame
 
     rv, _ = context.config.enhancements.assemble_stacktrace_component(
-        values, frames_for_filtering, meta["event"].platform
+        values, frames_for_filtering, event.platform
     )
     rv.update(contributes=contributes, hint=hint)
     return {variant: rv}
@@ -484,6 +492,6 @@ def threads_legacy(
 
     return {
         context["variant"]: GroupingComponent(
-            id="threads", values=[context.get_grouping_component(stacktrace, **meta)]
+            id="threads", values=[context.get_grouping_component(stacktrace, event=event, **meta)]
         )
     }
