@@ -232,7 +232,7 @@ function generateReleaseMarkLine(
 export const releaseMarkLinesLabels = {
   created: t('Release Created'),
   adopted: t('Adopted'),
-  unadopted: t('Unadopted'),
+  unadopted: t('Replaced'),
 };
 
 export function generateReleaseMarkLines(
