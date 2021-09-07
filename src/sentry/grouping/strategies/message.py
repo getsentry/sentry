@@ -112,7 +112,7 @@ def trim_message_for_grouping(string: str) -> str:
     return _irrelevant_re.sub(_handle_match, s)
 
 
-@strategy(id="message:v1", interface=Message, score=0)
+@strategy(ids=["message:v1"], interface=Message, score=0)
 @produces_variants(["default"])
 def message_v1(
     interface: Message, event: Event, context: GroupingContext, **meta: Any

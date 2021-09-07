@@ -64,16 +64,14 @@ if TYPE_CHECKING:
 
 
 def strategy(
+    ids: Sequence[str],
     interface: Type[Interface],
-    id: Optional[str] = None,
-    ids: Optional[Sequence[str]] = None,
     score: Optional[int] = None,
 ) -> Callable[["StrategyFunc[ConcreteInterface]"], "Strategy[ConcreteInterface]"]:
     """
     Registers a strategy
 
-    :param id: The strategy/delegate ID with which to register
-    :param ids: Alternatively register with multiple IDs
+    :param ids: The strategy/delegate IDs with which to register
     :param interface: Which interface type should be dispatched to this strategy
     :param score: Determines precedence of strategies. For example exception
         strategy scores higher than message strategy, so if both interfaces are
@@ -82,17 +80,10 @@ def strategy(
 
     name = interface.path
 
-    if id is not None:
-        if ids is not None:
-            raise TypeError("id and ids given")
-        ids = [id]
-
     if not ids:
         raise TypeError("neither id nor ids given")
 
     def decorator(f: "StrategyFunc[ConcreteInterface]") -> Strategy[ConcreteInterface]:
-        assert ids
-
         rv: Optional[Strategy[ConcreteInterface]] = None
 
         for id in ids:

@@ -160,7 +160,7 @@ def remove_function_outliers_legacy(function: str) -> Tuple[str, Optional[str]]:
     return new_function, None
 
 
-@strategy(id="single-exception:legacy", interface=SingleException)
+@strategy(ids=["single-exception:legacy"], interface=SingleException)
 def single_exception_legacy(
     interface: SingleException, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
@@ -204,7 +204,7 @@ def single_exception_legacy(
     }
 
 
-@strategy(id="chained-exception:legacy", interface=ChainedException, score=2000)
+@strategy(ids=["chained-exception:legacy"], interface=ChainedException, score=2000)
 @produces_variants(["!system", "app"])
 def chained_exception_legacy(
     interface: ChainedException, event: Event, context: GroupingContext, **meta: Any
@@ -248,7 +248,7 @@ def chained_exception_legacy_variant_processor(
     return remove_non_stacktrace_variants(variants)
 
 
-@strategy(id="frame:legacy", interface=Frame)
+@strategy(ids=["frame:legacy"], interface=Frame)
 def frame_legacy(
     interface: Frame, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
@@ -410,7 +410,7 @@ def frame_legacy(
     }
 
 
-@strategy(id="stacktrace:legacy", interface=Stacktrace, score=1800)
+@strategy(ids=["stacktrace:legacy"], interface=Stacktrace, score=1800)
 @produces_variants(["!system", "app"])
 def stacktrace_legacy(
     interface: Stacktrace, event: Event, context: GroupingContext, **meta: Any
@@ -467,7 +467,7 @@ def stacktrace_legacy(
     return {variant: rv}
 
 
-@strategy(id="threads:legacy", interface=Threads, score=1900)
+@strategy(ids=["threads:legacy"], interface=Threads, score=1900)
 @produces_variants(["!system", "app"])
 def threads_legacy(
     interface: Threads, event: Event, context: GroupingContext, **meta: Any

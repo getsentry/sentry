@@ -25,7 +25,7 @@ def _security_v1(
     }
 
 
-@strategy(id="expect-ct:v1", interface=ExpectCT, score=1000)
+@strategy(ids=["expect-ct:v1"], interface=ExpectCT, score=1000)
 @produces_variants(["default"])
 def expect_ct_v1(
     interface: ExpectCT, event: Event, context: GroupingContext, **meta: Any
@@ -33,7 +33,7 @@ def expect_ct_v1(
     return _security_v1("expect-ct", interface, context=context, **meta)
 
 
-@strategy(id="expect-staple:v1", interface=ExpectStaple, score=1001)
+@strategy(ids=["expect-staple:v1"], interface=ExpectStaple, score=1001)
 @produces_variants(["default"])
 def expect_staple_v1(
     interface: ExpectStaple, event: Event, context: GroupingContext, **meta: Any
@@ -41,7 +41,7 @@ def expect_staple_v1(
     return _security_v1("expect-staple", interface, context=context, **meta)
 
 
-@strategy(id="hpkp:v1", interface=Hpkp, score=1002)
+@strategy(ids=["hpkp:v1"], interface=Hpkp, score=1002)
 @produces_variants(["default"])
 def hpkp_v1(
     interface: Hpkp, event: Event, context: GroupingContext, **meta: Any
@@ -49,7 +49,7 @@ def hpkp_v1(
     return _security_v1("hpkp", interface, context=context, **meta)
 
 
-@strategy(id="csp:v1", interface=Csp, score=1003)
+@strategy(ids=["csp:v1"], interface=Csp, score=1003)
 @produces_variants(["default"])
 def csp_v1(interface: Csp, event: Event, context: GroupingContext, **meta: Any) -> ReturnedVariants:
     violation_component = GroupingComponent(id="violation")
