@@ -2168,6 +2168,8 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
+KAFKA_INGEST_METRICS = "ingest-metrics"
+KAFKA_SNUBA_METRICS = "snuba-metrics"
 
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
@@ -2186,6 +2188,10 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_ATTACHMENTS: {"cluster": "default", "topic": KAFKA_INGEST_ATTACHMENTS},
     # Topic for receiving transaction events (APM events) from Relay
     KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
+    # Topic for receiving metrics from Relay
+    KAFKA_INGEST_METRICS: {"cluster": "default", "topic": KAFKA_INGEST_METRICS},
+    # Topic for indexer translated metrics
+    KAFKA_SNUBA_METRICS: {"cluster": "default", "topic": KAFKA_SNUBA_METRICS},
 }
 
 # If True, consumers will create the topics if they don't exist
