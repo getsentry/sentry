@@ -1,10 +1,11 @@
 import * as React from 'react';
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
+import {openDashboardWidgetQuerySelectorModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import {HeaderTitle} from 'app/components/charts/styles';
 import ErrorBoundary from 'app/components/errorBoundary';
@@ -24,7 +25,6 @@ import withOrganization from 'app/utils/withOrganization';
 
 import ContextMenu from './contextMenu';
 import {Widget} from './types';
-import {eventViewFromWidget} from './utils';
 import WidgetCardChart from './widgetCardChart';
 import WidgetQueries from './widgetQueries';
 
@@ -105,7 +105,7 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderContextMenu() {
-    const {widget, selection, organization, showContextMenu} = this.props;
+    const {widget, organization, showContextMenu} = this.props;
 
     if (!showContextMenu) {
       return null;
@@ -120,16 +120,6 @@ class WidgetCard extends React.Component<Props> {
       // Open table widget in Discover
 
       if (widget.queries.length) {
-        // We expect Table widgets to have only one query.
-        const query = widget.queries[0];
-
-        const eventView = eventViewFromWidget(
-          widget.title,
-          query,
-          selection,
-          widget.displayType
-        );
-
         menuOptions.push(
           <MenuItem
             key="open-discover"
@@ -140,7 +130,7 @@ class WidgetCard extends React.Component<Props> {
                 eventName: 'Dashboards2: Table Widget - Open in Discover',
                 organization_id: parseInt(this.props.organization.id, 10),
               });
-              browserHistory.push(eventView.getResultsViewUrlTarget(organization.slug));
+              openDashboardWidgetQuerySelectorModal({organization, widget});
             }}
           >
             {t('Open in Discover')}

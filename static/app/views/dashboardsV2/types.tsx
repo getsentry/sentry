@@ -11,6 +11,7 @@ export enum DisplayType {
 }
 
 export type WidgetQuery = {
+  id?: string;
   name: string;
   fields: string[];
   conditions: string;
