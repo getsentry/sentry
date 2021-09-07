@@ -1021,9 +1021,6 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": False,
-    # Enable option to send alert, workflow, and deploy notifications
-    # to 3rd parties (e.g. Slack) in addition to email
-    "organizations:notification-platform": False,
     # Automatically opt IN users to receiving Slack notifications.
     "organizations:notification-slack-automatic": False,
     # Enable version 2 of reprocessing (completely distinct from v1)

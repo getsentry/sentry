@@ -82,7 +82,7 @@ class AccountSettingsTest(AcceptanceTestCase):
             self.browser.wait_until_not(".loading-indicator")
             self.browser.snapshot("account notification settings")
 
-            self.browser.click_when_visible("#Alerts a")
+            self.browser.click_when_visible('[data-test-id="fine-tuning"]')
             self.browser.wait_until_not(".loading-indicator")
             self.browser.snapshot('account notification - fine tune "Alerts"')
 
