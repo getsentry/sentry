@@ -8,6 +8,14 @@ from sentry.snuba import discover
 
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
+    def has_chart_interpolation(self, organization, request):
+        return features.has(
+            "organizations:performance-chart-interpolation", organization, actor=request.user
+        )
+
+    def has_top_events(self, organization, request):
+        return features.has("organizations:discover-top-events", organization, actor=request.user)
+
     def get(self, request, organization):
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
             span.set_data("organization", organization)
@@ -37,11 +45,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             # the start of the bucket does not align with the rollup.
             allow_partial_buckets = request.GET.get("partial") == "1"
 
-        def has_chart_interpolation(self, organization, request):
-            return features.has(
-                "organizations:performance-chart-interpolation", organization, actor=request.user
-            )
-
         def get_event_stats(query_columns, query, params, rollup, zerofill_results):
             if top_events > 0:
                 return discover.top_events_timeseries(
@@ -57,6 +60,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     referrer="api.organization-event-stats.find-topn",
                     allow_empty=False,
                     zerofill_results=zerofill_results,
+                    include_other=self.has_top_events(organization, request),
                 )
             return discover.timeseries_query(
                 selected_columns=query_columns,
@@ -76,7 +80,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 allow_partial_buckets=allow_partial_buckets,
                 zerofill_results=not (
                     request.GET.get("withoutZerofill") == "1"
-                    and has_chart_interpolation(self, organization, request)
+                    and self.has_chart_interpolation(organization, request)
                 ),
             ),
             status=200,

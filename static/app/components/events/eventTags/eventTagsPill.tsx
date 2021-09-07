@@ -27,7 +27,6 @@ type Props = {
   query: Query;
   organization: Organization;
   projectId: string;
-  hasQueryFeature: boolean;
 };
 
 const EventTagsPill = ({

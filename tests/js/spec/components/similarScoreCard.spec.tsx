@@ -1,0 +1,29 @@
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+
+import SimilarScoreCard from 'app/components/similarScoreCard';
+
+describe('SimilarScoreCard', function () {
+  beforeEach(function () {});
+
+  afterEach(function () {});
+
+  it('renders', function () {
+    const {container} = mountWithTheme(<SimilarScoreCard />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('renders with score list', function () {
+    const {container} = mountWithTheme(
+      <SimilarScoreCard
+        scoreList={[
+          ['exception:message:character-shingles', null],
+          ['exception:stacktrace:application-chunks', 0.8],
+          ['exception:stacktrace:pairs', 1],
+          ['message:message:character-shingles', 0.5],
+          ['unknown:foo:bar', 0.5],
+        ]}
+      />
+    );
+    expect(container).toSnapshot();
+  });
+});

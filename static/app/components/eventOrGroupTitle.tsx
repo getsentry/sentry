@@ -93,8 +93,9 @@ const StyledStacktracePreview = styled(StacktracePreview)<{
     p.hasGroupingStacktraceUI &&
     `
       display: inline-flex;
+      overflow: hidden;
       > span:first-child {
-        display: inline-flex;
+        ${overflowEllipsis}
       }
     `}
 `;
@@ -103,7 +104,6 @@ const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
   ${p =>
     p.hasGroupingTreeUI &&
     `
-
       display: inline-grid;
       grid-template-columns: auto max-content 1fr max-content;
       align-items: flex-end;

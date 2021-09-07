@@ -23,17 +23,12 @@ type Props = {
   event: Event;
   organization: Organization;
   projectSlug: Project['slug'];
-  attachments: EventAttachment[];
+  screenshot: EventAttachment;
   onDelete: (attachmentId: EventAttachment['id']) => void;
 };
 
-function Screenshot({event, attachments, organization, projectSlug, onDelete}: Props) {
+function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Props) {
   const orgSlug = organization.slug;
-
-  function hasScreenshot(attachment: EventAttachment) {
-    const {mimetype} = attachment;
-    return mimetype === 'image/jpeg' || mimetype === 'image/png';
-  }
 
   function handleOpenVisualizationModal(
     eventAttachment: EventAttachment,
@@ -61,7 +56,7 @@ function Screenshot({event, attachments, organization, projectSlug, onDelete}: P
     return (
       <Fragment>
         <StyledPanelBody>
-          <ImageVisualization
+          <StyledImageVisualization
             attachment={screenshotAttachment}
             orgId={orgSlug}
             projectId={projectSlug}
@@ -118,22 +113,20 @@ function Screenshot({event, attachments, organization, projectSlug, onDelete}: P
   }
 
   return (
-    <Role role={organization.attachmentsRole}>
+    <Role organization={organization} role={organization.attachmentsRole}>
       {({hasRole}) => {
-        const screenshotAttachment = attachments.find(hasScreenshot);
-
-        if (!hasRole || !screenshotAttachment) {
+        if (!hasRole) {
           return null;
         }
 
         return (
           <DataSection
-            title={t('Screenshots')}
+            title={t('Screenshot')}
             description={t(
-              'Screenshots help identify what the user saw when the event happened'
+              'Screenshot help identify what the user saw when the event happened'
             )}
           >
-            <StyledPanel>{renderContent(screenshotAttachment)}</StyledPanel>
+            <StyledPanel>{renderContent(screenshot)}</StyledPanel>
           </DataSection>
         );
       }}
@@ -151,10 +144,12 @@ const StyledPanel = styled(Panel)`
   margin-bottom: 0;
   min-height: 200px;
   min-width: 175px;
+  height: 100%;
 `;
 
 const StyledPanelBody = styled(PanelBody)`
-  height: 175px;
+  min-height: 175px;
+  height: 100%;
   overflow: hidden;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
@@ -162,10 +157,16 @@ const StyledPanelBody = styled(PanelBody)`
   width: calc(100% + 2px);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
+  position: relative;
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`
   padding: ${space(1)};
+  width: 100%;
+`;
+
+const StyledImageVisualization = styled(ImageVisualization)`
+  position: absolute;
   width: 100%;
 `;
 

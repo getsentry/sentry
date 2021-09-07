@@ -1332,9 +1332,15 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {}
 
     def test_release_stage(self):
-        replaced_release = self.create_release(version="replaced_release")
-        adopted_release = self.create_release(version="adopted_release")
-        not_adopted_release = self.create_release(version="not_adopted_release")
+        replaced_release = self.create_release(
+            version="replaced_release", environments=[self.environment]
+        )
+        adopted_release = self.create_release(
+            version="adopted_release", environments=[self.environment]
+        )
+        not_adopted_release = self.create_release(
+            version="not_adopted_release", environments=[self.environment]
+        )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=adopted_release.id,
@@ -1354,31 +1360,45 @@ class GetSnubaQueryArgsTest(TestCase):
             environment_id=self.environment.id,
         )
         _filter = get_filter(
-            f"{RELEASE_STAGE_ALIAS}:adopted", {"organization_id": self.organization.id}
+            f"{RELEASE_STAGE_ALIAS}:adopted",
+            {"organization_id": self.organization.id, "environment": [self.environment.name]},
         )
 
-        assert _filter.conditions == [["release", "IN", [adopted_release.version]]]
+        assert _filter.conditions == [
+            ["release", "IN", ["adopted_release"]],
+            [["environment", "=", "development"]],
+        ]
         assert _filter.filter_keys == {}
 
         _filter = get_filter(
             f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.REPLACED}, {ReleaseStages.LOW_ADOPTION}]",
-            {"organization_id": self.organization.id},
+            {"organization_id": self.organization.id, "environment": [self.environment.name]},
         )
         assert _filter.conditions == [
-            ["release", "IN", [replaced_release.version, not_adopted_release.version]]
+            ["release", "IN", [replaced_release.version, not_adopted_release.version]],
+            [["environment", "=", "development"]],
         ]
         assert _filter.filter_keys == {}
 
         _filter = get_filter(
             f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.LOW_ADOPTION}]",
-            {"organization_id": self.organization.id},
+            {"organization_id": self.organization.id, "environment": [self.environment.name]},
         )
-        assert _filter.conditions == [["release", "IN", [replaced_release.version]]]
+        assert _filter.conditions == [
+            ["release", "IN", [replaced_release.version]],
+            [["environment", "=", "development"]],
+        ]
         assert _filter.filter_keys == {}
 
         with self.assertRaises(InvalidSearchQuery):
             _filter = get_filter(
                 f"!{RELEASE_STAGE_ALIAS}:invalid", {"organization_id": self.organization.id}
+            )
+
+        with self.assertRaises(InvalidSearchQuery):
+            _filter = get_filter(
+                f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.REPLACED}, {ReleaseStages.LOW_ADOPTION}]",
+                {"organization_id": self.organization.id},
             )
 
 

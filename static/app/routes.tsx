@@ -1369,7 +1369,9 @@ function routes() {
             component={SafeLazyLoad}
           >
             <IndexRoute
-              componentPromise={() => import('app/views/performance/transactionSummary')}
+              componentPromise={() =>
+                import('app/views/performance/transactionSummary/transactionOverview')
+              }
               component={SafeLazyLoad}
             />
             <Route

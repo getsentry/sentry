@@ -2,6 +2,7 @@ export type Item = {
   value: any;
   label: ((value: any) => React.ReactNode) | React.ReactNode;
   index: number;
+  disabled?: boolean;
   searchKey?: string;
   groupLabel?: boolean;
   /**

@@ -154,6 +154,7 @@ export const releaseComparisonChartLabels = {
   [ReleaseComparisonChartType.ERRORED_USERS]: t('Errored'),
   [ReleaseComparisonChartType.CRASHED_USERS]: t('Crashed User Rate'),
   [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
+  [ReleaseComparisonChartType.SESSION_DURATION]: t('Session Duration p50'),
   [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
   [ReleaseComparisonChartType.ERROR_COUNT]: t('Error Count'),
   [ReleaseComparisonChartType.TRANSACTION_COUNT]: t('Transaction Count'),
@@ -172,6 +173,7 @@ export const releaseComparisonChartTitles = {
   [ReleaseComparisonChartType.ERRORED_USERS]: t('Errored User Rate'),
   [ReleaseComparisonChartType.CRASHED_USERS]: t('Crashed User Rate'),
   [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
+  [ReleaseComparisonChartType.SESSION_DURATION]: t('Session Duration'),
   [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
   [ReleaseComparisonChartType.ERROR_COUNT]: t('Error Count'),
   [ReleaseComparisonChartType.TRANSACTION_COUNT]: t('Transaction Count'),
@@ -230,7 +232,7 @@ function generateReleaseMarkLine(
 export const releaseMarkLinesLabels = {
   created: t('Release Created'),
   adopted: t('Adopted'),
-  unadopted: t('Unadopted'),
+  unadopted: t('Replaced'),
 };
 
 export function generateReleaseMarkLines(

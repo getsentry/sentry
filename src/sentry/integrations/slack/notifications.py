@@ -1,7 +1,8 @@
 import logging
 from collections import defaultdict
-from typing import AbstractSet, Any, Mapping, Set, Union
+from typing import AbstractSet, Any, Mapping, MutableMapping, Optional, Set, Union
 
+from sentry import analytics
 from sentry.integrations.slack.client import SlackClient  # NOQA
 from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
@@ -83,7 +84,7 @@ def get_channel_and_integration_by_team(
 def get_channel_and_token_by_recipient(
     organization: Organization, recipients: AbstractSet[Union[User, Team]]
 ) -> Mapping[Union[User, Team], Mapping[str, str]]:
-    output = defaultdict(dict)
+    output: MutableMapping[Union[User, Team], MutableMapping[str, str]] = defaultdict(dict)
     for recipient in recipients:
         channels_to_integrations = (
             get_channel_and_integration_by_user(recipient, organization)
@@ -122,7 +123,7 @@ def send_notification_as_slack(
     notification: BaseNotification,
     recipients: Union[Set[User], Set[Team]],
     shared_context: Mapping[str, Any],
-    extra_context_by_user_id: Mapping[str, Any],
+    extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
 ) -> None:
     """Send an "activity" or "alert rule" notification to a Slack user or team."""
     client = SlackClient()
@@ -166,7 +167,13 @@ def send_notification_as_slack(
                         "is_multiple": is_multiple,
                     },
                 )
-                continue
+            analytics.record(
+                "integrations.slack.notification_sent",
+                organization_id=notification.organization.id,
+                project_id=notification.project.id,
+                category=notification.get_category(),
+                actor_id=recipient.actor_id,
+            )
 
     key = get_key(notification)
     metrics.incr(

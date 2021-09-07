@@ -378,6 +378,7 @@ export type TreeLabelPart =
       package?: string;
       type?: string;
       classbase?: string;
+      filebase?: string;
       datapath?: (string | number)[];
       is_sentinel?: boolean;
       is_prefix?: boolean;
@@ -400,7 +401,8 @@ export type EventMetadata = {
   current_level?: number;
 };
 
-export type EventAttachment = {
+// endpoint: /api/0/issues/:issueId/attachments/?limit=50
+export type IssueAttachment = {
   id: string;
   dateCreated: string;
   headers: Object;
@@ -411,6 +413,9 @@ export type EventAttachment = {
   type: string;
   event_id: string;
 };
+
+// endpoint: /api/0/projects/:orgSlug/:projSlug/events/:eventId/attachments/
+export type EventAttachment = Omit<IssueAttachment, 'event_id'>;
 
 export type EntryData = Record<string, any | Array<any>>;
 
@@ -491,6 +496,7 @@ type UserEnrolledAuthenticator = {
   dateCreated: EnrolledAuthenticator['createdAt'];
   type: Authenticator['id'];
   id: EnrolledAuthenticator['authId'];
+  name: EnrolledAuthenticator['name'];
 };
 
 export type User = Omit<AvatarUser, 'options'> & {
@@ -595,6 +601,9 @@ export type PluginNoProject = {
   author?: {name: string; url: string};
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
+  altIsSentryApp?: boolean;
+  deprecationDate?: string;
+  firstPartyAlternative?: string;
 };
 
 export type Plugin = PluginNoProject & {
@@ -729,6 +738,7 @@ export type EnrolledAuthenticator = {
   lastUsedAt: string | null;
   createdAt: string;
   authId: string;
+  name: string;
 };
 
 export interface Config {
@@ -2128,6 +2138,7 @@ export type SessionApiResponse = SeriesApi & {
 export enum SessionField {
   SESSIONS = 'sum(session)',
   USERS = 'count_unique(user)',
+  DURATION = 'p50(session.duration)',
 }
 
 export enum SessionStatus {
@@ -2153,6 +2164,7 @@ export enum ReleaseComparisonChartType {
   ERROR_COUNT = 'errorCount',
   TRANSACTION_COUNT = 'transactionCount',
   FAILURE_RATE = 'failureRate',
+  SESSION_DURATION = 'sessionDuration',
 }
 
 export enum HealthStatsPeriodOption {
@@ -2183,6 +2195,7 @@ export type CodeOwner = {
     missing_external_users: string[];
     missing_user_emails: string[];
     teams_without_access: string[];
+    users_without_access: string[];
   };
 };
 

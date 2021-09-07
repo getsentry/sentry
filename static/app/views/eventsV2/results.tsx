@@ -6,6 +6,7 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
+import {updateSavedQueryVisit} from 'app/actionCreators/discoverSavedQueries';
 import {fetchTotalCount} from 'app/actionCreators/events';
 import {fetchProjectsCount} from 'app/actionCreators/projects';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
@@ -27,7 +28,7 @@ import ConfigStore from 'app/stores/configStore';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, SavedQuery} from 'app/types';
-import {generateQueryWithTag} from 'app/utils';
+import {defined, generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
@@ -100,11 +101,14 @@ class Results extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    const {organization, selection} = this.props;
+    const {organization, selection, location} = this.props;
     loadOrganizationTags(this.tagsApi, organization.slug, selection);
     addRoutePerformanceContext(selection);
     this.checkEventView();
     this.canLoadEvents();
+    if (defined(location.query.id)) {
+      updateSavedQueryVisit(organization.slug, location.query.id);
+    }
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -498,15 +502,15 @@ class Results extends React.Component<Props, State> {
   }
 }
 
-export const StyledPageContent = styled(PageContent)`
+const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-export const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
 
-export const Top = styled(Layout.Main)`
+const Top = styled(Layout.Main)`
   flex-grow: 0;
 `;
 

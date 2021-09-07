@@ -130,14 +130,24 @@ SCHEMA = {
             },
             "required": ["type", "link", "create"],
         },
+        "alert-rule-settings": {
+            "type": "object",
+            "properties": {
+                "type": {"type": "string", "enum": ["alert-rule-settings"]},
+                "uri": {"$ref": "#/definitions/uri"},
+                "required_fields": {"$ref": "#/definitions/fieldset"},
+                "optional_fields": {"$ref": "#/definitions/fieldset"},
+            },
+            "required": ["type", "uri", "required_fields"],
+        },
         "alert-rule-action": {
             "type": "object",
             "properties": {
                 "type": {"type": "string", "enum": ["alert-rule-action"]},
-                "required_fields": {"$ref": "#/definitions/fieldset"},
-                "optional_fields": {"$ref": "#/definitions/fieldset"},
+                "title": {"type": "string"},
+                "settings": {"$ref": "#/definitions/alert-rule-settings"},
             },
-            "required": ["type", "required_fields"],
+            "required": ["type", "title", "settings"],
         },
         "issue-media": {
             "type": "object",

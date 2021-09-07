@@ -2,7 +2,7 @@ import re
 from typing import Any, List, Mapping
 from urllib.parse import urlparse
 
-from django.http.request import QueryDict
+from django.http.request import HttpRequest, QueryDict
 
 from sentry import features
 from sentry.api import client
@@ -10,7 +10,7 @@ from sentry.charts import generate_chart
 from sentry.charts.types import ChartType
 from sentry.integrations.slack.message_builder.discover import build_discover_attachment
 from sentry.integrations.slack.utils import logger
-from sentry.models import ApiKey
+from sentry.models import ApiKey, Integration
 from sentry.models.user import User
 from sentry.search.events.filter import to_list
 
@@ -28,7 +28,9 @@ display_modes: Mapping[str, ChartType] = {
 TOP_N = 5
 
 
-def unfurl_discover(data, integration, links: List[UnfurlableUrl]) -> UnfurledUrl:
+def unfurl_discover(
+    data: HttpRequest, integration: Integration, links: List[UnfurlableUrl]
+) -> UnfurledUrl:
     orgs_by_slug = {org.slug: org for org in integration.organizations.all()}
     unfurls = {}
 
@@ -149,7 +151,7 @@ def map_discover_query_args(url: str, args: Mapping[str, str]) -> Mapping[str, A
     return dict(**args, query=query)
 
 
-handler = Handler(
+handler: Handler = Handler(
     fn=unfurl_discover,
     matcher=re.compile(r"^https?\://[^/]+/organizations/(?P<org_slug>[^/]+)/discover/results"),
     arg_mapper=map_discover_query_args,

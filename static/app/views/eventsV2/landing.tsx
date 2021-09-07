@@ -36,6 +36,8 @@ const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('Date Created (Newest)'), value: '-dateCreated'},
   {label: t('Date Created (Oldest)'), value: 'dateCreated'},
   {label: t('Most Outdated'), value: 'dateUpdated'},
+  {label: t('Most Popular'), value: 'mostPopular'},
+  {label: t('Recently Viewed'), value: 'recentlyViewed'},
 ];
 
 type Props = {
@@ -333,7 +335,7 @@ const SwitchLabel = styled('div')`
   padding-right: 8px;
 `;
 
-export const StyledPageHeader = styled('div')`
+const StyledPageHeader = styled('div')`
   display: flex;
   align-items: flex-end;
   font-size: ${p => p.theme.headerFontSize};

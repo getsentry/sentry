@@ -8,51 +8,56 @@ import Tags from './tags';
 
 type ScreenshotProps = React.ComponentProps<typeof Screenshot>;
 
-type Props = Omit<React.ComponentProps<typeof Tags>, 'projectSlug'> &
-  Pick<ScreenshotProps, 'attachments'> & {
-    projectId: string;
-    isShare: boolean;
-    isBorderless: boolean;
-    onDeleteScreenshot: ScreenshotProps['onDelete'];
-  };
+type Props = Omit<React.ComponentProps<typeof Tags>, 'projectSlug' | 'hasContext'> & {
+  projectId: string;
+  onDeleteScreenshot: ScreenshotProps['onDelete'];
+  attachments: ScreenshotProps['screenshot'][];
+  isShare?: boolean;
+  isBorderless?: boolean;
+  hasContext?: boolean;
+};
 
 function EventTagsAndScreenshots({
   projectId: projectSlug,
-  isShare,
-  hasContext,
-  hasQueryFeature,
   location,
-  isBorderless,
   event,
   attachments,
   onDeleteScreenshot,
-  ...props
+  organization,
+  isShare = false,
+  isBorderless = false,
+  hasContext = false,
 }: Props) {
   const {tags = []} = event;
 
-  if (!tags.length && !hasContext && isShare) {
+  const screenshot = attachments.find(
+    ({name}) => name === 'screenshot.jpg' || name === 'screenshot.png'
+  );
+
+  if (!tags.length && !hasContext && (isShare || !screenshot)) {
     return null;
   }
 
   return (
     <Wrapper isBorderless={isBorderless}>
-      {!isShare && !!attachments.length && (
+      {!isShare && !!screenshot && (
         <Screenshot
-          {...props}
+          organization={organization}
           event={event}
           projectSlug={projectSlug}
-          attachments={attachments}
+          screenshot={screenshot}
           onDelete={onDeleteScreenshot}
         />
       )}
-      <Tags
-        {...props}
-        event={event}
-        projectSlug={projectSlug}
-        hasContext={hasContext}
-        hasQueryFeature={hasQueryFeature}
-        location={location}
-      />
+      {(!!tags.length || hasContext) && (
+        <Tags
+          organization={organization}
+          event={event}
+          projectSlug={projectSlug}
+          hasContext={hasContext}
+          location={location}
+        />
+      )}
     </Wrapper>
   );
 }
@@ -72,7 +77,7 @@ const Wrapper = styled(DataSection)<{isBorderless: boolean}>`
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding-bottom: ${space(2)};
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: 1fr auto;
     grid-gap: ${space(4)};
 
     > *:first-child {

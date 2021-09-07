@@ -1,14 +1,14 @@
 import {memo, ReactNode} from 'react';
 
 import Role from 'app/components/acl/role';
-import {EventAttachment, Organization} from 'app/types';
+import {IssueAttachment, Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
   organization: Organization;
   projectId: string;
   eventId: string;
-  attachment: EventAttachment;
+  attachment: IssueAttachment;
   children: (downloadUrl: string | null) => ReactNode;
 };
 
