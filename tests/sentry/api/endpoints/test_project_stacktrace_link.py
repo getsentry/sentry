@@ -7,7 +7,7 @@ from sentry.utils.compat import mock
 
 
 def serialized_provider() -> Mapping[str, Any]:
-
+    """TODO(mgaeta): Make these into fixtures."""
     return {
         "aspects": {},
         "canAdd": True,
@@ -28,6 +28,7 @@ def serialized_integration(integration: Integration) -> Mapping[str, Any]:
         "id": str(integration.id),
         "name": "Example",
         "provider": serialized_provider(),
+        "scopes": None,
         "status": "active",
     }
 

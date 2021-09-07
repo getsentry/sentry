@@ -214,11 +214,15 @@ export const platformToIntegrationMap = {
   'python-awslambda': 'aws_lambda',
 };
 
-export const getAlertText = (integrations?: Integration[]): string | undefined => {
-  return (integrations || []).every(
+export const isSlackIntegrationUpToDate = (integrations: Integration[]): boolean => {
+  return integrations.every(
     integration =>
-      integration.provider.key !== 'slack' || integration.scopes.includes('commands')
-  )
+      integration.provider.key !== 'slack' || integration.scopes?.includes('commands')
+  );
+};
+
+export const getAlertText = (integrations?: Integration[]): string | undefined => {
+  return isSlackIntegrationUpToDate(integrations || [])
     ? undefined
     : t('Your Slack installation is out of date. Please re-install.');
 };
