@@ -1,4 +1,5 @@
 import compact from 'lodash/compact';
+import mean from 'lodash/mean';
 import moment from 'moment';
 
 import {
@@ -27,13 +28,11 @@ export function getCrashFreeRate(
 
 export function getSeriesAverage(
   groups: SessionApiResponse['groups'] = [],
-  field: SessionField,
-  status: SessionStatus
+  field: SessionField
 ) {
   const totalCount = getCount(groups, field);
 
-  const dataPoints =
-    groups.find(({by}) => by['session.status'] === status)?.series[field].length ?? null;
+  const dataPoints = groups.filter(group => !!group.totals[field]).length;
 
   return !defined(totalCount) || dataPoints === null || totalCount === 0
     ? null
@@ -220,6 +219,9 @@ export function filterSessionsInTimeWindow(
 
         return isBetween;
       });
+      if (field.startsWith('p50')) {
+        totals[field] = mean(series[field]);
+      }
     });
     return {...group, series, totals};
   });
