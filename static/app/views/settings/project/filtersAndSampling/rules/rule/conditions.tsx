@@ -10,7 +10,7 @@ import {
   DynamicSamplingConditionOperator,
 } from 'app/types/dynamicSampling';
 
-import {getInnerNameLabel} from './utils';
+import {getInnerNameLabel, LEGACY_BROWSER_LIST} from '../../utils';
 
 type Props = {
   condition: DynamicSamplingCondition;
@@ -23,7 +23,7 @@ function Conditions({condition}: Props) {
         <Fragment>
           {[...value].map((v, index) => (
             <Fragment key={v}>
-              <Value>{v}</Value>
+              <Value>{LEGACY_BROWSER_LIST[v]?.title ?? v}</Value>
               {index !== value.length - 1 && <Separator>{'\u002C'}</Separator>}
             </Fragment>
           ))}
@@ -31,7 +31,7 @@ function Conditions({condition}: Props) {
       );
     }
 
-    return <Value>{String(value)}</Value>;
+    return <Value>{LEGACY_BROWSER_LIST[String(value)]?.title ?? String(value)}</Value>;
   }
 
   switch (condition.op) {
