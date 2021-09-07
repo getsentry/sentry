@@ -1003,7 +1003,9 @@ SENTRY_FEATURES = {
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable views for tag explorer
-    "organizations:performance-tag-explorer": False,
+    "organizations:performance-tag-explorer": True,
+    # Enable views for tag page
+    "organizations:performance-tag-page": True,
     # Enable landing improvements for performance
     "organizations:performance-landing-widgets": False,
     # Enable views for transaction events page in performance
