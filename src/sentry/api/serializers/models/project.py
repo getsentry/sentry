@@ -656,6 +656,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:relay_pii_config",
             "sentry:dynamic_sampling",
             "sentry:breakdowns",
+            "sentry:span_attributes",
             "feedback:branding",
             "digests:mail:minimum_delay",
             "digests:mail:maximum_delay",
