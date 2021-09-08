@@ -137,6 +137,7 @@ class AlertRuleDetails extends Component<Props, State> {
       params: {orgId, ruleId},
       location,
     } = this.props;
+
     this.setState({isLoading: true, hasError: false});
 
     if (location.query.alert) {
@@ -148,18 +149,15 @@ class AlertRuleDetails extends Component<Props, State> {
     }
 
     try {
-      const rulePromise = fetchAlertRule(orgId, ruleId).then(rule => {
-        this.setState({rule});
-      });
-      await Promise.resolve(rulePromise);
+      const rule = await fetchAlertRule(orgId, ruleId);
+      this.setState({rule});
 
       const timePeriod = this.getTimePeriod();
       const {start, end} = timePeriod;
 
-      const incidentsPromise = fetchIncidentsForRule(orgId, ruleId, start, end).then(
-        incidents => this.setState({incidents})
-      );
-      await Promise.resolve(incidentsPromise);
+      const incidents = await fetchIncidentsForRule(orgId, ruleId, start, end);
+      this.setState({incidents});
+
       this.setState({isLoading: false, hasError: false});
     } catch (_err) {
       this.setState({isLoading: false, hasError: true});
