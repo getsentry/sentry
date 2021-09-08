@@ -7,6 +7,7 @@ from sentry.models import (
     Environment,
     ExternalIssue,
     Organization,
+    OrganizationStatus,
     PullRequest,
     Release,
     ReleaseCommit,
@@ -67,6 +68,7 @@ class DeleteOrganizationTest(TestCase):
             widget=widget_2, order=2, name="Outgoing data"
         )
 
+        org.update(status=OrganizationStatus.PENDING_DELETION)
         deletion = ScheduledDeletion.schedule(org, days=0)
         deletion.update(in_progress=True)
 
@@ -90,3 +92,18 @@ class DeleteOrganizationTest(TestCase):
         assert not DashboardWidgetQuery.objects.filter(
             id__in=[widget_1_data.id, widget_2_data_1.id, widget_2_data_2.id]
         ).exists()
+
+    def test_no_delete_visible(self):
+        org = self.create_organization(name="test")
+        release = Release.objects.create(version="a" * 32, organization_id=org.id)
+
+        deletion = ScheduledDeletion.schedule(org, days=0)
+        deletion.update(in_progress=True)
+        assert org.status == OrganizationStatus.ACTIVE
+
+        with self.tasks():
+            run_deletion(deletion.id)
+
+        assert Organization.objects.filter(id=org.id).exists()
+        assert Release.objects.filter(id=release.id).exists()
+        assert not ScheduledDeletion.objects.filter(id=deletion.id).exists()
