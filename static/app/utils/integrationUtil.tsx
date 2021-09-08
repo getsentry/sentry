@@ -9,10 +9,12 @@ import {
   IconJira,
   IconVsts,
 } from 'app/icons';
+import {t} from 'app/locale';
 import HookStore from 'app/stores/hookStore';
 import {
   AppOrProviderOrPlugin,
   DocumentIntegration,
+  Integration,
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
@@ -207,7 +209,20 @@ export const getIntegrationIcon = (integrationType?: string, size?: string) => {
 
 // used for project creation and onboarding
 // determines what integration maps to what project platform
-export const platfromToIntegrationMap = {
+export const platformToIntegrationMap = {
   'node-awslambda': 'aws_lambda',
   'python-awslambda': 'aws_lambda',
+};
+
+export const isSlackIntegrationUpToDate = (integrations: Integration[]): boolean => {
+  return integrations.every(
+    integration =>
+      integration.provider.key !== 'slack' || integration.scopes?.includes('commands')
+  );
+};
+
+export const getAlertText = (integrations?: Integration[]): string | undefined => {
+  return isSlackIntegrationUpToDate(integrations || [])
+    ? undefined
+    : t('Your Slack installation is out of date. Please re-install.');
 };
