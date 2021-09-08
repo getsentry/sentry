@@ -234,6 +234,12 @@ class Endpoint(APIView):
                     # setup default access
                     request.access = access.from_request(request)
 
+            if (
+                getattr(self.request.successful_authenticator, "token_name", None)
+                == TokenAuthentication.token_name
+            ):
+                request._metric_tags["backend_request"] = True
+
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
                 description=f"{type(self).__name__}.{handler.__name__}",
