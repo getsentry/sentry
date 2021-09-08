@@ -804,7 +804,14 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         paginator_results = SequencePaginator(
             [(row["score"], row["g.id"]) for row in data], reverse=True, **paginator_options
         ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
-        groups = Group.objects.in_bulk(paginator_results.results)
+        # We filter against `group_queryset` here so that we recheck all conditions in Postgres.
+        # Since replag between Postgres and Clickhouse can happen, we might get back results that
+        # have changed state in Postgres. By rechecking them we guarantee than any returned results
+        # have the correct state.
+        # TODO: This can result in us returning less than a full page of results, but shouldn't
+        # affect cursors. If we want to, we can iterate and query snuba until we manage to get a
+        # full page. In practice, this will likely only skip a couple of results at worst, and
+        # probably not be noticeable to the user, so holding off for now to reduce complexity.
+        groups = group_queryset.in_bulk(paginator_results.results)
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
-
         return paginator_results
