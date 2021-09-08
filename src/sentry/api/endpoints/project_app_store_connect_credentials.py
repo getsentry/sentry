@@ -59,7 +59,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, projectoptions
+from sentry import features
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.api.exceptions import (
     AppConnectAuthenticationError,

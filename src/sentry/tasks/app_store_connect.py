@@ -13,7 +13,6 @@ import requests
 import sentry_sdk
 from django.utils import timezone
 
-from sentry import projectoptions
 from sentry.lang.native import appconnect
 from sentry.models import (
     AppConnectBuild,
