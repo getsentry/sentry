@@ -703,8 +703,14 @@ class SearchVisitor(NodeVisitor):
             # Even if the search value matches percentage format, only act as
             # percentage for certain columns
             function = resolve_field(search_key.name, self.params, functions_acl=FUNCTIONS.keys())
-            if function.aggregate is not None and self.is_percentage_key(function.aggregate[0]):
-                aggregate_value = parse_percentage(search_value)
+            if function.aggregate is not None:
+                aggregate_key = function.aggregate[0]
+                if self.is_percentage_key(aggregate_key):
+                    aggregate_value = parse_percentage(search_value)
+                else:
+                    raise InvalidSearchQuery(
+                        f'Invalid aggregate condition: "{aggregate_key}" is not a percentage value.'
+                    )
         except ValueError:
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
         except InvalidQuery as exc:

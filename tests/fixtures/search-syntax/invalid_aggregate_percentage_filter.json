@@ -10,5 +10,10 @@
       },
       {"type": "spaces", "value": ""}
     ]
+  },
+  {
+    "query": "p75(transaction.duration):>5%",
+    "raisesError": true,
+    "result": []
   }
 ]
