@@ -1,6 +1,4 @@
-import logging
-from uuid import uuid4
-
+from django.db import transaction
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -9,10 +7,7 @@ from sentry.api.base import Endpoint, SessionAuthentication
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
-from sentry.models import ApiApplication, ApiApplicationStatus
-from sentry.tasks.deletion import delete_api_application
-
-delete_logger = logging.getLogger("sentry.deletions.api")
+from sentry.models import ApiApplication, ApiApplicationStatus, ScheduledDeletion
 
 
 class ApiApplicationSerializer(serializers.Serializer):
@@ -86,23 +81,10 @@ class ApiApplicationDetailsEndpoint(Endpoint):
         except ApiApplication.DoesNotExist:
             raise ResourceDoesNotExist
 
-        updated = ApiApplication.objects.filter(id=instance.id).update(
-            status=ApiApplicationStatus.pending_deletion
-        )
-        if updated:
-            transaction_id = uuid4().hex
-
-            delete_api_application.apply_async(
-                kwargs={"object_id": instance.id, "transaction_id": transaction_id}, countdown=3600
+        with transaction.atomic():
+            updated = ApiApplication.objects.filter(id=instance.id).update(
+                status=ApiApplicationStatus.pending_deletion
             )
-
-            delete_logger.info(
-                "object.delete.queued",
-                extra={
-                    "object_id": instance.id,
-                    "transaction_id": transaction_id,
-                    "model": type(instance).__name__,
-                },
-            )
-
+            if updated:
+                ScheduledDeletion.schedule(instance, days=0, actor=request.user)
         return Response(status=204)

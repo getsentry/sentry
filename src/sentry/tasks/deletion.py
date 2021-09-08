@@ -236,6 +236,8 @@ def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwa
 )
 @retry(exclude=(DeleteAborted,))
 def delete_api_application(object_id, transaction_id=None, **kwargs):
+    # TODO this method is no longer in use and should be removed when jobs are
+    # no longer being enqueued for it.
     from sentry import deletions
     from sentry.models import ApiApplication, ApiApplicationStatus
 

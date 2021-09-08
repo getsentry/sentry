@@ -1,7 +1,15 @@
+from sentry.models import ApiApplicationStatus
+
 from ..base import ModelDeletionTask, ModelRelation
 
 
 class ApiApplicationDeletionTask(ModelDeletionTask):
+    def should_proceed(self, instance):
+        return instance.status in {
+            ApiApplicationStatus.pending_deletion,
+            ApiApplicationStatus.deletion_in_progress,
+        }
+
     def get_child_relations(self, instance):
         from sentry.models import ApiGrant, ApiToken
 
