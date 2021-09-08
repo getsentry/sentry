@@ -844,6 +844,14 @@ def _snuba_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult
                 scope = thread_hub.scope
                 if scope.transaction:
                     query_params["parent_api"] = scope.transaction.name
+
+                metrics.incr(
+                    "snuba.parent_api",
+                    tags={
+                        "parent_api": query_params.get("parent_api", "<unknown>"),
+                        "referrer": referrer,
+                    },
+                )
                 body = json.dumps(query_params)
 
             with thread_hub.start_span(op="snuba", description=f"query {referrer}") as span:
@@ -901,6 +909,16 @@ def _raw_snql_query(
             scope = thread_hub.scope
             if scope.transaction:
                 query.set_parent_api(scope.transaction.name)
+
+            metrics.incr(
+                "snuba.parent_api",
+                tags={
+                    "parent_api": query.parent_api.name
+                    if query.parent_api is not None
+                    else "<unknown>",
+                    "referrer": referrer,
+                },
+            )
             body = query.snuba()
 
         with thread_hub.start_span(op="snuba_snql", description=f"query {referrer}") as span:
