@@ -38,17 +38,23 @@ export const ADOPTION_STAGE_LABELS: Record<
 > = {
   low_adoption: {
     name: t('Low Adoption'),
-    tooltipTitle: t('Never exceeded 10% adoption in a 6 hour period'),
+    tooltipTitle: t(
+      'This release has less than 10% of all sessions in the last 24 hours.'
+    ),
     type: 'warning',
   },
   adopted: {
     name: t('Adopted'),
-    tooltipTitle: t('At least 10% adoption in the last 6 hours'),
+    tooltipTitle: t(
+      'This release has more than 10% of all sessions in the last 24 hours.'
+    ),
     type: 'success',
   },
   replaced: {
     name: t('Replaced'),
-    tooltipTitle: t('Was previously adopted'),
+    tooltipTitle: t(
+      'This release was previously adopted but now has less than 10% of all sessions in the last 24 hours.'
+    ),
     type: 'default',
   },
 };

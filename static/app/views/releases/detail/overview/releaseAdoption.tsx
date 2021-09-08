@@ -15,7 +15,7 @@ import Tag from 'app/components/tag';
 import Tooltip from 'app/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
   ReleaseProject,
@@ -212,29 +212,36 @@ function ReleaseComparisonChart({
   const adoptionStage = release.adoptionStages?.[project.slug].stage;
   const adoptionStageLabel =
     Boolean(adoptionStage) && ADOPTION_STAGE_LABELS[adoptionStage];
-  const allEnvironments = environment.length === 0;
-  const multipleEnvironments = environment.length > 1;
+  const multipleEnvironments = environment.length === 0 || environment.length > 1;
 
   return (
     <Wrapper>
       {isMobileProject && (
         <Feature features={['release-adoption-stage']}>
-          <SidebarSectionTitle title={t('Adoption Stage')} />
-          {adoptionStageLabel && !allEnvironments && !multipleEnvironments ? (
+          <SidebarSectionTitle
+            title={t('Adoption Stage')}
+            icon={
+              multipleEnvironments && (
+                <QuestionTooltip
+                  position="top"
+                  title={t(
+                    'See if a release has low adoption, been adopted by users, or replaced by another release. Select an environment above to view the stage this release is in.'
+                  )}
+                  size="sm"
+                />
+              )
+            }
+          />
+          {adoptionStageLabel && !multipleEnvironments ? (
             <StyledTooltip title={adoptionStageLabel.tooltipTitle}>
               <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
-              <AdoptionEnvironment>{t(`in ${environment}`)}</AdoptionEnvironment>
+              <AdoptionEnvironment>
+                {tct(`in [environment]`, {environment})}
+              </AdoptionEnvironment>
             </StyledTooltip>
           ) : (
             <NotAvailableWrapper>
-              <StyledNotAvailable />
-              <QuestionTooltip
-                position="top"
-                title={t(
-                  'See if a release has low adoption, been adopted by users, or replaced by another release. Select an environment above to view the stage this release is in.'
-                )}
-                size="sm"
-              />
+              <NotAvailable />
             </NotAvailableWrapper>
           )}
         </Feature>
@@ -307,10 +314,6 @@ const NotAvailableWrapper = styled('div')`
   display: flex;
   align-items: center;
   margin-bottom: ${space(3)};
-`;
-
-const StyledNotAvailable = styled(NotAvailable)`
-  margin-right: ${space(0.5)};
 `;
 
 const AdoptionEnvironment = styled('span')`

@@ -13,12 +13,10 @@ type Props = {
  */
 function SidebarSectionTitle({title, icon, ...props}: Props) {
   return (
-    <React.Fragment>
-      <Heading {...props}>
-        {title}
-        {icon && <IconWrapper>{icon}</IconWrapper>}
-      </Heading>
-    </React.Fragment>
+    <Heading {...props}>
+      {title}
+      {icon && <IconWrapper>{icon}</IconWrapper>}
+    </Heading>
   );
 }
 
