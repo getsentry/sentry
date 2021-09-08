@@ -55,26 +55,29 @@ const MultiValueRemove = (
   </selectComponents.MultiValueRemove>
 );
 
-export type ControlProps<OptionType = GeneralSelectValue> = Omit<
-  ReactSelectProps<OptionType>,
-  'onChange' | 'value'
-> & {
+// XXX: The following is a bit of a hack. The ReactSelectProps has a index
+// signature on it that when using Omit will end up breaking things (see [0]).
+// We can remove the index signature type and get the correct props from react
+// select with the following two types.
+type RemoveIndex<T> = {
+  [K in keyof T as string extends K ? never : number extends K ? never : K]: T[K];
+};
+
+type SelectProps<T> = RemoveIndex<ReactSelectProps<T>>;
+
+type BaseProps<OptionType> = {
   /**
    * Set to true to prefix selected values with content
    */
   inFieldLabel?: string;
   /**
-   * Backwards compatible shim to work with select2 style choice type.
-   */
-  choices?: Choices | ((props: ControlProps<OptionType>) => Choices);
-  /**
    * Used by MultiSelectControl.
    */
   multiple?: boolean;
   /**
-   * Handler for changes. Narrower than the types in react-select.
+   * Backwards compatible shim to work with select2 style choice type.
    */
-  onChange?: (value?: OptionType | null) => void;
+  choices?: Choices | ((props: ControlProps<OptionType>) => Choices);
   /**
    * Unlike react-select which expects an OptionType as its value
    * we accept the option.value and resolve the option object.
@@ -82,7 +85,45 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
    * can't have a good type here.
    */
   value?: any;
-};
+  /**
+   * Dsiabled the picker
+   */
+  disabled?: boolean;
+  /**
+   * Enable 'clearable' which allows values to be removed.
+   */
+  clearable?: boolean;
+  /**
+   * Enable async option loading.
+   */
+  async?: boolean;
+  /**
+   * Enable 'create' mode which allows values to be created inline.
+   */
+  creatable?: boolean;
+  /**
+   * When the input loses focus
+   */
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+} & (
+  | {
+      multiple?: false;
+      /**
+       * Handler for changes. Narrower than the types in react-select.
+       */
+      onChange?: (value: OptionType) => void;
+    }
+  | {
+      multiple: true;
+      /**
+       * Handler for changes, multiple options
+       */
+      onChange?: (values: OptionType[]) => void;
+    }
+);
+
+export type ControlProps<T = GeneralSelectValue> = BaseProps<T> &
+  Omit<SelectProps<T>, keyof BaseProps<T>>;
 
 /**
  * Additional props provided by forwardRef and withTheme()
@@ -90,8 +131,8 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
 type WrappedControlProps<OptionType> = ControlProps<OptionType> & {
   theme: Theme;
   /**
-   * Ref forwarded into ReactSelect component.
-   * The any is inherited from react-select.
+   * Ref forwarded into ReactSelect component. The any is inherited from
+   * react-select.
    */
   forwardedRef: React.Ref<ReactSelect>;
 };
@@ -348,7 +389,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       isClearable={clearable}
       backspaceRemovesValue={clearable}
       value={mappedValue}
-      isMulti={props.multiple || props.multi}
+      isMulti={props.multiple}
       isDisabled={props.isDisabled || props.disabled}
       options={options || (choicesOrOptions as OptionsType<OptionType>)}
       openMenuOnFocus={props.openMenuOnFocus === undefined ? true : props.openMenuOnFocus}
@@ -359,27 +400,12 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
 
 const SelectControlWithTheme = withTheme(SelectControl);
 
-type PickerProps<OptionType> = ControlProps<OptionType> & {
-  /**
-   * Enable async option loading.
-   */
-  async?: boolean;
-  /**
-   * Enable 'create' mode which allows values to be created inline.
-   */
-  creatable?: boolean;
-  /**
-   * Enable 'clearable' which allows values to be removed.
-   */
-  clearable?: boolean;
-};
-
 function SelectPicker<OptionType>({
   async,
   creatable,
   forwardedRef,
   ...props
-}: PickerProps<OptionType>) {
+}: WrappedControlProps<OptionType>) {
   // Pick the right component to use
   // Using any here as react-select types also use any
   let Component: React.ComponentType<any> | undefined;

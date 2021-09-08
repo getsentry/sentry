@@ -328,9 +328,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             name="dashboard"
             options={[{label: t('+ Create New Dashboard'), value: 'new'}, ...dashboards]}
             onChange={(option: SelectValue<string>) => this.handleDashboardChange(option)}
-            onSelectResetsInput={false}
-            onCloseResetsInput={false}
-            onBlurResetsInput={false}
             disabled={loading}
           />
         </Field>
@@ -417,14 +414,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               required
             >
               <SelectControl
-                required
                 options={DISPLAY_TYPE_CHOICES.slice()}
                 name="displayType"
-                label={t('Visualization Display')}
                 value={state.displayType}
-                onChange={(option: {label: string; value: Widget['displayType']}) => {
-                  this.handleFieldChange('displayType')(option.value);
-                }}
+                onChange={option => this.handleFieldChange('displayType')(option.value)}
                 disabled={state.loading}
               />
             </StyledField>

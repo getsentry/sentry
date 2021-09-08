@@ -1,4 +1,5 @@
 import * as React from 'react';
+import ReactSelect from 'react-select';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -17,7 +18,9 @@ type Props = {
   url: string;
   onResults: (data: any) => Result[]; // TODO(ts): Improve data type
   onQuery: (query: string | undefined) => {};
-} & Pick<ControlProps, 'value' | 'forwardedRef'>;
+  forwardedRef: React.Ref<ReactSelect>;
+  value: ControlProps['value'];
+};
 
 type State = {
   query?: string;

@@ -654,12 +654,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     );
 
     const ruleNameOwnerForm = (hasAccess: boolean) => (
-      <RuleNameOwnerForm
-        disabled={!hasAccess || !canEdit}
-        organization={organization}
-        project={project}
-        userTeamIds={userTeamIds}
-      />
+      <RuleNameOwnerForm disabled={!hasAccess || !canEdit} project={project} />
     );
 
     return (

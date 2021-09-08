@@ -103,7 +103,6 @@ export default class SelectField extends FormField<Props> {
       choices,
       placeholder,
       disabled,
-      required,
       name,
       isLoading,
     } = this.props;
@@ -116,7 +115,6 @@ export default class SelectField extends FormField<Props> {
         options={options}
         placeholder={placeholder}
         disabled={disabled}
-        required={required}
         value={this.state.value}
         onChange={this.onChange}
         clearable={clearable}
