@@ -30,7 +30,7 @@ def get_frontend_app_asset_url(module, key, cache_bust=False):
     """
     manifest_obj = get_manifest_obj()
     manifest_value = _load_from_manifest(manifest_obj, key=key)
-    args = (settings.STATIC_WEBPACK_URL.rstrip("/"), module, manifest_value)
+    args = (settings.STATIC_FRONTEND_APP_URL.rstrip("/"), module, manifest_value)
 
     if not cache_bust:
         return "{}/{}/{}".format(*args)
