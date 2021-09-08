@@ -4,7 +4,6 @@ from typing import Any, Mapping, Optional, Sequence
 from django.utils.translation import ugettext_lazy as _
 from django.views import View
 
-from sentry import features
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
     FeatureDescription,
@@ -196,6 +195,5 @@ class SlackIntegrationProvider(IntegrationProvider):  # type: ignore
         """
         Create Identity records for an organization's users if their emails match in Sentry and Slack
         """
-        if features.has("organizations:notification-platform", organization):
-            run_args = {"integration": integration, "organization": organization}
-            tasks.link_slack_user_identities.apply_async(kwargs=run_args)
+        run_args = {"integration": integration, "organization": organization}
+        tasks.link_slack_user_identities.apply_async(kwargs=run_args)
