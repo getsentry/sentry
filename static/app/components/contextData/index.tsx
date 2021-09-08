@@ -44,7 +44,8 @@ class ContextData extends React.Component<Props, State> {
       this.props;
     const maxDepth = maxDefaultDepth ?? 2;
 
-    /* eslint @typescript-eslint/no-shadow:0 */
+    // TODO(eslint): Remove `no-shadow`
+    // eslint-disable-next-line no-shadow,@typescript-eslint/no-shadow
     function walk(value: Value, depth: number) {
       let i = 0;
       const children: React.ReactNode[] = [];
