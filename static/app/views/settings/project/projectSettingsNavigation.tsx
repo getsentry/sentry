@@ -12,9 +12,15 @@ type Props = {
 };
 
 const ProjectSettingsNavigation = ({organization, project}: Props) => {
-  const appStoreConnectContext = useContext(AppStoreConnectContext);
+  const {promptItunesSession, appstoreCredentialsValid} = useContext(
+    AppStoreConnectContext
+  ) || {
+    promptItunesSession: false,
+    // Default to not showing any alerts if we have no info
+    appstoreCredentialsValid: true,
+  };
 
-  const debugFilesNeedsReview = !!appStoreConnectContext?.updateAlertMessage;
+  const debugFilesNeedsReview = promptItunesSession || !appstoreCredentialsValid;
 
   return (
     <SettingsNavigation
