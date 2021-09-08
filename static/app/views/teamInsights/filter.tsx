@@ -1,11 +1,9 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {Content} from 'app/components/dropdownControl';
-import {IconFilter} from 'app/icons';
-import {t, tn} from 'app/locale';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
@@ -18,24 +16,14 @@ type DropdownSection = {
 };
 
 type SectionProps = DropdownSection & {
-  toggleSection: (id: string) => void;
-  toggleFilter: (section: string, value: string) => void;
+  toggleFilter: (value: string) => void;
 };
 
-function FilterSection({id, label, items, toggleSection, toggleFilter}: SectionProps) {
-  const checkedItemsCount = items.filter(item => item.checked).length;
+function FilterSection({label, items, toggleFilter}: SectionProps) {
   return (
     <Fragment>
       <Header>
         <span>{label}</span>
-        <CheckboxFancy
-          isChecked={checkedItemsCount === items.length}
-          isIndeterminate={checkedItemsCount > 0 && checkedItemsCount !== items.length}
-          onClick={event => {
-            event.stopPropagation();
-            toggleSection(id);
-          }}
-        />
       </Header>
       {items
         .filter(item => !item.filtered)
@@ -43,13 +31,11 @@ function FilterSection({id, label, items, toggleSection, toggleFilter}: SectionP
           <ListItem
             key={item.value}
             isChecked={item.checked}
-            onClick={event => {
-              event.stopPropagation();
-              toggleFilter(id, item.value);
+            onClick={() => {
+              toggleFilter(item.value);
             }}
           >
             <TeamName>{item.label}</TeamName>
-            <CheckboxFancy isChecked={item.checked} />
           </ListItem>
         ))}
     </Fragment>
@@ -58,69 +44,26 @@ function FilterSection({id, label, items, toggleSection, toggleFilter}: SectionP
 
 type Props = {
   header: React.ReactElement;
-  onFilterChange: (filterSelection: Set<string>) => void;
-  dropdownSections: DropdownSection[];
+  onFilterChange: (selectedValue: string) => void;
+  dropdownSection: DropdownSection;
 };
 
 class Filter extends Component<Props> {
-  toggleFilter = (sectionId: string, value: string) => {
-    const {onFilterChange, dropdownSections} = this.props;
-    const section = dropdownSections.find(
-      dropdownSection => dropdownSection.id === sectionId
-    )!;
-    const newSelection = new Set(
-      section.items.filter(item => item.checked).map(item => item.value)
-    );
-    if (newSelection.has(value)) {
-      newSelection.delete(value);
-    } else {
-      newSelection.add(value);
-    }
-    onFilterChange(newSelection);
-  };
-
-  toggleSection = (sectionId: string) => {
+  toggleFilter = (value: string) => {
     const {onFilterChange} = this.props;
-    const section = this.props.dropdownSections.find(
-      dropdownSection => dropdownSection.id === sectionId
-    )!;
-    const activeItems = section.items.filter(item => item.checked);
-
-    const newSelection =
-      section.items.length === activeItems.length
-        ? new Set<string>()
-        : new Set(section.items.map(item => item.value));
-
-    onFilterChange(newSelection);
-  };
-
-  getNumberOfActiveFilters = (): number => {
-    return this.props.dropdownSections
-      .map(section => section.items)
-      .flat()
-      .filter(item => item.checked).length;
+    onFilterChange(value);
   };
 
   render() {
-    const {dropdownSections: dropdownItems, header} = this.props;
-    const checkedQuantity = this.getNumberOfActiveFilters();
+    const {dropdownSection, header} = this.props;
+    const selected = this.props.dropdownSection.items.find(item => item.checked);
 
     const dropDownButtonProps: Pick<DropdownButtonProps, 'children' | 'priority'> & {
       hasDarkBorderBottomColor: boolean;
     } = {
-      children: t('Filter'),
       priority: 'default',
       hasDarkBorderBottomColor: false,
     };
-
-    if (checkedQuantity > 0) {
-      dropDownButtonProps.children = tn(
-        '%s Active Filter',
-        '%s Active Filters',
-        checkedQuantity
-      );
-      dropDownButtonProps.hasDarkBorderBottomColor = true;
-    }
 
     return (
       <DropdownControl
@@ -130,14 +73,13 @@ class Filter extends Component<Props> {
         button={({isOpen, getActorProps}) => (
           <StyledDropdownButton
             {...getActorProps()}
-            showChevron={false}
             isOpen={isOpen}
-            icon={<IconFilter size="xs" />}
             hasDarkBorderBottomColor={dropDownButtonProps.hasDarkBorderBottomColor}
             priority={dropDownButtonProps.priority as DropdownButtonProps['priority']}
             data-test-id="filter-button"
           >
-            {dropDownButtonProps.children}
+            {t('Team: ')}
+            {selected?.label}
           </StyledDropdownButton>
         )}
       >
@@ -151,14 +93,7 @@ class Filter extends Component<Props> {
           >
             <List>
               {header}
-              {dropdownItems.map(section => (
-                <FilterSection
-                  key={section.id}
-                  {...section}
-                  toggleSection={this.toggleSection}
-                  toggleFilter={this.toggleFilter}
-                />
-              ))}
+              <FilterSection {...dropdownSection} toggleFilter={this.toggleFilter} />
             </List>
           </MenuContent>
         )}
@@ -190,6 +125,7 @@ const Header = styled('div')`
 const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: boolean}>`
   white-space: nowrap;
   max-width: 200px;
+  height: 42px;
 
   z-index: ${p => p.theme.zIndex.dropdown};
 `;
@@ -207,15 +143,9 @@ const ListItem = styled('li')<{isChecked?: boolean}>`
   align-items: center;
   padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
+  cursor: pointer;
   :hover {
     background-color: ${p => p.theme.backgroundSecondary};
-  }
-  ${CheckboxFancy} {
-    opacity: ${p => (p.isChecked ? 1 : 0.3)};
-  }
-
-  &:hover ${CheckboxFancy} {
-    opacity: 1;
   }
 
   &:hover span {

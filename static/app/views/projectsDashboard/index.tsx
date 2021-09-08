@@ -7,12 +7,12 @@ import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
 
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import NavTabs from 'app/components/navTabs';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import PageHeading from 'app/components/pageHeading';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -25,6 +25,7 @@ import {sortProjects} from 'app/utils';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeamsForUser from 'app/utils/withTeamsForUser';
+import TeamInsightsHeaderTabs from 'app/views/teamInsights/headerTabs';
 
 import Resources from './resources';
 import TeamSection from './teamSection';
@@ -96,18 +97,11 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
               {t('Create Project')}
             </Button>
           </ProjectsHeader>
-          <ProjectsTabs underlined>
-            <li className="active">
-              <Link to={`/organizations/${organization.slug}/projects/`}>
-                {t('Projects Overview')}
-              </Link>
-            </li>
-            <li>
-              <Link to={`/organizations/${organization.slug}/teamInsights/`}>
-                {t('Team Insights')}
-              </Link>
-            </li>
-          </ProjectsTabs>
+          <Feature organization={organization} features={['team-insights']}>
+            <TabsWrapper>
+              <TeamInsightsHeaderTabs organization={organization} activeTab="projects" />
+            </TabsWrapper>
+          </Feature>
         </Fragment>
       )}
 
@@ -154,8 +148,8 @@ const ProjectsHeader = styled('div')`
   justify-content: space-between;
 `;
 
-const ProjectsTabs = styled(NavTabs)`
-  padding: ${space(3)} ${space(4)} 0 ${space(4)};
+const TabsWrapper = styled('div')`
+  padding: ${space(2)} ${space(4)} ${space(1)} ${space(4)};
 `;
 
 const OrganizationDashboardWrapper = styled('div')`

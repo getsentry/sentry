@@ -12,7 +12,7 @@ const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
 type Props = {
   teams: Team[];
   selectedTeam: string;
-  handleChangeFilter: (activeFilters: Set<string>) => void;
+  handleChangeTeam: (teamId: string) => void;
 };
 
 export function getTeamParams(team?: string | string[]): string[] {
@@ -31,7 +31,7 @@ export function getTeamParams(team?: string | string[]): string[] {
   return [team];
 }
 
-function TeamDropdown({teams, selectedTeam, handleChangeFilter}: Props) {
+function TeamDropdown({teams, selectedTeam, handleChangeTeam}: Props) {
   const [teamFilterSearch, setTeamFilterSearch] = useState<string | undefined>();
 
   const teamItems = teams.map(({id, name}) => ({
@@ -58,14 +58,12 @@ function TeamDropdown({teams, selectedTeam, handleChangeFilter}: Props) {
           value={teamFilterSearch || ''}
         />
       }
-      onFilterChange={handleChangeFilter}
-      dropdownSections={[
-        {
-          id: 'teams',
-          label: t('Teams'),
-          items: teamItems,
-        },
-      ]}
+      onFilterChange={handleChangeTeam}
+      dropdownSection={{
+        id: 'teams',
+        label: t('Teams'),
+        items: teamItems,
+      }}
     />
   );
 }
