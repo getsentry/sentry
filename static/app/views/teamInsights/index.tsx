@@ -6,7 +6,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
   organization: Organization;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 };
 
 function TeamInsightsContainer({children, organization}: Props) {

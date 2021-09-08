@@ -46,7 +46,7 @@ const PAGE_QUERY_PARAMS = [
   'team',
 ];
 
-function TeamInsightsContainer({
+function TeamInsightsOverview({
   organization,
   teams,
   loadingTeams,
@@ -58,7 +58,7 @@ function TeamInsightsContainer({
   const currentTeam = teams.find(team => team.id === currentTeamId);
   const projects = currentTeam?.projects ?? [];
 
-  function handleSelectedTeamUpdate(teamId: string) {
+  function handleChangeTeam(teamId: string) {
     setStateOnUrl({team: teamId});
   }
 
@@ -168,7 +168,7 @@ function TeamInsightsContainer({
               <TeamDropdown
                 teams={teams}
                 selectedTeam={currentTeamId}
-                handleChangeTeam={handleSelectedTeamUpdate}
+                handleChangeTeam={handleChangeTeam}
               />
               <PageTimeRangeSelector
                 organization={organization}
@@ -197,7 +197,8 @@ function TeamInsightsContainer({
   );
 }
 
-export default withApi(withOrganization(withTeamsForUser(TeamInsightsContainer)));
+export {TeamInsightsOverview};
+export default withApi(withOrganization(withTeamsForUser(TeamInsightsOverview)));
 
 const BorderlessHeader = styled(Layout.Header)`
   border-bottom: 0;
