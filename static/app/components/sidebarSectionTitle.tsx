@@ -3,43 +3,35 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
-const Subheading = styled('h6')`
-  color: ${p => p.theme.gray300};
-  display: flex;
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(1)};
-`;
-
 type Props = {
   title: React.ReactNode;
-  children?: React.ReactNode;
   icon?: React.ReactNode;
 };
 
 /**
  * Used to add a new subheading in a sidebar section.
  */
-function SidebarSectionTitle({title, children, icon, ...props}: Props) {
-  const HeaderComponent = Subheading;
-
+function SidebarSectionTitle({title, icon, ...props}: Props) {
   return (
     <React.Fragment>
-      <HeaderComponent {...props}>
+      <Heading {...props}>
         {title}
         {icon && <IconWrapper>{icon}</IconWrapper>}
-      </HeaderComponent>
-      <SectionContent>{children}</SectionContent>
+      </Heading>
     </React.Fragment>
   );
 }
 
+const Heading = styled('h6')`
+  color: ${p => p.theme.gray400};
+  display: flex;
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-bottom: ${space(1)};
+`;
+
 const IconWrapper = styled('div')`
   color: ${p => p.theme.gray200};
   margin-left: ${space(0.5)};
-`;
-
-const SectionContent = styled('div')`
-  margin-bottom: ${space(3)};
 `;
 
 export default SidebarSectionTitle;

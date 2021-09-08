@@ -16,6 +16,7 @@ import Tooltip from 'app/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {
   ReleaseProject,
   ReleaseWithHealth,
@@ -24,12 +25,13 @@ import {
 } from 'app/types';
 import {getAdoptionSeries, getCount} from 'app/utils/sessions';
 import {Theme} from 'app/utils/theme';
+import {isProjectMobileForReleases} from 'app/views/releases/list';
 import {ADOPTION_STAGE_LABELS} from 'app/views/releases/list/releaseHealth/content';
 
 import {getReleaseBounds, getReleaseParams} from '../../utils';
 import {generateReleaseMarkLines, releaseMarkLinesLabels} from '../utils';
 
-import {SectionHeading, Wrapper} from './styles';
+import {Wrapper} from './styles';
 
 type Props = {
   release: ReleaseWithHealth;
@@ -206,31 +208,37 @@ function ReleaseComparisonChart({
     allowEmptyPeriod: true,
   });
 
+  const isMobileProject = isProjectMobileForReleases(project.platform);
   const adoptionStage = release.adoptionStages?.[project.slug].stage;
-  const adoptionStageLabel = ADOPTION_STAGE_LABELS[adoptionStage];
+  const adoptionStageLabel =
+    Boolean(adoptionStage) && ADOPTION_STAGE_LABELS[adoptionStage];
   const allEnvironments = environment.length === 0;
   const multipleEnvironments = environment.length > 1;
 
   return (
     <Wrapper>
-      <Feature features={['release-adoption-stage']}>
-        <SectionHeading>
-          {allEnvironments
-            ? t('All Environments')
-            : multipleEnvironments
-            ? t(`${environment.join(', ')}`)
-            : t(`${environment}`)}
-        </SectionHeading>
-        <SidebarSectionTitle title={t('Adoption Stage')}>
+      {isMobileProject && (
+        <Feature features={['release-adoption-stage']}>
+          <SidebarSectionTitle title={t('Adoption Stage')} />
           {adoptionStageLabel && !allEnvironments && !multipleEnvironments ? (
-            <Tooltip title={adoptionStageLabel.tooltipTitle}>
+            <StyledTooltip title={adoptionStageLabel.tooltipTitle}>
               <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
-            </Tooltip>
+              <AdoptionEnvironment>{t(`in ${environment}`)}</AdoptionEnvironment>
+            </StyledTooltip>
           ) : (
-            <NotAvailable />
+            <NotAvailableWrapper>
+              <StyledNotAvailable />
+              <QuestionTooltip
+                position="top"
+                title={t(
+                  'See if a release has low adoption, been adopted by users, or replaced by another release. Select an environment above to view the stage this release is in.'
+                )}
+                size="sm"
+              />
+            </NotAvailableWrapper>
           )}
-        </SidebarSectionTitle>
-      </Feature>
+        </Feature>
+      )}
       <RelativeBox>
         <ChartLabel top="0px">
           <ChartTitle
@@ -290,6 +298,25 @@ function ReleaseComparisonChart({
     </Wrapper>
   );
 }
+
+const StyledTooltip = styled(Tooltip)`
+  margin-bottom: ${space(3)};
+`;
+
+const NotAvailableWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-bottom: ${space(3)};
+`;
+
+const StyledNotAvailable = styled(NotAvailable)`
+  margin-right: ${space(0.5)};
+`;
+
+const AdoptionEnvironment = styled('span')`
+  margin-left: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 const RelativeBox = styled('div')`
   position: relative;
