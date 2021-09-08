@@ -89,7 +89,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/processing-issues/`,
           title: t('Processing Issues'),
-          // eslint-disable-next-line no-shadow
+          // eslint-disable-next-line @typescript-eslint/no-shadow
           badge: ({project}) => {
             if (!project) {
               return null;
