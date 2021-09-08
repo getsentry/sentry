@@ -1351,6 +1351,7 @@ export type Integration = {
   icon: string;
   domainName: string;
   accountType: string;
+  scopes?: string[];
   status: ObjectStatus;
   provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
   dynamicDisplayInformation?: {

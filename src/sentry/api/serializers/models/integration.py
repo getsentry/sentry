@@ -43,6 +43,7 @@ class IntegrationSerializer(Serializer):  # type: ignore
             "icon": obj.metadata.get("icon"),
             "domainName": obj.metadata.get("domain_name"),
             "accountType": obj.metadata.get("account_type"),
+            "scopes": obj.metadata.get("scopes"),
             "status": obj.get_status_display(),
             "provider": serialize_provider(provider),
         }
