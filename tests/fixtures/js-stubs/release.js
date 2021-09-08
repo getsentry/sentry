@@ -77,6 +77,7 @@ export function Release(params, healthParams) {
         id: 4383603,
         name: 'Sentry-Android-Shop',
         slug: 'sentry-android-shop',
+        platform: 'android',
       },
     ],
     currentProjectMeta: {
@@ -86,6 +87,13 @@ export function Release(params, healthParams) {
       lastReleaseVersion: '999',
       sessionsUpperBound: null,
       sessionsLowerBound: null,
+    },
+    adoptionStages: {
+      'sentry-android-shop': {
+        adopted: '2020-03-24T01:02:30Z',
+        stage: 'replaced',
+        unadopted: '2020-03-24T02:02:30Z',
+      },
     },
     ...params,
   };
