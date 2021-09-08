@@ -77,3 +77,6 @@ register(
         },
     },
 )
+
+# Default span attributes config
+register(key="sentry:span_attributes", epoch_defaults={1: ["exclusive-time"]})
