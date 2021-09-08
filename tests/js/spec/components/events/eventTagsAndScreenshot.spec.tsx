@@ -145,7 +145,7 @@ describe('EventTagsAndScreenshot ', function () {
   ];
 
   describe('renders tags only', function () {
-    it('not shared event - without attachments', function () {
+    it('not shared event - without attachments', async function () {
       const {container, queryByText, queryAllByTestId, getByTestId} = mountWithTheme(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
@@ -169,20 +169,20 @@ describe('EventTagsAndScreenshot ', function () {
       // Context Item 1
       const contextItem1 = within(contextItems[0]);
       expect(contextItem1.getByRole('heading').textContent).toBe(user.email);
-      expect(findByTextContent(contextItem1, `ID: ${user.id}`)).toBeTruthy();
+      expect(await findByTextContent(contextItem1, `ID: ${user.id}`)).toBeTruthy();
 
       // Context Item 2
       const contextItem2 = within(contextItems[1]);
       expect(contextItem2.getByRole('heading').textContent).toBe(contexts.os.name);
       expect(
-        findByTextContent(contextItem2, `Version: ${contexts.os.version}`)
+        await findByTextContent(contextItem2, `Version: ${contexts.os.version}`)
       ).toBeTruthy();
 
       // Context Item 3
       const contextItem3 = within(contextItems[2]);
       expect(contextItem3.getByRole('heading').textContent).toBe(contexts.device.model);
       expect(
-        findByTextContent(contextItem3, `Model: ${contexts.device.model_id}`)
+        await findByTextContent(contextItem3, `Model: ${contexts.device.model_id}`)
       ).toBeTruthy();
 
       // Tags
