@@ -2,6 +2,7 @@
 # Module containing code shared across various shell scripts
 # Execute functions from this module via the script do.sh
 # shellcheck disable=SC2034 # Unused variables
+# shellcheck disable=SC2001 # https://github.com/koalaman/shellcheck/wiki/SC2001
 
 # This block is a safe-guard since in CI calling tput will fail and abort scripts
 if [ -z "${CI+x}" ]; then
@@ -55,11 +56,19 @@ get-pyenv-version() {
 
 query-valid-python-version() {
     python_version=$(python3 -V 2>&1 | awk '{print $2}')
-    if [ "${python_version}" == 3.6.13 ] || [ "${python_version}" == 3.8.11 ]; then
-        return 0
-    else
+    minor=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\1/')
+    patch=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\2/')
+
+    # For Apple M1, we only allow 3.8 and at least patch version 10
+    if query-apple-m1; then
+        if [ "$minor" -ne 8 ] || [ "$patch" -lt 10 ]; then
+            return 1
+        fi
+    # For everything else, we only allow 3.6
+    elif [ "$minor" -ne 6 ]; then
         return 1
     fi
+    return 0
 }
 
 sudo-askpass() {
@@ -67,53 +76,6 @@ sudo-askpass() {
         sudo --askpass "$@"
     else
         sudo "$@"
-    fi
-}
-
-# After using homebrew to install docker, we need to do some magic to remove the need to interact with the GUI
-# See: https://github.com/docker/for-mac/issues/2359#issuecomment-607154849 for why we need to do things below
-init-docker() {
-    # Need to start docker if it was freshly installed or updated
-    # You will know that Docker is ready for devservices when the icon on the menu bar stops flashing
-    if query-mac && ! require docker && [ -d "/Applications/Docker.app" ]; then
-        echo "Making some changes to complete Docker initialization"
-        # allow the app to run without confirmation
-        xattr -d -r com.apple.quarantine /Applications/Docker.app
-
-        # preemptively do docker.app's setup to avoid any gui prompts
-        # This path is not available for brand new MacBooks
-        sudo-askpass /bin/mkdir -p /Library/PrivilegedHelperTools
-        sudo-askpass /bin/chmod 754 /Library/PrivilegedHelperTools
-        sudo-askpass /bin/cp /Applications/Docker.app/Contents/Library/LaunchServices/com.docker.vmnetd /Library/PrivilegedHelperTools/
-        sudo-askpass /bin/chmod 544 /Library/PrivilegedHelperTools/com.docker.vmnetd
-
-        # This file used to be generated as part of brew's installation
-        if [ -f /Applications/Docker.app/Contents/Resources/com.docker.vmnetd.plist ]; then
-            sudo-askpass /bin/cp /Applications/Docker.app/Contents/Resources/com.docker.vmnetd.plist /Library/LaunchDaemons/
-        else
-            sudo-askpass /bin/cp .github/workflows/files/com.docker.vmnetd.plist /Library/LaunchDaemons/
-        fi
-        sudo-askpass /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
-        sudo-askpass /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
-    fi
-    start-docker
-}
-
-# This is mainly to be used by CI
-# We need this for Mac since the executable docker won't work properly
-# until the app is opened once
-start-docker() {
-    if query-mac && ! docker system info &>/dev/null; then
-        echo "About to open Docker.app"
-        # At a later stage in the script, we're going to execute
-        # ensure_docker_server which waits for it to be ready
-        if ! open -g -a Docker.app; then
-            # If the step above fails, at least we can get some debugging information to determine why
-            sudo-askpass ls -l /Library/PrivilegedHelperTools/com.docker.vmnetd
-            ls -l /Library/LaunchDaemons/
-            cat /Library/LaunchDaemons/com.docker.vmnetd.plist
-            ls -l /Applications/Docker.app
-        fi
     fi
 }
 

@@ -1,7 +1,9 @@
 import * as React from 'react';
 import {OptionsType, ValueType} from 'react-select';
 
+import Confirm from 'app/components/confirm';
 import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
+import {t} from 'app/locale';
 import {Choices, SelectValue} from 'app/types';
 import InputField from 'app/views/settings/components/forms/inputField';
 
@@ -79,18 +81,39 @@ export default class SelectField<
   };
 
   render() {
-    const {multiple, allowClear, small, ...otherProps} = this.props;
+    const {allowClear, confirm, multiple, small, ...otherProps} = this.props;
     return (
       <InputField
         {...otherProps}
         alignRight={small}
         field={({onChange, onBlur, required: _required, ...props}) => (
-          <SelectControl
-            {...props}
-            clearable={allowClear}
-            multiple={multiple}
-            onChange={this.handleChange.bind(this, onBlur, onChange)}
-          />
+          <Confirm
+            renderMessage={({selectedValue}) =>
+              confirm && selectedValue
+                ? confirm[selectedValue.value]
+                : // Set a default confirm message
+                  t('Continue with these changes?')
+            }
+            onCancel={() => {}}
+            onConfirm={this.handleChange.bind(this, onBlur, onChange)}
+          >
+            {({open}) => (
+              <SelectControl
+                {...props}
+                clearable={allowClear}
+                multiple={multiple}
+                onChange={val => {
+                  const previousValue = props.value?.toString();
+                  const newValue = val.value?.toString();
+                  if (confirm && confirm[newValue] && previousValue !== newValue) {
+                    open(undefined, val);
+                    return;
+                  }
+                  this.handleChange.bind(this, onBlur, onChange)(val);
+                }}
+              />
+            )}
+          </Confirm>
         )}
       />
     );

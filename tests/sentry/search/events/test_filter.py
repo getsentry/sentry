@@ -836,7 +836,7 @@ class GetSnubaQueryArgsTest(TestCase):
         with self.assertRaises(InvalidSearchQuery):
             get_filter("id:deadbeef*")
 
-    def test_event_id(self):
+    def test_event_id_validation(self):
         event_id = "a" * 32
         results = get_filter(f"id:{event_id}")
         assert results.conditions == [["id", "=", event_id]]
@@ -850,6 +850,21 @@ class GetSnubaQueryArgsTest(TestCase):
 
         with self.assertRaises(InvalidSearchQuery):
             get_filter(f"id:{'g' * 32}")
+
+    def test_trace_id_validation(self):
+        trace_id = "a" * 32
+        results = get_filter(f"trace:{trace_id}")
+        assert results.conditions == [["trace", "=", trace_id]]
+
+        trace_id = "a" * 16 + "-" * 16 + "b" * 16
+        results = get_filter(f"trace:{trace_id}")
+        assert results.conditions == [["trace", "=", trace_id]]
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter("trace:deadbeef")
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"trace:{'g' * 32}")
 
     def test_negated_wildcard(self):
         _filter = get_filter("!release:3.1.* user.email:*@example.com")

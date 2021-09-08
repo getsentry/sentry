@@ -373,7 +373,7 @@ STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
 # webpack assets live at a different URL that is unversioned
 # as we configure webpack to include file content based hash in the filename
-STATIC_UNVERSIONED_URL = "/_static/dist/"
+STATIC_FRONTEND_APP_URL = "/_static/dist/"
 
 # The webpack output directory
 STATICFILES_DIRS = [
@@ -1021,9 +1021,6 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": False,
-    # Enable option to send alert, workflow, and deploy notifications
-    # to 3rd parties (e.g. Slack) in addition to email
-    "organizations:notification-platform": False,
     # Automatically opt IN users to receiving Slack notifications.
     "organizations:notification-slack-automatic": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
@@ -1350,6 +1347,10 @@ SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+
+# Metrics product
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
+SENTRY_METRICS_INDEXER_OPTIONS = {}
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
