@@ -91,12 +91,6 @@ describe('Performance GridEditable Table', function () {
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
-    // @ts-expect-error
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/legacy-key-transactions-count/`,
-      body: [],
-    });
     data = [
       {
         id: 'deadbeef',
