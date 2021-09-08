@@ -78,15 +78,6 @@ def track_response_code(status, integration_slug, webhook_event):
     )
 
 
-# TODO(leander): Remove this temporary log after debugging inconsitent internal webhook response
-def track_response_code_internal(status, integration_slug, webhook_event):
-    metrics.incr(
-        "integration-platform.http_response.internal",
-        sample_rate=1.0,
-        tags={"status": status, "integration": integration_slug, "webhook_event": webhook_event},
-    )
-
-
 class SentryAppManager(ParanoidManager):
     def get_alertable_sentry_apps(self, organization_id: int) -> QuerySet:
         return self.filter(

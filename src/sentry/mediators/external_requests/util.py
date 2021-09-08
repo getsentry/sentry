@@ -4,7 +4,7 @@ from jsonschema import Draft7Validator
 from requests.exceptions import ConnectionError, Timeout
 
 from sentry.http import safe_urlopen
-from sentry.models.sentryapp import track_response_code, track_response_code_internal
+from sentry.models.sentryapp import track_response_code
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
 logger = logging.getLogger(__name__)
@@ -70,8 +70,6 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
             },
         )
         track_response_code(error_type, slug, event)
-        if sentry_app.is_internal:
-            track_response_code_internal(error_type, sentry_app.slug, event)
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
         # Re-raise the exception because some of these tasks might retry on the exception
