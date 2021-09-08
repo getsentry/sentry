@@ -31,7 +31,6 @@ function Status({theme, details, onEditRepository, onRevalidateItunesSession}: P
     lastCheckedBuilds,
   } = details ?? {};
 
-
   if (itunesSessionValid === false) {
     return (
       <Wrapper color={theme.red300} onClick={onRevalidateItunesSession}>
