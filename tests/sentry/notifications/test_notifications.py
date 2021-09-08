@@ -80,8 +80,7 @@ class ActivityNotificationTest(APITestCase):
             "alerts": {"user": {"me": {"email": "always", "slack": "always"}}},
         }
         self.login_as(self.user)
-        with self.feature("organizations:notification-platform"):
-            response = self.client.put(url, format="json", data=data)
+        response = self.client.put(url, format="json", data=data)
         assert response.status_code == 204, response.content
 
         responses.add(
