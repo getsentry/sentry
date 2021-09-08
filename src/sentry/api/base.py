@@ -235,7 +235,10 @@ class Endpoint(APIView):
                     request.access = access.from_request(request)
 
             if hasattr(self.request.successful_authenticator, "token_name"):
-                if self.request.successful_authenticator.token_name == "bearer":
+                if (
+                    self.request.successful_authenticator.token_name
+                    == TokenAuthentication.token_name
+                ):
                     request._metric_tags["backend_request"] = True
 
             with sentry_sdk.start_span(
