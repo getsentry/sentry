@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {MultiValueProps} from 'react-select';
+import {MultiValueProps, StylesConfig} from 'react-select';
 import {withTheme} from '@emotion/react';
 
 import Button from 'app/components/button';
@@ -100,8 +100,7 @@ class InviteRowControl extends React.Component<Props, State> {
           inputValue={this.state.inputValue}
           value={emails}
           components={{
-            MultiValue: (props: MultiValueProps<SelectOption>) =>
-              ValueComponent(props, inviteStatus),
+            MultiValue: props => ValueComponent(props, inviteStatus),
             DropdownIndicator: () => null,
           }}
           options={mapToOptions(emails)}
@@ -115,8 +114,6 @@ class InviteRowControl extends React.Component<Props, State> {
           styles={getStyles(theme, inviteStatus)}
           onInputChange={this.handleInputChange}
           onKeyDown={this.handleKeyDown}
-          onBlurResetsInput={false}
-          onCloseResetsInput={false}
           onChange={onChangeEmails}
           multiple
           creatable
@@ -160,7 +157,7 @@ class InviteRowControl extends React.Component<Props, State> {
  * The email select control has custom selected item states as items
  * show their delivery status after the form is submitted.
  */
-function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']) {
+function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']): StylesConfig {
   return {
     multiValue: (
       provided: React.CSSProperties,
