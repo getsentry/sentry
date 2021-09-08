@@ -24,7 +24,10 @@ def get_datetime_from_stats_period(stats_period, now=None):
     stats_period = parse_stats_period(stats_period)
     if stats_period is None:
         raise InvalidParams("Invalid statsPeriod")
-    return now - stats_period
+    try:
+        return now - stats_period
+    except OverflowError:
+        raise InvalidParams("Invalid statsPeriod")
 
 
 def default_start_end_dates(now=None):
