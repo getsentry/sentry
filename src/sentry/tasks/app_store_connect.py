@@ -13,7 +13,6 @@ import requests
 import sentry_sdk
 from django.utils import timezone
 
-from sentry import projectoptions
 from sentry.lang.native import appconnect
 from sentry.models import (
     AppConnectBuild,
@@ -155,12 +154,6 @@ def process_builds(
             build_state = get_or_create_persisted_build(project, config, build)
             if not build_state.fetched:
                 pending_builds.append((build, build_state))
-
-    # All existing usages of this option are internal, so it's fine if we don't carry these over
-    # to the table
-    # TODO: Clean this up by App Store Connect GA
-    if projectoptions.isset(project, appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION):
-        project.delete_option(appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION)
 
     LatestAppConnectBuildsCheck.objects.create_or_update(
         project=project, source_id=config.id, values={"last_checked": timezone.now()}
