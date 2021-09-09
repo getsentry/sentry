@@ -177,6 +177,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     errorMessage?: string
   ) {
     const {organization, project} = this.props;
+
     try {
       const projectDetails = await this.api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,

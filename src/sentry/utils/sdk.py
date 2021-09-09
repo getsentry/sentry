@@ -61,6 +61,14 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-scim-member-details": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-scim-team-index": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-scim-team-details": settings.SAMPLED_DEFAULT_RATE,
+    # login
+    "sentry-login": 0.1,
+    "sentry-auth-organization": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-auth-link-identity": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-auth-sso": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-logout": 0.1,
+    "sentry-register": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-2fa-dialog": settings.SAMPLED_DEFAULT_RATE,
 }
 if settings.ADDITIONAL_SAMPLED_URLS:
     SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)

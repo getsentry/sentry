@@ -721,6 +721,7 @@ type MyTheme = Theme;
  * Configure Emotion to use our theme
  */
 declare module '@emotion/react' {
+  // eslint-disable-next-line @typescript-eslint/no-shadow
   export interface Theme extends MyTheme {}
 }
 

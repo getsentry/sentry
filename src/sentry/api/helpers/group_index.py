@@ -457,7 +457,7 @@ def track_slo_response(name):
                     tags={
                         "status": 429,
                         "detail": "snuba.RateLimitExceeded",
-                        "func": function,
+                        "func": function.__qualname__,
                     },
                 )
                 raise
@@ -482,12 +482,16 @@ def track_slo_response(name):
     return inner_func
 
 
+def build_rate_limit_key(function, request):
+    ip = request.META["REMOTE_ADDR"]
+    return f"rate_limit_endpoint:{md5_text(function.__qualname__).hexdigest()}:{ip}"
+
+
 def rate_limit_endpoint(limit=1, window=1):
     def inner(function):
         def wrapper(self, request, *args, **kwargs):
-            ip = request.META["REMOTE_ADDR"]
             if ratelimiter.is_limited(
-                f"rate_limit_endpoint:{md5_text(function).hexdigest()}:{ip}",
+                build_rate_limit_key(function, request),
                 limit=limit,
                 window=window,
             ):
