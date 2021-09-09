@@ -10,6 +10,8 @@ if TYPE_CHECKING:
 
 UNSET = object()
 
+UnsettableString = Union[str, object, None]
+
 FIELD_MAP = {
     "title": "/fields/System.Title",
     "description": "/fields/System.Description",
@@ -120,16 +122,16 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):  # type: ignore
 
     def update_work_item(
         self,
-        instance,
-        id,
-        title=UNSET,
-        description=UNSET,
-        link=UNSET,
-        comment=UNSET,
-        assigned_to=UNSET,
-        state=UNSET,
-    ):
-        data = []
+        instance: str,
+        id: str,
+        title: UnsettableString = UNSET,
+        description: UnsettableString = UNSET,
+        link: UnsettableString = UNSET,
+        comment: UnsettableString = UNSET,
+        assigned_to: UnsettableString = UNSET,
+        state: UnsettableString = UNSET,
+    ) -> Response:
+        data: List[Mapping[str, Any]] = []
 
         for f_name, f_value in (
             ("title", title),
