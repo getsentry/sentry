@@ -1,5 +1,7 @@
 import logging
+from typing import Any
 
+from sentry.eventstore.models import Event
 from sentry.rules.actions.base import TicketEventAction
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
@@ -14,12 +16,12 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
     provider = "vsts"
     integration_key = "integration"
 
-    def generate_footer(self, rule_url):
+    def generate_footer(self, rule_url: str) -> str:
         return "\nThis work item was automatically created by Sentry via [{}]({})".format(
             self.rule.label,
             absolute_uri(rule_url),
         )
 
     @transaction_start("AzureDevopsCreateTicketAction.after")
-    def after(self, event, state):
+    def after(self, event: Event, state: str) -> Any:
         yield super().after(event, state)

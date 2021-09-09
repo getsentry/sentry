@@ -1,7 +1,8 @@
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models import Integration
+from sentry.models import Integration, Organization
 
 
 class VstsSearchEndpoint(IntegrationEndpoint):

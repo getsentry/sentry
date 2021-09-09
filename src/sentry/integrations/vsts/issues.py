@@ -1,13 +1,17 @@
 from collections import OrderedDict
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from django.urls import reverse
 from django.utils.translation import ugettext as _
 from mistune import markdown
+from rest_framework.response import Response
 
 from sentry.integrations.issues import IssueSyncMixin
-from sentry.models import IntegrationExternalProject, OrganizationIntegration, User
+from sentry.models import Activity, IntegrationExternalProject, OrganizationIntegration, User
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 
+if TYPE_CHECKING:
+    from sentry.models import ExternalIssue, Group
 
 class VstsIssueSync(IssueSyncMixin):
     description = "Integrate Azure DevOps work items by linking a project."
@@ -17,15 +21,17 @@ class VstsIssueSync(IssueSyncMixin):
     issue_fields = frozenset(["id", "title", "url"])
     done_categories = frozenset(["Resolved", "Completed", "Closed"])
 
-    def get_persisted_default_config_fields(self):
+    def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project", "work_item_type"]
 
-    def create_default_repo_choice(self, default_repo):
+    def create_default_repo_choice(self, default_repo: str) -> Tuple[str, str]:
         # default_repo should be the project_id
         project = self.get_client().get_project(self.instance, default_repo)
         return (project["id"], project["name"])
 
-    def get_project_choices(self, group=None, **kwargs):
+    def get_project_choices(
+        self, group: Optional[Group] = None, **kwargs: Any
+    ) -> Tuple[Optional[str], Sequence[Tuple[str, str]]]:
         client = self.get_client()
         try:
             projects = client.get_projects(self.instance)
@@ -63,7 +69,9 @@ class VstsIssueSync(IssueSyncMixin):
 
         return default_project, project_choices
 
-    def get_work_item_choices(self, project, group=None):
+    def get_work_item_choices(
+        self, project: str, group: Optional[Group] = None
+    ) -> Tuple[Optional[str], Sequence[Tuple[str, str]]]:
         client = self.get_client()
         try:
             item_categories = client.get_work_item_categories(self.instance, project)["value"]
@@ -93,10 +101,12 @@ class VstsIssueSync(IssueSyncMixin):
 
         return default_item_type, item_tuples
 
-    def get_create_issue_config_no_group(self, project):
+    def get_create_issue_config_no_group(self, project: str) -> Sequence[Mapping[str, Any]]:
         return self.get_create_issue_config(None, None, project=project)
 
-    def get_create_issue_config(self, group, user, **kwargs):
+    def get_create_issue_config(
+        self, group: Optional[Group], user: Optional[User], **kwargs: Any
+    ) -> Sequence[Mapping[str, Any]]:
         kwargs["link_referrer"] = "vsts_integration"
         fields = []
         if group:
@@ -134,8 +144,8 @@ class VstsIssueSync(IssueSyncMixin):
             },
         ] + fields
 
-    def get_link_issue_config(self, group, **kwargs):
-        fields = super().get_link_issue_config(group, **kwargs)
+    def get_link_issue_config(self, group: Group, **kwargs: Any) -> Sequence[Mapping[str, str]]:
+        fields: Sequence[MutableMapping[str, str]] = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-vsts-search", args=[org.slug, self.model.id])
         for field in fields:
@@ -144,10 +154,10 @@ class VstsIssueSync(IssueSyncMixin):
                 field["type"] = "select"
         return fields
 
-    def get_issue_url(self, key, **kwargs):
+    def get_issue_url(self, key: str, **kwargs: Any) -> str:
         return f"{self.instance}_workitems/edit/{key}"
 
-    def create_issue(self, data, **kwargs):
+    def create_issue(self, data: Mapping[str, str], **kwargs: Any) -> Mapping[str, Any]:
         """
         Creates the issue on the remote service and returns an issue ID.
         """
@@ -182,7 +192,7 @@ class VstsIssueSync(IssueSyncMixin):
             "metadata": {"display_name": "{}#{}".format(project_name, created_item["id"])},
         }
 
-    def get_issue(self, issue_id, **kwargs):
+    def get_issue(self, issue_id: str, **kwargs: Any) -> Mapping[str, Any]:
         client = self.get_client()
         work_item = client.get_work_item(self.instance, issue_id)
         return {
@@ -196,7 +206,9 @@ class VstsIssueSync(IssueSyncMixin):
             },
         }
 
-    def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
+    def sync_assignee_outbound(
+        self, external_issue: ExternalIssue, user: User, assign: bool = True, **kwargs: Any
+    ) -> None:
         client = self.get_client()
         assignee = None
 
@@ -239,7 +251,9 @@ class VstsIssueSync(IssueSyncMixin):
                 },
             )
 
-    def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
+    def sync_status_outbound(
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int, **kwargs: Any
+    ) -> None:
         client = self.get_client()
         work_item = client.get_work_item(self.instance, external_issue.key)
         # For some reason, vsts doesn't include the project id
@@ -291,15 +305,15 @@ class VstsIssueSync(IssueSyncMixin):
                 },
             )
 
-    def should_unresolve(self, data):
+    def should_unresolve(self, data: Mapping[str, str]) -> bool:
         done_states = self.get_done_states(data["project"])
         return not data["new_state"] in done_states or data["old_state"] is None
 
-    def should_resolve(self, data):
+    def should_resolve(self, data: Mapping[str, str]) -> bool:
         done_states = self.get_done_states(data["project"])
         return not data["old_state"] in done_states and data["new_state"] in done_states
 
-    def get_done_states(self, project):
+    def get_done_states(self, project: str) -> Sequence[str]:
         client = self.get_client()
         try:
             all_states = client.get_work_item_states(self.instance, project)["value"]
@@ -319,12 +333,12 @@ class VstsIssueSync(IssueSyncMixin):
             return ""
         return external_issue.metadata["display_name"]
 
-    def create_comment(self, issue_id, user_id, group_note):
+    def create_comment(self, issue_id: str, user_id: int, group_note: Activity) -> Response:
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
         return self.get_client().update_work_item(self.instance, issue_id, comment=quoted_comment)
 
-    def create_comment_attribution(self, user_id, comment_text):
+    def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         # VSTS uses markdown or xml
         # https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/bots/bots-text-formats
         user = User.objects.get(id=user_id)
@@ -332,6 +346,6 @@ class VstsIssueSync(IssueSyncMixin):
         quoted_comment = f"{attribution}<blockquote>{comment_text}</blockquote>"
         return quoted_comment
 
-    def update_comment(self, issue_id, user_id, group_note):
+    def update_comment(self, issue_id: int, user_id: int, group_note: str) -> None:
         # Azure does not support updating comments.
         pass

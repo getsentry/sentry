@@ -1,9 +1,13 @@
 import logging
 import re
 from time import time
+from typing import Any, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from django import forms
+from django.db.models import QuerySet
 from django.utils.translation import ugettext as _
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import features, http
 from sentry.auth.exceptions import IdentityNotValid
@@ -21,12 +25,13 @@ from sentry.integrations.repositories import RepositoryMixin
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.models import Integration as IntegrationModel
 from sentry.models import (
+    Identity,
     IntegrationExternalProject,
     Organization,
     OrganizationIntegration,
     Repository,
 )
-from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -34,6 +39,7 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
+from sentry.utils.json import JSONData
 from sentry.web.helpers import render_to_response
 
 from .client import VstsApiClient
@@ -107,17 +113,17 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.default_identity = None
+        self.default_identity: Optional[Identity] = None
 
-    def reinstall(self):
+    def reinstall(self) -> None:
         self.reinstall_repositories()
 
-    def all_repos_migrated(self):
+    def all_repos_migrated(self) -> bool:
         return not self.get_unmigratable_repositories()
 
-    def get_repositories(self, query=None):
+    def get_repositories(self, query: Optional[str] = None) -> Sequence[Mapping[str, str]]:
         try:
             repos = self.get_client().get_repos(self.instance)
         except (ApiError, IdentityNotValid) as e:
@@ -132,12 +138,12 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
             )
         return data
 
-    def get_unmigratable_repositories(self):
+    def get_unmigratable_repositories(self) -> QuerySet:
         return Repository.objects.filter(
             organization_id=self.organization_id, provider="visualstudio"
         ).exclude(external_id__in=[r["identifier"] for r in self.get_repositories()])
 
-    def has_repo_access(self, repo):
+    def has_repo_access(self, repo: Repository) -> bool:
         client = self.get_client()
         try:
             # since we don't actually use webhooks for vsts commits,
@@ -147,7 +153,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
             return False
         return True
 
-    def get_client(self):
+    def get_client(self) -> VstsApiClient:
         if self.default_identity is None:
             self.default_identity = self.get_default_identity()
 
@@ -163,7 +169,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         self.model.metadata["domain_name"] = base_url
         self.model.save()
 
-    def get_organization_config(self):
+    def get_organization_config(self) -> Sequence[Mapping[str, Any]]:
         client = self.get_client()
         instance = self.model.metadata["domain_name"]
 
@@ -258,7 +264,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
 
         return fields
 
-    def update_organization_config(self, data):
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
         if "sync_status_forward" in data:
             project_ids_and_statuses = data.pop("sync_status_forward")
             if any(
@@ -304,7 +310,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         return self.model.metadata["domain_name"]
 
     @property
-    def default_project(self):
+    def default_project(self) -> Optional[str]:
         try:
             return self.model.metadata["default_project"]
         except KeyError:
@@ -333,7 +339,12 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     VSTS_ACCOUNT_LOOKUP_URL = "https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1"
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self,
+        integration: IntegrationModel,
+        organization: Organization,
+        extra: Optional[Mapping[str, Any]] = None,
+    ) -> None:
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider__in=["visualstudio", "integrations:vsts"],
@@ -349,13 +360,13 @@ class VstsIntegrationProvider(IntegrationProvider):
                 }
             )
 
-    def get_scopes(self):
+    def get_scopes(self) -> Sequence[str]:
         if use_limited_scopes(self.pipeline):
             return ("vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
 
         return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> Sequence[PipelineView]:
         identity_pipeline_config = {
             "redirect_url": absolute_uri(self.oauth_redirect_url),
             "oauth_scopes": self.get_scopes(),
@@ -370,7 +381,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         return [identity_pipeline_view, AccountConfigView()]
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         data = state["identity"]["data"]
         oauth_data = self.get_oauth_data(data)
         account = state["account"]
@@ -412,7 +423,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         return integration
 
-    def create_subscription(self, instance, oauth_data):
+    def create_subscription(self, instance: str, oauth_data: Mapping[str, Any]) -> Tuple[int, str]:
         webhook = WorkItemWebhook()
         try:
             subscription, shared_secret = webhook.create_subscription(
@@ -432,7 +443,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         subscription_id = subscription["id"]
         return subscription_id, shared_secret
 
-    def get_oauth_data(self, payload):
+    def get_oauth_data(self, payload: Mapping[str, Any]) -> Mapping[str, Any]:
         data = {"access_token": payload["access_token"]}
 
         if "expires_in" in payload:
@@ -445,7 +456,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         return data
 
     @classmethod
-    def get_base_url(cls, access_token, account_id):
+    def get_base_url(cls, access_token: str, account_id: int) -> Optional[str]:
         url = VstsIntegrationProvider.VSTS_ACCOUNT_LOOKUP_URL % account_id
         with http.build_session() as session:
             response = session.get(
@@ -459,7 +470,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             return response.json()["locationUrl"]
         return None
 
-    def setup(self):
+    def setup(self) -> None:
         from sentry.plugins.base import bindings
 
         bindings.add(
@@ -507,13 +518,15 @@ class AccountConfigView(PipelineView):
             request=request,
         )
 
-    def get_account_from_id(self, account_id, accounts):
+    def get_account_from_id(
+        self, account_id: int, accounts: Sequence[Mapping[str, Any]]
+    ) -> Optional[Mapping[str, Any]]:
         for account in accounts:
             if account["accountId"] == account_id:
                 return account
         return None
 
-    def get_accounts(self, access_token, user_id):
+    def get_accounts(self, access_token: str, user_id: int) -> Optional[JSONData]:
         url = (
             f"https://app.vssps.visualstudio.com/_apis/accounts?memberId={user_id}&api-version=4.1"
         )
@@ -530,8 +543,8 @@ class AccountConfigView(PipelineView):
         return None
 
 
-class AccountForm(forms.Form):
-    def __init__(self, accounts, *args, **kwargs):
+class AccountForm(forms.Form):  # type: ignore
+    def __init__(self, accounts: Sequence[Mapping[str, str]], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.fields["account"] = forms.ChoiceField(
             choices=[(acct["accountId"], acct["accountName"]) for acct in accounts],
