@@ -8,7 +8,7 @@ class TestAppStoreUpdateCredentialsSerializer:
     def test_validate_secrets_magic_object_true(self):
         payload_json = """{
             "appconnectPrivateKey": { "hidden-secret": true },
-            "itunesPassword":  { "hidden-secret": true }
+            "itunesPassword":  { "hidden-secret": true },
             "itunesSession":  { "hidden-secret": true }
         }"""
 
@@ -25,7 +25,7 @@ class TestAppStoreUpdateCredentialsSerializer:
     def test_validate_secrets_magic_object_false(self):
         payload_json = """{
             "appconnectPrivateKey": { "hidden-secret": false },
-            "itunesPassword":  { "hidden-secret": false }
+            "itunesPassword":  { "hidden-secret": false },
             "itunesSession":  { "hidden-secret": false }
         }"""
 
@@ -40,7 +40,7 @@ class TestAppStoreUpdateCredentialsSerializer:
     def test_validate_secrets_null(self):
         payload_json = """{
             "appconnectPrivateKey": null,
-            "itunesPassword": null
+            "itunesPassword": null,
             "itunesSession": null
         }"""
 
@@ -55,7 +55,7 @@ class TestAppStoreUpdateCredentialsSerializer:
     # also equivalent to
     # {
     #    "appconnectPrivateKey": undefined,
-    #    "itunesPassword": undefined
+    #    "itunesPassword": undefined,
     #    "itunesSession": undefined
     # }
     def test_validate_secrets_absent(self):
@@ -77,7 +77,7 @@ class TestAppStoreUpdateCredentialsSerializer:
     def test_validate_secrets_empty_string(self):
         payload_json = """{
             "appconnectPrivateKey": "",
-            "itunesPassword": ""
+            "itunesPassword": "",
             "itunesSession": ""
         }"""
 
@@ -94,7 +94,7 @@ class TestAppStoreUpdateCredentialsSerializer:
     def test_validate_secrets_string(self):
         payload_json = """{
             "appconnectPrivateKey": "honk",
-            "itunesPassword": "beep"
+            "itunesPassword": "beep",
             "itunesSession": "beep"
         }"""
 
