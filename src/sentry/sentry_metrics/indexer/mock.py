@@ -2,7 +2,9 @@ import itertools
 from collections import defaultdict
 from typing import DefaultDict, Dict, Optional
 
-from sentry.models import Organization
+from django.conf import settings
+
+from sentry.utils.redis import redis_clusters
 
 from .base import StringIndexer, UseCase
 
@@ -41,9 +43,7 @@ class SimpleIndexer(StringIndexer):
         # NOTE: Ignores ``use_case`` for simplicity.
         return self._strings.get(string)
 
-    def reverse_resolve(
-        self, organization: Organization, use_case: UseCase, id: int
-    ) -> Optional[str]:
+    def reverse_resolve(self, org_id: str, use_case: UseCase, id: int) -> Optional[str]:
         # NOTE: Ignores ``use_case`` for simplicity.
         return self._reverse.get(id)
 

@@ -25,15 +25,15 @@ class MetricsIndexerWorker(AbstractBatchWorker):
     def process_message(self, message):
         original: Dict[str, Any] = json.loads(message.value())
         new_message = original.copy()
-        project_id = int(new_message["project_id"])
 
-        metric_id = indexer.resolve(project_id, UseCase.METRIC, new_message["name"])
+        org_id = int(new_message["org_id"])
+        metric_id = indexer.record(org_id, UseCase.METRIC, new_message["name"])
 
         tags = new_message["tags"]
         new_tags = {}
         for tag_k, tag_v in tags.items():
-            new_k = indexer.resolve(project_id, UseCase.TAG_KEY, tag_k)
-            new_v = indexer.resolve(project_id, UseCase.TAG_VALUE, tag_v)
+            new_k = indexer.record(org_id, UseCase.TAG_KEY, tag_k)
+            new_v = indexer.record(org_id, UseCase.TAG_VALUE, tag_v)
             new_tags[new_k] = new_v
 
         new_message["tags"] = new_tags
@@ -42,7 +42,7 @@ class MetricsIndexerWorker(AbstractBatchWorker):
         return new_message
 
     def flush_batch(self, batch):
-        # produce to the snuba-metrics topic
+        # produce the translated message to snuba-metrics topic
         global snuba_metrics
         for message in batch:
             cluster_name = snuba_metrics["cluster"]
