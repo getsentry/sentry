@@ -174,11 +174,9 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
         instance = self.model.metadata["domain_name"]
 
         project_selector = []
-
+        all_states = set()
         try:
             projects = client.get_projects(instance)
-            all_states = set()
-
             for idx, project in enumerate(projects):
                 project_selector.append({"value": project["id"], "label": project["name"]})
                 # only request states for the first 5 projects to limit number
@@ -188,10 +186,10 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
                     for state in project_states:
                         all_states.add(state["name"])
 
-            all_states = [(state, state) for state in all_states]
+            all_states = {(state, state) for state in all_states}
             disabled = False
         except (ApiError, IdentityNotValid):
-            all_states = []
+            all_states = set()
             disabled = True
 
         fields = [
