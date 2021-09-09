@@ -35,7 +35,7 @@ type State = {
   errors: {
     sampleRate?: string;
   };
-  sampleRate?: number;
+  sampleRate: number | null;
 };
 
 type Props = ModalRenderProps & {
@@ -117,7 +117,7 @@ function RuleModal({
 
     return {
       conditions: [],
-      sampleRate: undefined,
+      sampleRate: null,
       errors: {},
     };
   }
@@ -260,7 +260,7 @@ function RuleModal({
             label={`${t('Sampling Rate')} \u0025`}
             name="sampleRate"
             onChange={value => {
-              setData({...data, sampleRate: !!value ? Number(value) : undefined});
+              setData({...data, sampleRate: !!value ? Number(value) : null});
             }}
             placeholder={'\u0025'}
             value={sampleRate}

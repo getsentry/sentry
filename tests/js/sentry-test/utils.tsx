@@ -4,7 +4,7 @@ import {BoundFunctions, FindByText} from 'sentry-test/reactTestingLibrary';
  * Search for a text broken up by multiple html elements
  * e.g.: <div>Hello <span>world</span></div>
  */
-export async function findByTextContent(
+export function findByTextContent(
   screen: BoundFunctions<{findByText: FindByText}>,
   textMatch: string | RegExp
 ): Promise<HTMLElement> {
