@@ -5,7 +5,7 @@ from django.contrib.contenttypes.management import RenameContentType
 from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.operations import SeparateDatabaseAndState
 from django.db.migrations.operations.fields import FieldOperation
-from django.db.migrations.operations.models import ModelOperation
+from django.db.migrations.operations.models import IndexOperation, ModelOperation
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class SentryMigrationExecutor(MigrationExecutor):
         We use either model or `tables` attribute in hints to select the database.
         See: getsentry/db/router.py#L38-L53
 
-        - FieldOperation, ModelOperation operations are bound to a model
+        - FieldOperation, ModelOperation, IndexOperation operations are bound to a model
         - RunSQL, RunPython need to provide hints['tables']
         """
 
@@ -37,7 +37,9 @@ class SentryMigrationExecutor(MigrationExecutor):
         def _check_operations(operations):
             failed_ops = []
             for operation in operations:
-                if isinstance(operation, (FieldOperation, ModelOperation, RenameContentType)):
+                if isinstance(
+                    operation, (FieldOperation, ModelOperation, IndexOperation, RenameContentType)
+                ):
                     continue
                 elif isinstance(operation, SeparateDatabaseAndState):
                     failed_ops.extend(_check_operations(operation.database_operations))
