@@ -48,8 +48,8 @@ class TransactionComparisonContent extends Component<Props> {
   render() {
     const {baselineEvent, regressionEvent, organization, location, params} = this.props;
 
-    const transactionName =
-      baselineEvent.title === regressionEvent.title ? baselineEvent.title : undefined;
+    // const transactionName =
+    //   baselineEvent.title === regressionEvent.title ? baselineEvent.title : undefined;
 
     return (
       <Fragment>
@@ -58,7 +58,11 @@ class TransactionComparisonContent extends Component<Props> {
             <Breadcrumb
               organization={organization}
               location={location}
-              transactionName={transactionName}
+              // TODO: add this back in if transaction comparison is used
+              // transaction={{
+              //   project: <insert project id>,
+              //   name: transactionName,
+              // }}
               transactionComparison
             />
             <Layout.Title>{this.getTransactionName()}</Layout.Title>
