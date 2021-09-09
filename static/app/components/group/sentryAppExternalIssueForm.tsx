@@ -1,6 +1,5 @@
 import {Component} from 'react';
 
-import {Client} from 'app/api';
 import {t} from 'app/locale';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
 import {Group, PlatformExternalIssue, SentryAppInstallation} from 'app/types';
@@ -13,7 +12,6 @@ import SentryAppExternalForm, {
 } from 'app/views/organizationIntegrations/sentryAppExternalForm';
 
 type Props = {
-  api: Client;
   group: Group;
   sentryAppInstallation: SentryAppInstallation;
   appName: string;

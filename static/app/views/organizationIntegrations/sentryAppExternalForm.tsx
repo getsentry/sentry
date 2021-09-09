@@ -49,6 +49,14 @@ type Props = {
   getFieldDefault?: (field: FieldFromSchema) => string;
 };
 
+/**
+ *  This component is the result of a refactor of sentryAppExternalIssueForm.tsx.
+ *  Most of it contains a direct copy of the code from that original file (comments included)
+ *  to allow for an abstract way of turning Sentry App Schema -> Form UI, rather than being
+ *  specific to Issue Linking.
+ *
+ *  See (#28465) for more details.
+ */
 export class SentryAppExternalForm extends Component<Props, State> {
   state: State = {optionsByField: new Map()};
 
