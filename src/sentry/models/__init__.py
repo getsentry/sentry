@@ -37,6 +37,7 @@ from .externalactor import *  # NOQA
 from .externalissue import *  # NOQA
 from .featureadoption import *  # NOQA
 from .file import *  # NOQA
+from .frontendmanifest import *  # NOQA
 from .group import *  # NOQA
 from .groupassignee import *  # NOQA
 from .groupbookmark import *  # NOQA
