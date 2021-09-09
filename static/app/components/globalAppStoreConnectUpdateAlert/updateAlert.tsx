@@ -93,12 +93,7 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
                   : `${projectSettingsLink}&revalidateItunesSession=true`
               }
             >
-              {updateAlertMessage ===
-              appStoreConnectAlertMessage.isTodayAfterItunesSessionRefreshAt
-                ? t(
-                    'We recommend that you revalidate the session in the project settings'
-                  )
-                : t('Update it in the project settings to reconnect')}
+              {t('Update it in the project settings to reconnect')}
             </Link>
           </Fragment>
         )}
