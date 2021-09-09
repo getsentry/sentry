@@ -21,6 +21,24 @@ class FrontendManifest(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_frontendmanifest"
+
+        # Adding declarative partial unique indexes is new to django 2.2
+        # This means that only one row in the table can have
+        # `is_production=True`
+        #
+        # By default, this constraint is not deferred, meaning inside of
+        # a transaction, the constraint will be enforced immediately
+        # after every statement and not deferred until the end of the
+        # transaction.
+        #
+        # However, this is not necessary if you order your transaction
+        # such that you set `is_production=False` first.  It's possible
+        # to configure the `UniqueConstraint` as deferrable, but the
+        # declaractive version is not available until django 3.1
+        # (https://docs.djangoproject.com/en/3.2/ref/models/constraints/#deferrable)
+        #
+        # We are opting to keep it simple and order the transactions
+        # appropriately
         constraints = [
             models.UniqueConstraint(
                 fields=["is_production"],
