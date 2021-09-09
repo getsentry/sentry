@@ -444,10 +444,10 @@ def stacktrace_legacy(
             hint = "less than 10% of frames are in-app"
 
     values = []
-    prev_frame = None
+    prev_frame: Optional[Frame] = None
     frames_for_filtering = []
     for frame in frames:
-        frame_component = context.get_grouping_component(
+        frame_component: GroupingComponent = context.get_grouping_component(
             frame, event=event, variant=variant, **meta
         )
         if variant == "app" and not frame.in_app and not all_frames_considered_in_app:
