@@ -20,6 +20,7 @@ from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_bytes, force_str, force_text
 
 from sentry import options
+from sentry.integrations.notifications import AbstractMessageBuilder
 from sentry.logging import LoggingFormat
 from sentry.models import Activity, Group, GroupEmailThread, Project, User, UserEmail, UserOption
 from sentry.utils import metrics
@@ -247,7 +248,8 @@ make_listid_from_instance = ListResolver(
 )
 
 
-class MessageBuilder:
+# TODO(mgaeta): Rename EmailMessageBuilder
+class MessageBuilder(AbstractMessageBuilder):
     def __init__(
         self,
         subject,

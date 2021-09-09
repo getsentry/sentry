@@ -11,6 +11,7 @@ export type NotificationSettingField = {
   defaultFieldName?: string;
   help?: string;
   confirm?: {[key: string]: React.ReactNode | string};
+  multiple?: boolean;
 };
 
 export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingField> = {
@@ -50,10 +51,11 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingFiel
     name: 'provider',
     type: 'select',
     label: t('Delivery Method'),
+    multiple: true,
     choices: [
-      ['email', t('Send to Email')],
-      ['slack', t('Send to Slack')],
-      ['email+slack', t('Send to Email and Slack')],
+      ['email', t('Email')],
+      ['slack', t('Slack')],
+      ['msteams', t('MSTeams')],
     ],
   },
   reports: {

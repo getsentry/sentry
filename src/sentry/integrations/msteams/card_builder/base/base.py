@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import Any, Optional, Sequence
 
-from sentry.integrations.base import AbstractMessageBuilder
+from sentry.integrations.notifications import AbstractMessageBuilder
 
 
 class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):

@@ -8,8 +8,14 @@ from sentry.utils.assets import get_asset_url
 
 
 class TextSize(Enum):
-    # TODO MARCOS
+    SMALL = "Small"
+    MEDIUM = "Medium"
     LARGE = "Large"
+
+
+class TextWeight(Enum):
+    BOLDER = "Bolder"
+    LIGHTER = "Lighter"
 
 
 class BlockMSTeamsMessageBuilder(MSTeamsMessageBuilder, ABC):

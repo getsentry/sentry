@@ -21,6 +21,7 @@ from sentry.types.integrations import ExternalProviders, get_provider_choices
 AVAILABLE_PROVIDERS = {
     ExternalProviders.GITHUB,
     ExternalProviders.GITLAB,
+    ExternalProviders.MSTEAMS,
     ExternalProviders.SLACK,
     ExternalProviders.CUSTOM,
 }

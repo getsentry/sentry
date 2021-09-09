@@ -1,7 +1,18 @@
 import logging
 import re
 import time
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 from django.core.exceptions import ValidationError
@@ -23,6 +34,7 @@ from sentry.models import (
 )
 from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.utils import get_release
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,
@@ -451,3 +463,23 @@ def build_notification_footer(notification: BaseNotification, recipient: Union[T
         footer += f" | {environment.name}"
     footer += f" | <{settings_url}|Notification Settings>"
     return footer
+
+
+def build_deploy_buttons(notification: ReleaseActivityNotification) -> List[Dict[str, str]]:
+    buttons = []
+    if notification.release:
+        release = get_release(notification.activity, notification.project.organization)
+        if release:
+            for project in notification.release.projects.all():
+                project_url = absolute_uri(
+                    f"/organizations/{project.organization.slug}/releases/{release.version}/?project={project.id}&unselectedSeries=Healthy/"
+                )
+                buttons.append(
+                    {
+                        "text": project.slug,
+                        "name": project.slug,
+                        "type": "button",
+                        "url": project_url,
+                    }
+                )
+    return buttons

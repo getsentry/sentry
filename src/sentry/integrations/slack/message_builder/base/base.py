@@ -1,13 +1,13 @@
 from abc import ABC
 from typing import Any, Optional
 
-from sentry.integrations.base import AbstractMessageBuilder
+from sentry.integrations.notifications import AbstractMessageBuilder
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackAttachment, SlackBody
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
 
-class SlackMessageBuilder(AbstractMessageBuilder, ABC):
+class SlackMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
     def build(self) -> SlackBody:
         """Abstract `build` method that all inheritors must implement."""
         raise NotImplementedError

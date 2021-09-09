@@ -1,11 +1,15 @@
 import enum
 import logging
+from typing import Dict, List
 
 from django.http import Http404
 
 from sentry.models import IdentityProvider, Integration, Organization
+from sentry.notifications.notifications.activity import ReleaseActivityNotification
+from sentry.notifications.utils import get_release
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.compat import filter
+from sentry.utils.http import absolute_uri
 
 from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data
 
@@ -109,3 +113,24 @@ def get_preinstall_client(service_url):
     # may want try/catch here since this makes an external API call
     access_token = get_token_data()["access_token"]
     return MsTeamsPreInstallClient(access_token, service_url)
+
+
+# TODO MARCOS FIRST implement
+def build_deploy_buttons(notification: ReleaseActivityNotification) -> List[Dict[str, str]]:
+    buttons = []
+    if notification.release:
+        release = get_release(notification.activity, notification.project.organization)
+        if release:
+            for project in notification.release.projects.all():
+                project_url = absolute_uri(
+                    f"/organizations/{project.organization.slug}/releases/{release.version}/?project={project.id}&unselectedSeries=Healthy/"
+                )
+                buttons.append(
+                    {
+                        "text": project.slug,
+                        "name": project.slug,
+                        "type": "button",
+                        "url": project_url,
+                    }
+                )
+    return buttons

@@ -275,7 +275,8 @@ export const getStateToPutForProvider = (
    * I don't need to update the provider for EVERY once of the user's projects
    * and organizations, just the user and parents that have explicit settings.
    */
-  const providerList: string[] = changedData.provider.split('+');
+  // TODO MARCOS FIRST
+  const providerList: string[] = changedData.provider;
   const fallbackValue = getFallBackValue(notificationType);
 
   let updatedNotificationSettings;
