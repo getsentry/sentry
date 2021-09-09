@@ -1085,12 +1085,9 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
         )
 
         with self.tasks():
-            self.adapter.handle_signal(
-                name="user-reports.created",
+            self.adapter.handle_user_report(
                 project=self.project,
-                payload={
-                    "report": serialize(report, AnonymousUser(), UserReportWithGroupSerializer())
-                },
+                report=serialize(report, AnonymousUser(), UserReportWithGroupSerializer()),
             )
 
         assert len(mail.outbox) == 1
@@ -1119,12 +1116,9 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
         report = self.create_report()
 
         with self.tasks():
-            self.adapter.handle_signal(
-                name="user-reports.created",
+            self.adapter.handle_user_report(
                 project=self.project,
-                payload={
-                    "report": serialize(report, AnonymousUser(), UserReportWithGroupSerializer())
-                },
+                report=serialize(report, AnonymousUser(), UserReportWithGroupSerializer()),
             )
 
         assert len(mail.outbox) == 1

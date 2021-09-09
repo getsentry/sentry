@@ -56,6 +56,7 @@ type Props = {
   location: Location;
   organization: Organization;
   projects: Project[];
+  projectId: string;
   transactionName: string;
   currentTab: Tab;
   hasWebVitals: 'maybe' | 'yes' | 'no';
@@ -226,28 +227,18 @@ class TransactionHeader extends React.Component<Props> {
   }
 
   render() {
-    const {organization, location, transactionName, currentTab} = this.props;
+    const {organization, location, projectId, transactionName, currentTab} = this.props;
 
-    const summaryTarget = transactionSummaryRouteWithQuery({
+    const routeQuery = {
       orgSlug: organization.slug,
       transaction: transactionName,
-      projectID: decodeScalar(location.query.project),
+      projectID: projectId,
       query: location.query,
-    });
+    };
 
-    const tagsTarget = tagsRouteWithQuery({
-      orgSlug: organization.slug,
-      transaction: transactionName,
-      projectID: decodeScalar(location.query.project),
-      query: location.query,
-    });
-
-    const eventsTarget = eventsRouteWithQuery({
-      orgSlug: organization.slug,
-      transaction: transactionName,
-      projectID: decodeScalar(location.query.project),
-      query: location.query,
-    });
+    const summaryTarget = transactionSummaryRouteWithQuery(routeQuery);
+    const tagsTarget = tagsRouteWithQuery(routeQuery);
+    const eventsTarget = eventsRouteWithQuery(routeQuery);
 
     return (
       <Layout.Header>
@@ -255,7 +246,10 @@ class TransactionHeader extends React.Component<Props> {
           <Breadcrumb
             organization={organization}
             location={location}
-            transactionName={transactionName}
+            transaction={{
+              project: projectId,
+              name: transactionName,
+            }}
             tab={currentTab}
           />
           <Layout.Title>{transactionName}</Layout.Title>

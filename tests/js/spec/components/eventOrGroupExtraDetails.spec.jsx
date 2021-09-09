@@ -1,8 +1,7 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
-
-import {initializeOrg} from '../../sentry-test/initializeOrg';
 
 describe('EventOrGroupExtraDetails', function () {
   const {routerContext} = initializeOrg();

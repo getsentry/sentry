@@ -191,6 +191,7 @@ function TransactionEvents(props: Props) {
               location={location}
               organization={organization}
               projects={projects}
+              projectId={projectId}
               transactionName={transactionName}
               currentTab={Tab.Events}
               hasWebVitals="maybe"

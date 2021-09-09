@@ -355,3 +355,6 @@ register("eventstream:kafka-headers", default=False)
 
 # Post process forwarder gets data from Kafka headers
 register("post-process-forwarder:kafka-headers", default=False)
+
+# Subscription queries sampling rate
+register("subscriptions-query.sample-rate", default=0.01)

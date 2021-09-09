@@ -104,7 +104,7 @@ class StacktraceContent extends React.Component<Props, State> {
   }
 
   handleToggleAddresses = (event: React.MouseEvent<SVGElement>) => {
-    event.stopPropagation(); // to prevent collapsing if collapsable
+    event.stopPropagation(); // to prevent collapsing if collapsible
 
     this.setState(prevState => ({
       showingAbsoluteAddresses: !prevState.showingAbsoluteAddresses,
@@ -112,7 +112,7 @@ class StacktraceContent extends React.Component<Props, State> {
   };
 
   handleToggleFunctionName = (event: React.MouseEvent<SVGElement>) => {
-    event.stopPropagation(); // to prevent collapsing if collapsable
+    event.stopPropagation(); // to prevent collapsing if collapsible
 
     this.setState(prevState => ({
       showCompleteFunctionName: !prevState.showCompleteFunctionName,

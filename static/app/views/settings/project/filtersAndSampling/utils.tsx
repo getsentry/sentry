@@ -10,35 +10,35 @@ export const DYNAMIC_SAMPLING_DOC_LINK =
 export const LEGACY_BROWSER_LIST = {
   [LegacyBrowser.IE_PRE_9]: {
     icon: 'internet-explorer',
-    title: t('Internet Explorer Version 8 and lower'),
+    title: t('Internet Explorer version 8 and lower'),
   },
   [LegacyBrowser.IE9]: {
     icon: 'internet-explorer',
-    title: t('Internet Explorer Version 9'),
+    title: t('Internet Explorer version 9'),
   },
   [LegacyBrowser.IE10]: {
     icon: 'internet-explorer',
-    title: t('Internet Explorer Version 10'),
+    title: t('Internet Explorer version 10'),
   },
   [LegacyBrowser.IE11]: {
     icon: 'internet-explorer',
-    title: t('Internet Explorer Version 11'),
+    title: t('Internet Explorer version 11'),
   },
   [LegacyBrowser.SAFARI_PRE_6]: {
     icon: 'safari',
-    title: t('Safari Version 5 and lower'),
+    title: t('Safari version 5 and lower'),
   },
   [LegacyBrowser.OPERA_PRE_15]: {
     icon: 'opera',
-    title: t('Opera Version 14 and lower'),
+    title: t('Opera version 14 and lower'),
   },
   [LegacyBrowser.OPERA_MINI_PRE_8]: {
     icon: 'opera',
-    title: t('Opera Mini Version 8 and lower'),
+    title: t('Opera Mini version 8 and lower'),
   },
   [LegacyBrowser.ANDROID_PRE_4]: {
     icon: 'android',
-    title: t('Android Version 3 and lower'),
+    title: t('Android version 3 and lower'),
   },
 };
 

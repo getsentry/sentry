@@ -20,6 +20,7 @@ import {
   IntegrationType,
   Organization,
 } from 'app/types';
+import {defined} from 'app/utils';
 import {
   IntegrationAnalyticsKey,
   IntegrationEventParameters,
@@ -39,6 +40,7 @@ type Tab = 'overview' | 'configurations';
 
 type AlertType = React.ComponentProps<typeof Alert> & {
   text: string;
+  feature?: string;
 };
 
 type State = {
@@ -329,13 +331,19 @@ class AbstractIntegrationDetailedView<
               provider={{key: this.props.params.integrationSlug}}
             />
             {this.renderPermissions()}
-            {this.alerts.map((alert, i) => (
-              <Alert key={i} type={alert.type} icon={alert.icon}>
-                <span
-                  dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
-                />
-              </Alert>
-            ))}
+            {this.alerts.map((alert, i) => {
+              return (
+                (defined(alert.feature)
+                  ? this.props.organization.features.includes(alert.feature)
+                  : true) && (
+                  <Alert key={i} type={alert.type} icon={alert.icon}>
+                    <span
+                      dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
+                    />
+                  </Alert>
+                )
+              );
+            })}
           </FlexContainer>
           <Metadata>
             {!!this.author && (

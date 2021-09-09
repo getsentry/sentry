@@ -5,7 +5,7 @@ import {Team} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
 
 type InjectedTeamsProps = {
-  teams: Team[];
+  teams?: Team[];
 };
 
 type State = {
@@ -18,7 +18,10 @@ type State = {
 function withTeams<P extends InjectedTeamsProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithTeams extends React.Component<Omit<P, keyof InjectedTeamsProps>, State> {
+  class WithTeams extends React.Component<
+    Omit<P, keyof InjectedTeamsProps> & InjectedTeamsProps,
+    State
+  > {
     static displayName = `withTeams(${getDisplayName(WrappedComponent)})`;
 
     state = {
@@ -36,7 +39,7 @@ function withTeams<P extends InjectedTeamsProps>(
 
     render() {
       return (
-        <WrappedComponent {...(this.props as P)} teams={this.state.teams as Team[]} />
+        <WrappedComponent teams={this.state.teams as Team[]} {...(this.props as P)} />
       );
     }
   }
