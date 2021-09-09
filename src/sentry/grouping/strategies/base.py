@@ -46,7 +46,7 @@ def strategy(
     name = interface.path
 
     if not ids:
-        raise TypeError("neither id nor ids given")
+        raise TypeError("no ids given")
 
     def decorator(f: StrategyFunc) -> Strategy:
         assert ids
