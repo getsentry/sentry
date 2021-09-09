@@ -91,6 +91,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         except Exception as exc:
             sentry_sdk.capture_exception(exc)
+            raise exc
 
     def get_orderby(self, request):
         sort = request.GET.getlist("sort")
