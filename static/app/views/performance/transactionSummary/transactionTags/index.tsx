@@ -83,6 +83,7 @@ function TransactionTags(props: Props) {
                 location={location}
                 organization={organization}
                 projects={projects}
+                projectId={projectId}
                 transactionName={transactionName}
                 currentTab={Tab.Tags}
                 hasWebVitals="maybe"

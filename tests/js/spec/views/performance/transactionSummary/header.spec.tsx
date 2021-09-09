@@ -58,6 +58,7 @@ describe('Performance > Transaction Summary Header', function () {
         location={router.location}
         organization={organization}
         projects={[project]}
+        projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
         hasWebVitals="yes"
@@ -81,6 +82,7 @@ describe('Performance > Transaction Summary Header', function () {
         location={router.location}
         organization={organization}
         projects={[project]}
+        projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
         hasWebVitals="no"
@@ -106,6 +108,7 @@ describe('Performance > Transaction Summary Header', function () {
         location={router.location}
         organization={organization}
         projects={[project]}
+        projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
         hasWebVitals="maybe"
@@ -135,6 +138,7 @@ describe('Performance > Transaction Summary Header', function () {
         location={router.location}
         organization={organization}
         projects={[project]}
+        projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
         hasWebVitals="maybe"
@@ -164,6 +168,7 @@ describe('Performance > Transaction Summary Header', function () {
         location={router.location}
         organization={organization}
         projects={[project]}
+        projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
         hasWebVitals="maybe"

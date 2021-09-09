@@ -17,7 +17,10 @@ import {getPerformanceLandingUrl} from './utils';
 type Props = {
   organization: Organization;
   location: Location;
-  transactionName?: string;
+  transaction?: {
+    project: string;
+    name: string;
+  };
   vitalName?: string;
   eventSlug?: string;
   traceSlug?: string;
@@ -31,7 +34,7 @@ class Breadcrumb extends Component<Props> {
     const {
       organization,
       location,
-      transactionName,
+      transaction,
       vitalName,
       eventSlug,
       traceSlug,
@@ -66,16 +69,17 @@ class Breadcrumb extends Component<Props> {
         label: t('Vital Detail'),
         preserveGlobalSelection: true,
       });
-    } else if (transactionName) {
+    } else if (transaction) {
+      const routeQuery = {
+        orgSlug: organization.slug,
+        transaction: transaction.name,
+        projectID: transaction.project,
+        query: location.query,
+      };
+
       switch (tab) {
         case Tab.Tags: {
-          const tagsTarget = tagsRouteWithQuery({
-            orgSlug: organization.slug,
-            transaction: transactionName,
-            projectID: decodeScalar(location.query.project),
-            query: location.query,
-          });
-
+          const tagsTarget = tagsRouteWithQuery(routeQuery);
           crumbs.push({
             to: tagsTarget,
             label: t('Tags'),
@@ -84,13 +88,7 @@ class Breadcrumb extends Component<Props> {
           break;
         }
         case Tab.Events: {
-          const eventsTarget = eventsRouteWithQuery({
-            orgSlug: organization.slug,
-            transaction: transactionName,
-            projectID: decodeScalar(location.query.project),
-            query: location.query,
-          });
-
+          const eventsTarget = eventsRouteWithQuery(routeQuery);
           crumbs.push({
             to: eventsTarget,
             label: t('All Events'),
@@ -99,13 +97,7 @@ class Breadcrumb extends Component<Props> {
           break;
         }
         case Tab.WebVitals: {
-          const webVitalsTarget = vitalsRouteWithQuery({
-            orgSlug: organization.slug,
-            transaction: transactionName,
-            projectID: decodeScalar(location.query.project),
-            query: location.query,
-          });
-
+          const webVitalsTarget = vitalsRouteWithQuery(routeQuery);
           crumbs.push({
             to: webVitalsTarget,
             label: t('Web Vitals'),
@@ -115,13 +107,7 @@ class Breadcrumb extends Component<Props> {
         }
         case Tab.TransactionSummary:
         default: {
-          const summaryTarget = transactionSummaryRouteWithQuery({
-            orgSlug: organization.slug,
-            transaction: transactionName,
-            projectID: decodeScalar(location.query.project),
-            query: location.query,
-          });
-
+          const summaryTarget = transactionSummaryRouteWithQuery(routeQuery);
           crumbs.push({
             to: summaryTarget,
             label: t('Transaction Summary'),
@@ -131,7 +117,7 @@ class Breadcrumb extends Component<Props> {
       }
     }
 
-    if (transactionName && eventSlug) {
+    if (transaction && eventSlug) {
       crumbs.push({
         to: '',
         label: t('Event Details'),

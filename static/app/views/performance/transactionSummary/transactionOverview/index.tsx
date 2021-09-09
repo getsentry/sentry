@@ -141,6 +141,7 @@ function TransactionOverview(props: Props) {
               location={location}
               organization={organization}
               projects={projects}
+              projectId={projectId}
               transactionName={transactionName}
               currentTab={Tab.TransactionSummary}
               hasWebVitals="maybe"
