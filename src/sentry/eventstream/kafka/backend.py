@@ -285,31 +285,91 @@ class KafkaEventStream(SnubaProtocolEventStream):
         signal.signal(signal.SIGINT, handle_shutdown_request)
         signal.signal(signal.SIGTERM, handle_shutdown_request)
 
-        i = 0
-        while not shutdown_requested:
-            if (self._pending_futures) and (
-                (i % commit_batch_size == 0)
-                or (((time.time() * 1000) - self._batch_create_time) >= commit_batch_timeout_ms)
-            ):
-                collect_results()
-                commit_offsets()
+        def run_single_threaded_loop() -> None:
+            nonlocal shutdown_requested
+            i = 0
+            while not shutdown_requested:
+                message = consumer.poll(0.1)
+                if message is None:
+                    continue
 
-            message = consumer.poll(0.1)
-            if message is None:
-                continue
+                error = message.error()
+                if error is not None:
+                    raise Exception(error)
 
-            error = message.error()
-            if error is not None:
-                raise Exception(error)
+                key = (message.topic(), message.partition())
+                if key not in owned_partition_offsets:
+                    logger.warning("Skipping message for unowned partition: %r", key)
+                    continue
 
-            key = (message.topic(), message.partition())
-            if key not in owned_partition_offsets:
-                logger.warning("Skipping message for unowned partition: %r", key)
-                continue
+                i = i + 1
+                owned_partition_offsets[key] = message.offset() + 1
 
-            i = i + 1
-            owned_partition_offsets[key] = message.offset() + 1
-            process_message(message)
+                use_kafka_headers = options.get("post-process-forwarder:kafka-headers")
+
+                if use_kafka_headers is True:
+                    try:
+                        with self.sampled_eventstream_timer(
+                            instance="get_task_kwargs_for_message_from_headers"
+                        ):
+                            task_kwargs = get_task_kwargs_for_message_from_headers(
+                                message.headers()
+                            )
+
+                        if task_kwargs is not None:
+                            with self.sampled_eventstream_timer(
+                                instance="dispatch_post_process_group_task"
+                            ):
+                                self._dispatch_post_process_group_task(**task_kwargs)
+
+                    except Exception as error:
+                        logger.error("Could not forward message: %s", error, exc_info=True)
+                        self._get_task_kwargs_and_dispatch(message)
+
+                else:
+                    self._get_task_kwargs_and_dispatch(message)
+
+                if i % commit_batch_size == 0:
+                    commit_offsets()
+                    return
+
+        def run_multithreaded_loop() -> None:
+            nonlocal shutdown_requested
+            i = 0
+            while not shutdown_requested:
+                if self._pending_futures and (
+                    (i % commit_batch_size == 0)
+                    or (((time.time() * 1000) - self._batch_create_time) >= commit_batch_timeout_ms)
+                ):
+                    collect_results()
+                    commit_offsets()
+                    return
+
+                message = consumer.poll(0.1)
+                if message is None:
+                    continue
+
+                error = message.error()
+                if error is not None:
+                    raise Exception(error)
+
+                key = (message.topic(), message.partition())
+                if key not in owned_partition_offsets:
+                    logger.warning("Skipping message for unowned partition: %r", key)
+                    continue
+
+                i = i + 1
+                owned_partition_offsets[key] = message.offset() + 1
+                process_message(message)
+
+        while True:
+            if shutdown_requested:
+                break
+
+            if options.get("post-porcess-forwarder:use-threads"):
+                run_multithreaded_loop()
+            else:
+                run_single_threaded_loop()
 
         logger.debug("Committing offsets and closing consumer...")
         if self._pending_futures:
@@ -334,6 +394,14 @@ class KafkaEventStream(SnubaProtocolEventStream):
         else:
             with metrics.timer(__DURATION_METRIC__, instance="get_task_kwargs_for_message"):
                 return get_task_kwargs_for_message(message.value())
+
+    def _get_task_kwargs_and_dispatch(self, message) -> None:
+        with metrics.timer("eventstream.duration", instance="get_task_kwargs_for_message"):
+            task_kwargs = get_task_kwargs_for_message(message.value())
+
+        if task_kwargs is not None:
+            with metrics.timer("eventstream.duration", instance="dispatch_post_process_group_task"):
+                self._dispatch_post_process_group_task(**task_kwargs)
 
     @contextmanager
     def sampled_eventstream_timer(self, instance: str) -> Generator[None, None, None]:
