@@ -1,6 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, within} from 'sentry-test/reactTestingLibrary';
-import {findByTextContent} from 'sentry-test/utils';
 
 import EventTagsAndScreenshot from 'app/components/events/eventTagsAndScreenshot';
 import {EventAttachment} from 'app/types';
@@ -168,22 +167,26 @@ describe('EventTagsAndScreenshot ', function () {
 
       // Context Item 1
       const contextItem1 = within(contextItems[0]);
-      expect(contextItem1.getByRole('heading').textContent).toBe(user.email);
-      expect(findByTextContent(contextItem1, `ID: ${user.id}`)).toBeTruthy();
+      expect(contextItem1.getByRole('heading').textContent).toEqual(user.email);
+      expect(contextItem1.getByTestId('context-sub-title').textContent).toEqual(
+        `ID:${user.id}`
+      );
 
       // Context Item 2
       const contextItem2 = within(contextItems[1]);
-      expect(contextItem2.getByRole('heading').textContent).toBe(contexts.os.name);
-      expect(
-        findByTextContent(contextItem2, `Version: ${contexts.os.version}`)
-      ).toBeTruthy();
+      expect(contextItem2.getByRole('heading').textContent).toEqual(contexts.os.name);
+      expect(contextItem2.getByTestId('context-sub-title').textContent).toEqual(
+        `Version:${contexts.os.version}`
+      );
 
       // Context Item 3
       const contextItem3 = within(contextItems[2]);
-      expect(contextItem3.getByRole('heading').textContent).toBe(contexts.device.model);
-      expect(
-        findByTextContent(contextItem3, `Model: ${contexts.device.model_id}`)
-      ).toBeTruthy();
+      expect(contextItem3.getByRole('heading').textContent).toEqual(
+        contexts.device.model
+      );
+      expect(contextItem3.getByTestId('context-sub-title').textContent).toEqual(
+        `Model:${contexts.device.model_id}`
+      );
 
       // Tags
       const tagsContainer = within(getByTestId('event-tags'));
