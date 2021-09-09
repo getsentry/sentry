@@ -20,11 +20,12 @@ import {
   IssueAlertRuleConditionTemplate,
   MailActionTargetType,
 } from 'app/types/alerts';
+import MemberTeamFields from 'app/views/alerts/issueRuleEditor/memberTeamFields';
+import SentryAppRuleModal from 'app/views/alerts/issueRuleEditor/sentryAppRuleModal';
+import TicketRuleModal from 'app/views/alerts/issueRuleEditor/ticketRuleModal';
+import {Config} from 'app/views/organizationIntegrations/sentryAppExternalForm';
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'app/views/projectInstall/issueAlertOptions';
 import Input from 'app/views/settings/components/forms/controls/input';
-
-import MemberTeamFields from './memberTeamFields';
-import TicketRuleModal from './ticketRuleModal';
 
 export type FormField = {
   // Type of form fields
@@ -327,6 +328,7 @@ class RuleNode extends React.Component<Props> {
    * @param formData Form data
    * @param fetchedFieldOptionsCache Object
    */
+  // Create UpdateParent for new Modal class
   updateParent = (
     formData: {[key: string]: string},
     fetchedFieldOptionsCache: Record<string, Choices>
@@ -352,11 +354,19 @@ class RuleNode extends React.Component<Props> {
     }
   };
 
+  isSchemaConfig(
+    formFields: IssueAlertRuleActionTemplate['formFields']
+  ): formFields is Config {
+    if (!formFields) return false;
+    return (formFields as Config).uri !== undefined;
+  }
+
   render() {
     const {data, disabled, index, node, organization} = this.props;
     const ticketRule = node?.actionType === 'ticket';
     const sentryAppRule = node?.actionType === 'sentryapp';
     const isNew = node?.id === EVENT_FREQUENCY_PERCENT_CONDITION;
+    console.log({node, data});
     return (
       <RuleRowContainer>
         <RuleRow>
@@ -393,7 +403,16 @@ class RuleNode extends React.Component<Props> {
                 icon={<IconSettings size="xs" />}
                 type="button"
                 onClick={() => {
-                  // TODO(nisanthan): Placeholder. Modal will be implemented in next PR.
+                  openModal(deps => (
+                    <SentryAppRuleModal
+                      {...deps}
+                      sentryAppInstallation={null}
+                      config={node.formFields as Config}
+                      appName={node.prompt}
+                      action="create"
+                      onSubmitSuccess={this.updateParent}
+                    />
+                  ));
                 }}
               >
                 {t('Settings')}

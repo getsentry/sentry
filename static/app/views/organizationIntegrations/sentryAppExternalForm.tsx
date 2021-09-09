@@ -41,7 +41,7 @@ type Props = {
   sentryAppInstallation: SentryAppInstallation;
   appName: string;
   config: Config;
-  action: 'create' | 'link';
+  action: 'create' | 'update' | 'link';
   element: 'issue-link' | 'alert-rule-action';
   extraFields?: {[key: string]: any};
   extraRequestBody?: {[key: string]: any};
@@ -97,6 +97,18 @@ export class SentryAppExternalForm extends Component<Props, State> {
     new Promise(resolve => {
       this.debouncedOptionLoad(field, input, resolve);
     });
+
+  getEndpoint() {
+    const {sentryAppInstallation} = this.props;
+    switch (this.props.element) {
+      case 'alert-rule-action':
+        // TODO(leander): Send request to the correct endpoint
+        return 'TODO';
+      case 'issue-link':
+      default:
+        return `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`;
+    }
+  }
 
   getElementText = () => {
     const {element} = this.props;
@@ -309,7 +321,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     return (
       <Form
         key={action}
-        apiEndpoint={`/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`}
+        apiEndpoint={this.getEndpoint()}
         apiMethod="POST"
         onSubmitSuccess={this.props.onSubmitSuccess}
         onSubmitError={this.onSubmitError}
