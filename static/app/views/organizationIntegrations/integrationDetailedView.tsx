@@ -3,11 +3,13 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {RequestOptions} from 'app/api';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import {IconFlag, IconOpen, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, IntegrationProvider} from 'app/types';
+import {getAlertText} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
@@ -210,9 +212,19 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     const {organization} = this.props;
     const provider = this.provider;
 
-    if (configurations.length) {
-      return configurations.map(integration => {
-        return (
+    if (!configurations.length) {
+      return this.renderEmptyConfigurations();
+    }
+
+    const alertText = getAlertText(configurations);
+    return (
+      <div>
+        {alertText && (
+          <Alert type="warning" icon={<IconFlag size="sm" />}>
+            {alertText}
+          </Alert>
+        )}
+        {configurations.map(integration => (
           <InstallWrapper key={integration.id}>
             <InstalledIntegration
               organization={organization}
@@ -224,11 +236,9 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
               trackIntegrationAnalytics={this.trackIntegrationAnalytics}
             />
           </InstallWrapper>
-        );
-      });
-    }
-
-    return this.renderEmptyConfigurations();
+        ))}
+      </div>
+    );
   }
 }
 

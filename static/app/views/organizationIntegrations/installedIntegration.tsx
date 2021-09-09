@@ -13,7 +13,6 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'app/types';
 import {IntegrationAnalyticsKey} from 'app/utils/analytics/integrationAnalyticsEvents';
-import {getAlertText} from 'app/utils/integrationUtil';
 import {Theme} from 'app/utils/theme';
 
 import IntegrationItem from './integrationItem';
@@ -100,8 +99,6 @@ export default class InstalledIntegration extends React.Component<Props> {
         ? this.disableConfirmProps
         : this.removeConfirmProps;
 
-    const alertText = getAlertText([integration]);
-
     return (
       <Access access={['org:integrations']}>
         {({hasAccess}) => (
@@ -109,11 +106,6 @@ export default class InstalledIntegration extends React.Component<Props> {
             <IntegrationItemBox>
               <IntegrationItem integration={integration} />
             </IntegrationItemBox>
-            {alertText && (
-              <Alert type="warning" icon={<IconFlag size="sm" />}>
-                {alertText}
-              </Alert>
-            )}
             <div>
               <Tooltip
                 disabled={hasAccess}
