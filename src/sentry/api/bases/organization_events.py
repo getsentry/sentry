@@ -64,29 +64,33 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         return [team.id for team in teams]
 
     def get_snuba_params(self, request, organization, check_global_views=True):
-        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
-            if (
-                len(self.get_field_list(organization, request))
-                + len(self.get_equation_list(organization, request))
-                > MAX_FIELDS
-            ):
-                raise ParseError(
-                    detail=f"You can view up to {MAX_FIELDS} fields at a time. Please delete some and try again."
-                )
+        try:
+            with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
+                if (
+                    len(self.get_field_list(organization, request))
+                    + len(self.get_equation_list(organization, request))
+                    > MAX_FIELDS
+                ):
+                    raise ParseError(
+                        detail=f"You can view up to {MAX_FIELDS} fields at a time. Please delete some and try again."
+                    )
 
-            params = self.get_filter_params(request, organization)
-            params = self.quantize_date_params(request, params)
-            params["user_id"] = request.user.id if request.user else None
-            params["team_id"] = self.get_team_ids(request, organization)
+                params = self.get_filter_params(request, organization)
+                params = self.quantize_date_params(request, params)
+                params["user_id"] = request.user.id if request.user else None
+                params["team_id"] = self.get_team_ids(request, organization)
 
-            if check_global_views:
-                has_global_views = features.has(
-                    "organizations:global-views", organization, actor=request.user
-                )
-                if not has_global_views and len(params.get("project_id", [])) > 1:
-                    raise ParseError(detail="You cannot view events from multiple projects.")
+                if check_global_views:
+                    has_global_views = features.has(
+                        "organizations:global-views", organization, actor=request.user
+                    )
+                    if not has_global_views and len(params.get("project_id", [])) > 1:
+                        raise ParseError(detail="You cannot view events from multiple projects.")
 
-            return params
+                return params
+
+        except Exception as exc:
+            sentry_sdk.capture_exception(exc)
 
     def get_orderby(self, request):
         sort = request.GET.getlist("sort")

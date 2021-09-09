@@ -2,6 +2,7 @@ import re
 from typing import Any, List, Mapping
 from urllib.parse import urlparse
 
+import sentry_sdk
 from django.http.request import HttpRequest, QueryDict
 
 from sentry import features
@@ -109,6 +110,7 @@ def unfurl_discover(
                 params=params,
             )
         except Exception as exc:
+            sentry_sdk.capture_exception(exc)
             logger.error(
                 "Failed to load events-stats for unfurl: %s",
                 str(exc),
