@@ -322,6 +322,8 @@ class ITunesClient:
             },
             timeout=REQUEST_TIMEOUT,
         )
+        if response.status_code == HTTPStatus.LOCKED:
+            raise SmsBlockedError
         if not response.ok:
             raise ITunesError(f"Unexpected response status: {response.status_code}")
 
