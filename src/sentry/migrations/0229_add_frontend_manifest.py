@@ -7,6 +7,47 @@ import sentry.db.models.fields.bounded
 import sentry.db.models.fields.jsonfield
 
 
+def _make_deferrable(apps, schema_editor):
+    """
+    Change the unique constraint to be deferrable
+    """
+    # Get the db name of the constraint
+    FrontendManifest = apps.get_model("sentry", "FrontendManifest")
+    CONSTRAINT_NAME = schema_editor._constraint_names(
+        FrontendManifest, ["is_production"], unique=True
+    )[0]
+    TABLE_NAME = FrontendManifest._meta.db_table
+
+    # Drop then re-add with deferrable as ALTER doesnt seem to work for unique constraints in psql
+    with schema_editor.connection.create_cursor() as curs:
+        curs.execute(f'ALTER TABLE {TABLE_NAME} DROP CONSTRAINT "{CONSTRAINT_NAME}";')
+        curs.execute(
+            f"ALTER TABLE {TABLE_NAME} ADD CONSTRAINT"
+            f" {CONSTRAINT_NAME}"
+            f" UNIQUE (col1, col2) DEFERRABLE INITIALLY DEFERRED;"
+        )
+
+
+def _unmake_deferrable(apps, schema_editor):
+    """
+    Reverse the unique constraint to be not deferrable
+    """
+    # Get the db name of unique constraint
+    FrontendManifest = apps.get_model("myapp", "FrontendManifest")
+    CONSTRAINT_NAME = schema_editor._constraint_names(
+        FrontendManifest, ["is_production"], unique=True
+    )[0]
+    TABLE_NAME = FrontendManifest._meta.db_table
+
+    with schema_editor.connection.create_cursor() as curs:
+        curs.execute(f'ALTER TABLE {TABLE_NAME} DROP CONSTRAINT "{CONSTRAINT_NAME}";')
+        curs.execute(
+            f"ALTER TABLE {TABLE_NAME} ADD CONSTRAINT"
+            f" {CONSTRAINT_NAME}"
+            f" UNIQUE (col1, col2) NOT DEFERRABLE;"
+        )
+
+
 class Migration(migrations.Migration):
     # This flag is used to mark that a migration shouldn't be automatically run in
     # production. We set this to True for operations that we think are risky and want
@@ -59,4 +100,5 @@ class Migration(migrations.Migration):
                 name="unique_production_index",
             ),
         ),
+        migrations.RunPython(code=_make_deferrable, reverse_code=_unmake_deferrable),
     ]
