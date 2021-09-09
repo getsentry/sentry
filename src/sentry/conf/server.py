@@ -988,8 +988,6 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable Jira AC for select organizations.
-    "organizations:jira-ac-plugin": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -2226,9 +2224,6 @@ SOUTH_MIGRATION_CONVERSIONS = (
         True,
         "Please upgrade to Sentry 9.1.2 before upgrading to any later versions.",
     ),
-    # From sentry-plugins
-    ("sentry_plugins.jira_ac", "0001_initial", "jira_ac", "0001_initial", False, ""),
-    ("jira_ac", "0001_initial", "jira_ac", "0001_initial", False, ""),
 )
 
 # Whether to use Django migrations to create the database, or just build it based off
@@ -2238,7 +2233,6 @@ MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
-    "jira_ac",
     "nodestore",
     "sentry",
     "social_auth",
