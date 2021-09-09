@@ -18,7 +18,7 @@ from sentry.digests import backend as digests
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.lang.native.symbolicator import redact_source_secrets
+from sentry.lang.native.symbolicator import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
@@ -41,6 +41,7 @@ from sentry.notifications.helpers import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba import discover
 from sentry.snuba.sessions import check_has_health_data, get_current_and_previous_crash_free_rates
+from sentry.utils import json
 from sentry.utils.compat import zip
 
 STATUS_LABELS = {
@@ -655,6 +656,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:relay_pii_config",
             "sentry:dynamic_sampling",
             "sentry:breakdowns",
+            "sentry:span_attributes",
             "feedback:branding",
             "digests:mail:minimum_delay",
             "digests:mail:maximum_delay",
@@ -797,16 +799,19 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         )
         custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")
         try:
-            symbol_sources = redact_source_secrets(custom_symbol_sources_json)
+            sources = parse_sources(custom_symbol_sources_json, False)
         except Exception:
             # In theory sources stored on the project should be valid. If they are invalid, we don't
             # want to abort serialization just for sources, so just return an empty list instead of
             # returning sources with their secrets included.
-            symbol_sources = "[]"
+            serialized_sources = "[]"
+        else:
+            redacted_sources = redact_source_secrets(sources)
+            serialized_sources = json.dumps(redacted_sources)
 
         data.update(
             {
-                "symbolSources": symbol_sources,
+                "symbolSources": serialized_sources,
             }
         )
 

@@ -3,7 +3,7 @@ import os
 from django.test.utils import override_settings
 
 from sentry.testutils import TestCase
-from sentry.utils.assets import get_unversioned_asset_url
+from sentry.utils.assets import get_frontend_app_asset_url
 from sentry.web.frontend.generic import FOREVER_CACHE, NEVER_CACHE, NO_CACHE
 
 
@@ -44,7 +44,7 @@ class StaticMediaTest(TestCase):
             assert response["Access-Control-Allow-Origin"] == "*"
 
     @override_settings(DEBUG=False)
-    def test_unversioned(self):
+    def test_frontend_app_assets(self):
         """
         static assets that do not have versioned filenames/paths
         """
@@ -58,7 +58,7 @@ class StaticMediaTest(TestCase):
 
         try:
             with open(os.path.join(dist_path, "test.js"), "a"):
-                url = get_unversioned_asset_url("sentry", "test.js", cache_bust=True)
+                url = get_frontend_app_asset_url("sentry", "test.js", cache_bust=True)
                 assert "?v=" in url
 
                 response = self.client.get(url)

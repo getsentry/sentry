@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {createContext} from 'react';
 import DocumentTitle from 'react-document-title';
 import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
@@ -19,7 +20,7 @@ import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import OrganizationStore from 'app/stores/organizationStore';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import {LightWeightOrganization, Organization} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
@@ -56,12 +57,15 @@ type State = {
   };
 };
 
-class OrganizationContext extends React.Component<Props, State> {
+const OrganizationContext = createContext<Organization | LightWeightOrganization | null>(
+  null
+);
+class OrganizationContextContainer extends React.Component<Props, State> {
   static getDerivedStateFromProps(props: Readonly<Props>, prevState: State): State {
     const {prevProps} = prevState;
 
-    if (OrganizationContext.shouldRemount(prevProps, props)) {
-      return OrganizationContext.getDefaultState(props);
+    if (OrganizationContextContainer.shouldRemount(prevProps, props)) {
+      return OrganizationContextContainer.getDefaultState(props);
     }
 
     const {organizationsLoading, location, params} = props;
@@ -108,7 +112,7 @@ class OrganizationContext extends React.Component<Props, State> {
       location: props.location,
     };
 
-    if (OrganizationContext.isOrgStorePopulatedCorrectly(props)) {
+    if (OrganizationContextContainer.isOrgStorePopulatedCorrectly(props)) {
       // retrieve initial state from store
       return {
         ...OrganizationStore.get(),
@@ -141,7 +145,7 @@ class OrganizationContext extends React.Component<Props, State> {
       return false;
     }
 
-    return organization.slug !== OrganizationContext.getOrganizationSlug(props);
+    return organization.slug !== OrganizationContextContainer.getOrganizationSlug(props);
   }
 
   static isOrgStorePopulatedCorrectly(props: Props) {
@@ -151,7 +155,7 @@ class OrganizationContext extends React.Component<Props, State> {
     return (
       !dirty &&
       organization &&
-      !OrganizationContext.isOrgChanging(props) &&
+      !OrganizationContextContainer.isOrgChanging(props) &&
       (!detailed || (detailed && organization.projects && organization.teams))
     );
   }
@@ -164,7 +168,7 @@ class OrganizationContext extends React.Component<Props, State> {
 
   constructor(props: Props) {
     super(props);
-    this.state = OrganizationContext.getDefaultState(props);
+    this.state = OrganizationContextContainer.getDefaultState(props);
   }
 
   getChildContext() {
@@ -184,7 +188,7 @@ class OrganizationContext extends React.Component<Props, State> {
       location: prevProps.location,
     };
 
-    if (OrganizationContext.shouldRemount(remountPrevProps, this.props)) {
+    if (OrganizationContextContainer.shouldRemount(remountPrevProps, this.props)) {
       this.remountComponent();
     }
   }
@@ -199,7 +203,10 @@ class OrganizationContext extends React.Component<Props, State> {
   ];
 
   remountComponent = () => {
-    this.setState(OrganizationContext.getDefaultState(this.props), this.fetchData);
+    this.setState(
+      OrganizationContextContainer.getDefaultState(this.props),
+      this.fetchData
+    );
   };
 
   onProjectCreation() {
@@ -208,7 +215,7 @@ class OrganizationContext extends React.Component<Props, State> {
     // for the entire component tree
     fetchOrganizationDetails(
       this.props.api,
-      OrganizationContext.getOrganizationSlug(this.props),
+      OrganizationContextContainer.getOrganizationSlug(this.props),
       true,
       true
     );
@@ -217,7 +224,7 @@ class OrganizationContext extends React.Component<Props, State> {
   isLoading() {
     // In the absence of an organization slug, the loading state should be
     // derived from this.props.organizationsLoading from OrganizationsStore
-    if (!OrganizationContext.getOrganizationSlug(this.props)) {
+    if (!OrganizationContextContainer.getOrganizationSlug(this.props)) {
       return this.props.organizationsLoading;
     }
     // The following loading logic exists because we could either be waiting for
@@ -233,20 +240,20 @@ class OrganizationContext extends React.Component<Props, State> {
   }
 
   fetchData(isInitialFetch = false) {
-    if (!OrganizationContext.getOrganizationSlug(this.props)) {
+    if (!OrganizationContextContainer.getOrganizationSlug(this.props)) {
       return;
     }
     // fetch from the store, then fetch from the API if necessary
-    if (OrganizationContext.isOrgStorePopulatedCorrectly(this.props)) {
+    if (OrganizationContextContainer.isOrgStorePopulatedCorrectly(this.props)) {
       return;
     }
 
     metric.mark({name: 'organization-details-fetch-start'});
     fetchOrganizationDetails(
       this.props.api,
-      OrganizationContext.getOrganizationSlug(this.props),
+      OrganizationContextContainer.getOrganizationSlug(this.props),
       this.props.detailed,
-      !OrganizationContext.isOrgChanging(this.props), // if true, will preserve a lightweight org that was fetched,
+      !OrganizationContextContainer.isOrgChanging(this.props), // if true, will preserve a lightweight org that was fetched,
       isInitialFetch
     );
   }
@@ -299,7 +306,9 @@ class OrganizationContext extends React.Component<Props, State> {
   }
 
   getOrganizationDetailsEndpoint() {
-    return `/organizations/${OrganizationContext.getOrganizationSlug(this.props)}/`;
+    return `/organizations/${OrganizationContextContainer.getOrganizationSlug(
+      this.props
+    )}/`;
   }
 
   getTitle() {
@@ -343,11 +352,13 @@ class OrganizationContext extends React.Component<Props, State> {
   renderBody() {
     return (
       <DocumentTitle title={this.getTitle()}>
-        <div className="app">
-          {this.state.hooks}
-          {this.renderSidebar()}
-          {this.props.children}
-        </div>
+        <OrganizationContext.Provider value={this.state.organization}>
+          <div className="app">
+            {this.state.hooks}
+            {this.renderSidebar()}
+            {this.props.children}
+          </div>
+        </OrganizationContext.Provider>
       </DocumentTitle>
     );
   }
@@ -374,8 +385,10 @@ class OrganizationContext extends React.Component<Props, State> {
   }
 }
 
-export default withApi(withOrganizations(Sentry.withProfiler(OrganizationContext)));
-export {OrganizationContext};
+export default withApi(
+  withOrganizations(Sentry.withProfiler(OrganizationContextContainer))
+);
+export {OrganizationContextContainer as OrganizationLegacyContext, OrganizationContext};
 
 const ErrorWrapper = styled('div')`
   padding: ${space(3)};

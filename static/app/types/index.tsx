@@ -401,7 +401,8 @@ export type EventMetadata = {
   current_level?: number;
 };
 
-export type EventAttachment = {
+// endpoint: /api/0/issues/:issueId/attachments/?limit=50
+export type IssueAttachment = {
   id: string;
   dateCreated: string;
   headers: Object;
@@ -412,6 +413,9 @@ export type EventAttachment = {
   type: string;
   event_id: string;
 };
+
+// endpoint: /api/0/projects/:orgSlug/:projSlug/events/:eventId/attachments/
+export type EventAttachment = Omit<IssueAttachment, 'event_id'>;
 
 export type EntryData = Record<string, any | Array<any>>;
 
@@ -492,6 +496,7 @@ type UserEnrolledAuthenticator = {
   dateCreated: EnrolledAuthenticator['createdAt'];
   type: Authenticator['id'];
   id: EnrolledAuthenticator['authId'];
+  name: EnrolledAuthenticator['name'];
 };
 
 export type User = Omit<AvatarUser, 'options'> & {
@@ -733,6 +738,7 @@ export type EnrolledAuthenticator = {
   lastUsedAt: string | null;
   createdAt: string;
   authId: string;
+  name: string;
 };
 
 export interface Config {
@@ -1345,6 +1351,7 @@ export type Integration = {
   icon: string;
   domainName: string;
   accountType: string;
+  scopes?: string[];
   status: ObjectStatus;
   provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
   dynamicDisplayInformation?: {

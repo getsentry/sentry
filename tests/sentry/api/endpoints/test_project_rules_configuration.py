@@ -120,3 +120,68 @@ class ProjectRuleConfigurationTest(APITestCase):
                 ):
                     found = True
             assert found is True
+
+    def test_sentry_app_alertable_webhook(self):
+        team = self.create_team()
+        project1 = self.create_project(teams=[team], name="foo")
+        self.create_project(teams=[team], name="baz")
+
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            is_alertable=True,
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+
+        response = self.get_valid_response(self.organization.slug, project1.slug)
+
+        assert len(response.data["actions"]) == 8
+        assert {
+            "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+            "label": "Send a notification via {service}",
+            "enabled": True,
+            "prompt": "Send a notification via an integration",
+            "formFields": {
+                "service": {"type": "choice", "choices": [[sentry_app.slug, sentry_app.name]]}
+            },
+        } in response.data["actions"]
+        assert len(response.data["conditions"]) == 6
+        assert len(response.data["filters"]) == 7
+
+    def test_sentry_app_alert_rules(self):
+        from sentry.models import SentryAppComponent
+
+        team = self.create_team()
+        project1 = self.create_project(teams=[team], name="foo")
+        self.create_project(teams=[team], name="baz")
+
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+            is_alertable=True,
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+        component = SentryAppComponent.objects.get(
+            sentry_app_id=sentry_app.id, type="alert-rule-action"
+        )
+        response = self.get_valid_response(self.organization.slug, project1.slug)
+
+        assert len(response.data["actions"]) == 8
+        assert {
+            "id": f"sentry.sentryapp.{sentry_app.slug}",
+            "uuid": str(component.uuid),
+            "actionType": "sentryapp",
+            "prompt": sentry_app.name,
+            "enabled": True,
+            "label": "Create Task with App with these ",
+            "formfields": {
+                "type": "alert-rule-settings",
+                "uri": "/sentry/alert-rule",
+                "required_fields": [{"type": "text", "name": "channel", "label": "Channel"}],
+            },
+        } in response.data["actions"]
+        assert len(response.data["conditions"]) == 6
+        assert len(response.data["filters"]) == 7
