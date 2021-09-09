@@ -33,6 +33,7 @@ type Props = {
   configurations: number;
   categories: string[];
   alertText?: string;
+  resolveText?: string;
   plugin?: PluginWithProjectList;
 };
 
@@ -54,6 +55,7 @@ const IntegrationRow = (props: Props) => {
     configurations,
     categories,
     alertText,
+    resolveText,
     plugin,
   } = props;
 
@@ -118,7 +120,7 @@ const IntegrationRow = (props: Props) => {
                 })
               }
             >
-              {t('Resolve Now')}
+              {resolveText || t('Resolve Now')}
             </ResolveNowButton>
           </Alert>
         </AlertContainer>
