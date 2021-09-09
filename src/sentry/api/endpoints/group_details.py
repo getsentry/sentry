@@ -11,6 +11,7 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import (
+    delete_group_list,
     get_first_last_release,
     prep_search,
     rate_limit_endpoint,
@@ -22,7 +23,6 @@ from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, 
 from sentry.models.groupinbox import get_inbox_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
-from sentry.signals import issue_deleted
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
@@ -280,33 +280,10 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam string issue_id: the ID of the issue to delete.
         :auth: required
         """
+        from sentry.utils import snuba
+
         try:
-            from sentry.group_deletion import delete_group
-            from sentry.utils import snuba
-
-            transaction_id = delete_group(group)
-
-            if transaction_id:
-                self.create_audit_entry(
-                    request=request,
-                    organization_id=group.project.organization_id if group.project else None,
-                    target_object=group.id,
-                    transaction_id=transaction_id,
-                )
-
-                delete_logger.info(
-                    "object.delete.queued",
-                    extra={
-                        "object_id": group.id,
-                        "transaction_id": transaction_id,
-                        "model": type(group).__name__,
-                    },
-                )
-
-                # This is exclusively used for analytics, as such it should not run as part of reprocessing.
-                issue_deleted.send_robust(
-                    group=group, user=request.user, delete_type="delete", sender=self.__class__
-                )
+            delete_group_list(request, group.project, [group], "delete")
 
             metrics.incr(
                 "group.update.http_response",
