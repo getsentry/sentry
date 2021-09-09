@@ -1,5 +1,4 @@
 import _thread
-import sys
 from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
 from queue import Full
@@ -17,7 +16,6 @@ from sentry.utils.concurrent import (
 )
 
 
-@pytest.mark.skipif(sys.version_info[0] == 3, reason="TODO(python3): stalls on python3")
 def test_execute():
     assert execute(_thread.get_ident).result() != _thread.get_ident()
 
