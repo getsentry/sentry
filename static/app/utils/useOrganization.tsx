@@ -8,4 +8,4 @@ export function useOrganization() {
     throw new Error('useOrganization called but organization is not set.');
   }
   return organization;
-};
+}
