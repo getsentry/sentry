@@ -20,7 +20,9 @@ class TestAppStoreUpdateCredentialsSerializer:
 
         assert data["appconnectPrivateKey"] is None
         assert data["itunesPassword"] is None
-        assert data["itunesSession"] is None
+        # This is in the list of secret fields, but it shouldn't be included
+        # after deserialization since it's not a member of AppStoreUpdateCredentials
+        assert "itunesSession" not in data
 
     def test_validate_secrets_magic_object_false(self):
         payload_json = """{
@@ -35,7 +37,9 @@ class TestAppStoreUpdateCredentialsSerializer:
 
         assert serializer.errors["appconnectPrivateKey"][0].code == "invalid"
         assert serializer.errors["itunesPassword"][0].code == "invalid"
-        assert serializer.errors["itunesSession"][0].code == "invalid"
+        # This is in the list of secret fields, but it shouldn't be included
+        # after deserialization since it's not a member of AppStoreUpdateCredentials
+        assert "itunesSession" not in serializer.errors
 
     def test_validate_secrets_null(self):
         payload_json = """{
@@ -50,7 +54,9 @@ class TestAppStoreUpdateCredentialsSerializer:
 
         assert serializer.errors["appconnectPrivateKey"][0].code == "null"
         assert serializer.errors["itunesPassword"][0].code == "null"
-        assert serializer.errors["itunesSession"][0].code == "null"
+        # This is in the list of secret fields, but it shouldn't be included
+        # after deserialization since it's not a member of AppStoreUpdateCredentials
+        assert "itunesSession" not in serializer.errors
 
     # also equivalent to
     # {
@@ -89,7 +95,7 @@ class TestAppStoreUpdateCredentialsSerializer:
         # credentials should be deleted instead of this
         assert serializer.errors["appconnectPrivateKey"][0].code == "blank"
         assert serializer.errors["itunesPassword"][0].code == "blank"
-        assert serializer.errors["itunesSession"][0].code == "blank"
+        assert "itunesSession" not in serializer.errors
 
     def test_validate_secrets_string(self):
         payload_json = """{
@@ -106,4 +112,6 @@ class TestAppStoreUpdateCredentialsSerializer:
 
         assert data["appconnectPrivateKey"] == "honk"
         assert data["itunesPassword"] == "beep"
-        assert data["itunesSession"] == "beep"
+        # This is in the list of secret fields, but it shouldn't be included
+        # after deserialization since it's not a member of AppStoreUpdateCredentials
+        assert "itunesSession" not in serializer.errors
