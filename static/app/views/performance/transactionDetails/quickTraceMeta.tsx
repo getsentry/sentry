@@ -20,13 +20,13 @@ import {
   QuickTraceQueryChildrenProps,
   TraceMeta,
 } from 'app/utils/performance/quickTrace/types';
+import {useOrganization} from 'app/utils/useOrganization';
 
 import {MetaData} from './styles';
 
 type Props = Pick<ComponentProps<typeof QuickTrace>, 'errorDest' | 'transactionDest'> & {
   event: Event;
   location: Location;
-  organization: OrganizationSummary;
   quickTrace: QuickTraceQueryChildrenProps | null;
   traceMeta: TraceMeta | null;
   anchor: 'left' | 'right';
@@ -45,7 +45,6 @@ function handleTraceLink(organization: OrganizationSummary) {
 export default function QuickTraceMeta({
   event,
   location,
-  organization,
   quickTrace,
   traceMeta,
   anchor,
@@ -53,6 +52,7 @@ export default function QuickTraceMeta({
   transactionDest,
   project,
 }: Props) {
+  const organization = useOrganization();
   const features = ['performance-view'];
 
   const noFeatureMessage = t('Requires performance monitoring.');

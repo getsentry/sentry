@@ -6,7 +6,7 @@ import ConfigStore from 'app/stores/configStore';
 import OrganizationStore from 'app/stores/organizationStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
-import {OrganizationContext} from 'app/views/organizationContext';
+import {OrganizationLegacyContext} from 'app/views/organizationContext';
 
 jest.mock('app/stores/configStore', () => ({
   get: jest.fn(),
@@ -26,7 +26,7 @@ describe('OrganizationContext', function () {
 
   const createWrapper = props => {
     wrapper = mountWithTheme(
-      <OrganizationContext
+      <OrganizationLegacyContext
         api={api}
         params={{orgId: 'org-slug'}}
         location={{query: {}}}
@@ -34,7 +34,7 @@ describe('OrganizationContext', function () {
         {...props}
       >
         <div />
-      </OrganizationContext>
+      </OrganizationLegacyContext>
     );
     return wrapper;
   };

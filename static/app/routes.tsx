@@ -18,7 +18,7 @@ import App from 'app/views/app';
 import AuthLayout from 'app/views/auth/layout';
 import IssueListContainer from 'app/views/issueList/container';
 import IssueListOverview from 'app/views/issueList/overview';
-import OrganizationContext from 'app/views/organizationContext';
+import OrganizationContextContainer from 'app/views/organizationContext';
 import OrganizationDetails, {
   LightWeightOrganizationDetails,
 } from 'app/views/organizationDetails';
@@ -802,7 +802,10 @@ function routes() {
           component={SafeLazyLoad}
         />
 
-        <Route path="/onboarding/:orgId/" component={errorHandler(OrganizationContext)}>
+        <Route
+          path="/onboarding/:orgId/"
+          component={errorHandler(OrganizationContextContainer)}
+        >
           <IndexRedirect to="welcome/" />
           <Route
             path=":step/"
