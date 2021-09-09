@@ -5,6 +5,7 @@ HIDDEN_PLUGINS = (
     "slack",
     "vsts",
     "jira",
+    "jira_ac",
     "flowdock",
     "irc",
     "campfire",

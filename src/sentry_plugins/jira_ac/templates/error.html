@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="aui-message aui-message-error">
+      <p>
+        {% if error_message %}
+          {{ error_message }}
+        {% else %}
+          An unknown error occurred
+        {% endif %}
+      </p>
+  </div>
+{% endblock %}
