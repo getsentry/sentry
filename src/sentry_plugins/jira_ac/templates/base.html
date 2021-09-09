@@ -1,0 +1,105 @@
+{% load sentry_assets %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="{% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.css' %}" media="all">
+  <style type="text/css">
+    ul {
+      padding-left: 0px;
+    }
+    ul li.aui-group {
+      border-top: 1px solid #e9e9e9;
+      list-style-type: none;
+      margin: 0px;
+      padding: 10px 0px;
+    }
+
+    .aui-item.error-level {
+      padding-top: 2px;
+      width: 14px;
+    }
+
+    .aui-item.error-level span {
+      width: 14px;
+      height: 14px;
+      display: inline-block;
+      border-radius: 30px;
+    }
+
+    .aui-group>.aui-item+.aui-item {
+      padding-left: 10px;
+    }
+
+    #content {
+      background-color: #ffffff;
+    }
+
+    #login .aui-page-panel {
+      border: none;
+      min-height: 150px;
+    }
+
+    body {
+      /* fixes scroll twitching */
+      overflow: hidden;
+    }
+
+    body.aui-page-focused.aui-page-size-medium #page {
+      padding-top: 25px;
+      padding-bottom: 25px;
+    }
+
+  </style>
+  {% script src=ac_js_src %}{% endscript %}
+  {% asset_url 'sentry' 'vendor/jquery.2.2.4.min.js' as jquery_url %}
+  {% script src=jquery_url %}{% endscript %}
+
+  {% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.js' as aui_js_url %}
+  {% script src=aui_js_url %}{% endscript %}
+
+  {% script type="text/javascript" %}
+    <script>
+    /*
+     * JavaScript Pretty Date
+     * Copyright (c) 2011 John Resig (ejohn.org)
+     * Licensed under the MIT and GPL licenses.
+     * http://ejohn.org/files/pretty.js
+     */
+
+    // Takes an ISO time and returns a string representing how
+    // long ago the date represents.
+
+    // modified to work with our UTC timestamps,
+    // fix 1 weeks ago pluralization, add month
+    // functionality and tweak language
+    function prettyDate(time){
+      var date = new Date((time || "").replace(/-/g,"/").replace(/[TZ]/g," ")),
+          utcNow = new Date((new Date()).toISOString().replace(/-/g,"/").replace(/[TZ]/g," ")),
+        diff = (utcNow.getTime() - date.getTime()) / 1000,
+        day_diff = Math.floor(diff / 86400);
+
+      if ( isNaN(day_diff) || day_diff < 0)
+        return;
+
+      return day_diff == 0 && (
+          diff < 60 && "seconds" ||
+          diff < 120 && "1 minute" ||
+          diff < 3600 && Math.floor( diff / 60 ) + " minutes" ||
+          diff < 7200 && "1 hour" ||
+          diff < 86400 && Math.floor( diff / 3600 ) + " hours") ||
+        day_diff == 1 && "a day" ||
+        day_diff < 7 && day_diff + " days" ||
+        day_diff < 31 && (Math.ceil( day_diff / 7 ) + " week" +
+                          (Math.ceil( day_diff / 7 ) === 1 ? "" : "s")) ||
+        day_diff < 60 && "a month" || (Math.ceil(day_diff / 30)) + ' months';
+    }
+  </script>
+  {% endscript %}
+</head>
+<body class="{{ body_class }}">
+  <section id="content" role="main">
+    {% block content %}{% endblock %}
+  </section>
+  {% block javascript %}{% endblock %}
+</body>
+</html>
