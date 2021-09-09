@@ -5,8 +5,8 @@ from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.models import Integration, Organization
 
 
-class VstsSearchEndpoint(IntegrationEndpoint):
-    def get(self, request, organization, integration_id):
+class VstsSearchEndpoint(IntegrationEndpoint):  # type: ignore
+    def get(self, request: Request, organization: Organization, integration_id: int) -> Response:
         try:
             integration = Integration.objects.get(
                 organizations=organization, id=integration_id, provider="vsts"

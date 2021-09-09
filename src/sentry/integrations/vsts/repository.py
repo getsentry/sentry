@@ -9,7 +9,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 MAX_COMMIT_DATA_REQUESTS = 90
 
 
-class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
+class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):  # type: ignore
     name = "Azure DevOps"
     logger = logging.getLogger("sentry.integrations.vsts")
 

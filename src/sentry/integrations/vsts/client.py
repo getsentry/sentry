@@ -44,7 +44,7 @@ class VstsApiPath:
     work_item_categories = "{instance}{project}/_apis/wit/workitemtypecategories"
 
 
-class VstsApiClient(ApiClient, OAuth2RefreshMixin):
+class VstsApiClient(ApiClient, OAuth2RefreshMixin):  # type: ignore
     api_version = "4.1"  # TODO: update api version
     api_version_preview = "-preview.1"
     integration_name = "vsts"

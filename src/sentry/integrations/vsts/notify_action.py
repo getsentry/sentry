@@ -9,7 +9,7 @@ from sentry.web.decorators import transaction_start
 logger = logging.getLogger("sentry.rules")
 
 
-class AzureDevopsCreateTicketAction(TicketEventAction):
+class AzureDevopsCreateTicketAction(TicketEventAction):  # type: ignore
     label = "Create an Azure DevOps work item in {integration} with these "
     ticket_type = "an Azure DevOps work item"
     link = "https://docs.sentry.io/product/integrations/source-code-mgmt/azure-devops/#issue-sync"

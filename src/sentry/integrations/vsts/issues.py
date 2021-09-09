@@ -13,7 +13,8 @@ from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 if TYPE_CHECKING:
     from sentry.models import ExternalIssue, Group
 
-class VstsIssueSync(IssueSyncMixin):
+
+class VstsIssueSync(IssueSyncMixin):  # type: ignore
     description = "Integrate Azure DevOps work items by linking a project."
     slug = "vsts"
     conf_key = slug

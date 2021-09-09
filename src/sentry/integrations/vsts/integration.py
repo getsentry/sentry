@@ -105,7 +105,7 @@ metadata = IntegrationMetadata(
 logger = logging.getLogger("sentry.integrations")
 
 
-class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
+class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):  # type: ignore
     logger = logger
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
@@ -317,7 +317,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
             return None
 
 
-class VstsIntegrationProvider(IntegrationProvider):
+class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
     key = "vsts"
     name = "Azure DevOps"
     metadata = metadata
@@ -478,8 +478,8 @@ class VstsIntegrationProvider(IntegrationProvider):
         )
 
 
-class AccountConfigView(PipelineView):
-    def dispatch(self, request, pipeline):
+class AccountConfigView(PipelineView):  # type: ignore
+    def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
         if "account" in request.POST:
             account_id = request.POST.get("account")
             accounts = pipeline.fetch_state(key="accounts")
