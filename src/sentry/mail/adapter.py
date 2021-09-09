@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
 from sentry import digests
 from sentry.digests import get_option_key as get_digest_option_key
@@ -136,11 +136,6 @@ class MailAdapter:
         email_cls(activity).send()
 
     @staticmethod
-    def handle_user_report(payload, project: Project, **kwargs):
+    def handle_user_report(report: Mapping[str, Any], project: Project):
         metrics.incr("mail_adapter.handle_user_report")
-        return UserReportNotification(project, payload["report"]).send()
-
-    def handle_signal(self, name, payload, **kwargs):
-        metrics.incr("mail_adapter.handle_signal")
-        if name == "user-reports.created":
-            self.handle_user_report(payload, **kwargs)
+        return UserReportNotification(project, report).send()
