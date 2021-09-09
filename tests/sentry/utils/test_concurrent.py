@@ -108,10 +108,6 @@ def test_timed_future_success():
         future.set_result(None)
         assert future.get_timing() == (1.0, 2.0)
 
-    with timestamp(3.0):
-        future.set_result(None)
-        assert future.get_timing() == (1.0, 3.0)
-
 
 def test_timed_future_error():
     future = TimedFuture()
@@ -124,10 +120,6 @@ def test_timed_future_error():
     with timestamp(2.0):
         future.set_exception(None)
         assert future.get_timing() == (1.0, 2.0)
-
-    with timestamp(3.0):
-        future.set_exception(None)
-        assert future.get_timing() == (1.0, 3.0)
 
 
 def test_timed_future_cancel():
