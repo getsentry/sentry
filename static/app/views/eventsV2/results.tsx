@@ -284,7 +284,7 @@ class Results extends React.Component<Props, State> {
     });
   };
 
-  handleYAxisChange = (value: string) => {
+  handleYAxisChange = (value: string[]) => {
     const {router, location} = this.props;
 
     const newQuery = {
@@ -421,6 +421,8 @@ class Results extends React.Component<Props, State> {
       : eventView.fields;
     const query = eventView.query;
     const title = this.getDocumentTitle();
+    const yAxis = location.query.yAxis;
+    const yAxisArray = yAxis ? (typeof yAxis === 'string' ? [yAxis] : yAxis) : [];
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
@@ -455,6 +457,7 @@ class Results extends React.Component<Props, State> {
                   onDisplayChange={this.handleDisplayChange}
                   total={totalValues}
                   confirmedQuery={confirmedQuery}
+                  yAxis={yAxisArray}
                 />
               </Top>
               <Layout.Main fullWidth={!showTags}>

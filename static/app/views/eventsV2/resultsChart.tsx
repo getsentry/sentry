@@ -109,10 +109,11 @@ type ContainerProps = {
   location: Location;
   organization: Organization;
   confirmedQuery: boolean;
+  yAxis: string[];
 
   // chart footer props
   total: number | null;
-  onAxisChange: (value: string) => void;
+  onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
 };
 
@@ -142,9 +143,9 @@ class ResultsChartContainer extends Component<ContainerProps> {
       onDisplayChange,
       organization,
       confirmedQuery,
+      yAxis,
     } = this.props;
 
-    const yAxisValue = eventView.getYAxis();
     const hasQueryFeature = organization.features.includes('discover-query');
     const displayOptions = eventView.getDisplayOptions().filter(opt => {
       // top5 modes are only available with larger packages in saas.
@@ -170,8 +171,9 @@ class ResultsChartContainer extends Component<ContainerProps> {
           confirmedQuery={confirmedQuery}
         />
         <ChartFooter
+          organization={organization}
           total={total}
-          yAxisValue={yAxisValue}
+          yAxisValue={yAxis}
           yAxisOptions={eventView.getYAxisOptions()}
           onAxisChange={onAxisChange}
           displayOptions={displayOptions}
