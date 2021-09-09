@@ -190,9 +190,9 @@ class WorkItemWebhook(Endpoint):  # type: ignore
 
             installation.sync_status_inbound(external_issue_key, data)
 
-    def parse_email(self, email):
-        # TODO(lb): hmm... this looks brittle to me
-        return EMAIL_PARSER.search(email).group(1)
+    def parse_email(self, email: str) -> str:
+        # TODO(mgaeta): This is too brittle and doesn't pass types.
+        return EMAIL_PARSER.search(email).group(1)  # type: ignore
 
     def create_subscription(
         self, instance: str, identity_data: Mapping[str, Any], oauth_redirect_url: str

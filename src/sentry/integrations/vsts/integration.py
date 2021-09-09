@@ -390,7 +390,8 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
         account = state["account"]
         user = get_user_info(data["access_token"])
         scopes = sorted(self.get_scopes())
-        base_url = self.get_base_url(data["access_token"], account["accountId"])
+        # TODO(mgaeta): get_base_url() can return None.
+        base_url: str = self.get_base_url(data["access_token"], account["accountId"])  # type: ignore
 
         integration: MutableMapping[str, Any] = {
             "name": account["accountName"],

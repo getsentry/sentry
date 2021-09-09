@@ -52,7 +52,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):  # type: ignore
     integration_name = "vsts"
 
     def __init__(
-        self, identity: Identity, oauth_redirect_url: str, *args: Any, **kwargs: Any
+        self, identity: "Identity", oauth_redirect_url: str, *args: Any, **kwargs: Any
     ) -> None:
         super().__init__(*args, **kwargs)
         self.identity = identity
@@ -240,8 +240,8 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):  # type: ignore
             offset = self.page_size * page_number
             return {"stateFilter": "WellFormed", "$skip": offset, "$top": page_size}
 
-        def get_results(resp):
-            return resp["value"]
+        def get_results(resp: Response) -> Sequence[Any]:
+            return resp["value"]  # type: ignore
 
         return self.get_with_pagination(
             VstsApiPath.projects.format(instance=instance),
