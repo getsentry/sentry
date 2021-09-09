@@ -421,7 +421,7 @@ describe('groupEventDetails', () => {
         body: [unpublishedInstall, internalInstall],
       });
 
-      wrapper = mountWithThemeWrapper();
+      mountWithThemeWrapper();
     });
 
     it('loads Integration UI components', () => {

@@ -7,3 +7,4 @@
 !.github
 !.github/workflows/scripts/*
 !.storybook
+*.d.ts
