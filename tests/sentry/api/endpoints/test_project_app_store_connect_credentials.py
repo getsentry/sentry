@@ -16,8 +16,7 @@ class TestAppStoreUpdateCredentialsSerializer:
 
         payload = json.loads(payload_json)
         serializer = AppStoreUpdateCredentialsSerializer(data=payload)
-        if not serializer.is_valid():
-            pytest.fail(serializer.errors)
+        assert serializer.is_valid(), serializer.errors
 
         data = serializer.validated_data
 
@@ -68,8 +67,7 @@ class TestAppStoreUpdateCredentialsSerializer:
 
         payload = json.loads(payload_json)
         serializer = AppStoreUpdateCredentialsSerializer(data=payload)
-        if not serializer.is_valid():
-            pytest.fail(serializer.errors)
+        assert serializer.is_valid(), serializer.errors
 
         data = serializer.validated_data
 
@@ -104,8 +102,7 @@ class TestAppStoreUpdateCredentialsSerializer:
 
         payload = json.loads(payload_json)
         serializer = AppStoreUpdateCredentialsSerializer(data=payload)
-        if not serializer.is_valid():
-            pytest.fail(serializer.errors)
+        assert serializer.is_valid(), serializer.errors
 
         data = serializer.validated_data
 
