@@ -77,7 +77,7 @@ function routes() {
       <Route path="notifications/" name="Notifications">
         <IndexRoute
           componentPromise={() =>
-            import('app/views/settings/account/accountNotifications')
+            import('app/views/settings/account/notifications/notificationSettings')
           }
           component={SafeLazyLoad}
         />

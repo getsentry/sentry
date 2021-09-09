@@ -60,7 +60,7 @@ from sentry.utils.snuba import (
     Dataset,
     QueryOutsideRetentionError,
 )
-from sentry.utils.validators import INVALID_EVENT_DETAILS
+from sentry.utils.validators import INVALID_ID_DETAILS
 
 
 def is_condition(term):
@@ -638,12 +638,15 @@ def convert_search_filter_to_snuba_query(
         }:
             value = int(to_timestamp(value)) * 1000
 
-        # Validate event ids are uuids
-        if name == "id":
+        # Validate event ids and trace ids are uuids
+        if name in {"id", "trace"}:
             if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery("Wildcard conditions are not permitted on `id` field.")
+                raise InvalidSearchQuery(
+                    f"Wildcard conditions are not permitted on `{name}` field."
+                )
             elif not search_filter.value.is_event_id():
-                raise InvalidSearchQuery(INVALID_EVENT_DETAILS.format("Filter"))
+                label = "Filter ID" if name == "id" else "Filter Trace ID"
+                raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
 
         # most field aliases are handled above but timestamp.to_{hour,day} are
         # handled here
@@ -1346,12 +1349,15 @@ class QueryFilter(QueryFields):
         }:
             value = int(to_timestamp(value)) * 1000
 
-        # Validate event ids are uuids
-        if name == "id":
+        # Validate event ids and trace ids are uuids
+        if name in {"id", "trace"}:
             if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery("Wildcard conditions are not permitted on `id` field.")
+                raise InvalidSearchQuery(
+                    f"Wildcard conditions are not permitted on `{name}` field."
+                )
             elif not search_filter.value.is_event_id():
-                raise InvalidSearchQuery(INVALID_EVENT_DETAILS.format("Filter"))
+                label = "Filter ID" if name == "id" else "Filter Trace ID"
+                raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
 
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and

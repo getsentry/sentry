@@ -5,13 +5,13 @@ from django.conf import settings
 from django.template.base import token_kwargs
 
 from sentry import options
-from sentry.utils.assets import get_asset_url, get_unversioned_asset_url
+from sentry.utils.assets import get_asset_url, get_frontend_app_asset_url
 from sentry.utils.http import absolute_uri
 
 register = template.Library()
 
 register.simple_tag(get_asset_url, name="asset_url")
-register.simple_tag(get_unversioned_asset_url, name="unversioned_asset_url")
+register.simple_tag(get_frontend_app_asset_url, name="frontend_app_asset_url")
 
 
 @register.simple_tag

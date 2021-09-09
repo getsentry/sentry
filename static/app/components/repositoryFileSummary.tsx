@@ -25,7 +25,7 @@ function Collapsed(props: CollapsedProps) {
 type Props = {
   fileChangeSummary: FilesByRepository[string];
   repository: string;
-  collapsable: boolean;
+  collapsible: boolean;
   maxWhenCollapsed: number;
 };
 
@@ -36,7 +36,7 @@ type State = {
 
 class RepositoryFileSummary extends React.Component<Props, State> {
   static defaultProps = {
-    collapsable: true,
+    collapsible: true,
     maxWhenCollapsed: 5,
   };
 
@@ -52,15 +52,15 @@ class RepositoryFileSummary extends React.Component<Props, State> {
   };
 
   render() {
-    const {repository, fileChangeSummary, collapsable, maxWhenCollapsed} = this.props;
+    const {repository, fileChangeSummary, collapsible, maxWhenCollapsed} = this.props;
     let files = Object.keys(fileChangeSummary);
     const fileCount = files.length;
     files.sort();
-    if (this.state.collapsed && collapsable && fileCount > maxWhenCollapsed) {
+    if (this.state.collapsed && collapsible && fileCount > maxWhenCollapsed) {
       files = files.slice(0, maxWhenCollapsed);
     }
     const numCollapsed = fileCount - files.length;
-    const canCollapse = collapsable && fileCount > maxWhenCollapsed;
+    const canCollapse = collapsible && fileCount > maxWhenCollapsed;
     return (
       <Container>
         <h5>
