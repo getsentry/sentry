@@ -117,40 +117,6 @@ def run_deletion(deletion_id, first_pass=True):
 
 
 @instrumented_task(
-    name="sentry.tasks.deletion.revoke_api_tokens",
-    queue="cleanup",
-    default_retry_delay=60 * 5,
-    max_retries=MAX_RETRIES,
-    acks_late=True,
-)
-@retry(exclude=(DeleteAborted,))
-def revoke_api_tokens(object_id, transaction_id=None, timestamp=None, **kwargs):
-    from sentry.models import ApiToken
-
-    queryset = ApiToken.objects.filter(application=object_id)
-    if timestamp:
-        queryset = queryset.filter(date_added__lte=timestamp)
-
-    # we're using a slow deletion strategy to avoid a lot of custom code for
-    # postgres
-    has_more = False
-    for obj in queryset[:1000]:
-        obj.delete()
-        has_more = True
-
-    if has_more:
-        revoke_api_tokens.apply_async(
-            kwargs={
-                "object_id": object_id,
-                "transaction_id": transaction_id,
-                "timestamp": timestamp,
-            },
-            countdown=15,
-        )
-    return has_more
-
-
-@instrumented_task(
     name="sentry.tasks.deletion.delete_groups",
     queue="cleanup",
     default_retry_delay=60 * 5,
