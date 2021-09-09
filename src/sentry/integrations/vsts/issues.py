@@ -116,8 +116,8 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
             # Workitems (issues) are associated with the project not the repository.
         default_project, project_choices = self.get_project_choices(group, **kwargs)
 
-        work_item_choices = []
-        default_work_item = None
+        work_item_choices: Sequence[Tuple[str, str]] = []
+        default_work_item: Optional[str] = None
         if default_project:
             default_work_item, work_item_choices = self.get_work_item_choices(
                 default_project, group

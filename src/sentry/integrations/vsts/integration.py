@@ -291,8 +291,8 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
         config.update(data)
         self.org_integration.update(config=config)
 
-    def get_config_data(self):
-        config = self.org_integration.config
+    def get_config_data(self) -> Mapping[str, Any]:
+        config: MutableMapping[str, Any] = self.org_integration.config
         project_mappings = IntegrationExternalProject.objects.filter(
             organization_integration_id=self.org_integration.id
         )
@@ -306,15 +306,19 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
         return config
 
     @property
-    def instance(self):
-        return self.model.metadata["domain_name"]
+    def instance(self) -> str:
+        # Explicitly typing to satisfy mypy.
+        instance_: str = self.model.metadata["domain_name"]
+        return instance_
 
     @property
     def default_project(self) -> Optional[str]:
         try:
-            return self.model.metadata["default_project"]
+            # Explicitly typing to satisfy mypy.
+            default_project_: str = self.model.metadata["default_project"]
         except KeyError:
             return None
+        return default_project_
 
 
 class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
@@ -389,7 +393,7 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
         scopes = sorted(self.get_scopes())
         base_url = self.get_base_url(data["access_token"], account["accountId"])
 
-        integration = {
+        integration: MutableMapping[str, Any] = {
             "name": account["accountName"],
             "external_id": account["accountId"],
             "metadata": {"domain_name": base_url, "scopes": scopes},
@@ -467,7 +471,9 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
                 },
             )
         if response.status_code == 200:
-            return response.json()["locationUrl"]
+            # Explicitly typing to satisfy mypy.
+            location_url: Optional[str] = response.json()["locationUrl"]
+            return location_url
         return None
 
     def setup(self) -> None:

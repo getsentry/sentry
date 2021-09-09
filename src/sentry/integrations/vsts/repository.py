@@ -23,7 +23,9 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):  # type: 
             id=integration_id, organizations=organization_id, provider="vsts"
         )
 
-        return integration_model.get_installation(organization_id)
+        # Explicitly typing to satisfy mypy.
+        installation: IntegrationInstallation = integration_model.get_installation(organization_id)
+        return installation
 
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, Any]

@@ -93,8 +93,8 @@ class WorkItemWebhook(Endpoint):  # type: ignore
 
         assert constant_time_compare(integration_secret, webhook_payload_secret)
 
-    def handle_updated_workitem(self, data, integration):
-        project = None
+    def handle_updated_workitem(self, data: Mapping[str, Any], integration: Integration) -> None:
+        project: Optional[str] = None
         try:
             external_issue_key = data["resource"]["workItemId"]
             project = data["resourceContainers"]["project"]["id"]
@@ -137,6 +137,10 @@ class WorkItemWebhook(Endpoint):  # type: ignore
     ) -> None:
         if not assigned_to:
             return
+
+        email: Optional[str] = None
+        assign = False
+
         new_value = assigned_to.get("newValue")
         if new_value is not None:
             try:
@@ -153,9 +157,6 @@ class WorkItemWebhook(Endpoint):  # type: ignore
                 )
                 return  # TODO(lb): return if cannot parse email?
             assign = True
-        else:
-            email = None
-            assign = False
 
         sync_group_assignee_inbound(
             integration=integration,
