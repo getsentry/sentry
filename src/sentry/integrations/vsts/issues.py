@@ -42,10 +42,10 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         project_choices = [(project["id"], project["name"]) for project in projects]
 
         params = kwargs.get("params", {})
+        project = kwargs.get("project")
         if group:
             default_project_id = group.project_id
-        elif kwargs.get("project"):
-            project = kwargs.get("project")
+        elif project:
             default_project_id = project.id
         else:
             default_project_id = projects[0]["id"]
