@@ -3,7 +3,36 @@
     "query": "avg(transaction.duration):>..500s",
     "result": [
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "avg(transaction.duration):>..500s", "quoted": false},
+      {
+        "type": "filter",
+        "filter": "aggregate",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid duration. Expected number followed by duration unit suffix",
+          "expectedType": ["aggregateDuration"]
+        },
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "avg", "quoted": false},
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "transaction.duration",
+                  "quoted": false
+                }
+              }
+            ]
+          }
+        },
+        "operator": "",
+        "value": {"type": "valueText", "value": ">..500s", "quoted": false}
+      },
       {"type": "spaces", "value": ""}
     ]
   }

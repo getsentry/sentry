@@ -93,6 +93,7 @@ export enum FilterType {
   AggregateNumeric = 'aggregateNumeric',
   AggregateDate = 'aggregateDate',
   AggregateRelativeDate = 'aggregateRelativeDate',
+  Aggregate = 'aggregate',
   Has = 'has',
   Is = 'is',
 }
@@ -189,6 +190,12 @@ export const filterTypeConfig = {
     validValues: [Token.ValueBoolean],
     canNegate: true,
   },
+  [FilterType.Aggregate]: {
+    validKeys: [Token.KeyAggregate],
+    validOps: allOperators,
+    validValues: [Token.ValueText],
+    canNegate: true,
+  },
   [FilterType.AggregateDuration]: {
     validKeys: [Token.KeyAggregate],
     validOps: allOperators,
@@ -253,6 +260,27 @@ type InvalidFilter = {
   expectedType?: FilterType[];
 };
 
+const INVALID_DURATION = () =>
+  t('Invalid duration. Expected number followed by duration unit suffix');
+
+const INVALID_DATE = () => {
+  const date = new Date();
+  date.setSeconds(0);
+  date.setMilliseconds(0);
+  const example = date.toISOString();
+
+  return t(
+    'Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. %s or %s)',
+    example.slice(0, 10),
+    example
+  );
+};
+
+const INVALID_BOOLEAN = () => t('Invalid boolean. Expected true, 1, false, or 0.');
+
+const INVALID_NUMERIC = () =>
+  t('Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)');
+
 type FilterMap = {
   [F in keyof FilterTypeConfig]: {
     type: Token.Filter;
@@ -285,6 +313,7 @@ type FilterMap = {
 };
 
 type TextFilter = FilterMap[FilterType.Text];
+type AggregateFilter = FilterMap[FilterType.Aggregate];
 type InFilter = FilterMap[FilterType.TextIn] | FilterMap[FilterType.NumericIn];
 
 /**
@@ -533,7 +562,8 @@ export class TokenConverter {
     const {isNumeric, isDuration, isBoolean, isDate, isPercentage} = this.keyValidation;
 
     const checkAggregate = (check: (s: string) => boolean) =>
-      aggregateKey.args?.args.some(arg => check(arg?.value?.value ?? ''));
+      aggregateKey.args?.args.some(arg => check(arg?.value?.value ?? '')) ??
+      check(aggregateKey.name.value);
 
     switch (type) {
       case FilterType.Numeric:
@@ -579,6 +609,13 @@ export class TokenConverter {
     key: FilterMap[T]['key'],
     value: FilterMap[T]['value']
   ) => {
+    if (filter === FilterType.Aggregate) {
+      return this.checkInvalidAggregateFilter(
+        key as AggregateFilter['key'],
+        value as AggregateFilter['value']
+      );
+    }
+
     // Text filter is the "fall through" filter that will match when other
     // filter predicates fail.
     if (filter === FilterType.Text) {
@@ -590,6 +627,43 @@ export class TokenConverter {
 
     if ([FilterType.TextIn, FilterType.NumericIn].includes(filter)) {
       return this.checkInvalidInFilter(value as InFilter['value']);
+    }
+
+    return null;
+  };
+
+  /**
+   * Validates aggregate filters which may have failed prediction
+   */
+  checkInvalidAggregateFilter = (
+    key: AggregateFilter['key'],
+    _value: AggregateFilter['value']
+  ) => {
+    // Temporarily disable the checks for the pXX aggregates as
+    // the types are incorrect when they do not have an explicit argument.
+    if (/^p[0-9]{2,3}$/.test(key.name.value)) {
+      return null;
+    }
+
+    if (this.predicateFilter(FilterType.AggregateDuration, key)) {
+      return {
+        reason: INVALID_DURATION(),
+        expectedType: [FilterType.AggregateDuration],
+      };
+    }
+
+    if (this.predicateFilter(FilterType.AggregateDate, key)) {
+      return {
+        reason: INVALID_DATE(),
+        expectedType: [FilterType.AggregateDate],
+      };
+    }
+
+    if (this.predicateFilter(FilterType.AggregateNumeric, key)) {
+      return {
+        reason: INVALID_NUMERIC(),
+        expectedType: [FilterType.AggregateNumeric],
+      };
     }
 
     return null;
@@ -608,39 +682,28 @@ export class TokenConverter {
 
     if (this.keyValidation.isDuration(keyName)) {
       return {
-        reason: t('Invalid duration. Expected number followed by duration unit suffix'),
+        reason: INVALID_DURATION(),
         expectedType: [FilterType.Duration],
       };
     }
 
     if (this.keyValidation.isDate(keyName)) {
-      const date = new Date();
-      date.setSeconds(0);
-      date.setMilliseconds(0);
-      const example = date.toISOString();
-
       return {
-        reason: t(
-          'Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. %s or %s)',
-          example.slice(0, 10),
-          example
-        ),
+        reason: INVALID_DATE(),
         expectedType: [FilterType.Date, FilterType.SpecificDate, FilterType.RelativeDate],
       };
     }
 
     if (this.keyValidation.isBoolean(keyName)) {
       return {
-        reason: t('Invalid boolean. Expected true, 1, false, or 0.'),
+        reason: INVALID_BOOLEAN(),
         expectedType: [FilterType.Boolean],
       };
     }
 
     if (this.keyValidation.isNumeric(keyName)) {
       return {
-        reason: t(
-          'Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)'
-        ),
+        reason: INVALID_NUMERIC(),
         expectedType: [FilterType.Numeric, FilterType.NumericIn],
       };
     }
@@ -767,9 +830,11 @@ const defaultConfig: SearchConfig = {
     'stack.stack_level',
     'transaction.duration',
     'apdex',
+    'p50',
     'p75',
     'p95',
     'p99',
+    'p100',
     'failure_rate',
     'count_miserable',
     'user_misery',

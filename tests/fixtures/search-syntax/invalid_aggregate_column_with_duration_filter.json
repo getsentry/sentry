@@ -3,7 +3,36 @@
     "query": "avg(stack.colno):>500s",
     "result": [
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "quoted": false, "value": "avg(stack.colno):>500s"},
+      {
+        "type": "filter",
+        "filter": "aggregate",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)",
+          "expectedType": ["aggregateNumeric"]
+        },
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "avg", "quoted": false},
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "stack.colno",
+                  "quoted": false
+                }
+              }
+            ]
+          }
+        },
+        "operator": "",
+        "value": {"type": "valueText", "value": ">500s", "quoted": false}
+      },
       {"type": "spaces", "value": ""}
     ]
   }

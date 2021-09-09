@@ -12,8 +12,65 @@
     ]
   },
   {
-    "query": "p75(transaction.duration):>5%",
-    "raisesError": true,
-    "result": []
+    "query": "avg(transaction.duration):>5%",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregate",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid duration. Expected number followed by duration unit suffix",
+          "expectedType": ["aggregateDuration"]
+        },
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "avg", "quoted": false},
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "transaction.duration",
+                  "quoted": false
+                }
+              }
+            ]
+          }
+        },
+        "operator": "",
+        "value": {"type": "valueText", "value": ">5%", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "apdex():>5%",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "aggregate",
+        "negated": false,
+        "invalid": {
+          "reason": "Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)",
+          "expectedType": ["aggregateNumeric"]
+        },
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "apdex", "quoted": false},
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""},
+          "args": null
+        },
+        "operator": "",
+        "value": {"type": "valueText", "value": ">5%", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
   }
 ]

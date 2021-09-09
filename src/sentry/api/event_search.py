@@ -287,6 +287,13 @@ def handle_negation(negation, operator):
     return operator
 
 
+def get_function_result_type(resolved_function):
+    instance = resolved_function.details.instance
+    field = resolved_function.details.field
+    arguments = resolved_function.details.arguments
+    return instance.get_result_type(field, arguments)
+
+
 class SearchBoolean(namedtuple("SearchBoolean", "left_term operator right_term")):
     BOOLEAN_AND = "AND"
     BOOLEAN_OR = "OR"
@@ -667,6 +674,20 @@ class SearchVisitor(NodeVisitor):
             # Even if the search value matches duration format, only act as
             # duration for certain columns
             function = resolve_field(search_key.name, self.params, functions_acl=FUNCTIONS.keys())
+            result_type = get_function_result_type(function)
+
+            if result_type == "duration":
+                aggregate_value = parse_duration(*search_value)
+            elif result_type in {"integer", "number"}:
+                # Duration overlaps with numeric values with `m` (million vs
+                # minutes). So we fall through to numeric if it's not a
+                # duration key
+                #
+                # TODO(epurkhsier): Should we validate that the field is
+                # numeric and do some other fallback if it's not?
+                aggregate_value = parse_numeric_value(*search_value)
+            else:
+                self._handle_aggregate_filter(search_key, SearchValue(aggregate_value), result_type)
 
             is_duration_key = False
             if function.aggregate is not None:
@@ -699,18 +720,19 @@ class SearchVisitor(NodeVisitor):
 
         aggregate_value = None
 
+        raw_value = "".join([operator if operator != "=" else "", search_value, "%"])
+
         try:
             # Even if the search value matches percentage format, only act as
             # percentage for certain columns
             function = resolve_field(search_key.name, self.params, functions_acl=FUNCTIONS.keys())
             if function.aggregate is not None:
-                aggregate_key = function.aggregate[0]
-                if self.is_percentage_key(aggregate_key):
+                key = function.details.instance.name
+                if self.is_percentage_key(key):
                     aggregate_value = parse_percentage(search_value)
                 else:
-                    raise InvalidSearchQuery(
-                        f'Invalid aggregate condition: "{aggregate_key}" is not a percentage value.'
-                    )
+                    result_type = get_function_result_type(function)
+                    self._handle_aggregate_filter(search_key, SearchValue(raw_value), result_type)
         except ValueError:
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
         except InvalidQuery as exc:
@@ -720,8 +742,7 @@ class SearchVisitor(NodeVisitor):
             return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
         # Invalid formats fall back to text match
-        search_value = operator + search_value if operator != "=" else search_value
-        return AggregateFilter(search_key, "=", SearchValue(search_value))
+        return AggregateFilter(search_key, "=", SearchValue(raw_value))
 
     def visit_aggregate_numeric_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
@@ -733,6 +754,20 @@ class SearchVisitor(NodeVisitor):
             raise InvalidSearchQuery(str(exc))
 
         return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
+
+    def _handle_aggregate_filter(self, search_key, search_value, result_type):
+        if result_type == "duration":
+            raise InvalidSearchQuery(
+                "Invalid duration. Expected number followed by duration unit suffix"
+            )
+        elif result_type == "date":
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid date: {search_value.raw_value}. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {datetime.now().isoformat()[:-4]})."
+            )
+        elif result_type in {"integer", "number"}:
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid number: {search_value.raw_value}. Expected number then optional k, m, or b suffix (e.g. 500k)."
+            )
 
     def visit_aggregate_date_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
@@ -1014,9 +1049,11 @@ default_config = SearchConfig(
         "stack.stack_level",
         "transaction.duration",
         "apdex",
+        "p50",
         "p75",
         "p95",
         "p99",
+        "p100",
         "failure_rate",
         "count_miserable",
         "user_misery",

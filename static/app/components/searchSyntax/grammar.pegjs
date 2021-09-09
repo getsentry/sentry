@@ -54,6 +54,7 @@ filter
   / aggregate_percentage_filter
   / aggregate_date_filter
   / aggregate_rel_date_filter
+  / aggregate_filter
   / has_filter
   / is_filter
   / text_in_filter
@@ -169,6 +170,17 @@ is_filter
       return tc.predicateFilter(FilterType.Is, key)
     } {
       return tc.tokenFilter(FilterType.Is, key, value, opDefault, !!negation);
+    }
+
+aggregate_filter
+  = negation:negation?
+    key:aggregate_key
+    sep
+    op:(operator &{ return tc.predicateTextOperator(key); })?
+    value:search_value &{
+      return tc.predicateFilter(FilterType.Text, key)
+    } {
+      return tc.tokenFilter(FilterType.Aggregate, key, value, op ? op[0] : opDefault, !!negation);
     }
 
 // in filter key:[val1, val2]
