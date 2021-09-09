@@ -78,12 +78,12 @@ function StackTraceContent({
   }
 
   function handleToggleAddresses(mouseEvent: MouseEvent<SVGElement>) {
-    mouseEvent.stopPropagation(); // to prevent collapsing if collapsable
+    mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
     setShowingAbsoluteAddresses(!showingAbsoluteAddresses);
   }
 
   function handleToggleFunctionName(mouseEvent: MouseEvent<SVGElement>) {
-    mouseEvent.stopPropagation(); // to prevent collapsing if collapsable
+    mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
     setShowCompleteFunctionName(!showCompleteFunctionName);
   }
 

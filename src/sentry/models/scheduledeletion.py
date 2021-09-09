@@ -39,12 +39,12 @@ class ScheduledDeletion(Model):
         db_table = "sentry_scheduleddeletion"
 
     @classmethod
-    def schedule(cls, instance, days=30, data=None, actor=None):
+    def schedule(cls, instance, days=30, hours=0, data=None, actor=None):
         record = cls.objects.create(
             app_label=instance._meta.app_label,
             model_name=type(instance).__name__,
             object_id=instance.pk,
-            date_scheduled=timezone.now() + timedelta(days=days),
+            date_scheduled=timezone.now() + timedelta(days=days, hours=hours),
             data=data or {},
             actor_id=actor.id if actor else None,
         )
