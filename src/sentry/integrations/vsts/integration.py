@@ -157,14 +157,15 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
         if self.default_identity is None:
             self.default_identity = self.get_default_identity()
 
-        self.check_domain_name()
+        self.check_domain_name(self.default_identity)
         return VstsApiClient(self.default_identity, VstsIntegrationProvider.oauth_redirect_url)
 
-    def check_domain_name(self):
+    def check_domain_name(self, default_identity: Identity) -> None:
         if re.match("^https://.+/$", self.model.metadata["domain_name"]):
             return
+
         base_url = VstsIntegrationProvider.get_base_url(
-            self.default_identity.data["access_token"], self.model.external_id
+            default_identity.data["access_token"], self.model.external_id
         )
         self.model.metadata["domain_name"] = base_url
         self.model.save()

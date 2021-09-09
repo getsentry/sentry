@@ -329,10 +329,8 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         ]
         return done_states
 
-    def get_issue_display_name(self, external_issue):
-        if external_issue.metadata is None:
-            return ""
-        return external_issue.metadata["display_name"]
+    def get_issue_display_name(self, external_issue: ExternalIssue) -> str:
+        return (external_issue.metadata or {}).get("display_name", "")
 
     def create_comment(self, issue_id: str, user_id: int, group_note: Activity) -> Response:
         comment = group_note.data["text"]
