@@ -186,7 +186,6 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
           {allowChangeEventTypes && (
             <FormField
               name="datasource"
-              required
               inline={false}
               style={{
                 ...formElemBaseStyle,
