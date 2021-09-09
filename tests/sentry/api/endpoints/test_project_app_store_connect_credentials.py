@@ -1,5 +1,3 @@
-import pytest
-
 from sentry.api.endpoints.project_app_store_connect_credentials import (
     AppStoreUpdateCredentialsSerializer,
 )
