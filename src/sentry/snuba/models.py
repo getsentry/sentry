@@ -23,6 +23,7 @@ query_aggregation_to_snuba = {
 class QueryDatasets(Enum):
     EVENTS = "events"
     TRANSACTIONS = "transactions"
+    SESSIONS = "sessions"
 
 
 class SnubaQuery(Model):
