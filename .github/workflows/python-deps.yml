@@ -27,9 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install Python dependencies
+      - name: Install prerequisites
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install libxmlsec1 || brew update; brew install libxmlsec1
+          brew info libxmlsec1 > /dev/null || HOMEBREW_NO_AUTO_UPDATE=1 brew install libxmlsec1 || brew install libxmlsec1
 
       - name: Setup Python
         uses: ./.github/actions/setup-python
