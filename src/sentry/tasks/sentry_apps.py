@@ -4,6 +4,7 @@ from celery.task import current
 from django.urls import reverse
 from requests.exceptions import ConnectionError, RequestException, Timeout
 
+from sentry import features
 from sentry.api.serializers import AppPlatformEvent, serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event
@@ -360,7 +361,18 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
         resp = safe_urlopen(
             url=url, data=app_platform_event.body, headers=app_platform_event.headers, timeout=5
         )
-
+        organization = Organization.objects.get_from_cache(id=org_id)
+        if features.has("organizations:sentry-app-debugging", organization):
+            project_id = app_platform_event.data["error"].get("project")
+            logger.info(
+                "send_and_save_webhook_request.debug",
+                extra={
+                    "event_type": event,
+                    "organization_id": org_id,
+                    "integration_slug": sentry_app.slug,
+                    "project_id": project_id,
+                },
+            )
     except (Timeout, ConnectionError) as e:
         error_type = e.__class__.__name__.lower()
         logger.info(
