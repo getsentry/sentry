@@ -23,9 +23,9 @@ from sentry.integrations import (
 )
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.integrations.vsts.issues import VstsIssueSync
+from sentry.models import Identity
 from sentry.models import Integration as IntegrationModel
 from sentry.models import (
-    Identity,
     IntegrationExternalProject,
     Organization,
     OrganizationIntegration,
@@ -390,8 +390,7 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
         account = state["account"]
         user = get_user_info(data["access_token"])
         scopes = sorted(self.get_scopes())
-        # TODO(mgaeta): get_base_url() can return None.
-        base_url: str = self.get_base_url(data["access_token"], account["accountId"])  # type: ignore
+        base_url = self.get_base_url(data["access_token"], account["accountId"])
 
         integration: MutableMapping[str, Any] = {
             "name": account["accountName"],
@@ -427,7 +426,9 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
 
         return integration
 
-    def create_subscription(self, instance: str, oauth_data: Mapping[str, Any]) -> Tuple[int, str]:
+    def create_subscription(
+        self, instance: Optional[str], oauth_data: Mapping[str, Any]
+    ) -> Tuple[int, str]:
         webhook = WorkItemWebhook()
         try:
             subscription, shared_secret = webhook.create_subscription(
@@ -461,6 +462,7 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
 
     @classmethod
     def get_base_url(cls, access_token: str, account_id: int) -> Optional[str]:
+        """TODO(mgaeta): This should not be allowed to return None."""
         url = VstsIntegrationProvider.VSTS_ACCOUNT_LOOKUP_URL % account_id
         with http.build_session() as session:
             response = session.get(

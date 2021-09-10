@@ -195,7 +195,7 @@ class WorkItemWebhook(Endpoint):  # type: ignore
         return EMAIL_PARSER.search(email).group(1)  # type: ignore
 
     def create_subscription(
-        self, instance: str, identity_data: Mapping[str, Any], oauth_redirect_url: str
+        self, instance: Optional[str], identity_data: Mapping[str, Any], oauth_redirect_url: str
     ) -> Response:
         client = self.get_client(Identity(data=identity_data), oauth_redirect_url)
         shared_secret = generate_token()

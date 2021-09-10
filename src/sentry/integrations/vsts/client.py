@@ -260,7 +260,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):  # type: ignore
             params={"continuationToken": continuation_token},
         )
 
-    def create_subscription(self, instance: str, shared_secret: str) -> Response:
+    def create_subscription(self, instance: Optional[str], shared_secret: str) -> Response:
         return self.post(
             VstsApiPath.subscriptions.format(instance=instance),
             data={
