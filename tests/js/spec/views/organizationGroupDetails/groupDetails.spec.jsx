@@ -13,6 +13,8 @@ jest.unmock('app/utils/recreateRoute');
 describe('groupDetails', () => {
   const group = TestStubs.Group();
   const event = TestStubs.Event();
+  const project = TestStubs.Project({teams: [TestStubs.Team()]});
+  const selection = {environments: []};
 
   const routes = [
     {path: '/', childRoutes: [], component: null},
@@ -31,8 +33,8 @@ describe('groupDetails', () => {
     },
   ];
 
-  const {organization, project, router, routerContext} = initializeOrg({
-    project: TestStubs.Project(),
+  const {organization, router, routerContext} = initializeOrg({
+    project,
     router: {
       location: {
         pathname: `/organizations/org-slug/issues/${group.id}/`,
@@ -58,14 +60,9 @@ describe('groupDetails', () => {
     );
   }
 
-  const createWrapper = (props = {organization, router, routerContext}) => {
+  const createWrapper = (props = {selection}) => {
     return mountWithTheme(
-      <GroupDetails
-        organization={props.organization}
-        params={props.router.params}
-        location={props.router.location}
-        routes={props.router.routes}
-      >
+      <GroupDetails organization={organization} {...router} selection={props.selection}>
         <MockComponent />
       </GroupDetails>,
       {context: routerContext}
@@ -74,6 +71,7 @@ describe('groupDetails', () => {
 
   beforeEach(() => {
     ProjectsStore.loadInitialData(organization.projects);
+
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       body: {...group},
@@ -105,6 +103,7 @@ describe('groupDetails', () => {
       body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
     });
   });
+
   afterEach(() => {
     ProjectsStore.reset();
     GroupStore.reset();
@@ -112,7 +111,7 @@ describe('groupDetails', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', () => {
+  it('renders', async function () {
     ProjectsStore.reset();
     const {findByText, queryByText} = createWrapper();
 
@@ -120,10 +119,10 @@ describe('groupDetails', () => {
 
     ProjectsStore.loadInitialData(organization.projects);
 
-    expect(findByText(group.title)).toBeTruthy();
+    expect(await findByText(group.title, {exact: false})).toBeTruthy();
   });
 
-  it('renders error when issue is not found', () => {
+  it('renders error when issue is not found', async function () {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       statusCode: 404,
@@ -136,10 +135,12 @@ describe('groupDetails', () => {
     const {findByText, queryByTestId} = createWrapper();
 
     expect(queryByTestId('loading-indicator')).toBeNull();
-    expect(findByText('The issue you were looking for was not found.')).toBeTruthy();
+    expect(
+      await findByText('The issue you were looking for was not found.')
+    ).toBeTruthy();
   });
 
-  it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', () => {
+  it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async function () {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       statusCode: 403,
@@ -148,42 +149,31 @@ describe('groupDetails', () => {
       url: `/issues/${group.id}/events/latest/`,
       statusCode: 403,
     });
+
     const {queryByTestId, findByText} = createWrapper();
 
     expect(queryByTestId('loading-indicator')).toBeNull();
     expect(
-      findByText("You'll need to join a team with access before you can view this data.")
+      await findByText(
+        "You'll need to join a team with access before you can view this data."
+      )
     ).toBeTruthy();
   });
 
-  it('fetches issue details for a given environment', () => {
-    const props = initializeOrg({
-      project: TestStubs.Project(),
-      router: {
-        location: {
-          pathname: '/issues/groupId/',
-          query: {environment: 'staging'},
-        },
-        params: {
-          groupId: group.id,
-        },
-        routes,
-      },
+  it('fetches issue details for a given environment', async function () {
+    const {queryByTestId, findByText} = createWrapper({
+      selection: {environments: ['staging']},
     });
-
-    const {queryByTestId, findByText} = createWrapper(props);
-
-    ProjectsStore.loadInitialData(props.organization.projects);
 
     expect(queryByTestId('loading-indicator')).toBeNull();
 
-    expect(findByText('environment: staging')).toBeTruthy();
+    expect(await findByText('environment: staging')).toBeTruthy();
   });
 
   /**
    * This is legacy code that I'm not even sure still happens
    */
-  it('redirects to new issue if params id !== id returned from API request', async () => {
+  it('redirects to new issue if params id !== id returned from API request', async function () {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       body: {...group, id: 'new-id'},
@@ -198,16 +188,16 @@ describe('groupDetails', () => {
     });
   });
 
-  it('renders issue event error', () => {
+  it('renders issue event error', async function () {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/events/latest/`,
       statusCode: 404,
     });
     const {findByText} = createWrapper();
-    expect(findByText('eventError')).toBeTruthy();
+    expect(await findByText('eventError')).toBeTruthy();
   });
 
-  it('renders for review reason', () => {
+  it('renders for review reason', async function () {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       body: {
@@ -224,6 +214,6 @@ describe('groupDetails', () => {
 
     ProjectsStore.loadInitialData(organization.projects);
 
-    expect(findByText('New Issue')).toBeTruthy();
+    expect(await findByText('New Issue')).toBeTruthy();
   });
 });

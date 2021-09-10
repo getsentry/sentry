@@ -24,8 +24,8 @@ type Props = {
 type State = {
   loading: boolean;
   error: boolean;
-  project?: Project;
   team: string | null;
+  project?: Project;
 };
 
 class MissingProjectMembership extends Component<Props, State> {
