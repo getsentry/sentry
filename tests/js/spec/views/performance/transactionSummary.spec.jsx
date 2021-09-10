@@ -202,6 +202,14 @@ describe('Performance > TransactionSummary', function () {
       ],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      method: 'GET',
+      body: {
+        threshold: '800',
+        metric: 'lcp',
+      },
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-vitals/',
       body: {
         'measurements.fcp': {
@@ -314,9 +322,7 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('fetches transaction threshdold', async function () {
-    const initialData = initializeData({
-      features: ['project-transaction-threshold-override'],
-    });
+    const initialData = initializeData();
     const getTransactionThresholdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',
@@ -351,9 +357,7 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('fetches project transaction threshdold', async function () {
-    const initialData = initializeData({
-      features: ['project-transaction-threshold-override'],
-    });
+    const initialData = initializeData();
     const getTransactionThresholdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',

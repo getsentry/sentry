@@ -156,9 +156,7 @@ export const vitalCardDetails = (
     },
     'apdex()': {
       title: t('Apdex'),
-      tooltip: organization.features.includes('project-transaction-threshold')
-        ? getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW)
-        : getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
       formatter: value => formatFloat(value, 4),
     },
     'p75(measurements.frames_slow_rate)': {
