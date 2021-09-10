@@ -14,12 +14,13 @@ from snuba_sdk.query import Column, Condition, Entity, Function, Join, Limit, Or
 from snuba_sdk.relationships import Relationship
 
 from sentry import options
-from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.api.event_search import SearchFilter
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.models import Environment, Group, Optional, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
+from sentry.search.utils import validate_cdc_search_filters
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -726,10 +727,8 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         date_to: Optional[datetime],
         max_hits=None,
     ) -> CursorResult:
-        # TODO: For the moment, the assumption is that this backend will only ever be passed
-        # search_filters derived from `is:unresolved`. We'll hardcode that case and handle more
-        # later.
-        if search_filters != [SearchFilter(SearchKey("status"), "IN", SearchValue([0]))]:
+
+        if not validate_cdc_search_filters(search_filters):
             raise InvalidQueryForExecutor("Search filters invalid for this query executor")
 
         start, end, retention_date = self.calculate_start_end(
@@ -756,8 +755,16 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             Condition(Column("project_id", e_event), Op.IN, [p.id for p in projects]),
             Condition(Column("timestamp", e_event), Op.GTE, start),
             Condition(Column("timestamp", e_event), Op.LT, end),
-            Condition(Column("status", e_group), Op.IN, [0]),
         ]
+        # TODO: This is still basically only handling status, handle this better once we introduce
+        # more conditions.
+        for search_filter in search_filters:
+            where_conditions.append(
+                Condition(
+                    Column(search_filter.key.name, e_group), Op.IN, search_filter.value.raw_value
+                )
+            )
+
         if environments:
             # TODO: Should this be handled via filter_keys, once we have a snql compatible version?
             where_conditions.append(

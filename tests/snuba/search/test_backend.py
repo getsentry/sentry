@@ -2078,6 +2078,8 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.group2.save()
         self.store_group(self.group2)
         self.run_test("is:unresolved", [self.group1], None)
+        self.run_test("is:resolved", [self.group2], None)
+        self.run_test("is:unresolved is:resolved", [], None)
 
     def test_environment(self):
         self.run_test("is:unresolved", [self.group1], None, environments=[self.env1])
