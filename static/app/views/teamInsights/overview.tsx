@@ -163,7 +163,7 @@ function TeamInsightsOverview({
       <Layout.Body>
         {loadingTeams && <LoadingIndicator />}
         {!loadingTeams && (
-          <LayoutMain fullWidth>
+          <Layout.Main fullWidth>
             <ControlsWrapper>
               <TeamDropdown
                 teams={teams}
@@ -181,7 +181,7 @@ function TeamInsightsOverview({
               />
             </ControlsWrapper>
 
-            <Layout.Title>{t('Performance')}</Layout.Title>
+            <SectionTitle>{t('Performance')}</SectionTitle>
             <TeamKeyTransactions
               organization={organization}
               projects={projects}
@@ -190,7 +190,7 @@ function TeamInsightsOverview({
               end={end?.toString()}
               location={location}
             />
-          </LayoutMain>
+          </Layout.Main>
         )}
       </Layout.Body>
     </Fragment>
@@ -208,11 +208,6 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
   margin-bottom: 0;
 `;
 
-const LayoutMain = styled(Layout.Main)`
-  display: grid;
-  gap: ${space(2)};
-`;
-
 const StyledLayoutTitle = styled(Layout.Title)`
   margin-top: ${space(0.5)};
 `;
@@ -221,4 +216,9 @@ const ControlsWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+  margin-bottom: ${space(2)};
+`;
+
+const SectionTitle = styled(Layout.Title)`
+  margin-bottom: ${space(1)} !important;
 `;
