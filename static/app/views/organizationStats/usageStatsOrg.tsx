@@ -245,6 +245,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         [Outcome.DROPPED]: 0,
         [Outcome.INVALID]: 0, // Combined with dropped later
         [Outcome.RATE_LIMITED]: 0, // Combined with dropped later
+        [Outcome.CLIENT_DISCARD]: 0, // Not exposed yet
       };
 
       orgStats.groups.forEach(group => {
