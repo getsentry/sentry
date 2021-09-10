@@ -6,6 +6,7 @@ class AlertRuleActionCreator(Mediator):
     install = Param("sentry.models.SentryAppInstallation")
     fields = Param(object)
     uri = Param((str,))
+    alert_rule_trigger_action = Param("sentry.models.AlertRuleTriggerAction")
 
     def call(self):
         self._make_external_request()
@@ -13,7 +14,7 @@ class AlertRuleActionCreator(Mediator):
         return self.response
 
     def _save_alert_rule_action(self):
-        pass
+        self.alert_rule_trigger_action.save()
 
     def _make_external_request(self):
         self.response = external_requests.AlerRuleActionRequester.run(
