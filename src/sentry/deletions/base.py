@@ -177,12 +177,11 @@ class ModelDeletionTask(BaseDeletionTask):
     def chunk(self, num_shards=None, shard_id=None):
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
-        more work, or ``False`` if the entity has been removed.
+        more work, or ``False`` if all matching entities have been removed.
         """
         query_limit = self.query_limit
-        remaining = self.chunk_size
         has_more = True
-        while remaining > 0:
+        while has_more:
             queryset = getattr(self.model, self.manager_name).filter(**self.query)
             if self.order_by:
                 queryset = queryset.order_by(self.order_by)
@@ -196,8 +195,7 @@ class ModelDeletionTask(BaseDeletionTask):
             if not queryset:
                 return False
 
-            has_more = self.delete_bulk(queryset)
-            remaining -= query_limit
+            self.delete_bulk(queryset)
         return has_more
 
     def delete_instance_bulk(self, instance_list):
