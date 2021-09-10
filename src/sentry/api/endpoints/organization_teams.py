@@ -69,8 +69,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization for
                                           which the teams should be listed.
-        :param string detailed:      Specify "0" to return team details that do not include projects
-        :param string is_not_member: Specify "1" to *only* return team details of teams that user is not a member of
+        :param string detailed: Specify "0" to return team details that do not include projects
         :auth: required
         """
         # TODO(dcramer): this should be system-wide default for organization
@@ -81,10 +80,6 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         queryset = Team.objects.filter(
             organization=organization, status=TeamStatus.VISIBLE
         ).order_by("slug")
-
-        if request.GET.get("is_not_member", "0") == "1":
-            user_teams = Team.objects.get_for_user(organization=organization, user=request.user)
-            queryset = queryset.exclude(id__in=[ut.id for ut in user_teams])
 
         query = request.GET.get("query")
 
