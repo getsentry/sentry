@@ -18,7 +18,7 @@ from sentry.models import (
     ServiceHookProject,
     User,
 )
-from sentry.models.sentryapp import VALID_EVENTS, track_response_code, track_response_code_internal
+from sentry.models.sentryapp import VALID_EVENTS, track_response_code
 from sentry.shared_integrations.exceptions import (
     ApiHostError,
     ApiTimeoutError,
@@ -372,8 +372,6 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
             },
         )
         track_response_code(error_type, slug, event)
-        if sentry_app.is_internal:
-            track_response_code_internal(error_type, sentry_app.slug, event)
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
         # Re-raise the exception because some of these tasks might retry on the exception

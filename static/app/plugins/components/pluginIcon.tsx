@@ -85,8 +85,6 @@ export const ICON_PATHS = {
   gitlab,
   heroku,
   jira,
-  'jira-atlassian-connect': jira,
-  'jira-ac': jira,
   jira_server: jiraserver,
   komodor,
   lighthouse,

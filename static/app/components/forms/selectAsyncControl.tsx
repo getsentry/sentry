@@ -1,4 +1,5 @@
 import * as React from 'react';
+import ReactSelect from 'react-select';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -6,7 +7,7 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 
-import SelectControl, {ControlProps} from './selectControl';
+import SelectControl, {ControlProps, GeneralSelectValue} from './selectControl';
 
 type Result = {
   value: string;
@@ -17,7 +18,9 @@ type Props = {
   url: string;
   onResults: (data: any) => Result[]; // TODO(ts): Improve data type
   onQuery: (query: string | undefined) => {};
-} & Pick<ControlProps, 'value' | 'forwardedRef'>;
+  forwardedRef: React.Ref<ReactSelect<GeneralSelectValue>>;
+  value: ControlProps['value'];
+};
 
 type State = {
   query?: string;

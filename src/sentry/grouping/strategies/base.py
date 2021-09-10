@@ -29,33 +29,30 @@ StrategyFunc = Callable[..., ReturnedVariants]  # TODO
 
 
 def strategy(
-    id: Optional[str] = None,
-    ids: Optional[Sequence[str]] = None,
-    interfaces: Optional[Sequence[str]] = None,
+    ids: Sequence[str],
+    interface: Type[Interface],
     score: Optional[int] = None,
 ) -> Callable[[StrategyFunc], "Strategy"]:
-    """Registers a strategy"""
+    """
+    Registers a strategy
 
-    if not interfaces:
-        raise TypeError("interfaces is required")
+    :param ids: The strategy/delegate IDs with which to register
+    :param interface: Which interface type should be dispatched to this strategy
+    :param score: Determines precedence of strategies. For example exception
+        strategy scores higher than message strategy, so if both interfaces are
+        in the event, only exception will be used for hash
+    """
 
-    name = interfaces[0]
-
-    if id is not None:
-        if ids is not None:
-            raise TypeError("id and ids given")
-        ids = [id]
+    name = interface.path
 
     if not ids:
-        raise TypeError("neither id nor ids given")
+        raise TypeError("no ids given")
 
     def decorator(f: StrategyFunc) -> Strategy:
-        assert interfaces
         assert ids
-
         for id in ids:
             STRATEGIES[id] = rv = Strategy(
-                id=id, name=name, interfaces=interfaces, score=score, func=f
+                id=id, name=name, interface=interface.path, score=score, func=f
             )
 
         return rv
@@ -93,7 +90,7 @@ class GroupingContext:
         self._stack.pop()
 
     def get_grouping_component(
-        self, interface: Interface, *args: Any, **kwargs: Any
+        self, interface: Interface, *, event: Event, **kwargs: Any
     ) -> Union[GroupingComponent, ReturnedVariants]:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
@@ -104,10 +101,11 @@ class GroupingContext:
             raise RuntimeError(f"failed to dispatch interface {path} to strategy")
 
         kwargs["context"] = self
+        kwargs["event"] = event
         with sentry_sdk.start_span(
             op="sentry.grouping.GroupingContext.get_grouping_component", description=path
         ):
-            rv = strategy(interface, *args, **kwargs)
+            rv = strategy(interface, **kwargs)
         assert isinstance(rv, dict)
 
         if self["variant"] is not None:
@@ -132,14 +130,14 @@ class Strategy:
         self,
         id: str,
         name: str,
-        interfaces: Sequence[str],
+        interface: str,
         score: Optional[int],
         func: StrategyFunc,
     ):
         self.id = id
         self.strategy_class = id.split(":", 1)[0]
         self.name = name
-        self.interfaces = interfaces
+        self.interface = interface
         self.score = score
         self.func = func
         self.variant_processor_func: Optional[StrategyFunc] = None
@@ -169,11 +167,10 @@ class Strategy:
     ) -> Optional[ReturnedVariants]:
         """Given a specific variant this calculates the grouping component."""
         args = []
-        for iface_path in self.interfaces:
-            iface = event.interfaces.get(iface_path)
-            if iface is None:
-                return None
-            args.append(iface)
+        iface = event.interfaces.get(self.interface)
+        if iface is None:
+            return None
+        args.append(iface)
         with context:
             # If a variant is passed put it into the context
             if variant is not None:
@@ -342,14 +339,13 @@ def create_strategy_configuration(
     new_delegates = set()
     for strategy_id in delegates or ():
         strategy = lookup_strategy(strategy_id)
-        for interface in strategy.interfaces:
-            if interface in new_delegates:
-                raise RuntimeError(
-                    "duplicate interface match for "
-                    "delegate %r (conflict on %r)" % (id, interface)
-                )
-            NewStrategyConfiguration.delegates[interface] = strategy
-            new_delegates.add(interface)
+        if strategy.interface in new_delegates:
+            raise RuntimeError(
+                "duplicate interface match for "
+                "delegate %r (conflict on %r)" % (id, strategy.interface)
+            )
+        NewStrategyConfiguration.delegates[strategy.interface] = strategy
+        new_delegates.add(strategy.interface)
 
     if initial_context:
         NewStrategyConfiguration.initial_context.update(initial_context)

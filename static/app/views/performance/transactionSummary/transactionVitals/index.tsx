@@ -86,6 +86,7 @@ function TransactionVitals(props: Props) {
                 location={location}
                 organization={organization}
                 projects={projects}
+                projectId={projectId}
                 transactionName={transactionName}
                 currentTab={Tab.WebVitals}
                 hasWebVitals="yes"

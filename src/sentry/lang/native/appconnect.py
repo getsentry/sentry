@@ -18,7 +18,7 @@ import requests
 import sentry_sdk
 from django.db import transaction
 
-from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA
+from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA, secret_fields
 from sentry.models import Project
 from sentry.utils import json, sdk
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
@@ -31,11 +31,6 @@ SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 
 # The symbol source type for an App Store Connect symbol source.
 SYMBOL_SOURCE_TYPE_NAME = "appStoreConnect"
-
-# The key in the project options under which all of the dates corresponding to the last time sentry
-# checked for new builds in App Store Connect are stored.
-# TODO: Remove this before App Store Connect GA
-APPSTORECONNECT_BUILD_REFRESHES_OPTION = "sentry:asc_build_refresh_dates"
 
 
 class InvalidCredentialsError(Exception):
@@ -217,8 +212,8 @@ class AppStoreConnectConfig:
            should only occur if the class was created in a weird way.
         """
         data = self.to_json()
-        data["itunesPassword"] = {"hidden-secret": True}
-        data["appconnectPrivateKey"] = {"hidden-secret": True}
+        for to_redact in secret_fields("appStoreConnect"):
+            data[to_redact] = {"hidden-secret": True}
         return data
 
     def update_project_symbol_source(self, project: Project, allow_multiple: bool) -> json.JSONData:
