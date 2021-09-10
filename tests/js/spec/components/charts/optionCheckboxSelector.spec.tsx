@@ -46,7 +46,7 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
     dropdownItem = wrapper.find('StyledDropdownItem');
   });
 
-  it('renders yAxisOptions with yAxisValue selected', async function () {
+  it('renders yAxisOptions with yAxisValue selected', function () {
     expect(dropdownItem.at(0).find('span').last().children().html()).toEqual('count()');
     expect(dropdownItem.at(1).find('span').last().children().html()).toEqual(
       'failure_count()'
@@ -59,7 +59,7 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
     expect(dropdownItem.at(2).props().isChecked).toEqual(false);
   });
 
-  it('calls onChange prop with new checkbox option state', async function () {
+  it('calls onChange prop with new checkbox option state', function () {
     dropdownItem.at(0).find('span').first().simulate('click');
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
     dropdownItem.at(0).find('span').first().simulate('click');
@@ -76,7 +76,7 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
     ]);
   });
 
-  it('does not uncheck options when clicked if only one option is currently selected', async function () {
+  it('does not uncheck options when clicked if only one option is currently selected', function () {
     dropdownItem.at(0).find('span').first().simulate('click');
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
     dropdownItem.at(1).find('span').first().simulate('click');
