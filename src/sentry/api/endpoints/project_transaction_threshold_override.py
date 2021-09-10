@@ -58,7 +58,7 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBa
 
     def has_feature(self, organization, request):
         return features.has(
-            "organizations:project-transaction-threshold-override",
+            "organizations:performance-view",
             organization,
             actor=request.user,
         )

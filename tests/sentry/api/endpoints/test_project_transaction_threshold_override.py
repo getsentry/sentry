@@ -11,7 +11,7 @@ from sentry.utils.samples import load_data
 
 
 class ProjectTransactionThresholdOverrideTest(APITestCase):
-    feature_name = "organizations:project-transaction-threshold-override"
+    feature_name = "organizations:performance-view"
 
     def setUp(self) -> None:
         super().setUp()
