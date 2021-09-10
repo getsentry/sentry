@@ -318,8 +318,6 @@ class StreamGroup extends React.Component<Props, State> {
       totalEvents
     );
 
-    const value = remainingEventsToReprocessPercent || 100;
-
     return (
       <React.Fragment>
         <StartedColumn>
@@ -330,14 +328,14 @@ class StreamGroup extends React.Component<Props, State> {
             <Placeholder height="17px" />
           ) : (
             <React.Fragment>
-              <Count value={totalEvents} />
+              <Count value={remainingEventsToReprocess} />
               {'/'}
-              <Count value={Number(count)} />
+              <Count value={totalEvents} />
             </React.Fragment>
           )}
         </EventsReprocessedColumn>
         <ProgressColumn>
-          <ProgressBar value={value} />
+          <ProgressBar value={remainingEventsToReprocessPercent} />
         </ProgressColumn>
       </React.Fragment>
     );
