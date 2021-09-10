@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models import team as team_serializers
+from sentry.api.serializers.models.team import TeamSerializer
 from sentry.models import (
     AuditLogEntryEvent,
     ExternalActor,
@@ -32,7 +32,7 @@ class OrganizationTeamsPermission(OrganizationPermission):
     }
 
 
-class TeamSerializer(serializers.Serializer):
+class TeamPostSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=False, allow_null=True, allow_blank=True)
     slug = serializers.RegexField(
         r"^[a-z0-9_\-]+$",
@@ -58,7 +58,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
 
     def team_serializer_for_post(self):
         # allow child routes to supply own serializer, used in SCIM teams route
-        return team_serializers.TeamSerializer()
+        return TeamSerializer()
 
     def get(self, request, organization):
         """
@@ -114,17 +114,13 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
 
         is_detailed = request.GET.get("detailed", "1") != "0"
 
-        serializer = (
-            team_serializers.TeamWithProjectsSerializer
-            if is_detailed
-            else team_serializers.TeamSerializer
-        )
+        expand = ["projects", "externalTeams"] if is_detailed else []
 
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="slug",
-            on_results=lambda x: serialize(x, request.user, serializer()),
+            on_results=lambda x: serialize(x, request.user, TeamSerializer(expand=expand)),
             paginator_cls=OffsetPaginator,
         )
 
@@ -147,7 +143,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                             name.
         :auth: required
         """
-        serializer = TeamSerializer(data=request.data)
+        serializer = TeamPostSerializer(data=request.data)
 
         if serializer.is_valid():
             result = serializer.validated_data
