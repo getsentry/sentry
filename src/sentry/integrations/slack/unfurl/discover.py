@@ -1,3 +1,4 @@
+import html
 import re
 from typing import Any, List, Mapping
 from urllib.parse import urlparse
@@ -142,6 +143,9 @@ def map_discover_query_args(url: str, args: Mapping[str, str]) -> Mapping[str, A
     """
     Extracts discover arguments from the discover link's query string
     """
+    # Slack uses HTML escaped ampersands in its Event Links, when need
+    # to be unescaped for QueryDict to split properly.
+    url = html.unescape(url)
     parsed_url = urlparse(url)
     query = QueryDict(parsed_url.query).copy()
 
