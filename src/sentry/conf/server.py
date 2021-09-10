@@ -373,7 +373,7 @@ STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
 # webpack assets live at a different URL that is unversioned
 # as we configure webpack to include file content based hash in the filename
-STATIC_UNVERSIONED_URL = "/_static/dist/"
+STATIC_FRONTEND_APP_URL = "/_static/dist/"
 
 # The webpack output directory
 STATICFILES_DIRS = [
@@ -576,10 +576,10 @@ CELERY_IMPORTS = (
     "sentry.tasks.scheduler",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
-    "sentry.tasks.signals",
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
+    "sentry.tasks.user_report",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -727,6 +727,11 @@ CELERYBEAT_SCHEDULE = {
     "schedule-deletions": {
         "task": "sentry.tasks.deletion.run_scheduled_deletions",
         "schedule": timedelta(minutes=15),
+        "options": {"expires": 60 * 25},
+    },
+    "reattempt-deletions": {
+        "task": "sentry.tasks.deletion.reattempt_deletions",
+        "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "options": {"expires": 60 * 25},
     },
     "schedule-weekly-organization-reports": {
@@ -902,6 +907,8 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
+    # Enable discover top events queries with other & higher options
+    "organizations:discover-top-events": False,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable multi project selection
@@ -981,13 +988,16 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable Jira AC for select organizations.
-    "organizations:jira-ac-plugin": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
     # Display a global dashboard notification for this org
     "organizations:prompt-dashboards": False,
+    "organizations:prompt-additional-volume": False,
+    "organizations:prompt-additional-volume-on-demand": False,
+    "organizations:prompt-on-demand-orgs": False,
+    "organizations:prompt-release-health-adoption": False,
+    "organizations:prompt-upgrade-via-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable views for tag explorer
@@ -1009,9 +1019,8 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": False,
-    # Enable option to send alert, workflow, and deploy notifications
-    # to 3rd parties (e.g. Slack) in addition to email
-    "organizations:notification-platform": False,
+    # Automatically opt IN users to receiving Slack notifications.
+    "organizations:notification-slack-automatic": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
@@ -1336,6 +1345,10 @@ SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+
+# Metrics product
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
+SENTRY_METRICS_INDEXER_OPTIONS = {}
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
@@ -2211,9 +2224,6 @@ SOUTH_MIGRATION_CONVERSIONS = (
         True,
         "Please upgrade to Sentry 9.1.2 before upgrading to any later versions.",
     ),
-    # From sentry-plugins
-    ("sentry_plugins.jira_ac", "0001_initial", "jira_ac", "0001_initial", False, ""),
-    ("jira_ac", "0001_initial", "jira_ac", "0001_initial", False, ""),
 )
 
 # Whether to use Django migrations to create the database, or just build it based off
@@ -2223,7 +2233,6 @@ MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
-    "jira_ac",
     "nodestore",
     "sentry",
     "social_auth",

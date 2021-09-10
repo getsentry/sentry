@@ -158,7 +158,7 @@ class KeySettings extends Component<Props, State> {
                     choices={data.browserSdk ? data.browserSdk.choices : []}
                     placeholder={t('4.x')}
                     allowClear={false}
-                    enabled={!hasAccess}
+                    disabled={!hasAccess}
                     help={t(
                       'Select the version of the SDK that should be loaded. Note that it can take a few minutes until this change is live.'
                     )}

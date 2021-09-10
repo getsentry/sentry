@@ -2,6 +2,7 @@ import re
 from itertools import islice
 from typing import Any, Match
 
+from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import (
     GroupingContext,
@@ -111,10 +112,10 @@ def trim_message_for_grouping(string: str) -> str:
     return _irrelevant_re.sub(_handle_match, s)
 
 
-@strategy(id="message:v1", interfaces=["message"], score=0)
+@strategy(ids=["message:v1"], interface=Message, score=0)
 @produces_variants(["default"])
 def message_v1(
-    message_interface: Message, context: GroupingContext, **meta: Any
+    message_interface: Message, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
     if context["trim_message"]:
         message_in = message_interface.message or message_interface.formatted or ""

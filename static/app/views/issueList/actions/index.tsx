@@ -255,7 +255,7 @@ class IssueListActions extends React.Component<Props, State> {
     return (
       <Sticky>
         <StyledFlex>
-          <ActionsCheckbox>
+          <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
             <Checkbox
               onChange={this.handleSelectAll}
               checked={pageSelected}
@@ -349,13 +349,14 @@ const StyledFlex = styled('div')`
   margin: 0 -1px -1px;
 `;
 
-const ActionsCheckbox = styled('div')`
+const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
   padding-left: ${space(2)};
   margin-bottom: 1px;
   & input[type='checkbox'] {
     margin: 0;
     display: block;
   }
+  ${p => p.isReprocessingQuery && 'flex: 1'};
 `;
 
 const SelectAllNotice = styled('div')`

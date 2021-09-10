@@ -181,12 +181,7 @@ class Search extends React.Component<Props> {
     const highlighted = index === highlightedIndex;
     const {item, matches} = resultObj;
     const key = `${item.title}-${index}`;
-    const itemProps = {
-      ...getItemProps({
-        item,
-        index,
-      }),
-    };
+    const itemProps = {...getItemProps({item, index})};
 
     if (typeof renderItem !== 'function') {
       throw new Error('Invalid `renderItem`');

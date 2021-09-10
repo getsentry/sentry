@@ -218,6 +218,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
           error={error}
           projSlug={projSlug}
           orgSlug={organization.slug}
+          hasProjectWriteAccess={organization.access.includes('project:write')}
         />
         <LinkFooter />
       </React.Fragment>

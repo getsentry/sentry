@@ -7,6 +7,10 @@ from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
 from sentry.grouping.strategies.message import trim_message_for_grouping
 from sentry.grouping.strategies.similarity_encoders import ident_encoder, text_shingle_encoder
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
+from sentry.interfaces.exception import Exception as ChainedException
+from sentry.interfaces.exception import SingleException
+from sentry.interfaces.stacktrace import Frame, Stacktrace
+from sentry.interfaces.threads import Threads
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.iterators import shingle
 
@@ -50,7 +54,9 @@ RECURSION_COMPARISON_FIELDS = [
 
 
 def is_recursion_v1(frame1, frame2):
-    "Returns a boolean indicating whether frames are recursive calls."
+    """
+    Returns a boolean indicating whether frames are recursive calls.
+    """
     if frame2 is None:
         return False
 
@@ -61,11 +67,18 @@ def is_recursion_v1(frame1, frame2):
     return True
 
 
+def get_basename(string):
+    """
+    Returns best-effort basename of a string irrespective of platform.
+    """
+    return _basename_re.split(string)[-1]
+
+
 def get_package_component(package, platform):
     if package is None or platform != "native":
         return GroupingComponent(id="package")
 
-    package = _basename_re.split(package)[-1].lower()
+    package = get_basename(package).lower()
     package_component = GroupingComponent(
         id="package", values=[package], similarity_encoder=ident_encoder
     )
@@ -96,6 +109,12 @@ def get_filename_component(abs_path, filename, platform, allow_file_origin=False
         new_filename = _java_assist_enhancer_re.sub(r"\1<auto>", filename)
         if new_filename != filename:
             filename_component.update(values=[new_filename], hint="cleaned javassist parts")
+            filename = new_filename
+
+    # Best-effort to show a very short filename in the title. We truncate it to
+    # basename so technically there can be two issues that differ in filename
+    # paths but end up having the same title.
+    filename_component.update(tree_label={"filebase": get_basename(filename)})
 
     return filename_component
 
@@ -257,7 +276,7 @@ def get_function_component(
 
 @strategy(
     ids=["frame:v1"],
-    interfaces=["frame"],
+    interface=Frame,
 )
 def frame(frame, event, context, **meta):
     platform = frame.platform or event.platform
@@ -288,17 +307,24 @@ def frame(frame, event, context, **meta):
             context=context,
         )
 
+    context_line_available = bool(context_line_component and context_line_component.contributes)
+
     function_component = get_function_component(
         context=context,
         function=frame.function,
         raw_function=frame.raw_function,
         platform=platform,
         sourcemap_used=frame.data and frame.data.get("sourcemap") is not None,
-        context_line_available=context_line_component and context_line_component.contributes,
+        context_line_available=context_line_available,
     )
 
     values = [module_component, filename_component, function_component]
     if context_line_component is not None:
+        # Typically we want to add whichever frame component contributes to
+        # the title. In JS, frames are hashed by source context, which we
+        # cannot show. In that case we want to show something else instead
+        # of hiding the frame from the title as if it didn't contribute.
+        context_line_component.update(tree_label=function_component.tree_label)
         values.append(context_line_component)
 
     if (
@@ -368,8 +394,9 @@ def frame(frame, event, context, **meta):
     if context["is_recursion"]:
         rv.update(contributes=False, hint="ignored due to recursion")
 
-    if rv.tree_label:
+    if rv.contributes:
         tree_label = {}
+
         for value in rv.values:
             if isinstance(value, GroupingComponent) and value.contributes and value.tree_label:
                 tree_label.update(value.tree_label)
@@ -378,6 +405,8 @@ def frame(frame, event, context, **meta):
             tree_label["datapath"] = frame.datapath
             rv.tree_label = tree_label
         else:
+            # The frame contributes (somehow) but we have nothing meaningful to
+            # show.
             rv.tree_label = None
 
     return {context["variant"]: rv}
@@ -413,22 +442,27 @@ def get_contextline_component(frame, platform, function, context):
     return component
 
 
-@strategy(id="stacktrace:v1", interfaces=["stacktrace"], score=1800)
-def stacktrace(stacktrace, context, **meta):
+@strategy(ids=["stacktrace:v1"], interface=Stacktrace, score=1800)
+def stacktrace(stacktrace, event, context, **meta):
     assert context["variant"] is None
 
     if context["hierarchical_grouping"]:
         with context:
             context["variant"] = "system"
-            return _single_stacktrace_variant(stacktrace, context=context, meta=meta)
+            return _single_stacktrace_variant(stacktrace, event=event, context=context, meta=meta)
 
     else:
         return call_with_variants(
-            _single_stacktrace_variant, ["!system", "app"], stacktrace, context=context, meta=meta
+            _single_stacktrace_variant,
+            ["!system", "app"],
+            stacktrace,
+            event=event,
+            context=context,
+            meta=meta,
         )
 
 
-def _single_stacktrace_variant(stacktrace, context, meta):
+def _single_stacktrace_variant(stacktrace, event, context, meta):
     variant = context["variant"]
 
     frames = stacktrace.frames
@@ -439,7 +473,7 @@ def _single_stacktrace_variant(stacktrace, context, meta):
     for frame in frames:
         with context:
             context["is_recursion"] = is_recursion_v1(frame, prev_frame)
-            frame_component = context.get_grouping_component(frame, **meta)
+            frame_component = context.get_grouping_component(frame, event=event, **meta)
         if not context["hierarchical_grouping"] and variant == "app" and not frame.in_app:
             frame_component.update(contributes=False, hint="non app frame")
         values.append(frame_component)
@@ -452,8 +486,7 @@ def _single_stacktrace_variant(stacktrace, context, meta):
     if (
         len(frames) == 1
         and values[0].contributes
-        and get_behavior_family_for_platform(frames[0].platform or meta["event"].platform)
-        == "javascript"
+        and get_behavior_family_for_platform(frames[0].platform or event.platform) == "javascript"
         and not frames[0].function
         and frames[0].is_url()
     ):
@@ -462,7 +495,7 @@ def _single_stacktrace_variant(stacktrace, context, meta):
     main_variant, inverted_hierarchy = context.config.enhancements.assemble_stacktrace_component(
         values,
         frames_for_filtering,
-        meta["event"].platform,
+        event.platform,
         exception_data=context["exception_data"],
         similarity_self_encoder=_stacktrace_encoder,
     )
@@ -522,9 +555,9 @@ def _stacktrace_encoder(id, stacktrace):
 
 @strategy(
     ids=["single-exception:v1"],
-    interfaces=["singleexception"],
+    interface=SingleException,
 )
-def single_exception(exception, context, **meta):
+def single_exception(exception, event, context, **meta):
     type_component = GroupingComponent(
         id="type",
         values=[exception.type] if exception.type else [],
@@ -558,7 +591,9 @@ def single_exception(exception, context, **meta):
     if exception.stacktrace is not None:
         with context:
             context["exception_data"] = exception.to_json()
-            stacktrace_variants = context.get_grouping_component(exception.stacktrace, **meta)
+            stacktrace_variants = context.get_grouping_component(
+                exception.stacktrace, event=event, **meta
+            )
     else:
         stacktrace_variants = {
             "app": GroupingComponent(id="stacktrace"),
@@ -612,19 +647,21 @@ def single_exception(exception, context, **meta):
     return rv
 
 
-@strategy(id="chained-exception:v1", interfaces=["exception"], score=2000)
-def chained_exception(chained_exception, context, **meta):
+@strategy(ids=["chained-exception:v1"], interface=ChainedException, score=2000)
+def chained_exception(chained_exception, event, context, **meta):
     # Case 1: we have a single exception, use the single exception
     # component directly to avoid a level of nesting
     exceptions = chained_exception.exceptions()
     if len(exceptions) == 1:
-        return context.get_grouping_component(exceptions[0], **meta)
+        return context.get_grouping_component(exceptions[0], event=event, **meta)
 
     # Case 2: produce a component for each chained exception
     by_name = {}
 
     for exception in exceptions:
-        for name, component in context.get_grouping_component(exception, **meta).items():
+        for name, component in context.get_grouping_component(
+            exception, event=event, **meta
+        ).items():
             by_name.setdefault(name, []).append(component)
 
     rv = {}
@@ -644,21 +681,27 @@ def chained_exception_variant_processor(variants, context, **meta):
     return remove_non_stacktrace_variants(variants)
 
 
-@strategy(id="threads:v1", interfaces=["threads"], score=1900)
-def threads(threads_interface, context, **meta):
+@strategy(ids=["threads:v1"], interface=Threads, score=1900)
+def threads(threads_interface, event, context, **meta: Any):
     thread_variants = _filtered_threads(
-        [thread for thread in threads_interface.values if thread.get("crashed")], context, meta
+        [thread for thread in threads_interface.values if thread.get("crashed")],
+        event,
+        context,
+        meta,
     )
     if thread_variants is not None:
         return thread_variants
 
     thread_variants = _filtered_threads(
-        [thread for thread in threads_interface.values if thread.get("current")], context, meta
+        [thread for thread in threads_interface.values if thread.get("current")],
+        event,
+        context,
+        meta,
     )
     if thread_variants is not None:
         return thread_variants
 
-    thread_variants = _filtered_threads(threads_interface.values, context, meta)
+    thread_variants = _filtered_threads(threads_interface.values, event, context, meta)
     if thread_variants is not None:
         return thread_variants
 
@@ -675,7 +718,7 @@ def threads(threads_interface, context, **meta):
     }
 
 
-def _filtered_threads(threads: List[Dict[str, Any]], context, meta):
+def _filtered_threads(threads: List[Dict[str, Any]], event, context, meta):
     if len(threads) != 1:
         return None
 
@@ -689,7 +732,9 @@ def _filtered_threads(threads: List[Dict[str, Any]], context, meta):
 
     rv = {}
 
-    for name, stacktrace_component in context.get_grouping_component(stacktrace, **meta).items():
+    for name, stacktrace_component in context.get_grouping_component(
+        stacktrace, event=event, **meta
+    ).items():
         rv[name] = GroupingComponent(id="threads", values=[stacktrace_component])
 
     return rv

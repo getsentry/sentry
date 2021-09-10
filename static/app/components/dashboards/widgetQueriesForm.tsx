@@ -5,6 +5,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import Button from 'app/components/button';
 import SearchBar from 'app/components/events/searchBar';
 import SelectControl from 'app/components/forms/selectControl';
+import {MAX_QUERY_LENGTH} from 'app/constants';
 import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -105,6 +106,7 @@ class WidgetQueriesForm extends React.Component<Props> {
                   onSearch={this.handleFieldChange(queryIndex, 'conditions')}
                   onBlur={this.handleFieldChange(queryIndex, 'conditions')}
                   useFormWrapper={false}
+                  maxQueryLength={MAX_QUERY_LENGTH}
                 />
                 {!hideLegendAlias && (
                   <LegendAliasInput
@@ -177,9 +179,6 @@ class WidgetQueriesForm extends React.Component<Props> {
               onChange={(option: SelectValue<string>) =>
                 this.handleFieldChange(0, 'orderby')(option.value)
               }
-              onSelectResetsInput={false}
-              onCloseResetsInput={false}
-              onBlurResetsInput={false}
             />
           </Field>
         )}

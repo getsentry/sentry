@@ -24,7 +24,14 @@ export const getCrashFreePercent = (
   decimalThreshold = CRASH_FREE_DECIMAL_THRESHOLD,
   decimalPlaces = 3
 ): number => {
-  return round(percent, percent > decimalThreshold ? decimalPlaces : 0);
+  const roundedValue = round(percent, percent > decimalThreshold ? decimalPlaces : 0);
+  if (roundedValue === 100 && percent < 100) {
+    return (
+      Math.floor(percent * Math.pow(10, decimalPlaces)) / Math.pow(10, decimalPlaces)
+    );
+  }
+
+  return roundedValue;
 };
 
 export const displayCrashFreePercent = (

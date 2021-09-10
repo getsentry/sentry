@@ -1,7 +1,6 @@
 import logging
 from copy import copy
 from datetime import datetime
-from uuid import uuid4
 
 from django.db import models, transaction
 from django.db.models.query_utils import DeferredAttribute
@@ -10,6 +9,7 @@ from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
 from sentry import roles
+from sentry.api.base import ONE_DAY
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
@@ -31,10 +31,10 @@ from sentry.models import (
     OrganizationStatus,
     Project,
     ProjectTransactionThreshold,
+    ScheduledDeletion,
     UserEmail,
 )
 from sentry.models.transaction_threshold import TransactionMetric
-from sentry.tasks.deletion import delete_organization
 from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
@@ -568,37 +568,23 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond({"detail": ERR_NO_USER}, status=401)
         if organization.is_default:
             return self.respond({"detail": ERR_DEFAULT_ORG}, status=400)
-        updated = Organization.objects.filter(
-            id=organization.id, status=OrganizationStatus.VISIBLE
-        ).update(status=OrganizationStatus.PENDING_DELETION)
-        if updated:
-            transaction_id = uuid4().hex
-            countdown = 86400
-            entry = self.create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=organization.id,
-                event=AuditLogEntryEvent.ORG_REMOVE,
-                data=organization.get_audit_log_data(),
-                transaction_id=transaction_id,
-            )
-            organization.send_delete_confirmation(entry, countdown)
-            delete_organization.apply_async(
-                kwargs={
-                    "object_id": organization.id,
-                    "transaction_id": transaction_id,
-                    "actor_id": request.user.id,
-                },
-                countdown=countdown,
-            )
-            delete_logger.info(
-                "object.delete.queued",
-                extra={
-                    "object_id": organization.id,
-                    "transaction_id": transaction_id,
-                    "model": Organization.__name__,
-                },
-            )
+
+        with transaction.atomic():
+            updated = Organization.objects.filter(
+                id=organization.id, status=OrganizationStatus.VISIBLE
+            ).update(status=OrganizationStatus.PENDING_DELETION)
+            if updated:
+                organization.status = OrganizationStatus.PENDING_DELETION
+                schedule = ScheduledDeletion.schedule(organization, days=1, actor=request.user)
+                entry = self.create_audit_entry(
+                    request=request,
+                    organization=organization,
+                    target_object=organization.id,
+                    event=AuditLogEntryEvent.ORG_REMOVE,
+                    data=organization.get_audit_log_data(),
+                    transaction_id=schedule.guid,
+                )
+                organization.send_delete_confirmation(entry, ONE_DAY)
         context = serialize(
             organization,
             request.user,
@@ -616,9 +602,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         be invoked without a user context for security reasons.  This means
         that at present an organization can only be deleted from the
         Sentry UI.
+
         Deletion happens asynchronously and therefore is not immediate.
         However once deletion has begun the state of an organization changes and
         will be hidden from most public views.
+
         :pparam string organization_slug: the slug of the organization the
                                           team should be created for.
         :auth: required, user-context-needed

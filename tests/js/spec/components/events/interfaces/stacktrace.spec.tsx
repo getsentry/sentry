@@ -1,4 +1,4 @@
-import {cleanup, fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 import {StacktraceType} from 'app/types/stacktrace';
@@ -27,10 +27,6 @@ function renderedComponent(
 }
 
 describe('StackTrace', function () {
-  afterEach(() => {
-    cleanup();
-  });
-
   it('renders', function () {
     const {getByTestId, container} = renderedComponent({});
 

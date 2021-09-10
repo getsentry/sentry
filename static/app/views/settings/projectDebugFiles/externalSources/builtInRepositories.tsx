@@ -10,7 +10,7 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 type Props = {
   api: Client;
   organization: Organization;
-  projectSlug: Project['slug'];
+  projSlug: Project['slug'];
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
   builtinSymbolSources: string[];
 };
@@ -20,7 +20,7 @@ function BuiltInRepositories({
   organization,
   builtinSymbolSourceOptions,
   builtinSymbolSources,
-  projectSlug,
+  projSlug,
 }: Props) {
   function getRequestMessages(builtinSymbolSourcesQuantity: number) {
     if (builtinSymbolSourcesQuantity === 0) {
@@ -47,7 +47,7 @@ function BuiltInRepositories({
 
     try {
       const updatedProjectDetails: Project = await api.requestPromise(
-        `/projects/${organization.slug}/${projectSlug}/`,
+        `/projects/${organization.slug}/${projSlug}/`,
         {
           method: 'PUT',
           data: {
