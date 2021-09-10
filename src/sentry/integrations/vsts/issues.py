@@ -31,7 +31,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         return (project["id"], project["name"])
 
     def get_project_choices(
-        self, group: Optional[Group] = None, **kwargs: Any
+        self, group: Optional["Group"] = None, **kwargs: Any
     ) -> Tuple[Optional[str], Sequence[Tuple[str, str]]]:
         client = self.get_client()
         try:
@@ -71,7 +71,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         return default_project, project_choices
 
     def get_work_item_choices(
-        self, project: str, group: Optional[Group] = None
+        self, project: str, group: Optional["Group"] = None
     ) -> Tuple[Optional[str], Sequence[Tuple[str, str]]]:
         client = self.get_client()
         try:
@@ -106,7 +106,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         return self.get_create_issue_config(None, None, project=project)
 
     def get_create_issue_config(
-        self, group: Optional[Group], user: Optional[User], **kwargs: Any
+        self, group: Optional["Group"], user: Optional[User], **kwargs: Any
     ) -> Sequence[Mapping[str, Any]]:
         kwargs["link_referrer"] = "vsts_integration"
         fields = []
@@ -145,7 +145,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
             },
         ] + fields
 
-    def get_link_issue_config(self, group: Group, **kwargs: Any) -> Sequence[Mapping[str, str]]:
+    def get_link_issue_config(self, group: "Group", **kwargs: Any) -> Sequence[Mapping[str, str]]:
         fields: Sequence[MutableMapping[str, str]] = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-vsts-search", args=[org.slug, self.model.id])
@@ -208,7 +208,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         }
 
     def sync_assignee_outbound(
-        self, external_issue: ExternalIssue, user: User, assign: bool = True, **kwargs: Any
+        self, external_issue: "ExternalIssue", user: User, assign: bool = True, **kwargs: Any
     ) -> None:
         client = self.get_client()
         assignee = None
@@ -253,7 +253,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
             )
 
     def sync_status_outbound(
-        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int, **kwargs: Any
+        self, external_issue: "ExternalIssue", is_resolved: bool, project_id: int, **kwargs: Any
     ) -> None:
         client = self.get_client()
         work_item = client.get_work_item(self.instance, external_issue.key)
@@ -329,7 +329,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         ]
         return done_states
 
-    def get_issue_display_name(self, external_issue: ExternalIssue) -> str:
+    def get_issue_display_name(self, external_issue: "ExternalIssue") -> str:
         return (external_issue.metadata or {}).get("display_name", "")
 
     def create_comment(self, issue_id: str, user_id: int, group_note: Activity) -> Response:
