@@ -23,7 +23,7 @@ function renderLogoSpinner() {
   return <img src={sentryLoader} />;
 }
 
-function LoadingIndicator(props: Props) {
+function BaseLoadingIndicator(props: Props) {
   const {
     hideMessage,
     mini,
@@ -73,6 +73,8 @@ function LoadingIndicator(props: Props) {
   );
 }
 
-export default withProfiler(LoadingIndicator, {
+const LoadingIndicator = withProfiler(BaseLoadingIndicator, {
   includeUpdates: false,
 });
+
+export default LoadingIndicator;
