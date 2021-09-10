@@ -555,7 +555,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
             "query": "",
             "timeWindow": "60",
             "resolveThreshold": 90,
-            "thresholdType": 0,
+            "thresholdType": 1,
             "triggers": [
                 {
                     "label": "critical",
@@ -613,7 +613,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
-        self.valid_alert_rule["time_window"] = "90"
+        self.valid_alert_rule["timeWindow"] = "90"
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_valid_response(
                 self.organization.slug, self.project.slug, status_code=400, **self.valid_alert_rule
@@ -648,7 +648,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
         self.valid_alert_rule["triggers"] = [
             {
                 "label": "critical",
-                "alertThreshold": 200,
+                "alertThreshold": 50,
                 "actions": [
                     {
                         "type": "slack",

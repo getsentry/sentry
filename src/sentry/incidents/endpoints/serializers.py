@@ -74,7 +74,6 @@ dataset_valid_event_types = {
     QueryDatasets.TRANSACTIONS: {SnubaQueryEventType.EventType.TRANSACTION},
     QueryDatasets.SESSIONS: {
         SnubaQueryEventType.EventType.SESSION,
-        SnubaQueryEventType.EventType.USER,
     },
 }
 
