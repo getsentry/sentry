@@ -307,7 +307,7 @@ def secret_fields(source_type):
     Returns a string list of all of the fields that contain a secret in a given source.
     """
     if source_type == "appStoreConnect":
-        yield from ["appconnectPrivateKey", "itunesPassword"]
+        yield from ["appconnectPrivateKey", "itunesPassword", "itunesSession"]
     elif source_type == "http":
         yield "password"
     elif source_type == "s3":
