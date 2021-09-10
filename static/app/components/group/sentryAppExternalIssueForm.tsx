@@ -61,7 +61,7 @@ export class SentryAppExternalIssueForm extends Component<Props> {
   render() {
     return (
       <SentryAppExternalForm
-        sentryAppInstallation={this.props.sentryAppInstallation}
+        sentryAppInstallationId={this.props.sentryAppInstallation.uuid}
         appName={this.props.appName}
         config={this.props.config}
         action={this.props.action}

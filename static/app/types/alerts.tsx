@@ -36,6 +36,7 @@ export type IssueAlertRuleActionTemplate = {
     | Config;
   ticketType?: string;
   link?: string;
+  uuid?: string;
 };
 export type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
 

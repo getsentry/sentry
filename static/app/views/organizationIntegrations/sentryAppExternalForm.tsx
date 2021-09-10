@@ -5,7 +5,6 @@ import debounce from 'lodash/debounce';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {SentryAppInstallation} from 'app/types';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import withApi from 'app/utils/withApi';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
@@ -38,7 +37,7 @@ type State = Omit<Config, 'uri'> & {
 
 type Props = {
   api: Client;
-  sentryAppInstallation: SentryAppInstallation;
+  sentryAppInstallationId: string;
   appName: string;
   config: Config;
   action: 'create' | 'update' | 'link';
@@ -99,14 +98,14 @@ export class SentryAppExternalForm extends Component<Props, State> {
     });
 
   getEndpoint() {
-    const {sentryAppInstallation} = this.props;
+    const {sentryAppInstallationId} = this.props;
     switch (this.props.element) {
       case 'alert-rule-action':
         // TODO(leander): Send request to the correct endpoint
         return 'TODO';
       case 'issue-link':
       default:
-        return `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`;
+        return `/sentry-app-installations/${sentryAppInstallationId}/external-issue-actions/`;
     }
   }
 
@@ -140,8 +139,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
   );
 
   makeExternalRequest = async (field: FieldFromSchema, input: FieldValue) => {
-    const install = this.props.sentryAppInstallation;
-    const {extraRequestBody = {}} = this.props;
+    const {extraRequestBody = {}, sentryAppInstallationId} = this.props;
     const query: {[key: string]: any} = {
       ...extraRequestBody,
       uri: field.uri,
@@ -158,7 +156,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     }
 
     const {choices} = await this.props.api.requestPromise(
-      `/sentry-app-installations/${install.uuid}/external-requests/`,
+      `/sentry-app-installations/${sentryAppInstallationId}/external-requests/`,
       {
         query,
       }
@@ -309,12 +307,12 @@ export class SentryAppExternalForm extends Component<Props, State> {
   };
 
   render() {
-    const {sentryAppInstallation, action} = this.props;
+    const {sentryAppInstallationId, action} = this.props;
 
     const requiredFields = this.state.required_fields || [];
     const optionalFields = this.state.optional_fields || [];
 
-    if (!sentryAppInstallation) {
+    if (!sentryAppInstallationId) {
       return '';
     }
 

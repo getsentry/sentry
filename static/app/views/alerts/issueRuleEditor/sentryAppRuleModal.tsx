@@ -2,13 +2,12 @@ import {Component, Fragment} from 'react';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {tct} from 'app/locale';
-import {SentryAppInstallation} from 'app/types';
 import SentryAppExternalForm, {
   Config,
 } from 'app/views/organizationIntegrations/sentryAppExternalForm';
 
 type Props = ModalRenderProps & {
-  sentryAppInstallation: SentryAppInstallation;
+  sentryAppInstallationId: string;
   appName: string;
   config: Config;
   action: 'create' | 'update';
@@ -19,23 +18,20 @@ type Props = ModalRenderProps & {
 
 class SentryAppRuleModal extends Component<Props> {
   render() {
-    const {Header, Body, sentryAppInstallation, appName, config, action} = this.props;
+    const {Header, Body, sentryAppInstallationId, appName, config, action} = this.props;
     return (
       <Fragment>
-        <Header closeButton>{tct('[name] Settings', {name: 'TODO Integration'})}</Header>
+        <Header closeButton>{tct('[name] Settings', {name: appName})}</Header>
         <Body>
-          {config?.uri === 'asdf' && (
-            <SentryAppExternalForm
-              sentryAppInstallation={sentryAppInstallation}
-              appName={appName}
-              element="alert-rule-action"
-              config={config}
-              action={action}
-              onSubmitSuccess={this.props.onSubmitSuccess}
-              // TODO(leander): Add new defaulting fields for alerts
-            />
-          )}
-          <p>testing</p>
+          <SentryAppExternalForm
+            sentryAppInstallationId={sentryAppInstallationId}
+            appName={appName}
+            element="alert-rule-action"
+            config={config}
+            action={action}
+            onSubmitSuccess={this.props.onSubmitSuccess}
+            // TODO(leander): Add new defaulting fields for alerts
+          />
         </Body>
       </Fragment>
     );

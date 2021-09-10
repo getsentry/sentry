@@ -177,7 +177,7 @@ class ProjectRuleConfigurationTest(APITestCase):
             "prompt": sentry_app.name,
             "enabled": True,
             "label": "Create Task with App with these ",
-            "formfields": {
+            "formFields": {
                 "type": "alert-rule-settings",
                 "uri": "/sentry/alert-rule",
                 "required_fields": [{"type": "text", "name": "channel", "label": "Channel"}],

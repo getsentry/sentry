@@ -26,5 +26,5 @@ class SentryAppAlertRuleActionSerializer(Serializer):
             "prompt": f"{obj.sentry_app.name}",
             "enabled": True,
             "label": f"{obj.schema.get('title', obj.sentry_app.name)} with these ",
-            "formfields": obj.schema.get("settings", {}),
+            "formFields": obj.schema.get("settings", {}),
         }
