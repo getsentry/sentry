@@ -1195,7 +1195,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
                 "organizations:global-views": True,
             },
         )
@@ -1244,16 +1243,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "project": [project.id],
         }
 
-        # Cannot access it without feature enabled
-        response = self.do_request(query)
-        assert response.status_code == 404
-
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1267,10 +1258,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1346,16 +1333,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "project": [project.id],
         }
 
-        # Cannot access it without feature enabled
-        response = self.do_request(query)
-        assert response.status_code == 404
-
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1369,10 +1348,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1418,17 +1393,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "project": [project.id],
         }
 
-        # Cannot access it without feature enabled
         response = self.do_request(query)
-        assert response.status_code == 404
-
-        response = self.do_request(
-            query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
-        )
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 3
@@ -1441,10 +1406,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1496,10 +1457,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1525,10 +1482,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1598,7 +1551,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             features={
                 "organizations:discover-basic": True,
                 "organizations:global-views": True,
-                "organizations:project-transaction-threshold": True,
             },
         )
 
@@ -1636,7 +1588,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
                 "organizations:global-views": True,
             },
         )
@@ -2791,7 +2742,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         features = {
             "organizations:discover-basic": True,
             "organizations:global-views": True,
-            "organizations:project-transaction-threshold": True,
         }
 
         query = {
@@ -2929,7 +2879,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.store_event(data, project_id=project.id)
         features = {
             "organizations:discover-basic": True,
-            "organizations:project-transaction-threshold": True,
         }
 
         query = {
