@@ -65,7 +65,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
           background: ${theme.background};
         }
         .loading .loading-indicator {
-          border-color: ${theme.background};
+          border-color: ${theme.backgroundSecondary};
           border-left-color: ${theme.purple300};
         }
 
