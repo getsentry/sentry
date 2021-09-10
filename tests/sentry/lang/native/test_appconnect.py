@@ -76,8 +76,9 @@ class TestAppStoreConnectConfig:
         data["itunesCreated"] = now.isoformat()
 
         # Redacted secrets
-        data["itunesPassword"] = {"hidden-secret": True}
         data["appconnectPrivateKey"] = {"hidden-secret": True}
+        data["itunesPassword"] = {"hidden-secret": True}
+        data["itunesSession"] = {"hidden-secret": True}
 
         assert new_data == data
 

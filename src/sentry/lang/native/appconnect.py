@@ -18,7 +18,7 @@ import requests
 import sentry_sdk
 from django.db import transaction
 
-from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA
+from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA, secret_fields
 from sentry.models import Project
 from sentry.utils import json, sdk
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
@@ -212,8 +212,8 @@ class AppStoreConnectConfig:
            should only occur if the class was created in a weird way.
         """
         data = self.to_json()
-        data["itunesPassword"] = {"hidden-secret": True}
-        data["appconnectPrivateKey"] = {"hidden-secret": True}
+        for to_redact in secret_fields("appStoreConnect"):
+            data[to_redact] = {"hidden-secret": True}
         return data
 
     def update_project_symbol_source(self, project: Project, allow_multiple: bool) -> json.JSONData:
