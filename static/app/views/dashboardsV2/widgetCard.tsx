@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {withRouter, WithRouterProps} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -22,6 +22,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
+import {eventViewFromWidget} from 'app/views/dashboardsV2/utils';
 
 import ContextMenu from './contextMenu';
 import {Widget} from './types';
@@ -105,7 +106,7 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderContextMenu() {
-    const {widget, organization, showContextMenu} = this.props;
+    const {widget, selection, organization, showContextMenu} = this.props;
 
     if (!showContextMenu) {
       return null;
@@ -130,7 +131,17 @@ class WidgetCard extends React.Component<Props> {
                 eventName: 'Dashboards2: Table Widget - Open in Discover',
                 organization_id: parseInt(this.props.organization.id, 10),
               });
-              openDashboardWidgetQuerySelectorModal({organization, widget});
+              if (widget.queries.length === 1) {
+                const eventView = eventViewFromWidget(
+                  widget.title,
+                  widget.queries[0],
+                  selection,
+                  widget.displayType
+                );
+                browserHistory.push(eventView.getResultsViewUrlTarget(organization.slug));
+              } else {
+                openDashboardWidgetQuerySelectorModal({organization, widget});
+              }
             }}
           >
             {t('Open in Discover')}

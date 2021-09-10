@@ -106,7 +106,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     wrapper.unmount();
   });
 
-  it('renders a multiple query selections when the widget only has multiple querys', async function () {
+  it('renders a multiple query selections when the widget only has multiple queries', async function () {
     mockWidget.queries.push({
       ...mockQuery,
       conditions: 'title:/organizations/:orgId/performance/',
