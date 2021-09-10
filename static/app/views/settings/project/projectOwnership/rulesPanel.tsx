@@ -63,7 +63,7 @@ class RulesPanel extends React.Component<Props, State> {
               {this.renderIcon(provider ?? '')}
               <Title>{this.renderTitle()}</Title>
               {repoName && <Repository>{`- ${repoName}`}</Repository>}
-              {<FeatureBadge type="new" />}
+              <FeatureBadge type="new" />
             </Container>,
             <Container key="control">
               <SyncDate>
