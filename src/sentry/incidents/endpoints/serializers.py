@@ -10,6 +10,10 @@ from rest_framework import serializers
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.constants import (
+    CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS,
+    CRASH_RATE_ALERTS_RAW_CUTOFF_MIN,
+)
 from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
@@ -68,6 +72,10 @@ dataset_valid_event_types = {
         SnubaQueryEventType.EventType.DEFAULT,
     },
     QueryDatasets.TRANSACTIONS: {SnubaQueryEventType.EventType.TRANSACTION},
+    QueryDatasets.SESSIONS: {
+        SnubaQueryEventType.EventType.SESSION,
+        SnubaQueryEventType.EventType.USER,
+    },
 }
 
 # TODO(davidenwang): eventually we should pass some form of these to the event_search parser to raise an error
@@ -442,18 +450,34 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     "Invalid Metric: Please pass a valid function for aggregation"
                 )
 
+            dataset = Dataset(data["dataset"].value)
+            raw_query_dict = {
+                "aggregations": snuba_filter.aggregations,
+                "start": snuba_filter.start,
+                "end": snuba_filter.end,
+                "conditions": snuba_filter.conditions,
+                "filter_keys": snuba_filter.filter_keys,
+                "having": snuba_filter.having,
+                "dataset": dataset,
+                "limit": 1,
+                "referrer": "alertruleserializer.test_query",
+            }
+
+            if dataset == Dataset.Sessions:
+                time_window = data.get("time_window")
+                # Validate time window
+                if time_window not in CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS:
+                    raise serializers.ValidationError(
+                        "Invalid Time Window: Allowed time windows for crash rate alerts are: "
+                        "30min, 1h, 2h, 4h, 12h and 24h"
+                    )
+
+                # Add Rollup/Granularity
+                rollup = 60 if time_window <= CRASH_RATE_ALERTS_RAW_CUTOFF_MIN else 3600
+                raw_query_dict.update({"rollup": rollup})
+
             try:
-                raw_query(
-                    aggregations=snuba_filter.aggregations,
-                    start=snuba_filter.start,
-                    end=snuba_filter.end,
-                    conditions=snuba_filter.conditions,
-                    filter_keys=snuba_filter.filter_keys,
-                    having=snuba_filter.having,
-                    dataset=Dataset(data["dataset"].value),
-                    limit=1,
-                    referrer="alertruleserializer.test_query",
-                )
+                raw_query(**raw_query_dict)
             except Exception:
                 logger.exception("Error while validating snuba alert rule query")
                 raise serializers.ValidationError(

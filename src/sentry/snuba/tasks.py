@@ -5,6 +5,9 @@ import sentry_sdk
 from django.utils import timezone
 from snuba_sdk.legacy import json_to_snql
 
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.constants import CRASH_RATE_ALERTS_RAW_CUTOFF_SEC
+from sentry.models import Project
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
 from sentry.snuba.models import QueryDatasets, QuerySubscription
@@ -45,6 +48,9 @@ def apply_dataset_query_conditions(dataset, query, event_types, discover=False):
     need it specified, and `event.type` ends up becoming a tag search.
     """
     if not discover and dataset == QueryDatasets.TRANSACTIONS:
+        return query
+
+    if dataset == QueryDatasets.SESSIONS:
         return query
 
     if event_types:
@@ -169,11 +175,19 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
 
 
 def build_snuba_filter(dataset, query, aggregate, environment, event_types, params=None):
-    resolve_func = (
-        resolve_column(Dataset.Events)
-        if dataset == QueryDatasets.EVENTS
-        else resolve_column(Dataset.Transactions)
-    )
+    resolve_func, use_rollup = {
+        QueryDatasets.EVENTS: (resolve_column(Dataset.Events), False),
+        QueryDatasets.SESSIONS: (resolve_column(Dataset.Sessions), True),
+        QueryDatasets.TRANSACTIONS: (resolve_column(Dataset.Transactions), False),
+    }[dataset]
+
+    rollup = None
+    if use_rollup:
+        try:
+            rollup = 60 if params["time_window"] <= CRASH_RATE_ALERTS_RAW_CUTOFF_SEC else 3600
+        except KeyError:
+            ...
+
     query = apply_dataset_query_conditions(dataset, query, event_types)
     snuba_filter = get_filter(query, params=params)
     snuba_filter.update_with(resolve_field_list([aggregate], snuba_filter, auto_fields=False))
@@ -182,6 +196,8 @@ def build_snuba_filter(dataset, query, aggregate, environment, event_types, para
         snuba_filter.conditions.append(["group_id", "IN", list(map(int, snuba_filter.group_ids))])
     if environment:
         snuba_filter.conditions.append(["environment", "=", environment.name])
+    if rollup is not None:
+        snuba_filter.rollup = rollup
     return snuba_filter
 
 
@@ -193,6 +209,7 @@ def _create_in_snuba(subscription):
         snuba_query.aggregate,
         snuba_query.environment,
         snuba_query.event_types,
+        params={"time_window": snuba_query.time_window},
     )
 
     body = {
@@ -204,6 +221,20 @@ def _create_in_snuba(subscription):
         "time_window": snuba_query.time_window,
         "resolution": snuba_query.resolution,
     }
+
+    if Dataset(snuba_query.dataset) == Dataset.Sessions:
+        try:
+            org_id = Project.objects.get(id=subscription.project_id).organization_id
+        except Project.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        body.update(
+            {
+                "granularity": snuba_filter.rollup,
+                "organization": org_id,
+            }
+        )
+
     try:
         metrics.incr("snuba.snql.subscription.create", tags={"dataset": snuba_query.dataset})
         snql_query = json_to_snql(body, snuba_query.dataset)
