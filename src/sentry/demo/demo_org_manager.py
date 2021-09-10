@@ -15,10 +15,10 @@ from sentry.models import (
     OrganizationStatus,
     Project,
     ProjectKey,
+    ScheduledDeletion,
     Team,
     User,
 )
-from sentry.tasks.deletion import delete_organization
 from sentry.utils.email import create_fake_email
 
 from .data_population import DataPopulation, populate_org_members
@@ -92,7 +92,7 @@ def create_demo_org(quick=False) -> Organization:
                 # delete the organization if data population fails
                 org.status = OrganizationStatus.PENDING_DELETION
                 org.save()
-                delete_organization.apply_async(kwargs={"object_id": org.id})
+                ScheduledDeletion.schedule(org, days=0)
                 raise
 
         # update the org status now that it's populated

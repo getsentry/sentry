@@ -4,9 +4,8 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.models import Organization, OrganizationStatus, User
+from sentry.models import Organization, OrganizationStatus, ScheduledDeletion, User
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.deletion import delete_organization
 
 from .demo_org_manager import create_demo_org
 from .models import DemoOrganization, DemoOrgStatus
@@ -45,7 +44,7 @@ def delete_users_orgs(**kwargs):
     for org in org_list:
         # apply async so if so we continue if one org aborts
         logger.info("delete_initializing_orgs.delete", extra={"organization_slug": org.slug})
-        delete_organization.apply_async(kwargs={"object_id": org.id})
+        ScheduledDeletion.schedule(org, days=0)
 
 
 @instrumented_task(
@@ -77,7 +76,7 @@ def delete_initializing_orgs(**kwargs):
     for org in org_list:
         # apply async so if so we continue if one org aborts
         logger.info("delete_initializing_orgs.delete", extra={"organization_slug": org.slug})
-        delete_organization.apply_async(kwargs={"object_id": org.id})
+        ScheduledDeletion.schedule(org, days=0)
 
     # build up the org buffer at the end to replace the orgs being removed
     build_up_org_buffer()
