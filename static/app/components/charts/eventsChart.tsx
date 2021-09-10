@@ -38,10 +38,10 @@ type ChartProps = {
     xAxis?: EChartOption.XAxis;
     yAxis?: EChartOption.YAxis;
   };
-  currentSeriesName?: string;
+  currentSeriesNames: string[];
   releaseSeries?: Series[];
+  previousSeriesNames: string[];
   previousTimeseriesData?: Series | null;
-  previousSeriesName?: string;
   /**
    * A callback to allow for post-processing of the series data.
    * Can be used to rename series or even insert a new series.
@@ -157,8 +157,8 @@ class Chart extends React.Component<ChartProps, State> {
       showLegend,
       legendOptions,
       chartOptions: chartOptionsProp,
-      currentSeriesName,
-      previousSeriesName,
+      currentSeriesNames,
+      previousSeriesNames,
       seriesTransformer,
       previousSeriesTransformer,
       colors,
@@ -168,7 +168,10 @@ class Chart extends React.Component<ChartProps, State> {
     } = this.props;
     const {seriesSelection} = this.state;
 
-    const data = [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous')];
+    const data = [
+      ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
+      ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')]),
+    ];
 
     const releasesLegend = t('Releases');
     if (Array.isArray(releaseSeries)) {
@@ -246,7 +249,6 @@ class Chart extends React.Component<ChartProps, State> {
     };
 
     const Component = this.getChartComponent();
-
     return (
       <Component
         {...props}
@@ -283,7 +285,7 @@ export type EventsChartProps = {
   /**
    * The aggregate/metric to plot.
    */
-  yAxis: string;
+  yAxis: string[];
   /**
    * Relative datetime expression. eg. 14d
    */
@@ -352,10 +354,16 @@ export type EventsChartProps = {
    * Whether or not to zerofill results
    */
   withoutZerofill?: boolean;
+  /**
+   * Name of the series
+   */
+  currentSeriesName?: string;
+  /**
+   * Name of the previous series
+   */
+  previousSeriesName?: string;
 } & Pick<
   ChartProps,
-  | 'currentSeriesName'
-  | 'previousSeriesName'
   | 'seriesTransformer'
   | 'previousSeriesTransformer'
   | 'showLegend'
@@ -422,16 +430,22 @@ class EventsChart extends React.Component<EventsChartProps> {
       withoutZerofill,
       ...props
     } = this.props;
+
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !disablePrevious && !start && !end;
 
-    let yAxisLabel = yAxis && isEquation(yAxis) ? getEquation(yAxis) : yAxis;
-    if (yAxisLabel && yAxisLabel.length > 60) {
-      yAxisLabel = yAxisLabel.substr(0, 60) + '...';
-    }
-    const previousSeriesName =
-      previousName ?? (yAxisLabel ? t('previous %s', yAxisLabel) : undefined);
-    const currentSeriesName = currentName ?? yAxisLabel;
+    const yAxisSeriesNames = yAxis.map(name => {
+      let yAxisLabel = name && isEquation(name) ? getEquation(name) : name;
+      if (yAxisLabel && yAxisLabel.length > 60) {
+        yAxisLabel = yAxisLabel.substr(0, 60) + '...';
+      }
+      return yAxisLabel;
+    });
+
+    const previousSeriesName = previousName
+      ? [previousName]
+      : yAxisSeriesNames.map(name => t('previous %s', name));
+    const currentSeriesName = currentName ? [currentName] : yAxisSeriesNames;
 
     const intervalVal = showDaily ? '1d' : interval || getInterval(this.props, 'high');
 
@@ -473,12 +487,12 @@ class EventsChart extends React.Component<EventsChartProps> {
             releaseSeries={releaseSeries || []}
             timeseriesData={seriesData ?? []}
             previousTimeseriesData={previousTimeseriesData}
-            currentSeriesName={currentSeriesName}
-            previousSeriesName={previousSeriesName}
+            currentSeriesNames={currentSeriesName}
+            previousSeriesNames={previousSeriesName}
             seriesTransformer={seriesTransformer}
             previousSeriesTransformer={previousSeriesTransformer}
             stacked={this.isStacked()}
-            yAxis={yAxis}
+            yAxis={yAxis[0]}
             showDaily={showDaily}
             colors={colors}
             legendOptions={legendOptions}
@@ -533,8 +547,9 @@ class EventsChart extends React.Component<EventsChartProps> {
             interval={intervalVal}
             query={query}
             includePrevious={includePrevious}
-            currentSeriesName={currentSeriesName}
-            previousSeriesName={previousSeriesName}
+            // TODO
+            currentSeriesName={currentSeriesName[0]}
+            previousSeriesName={previousSeriesName[0]}
             yAxis={yAxis}
             field={field}
             orderby={orderby}
@@ -544,12 +559,12 @@ class EventsChart extends React.Component<EventsChartProps> {
             // Cannot do interpolation when stacking series
             withoutZerofill={withoutZerofill && !this.isStacked()}
           >
-            {eventData =>
-              chartImplementation({
+            {eventData => {
+              return chartImplementation({
                 ...eventData,
                 zoomRenderProps,
-              })
-            }
+              });
+            }}
           </EventsRequest>
         )}
       </ChartZoom>

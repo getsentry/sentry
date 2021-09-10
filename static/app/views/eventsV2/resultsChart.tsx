@@ -10,6 +10,7 @@ import EventsChart from 'app/components/charts/eventsChart';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
+import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
@@ -27,6 +28,7 @@ type ResultsChartProps = {
   eventView: EventView;
   location: Location;
   confirmedQuery: boolean;
+  yAxisValue: string[];
 };
 
 class ResultsChart extends Component<ResultsChartProps> {
@@ -42,13 +44,12 @@ class ResultsChart extends Component<ResultsChartProps> {
   }
 
   render() {
-    const {api, eventView, location, organization, router, confirmedQuery} = this.props;
+    const {api, eventView, location, organization, router, confirmedQuery, yAxisValue} =
+      this.props;
 
     const hasPerformanceChartInterpolation = organization.features.includes(
       'performance-chart-interpolation'
     );
-
-    const yAxisValue = eventView.getYAxis();
 
     const globalSelection = eventView.getGlobalSelection();
     const start = globalSelection.datetime.start
@@ -148,18 +149,38 @@ class ResultsChartContainer extends Component<ContainerProps> {
     } = this.props;
 
     const hasQueryFeature = organization.features.includes('discover-query');
-    const displayOptions = eventView.getDisplayOptions().filter(opt => {
-      // top5 modes are only available with larger packages in saas.
-      // We remove instead of disable here as showing tooltips in dropdown
-      // menus is clunky.
-      if (
-        [DisplayModes.TOP5, DisplayModes.DAILYTOP5].includes(opt.value as DisplayModes) &&
-        !hasQueryFeature
-      ) {
-        return false;
-      }
-      return true;
-    });
+    const displayOptions = eventView
+      .getDisplayOptions()
+      .filter(opt => {
+        // top5 modes are only available with larger packages in saas.
+        // We remove instead of disable here as showing tooltips in dropdown
+        // menus is clunky.
+        if (
+          [DisplayModes.TOP5, DisplayModes.DAILYTOP5].includes(
+            opt.value as DisplayModes
+          ) &&
+          !hasQueryFeature
+        ) {
+          return false;
+        }
+        return true;
+      })
+      .map(opt => {
+        // Can only use default display or total daily with multi y axis
+        if (
+          yAxis.length > 1 &&
+          ![DisplayModes.DEFAULT, DisplayModes.DAILY].includes(opt.value as DisplayModes)
+        ) {
+          return {
+            ...opt,
+            disabled: true,
+            tooltip: t(
+              'Change the Y-Axis dropdown to display only 1 field to use this view.'
+            ),
+          };
+        }
+        return opt;
+      });
 
     return (
       <StyledPanel>
@@ -170,6 +191,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
           organization={organization}
           router={router}
           confirmedQuery={confirmedQuery}
+          yAxisValue={yAxis}
         />
         <Feature
           organization={organization}

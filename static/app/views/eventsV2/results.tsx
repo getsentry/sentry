@@ -32,7 +32,7 @@ import {defined, generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
-import {CHART_AXIS_OPTIONS} from 'app/utils/discover/types';
+import {CHART_AXIS_OPTIONS, DisplayModes} from 'app/utils/discover/types';
 import localStorage from 'app/utils/localStorage';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
@@ -290,10 +290,19 @@ class Results extends React.Component<Props, State> {
 
   handleYAxisChange = (value: string[]) => {
     const {router, location} = this.props;
+    const isDisplayMultiYAxisSupported = [
+      DisplayModes.DEFAULT,
+      DisplayModes.DAILY,
+    ].includes(location.query.display as DisplayModes);
 
     const newQuery = {
       ...location.query,
       yAxis: value,
+      // If using Multi Y-axis and not in a supported display, change to the default display mode
+      display:
+        value.length > 1 && !isDisplayMultiYAxisSupported
+          ? DisplayModes.DEFAULT
+          : location.query.display,
     };
 
     router.push({
