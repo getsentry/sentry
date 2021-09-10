@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunSQL(
             """
-                DROP TABLE "jira_ac_tenant";
+                DROP TABLE IF EXISTS "jira_ac_tenant";
                 """,
             hints={"tables": ["jira_ac_tenant"]},
             reverse_sql="CREATE TABLE jira_ac_tenant (fake_col int)",
