@@ -432,7 +432,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
     ```json
     {
         "appstoreCredentialsValid": true,
-        "itunesSessionValid": true,
         "promptItunesSession": false,
         "pendingDownloads": 123,
         "latestBuildVersion: "9.8.7" | null,
@@ -513,7 +512,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
         return Response(
             {
                 "appstoreCredentialsValid": apps is not None,
-                "itunesSessionValid": itunes_session_info is not None,
                 "pendingDownloads": pending_downloads,
                 "latestBuildVersion": latestBuildVersion,
                 "latestBuildNumber": latestBuildNumber,
