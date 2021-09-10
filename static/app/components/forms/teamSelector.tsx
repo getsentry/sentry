@@ -2,7 +2,6 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addTeamToProject} from 'app/actionCreators/projects';
-import {Client} from 'app/api';
 import Button from 'app/components/button';
 import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
 import {IconAdd, IconUser} from 'app/icons';
@@ -52,7 +51,6 @@ const unassignedSelectStyles = {
 };
 
 type Props = {
-  api: Client;
   organization: Organization;
   teams: Team[];
   onChange: (value: any) => any;
@@ -195,7 +193,7 @@ function TeamSelector(props: Props) {
     };
   }
 
-  function getInitaliOptions() {
+  function getInitialOptions() {
     const filteredTeams = teamFilter ? teams.filter(teamFilter) : teams;
 
     if (project) {
@@ -221,15 +219,15 @@ function TeamSelector(props: Props) {
   }
 
   // XXX: Are the dependencies for this hook correct?
-  useEffect(() => void setOptions(getInitaliOptions()), []);
+  useEffect(() => void setOptions(getInitialOptions()), []);
 
   return (
     <SelectControl
       ref={selectRef}
       options={options}
-      isOptionDisabled={option => option.disabled}
+      isOptionDisabled={option => !!option.disabled}
       styles={{
-        styles,
+        ...(styles ?? {}),
         ...(includeUnassigned ? unassignedSelectStyles : {}),
       }}
       {...extraProps}
