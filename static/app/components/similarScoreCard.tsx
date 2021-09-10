@@ -17,11 +17,13 @@ const scoreComponents = {
   'similarity:*:message:character-5-shingle': t('Log Message'),
 };
 
+type ScoreValue = number | null;
+
 type Props = {
   // we treat the score list keys as opaque as we wish to be able to extend the
   // backend without having to fix UI. Keys not in scoreComponents are grouped
   // into Other anyway
-  scoreList?: [string, number | null][];
+  scoreList?: [string, ScoreValue][];
 };
 
 const SimilarScoreCard = ({scoreList = []}: Props) => {
@@ -70,7 +72,7 @@ const Wrapper = styled('div')`
   margin: ${space(0.25)} 0;
 `;
 
-const Score = styled('div')<{score: Score}>`
+const Score = styled('div')<{score: ScoreValue}>`
   height: 16px;
   width: 48px;
   border-radius: 2px;
