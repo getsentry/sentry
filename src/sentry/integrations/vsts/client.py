@@ -241,7 +241,9 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):  # type: ignore
             return {"stateFilter": "WellFormed", "$skip": offset, "$top": page_size}
 
         def get_results(resp: Response) -> Sequence[Any]:
-            return resp["value"]  # type: ignore
+            # Explicitly typing to satisfy mypy.
+            results: Sequence[Any] = resp["value"]
+            return results
 
         return self.get_with_pagination(
             VstsApiPath.projects.format(instance=instance),
