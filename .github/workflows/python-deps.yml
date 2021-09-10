@@ -29,7 +29,8 @@ jobs:
 
       - name: Install prerequisites
         run: |
-          brew info libxmlsec1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install libxmlsec1 || brew install libxmlsec1
+          # Needed for xmlsec
+          brew install libxml2 libxmlsec1 pkg-config
 
       - name: Setup Python
         uses: ./.github/actions/setup-python
