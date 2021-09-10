@@ -5,7 +5,7 @@ from sentry.testutils import APITestCase
 
 
 class ProjectTransactionThresholdTest(APITestCase):
-    feature_name = "organizations:project-transaction-threshold"
+    feature_name = "organizations:performance-view"
 
     def setUp(self) -> None:
         super().setUp()
