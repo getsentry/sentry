@@ -289,6 +289,16 @@ class KafkaEventStream(SnubaProtocolEventStream):
                         with self.sampled_eventstream_timer(
                             instance="dispatch_post_process_group_task"
                         ):
+                            if task_kwargs["group_id"] is None:
+                                metrics.incr(
+                                    "eventstream.messages",
+                                    tags={"partition": message.partition(), "type": "transactions"},
+                                )
+                            else:
+                                metrics.incr(
+                                    "eventstream.messages",
+                                    tags={"partition": message.partition(), "type": "errors"},
+                                )
                             self._dispatch_post_process_group_task(**task_kwargs)
 
                 except Exception as error:
@@ -311,6 +321,16 @@ class KafkaEventStream(SnubaProtocolEventStream):
             task_kwargs = get_task_kwargs_for_message(message.value())
 
         if task_kwargs is not None:
+            if task_kwargs["group_id"] is None:
+                metrics.incr(
+                    "eventstream.messages",
+                    tags={"partition": message.partition(), "type": "transactions"},
+                )
+            else:
+                metrics.incr(
+                    "eventstream.messages",
+                    tags={"partition": message.partition(), "type": "errors"},
+                )
             with metrics.timer("eventstream.duration", instance="dispatch_post_process_group_task"):
                 self._dispatch_post_process_group_task(**task_kwargs)
 

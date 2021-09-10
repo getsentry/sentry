@@ -1,8 +1,9 @@
 from base64 import b64encode
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import dateutil
 from django.core import mail
+from django.utils import timezone
 from pytz import UTC
 
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
@@ -18,12 +19,12 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
+    ScheduledDeletion,
 )
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.signals import project_created
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 # some relay keys
 _VALID_RELAY_KEYS = [
@@ -699,10 +700,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
 
-    @patch("sentry.api.endpoints.organization_details.uuid4")
-    @patch("sentry.api.endpoints.organization_details.delete_organization")
-    def test_can_remove_as_owner(self, mock_delete_organization, mock_uuid4):
-        mock_uuid4.return_value = self.get_mock_uuid()
+    def test_can_remove_as_owner(self):
 
         owners = self.organization.get_owners()
         assert len(owners) > 0
@@ -717,8 +715,9 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         deleted_org = DeletedOrganization.objects.get(slug=org.slug)
         self.assert_valid_deleted_log(deleted_org, org)
 
-        data = {"object_id": org.id, "transaction_id": "abc123", "actor_id": self.user.id}
-        mock_delete_organization.apply_async.assert_called_once_with(kwargs=data, countdown=86400)
+        schedule = ScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
+        # Delay is 24 hours but to avoid wobbling microseconds we compare with 23 hours.
+        assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 
         # Make sure we've emailed all owners
         assert len(mail.outbox) == len(owners)
