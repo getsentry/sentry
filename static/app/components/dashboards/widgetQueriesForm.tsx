@@ -179,9 +179,6 @@ class WidgetQueriesForm extends React.Component<Props> {
               onChange={(option: SelectValue<string>) =>
                 this.handleFieldChange(0, 'orderby')(option.value)
               }
-              onSelectResetsInput={false}
-              onCloseResetsInput={false}
-              onBlurResetsInput={false}
             />
           </Field>
         )}

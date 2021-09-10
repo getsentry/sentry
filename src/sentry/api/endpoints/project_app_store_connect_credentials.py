@@ -59,7 +59,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, projectoptions
+from sentry import features
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.api.exceptions import (
     AppConnectAuthenticationError,
@@ -432,7 +432,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
     ```json
     {
         "appstoreCredentialsValid": true,
-        "itunesSessionValid": true,
         "promptItunesSession": false,
         "pendingDownloads": 123,
         "latestBuildVersion: "9.8.7" | null,
@@ -499,12 +498,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
             latestBuildVersion = latest_build.bundle_short_version
             latestBuildNumber = latest_build.bundle_version
 
-        # All existing usages of this option are internal, so it's fine if we don't carry these over
-        # to the table
-        # TODO: Clean this up by App Store Connect GA
-        if projectoptions.isset(project, appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION):
-            project.delete_option(appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION)
-
         try:
             check_entry = LatestAppConnectBuildsCheck.objects.get(
                 project=project, source_id=symbol_source_cfg.id
@@ -519,7 +512,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
         return Response(
             {
                 "appstoreCredentialsValid": apps is not None,
-                "itunesSessionValid": itunes_session_info is not None,
                 "pendingDownloads": pending_downloads,
                 "latestBuildVersion": latestBuildVersion,
                 "latestBuildNumber": latestBuildNumber,

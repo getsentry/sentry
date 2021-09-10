@@ -73,7 +73,7 @@ class ThresholdControl extends React.Component<Props, State> {
     this.setState({currentValue: null});
   };
 
-  handleTypeChange = ({value}, _) => {
+  handleTypeChange = ({value}) => {
     const {onThresholdTypeChange} = this.props;
     onThresholdTypeChange(value);
   };
@@ -108,7 +108,7 @@ class ThresholdControl extends React.Component<Props, State> {
             {value: AlertRuleThresholdType.BELOW, label: t('Below')},
             {value: AlertRuleThresholdType.ABOVE, label: t('Above')},
           ]}
-          components={disableThresholdType ? {DropdownIndicator: null} : null}
+          components={disableThresholdType ? {DropdownIndicator: null} : undefined}
           styles={
             disableThresholdType
               ? {
@@ -118,7 +118,7 @@ class ThresholdControl extends React.Component<Props, State> {
                     pointerEvents: 'auto',
                   }),
                 }
-              : null
+              : undefined
           }
           onChange={this.handleTypeChange}
         />
