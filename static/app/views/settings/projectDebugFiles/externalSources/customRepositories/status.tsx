@@ -26,12 +26,12 @@ function Status({theme, details, onEditRepository, onRevalidateItunesSession}: P
 
   const {
     pendingDownloads,
-    itunesSessionValid,
+    promptItunesSession,
     appstoreCredentialsValid,
     lastCheckedBuilds,
   } = details ?? {};
 
-  if (itunesSessionValid === false) {
+  if (promptItunesSession) {
     return (
       <Wrapper color={theme.red300} onClick={onRevalidateItunesSession}>
         <StyledTooltip
