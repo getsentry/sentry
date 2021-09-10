@@ -35,8 +35,8 @@ describe('ErrorRobot', function () {
 
     it('Renders a button for creating an event', function () {
       const wrapper = createWrapper();
-      const button = wrapper.getByText('Create a sample event').parentElement;
-      expect(button).not.toHaveAttribute('disabled');
+      const button = wrapper.getByRole('button', {name: 'Create a sample event'});
+      expect(button).not.toBeDisabled();
       expect(getIssues).toHaveBeenCalled();
     });
 
@@ -59,8 +59,8 @@ describe('ErrorRobot', function () {
 
     it('Renders a disabled create event button', function () {
       const wrapper = createWrapper();
-      const button = wrapper.getByText('Create a sample event').parentElement;
-      expect(button).toHaveAttribute('disabled');
+      const button = wrapper.getByRole('button', {name: 'Create a sample event'});
+      expect(button).toBeDisabled();
       expect(getIssues).toHaveBeenCalledTimes(0);
     });
 
