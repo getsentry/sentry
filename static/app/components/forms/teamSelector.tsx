@@ -253,4 +253,7 @@ const AddToProjectButton = styled(Button)`
 
 export {TeamSelector};
 
-export default withTeams(withOrganization(TeamSelector));
+// TODO(davidenwang): this is broken due to incorrect types on react-select
+export default withTeams(withOrganization(TeamSelector)) as unknown as (
+  p: Omit<Props, 'teams' | 'organization'>
+) => JSX.Element;

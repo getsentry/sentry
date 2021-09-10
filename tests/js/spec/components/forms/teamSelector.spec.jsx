@@ -1,4 +1,4 @@
-import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {act, fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import {addTeamToProject} from 'app/actionCreators/projects';
 import {TeamSelector} from 'app/components/forms/teamSelector';
@@ -115,8 +115,12 @@ describe('Team Selector', function () {
     // team2 and team3 should have add to project buttons
     const addToProjectButtons = wrapper.getAllByRole('button');
 
-    // add team2 to project
-    fireEvent.click(addToProjectButtons[0]);
+    await act(async () => {
+      // add team2 to project
+      fireEvent.click(addToProjectButtons[0]);
+      await tick();
+    });
+
     expect(addTeamToProject).toHaveBeenCalled();
   });
 });
