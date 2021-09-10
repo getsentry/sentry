@@ -210,13 +210,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        with self.feature(
-            (
-                "organizations:performance-view",
-                "organizations:project-transaction-threshold-override",
-                "organizations:project-transaction-threshold",
-            )
-        ):
+        with self.feature(FEATURE_NAMES):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
             # This test is flakey in that we sometimes load this page before the event is processed
