@@ -257,7 +257,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     logger = logging.getLogger("sentry.search.postgressnuba")
     dependency_aggregations = {"priority": ["last_seen", "times_seen"]}
     postgres_only_fields = {
-        "query",
         "status",
         "for_review",
         "assigned_or_suggested",
