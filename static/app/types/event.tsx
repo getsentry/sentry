@@ -176,7 +176,7 @@ type EventBase = {
   eventID: string;
   title: string;
   culprit: string;
-  dateCreated: string;
+  dateCreated?: string;
   dist: string | null;
   metadata: EventMetadata;
   contexts: EventContexts;
@@ -203,7 +203,7 @@ type EventBase = {
   device?: Record<string, any>;
   packages?: Record<string, string>;
   platform?: PlatformType;
-  dateReceived?: string;
+  dateReceived: string;
   endTimestamp?: number;
   userReport?: any;
   sdk?: {
