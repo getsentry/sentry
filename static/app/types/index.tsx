@@ -275,6 +275,7 @@ export type Project = {
   isInternal: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
+  hasSessions: boolean;
   firstEvent: 'string' | null;
   firstTransactionEvent: boolean;
   subjectTemplate: string;
