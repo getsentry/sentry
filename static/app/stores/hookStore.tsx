@@ -76,6 +76,7 @@ const validHookNames = new Set<HookName>([
   'sidebar:item-override',
   'sidebar:organization-dropdown-menu',
   'sidebar:organization-dropdown-menu-bottom',
+  'button:open-in-discover',
 ]);
 
 type HookStoreInterface = {

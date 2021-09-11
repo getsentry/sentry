@@ -15,6 +15,7 @@ import ActionButton from 'app/components/actions/button';
 import IgnoreActions from 'app/components/actions/ignore';
 import ResolveActions from 'app/components/actions/resolve';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Hook from 'app/components/hook';
 import Tooltip from 'app/components/tooltip';
 import {IconStar} from 'app/icons';
 import {IconRefresh} from 'app/icons/iconRefresh';
@@ -276,10 +277,12 @@ class Actions extends React.Component<Props, State> {
           />
         )}
 
-        {orgFeatures.has('discover-basic') && (
+        {orgFeatures.has('discover-basic') ? (
           <ActionButton disabled={disabled} to={disabled ? '' : this.getDiscoverUrl()}>
             <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>
+        ) : (
+          <Hook name="button:open-in-discover" organization={organization} />
         )}
 
         <BookmarkButton

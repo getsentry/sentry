@@ -162,6 +162,7 @@ export type InterfaceChromeHooks = {
   'sidebar:item-label': SidebarItemLabelHook;
   'sidebar:item-override': SidebarItemOverrideHook;
   'help-modal:footer': HelpModalFooterHook;
+  'button:open-in-discover': GenericOrganizationComponentHook;
 };
 
 /**
