@@ -145,9 +145,22 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def requires_post_process_forwarder(self):
         return True
 
-    def _reset_batch(self):
+    def reset_batch(self) -> None:
         self._pending_futures = []
         self._batch_create_time = time.time() * 1000
+
+    @staticmethod
+    def compute_metrics(partition: int, task_kwargs: Mapping[str, Any]) -> None:
+        if task_kwargs["group_id"] is None:
+            metrics.incr(
+                "eventstream.messages",
+                tags={"partition": partition, "type": "transactions"},
+            )
+        else:
+            metrics.incr(
+                "eventstream.messages",
+                tags={"partition": partition, "type": "errors"},
+            )
 
     def run_post_process_forwarder(
         self,
@@ -160,7 +173,10 @@ class KafkaEventStream(SnubaProtocolEventStream):
     ):
         logger.debug("Starting post-process forwarder...")
         cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
-        executor = ThreadPoolExecutor()
+
+        current_concurrency = options.get("post-process-forwarder:concurrency")
+        logger.info(f"Starting post-process-forwarder with {current_concurrency} worker threads")
+        executor = ThreadPoolExecutor(max_workers=current_concurrency)
 
         consumer = SynchronizedConsumer(
             cluster_name=cluster_name,
@@ -261,6 +277,20 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 )
                 commit(offsets_to_commit)
 
+        def process_message(kafka_message: Message) -> None:
+            task_kwargs = self._get_task_kwargs(kafka_message)
+            if not task_kwargs:
+                return
+
+            self.compute_metrics(kafka_message.partition(), task_kwargs)
+            self._pending_futures.append(
+                executor.submit(self._dispatch_post_process_group_task, **task_kwargs)
+            )
+
+        def collect_results() -> None:
+            wait(self._pending_futures)
+            self.reset_batch()
+
         shutdown_requested = False
 
         def handle_shutdown_request(signum: int, frame: Any) -> None:
@@ -268,83 +298,18 @@ class KafkaEventStream(SnubaProtocolEventStream):
             logger.debug("Received signal %r, requesting shutdown...", signum)
             shutdown_requested = True
 
-        def process_message(kafka_message: Message) -> None:
-            task_kwargs = self._get_task_kwargs(kafka_message)
-            if not task_kwargs:
-                return
-
-            self._pending_futures.append(
-                executor.submit(self._dispatch_post_process_group_task, **task_kwargs)
-            )
-
-        def collect_results() -> None:
-            # Wait for all futures to complete and reset the batch
-            wait(self._pending_futures)
-            self._reset_batch()
-
         signal.signal(signal.SIGINT, handle_shutdown_request)
         signal.signal(signal.SIGTERM, handle_shutdown_request)
 
-        def run_single_threaded_loop() -> None:
-            nonlocal shutdown_requested
-            i = 0
-            while not shutdown_requested:
-                message = consumer.poll(0.1)
-                if message is None:
-                    continue
-
-                error = message.error()
-                if error is not None:
-                    raise Exception(error)
-
-                key = (message.topic(), message.partition())
-                if key not in owned_partition_offsets:
-                    logger.warning("Skipping message for unowned partition: %r", key)
-                    continue
-
-                i = i + 1
-                owned_partition_offsets[key] = message.offset() + 1
-
-                use_kafka_headers = options.get("post-process-forwarder:kafka-headers")
-
-                if use_kafka_headers is True:
-                    try:
-                        with self.sampled_eventstream_timer(
-                            instance="get_task_kwargs_for_message_from_headers"
-                        ):
-                            task_kwargs = get_task_kwargs_for_message_from_headers(
-                                message.headers()
-                            )
-                            if task_kwargs["group_id"] is None:
-                                metrics.incr(
-                                    "eventstream.messages",
-                                    tags={"partition": message.partition(), "type": "transactions"},
-                                )
-                            else:
-                                metrics.incr(
-                                    "eventstream.messages",
-                                    tags={"partition": message.partition(), "type": "errors"},
-                                )
-                            self._dispatch_post_process_group_task(**task_kwargs)
-
-                        if task_kwargs is not None:
-                            with self.sampled_eventstream_timer(
-                                instance="dispatch_post_process_group_task"
-                            ):
-                                self._dispatch_post_process_group_task(**task_kwargs)
-
-                    except Exception as error:
-                        logger.error("Could not forward message: %s", error, exc_info=True)
-                        self._get_task_kwargs_and_dispatch(message)
-
-                else:
-                    self._get_task_kwargs_and_dispatch(message)
-
-                if i % commit_batch_size == 0:
-                    commit_offsets()
-                    return
-
-        def run_multithreaded_loop() -> None:
+        def run_processing_loop() -> None:
+            """
+            Runs the processing loop of the post process forwarder. The loop runs until one of the following events
+            happens:
+            1. Commit batch size is reached
+            2. Commit batch timeout is reached.
+            When either of those events occur, we wait for all pending work to complete and then commit the offsets
+            to kafka.
+            """
             nonlocal shutdown_requested
             i = 0
             while not shutdown_requested:
@@ -373,14 +338,19 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 owned_partition_offsets[key] = message.offset() + 1
                 process_message(message)
 
-        while True:
-            if shutdown_requested:
-                break
+        # The main loop of the function. It will run until shutdown is requested.
+        # There is an option provided which can switch the number of threads used.
+        # We don't want to switch while running inside the implementation loop since
+        # that would increase code complexity.
+        while not shutdown_requested:
+            new_concurrency = options.get("post-process-forwarder:concurrency")
+            if new_concurrency != current_concurrency:
+                logger.info(f"Switching post-process-forwarder to {new_concurrency} worker threads")
+                executor.shutdown(wait=True)
+                executor = ThreadPoolExecutor(max_workers=new_concurrency)
+                current_concurrency = new_concurrency
 
-            if options.get("post-porcess-forwarder:use-threads"):
-                run_multithreaded_loop()
-            else:
-                run_single_threaded_loop()
+            run_processing_loop()
 
         logger.debug("Committing offsets and closing consumer...")
         if self._pending_futures:
@@ -405,24 +375,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         else:
             with metrics.timer(__DURATION_METRIC__, instance="get_task_kwargs_for_message"):
                 return get_task_kwargs_for_message(message.value())
-
-    def _get_task_kwargs_and_dispatch(self, message) -> None:
-        with metrics.timer("eventstream.duration", instance="get_task_kwargs_for_message"):
-            task_kwargs = get_task_kwargs_for_message(message.value())
-
-        if task_kwargs is not None:
-            if task_kwargs["group_id"] is None:
-                metrics.incr(
-                    "eventstream.messages",
-                    tags={"partition": message.partition(), "type": "transactions"},
-                )
-            else:
-                metrics.incr(
-                    "eventstream.messages",
-                    tags={"partition": message.partition(), "type": "errors"},
-                )
-            with metrics.timer("eventstream.duration", instance="dispatch_post_process_group_task"):
-                self._dispatch_post_process_group_task(**task_kwargs)
 
     @contextmanager
     def sampled_eventstream_timer(self, instance: str) -> Generator[None, None, None]:
