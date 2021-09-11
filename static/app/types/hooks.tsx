@@ -162,7 +162,7 @@ export type InterfaceChromeHooks = {
   'sidebar:item-label': SidebarItemLabelHook;
   'sidebar:item-override': SidebarItemOverrideHook;
   'help-modal:footer': HelpModalFooterHook;
-  'button:open-in-discover': GenericOrganizationComponentHook;
+  'button:open-in-discover': GenericButtonComponentHook;
 };
 
 /**
@@ -197,6 +197,14 @@ type RoutesHook = () => Route[];
  */
 type GenericOrganizationComponentHook = (opts: {
   organization: Organization;
+}) => React.ReactNode;
+
+/**
+ * A hook for a generic button component
+ */
+type GenericButtonComponentHook = (opts: {
+  organization: Organization;
+  disabled: boolean;
 }) => React.ReactNode;
 
 // TODO(ts): We should correct the organization header hook to conform to the

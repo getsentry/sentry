@@ -282,7 +282,11 @@ class Actions extends React.Component<Props, State> {
             <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>
         ) : (
-          <Hook name="button:open-in-discover" organization={organization} />
+          <Hook
+            name="button:open-in-discover"
+            organization={organization}
+            disabled={disabled}
+          />
         )}
 
         <BookmarkButton
