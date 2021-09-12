@@ -316,7 +316,7 @@ def cron(**options):
     "--commit-batch-timeout-ms",
     default=1000,
     type=int,
-    help="How much time to wait before committing offsets.",
+    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
 )
 @click.option(
     "--initial-offset-reset",

@@ -18,7 +18,6 @@ from sentry.eventstream.kafka.protocol import (
 )
 from sentry.eventstream.snuba import SnubaProtocolEventStream
 from sentry.utils import json, kafka, metrics
-from sentry.utils.types import Float
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +29,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options):
         self.topic = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["topic"]
         self._pending_futures: MutableSequence[Future] = []
-        self._batch_create_time: Float = time.time() * 1000
+        self._batch_create_time_ms: int = int(time.time() * 1000)
 
     @cached_property
     def producer(self):
@@ -146,8 +145,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
         return True
 
     def reset_batch(self) -> None:
-        self._pending_futures = []
-        self._batch_create_time = time.time() * 1000
+        self._pending_futures.clear()
+        self._batch_create_time_ms = int(time.time() * 1000)
 
     @staticmethod
     def compute_metrics(partition: int, task_kwargs: Mapping[str, Any]) -> None:
@@ -315,7 +314,10 @@ class KafkaEventStream(SnubaProtocolEventStream):
             while not shutdown_requested:
                 if self._pending_futures and (
                     (i % commit_batch_size == 0)
-                    or (((time.time() * 1000) - self._batch_create_time) >= commit_batch_timeout_ms)
+                    or (
+                        (int(time.time() * 1000) - self._batch_create_time_ms)
+                        >= commit_batch_timeout_ms
+                    )
                 ):
                     collect_results()
                     commit_offsets()

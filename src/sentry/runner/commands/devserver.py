@@ -14,6 +14,7 @@ _DEFAULT_DAEMONS = {
         "run",
         "post-process-forwarder",
         "--loglevel=debug",
+        "--commit-batch-size=1",
     ],
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
     "server": ["sentry", "run", "web"],
