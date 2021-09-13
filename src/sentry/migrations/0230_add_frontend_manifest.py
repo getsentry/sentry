@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
     atomic = True
 
     dependencies = [
-        ("sentry", "0228_update_auditlog_index_with_entry"),
+        ("sentry", "0229_drop_jiratenant"),
     ]
 
     operations = [
