@@ -559,6 +559,8 @@ class SnubaResultConverter:
         for op, metric in query_definition.fields.values():
             ops_by_metric.setdefault(metric, []).append(op)
 
+        self._timestamp_index = {timestamp: index for index, timestamp in enumerate(intervals)}
+
     def _parse_tag(self, tag_string: str) -> str:
         tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
         return indexer.reverse_resolve(self._project_id, UseCase.TAG_KEY, tag_key)
@@ -573,38 +575,30 @@ class SnubaResultConverter:
             tags,
             {
                 "totals": {},
-                "series": {
-                    interval: {f"{op}({metric_name})": _DEFAULT_AGGREGATES[op] for op in ops}
-                    for interval in self._intervals
-                },
+                "series": {},
             },
         )
 
-        # If this is time series data, add it to the appropriate series.
-        # Else, add to totals
         timestamp = data.pop(TS_COL_GROUP, None)
-        if timestamp is None:
-            target = tag_data["totals"]
-        else:
-            target = tag_data["series"][timestamp]
 
         for op in ops:
+            key = f"{op}({metric_name})"
+            series = tag_data["series"].setdefault(
+                key, len(self._intervals) * [_DEFAULT_AGGREGATES[op]]
+            )
+
             field = _OP_TO_FIELD[entity][op]
             value = data[field]
             if field == "percentiles":
                 value = value[Percentile[op].value]
 
-            target[f"{op}({metric_name})"] = finite_or_none(value)
-
-    def _transform_series(self, groups):
-        for data in groups:
-            series = data["series"]
-            new_series = {}
-            for timestamp in sorted(series.keys()):
-                for key, value in series[timestamp].items():
-                    new_series.setdefault(key, []).append(value)
-
-            data["series"] = new_series
+            # If this is time series data, add it to the appropriate series.
+            # Else, add to totals
+            if timestamp is None:
+                tag_data["totals"][key] = finite_or_none(value)
+            else:
+                series_index = self._timestamp_index[timestamp]
+                series[series_index] = finite_or_none(value)
 
     def translate_results(self):
         groups = {}
@@ -632,8 +626,6 @@ class SnubaResultConverter:
             )
             for tags, data in groups.items()
         ]
-
-        self._transform_series(groups)
 
         return groups
 
