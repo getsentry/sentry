@@ -55,6 +55,7 @@ class QuerySubscriptionConsumer:
     topic_to_dataset: Dict[str, QueryDatasets] = {
         settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: QueryDatasets.EVENTS,
         settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: QueryDatasets.TRANSACTIONS,
+        settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: QueryDatasets.SESSIONS,
     }
 
     def __init__(
