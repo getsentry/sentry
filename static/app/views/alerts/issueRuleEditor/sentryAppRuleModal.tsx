@@ -7,7 +7,7 @@ import SentryAppExternalForm, {
 } from 'app/views/organizationIntegrations/sentryAppExternalForm';
 
 type Props = ModalRenderProps & {
-  sentryAppInstallationId: string;
+  sentryAppInstallationUuid: string;
   appName: string;
   config: Config;
   action: 'create' | 'update';
@@ -16,13 +16,13 @@ type Props = ModalRenderProps & {
 
 class SentryAppRuleModal extends Component<Props> {
   render() {
-    const {Header, Body, sentryAppInstallationId, appName, config, action} = this.props;
+    const {Header, Body, sentryAppInstallationUuid, appName, config, action} = this.props;
     return (
       <Fragment>
         <Header closeButton>{tct('[name] Settings', {name: appName})}</Header>
         <Body>
           <SentryAppExternalForm
-            sentryAppInstallationId={sentryAppInstallationId}
+            sentryAppInstallationUuid={sentryAppInstallationUuid}
             appName={appName}
             element="alert-rule-action"
             config={config}

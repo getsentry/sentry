@@ -37,7 +37,7 @@ type State = Omit<Config, 'uri'> & {
 
 type Props = {
   api: Client;
-  sentryAppInstallationId: string;
+  sentryAppInstallationUuid: string;
   appName: string;
   config: Config;
   action: 'create' | 'update' | 'link';
@@ -97,15 +97,15 @@ export class SentryAppExternalForm extends Component<Props, State> {
       this.debouncedOptionLoad(field, input, resolve);
     });
 
-  getEndpoint() {
-    const {sentryAppInstallationId} = this.props;
+  getSubmitEndpoint() {
+    const {sentryAppInstallationUuid} = this.props;
     switch (this.props.element) {
       case 'alert-rule-action':
         // TODO(leander): Send request to the correct endpoint
         return '/404/';
       case 'issue-link':
       default:
-        return `/sentry-app-installations/${sentryAppInstallationId}/external-issue-actions/`;
+        return `/sentry-app-installations/${sentryAppInstallationUuid}/external-issue-actions/`;
     }
   }
 
@@ -139,7 +139,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
   );
 
   makeExternalRequest = async (field: FieldFromSchema, input: FieldValue) => {
-    const {extraRequestBody = {}, sentryAppInstallationId} = this.props;
+    const {extraRequestBody = {}, sentryAppInstallationUuid} = this.props;
     const query: {[key: string]: any} = {
       ...extraRequestBody,
       uri: field.uri,
@@ -156,7 +156,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     }
 
     const {choices} = await this.props.api.requestPromise(
-      `/sentry-app-installations/${sentryAppInstallationId}/external-requests/`,
+      `/sentry-app-installations/${sentryAppInstallationUuid}/external-requests/`,
       {
         query,
       }
@@ -307,19 +307,19 @@ export class SentryAppExternalForm extends Component<Props, State> {
   };
 
   render() {
-    const {sentryAppInstallationId, action} = this.props;
+    const {sentryAppInstallationUuid, action} = this.props;
 
     const requiredFields = this.state.required_fields || [];
     const optionalFields = this.state.optional_fields || [];
 
-    if (!sentryAppInstallationId) {
+    if (!sentryAppInstallationUuid) {
       return '';
     }
 
     return (
       <Form
         key={action}
-        apiEndpoint={this.getEndpoint()}
+        apiEndpoint={this.getSubmitEndpoint()}
         apiMethod="POST"
         onSubmitSuccess={this.props.onSubmitSuccess}
         onSubmitError={this.onSubmitError}

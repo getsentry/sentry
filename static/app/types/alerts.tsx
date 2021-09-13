@@ -37,6 +37,7 @@ export type IssueAlertRuleActionTemplate = {
   ticketType?: string;
   link?: string;
   uuid?: string;
+  sentryAppInstallationUuid?: string;
 };
 export type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
 
