@@ -20,9 +20,9 @@ class SpanGroupingConfig:
         # If there are hashes using the same grouping config stored
         # in the data, they should be reused. Otherwise, fall back to
         # generating new hashes using the data.
-        config = SpanGroupingResults.from_event(event_data)
-        if config is not None and config.id == self.id:
-            return config
+        results = SpanGroupingResults.from_event(event_data)
+        if results is not None and results.id == self.id:
+            return results
 
         spans = event_data.get("spans", [])
         results = self.strategy.execute(spans)

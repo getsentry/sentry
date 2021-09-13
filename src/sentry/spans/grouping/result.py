@@ -30,6 +30,6 @@ class SpanGroupingResults:
     def write_to_event(self, event_data: Any) -> None:
         for span in event_data.get("spans", []):
             span_normalized = self.results.get(span["span_id"])
-            if span_normalized:
+            if span_normalized is not None:
                 span["normalized"] = span_normalized
         event_data["span_grouping_config"] = {"id": self.id}
