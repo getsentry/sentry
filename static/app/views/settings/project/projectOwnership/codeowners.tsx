@@ -72,7 +72,6 @@ class CodeOwnersPanel extends Component<Props> {
             dateUpdated={dateUpdated}
             provider={provider}
             repoName={codeMapping?.repoName}
-            beta
             controls={[
               <Button
                 key="sync"

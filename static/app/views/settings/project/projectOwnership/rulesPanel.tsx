@@ -15,7 +15,6 @@ type Props = {
   dateUpdated: string | null;
   provider?: string;
   repoName?: string;
-  beta?: boolean;
   type: 'codeowners' | 'issueowners';
   placeholder?: string;
   controls?: React.ReactNode[];
@@ -54,7 +53,6 @@ class RulesPanel extends React.Component<Props, State> {
       repoName,
       placeholder,
       controls,
-      beta,
       ['data-test-id']: dataTestId,
     } = this.props;
     return (
@@ -65,7 +63,7 @@ class RulesPanel extends React.Component<Props, State> {
               {this.renderIcon(provider ?? '')}
               <Title>{this.renderTitle()}</Title>
               {repoName && <Repository>{`- ${repoName}`}</Repository>}
-              {beta && <FeatureBadge type="beta" />}
+              <FeatureBadge type="new" />
             </Container>,
             <Container key="control">
               <SyncDate>
