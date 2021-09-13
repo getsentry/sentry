@@ -216,7 +216,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
     const alertText = getAlertText(configurations);
     return (
-      <div>
+      <Fragment>
         {alertText && (
           <Alert type="warning" icon={<IconFlag size="sm" />}>
             {alertText}
@@ -236,7 +236,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
             />
           </InstallWrapper>
         ))}
-      </div>
+      </Fragment>
     );
   }
 }
