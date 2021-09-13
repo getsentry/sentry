@@ -384,10 +384,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             return self.empty_result
         elif len(group_ids) > max_candidates:
             # If the pre-filter query didn't include anything to significantly
-            # filter down the number of results (from 'first_release', 'query',
-            # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
-            # or 'subscribed_by') then it
-            # might have surpassed the `max_candidates`. In this case,
+            # filter down the number of results (from 'first_release', 'status',
+            # 'bookmarked_by', 'assigned_to', 'unassigned', or 'subscribed_by')
+            # then it might have surpassed the `max_candidates`. In this case,
             # we *don't* want to pass candidates down to Snuba, and instead we
             # want Snuba to do all the filtering/sorting it can and *then* apply
             # this queryset to the results from Snuba, which we call
