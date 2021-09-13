@@ -102,7 +102,7 @@ class TimesSeenField(Field):
             return Function("count()", [Column("times_seen")], "times_seen")
 
 
-class Dimension(SimpleGroupBy, ABC):  # type: ignore
+class Dimension(SimpleGroupBy, ABC):
     @abstractmethod
     def resolve_filter(self, raw_filter: Sequence[str]) -> List[DataCategory]:
         """
