@@ -79,6 +79,8 @@ instead of group deletion is:
 
 import hashlib
 import logging
+from dataclasses import dataclass
+from typing import Any, Dict, List
 
 import sentry_sdk
 from django.conf import settings
@@ -154,11 +156,15 @@ def backup_unprocessed_event(project, data):
     event_processing_store.store(dict(data), unprocessed=True)
 
 
-def reprocess_event(project_id, event_id, start_time):
+@dataclass
+class ReprocessableEvent:
+    event: Event
+    data: Dict[str, Any]
+    attachments: List[models.EventAttachment]
 
-    from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
+
+def pull_event_data(project_id, event_id) -> ReprocessableEvent:
     from sentry.lang.native.processing import get_required_attachment_types
-    from sentry.tasks.store import preprocess_event_from_reprocessing
 
     with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
         node_id = Event.generate_node_id(project_id, event_id)
@@ -167,14 +173,15 @@ def reprocess_event(project_id, event_id, start_time):
             node_id = _generate_unprocessed_event_node_id(project_id=project_id, event_id=event_id)
             data = nodestore.get(node_id)
 
-    if data is None:
-        raise CannotReprocess("reprocessing_nodestore.not_found")
-
     with sentry_sdk.start_span(op="reprocess_events.eventstore.get"):
         event = eventstore.get_event_by_id(project_id, event_id)
 
     if event is None:
         raise CannotReprocess("event.not_found")
+
+    # Check data after checking presence of event to avoid too many instances.
+    if data is None:
+        raise CannotReprocess("unprocessed_event.not_found")
 
     required_attachment_types = get_required_attachment_types(data)
     attachments = list(
@@ -185,9 +192,21 @@ def reprocess_event(project_id, event_id, start_time):
     missing_attachment_types = required_attachment_types - {ea.type for ea in attachments}
 
     if missing_attachment_types:
-        raise CannotReprocess(
-            f"attachment.not_found.{'_and_'.join(sorted(missing_attachment_types))}"
-        )
+        raise CannotReprocess("attachment.not_found")
+
+    return ReprocessableEvent(event=event, data=data, attachments=attachments)
+
+
+def reprocess_event(project_id, event_id, start_time):
+
+    from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
+    from sentry.tasks.store import preprocess_event_from_reprocessing
+
+    reprocessable_event = pull_event_data(project_id, event_id)
+
+    data = reprocessable_event.data
+    event = reprocessable_event.event
+    attachments = reprocessable_event.attachments
 
     # Step 1: Fix up the event payload for reprocessing and put it in event
     # cache/event_processing_store
