@@ -218,8 +218,10 @@ function TeamSelector(props: Props) {
     ];
   }
 
-  // XXX: Are the dependencies for this hook correct?
-  useEffect(() => void setOptions(getInitialOptions()), []);
+  useEffect(
+    () => void setOptions(getInitialOptions()),
+    [teams, teamFilter, project, includeUnassigned]
+  );
 
   return (
     <SelectControl
