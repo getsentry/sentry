@@ -29,6 +29,7 @@ import {
   UpdateResolutionStatus,
 } from 'app/types';
 import {Event} from 'app/types/event';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'app/utils/discover/eventView';
 import {displayReprocessEventAction} from 'app/utils/displayReprocessEventAction';
 import {uniqueId} from 'app/utils/guid';
@@ -282,7 +283,15 @@ class Actions extends React.Component<Props, State> {
           features={['discover-basic']}
           organization={organization}
         >
-          <ActionButton disabled={disabled} to={disabled ? '' : this.getDiscoverUrl()}>
+          <ActionButton
+            disabled={disabled}
+            to={disabled ? '' : this.getDiscoverUrl()}
+            onClick={() => {
+              trackAdvancedAnalyticsEvent('growth.issue_open_in_discover_btn_clicked', {
+                organization,
+              });
+            }}
+          >
             <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>
         </Feature>
