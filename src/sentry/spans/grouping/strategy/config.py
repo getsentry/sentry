@@ -29,7 +29,7 @@ class SpanGroupingConfig:
         return SpanGroupingResults(self.id, results)
 
 
-CONFIGURATIONS: Dict[str, SpanGroupingStrategy] = {}
+CONFIGURATIONS: Dict[str, SpanGroupingConfig] = {}
 
 
 def register_configuration(config_id: str, strategies: Sequence[CallableStrategy]) -> None:
