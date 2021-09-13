@@ -1,9 +1,12 @@
 import {useEffect, useRef, useState} from 'react';
+import {StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
 
 import {addTeamToProject} from 'app/actionCreators/projects';
 import Button from 'app/components/button';
 import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
+import IdBadge from 'app/components/idBadge';
+import Tooltip from 'app/components/tooltip';
 import {IconAdd, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -11,9 +14,6 @@ import {Organization, Project, Team} from 'app/types';
 import useApi from 'app/utils/useApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
-
-import IdBadge from '../idBadge';
-import Tooltip from '../tooltip';
 
 const UnassignedWrapper = styled('div')`
   display: flex;
@@ -41,7 +41,7 @@ const unassignedOption = {
 };
 
 // Ensures that the svg icon is white when selected
-const unassignedSelectStyles = {
+const unassignedSelectStyles: StylesConfig = {
   option: (provided, state: any) => ({
     ...provided,
     svg: {
