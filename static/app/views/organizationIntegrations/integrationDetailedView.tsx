@@ -234,6 +234,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
               onDisable={this.onDisable}
               data-test-id={integration.id}
               trackIntegrationAnalytics={this.trackIntegrationAnalytics}
+              requiresUpgrade={!!alertText}
             />
           </InstallWrapper>
         ))}
