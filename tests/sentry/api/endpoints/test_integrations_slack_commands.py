@@ -9,6 +9,7 @@ from rest_framework import status
 from sentry import options
 from sentry.integrations.slack.endpoints.base import NOT_LINKED_MESSAGE
 from sentry.integrations.slack.endpoints.command import (
+    CHANNEL_ALREADY_LINKED_MESSAGE,
     INSUFFICIENT_ROLE_MESSAGE,
     LINK_FROM_CHANNEL_MESSAGE,
     LINK_USER_FIRST_MESSAGE,
@@ -305,6 +306,29 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         )
         assert len(team_settings) == 1
 
+    def test_link_another_team_to_channel(self):
+        """Test that we block a user who tries to link a second team to a channel that already has a team linked to it."""
+        ExternalActor.objects.create(
+            actor_id=self.team.actor_id,
+            organization=self.organization,
+            integration=self.integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name="general",
+            external_id="CXXXXXXX9",
+        )
+
+        response = self.get_slack_response(
+            {
+                "text": "link team",
+                "team_id": self.external_id,
+                "user_id": "UXXXXXXX1",
+                "channel_name": "general",
+                "channel_id": "CXXXXXXX9",
+            }
+        )
+        data = json.loads(str(response.content.decode("utf-8")))
+        assert CHANNEL_ALREADY_LINKED_MESSAGE in data["text"]
+
     def test_link_team_from_dm(self):
         """Test that if a user types /sentry link team from a DM instead of a channel, we reply with an error message."""
         response = self.get_slack_response(
@@ -474,3 +498,65 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsTest):
             channel_id="CXXXXXXX8",
         )
         assert TEAM_NOT_LINKED_MESSAGE in data["text"]
+
+    @responses.activate
+    def test_unlink_multiple_teams(self):
+        """Test that if you have linked multiple teams to a single channel, when you type /sentry unlink team,
+        we unlink all teams from that channel. This should only apply to one org who did this before we blocked users from doing so."""
+        team2 = self.create_team(organization=self.organization, name="Team Hellboy")
+        ExternalActor.objects.create(
+            actor_id=team2.actor_id,
+            organization=self.organization,
+            integration=self.integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name="general",
+            external_id="CXXXXXXX9",
+        )
+        assert (
+            ExternalActor.objects.filter(
+                actor_id__in=[self.team.actor_id, team2.actor_id],
+                organization=self.organization,
+                integration=self.integration,
+                provider=ExternalProviders.SLACK.value,
+                external_name="general",
+                external_id="CXXXXXXX9",
+            ).count()
+            == 2
+        )
+
+        data = self.send_slack_message(
+            "unlink team",
+            channel_name="general",
+            channel_id="CXXXXXXX9",
+        )
+        assert "Click here to unlink your team from this channel." in data["text"]
+        team_unlinking_url = build_team_unlinking_url(
+            self.integration,
+            self.organization.id,
+            "UXXXXXXX1",
+            "CXXXXXXX9",
+            "general",
+            "http://example.slack.com/response_url",
+        )
+
+        resp = self.client.get(team_unlinking_url)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-unlink-team.html")
+
+        resp = self.client.post(team_unlinking_url)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-unlinked-team.html")
+
+        assert len(self.external_actor) == 0
+
+        assert len(responses.calls) >= 1
+        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        assert (
+            f"This channel will no longer receive issue alert notifications for the {team2.slug} team."
+            in data["text"]
+        )
+
+        team_settings = NotificationSetting.objects.filter(
+            scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
+        )
+        assert len(team_settings) == 0
