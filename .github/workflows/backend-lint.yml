@@ -50,6 +50,11 @@ jobs:
           SENTRY_NO_VIRTUALENV_CREATION: 1
         run: |
           make setup-git
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxmlsec1-dev
+          python setup.py install_egg_info
+          pip install wheel # GitHub Actions does not have `wheel` installed by default
+          pip install -U -e ".[dev]"
 
       - uses: getsentry/paths-filter@v2
         id: files
