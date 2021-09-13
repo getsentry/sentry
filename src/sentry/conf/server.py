@@ -978,8 +978,6 @@ SENTRY_FEATURES = {
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
     "organizations:dashboards-edit": True,
-    # Enable dashboards manager.
-    "organizations:dashboards-manage": False,
     # Enable navigation features between Discover and Dashboards
     "organizations:connect-discover-and-dashboards": False,
     # Enable experimental performance improvements.

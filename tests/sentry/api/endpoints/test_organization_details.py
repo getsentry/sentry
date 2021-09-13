@@ -21,7 +21,6 @@ from sentry.models import (
     OrganizationStatus,
     ScheduledDeletion,
 )
-from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.signals import project_created
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
 from sentry.utils import json
@@ -297,86 +296,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
         assert "to {}".format(data["apdexThreshold"]) in log.data["apdexThreshold"]
-
-    def test_setting_apdex_creates_project_threshold(self):
-        org = Organization.objects.get(id=self.organization.id)
-        project1 = self.create_project(organization=org, teams=[self.team], name="Bengal")
-        project2 = self.create_project(organization=org, teams=[self.team], name="Tiger")
-
-        ProjectTransactionThreshold.objects.create(
-            project_id=project1.id,
-            organization_id=org.id,
-            threshold=200,
-            metric=TransactionMetric.DURATION.value,
-        )
-
-        AuditLogEntry.objects.filter(organization=self.organization).delete()
-
-        data = {
-            "apdexThreshold": 450,
-        }
-
-        self.get_success_response(self.organization.slug, **data)
-
-        org = Organization.objects.get(id=self.organization.id)
-        options = {o.key: o.value for o in OrganizationOption.objects.filter(organization=org)}
-
-        assert options.get("sentry:apdex_threshold") == 450
-
-        # log created
-        log = AuditLogEntry.objects.get(organization=org)
-        assert log.get_event_display() == "org.edit"
-        assert "to {}".format(data["apdexThreshold"]) in log.data["apdexThreshold"]
-
-        thresholds = ProjectTransactionThreshold.objects.filter(
-            organization_id=org.id, project_id__in=[project1.id, project2.id]
-        )
-
-        assert thresholds.count() == 2
-        assert thresholds[0].threshold == 450
-        assert thresholds[0].metric == TransactionMetric.DURATION.value
-        assert thresholds[1].threshold == 450
-        assert thresholds[1].metric == TransactionMetric.DURATION.value
-
-    def test_setting_apdex_does_not_create_project_threshold(self):
-        org = Organization.objects.get(id=self.organization.id)
-        project1 = self.create_project(organization=org, teams=[self.team], name="Bengal")
-        project2 = self.create_project(organization=org, teams=[self.team], name="Tiger")
-
-        ProjectTransactionThreshold.objects.create(
-            project_id=project1.id,
-            organization_id=org.id,
-            threshold=200,
-            metric=TransactionMetric.DURATION.value,
-        )
-
-        AuditLogEntry.objects.filter(organization=self.organization).delete()
-
-        data = {
-            "apdexThreshold": 450,
-        }
-
-        with self.feature("organizations:project-transaction-threshold"):
-            self.get_success_response(self.organization.slug, **data)
-
-        org = Organization.objects.get(id=self.organization.id)
-        options = {o.key: o.value for o in OrganizationOption.objects.filter(organization=org)}
-
-        assert options.get("sentry:apdex_threshold") == 450
-
-        # log created
-        log = AuditLogEntry.objects.get(organization=org)
-        assert log.get_event_display() == "org.edit"
-        assert "to {}".format(data["apdexThreshold"]) in log.data["apdexThreshold"]
-
-        thresholds = ProjectTransactionThreshold.objects.filter(
-            organization_id=org.id, project_id__in=[project1.id, project2.id]
-        )
-
-        assert thresholds.count() == 1
-        assert thresholds[0].project_id == project1.id
-        assert thresholds[0].threshold == 200
-        assert thresholds[0].metric == TransactionMetric.DURATION.value
 
     def test_setting_trusted_relays_forbidden(self):
         data = {

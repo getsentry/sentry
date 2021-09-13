@@ -117,20 +117,16 @@ export function getReposToRender(repos: Array<string>, activeRepository?: Reposi
 export function getReleaseEventView(
   selection: GlobalSelection,
   version: string,
-  organization: LightWeightOrganization
+  _organization: LightWeightOrganization
 ): EventView {
   const {projects, environments, datetime} = selection;
   const {start, end, period} = datetime;
-
-  const apdexField = organization.features.includes('project-transaction-threshold')
-    ? 'apdex()'
-    : `apdex(${organization.apdexThreshold})`;
 
   const discoverQuery = {
     id: undefined,
     version: 2,
     name: `${t('Release Apdex')}`,
-    fields: [apdexField],
+    fields: ['apdex()'],
     query: new MutableSearch([
       `release:${version}`,
       'event.type:transaction',
