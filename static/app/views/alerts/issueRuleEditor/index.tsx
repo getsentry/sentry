@@ -48,6 +48,7 @@ import Form from 'app/views/settings/components/forms/form';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
 import RuleNodeList from './ruleNodeList';
+import SetupAlertIntegrationButton from './setupAlertIntegrationButton';
 
 const FREQUENCY_CHOICES = [
   ['5', t('5 minutes')],
@@ -629,7 +630,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   </StyledField>
                 </PanelBody>
               </Panel>
-              <StyledListItem>{t('Set conditions')}</StyledListItem>
+              <SetConditionsListItem>
+                {t('Set conditions')}
+                <SetupAlertIntegrationButton
+                  project={project}
+                  organization={organization}
+                />
+              </SetConditionsListItem>
               <ConditionsPanel>
                 <PanelBody>
                   <Step>
@@ -878,6 +885,11 @@ const StyledAlert = styled(Alert)`
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const SetConditionsListItem = styled(StyledListItem)`
+  display: flex;
+  justify-content: space-between;
 `;
 
 const Step = styled('div')`

@@ -299,6 +299,7 @@ from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
 from .endpoints.project_group_index import ProjectGroupIndexEndpoint
 from .endpoints.project_group_stats import ProjectGroupStatsEndpoint
+from .endpoints.project_has_alert_integration_installed import ProjectHasAlertIntegrationInstalled
 from .endpoints.project_index import ProjectIndexEndpoint
 from .endpoints.project_issues_resolved_in_release import ProjectIssuesResolvedInReleaseEndpoint
 from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
@@ -1975,6 +1976,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
                     AppStoreConnectUpdateCredentialsEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-credentials-update",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/has-alert-integration-installed/$",
+                    ProjectHasAlertIntegrationInstalled.as_view(),
+                    name="sentry-api-0-has-alert-integration-installed",
                 ),
             ]
         ),

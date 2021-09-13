@@ -78,6 +78,12 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
       url: '/projects/org-slug/project-slug/environments/',
       body: TestStubs.Environments(),
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/has-alert-integration-installed/`,
+      body: {
+        hasAlertIntegrationInstalled: true,
+      },
+    });
   });
 
   afterEach(function () {
