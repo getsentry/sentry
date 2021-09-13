@@ -449,6 +449,14 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsTest):
             status=200,
             content_type="application/json",
         )
+        self.team_unlinking_url = build_team_unlinking_url(
+            self.integration,
+            self.organization.id,
+            "UXXXXXXX1",
+            "CXXXXXXX9",
+            "general",
+            "http://example.slack.com/response_url",
+        )
 
     @responses.activate
     def test_unlink_team(self):
@@ -459,20 +467,12 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsTest):
             channel_id="CXXXXXXX9",
         )
         assert "Click here to unlink your team from this channel." in data["text"]
-        team_unlinking_url = build_team_unlinking_url(
-            self.integration,
-            self.organization.id,
-            "UXXXXXXX1",
-            "CXXXXXXX9",
-            "general",
-            "http://example.slack.com/response_url",
-        )
 
-        resp = self.client.get(team_unlinking_url)
+        resp = self.client.get(self.team_unlinking_url)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/integrations/slack-unlink-team.html")
 
-        resp = self.client.post(team_unlinking_url)
+        resp = self.client.post(self.team_unlinking_url)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/integrations/slack-unlinked-team.html")
 
@@ -530,24 +530,26 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsTest):
             channel_id="CXXXXXXX9",
         )
         assert "Click here to unlink your team from this channel." in data["text"]
-        team_unlinking_url = build_team_unlinking_url(
-            self.integration,
-            self.organization.id,
-            "UXXXXXXX1",
-            "CXXXXXXX9",
-            "general",
-            "http://example.slack.com/response_url",
-        )
 
-        resp = self.client.get(team_unlinking_url)
+        resp = self.client.get(self.team_unlinking_url)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/integrations/slack-unlink-team.html")
 
-        resp = self.client.post(team_unlinking_url)
+        resp = self.client.post(self.team_unlinking_url)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/integrations/slack-unlinked-team.html")
 
-        assert len(self.external_actor) == 0
+        assert (
+            ExternalActor.objects.filter(
+                actor_id__in=[self.team.actor_id, team2.actor_id],
+                organization=self.organization,
+                integration=self.integration,
+                provider=ExternalProviders.SLACK.value,
+                external_name="general",
+                external_id="CXXXXXXX9",
+            ).count()
+            == 0
+        )
 
         assert len(responses.calls) >= 1
         data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
