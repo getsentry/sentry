@@ -27,7 +27,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 > {
   getEndpoints(): ([string, string, any] | [string, string])[] {
     const {orgId, integrationSlug} = this.props.params;
-    const baseEndpoints: ([string, string, any] | [string, string])[] = [
+    return [
       [
         'information',
         `/organizations/${orgId}/config/integrations/?provider_key=${integrationSlug}`,
@@ -37,8 +37,6 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         `/organizations/${orgId}/integrations/?provider_key=${integrationSlug}&includeConfig=0`,
       ],
     ];
-
-    return baseEndpoints;
   }
 
   get integrationType() {
