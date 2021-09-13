@@ -522,12 +522,29 @@ class SnubaQueryBuilder:
         return entity
 
 
+_DEFAULT_AGGREGATES = {
+    "avg": None,
+    "count_unique": 0,
+    "count": 0,
+    "max": None,
+    "p50": None,
+    "p75": None,
+    "p90": None,
+    "p95": None,
+    "p99": None,
+    "sum": 0,
+}
+
+
 class SnubaResultConverter:
     """Interpret a Snuba result and convert it to API format"""
 
-    def __init__(self, project_id: int, query_definition: QueryDefinition, results):
+    def __init__(
+        self, project_id: int, query_definition: QueryDefinition, intervals: List[datetime], results
+    ):
         self._project_id = project_id
         self._query_definition = query_definition
+        self._intervals = intervals
         self._results = results
 
         self._ops_by_metric = ops_by_metric = {}
@@ -540,7 +557,20 @@ class SnubaResultConverter:
 
     def _extract_data(self, entity, data, groups):
         tags = tuple((key, data[key]) for key in sorted(data.keys()) if key.startswith("tags["))
-        tag_data = groups.setdefault(tags, {"totals": {}, "series": {}})
+
+        metric_name = indexer.reverse_resolve(self._project_id, UseCase.METRIC, data["metric_id"])
+        ops = self._ops_by_metric[metric_name]
+
+        tag_data = groups.setdefault(
+            tags,
+            {
+                "totals": {},
+                "series": {
+                    interval: {f"{op}({metric_name})": _DEFAULT_AGGREGATES[op] for op in ops}
+                    for interval in self._intervals
+                },
+            },
+        )
 
         # If this is time series data, add it to the appropriate series.
         # Else, add to totals
@@ -548,12 +578,8 @@ class SnubaResultConverter:
         if timestamp is None:
             target = tag_data["totals"]
         else:
-            # Create an entry for current timestamp
-            target = tag_data["series"].setdefault(timestamp, {})
+            target = tag_data["series"][timestamp]
 
-        metric_name = indexer.reverse_resolve(self._project_id, UseCase.METRIC, data["metric_id"])
-
-        ops = self._ops_by_metric[metric_name]
         for op in ops:
             field = _OP_TO_FIELD[entity][op]
             value = data[field]
@@ -613,7 +639,7 @@ class SnubaDataSource(IndexMockingDataSource):
             for entity, queries in snuba_queries.items()
         }
 
-        converter = SnubaResultConverter(project.id, query, results)
+        converter = SnubaResultConverter(project.id, query, intervals, results)
 
         return {
             "start": query.start,
