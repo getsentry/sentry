@@ -4,14 +4,12 @@ import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
 import {GuideAnchor} from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import FeatureBadge from 'app/components/featureBadge';
 import * as Layout from 'app/components/layouts/thirds';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import {IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -133,32 +131,14 @@ class TransactionHeader extends React.Component<Props> {
     const {organization, transactionName, eventView, onChangeThreshold} = this.props;
 
     return (
-      <Feature
-        organization={organization}
-        features={['project-transaction-threshold-override']}
-      >
-        {({hasFeature}) =>
-          hasFeature ? (
-            <GuideAnchor
-              target="project_transaction_threshold_override"
-              position="bottom"
-            >
-              <TransactionThresholdButton
-                organization={organization}
-                transactionName={transactionName}
-                eventView={eventView}
-                onChangeThreshold={onChangeThreshold}
-              />
-            </GuideAnchor>
-          ) : (
-            <Button
-              href={`/settings/${organization.slug}/performance/`}
-              icon={<IconSettings />}
-              aria-label={t('Settings')}
-            />
-          )
-        }
-      </Feature>
+      <GuideAnchor target="project_transaction_threshold_override" position="bottom">
+        <TransactionThresholdButton
+          organization={organization}
+          transactionName={transactionName}
+          eventView={eventView}
+          onChangeThreshold={onChangeThreshold}
+        />
+      </GuideAnchor>
     );
   }
 

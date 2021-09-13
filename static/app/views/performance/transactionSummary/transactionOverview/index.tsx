@@ -232,9 +232,10 @@ function generateEventView(location: Location, transactionName: string): EventVi
   );
 }
 
-function getTotalsEventView(organization: Organization, eventView: EventView): EventView {
-  const threshold = organization.apdexThreshold.toString();
-
+function getTotalsEventView(
+  _organization: Organization,
+  eventView: EventView
+): EventView {
   const vitals = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce((keys: WebVital[], vs) => {
     vs.forEach(vital => keys.push(vital));
     return keys;
@@ -261,43 +262,22 @@ function getTotalsEventView(organization: Organization, eventView: EventView): E
       kind: 'function',
       function: ['tpm', '', undefined, undefined],
     },
+    {
+      kind: 'function',
+      function: ['count_miserable', 'user', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['user_misery', '', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['apdex', '', undefined, undefined],
+    },
   ];
-
-  const featureColumns: QueryFieldValue[] = organization.features.includes(
-    'project-transaction-threshold'
-  )
-    ? [
-        {
-          kind: 'function',
-          function: ['count_miserable', 'user', undefined, undefined],
-        },
-        {
-          kind: 'function',
-          function: ['user_misery', '', undefined, undefined],
-        },
-        {
-          kind: 'function',
-          function: ['apdex', '', undefined, undefined],
-        },
-      ]
-    : [
-        {
-          kind: 'function',
-          function: ['count_miserable', 'user', threshold, undefined],
-        },
-        {
-          kind: 'function',
-          function: ['user_misery', threshold, undefined, undefined],
-        },
-        {
-          kind: 'function',
-          function: ['apdex', threshold, undefined, undefined],
-        },
-      ];
 
   return eventView.withColumns([
     ...totalsColumns,
-    ...featureColumns,
     ...vitals.map(
       vital =>
         ({

@@ -157,19 +157,6 @@ function SidebarCharts({
   };
   const project = eventView.project;
   const environment = eventView.environment;
-  const threshold = organization.apdexThreshold;
-
-  let apdexKey, apdexYAxis: string;
-  let apdexPerformanceTerm: PERFORMANCE_TERM;
-  if (organization.features.includes('project-transaction-threshold')) {
-    apdexKey = 'apdex';
-    apdexPerformanceTerm = PERFORMANCE_TERM.APDEX_NEW;
-    apdexYAxis = 'apdex()';
-  } else {
-    apdexKey = `apdex_${threshold}`;
-    apdexPerformanceTerm = PERFORMANCE_TERM.APDEX;
-    apdexYAxis = `apdex(${organization.apdexThreshold})`;
-  }
 
   return (
     <RelativeBox>
@@ -178,14 +165,14 @@ function SidebarCharts({
           {t('Apdex')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, apdexPerformanceTerm)}
+            title={getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW)}
             size="sm"
           />
         </ChartTitle>
         <ChartSummaryValue
           isLoading={isLoading}
           error={error}
-          value={totals ? formatFloat(totals[apdexKey], 4) : null}
+          value={totals ? formatFloat(totals.apdex, 4) : null}
         />
       </ChartLabel>
 
@@ -242,7 +229,7 @@ function SidebarCharts({
             showLoading={false}
             query={eventView.query}
             includePrevious={false}
-            yAxis={[apdexYAxis, 'failure_rate()', 'epm()']}
+            yAxis={['apdex()', 'failure_rate()', 'epm()']}
             partial
           >
             {({results, errored, loading, reloading}) => {
