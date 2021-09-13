@@ -701,7 +701,6 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
 
     def test_can_remove_as_owner(self):
-
         owners = self.organization.get_owners()
         assert len(owners) > 0
 
@@ -744,6 +743,20 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
         with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
             self.get_error_response(org.slug, status_code=400)
+
+    def test_redo_deletion(self):
+        # Orgs can delete, undelete, delete within a day
+        org = self.create_organization(owner=self.user)
+        ScheduledDeletion.schedule(org, days=1)
+
+        self.get_success_response(org.slug)
+
+        org = Organization.objects.get(id=org.id)
+        assert org.status == OrganizationStatus.PENDING_DELETION
+
+        assert ScheduledDeletion.objects.filter(
+            object_id=org.id, model_name="Organization"
+        ).exists()
 
 
 class OrganizationSettings2FATest(TwoFactorAPITestCase):
