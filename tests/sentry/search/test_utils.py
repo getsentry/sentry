@@ -536,13 +536,6 @@ class ParseQueryTest(TestCase):
         assert result["date_to"] == date_value + timedelta(minutes=6)
         assert not result["date_to_inclusive"]
 
-    def test_active_range(self):
-        result = self.parse_query("activeSince:-24h activeSince:+12h")
-        assert result["active_at_from"] > timezone.now() - timedelta(hours=25)
-        assert result["active_at_from"] < timezone.now() - timedelta(hours=23)
-        assert result["active_at_to"] > timezone.now() - timedelta(hours=13)
-        assert result["active_at_to"] < timezone.now() - timedelta(hours=11)
-
     def test_last_seen_range(self):
         result = self.parse_query("lastSeen:-24h lastSeen:+12h")
         assert result["last_seen_from"] > timezone.now() - timedelta(hours=25)

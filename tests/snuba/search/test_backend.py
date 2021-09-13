@@ -646,27 +646,6 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         assert list(results) == []
         assert results.hits == 2
 
-    def test_active_at_filter(self):
-        results = self.make_query(
-            search_filter_query="activeSince:>=%s" % date_to_query_format(self.group2.active_at)
-        )
-        assert set(results) == {self.group2}
-
-        results = self.make_query(
-            search_filter_query="activeSince:<=%s"
-            % date_to_query_format(self.group1.active_at + timedelta(minutes=1))
-        )
-        assert set(results) == {self.group1}
-
-        results = self.make_query(
-            search_filter_query="activeSince:>=%s activeSince:<=%s"
-            % (
-                date_to_query_format(self.group1.active_at),
-                date_to_query_format(self.group1.active_at + timedelta(minutes=1)),
-            )
-        )
-        assert set(results) == {self.group1}
-
     def test_age_filter(self):
         results = self.make_query(
             search_filter_query="firstSeen:>=%s" % date_to_query_format(self.group2.first_seen)

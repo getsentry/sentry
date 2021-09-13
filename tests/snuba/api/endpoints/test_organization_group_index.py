@@ -1514,7 +1514,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         query = "server:example.com"
         query += " status:unresolved"
-        query += " active_at:" + iso_format(before_now(seconds=350))
         query += " first_seen:" + iso_format(before_now(seconds=500))
 
         self.login_as(user=self.user)
