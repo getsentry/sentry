@@ -42,7 +42,8 @@ OPERATIONS = (
 MAX_POINTS = 10000
 
 
-TS_COL = "timestamp"
+TS_COL_QUERY = "timestamp"
+TS_COL_GROUP = "bucketed_time"
 
 
 def parse_field(field: str) -> Tuple[str, str]:
@@ -203,6 +204,11 @@ _METRICS = {
         "operations": _FIELDS_BY_ENTITY["metrics_distributions"],
         "tags": _BASE_TAGS,
         "unit": "seconds",
+    },
+    "session.error": {
+        "type": "set",
+        "operations": _FIELDS_BY_ENTITY["metrics_sets"],
+        "tags": _BASE_TAGS,
     },
 }
 
@@ -455,8 +461,8 @@ class SnubaQueryBuilder:
                     for _, name in query_definition.fields.values()
                 ],
             ),
-            Condition(Column(TS_COL), Op.GTE, query_definition.start),
-            Condition(Column(TS_COL), Op.LT, query_definition.end),
+            Condition(Column(TS_COL_QUERY), Op.GTE, query_definition.start),
+            Condition(Column(TS_COL_QUERY), Op.LT, query_definition.end),
         ]
         filter_ = self._build_filter(query_definition)
         if filter_:
@@ -502,7 +508,9 @@ class SnubaQueryBuilder:
             offset=Offset(0),
             granularity=Granularity(query_definition.rollup),
         )
-        series_query = totals_query.set_groupby((totals_query.groupby or []) + [Column(TS_COL)])
+        series_query = totals_query.set_groupby(
+            (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
+        )
 
         return {
             "totals": totals_query,
@@ -574,7 +582,7 @@ class SnubaResultConverter:
 
         # If this is time series data, add it to the appropriate series.
         # Else, add to totals
-        timestamp = data.pop("timestamp", None)
+        timestamp = data.pop(TS_COL_GROUP, None)
         if timestamp is None:
             target = tag_data["totals"]
         else:

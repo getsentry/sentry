@@ -70,15 +70,17 @@ def test_build_snuba_query(mock_now, mock_now2):
     assert snuba_queries == {
         "metrics_counters": {
             "totals": expected_query("metrics_counters", "value", []),
-            "series": expected_query("metrics_counters", "value", [Column("timestamp")]),
+            "series": expected_query("metrics_counters", "value", [Column("bucketed_time")]),
         },
         "metrics_sets": {
             "totals": expected_query("metrics_sets", "value", []),
-            "series": expected_query("metrics_sets", "value", [Column("timestamp")]),
+            "series": expected_query("metrics_sets", "value", [Column("bucketed_time")]),
         },
         "metrics_distributions": {
             "totals": expected_query("metrics_distributions", "percentiles", []),
-            "series": expected_query("metrics_distributions", "percentiles", [Column("timestamp")]),
+            "series": expected_query(
+                "metrics_distributions", "percentiles", [Column("bucketed_time")]
+            ),
         },
     }
 
@@ -123,25 +125,25 @@ def test_translate_results(_1, _2):
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 4,
-                        "timestamp": datetime(2021, 8, 24, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 24, tzinfo=pytz.utc),
                         "value": 100,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 0,
-                        "timestamp": datetime(2021, 8, 24, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 24, tzinfo=pytz.utc),
                         "value": 110,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 4,
-                        "timestamp": datetime(2021, 8, 25, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 25, tzinfo=pytz.utc),
                         "value": 200,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 0,
-                        "timestamp": datetime(2021, 8, 25, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 25, tzinfo=pytz.utc),
                         "value": 220,
                     },
                 ],
@@ -169,28 +171,28 @@ def test_translate_results(_1, _2):
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
-                        "timestamp": datetime(2021, 8, 24, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 24, tzinfo=pytz.utc),
                         "max": 10.1,
                         "percentiles": [1.1, 2.1, 3.1, 4.1, 5.1],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 0,
-                        "timestamp": datetime(2021, 8, 24, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 24, tzinfo=pytz.utc),
                         "max": 20.2,
                         "percentiles": [1.2, 2.2, 3.2, 4.2, 5.2],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
-                        "timestamp": datetime(2021, 8, 25, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 25, tzinfo=pytz.utc),
                         "max": 30.3,
                         "percentiles": [1.3, 2.3, 3.3, 4.3, 5.3],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 0,
-                        "timestamp": datetime(2021, 8, 25, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 25, tzinfo=pytz.utc),
                         "max": 40.4,
                         "percentiles": [1.4, 2.4, 3.4, 4.4, 5.4],
                     },
@@ -261,13 +263,13 @@ def test_translate_results_missing_slots(_1, _2):
                 "data": [
                     {
                         "metric_id": 9,  # session
-                        "timestamp": datetime(2021, 8, 23, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 23, tzinfo=pytz.utc),
                         "value": 100,
                     },
                     # no data for 2021-08-24
                     {
                         "metric_id": 9,  # session
-                        "timestamp": datetime(2021, 8, 25, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 25, tzinfo=pytz.utc),
                         "value": 300,
                     },
                 ],
