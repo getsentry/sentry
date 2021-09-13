@@ -11,7 +11,14 @@ from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestEr
 from sentry.integrations.slack.requests.command import SlackCommandRequest
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
-from sentry.models import ExternalActor, Identity, IdentityProvider, OrganizationMember
+from sentry.models import (
+    ExternalActor,
+    Identity,
+    IdentityProvider,
+    Integration,
+    Organization,
+    OrganizationMember,
+)
 from sentry.types.integrations import ExternalProviders
 
 from ..utils import is_valid_role
@@ -23,6 +30,7 @@ LINK_TEAM_MESSAGE = (
     "Link your Sentry team to this Slack channel! <{associate_url}|Link your team now> to receive "
     "notifications of issues in Sentry in Slack."
 )
+CHANNEL_ALREADY_LINKED_MESSAGE = "This channel already has a team linked to it."
 LINK_USER_FIRST_MESSAGE = (
     "You must first link your identity to Sentry by typing /sentry link. Be aware that you "
     "must be an admin or higher in your Sentry organization to link your team."
@@ -72,8 +80,19 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
             }
         )
 
-    def link_team(self, slack_request: SlackCommandRequest) -> Response:
+    def is_team_linked_to_channel(
+        self, organization: Organization, integration: Integration, slack_request: SlackRequest
+    ) -> bool:
+        """Check if a Slack channel already has a team linked to it"""
+        return ExternalActor.objects.filter(
+            organization=organization,
+            integration=integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name=slack_request.channel_name,
+            external_id=slack_request.channel_id,
+        ).exists()
 
+    def link_team(self, slack_request: SlackCommandRequest) -> Response:
         if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
             return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
 
@@ -84,6 +103,9 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
         integration = slack_request.integration
         organization = integration.organizations.all()[0]
         org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
+
+        if self.is_team_linked_to_channel(organization, integration, slack_request):
+            return self.reply(slack_request, CHANNEL_ALREADY_LINKED_MESSAGE)
 
         if not is_valid_role(org_member):
             return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
