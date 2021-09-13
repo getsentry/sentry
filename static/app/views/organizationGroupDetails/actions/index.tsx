@@ -11,6 +11,7 @@ import {
 import {openReprocessEventModal} from 'app/actionCreators/modal';
 import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import ActionButton from 'app/components/actions/button';
 import IgnoreActions from 'app/components/actions/ignore';
 import ResolveActions from 'app/components/actions/resolve';
@@ -28,6 +29,7 @@ import {
   UpdateResolutionStatus,
 } from 'app/types';
 import {Event} from 'app/types/event';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'app/utils/discover/eventView';
 import {displayReprocessEventAction} from 'app/utils/displayReprocessEventAction';
 import {uniqueId} from 'app/utils/guid';
@@ -276,11 +278,23 @@ class Actions extends React.Component<Props, State> {
           />
         )}
 
-        {orgFeatures.has('discover-basic') && (
-          <ActionButton disabled={disabled} to={disabled ? '' : this.getDiscoverUrl()}>
+        <Feature
+          hookName="feature-disabled:open-in-discover"
+          features={['discover-basic']}
+          organization={organization}
+        >
+          <ActionButton
+            disabled={disabled}
+            to={disabled ? '' : this.getDiscoverUrl()}
+            onClick={() => {
+              trackAdvancedAnalyticsEvent('growth.issue_open_in_discover_btn_clicked', {
+                organization,
+              });
+            }}
+          >
             <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>
-        )}
+        </Feature>
 
         <BookmarkButton
           disabled={disabled}
