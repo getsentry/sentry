@@ -591,7 +591,12 @@ class SnubaResultConverter:
     def _transform_series(self, groups):
         for data in groups:
             series = data["series"]
-            data["series"] = [series[ts] for ts in sorted(series.keys())]
+            new_series = {}
+            for timestamp in sorted(series.keys()):
+                for key, value in series[timestamp].items():
+                    new_series.setdefault(key, []).append(value)
+
+            data["series"] = new_series
 
     def translate_results(self):
         groups = {}

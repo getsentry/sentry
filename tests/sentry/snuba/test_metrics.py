@@ -208,20 +208,12 @@ def test_translate_results(_1, _2):
                 "p50(session.duration)": 1,
                 "p95(session.duration)": 4,
             },
-            "series": [
-                {
-                    "sum(session)": 100,
-                    "max(session.duration)": 10.1,
-                    "p50(session.duration)": 1.1,
-                    "p95(session.duration)": 4.1,
-                },
-                {
-                    "sum(session)": 200,
-                    "max(session.duration)": 30.3,
-                    "p50(session.duration)": 1.3,
-                    "p95(session.duration)": 4.3,
-                },
-            ],
+            "series": {
+                "sum(session)": [100, 200],
+                "max(session.duration)": [10.1, 30.3],
+                "p50(session.duration)": [1.1, 1.3],
+                "p95(session.duration)": [4.1, 4.3],
+            },
         },
         {
             "by": {"session.status": "abnormal"},
@@ -231,20 +223,12 @@ def test_translate_results(_1, _2):
                 "p50(session.duration)": 1.5,
                 "p95(session.duration)": 4.5,
             },
-            "series": [
-                {
-                    "sum(session)": 110,
-                    "max(session.duration)": 20.2,
-                    "p50(session.duration)": 1.2,
-                    "p95(session.duration)": 4.2,
-                },
-                {
-                    "sum(session)": 220,
-                    "max(session.duration)": 40.4,
-                    "p50(session.duration)": 1.4,
-                    "p95(session.duration)": 4.4,
-                },
-            ],
+            "series": {
+                "sum(session)": [110, 220],
+                "max(session.duration)": [20.2, 40.4],
+                "p50(session.duration)": [1.2, 1.4],
+                "p95(session.duration)": [4.2, 4.4],
+            },
         },
     ]
 
@@ -298,16 +282,9 @@ def test_translate_results_missing_slots(_1, _2):
             "totals": {
                 "sum(session)": 400,
             },
-            "series": [
-                {
-                    "sum(session)": 100,
-                },
-                {  # No data for 2021-08-24
-                    "sum(session)": 0,
-                },
-                {
-                    "sum(session)": 300,
-                },
-            ],
+            "series": {
+                # No data for 2021-08-24
+                "sum(session)": [100, 0, 300],
+            },
         },
     ]
