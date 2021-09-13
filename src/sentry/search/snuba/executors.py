@@ -728,8 +728,6 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         max_hits=None,
     ) -> CursorResult:
 
-        search_filters = search_filters or []
-
         if not validate_cdc_search_filters(search_filters):
             raise InvalidQueryForExecutor("Search filters invalid for this query executor")
 
