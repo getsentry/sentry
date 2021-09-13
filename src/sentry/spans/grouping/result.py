@@ -17,19 +17,19 @@ class SpanGroupingResults:
 
         for span in event_data.get("spans", []):
             span_id = span.get("span_id")
-            span_hash = span.get("hash")
-            if span_id is None or span_hash is None:
-                # Every span should have a span id and hash.
+            span_normalized = span.get("normalized")
+            if span_id is None or span_normalized is None:
+                # Every span should have a span id and normalized.
                 # If not, return None to indicate that the grouping
                 # results could not be constructed from the event.
                 return None
-            results[span_id] = span_hash
+            results[span_id] = span_normalized
 
         return cls(grouping_config["id"], results)
 
     def write_to_event(self, event_data: Any) -> None:
         for span in event_data.get("spans", []):
-            span_hash = self.results.get(span["span_id"])
-            if span_hash:
-                span["hash"] = span_hash
+            span_normalized = self.results.get(span["span_id"])
+            if span_normalized:
+                span["normalized"] = span_normalized
         event_data["span_grouping_config"] = {"id": self.id}

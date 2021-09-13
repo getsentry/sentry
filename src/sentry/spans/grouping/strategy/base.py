@@ -1,9 +1,9 @@
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Sequence
 from urllib.parse import urlparse
 
-from sentry.spans.grouping.utils import Hash, parse_fingerprint_var
+from sentry.spans.grouping.utils import parse_fingerprint_var
 
 # TODO(3.8): This is a hack so we can get TypedDicts before 3.8
 if TYPE_CHECKING:
@@ -52,7 +52,7 @@ class SpanGroupingStrategy:
     def get_span_group(self, span: Span) -> str:
         fingerprints = span.get("fingerprint") or ["{{ default }}"]
 
-        result = Hash()
+        result: List[str] = []
 
         for fingerprint in fingerprints:
             values: Sequence[str] = [fingerprint]
@@ -61,9 +61,9 @@ class SpanGroupingStrategy:
             if var == "default":
                 values = self.handle_default_fingerprint(span)
 
-            result.update(values)
+            result.extend(values)
 
-        return result.hexdigest()
+        return " ".join(result)
 
     def handle_default_fingerprint(self, span: Span) -> Sequence[str]:
         span_group = None
@@ -161,8 +161,22 @@ def remove_http_client_query_string_strategy(span: Span) -> Optional[Sequence[st
 
     # Ensure that this is a valid http method
     method, url_str = parts
-    if method.upper() not in HTTP_METHODS:
+    method = method.upper()
+    if method not in HTTP_METHODS:
         return None
 
     url = urlparse(url_str)
-    return [method.lower(), url.scheme, url.netloc, url.path]
+    return [method, url.scheme, url.netloc, url.path]
+
+
+@span_op("redis")
+def remove_redis_command_arguments_strategy(span: Span) -> Optional[Sequence[str]]:
+    """For a `redis` span, the fingerprint to use is simply the redis command name.
+    The arguments to the redis command is highly variable and therefore not used as
+    a part of the fingerprint.
+    """
+    description = span.get("description") or ""
+    parts = description.split(" ", 1)
+
+    # the redis command name is the first word in the description
+    return [parts[0]]

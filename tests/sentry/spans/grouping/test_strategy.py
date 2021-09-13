@@ -8,13 +8,13 @@ from sentry.spans.grouping.strategy.base import (
     normalized_db_span_in_condition_strategy,
     raw_description_strategy,
     remove_http_client_query_string_strategy,
+    remove_redis_command_arguments_strategy,
 )
 from sentry.spans.grouping.strategy.config import (
     CONFIGURATIONS,
     SpanGroupingConfig,
     register_configuration,
 )
-from sentry.spans.grouping.utils import hash_values
 
 
 def test_register_duplicate_confiig() -> None:
@@ -37,7 +37,7 @@ class SpanBuilder:
         self.fingerprint: Optional[Sequence[str]] = None
         self.tags: Optional[Any] = None
         self.data: Optional[Any] = None
-        self.hash: Optional[str] = None
+        self.normalized: Optional[str] = None
 
     def with_op(self, op: str) -> "SpanBuilder":
         self.op = op
@@ -55,8 +55,8 @@ class SpanBuilder:
         self.fingerprint = fingerprint
         return self
 
-    def with_hash(self, hash_: str) -> "SpanBuilder":
-        self.hash = hash_
+    def with_normalized(self, normalized: str) -> "SpanBuilder":
+        self.normalized = normalized
         return self
 
     def build(self) -> Span:
@@ -73,8 +73,8 @@ class SpanBuilder:
             "tags": self.tags,
             "data": self.data,
         }
-        if self.hash is not None:
-            span["hash"] = self.hash
+        if self.normalized is not None:
+            span["normalized"] = self.normalized
         return span
 
 
@@ -176,7 +176,7 @@ def test_normalized_db_span_in_condition_strategy(
                 "GET https://sentry.io/api/0/organization/sentry/projects/?all_projects=1"
             )
             .build(),
-            ["get", "https", "sentry.io", "/api/0/organization/sentry/projects/"],
+            ["GET", "https", "sentry.io", "/api/0/organization/sentry/projects/"],
         ),
     ],
 )
@@ -186,13 +186,28 @@ def test_remove_http_client_query_string_strategy(
     assert remove_http_client_query_string_strategy(span) == fingerprint
 
 
+@pytest.mark.parametrize(
+    "span,fingerprint",
+    [
+        (SpanBuilder().build(), None),
+        # op is not `redis`
+        (SpanBuilder().with_description("INCRBY 'key' 1").build(), None),
+        (SpanBuilder().with_op("redis").with_description("INCRBY 'key' 1").build(), ["INCRBY"]),
+    ],
+)
+def test_remove_redis_command_arguments_strategy(
+    span: Span, fingerprint: Optional[Sequence[str]]
+) -> None:
+    assert remove_redis_command_arguments_strategy(span) == fingerprint
+
+
 def test_reuse_existing_grouping_results() -> None:
     config_id = "test-configuration"
     strategy = SpanGroupingStrategy(config_id, [])
     config = SpanGroupingConfig(config_id, strategy)
     event = {
         "spans": [
-            SpanBuilder().with_span_id("b" * 16).with_hash("b" * 32).build(),
+            SpanBuilder().with_span_id("b" * 16).with_normalized("b" * 32).build(),
         ],
         "span_grouping_config": {
             "id": config_id,
@@ -207,7 +222,7 @@ def test_reuse_existing_grouping_results() -> None:
     "spans,expected",
     [
         ([], {}),
-        ([SpanBuilder().with_span_id("b" * 16).build()], {"b" * 16: [""]}),
+        ([SpanBuilder().with_span_id("b" * 16).build()], {"b" * 16: ""}),
         # group the ones with the same raw descriptions together
         (
             [
@@ -215,7 +230,7 @@ def test_reuse_existing_grouping_results() -> None:
                 SpanBuilder().with_span_id("c" * 16).with_description("hi").build(),
                 SpanBuilder().with_span_id("d" * 16).with_description("bye").build(),
             ],
-            {"b" * 16: ["hi"], "c" * 16: ["hi"], "d" * 16: ["bye"]},
+            {"b" * 16: "hi", "c" * 16: "hi", "d" * 16: "bye"},
         ),
         # fingerprints take precedence over the description
         (
@@ -232,14 +247,13 @@ def test_reuse_existing_grouping_results() -> None:
                 .with_fingerprint("a")
                 .build(),
             ],
-            {"b" * 16: ["a"], "c" * 16: ["hi"], "d" * 16: ["a"]},
+            {"b" * 16: "a", "c" * 16: "hi", "d" * 16: "a"},
         ),
     ],
 )
 def test_basic_span_grouping_strategy(spans: Sequence[Span], expected: Dict[str, str]) -> None:
     strategy = SpanGroupingStrategy(name="basic-strategy", strategies=[])
-    results = {span_id: hash_values(values) for span_id, values in expected.items()}
-    assert strategy.execute(spans) == results
+    assert strategy.execute(spans) == expected
 
 
 @pytest.mark.parametrize(
@@ -278,12 +292,12 @@ def test_basic_span_grouping_strategy(spans: Sequence[Span], expected: Dict[str,
                 SpanBuilder().with_span_id("f" * 16).with_op("http.client").build(),
             ],
             {
-                "b" * 16: ["get", "https", "sentry.io", "/api/0/organization/sentry/projects/"],
-                "c" * 16: ["get", "https", "sentry.io", "/api/0/organization/sentry/projects/"],
-                "d" * 16: ["post", "https", "sentry.io", "/api/0/organization/sentry/projects/"],
+                "b" * 16: "GET https sentry.io /api/0/organization/sentry/projects/",
+                "c" * 16: "GET https sentry.io /api/0/organization/sentry/projects/",
+                "d" * 16: "POST https sentry.io /api/0/organization/sentry/projects/",
                 "e"
-                * 16: ["GET https://sentry.io/api/0/organization/sentry/projects/?all_projects=0"],
-                "f" * 16: [""],
+                * 16: "GET https://sentry.io/api/0/organization/sentry/projects/?all_projects=0",
+                "f" * 16: "",
             },
         ),
         (
@@ -310,17 +324,40 @@ def test_basic_span_grouping_strategy(spans: Sequence[Span], expected: Dict[str,
                 SpanBuilder().with_span_id("f" * 16).with_op("db").build(),
             ],
             {
-                "b" * 16: ["SELECT count() FROM table WHERE id IN (%s)"],
-                "c" * 16: ["SELECT count() FROM table WHERE id IN (%s)"],
-                "d" * 16: ["SELECT count() FROM table WHERE id = %s"],
-                "e" * 16: ["SELECT count() FROM table WHERE id IN (%s, %s)"],
-                "f" * 16: [""],
+                "b" * 16: "SELECT count() FROM table WHERE id IN (%s)",
+                "c" * 16: "SELECT count() FROM table WHERE id IN (%s)",
+                "d" * 16: "SELECT count() FROM table WHERE id = %s",
+                "e" * 16: "SELECT count() FROM table WHERE id IN (%s, %s)",
+                "f" * 16: "",
+            },
+        ),
+        (
+            [
+                SpanBuilder()
+                .with_span_id("b" * 16)
+                .with_op("redis")
+                .with_description("INCRBY 'key' 1")
+                .build(),
+                SpanBuilder()
+                .with_span_id("c" * 16)
+                .with_op("redis")
+                .with_description("INCRBY 'key' 2")
+                .build(),
+                SpanBuilder()
+                .with_span_id("d" * 16)
+                .with_op("redis")
+                .with_description("EXPIRE 'key' 1")
+                .build(),
+            ],
+            {
+                "b" * 16: "INCRBY",
+                "c" * 16: "INCRBY",
+                "d" * 16: "EXPIRE",
             },
         ),
     ],
 )
 def test_default_2021_08_25_strategy(spans: Sequence[Span], expected: Dict[str, str]) -> None:
     event = {"spans": spans}
-    results = {span_id: hash_values(values) for span_id, values in expected.items()}
     configuration = CONFIGURATIONS["default:2021-08-25"]
-    assert configuration.execute_strategy(event).results == results
+    assert configuration.execute_strategy(event).results == expected
