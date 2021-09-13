@@ -149,7 +149,7 @@ class Http(Interface):
         url = self.url
         if url:
             if self.query_string:
-                url = url + "?" + urlencode(get_path(self.query_string, filter=True, default=""))
+                url = url + "?" + urlencode(get_path(self.query_string, filter=True) or "")
             if self.fragment:
                 url = url + "#" + self.fragment
         return url
@@ -162,7 +162,7 @@ class Http(Interface):
                 "url": self.full_url,
                 "short_url": self.url,
                 "method": self.method,
-                "query_string": urlencode(get_path(self.query_string, filter=True, default="")),
+                "query_string": urlencode(get_path(self.query_string, filter=True) or ""),
                 "fragment": self.fragment,
             },
         )
