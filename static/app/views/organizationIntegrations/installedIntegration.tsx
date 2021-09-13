@@ -127,6 +127,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                     disabled={!(hasAccess && integration.status === 'active')}
                     icon={<IconWarning />}
                     onAddIntegration={() => {}}
+                    organization={organization}
                     provider={provider}
                     priority="primary"
                     size="small"
