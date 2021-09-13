@@ -44,7 +44,7 @@ type Props = {
   element: 'issue-link' | 'alert-rule-action';
   extraFields?: {[key: string]: any};
   extraRequestBody?: {[key: string]: any};
-  onSubmitSuccess: (...params: any[]) => void;
+  onSubmitSuccess: Function;
   getFieldDefault?: (field: FieldFromSchema) => string;
 };
 
