@@ -199,7 +199,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                 pytest.approx(200),
             ]
             assert raw_event["spans"] == [
-                dict(span, exclusive_time=exclusive_time)
+                dict(span, exclusive_time=exclusive_time, normalized=span["description"])
                 for span, exclusive_time in zip(event_data["spans"], exclusive_times)
             ]
             assert raw_event["breakdowns"] == {
