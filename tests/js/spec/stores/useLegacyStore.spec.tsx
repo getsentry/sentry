@@ -8,8 +8,8 @@ describe('useLegacyStore', () => {
   const team = TestStubs.Team();
 
   function TestComponent() {
-    const teams = useLegacyStore(TeamStore);
-    return <div>Teams: {teams.length}</div>;
+    const teamStore = useLegacyStore(TeamStore);
+    return <div>Teams: {teamStore.teams.length}</div>;
   }
 
   afterEach(() => {
