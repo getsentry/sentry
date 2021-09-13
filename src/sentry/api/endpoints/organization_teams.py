@@ -104,6 +104,8 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 elif key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
+                elif key == "slug":
+                    queryset = queryset.filter(slug__in=value)
                 else:
                     queryset = queryset.none()
 
