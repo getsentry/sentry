@@ -51,6 +51,7 @@ const validHookNames = new Set<HookName>([
   'feature-disabled:project-performance-score-card',
   'feature-disabled:project-selector-checkbox',
   'feature-disabled:rate-limits',
+  'feature-disabled:relay',
   'feature-disabled:sso-basic',
   'feature-disabled:sso-rippling',
   'feature-disabled:sso-saml2',
