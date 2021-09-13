@@ -648,7 +648,11 @@ class SnubaDataSource(IndexMockingDataSource):
 
         snuba_queries = SnubaQueryBuilder(project, query).get_snuba_queries()
         results = {
-            entity: {key: raw_snql_query(query) for key, query in queries.items()}
+            entity: {
+                # TODO: Should we use cache?
+                key: raw_snql_query(query, use_cache=False, referrer=f"api.metrics.{key}")
+                for key, query in queries.items()
+            }
             for entity, queries in snuba_queries.items()
         }
 
