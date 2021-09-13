@@ -46,8 +46,6 @@ jobs:
 
       - name: Setup pre-commit
         if: steps.changes.outputs.backend == 'true'
-        env:
-          SENTRY_NO_VIRTUALENV_CREATION: 1
         run: |
           make setup-git
           sudo apt-get update
