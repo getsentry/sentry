@@ -5,6 +5,7 @@ import {t} from 'app/locale';
 import {Organization, OrganizationSummary} from 'app/types';
 import withOrganizations from 'app/utils/withOrganizations';
 import {
+  CONFIRMATION_MESSAGE,
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
 } from 'app/views/settings/account/notifications/constants';
@@ -27,6 +28,7 @@ import {
   getStateToPutForProvider,
   isEverythingDisabled,
   isGroupedByProject,
+  isSufficientlyComplex,
   mergeNotificationSettings,
   providerListToString,
 } from 'app/views/settings/account/notifications/utils';
@@ -165,12 +167,19 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 
-    const fields = [
-      Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
+    const defaultField = Object.assign(
+      {},
+      NOTIFICATION_SETTING_FIELDS[notificationType],
+      {
         help: t('This is the default for all projects.'),
         getData: data => this.getStateToPutForDefault(data),
-      }),
-    ];
+      }
+    );
+    if (isSufficientlyComplex(notificationType, notificationSettings)) {
+      defaultField.confirm = {never: CONFIRMATION_MESSAGE};
+    }
+
+    const fields = [defaultField];
     if (!isEverythingDisabled(notificationType, notificationSettings)) {
       fields.push(
         Object.assign(

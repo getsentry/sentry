@@ -279,7 +279,8 @@ class DashboardDetail extends Component<Props, State> {
                   ...location.query,
                 },
               });
-            }
+            },
+            () => undefined
           );
         }
         break;
@@ -319,7 +320,8 @@ class DashboardDetail extends Component<Props, State> {
                 });
                 return;
               }
-            }
+            },
+            () => undefined
           );
 
           return;

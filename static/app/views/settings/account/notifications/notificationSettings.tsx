@@ -6,6 +6,7 @@ import Link from 'app/components/links/link';
 import {IconMail} from 'app/icons';
 import {t} from 'app/locale';
 import {
+  CONFIRMATION_MESSAGE,
   NOTIFICATION_SETTINGS_TYPES,
   NotificationSettingsObject,
   SELF_NOTIFICATION_SETTINGS_TYPES,
@@ -16,6 +17,7 @@ import {
   decideDefault,
   getParentIds,
   getStateToPutForDefault,
+  isSufficientlyComplex,
   mergeNotificationSettings,
 } from 'app/views/settings/account/notifications/utils';
 import Form from 'app/views/settings/components/forms/form';
@@ -89,21 +91,38 @@ class NotificationSettings extends AsyncComponent<Props, State> {
   }
 
   getFields(): FieldObject[] {
-    return NOTIFICATION_SETTINGS_TYPES.map(
-      notificationType =>
-        Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
-          getData: data => this.getStateToPutForDefault(data, notificationType),
-          help: (
-            <React.Fragment>
+    const {notificationSettings} = this.state;
+
+    const fields: FieldObject[] = [];
+    for (const notificationType of NOTIFICATION_SETTINGS_TYPES) {
+      const field = Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
+        getData: data => this.getStateToPutForDefault(data, notificationType),
+        help: (
+          <React.Fragment>
+            <p>
               {NOTIFICATION_SETTING_FIELDS[notificationType].help}
               &nbsp;
-              <Link to={`/settings/account/notifications/${notificationType}`}>
+              <Link
+                data-test-id="fine-tuning"
+                to={`/settings/account/notifications/${notificationType}`}
+              >
                 Fine tune
               </Link>
-            </React.Fragment>
-          ),
-        }) as FieldObject
-    );
+            </p>
+          </React.Fragment>
+        ),
+      }) as any;
+
+      if (
+        isSufficientlyComplex(notificationType, notificationSettings) &&
+        typeof field !== 'function'
+      ) {
+        field.confirm = {never: CONFIRMATION_MESSAGE};
+      }
+
+      fields.push(field);
+    }
+    return fields;
   }
 
   renderBody() {

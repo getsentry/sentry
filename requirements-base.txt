@@ -9,8 +9,8 @@ croniter==0.3.37
 dataclasses==0.8; python_version <= '3.6'
 datadog==0.29.3
 django-crispy-forms==1.8.1
-django-picklefield==1.0.0
-Django==2.1.15
+django-picklefield==2.1.0
+Django==2.2.24
 djangorestframework==3.11.2
 email-reply-parser==0.5.12
 google-api-core==1.25.1

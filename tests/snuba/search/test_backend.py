@@ -2078,6 +2078,8 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.group2.save()
         self.store_group(self.group2)
         self.run_test("is:unresolved", [self.group1], None)
+        self.run_test("is:resolved", [self.group2], None)
+        self.run_test("is:unresolved is:resolved", [], None)
 
     def test_environment(self):
         self.run_test("is:unresolved", [self.group1], None, environments=[self.env1])
@@ -2231,3 +2233,11 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.run_test(
             "is:unresolved", [group3, self.group1], 4, limit=2, cursor=results.next, count_hits=True
         )
+
+    def test_rechecking(self):
+        self.group2.status = GroupStatus.RESOLVED
+        self.group2.save()
+        # Explicitly avoid calling `store_group` here. This means that Clickhouse will still see
+        # this group as `UNRESOLVED` and it will be returned in the snuba results. This group
+        # should still be filtered out by our recheck.
+        self.run_test("is:unresolved", [self.group1], None)

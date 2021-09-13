@@ -79,53 +79,6 @@ sudo-askpass() {
     fi
 }
 
-# After using homebrew to install docker, we need to do some magic to remove the need to interact with the GUI
-# See: https://github.com/docker/for-mac/issues/2359#issuecomment-607154849 for why we need to do things below
-init-docker() {
-    # Need to start docker if it was freshly installed or updated
-    # You will know that Docker is ready for devservices when the icon on the menu bar stops flashing
-    if query-mac && ! require docker && [ -d "/Applications/Docker.app" ]; then
-        echo "Making some changes to complete Docker initialization"
-        # allow the app to run without confirmation
-        xattr -d -r com.apple.quarantine /Applications/Docker.app
-
-        # preemptively do docker.app's setup to avoid any gui prompts
-        # This path is not available for brand new MacBooks
-        sudo-askpass /bin/mkdir -p /Library/PrivilegedHelperTools
-        sudo-askpass /bin/chmod 754 /Library/PrivilegedHelperTools
-        sudo-askpass /bin/cp /Applications/Docker.app/Contents/Library/LaunchServices/com.docker.vmnetd /Library/PrivilegedHelperTools/
-        sudo-askpass /bin/chmod 544 /Library/PrivilegedHelperTools/com.docker.vmnetd
-
-        # This file used to be generated as part of brew's installation
-        if [ -f /Applications/Docker.app/Contents/Resources/com.docker.vmnetd.plist ]; then
-            sudo-askpass /bin/cp /Applications/Docker.app/Contents/Resources/com.docker.vmnetd.plist /Library/LaunchDaemons/
-        else
-            sudo-askpass /bin/cp .github/workflows/files/com.docker.vmnetd.plist /Library/LaunchDaemons/
-        fi
-        sudo-askpass /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
-        sudo-askpass /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
-    fi
-    start-docker
-}
-
-# This is mainly to be used by CI
-# We need this for Mac since the executable docker won't work properly
-# until the app is opened once
-start-docker() {
-    if query-mac && ! docker system info &>/dev/null; then
-        echo "About to open Docker.app"
-        # At a later stage in the script, we're going to execute
-        # ensure_docker_server which waits for it to be ready
-        if ! open -g -a Docker.app; then
-            # If the step above fails, at least we can get some debugging information to determine why
-            sudo-askpass ls -l /Library/PrivilegedHelperTools/com.docker.vmnetd
-            ls -l /Library/LaunchDaemons/
-            cat /Library/LaunchDaemons/com.docker.vmnetd.plist
-            ls -l /Applications/Docker.app
-        fi
-    fi
-}
-
 upgrade-pip() {
     pip install --upgrade "pip==21.1.2" "wheel==0.36.2"
 }

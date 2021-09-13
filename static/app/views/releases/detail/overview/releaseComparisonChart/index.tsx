@@ -430,18 +430,10 @@ function ReleaseComparisonChart({
   const allUsersCount = getCount(allSessions?.groups, SessionField.USERS);
 
   const sessionDurationTotal = roundDuration(
-    (getSeriesAverage(
-      releaseSessions?.groups,
-      SessionField.DURATION,
-      SessionStatus.HEALTHY
-    ) ?? 0) / 1000
+    (getSeriesAverage(releaseSessions?.groups, SessionField.DURATION) ?? 0) / 1000
   );
   const allSessionDurationTotal = roundDuration(
-    (getSeriesAverage(
-      allSessions?.groups,
-      SessionField.DURATION,
-      SessionStatus.HEALTHY
-    ) ?? 0) / 1000
+    (getSeriesAverage(allSessions?.groups, SessionField.DURATION) ?? 0) / 1000
   );
 
   const diffFailure =
@@ -995,6 +987,7 @@ function ReleaseComparisonChart({
                 borderless
                 size="zero"
                 icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
+                label={t('Toggle additional charts')}
               />
             </ShowMoreButton>
           </ShowMoreWrapper>

@@ -5,7 +5,7 @@ import EventDataSection from 'app/components/events/eventDataSection';
 import LazyLoad from 'app/components/lazyLoad';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {EventAttachment, Organization, Project} from 'app/types';
+import {IssueAttachment, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
 
 type Props = {
@@ -15,7 +15,7 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
-  attachmentList: Array<EventAttachment> | null;
+  attachmentList: Array<IssueAttachment> | null;
 } & AsyncComponent['state'];
 
 class RRWebIntegration extends AsyncComponent<Props, State> {

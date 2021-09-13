@@ -6,7 +6,6 @@ from sentry.constants import ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import BoundedPositiveIntegerField, JSONField, Model, sane_repr
 from sentry.signals import pending_delete
-from sentry.utils import metrics
 
 
 class Repository(Model, PendingDeletionMixin):
@@ -78,14 +77,14 @@ class Repository(Model, PendingDeletionMixin):
 
 
 def on_delete(instance, actor=None, **kwargs):
-    # TODO(mark) Remove this metric and code path once it is proven to have no callers.
-    metrics.incr("repository.on_delete", sample_rate=1.0)
-
+    """
+    Remove webhooks for repository providers that use repository level webhooks.
+    This is called from sentry.tasks.deletion.run_deletion()
+    """
     # If there is no provider, we don't have any webhooks, etc to delete
     if not instance.provider:
         return
 
-    # TODO(lb): I'm assuming that this is used by integrations... is it?
     def handle_exception(e):
         from sentry.exceptions import InvalidIdentity, PluginError
         from sentry.shared_integrations.exceptions import IntegrationError

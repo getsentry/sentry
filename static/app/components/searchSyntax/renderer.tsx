@@ -273,7 +273,7 @@ const Unit = styled('span')`
 
 const LogicBoolean = styled('span')`
   font-weight: bold;
-  color: ${p => p.theme.red300};
+  color: ${p => p.theme.gray300};
 `;
 
 const Boolean = styled('span')`
