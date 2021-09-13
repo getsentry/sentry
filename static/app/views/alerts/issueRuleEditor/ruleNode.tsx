@@ -328,7 +328,6 @@ class RuleNode extends React.Component<Props> {
    * @param formData Form data
    * @param fetchedFieldOptionsCache Object
    */
-  // Create UpdateParent for new Modal class
   updateParent = (
     formData: {[key: string]: string},
     fetchedFieldOptionsCache: Record<string, Choices>
@@ -366,7 +365,6 @@ class RuleNode extends React.Component<Props> {
     const ticketRule = node?.actionType === 'ticket';
     const sentryAppRule = node?.actionType === 'sentryapp';
     const isNew = node?.id === EVENT_FREQUENCY_PERCENT_CONDITION;
-    console.log({data, node});
     return (
       <RuleRowContainer>
         <RuleRow>
