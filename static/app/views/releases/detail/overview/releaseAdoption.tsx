@@ -233,12 +233,14 @@ function ReleaseComparisonChart({
             }
           />
           {adoptionStageLabel && !multipleEnvironments ? (
-            <StyledTooltip title={adoptionStageLabel.tooltipTitle}>
-              <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+            <div>
+              <StyledTooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
+                <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+              </StyledTooltip>
               <AdoptionEnvironment>
                 {tct(`in [environment]`, {environment})}
               </AdoptionEnvironment>
-            </StyledTooltip>
+            </div>
           ) : (
             <NotAvailableWrapper>
               <NotAvailable />

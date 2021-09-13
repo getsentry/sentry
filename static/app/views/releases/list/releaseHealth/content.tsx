@@ -8,6 +8,7 @@ import Collapsible from 'app/components/collapsible';
 import Count from 'app/components/count';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import NotAvailable from 'app/components/notAvailable';
 import {PanelItem} from 'app/components/panels';
@@ -32,28 +33,35 @@ import {DisplayOption} from '../utils';
 import Header from './header';
 import ProjectLink from './projectLink';
 
+const adoptionStagesLink = (
+  <ExternalLink href="https://docs.sentry.io/product/releases/health/#adoption-stages" />
+);
+
 export const ADOPTION_STAGE_LABELS: Record<
   string,
-  {name: string; tooltipTitle: string; type: keyof Theme['tag']}
+  {name: string; tooltipTitle: JSX.Element; type: keyof Theme['tag']}
 > = {
   low_adoption: {
     name: t('Low Adoption'),
-    tooltipTitle: t(
-      'This release has less than 10% of all sessions in the last 24 hours.'
+    tooltipTitle: tct(
+      'This release has a low percentage of sessions compared to other releases in this project. [link:Learn more]',
+      {link: adoptionStagesLink}
     ),
     type: 'warning',
   },
   adopted: {
     name: t('Adopted'),
-    tooltipTitle: t(
-      'This release has more than 10% of all sessions in the last 24 hours.'
+    tooltipTitle: tct(
+      'This release has a high percentage of sessions compared to other releases in this project. [link:Learn more]',
+      {link: adoptionStagesLink}
     ),
     type: 'success',
   },
   replaced: {
     name: t('Replaced'),
-    tooltipTitle: t(
-      'This release was previously adopted but now has less than 10% of all sessions in the last 24 hours.'
+    tooltipTitle: tct(
+      'This release was previously Adopted, but now has a lower level of sessions compared to other releases in this project. [link:Learn more]',
+      {link: adoptionStagesLink}
     ),
     type: 'default',
   },
