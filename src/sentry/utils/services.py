@@ -490,8 +490,8 @@ def callback_timing(
     :param backend_names: backend_names passed to callback
     :param results: results passed to callback
     :param result_comparator: An optional comparator to compare the primary result to each secondary
-    result. Should return a string that represents the result of the comparison. This will be stored
-    as the `match` tag on the metrics.
+    result. Should return a dict represents the result of the comparison. This will be merged into
+    tags to be stored in the metrics backend.
     :return:
     """
     if not len(backend_names) > 1:
