@@ -39,6 +39,7 @@ const validHookNames = new Set<HookName>([
   'feature-disabled:events-sidebar-item',
   'feature-disabled:grid-editable-actions',
   'feature-disabled:open-discover',
+  'feature-disabled:open-in-discover',
   'feature-disabled:dashboards-edit',
   'feature-disabled:dashboards-page',
   'feature-disabled:dashboards-sidebar-item',
@@ -76,7 +77,6 @@ const validHookNames = new Set<HookName>([
   'sidebar:item-override',
   'sidebar:organization-dropdown-menu',
   'sidebar:organization-dropdown-menu-bottom',
-  'button:open-in-discover',
 ]);
 
 type HookStoreInterface = {

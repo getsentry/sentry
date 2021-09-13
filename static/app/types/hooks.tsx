@@ -127,6 +127,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:discover-sidebar-item': FeatureDisabledHook;
   'feature-disabled:discover2-page': FeatureDisabledHook;
   'feature-disabled:discover2-sidebar-item': FeatureDisabledHook;
+  'feature-disabled:open-in-discover': FeatureDisabledHook;
   'feature-disabled:events-page': FeatureDisabledHook;
   'feature-disabled:events-sidebar-item': FeatureDisabledHook;
   'feature-disabled:grid-editable-actions': FeatureDisabledHook;
@@ -162,7 +163,6 @@ export type InterfaceChromeHooks = {
   'sidebar:item-label': SidebarItemLabelHook;
   'sidebar:item-override': SidebarItemOverrideHook;
   'help-modal:footer': HelpModalFooterHook;
-  'button:open-in-discover': GenericButtonComponentHook;
 };
 
 /**
@@ -197,14 +197,6 @@ type RoutesHook = () => Route[];
  */
 type GenericOrganizationComponentHook = (opts: {
   organization: Organization;
-}) => React.ReactNode;
-
-/**
- * A hook for a generic button component
- */
-type GenericButtonComponentHook = (opts: {
-  organization: Organization;
-  disabled: boolean;
 }) => React.ReactNode;
 
 // TODO(ts): We should correct the organization header hook to conform to the
