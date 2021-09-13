@@ -253,7 +253,9 @@ def configure_sdk():
         transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
         relay_transport = patch_transport_for_instrumentation(transport, "relay")
     elif internal_project_key and internal_project_key.dsn_private:
-        transport = make_transport(get_options(dsn=internal_project_key.dsn_private, **sdk_options))
+        transport = make_transport(
+            get_options(dsn=internal_project_key.dsn_private.replace("8000", "3001"), **sdk_options)
+        )
         relay_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
         relay_transport = None

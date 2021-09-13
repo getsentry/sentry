@@ -1787,6 +1787,7 @@ SENTRY_DEVSERVICES = {
                 "REDIS_HOST": "{containers[redis][name]}",
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
+                "SENTRY_DSN": "http://8149beaaa2fd4e92bdac2dd0b09ca99a@o1.ingest.dev.getsentry.net:8000/1",
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
