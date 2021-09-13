@@ -94,18 +94,21 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         links_seen = set()
 
         # An unfurl may have multiple links to unfurl
-        for item in data["links"]:
+        for i in range(len(data["links"])):
             try:
+                # Sometimes `links` is an array and sometimes it's a dictionary that
+                # maps indexes to values. In either case this should work.
+                url = data["links"][i]["url"]
                 # We would like to track what types of links users are sharing,
                 # but it's a little difficult to do in sentry since we filter
                 # requests from Slack bots. Instead we just log to Kibana
-                logger.info(
-                    "slack.link-shared", extra={"slack_shared_link": parse_link(item["url"])}
-                )
+                slack_shared_link = parse_link(url)
             except Exception as e:
                 logger.error("slack.parse-link-error", extra={"error": str(e)})
+                continue
 
-            link_type, args = match_link(item["url"])
+            logger.info("slack.link-shared", extra={"slack_shared_link": slack_shared_link})
+            link_type, args = match_link(url)
 
             # Link can't be unfurled
             if link_type is None or args is None:
@@ -117,7 +120,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
                 continue
 
             links_seen.add(seen_marker)
-            matches[link_type].append(UnfurlableUrl(url=item["url"], args=args))
+            matches[link_type].append(UnfurlableUrl(url=url, args=args))
 
         if not matches:
             return None
