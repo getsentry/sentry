@@ -102,7 +102,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     switch (this.props.element) {
       case 'alert-rule-action':
         // TODO(leander): Send request to the correct endpoint
-        return 'TODO';
+        return '/404/';
       case 'issue-link':
       default:
         return `/sentry-app-installations/${sentryAppInstallationId}/external-issue-actions/`;

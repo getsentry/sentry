@@ -11,8 +11,6 @@ type Props = ModalRenderProps & {
   appName: string;
   config: Config;
   action: 'create' | 'update';
-  //   extraFields?: {[key: string]: any};
-  //   extraRequestBody?: {[key: string]: any};
   onSubmitSuccess: (...params: any[]) => void;
 };
 
