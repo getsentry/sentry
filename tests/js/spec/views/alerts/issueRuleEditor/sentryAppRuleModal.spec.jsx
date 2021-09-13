@@ -1,6 +1,3 @@
-// TODO(leander): Remove this once the test is configured
-/* eslint-disable jest/no-disabled-tests */
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {changeInputValue, selectByValue} from 'sentry-test/select-new';
 
@@ -53,10 +50,10 @@ describe('SentryAppRuleModal', function () {
         type: 'select',
         label: 'Team Channel',
         name: 'channel',
-        options: [
-          ['#valor', 'valor'],
-          ['#mystic', 'mystic'],
-          ['#instinct', 'instinct'],
+        choices: [
+          ['valor', 'valor'],
+          ['mystic', 'mystic'],
+          ['instinct', 'instinct'],
         ],
       },
     ],
@@ -73,7 +70,7 @@ describe('SentryAppRuleModal', function () {
     return mountWithTheme(
       <SentryAppRuleModal
         {...modalElements}
-        sentryAppInstallationId={sentryAppInstallation.uuid}
+        sentryAppInstallationUuid={sentryAppInstallation.uuid}
         appName={sentryApp.name}
         config={defaultConfig}
         action="create"
@@ -104,75 +101,24 @@ describe('SentryAppRuleModal', function () {
 
     it('should submit when "Save Changes" is clicked with valid data', async function () {
       const wrapper = createWrapper();
-      const projectInput = wrapper.find('[data-test-id="channel"] input').at(0);
-      changeInputValue(projectInput, '#');
+      const titleInput = wrapper.find('[data-test-id="title"] input').at(0);
+      const descriptionInput = wrapper
+        .find('[data-test-id="description"] textarea')
+        .at(0);
+      const channelInput = wrapper.find('[data-test-id="channel"] input').at(0);
+      changeInputValue(titleInput, 'v');
+      changeInputValue(descriptionInput, 'v');
+      changeInputValue(channelInput, 'v');
+      selectByValue(wrapper, 'valor', {name: 'channel', control: true});
 
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('[label="#valor"]').exists()).toBe(true);
-      expect(wrapper.find('[label="#mystic"]').exists()).toBe(true);
-      expect(wrapper.find('[label="#instinct"]').exists()).toBe(true);
-
-      await tick();
-      wrapper.update();
-      selectByValue(wrapper, 'valor', {name: 'channel'});
+      MockApiClient.addMockResponse({
+        // TODO(leander): Replace with real endpoint for alert rule actions
+        url: '/404/',
+        method: 'POST',
+        body: {it: 'worked'},
+      });
 
       submitSuccess(wrapper);
     });
   });
-
-  // describe.skip('Create Rule', function () {
-  //   it('should save the modal data when "Apply Changes" is clicked with valid data', async function () {
-  //     const wrapper = createWrapper();
-  //     selectByValue(wrapper, 'a', {name: 'reporter'});
-  //     submitSuccess(wrapper);
-  //   });
-
-  //   it('should raise validation errors when "Apply Changes" is clicked with invalid data', async function () {
-  //     // This doesn't test anything TicketRules specific but I'm leaving it here as an example.
-  //     const wrapper = createWrapper();
-  //     submitErrors(wrapper, 1);
-  //   });
-
-  //   it('should reload fields when an "updatesForm" field changes', async function () {
-  //     const wrapper = createWrapper();
-  //     selectByValue(wrapper, 'a', {name: 'reporter'});
-
-  //     addMockConfigsAPICall({
-  //       label: 'Assignee',
-  //       required: true,
-  //       choices: [['b', 'b']],
-  //       type: 'select',
-  //       name: 'assignee',
-  //     });
-
-  //     selectByValue(wrapper, '10000', {name: 'issuetype'});
-  //     selectByValue(wrapper, 'b', {name: 'assignee'});
-
-  //     submitSuccess(wrapper);
-  //   });
-
-  //   it('should persist values when the modal is reopened', async function () {
-  //     const wrapper = createWrapper({data: {reporter: 'a'}});
-  //     submitSuccess(wrapper);
-  //   });
-
-  //   it('should get async options from URL', async function () {
-  //     const wrapper = createWrapper();
-  //     addMockConfigsAPICall({
-  //       label: 'Assignee',
-  //       required: true,
-  //       url: 'http://example.com',
-  //       type: 'select',
-  //       name: 'assignee',
-  //     });
-  //     selectByValue(wrapper, '10000', {name: 'issuetype'});
-
-  //     addMockUsersAPICall(['Marcos']);
-  //     await selectByQuery(wrapper, 'Marcos', {name: 'assignee'});
-
-  //     submitSuccess(wrapper);
-  //   });
-  // });
 });
