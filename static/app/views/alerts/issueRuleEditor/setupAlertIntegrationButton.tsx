@@ -63,6 +63,8 @@ export default class SetupAlertIntegrationButton extends AsyncComponent<Props, S
           to: `/settings/${organization.slug}/integrations/slack/${referrerQuery}`,
         };
 
+    // TOOD(Steve): need to use the Tooltip component because adding a title to the button
+    // puts the tooltip in the upper left hand corner of the page instead of the button
     return (
       <Tooltip title={t('Send Alerts to Slack. Install the integration now.')}>
         <Button
