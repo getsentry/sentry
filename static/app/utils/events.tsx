@@ -58,26 +58,17 @@ export function getTreeLabelPartDetails(part: TreeLabelPart) {
   // porting efforts simpler it's recommended to keep both variants
   // structurally similar.
   if (typeof part === 'string') {
-    return {
-      label: part,
-      highlight: false,
-    };
+    return part;
   }
 
-  let label = part?.function || part?.package || part?.filebase || part?.type;
+  const label = part?.function || part?.package || part?.filebase || part?.type;
   const classbase = part?.classbase;
+
   if (classbase) {
-    if (label) {
-      label = `${classbase}.${label}`;
-    } else {
-      label = classbase;
-    }
+    return label ? `${classbase}.${label}` : classbase;
   }
 
-  return {
-    label: label || '<unknown>',
-    highlight: !!part.is_sentinel,
-  };
+  return label || '<unknown>';
 }
 
 function computeTitleWithTreeLabel(metadata: EventMetadata, features: string[] = []) {
@@ -86,7 +77,7 @@ function computeTitleWithTreeLabel(metadata: EventMetadata, features: string[] =
     ? current_tree_label || finest_tree_label
     : undefined;
   const formattedTreeLabel = treeLabel
-    ? treeLabel.map(labelPart => getTreeLabelPartDetails(labelPart).label).join(' | ')
+    ? treeLabel.map(labelPart => getTreeLabelPartDetails(labelPart)).join(' | ')
     : undefined;
 
   if (!type) {
