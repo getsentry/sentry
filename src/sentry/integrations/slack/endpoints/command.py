@@ -80,7 +80,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
             }
         )
 
-    def get_team_linked_to_channel(
+    def is_team_linked_to_channel(
         self, organization: Organization, integration: Integration, slack_request: SlackRequest
     ) -> bool:
         """Check if a Slack channel already has a team linked to it"""
@@ -104,7 +104,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
         organization = integration.organizations.all()[0]
         org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
 
-        if self.get_team_linked_to_channel(organization, integration, slack_request):
+        if self.is_team_linked_to_channel(organization, integration, slack_request):
             return self.reply(slack_request, CHANNEL_ALREADY_LINKED_MESSAGE)
 
         if not is_valid_role(org_member):

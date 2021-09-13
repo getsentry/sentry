@@ -1,4 +1,3 @@
-from django.db import IntegrityError
 from django.http import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -58,16 +57,15 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
         channel_name = params["channel_name"]
         channel_id = params["channel_id"]
 
-        try:
-            external_teams = ExternalActor.objects.filter(
-                organization=organization,
-                integration=integration,
-                provider=ExternalProviders.SLACK.value,
-                external_name=channel_name,
-                external_id=channel_id,
-            )
-        except IntegrityError as e:
-            logger.error("slack.team.unlink.integrity-error", extra=e)
+        external_teams = ExternalActor.objects.filter(
+            organization=organization,
+            integration=integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name=channel_name,
+            external_id=channel_id,
+        )
+        if len(external_teams) == 0:
+            logger.error("slack.team.unlink.no_external_teams")
             raise Http404
 
         teams = Team.objects.filter(
