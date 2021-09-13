@@ -42,11 +42,33 @@ const unassignedOption = {
 
 // Ensures that the svg icon is white when selected
 const unassignedSelectStyles: StylesConfig = {
-  option: (provided, state: any) => ({
+  option: (provided, state) => ({
     ...provided,
     svg: {
       color: state.isSelected && state.theme.white,
     },
+  }),
+};
+
+const placeholderSelectStyles: StylesConfig = {
+  input: (provided, state) => ({
+    ...provided,
+    display: 'grid',
+    gridTemplateColumns: 'max-content 1fr',
+    alignItems: 'center',
+    gridGap: space(1),
+    ':before': {
+      backgroundColor: state.theme.backgroundSecondary,
+      height: 24,
+      width: 24,
+      borderRadius: 3,
+      content: '""',
+      display: 'block',
+    },
+  }),
+  placeholder: provided => ({
+    ...provided,
+    paddingLeft: 32,
   }),
 };
 
@@ -231,6 +253,7 @@ function TeamSelector(props: Props) {
       styles={{
         ...(styles ?? {}),
         ...(includeUnassigned ? unassignedSelectStyles : {}),
+        ...placeholderSelectStyles,
       }}
       {...extraProps}
     />
