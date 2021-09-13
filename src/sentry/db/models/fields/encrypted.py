@@ -7,7 +7,7 @@ __all__ = (
 
 
 from django.db.models import CharField, TextField
-from picklefield.fields import PickledObject, PickledObjectField, _ObjectWrapper, dbsafe_decode
+from picklefield.fields import PickledObjectField
 
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.utils import Creator
@@ -45,6 +45,8 @@ class EncryptedJsonField(JSONField):
 
 
 class EncryptedPickledObjectField(PickledObjectField):
+    empty_strings_allowed = True
+
     def get_db_prep_value(self, value, *args, **kwargs):
         if isinstance(value, bytes):
             value = value.decode("utf-8")
@@ -54,24 +56,7 @@ class EncryptedPickledObjectField(PickledObjectField):
     def to_python(self, value):
         if value is not None and isinstance(value, str):
             value = decrypt(value)
-
-        # The following below is a copypaste of PickledObjectField.to_python of
-        # v1.0.0 with one change: We re-raise any baseexceptions such as
-        # signals. 1.0.0 has a bare `except:` which causes issues.
-
-        if value is not None:
-            try:
-                value = dbsafe_decode(value, self.compress)
-            except Exception:
-                # If the value is a definite pickle; and an error is raised in
-                # de-pickling it should be allowed to propagate.
-                if isinstance(value, PickledObject):
-                    raise
-            else:
-                if isinstance(value, _ObjectWrapper):
-                    return value._obj
-
-        return value
+        return super().to_python(value)
 
 
 class EncryptedTextField(TextField):

@@ -39,6 +39,8 @@ class OrganizationSerializerTest(TestCase):
             "invite-members",
             "invite-members-rate-limits",
             "open-membership",
+            "performance-tag-page",
+            "performance-tag-explorer",
             "relay",
             "shared-issues",
             "sso-basic",

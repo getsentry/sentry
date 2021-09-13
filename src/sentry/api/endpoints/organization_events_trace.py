@@ -31,7 +31,7 @@ from sentry.models import Organization
 from sentry.snuba import discover
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import Dataset, SnubaQueryParams, bulk_raw_query
-from sentry.utils.validators import INVALID_EVENT_DETAILS, is_event_id
+from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 logger: logging.Logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE: int = 100
@@ -361,7 +361,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
 
         # Only need to validate event_id as trace_id is validated in the URL
         if event_id and not is_event_id(event_id):
-            return Response({"detail": INVALID_EVENT_DETAILS.format("Event")}, status=400)
+            return Response({"detail": INVALID_ID_DETAILS.format("Event ID")}, status=400)
 
         with self.handle_query_errors():
             transactions, errors = query_trace_data(trace_id, params)

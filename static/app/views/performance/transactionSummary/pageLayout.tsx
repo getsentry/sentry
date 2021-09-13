@@ -116,6 +116,7 @@ function PageLayout(props: Props) {
                 location={location}
                 organization={organization}
                 projects={projects}
+                projectId={projectId}
                 transactionName={transactionName}
                 currentTab={tab}
                 hasWebVitals={tab === Tab.WebVitals ? 'yes' : 'maybe'}

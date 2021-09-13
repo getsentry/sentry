@@ -1,10 +1,11 @@
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import produces_variants, strategy
+from sentry.interfaces.template import Template
 
 
-@strategy(id="template:v1", interfaces=["template"], score=1100)
+@strategy(ids=["template:v1"], interface=Template, score=1100)
 @produces_variants(["default"])
-def template_v1(template, context, **meta):
+def template_v1(template, event, context, **meta):
     filename_component = GroupingComponent(id="filename")
     if template.filename is not None:
         filename_component.update(values=[template.filename])

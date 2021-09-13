@@ -2,8 +2,9 @@ name: python deps
 on:
   pull_request:
     paths:
+      - '.github/actions/setup-python/action.yml'
       - '.github/workflows/python-deps.yml'
-      - 'requirements*'
+      - 'requirements-*.txt'
 
 jobs:
   # This workflow makes sure that Python dependencies install correctly for
@@ -27,19 +28,22 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Install prerequisites
-        # Sometimes, brew needs to be updated before brew bundle would work
+        # brew can be finicky but it does not always means that the rest of the job will fail
         run: |
-          brew update && brew bundle -q
+          # Needed for xmlsec
+          brew install libxmlsec1 pkg-config
 
-      - name: Setup python
-        id: setup-python
+      - name: Setup Python
         uses: ./.github/actions/setup-python
         with:
-          # XXX: We need to pass this python-deps-${{ matrix.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements-*.txt') }}
-          cache-files-hash: ${{ hashFiles('requirements-*.txt') }}
+          # Non-default value since install-py-dev installs all requirements files
+          # We also want to bust the cache if the action and workflow change
+          cache-files-hash: ${{ hashFiles('requirements-*.txt', '.github/actions/setup-python/action.yml', '.github/workflows/python-deps.yml') }}
 
       - name: Install dependencies
         run: |
           python -m venv .venv
           source .venv/bin/activate
           make install-py-dev
+          # This exercises the requirements-pre-commit.txt file
+          make setup-git

@@ -13,7 +13,6 @@ type TeamStoreInterface = {
   onCreateSuccess: (team: Team) => void;
   getById: (id: string) => Team | null;
   getBySlug: (slug: string) => Team | null;
-  getActive: () => Team[];
   get: () => Team[];
   getAll: () => Team[];
 };
@@ -94,10 +93,6 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
 
   getBySlug(slug: string) {
     return this.state.find(item => item.slug === slug) || null;
-  },
-
-  getActive() {
-    return this.state.filter(item => item.isMember);
   },
 
   getAll() {

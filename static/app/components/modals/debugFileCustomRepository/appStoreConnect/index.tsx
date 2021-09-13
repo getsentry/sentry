@@ -495,29 +495,6 @@ function AppStoreConnect({
       );
     }
 
-    if (
-      updateAlertMessage ===
-      appStoreConnectAlertMessage.isTodayAfterItunesSessionRefreshAt
-    ) {
-      alerts.push(
-        <AlertLink
-          withoutMarginBottom
-          icon={<IconWarning />}
-          to={{
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              revalidateItunesSession: true,
-            },
-          }}
-        >
-          {t(
-            'Your iTunes session will likely expire soon. We recommend that you revalidate the session.'
-          )}
-        </AlertLink>
-      );
-    }
-
     return alerts;
   }
 

@@ -44,7 +44,6 @@ export enum CustomRepoType {
 export type AppStoreConnectValidationData = {
   id: string;
   appstoreCredentialsValid: boolean;
-  itunesSessionValid: boolean;
   /** Indicates if the itunesSession is actually *needed* to complete any downloads that are pending. */
   pendingDownloads: number;
   /**

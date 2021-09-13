@@ -1,7 +1,18 @@
+from sentry.models import OrganizationStatus
+
 from ..base import ModelDeletionTask, ModelRelation
 
 
 class OrganizationDeletionTask(ModelDeletionTask):
+    def should_proceed(self, instance):
+        """
+        Only delete organizations that haven't been undeleted.
+        """
+        return instance.status in {
+            OrganizationStatus.PENDING_DELETION,
+            OrganizationStatus.DELETION_IN_PROGRESS,
+        }
+
     def get_child_relations(self, instance):
         from sentry.discover.models import DiscoverSavedQuery, KeyTransaction, TeamKeyTransaction
         from sentry.incidents.models import AlertRule, Incident

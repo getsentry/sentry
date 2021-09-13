@@ -45,7 +45,7 @@ def resolve(path):
     return os.path.split(absolute_path)
 
 
-def unversioned_static_media(request, **kwargs):
+def frontend_app_static_media(request, **kwargs):
     """
     Serve static files that should not have any versioned paths/filenames.
     These assets will have cache headers to say that it can be cached by a

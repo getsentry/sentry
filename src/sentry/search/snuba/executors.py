@@ -14,12 +14,13 @@ from snuba_sdk.query import Column, Condition, Entity, Function, Join, Limit, Or
 from snuba_sdk.relationships import Relationship
 
 from sentry import options
-from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.api.event_search import SearchFilter
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.models import Environment, Group, Optional, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
+from sentry.search.utils import validate_cdc_search_filters
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -726,10 +727,8 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         date_to: Optional[datetime],
         max_hits=None,
     ) -> CursorResult:
-        # TODO: For the moment, the assumption is that this backend will only ever be passed
-        # search_filters derived from `is:unresolved`. We'll hardcode that case and handle more
-        # later.
-        if search_filters != [SearchFilter(SearchKey("status"), "IN", SearchValue([0]))]:
+
+        if not validate_cdc_search_filters(search_filters):
             raise InvalidQueryForExecutor("Search filters invalid for this query executor")
 
         start, end, retention_date = self.calculate_start_end(
@@ -756,8 +755,16 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             Condition(Column("project_id", e_event), Op.IN, [p.id for p in projects]),
             Condition(Column("timestamp", e_event), Op.GTE, start),
             Condition(Column("timestamp", e_event), Op.LT, end),
-            Condition(Column("status", e_group), Op.IN, [0]),
         ]
+        # TODO: This is still basically only handling status, handle this better once we introduce
+        # more conditions.
+        for search_filter in search_filters:
+            where_conditions.append(
+                Condition(
+                    Column(search_filter.key.name, e_group), Op.IN, search_filter.value.raw_value
+                )
+            )
+
         if environments:
             # TODO: Should this be handled via filter_keys, once we have a snql compatible version?
             where_conditions.append(
@@ -804,7 +811,14 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         paginator_results = SequencePaginator(
             [(row["score"], row["g.id"]) for row in data], reverse=True, **paginator_options
         ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
-        groups = Group.objects.in_bulk(paginator_results.results)
+        # We filter against `group_queryset` here so that we recheck all conditions in Postgres.
+        # Since replag between Postgres and Clickhouse can happen, we might get back results that
+        # have changed state in Postgres. By rechecking them we guarantee than any returned results
+        # have the correct state.
+        # TODO: This can result in us returning less than a full page of results, but shouldn't
+        # affect cursors. If we want to, we can iterate and query snuba until we manage to get a
+        # full page. In practice, this will likely only skip a couple of results at worst, and
+        # probably not be noticeable to the user, so holding off for now to reduce complexity.
+        groups = group_queryset.in_bulk(paginator_results.results)
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
-
         return paginator_results
