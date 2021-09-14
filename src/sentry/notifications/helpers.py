@@ -91,7 +91,7 @@ def _get_setting_mapping_from_mapping(
 
     return {
         provider: _get_notification_setting_default(provider, type, user=user)
-        for provider in [ExternalProviders.EMAIL]
+        for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]
     }
 
 
