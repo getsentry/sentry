@@ -63,7 +63,6 @@ export default function ActionTargetSelector(props: Props) {
           value={action.targetIdentifier}
           onChange={handleChangeTargetIdentifier}
           useId
-          includeUnassigned
         />
       ) : (
         <SelectMembers

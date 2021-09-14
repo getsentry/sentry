@@ -97,7 +97,6 @@ class MemberTeamFields extends React.Component<Props> {
             styles={selectControlStyles}
             onChange={this.handleChangeActorId}
             useId
-            includeUnassigned
           />
         ) : memberSelected ? (
           <SelectMembers
