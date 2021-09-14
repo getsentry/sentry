@@ -35,9 +35,7 @@ Pillow==8.2.0; python_version == '3.6'
 Pillow==8.3.1; python_version > '3.6'
 progressbar2==3.32.0
 python-rapidjson==1.4
-# If we bump it to 2.8.4 or greater then Python 3.6 & 3.8 would use the same version
-psycopg2-binary==2.7.7; python_version == '3.6'
-psycopg2-binary==2.8.6; python_version > '3.6'
+psycopg2-binary==2.8.6
 PyJWT==2.1.0
 python-dateutil==2.8.1
 python-memcached==1.59
