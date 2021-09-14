@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {RequestOptions} from 'app/api';
 import Alert from 'app/components/alert';
+import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {IconFlag, IconOpen, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -25,7 +26,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   AbstractIntegrationDetailedView['props'],
   State & AbstractIntegrationDetailedView['state']
 > {
-  getEndpoints(): ([string, string, any] | [string, string])[] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, integrationSlug} = this.props.params;
     return [
       [
