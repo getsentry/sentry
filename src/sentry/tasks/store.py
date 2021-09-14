@@ -258,7 +258,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     if not from_reprocessing:
         cluster = redis.redis_clusters.get("default")
         ttl = settings.SYMBOLICATOR_PROCESS_EVENT_LOW_PRIORITY_COUNTER_TTL
-        low_priority_counter(cluster, projet_id, symbolication_start_time, ttl)
+        increment_low_priority_metrics_counter(cluster, project_id, symbolication_start_time, ttl)
 
     with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
         span.set_data("symbolication_function", symbolication_function_name)
