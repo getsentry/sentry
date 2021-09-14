@@ -362,9 +362,10 @@ class RuleNode extends React.Component<Props> {
 
   render() {
     const {data, disabled, index, node, organization} = this.props;
-    const ticketRule = node?.actionType === 'ticket';
-    const sentryAppRule = node?.actionType === 'sentryapp';
-    const isNew = node?.id === EVENT_FREQUENCY_PERCENT_CONDITION;
+    const {actionType, id, sentryAppInstallationUuid} = node || {};
+    const ticketRule = actionType === 'ticket';
+    const sentryAppRule = actionType === 'sentryapp' && sentryAppInstallationUuid;
+    const isNew = id === EVENT_FREQUENCY_PERCENT_CONDITION;
     return (
       <RuleRowContainer>
         <RuleRow>
@@ -404,7 +405,7 @@ class RuleNode extends React.Component<Props> {
                   openModal(deps => (
                     <SentryAppRuleModal
                       {...deps}
-                      sentryAppInstallationUuid={node.sentryAppInstallationUuid || ''}
+                      sentryAppInstallationUuid={sentryAppInstallationUuid}
                       config={node.formFields as Config}
                       appName={node.prompt}
                       action="create"
