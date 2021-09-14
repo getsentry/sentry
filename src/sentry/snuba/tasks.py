@@ -5,8 +5,6 @@ import sentry_sdk
 from django.utils import timezone
 from snuba_sdk.legacy import json_to_snql
 
-from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Project
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
 from sentry.snuba.models import QueryDatasets, QuerySubscription
@@ -224,15 +222,10 @@ def _create_in_snuba(subscription):
     }
 
     if Dataset(snuba_query.dataset) == Dataset.Sessions:
-        try:
-            org_id = Project.objects.get(id=subscription.project_id).organization_id
-        except Project.DoesNotExist:
-            raise ResourceDoesNotExist
-
         body.update(
             {
                 "granularity": snuba_filter.rollup,
-                "organization": org_id,
+                "organization": subscription.project.organization_id,
             }
         )
 
