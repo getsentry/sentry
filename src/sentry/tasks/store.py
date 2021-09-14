@@ -366,7 +366,7 @@ def symbolicate_event_low_priority(cache_key, start_time=None, event_id=None, **
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
-        symbolicate_task=symbolicate_event,
+        symbolicate_task=symbolicate_event_low_priority,
     )
 
 
