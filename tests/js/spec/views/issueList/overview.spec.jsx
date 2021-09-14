@@ -830,9 +830,9 @@ describe('IssueList', function () {
         expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
       });
 
-      expect(wrapper.getByTestId('processing-issue-hint')).toHaveTextContent(
-        'There is 1 issue blocking event processing'
-      );
+      expect(
+        await wrapper.findByText('There is 1 issue blocking event processing')
+      ).toBeInTheDocument();
     });
 
     it('displays an error', async function () {
@@ -847,9 +847,7 @@ describe('IssueList', function () {
         expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
       });
 
-      expect(wrapper.getByTestId('loading-error-message')).toHaveTextContent(
-        'Unknown API Error'
-      );
+      expect(await wrapper.findByText('Unknown API Error')).toBeInTheDocument();
     });
 
     it('displays congrats robots animation with only is:unresolved query', async function () {
