@@ -100,16 +100,6 @@ class RuleProcessor:
 
         return rule_statuses
 
-    def get_rule_status(self, rule):
-        key = self._build_rule_status_cache_key(rule.id)
-        rule_status = cache.get(key)
-        if rule_status is None:
-            rule_status, _ = GroupRuleStatus.objects.get_or_create(
-                rule=rule, group=self.group, defaults={"project": self.project}
-            )
-            cache.set(key, rule_status, 300)
-        return rule_status
-
     def condition_matches(self, condition, state, rule):
         condition_cls = rules.get(condition["id"])
         if condition_cls is None:
@@ -254,11 +244,7 @@ class RuleProcessor:
 
         self.grouped_futures.clear()
         rules = self.get_rules()
-        if len(rules) == 1:
-            rule = rules[0]
-            rule_statuses = {rule.id: self.get_rule_status(rule)}
-        else:
-            rule_statuses = self.bulk_get_rule_status(rules)
+        rule_statuses = self.bulk_get_rule_status(rules)
         for rule in rules:
             self.apply_rule(rule, rule_statuses[rule.id])
         return self.grouped_futures.values()
