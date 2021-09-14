@@ -149,14 +149,6 @@ describe('IssueList', function () {
     let issuesRequest;
 
     /* helpers */
-    const getSavedSearchTitle = w =>
-      w.queryByTestId('saved-search-title')?.textContent.trim();
-
-    const getSearchBarValue = w =>
-      w
-        .queryByPlaceholderText('Search for events, users, tags, and more')
-        ?.textContent.trim();
-
     const createWrapper = ({params, location, ...p} = {}) => {
       const newRouter = {
         ...router,
@@ -208,10 +200,12 @@ describe('IssueList', function () {
       // Loading saved searches
       expect(savedSearchesRequest).toHaveBeenCalledTimes(1);
 
-      await waitFor(() => expect(getSearchBarValue(wrapper)).toBe('is:unresolved'));
+      await wrapper.findByDisplayValue('is:unresolved');
 
       // Saved search not active since is:unresolved is a tab
-      expect(getSavedSearchTitle(wrapper)).toBe('Saved Searches');
+      const savedSearches = await wrapper.findAllByText('Saved Searches');
+      expect(savedSearches).toHaveLength(1);
+      expect(savedSearches[0]).toBeInTheDocument();
 
       // auxillary requests being made
       expect(recentSearchesRequest).toHaveBeenCalledTimes(1);
@@ -253,10 +247,12 @@ describe('IssueList', function () {
         },
       });
 
-      await waitFor(() => expect(getSearchBarValue(wrapper)).toBe('level:foo'));
+      await wrapper.findByDisplayValue('level:foo');
 
       // Custom search
-      expect(getSavedSearchTitle(wrapper)).toBe('Custom Search');
+      const savedSearches = await wrapper.findAllByText('Custom Search');
+      expect(savedSearches).toHaveLength(1);
+      expect(savedSearches[0]).toBeInTheDocument();
 
       // Main /issues/ request
       expect(issuesRequest).toHaveBeenCalledWith(
@@ -285,10 +281,11 @@ describe('IssueList', function () {
       });
       createWrapper();
 
-      await waitFor(() => expect(getSearchBarValue(wrapper)).toBe('is:resolved'));
+      await wrapper.findByDisplayValue('is:resolved');
 
-      // Organization saved search selector should have default saved search selected
-      expect(getSavedSearchTitle(wrapper)).toBe('Org Custom');
+      const savedSearches = await wrapper.findAllByText('Org Custom');
+      expect(savedSearches).toHaveLength(1);
+      expect(savedSearches[0]).toBeInTheDocument();
 
       expect(issuesRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -316,10 +313,12 @@ describe('IssueList', function () {
       });
       createWrapper();
 
-      await waitFor(() => expect(getSearchBarValue(wrapper)).toBe('is:resolved'));
+      await wrapper.findByDisplayValue('is:resolved');
 
       // Organization saved search selector should have default saved search selected
-      expect(getSavedSearchTitle(wrapper)).toBe('My Pinned Search');
+      const savedSearches = await wrapper.findAllByText('My Pinned Search');
+      expect(savedSearches).toHaveLength(1);
+      expect(savedSearches[0]).toBeInTheDocument();
 
       expect(issuesRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -348,10 +347,11 @@ describe('IssueList', function () {
       });
       createWrapper({params: {searchId: '123'}});
 
-      await waitFor(() => expect(getSearchBarValue(wrapper)).toBe('assigned:me'));
+      await wrapper.findByDisplayValue('assigned:me');
 
-      // Organization saved search selector should have default saved search selected
-      expect(getSavedSearchTitle(wrapper)).toBe('Assigned to Me');
+      const savedSearches = await wrapper.findAllByText('Assigned to Me');
+      expect(savedSearches).toHaveLength(1);
+      expect(savedSearches[0]).toBeInTheDocument();
 
       expect(issuesRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -381,10 +381,12 @@ describe('IssueList', function () {
       });
       createWrapper({location: {query: {query: 'level:error'}}});
 
-      await waitFor(() => expect(getSearchBarValue(wrapper)).toBe('level:error'));
+      await wrapper.findByDisplayValue('level:error');
 
-      // Organization saved search selector should have default saved search selected
-      expect(getSavedSearchTitle(wrapper)).toBe('Custom Search');
+      // Custom search
+      const savedSearches = await wrapper.findAllByText('Custom Search');
+      expect(savedSearches).toHaveLength(1);
+      expect(savedSearches[0]).toBeInTheDocument();
 
       expect(issuesRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -411,10 +413,11 @@ describe('IssueList', function () {
       });
       createWrapper({location: {query: {query: undefined}}});
 
-      await waitFor(() => expect(getSearchBarValue(wrapper)).toBe('is:resolved'));
+      await wrapper.findByDisplayValue('is:resolved');
 
-      // Organization saved search selector should have default saved search selected
-      expect(getSavedSearchTitle(wrapper)).toBe('My Pinned Search');
+      const savedSearches = await wrapper.findAllByText('My Pinned Search');
+      expect(savedSearches).toHaveLength(1);
+      expect(savedSearches[0]).toBeInTheDocument();
 
       expect(issuesRequest).toHaveBeenCalledWith(
         expect.anything(),
