@@ -71,11 +71,11 @@ export function getTreeLabelPartDetails(part: TreeLabelPart) {
   return label || '<unknown>';
 }
 
-function computeTitleWithTreeLabel(metadata: EventMetadata, features: string[] = []) {
+function computeTitleWithTreeLabel(metadata: EventMetadata) {
   const {type, current_tree_label, finest_tree_label} = metadata;
-  const treeLabel = features.includes('grouping-title-ui')
-    ? current_tree_label || finest_tree_label
-    : undefined;
+
+  const treeLabel = current_tree_label || finest_tree_label;
+
   const formattedTreeLabel = treeLabel
     ? treeLabel.map(labelPart => getTreeLabelPartDetails(labelPart)).join(' | ')
     : undefined;
@@ -119,10 +119,10 @@ export function getTitle(
         };
       }
 
-      if (displayTitleWithTreeLabel) {
+      if (displayTitleWithTreeLabel && features.includes('grouping-title-ui')) {
         return {
           subtitle: culprit,
-          ...computeTitleWithTreeLabel(metadata, features),
+          ...computeTitleWithTreeLabel(metadata),
         };
       }
 

@@ -49,7 +49,8 @@ function EventOrGroupTitle({
   const {title, subtitle, treeLabel} = getTitle(
     event,
     organization?.features,
-    grouping || isNativePlatform(event.platform) || isMobilePlatform(event.platform)
+    hasGroupingTreeUI &&
+      (grouping || isNativePlatform(event.platform) || isMobilePlatform(event.platform))
   );
 
   return (
