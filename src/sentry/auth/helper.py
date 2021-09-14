@@ -19,6 +19,7 @@ from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.idpmigration import create_verification_key
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -333,6 +334,22 @@ class AuthIdentityHandler:
         except OrganizationMember.DoesNotExist:
             return self._handle_new_membership(auth_identity)
 
+    @staticmethod
+    def _get_user(identity: Identity) -> Optional[User]:
+        email = identity.get("email")
+        if email is None:
+            return None
+
+        # TODO(dcramer): its possible they have multiple accounts and at
+        # least one is managed (per the check below)
+        try:
+            return User.objects.filter(
+                id__in=UserEmail.objects.filter(email__iexact=email).values("user"),
+                is_active=True,
+            ).first()
+        except IndexError:
+            return None
+
     def _respond(
         self,
         template: str,
@@ -384,15 +401,7 @@ class AuthIdentityHandler:
         """
         op = self.request.POST.get("op")
         if not self.user.is_authenticated:
-            # TODO(dcramer): its possible they have multiple accounts and at
-            # least one is managed (per the check below)
-            try:
-                acting_user = User.objects.filter(
-                    id__in=UserEmail.objects.filter(email__iexact=identity["email"]).values("user"),
-                    is_active=True,
-                ).first()
-            except IndexError:
-                acting_user = None
+            acting_user = self._get_user(identity)
             login_form = AuthenticationForm(
                 self.request,
                 self.request.POST if self.request.POST.get("op") == "login" else None,
@@ -400,6 +409,7 @@ class AuthIdentityHandler:
             )
         else:
             acting_user = self.user
+            login_form = None
 
         # If they already have an SSO account and the identity provider says
         # the email matches we go ahead and let them merge it. This is the
@@ -457,6 +467,21 @@ class AuthIdentityHandler:
             op = None
 
         if not op:
+            if self.user.is_authenticated:
+                template = "auth-confirm-link"
+                existing_user = self.user
+            else:
+                existing_user = acting_user or self._get_user(identity)
+                if existing_user and features.has(
+                    "organizations:idp-automatic-migration", self.organization
+                ):
+                    create_verification_key(existing_user, self.organization, identity["email"])
+                    template = "auth-confirm-account"
+                else:
+                    self.request.session.set_test_cookie()
+                    template = "auth-confirm-identity"
+                    existing_user = acting_user
+
             # A blank character is needed to prevent the HTML span from collapsing
             provider_name = self.auth_provider.get_provider().name if self.auth_provider else " "
 
@@ -465,15 +490,11 @@ class AuthIdentityHandler:
                 "provider": provider_name,
                 "identity_display_name": identity.get("name") or identity.get("email"),
                 "identity_identifier": identity.get("email") or identity.get("id"),
+                "existing_user": existing_user,  # nullable
             }
-            if self.user.is_authenticated:
-                template = "sentry/auth-confirm-link.html"
-                context.update({"existing_user": self.user})
-            else:
-                self.request.session.set_test_cookie()
-                template = "sentry/auth-confirm-identity.html"
-                context.update({"existing_user": acting_user, "login_form": login_form})
-            return self._respond(template, context)
+            if login_form:
+                context["login_form"] = login_form
+            return self._respond(f"sentry/{template}.html", context)
 
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]

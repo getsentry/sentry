@@ -42,9 +42,10 @@ class AuthIdentityHandlerTest(TestCase):
         self.auth_provider = AuthProvider.objects.create(
             organization=self.organization, provider=self.provider
         )
+        self.email = "test@example.com"
         self.identity = {
             "id": "1234",
-            "email": "test@example.com",
+            "email": self.email,
             "name": "Morty",
             "data": {"foo": "bar"},
         }
@@ -82,7 +83,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
         auth_identity = self.handler.handle_new_user(self.identity)
         user = auth_identity.user
 
-        assert user.email == self.identity["email"]
+        assert user.email == self.email
         assert OrganizationMember.objects.filter(organization=self.organization, user=user).exists()
 
         signup_record = [r for r in mock_record.call_args_list if r[0][0] == "user.signup"]
@@ -97,9 +98,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
         ]
 
     def test_associated_existing_member_invite_by_email(self):
-        member = OrganizationMember.objects.create(
-            organization=self.organization, email=self.identity["email"]
-        )
+        member = OrganizationMember.objects.create(organization=self.organization, email=self.email)
 
         auth_identity = self.handler.handle_new_user(self.identity)
 
@@ -112,7 +111,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
     def test_associated_existing_member_invite_request(self):
         member = self.create_member(
             organization=self.organization,
-            email=self.identity["email"],
+            email=self.email,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
 
@@ -293,7 +292,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert context["identity"] == self.identity
         assert context["provider"] == self.auth_provider.get_provider().name
         assert context["identity_display_name"] == self.identity["name"]
-        assert context["identity_identifier"] == self.identity["email"]
+        assert context["identity_identifier"] == self.email
         return context
 
     @mock.patch("sentry.auth.helper.render_to_response")
@@ -308,6 +307,25 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         context = self._test_simple(mock_render, "sentry/auth-confirm-link.html")
         assert context["existing_user"] is self.request.user
         assert "login_form" not in context
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    @mock.patch("sentry.auth.helper.create_verification_key")
+    def test_unauthenticated_with_existing_user(self, mock_create_key, mock_render):
+        existing_user = self.create_user(email=self.email)
+        context = self._test_simple(mock_render, "sentry/auth-confirm-identity.html")
+        assert not mock_create_key.called
+        assert context["existing_user"] == existing_user
+        assert "login_form" in context
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    @mock.patch("sentry.auth.helper.create_verification_key")
+    def test_automatic_migration(self, mock_create_key, mock_render):
+        existing_user = self.create_user(email=self.email)
+        with self.feature("organizations:idp-automatic-migration"):
+            context = self._test_simple(mock_render, "sentry/auth-confirm-account.html")
+        mock_create_key.assert_called_with(existing_user, self.organization, self.email)
+        assert context["existing_user"] == existing_user
+        assert "login_form" in context
 
     # TODO: More test cases for various values of request.POST.get("op")
 
