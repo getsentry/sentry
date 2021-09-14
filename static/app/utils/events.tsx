@@ -97,7 +97,11 @@ function computeTitleWithTreeLabel(metadata: EventMetadata, features: string[] =
   };
 }
 
-export function getTitle(event: Event | BaseGroup, features: string[] = []) {
+export function getTitle(
+  event: Event | BaseGroup,
+  features: string[] = [],
+  displayTitleWithTreeLabel = false
+) {
   const {metadata, type, culprit} = event;
 
   const customTitle =
@@ -115,9 +119,17 @@ export function getTitle(event: Event | BaseGroup, features: string[] = []) {
         };
       }
 
+      if (displayTitleWithTreeLabel) {
+        return {
+          subtitle: culprit,
+          ...computeTitleWithTreeLabel(metadata, features),
+        };
+      }
+
       return {
         subtitle: culprit,
-        ...computeTitleWithTreeLabel(metadata, features),
+        title: metadata.type || metadata.function || '<unknown>',
+        treeLabel: undefined,
       };
     }
     case EventOrGroupType.CSP:

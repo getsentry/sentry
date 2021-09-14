@@ -7,6 +7,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {BaseGroup, GroupTombstone, Organization} from 'app/types';
 import {Event} from 'app/types/event';
 import {getTitle} from 'app/utils/events';
+import {isMobilePlatform, isNativePlatform} from 'app/utils/platform';
 import withOrganization from 'app/utils/withOrganization';
 
 import EventTitleTreeLabel from './eventTitleTreeLabel';
@@ -18,6 +19,8 @@ type Props = Partial<DefaultProps> & {
   hasGuideAnchor?: boolean;
   withStackTracePreview?: boolean;
   guideAnchorName?: string;
+  /* is issue breakdown? */
+  grouping?: boolean;
   className?: string;
 };
 
@@ -31,6 +34,7 @@ function EventOrGroupTitle({
   data,
   withStackTracePreview,
   hasGuideAnchor,
+  grouping = false,
   className,
 }: Props) {
   const event = data as Event;
@@ -42,7 +46,11 @@ function EventOrGroupTitle({
   );
   const {id, eventID, groupID, projectID} = event;
 
-  const {title, subtitle, treeLabel} = getTitle(event, organization?.features);
+  const {title, subtitle, treeLabel} = getTitle(
+    event,
+    organization?.features,
+    grouping || isNativePlatform(event.platform) || isMobilePlatform(event.platform)
+  );
 
   return (
     <Wrapper className={className} hasGroupingTreeUI={hasGroupingTreeUI}>
