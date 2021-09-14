@@ -139,6 +139,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def run_post_process_forwarder(
         self,
+        dataset,
         consumer_group,
         commit_log_topic,
         synchronize_commit_group,
