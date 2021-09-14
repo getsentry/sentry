@@ -54,10 +54,7 @@ const storeConfig: Reflux.StoreDefinition & SettingsBreadcrumbStoreInterface & I
     },
   };
 
-type SettingsBreadcrumbStore = Reflux.Store & SettingsBreadcrumbStoreInterface;
-
-const SettingsBreadcrumbStore = Reflux.createStore(
-  storeConfig
-) as SettingsBreadcrumbStore;
+const SettingsBreadcrumbStore = Reflux.createStore(storeConfig) as Reflux.Store &
+  SettingsBreadcrumbStoreInterface;
 
 export default SettingsBreadcrumbStore;

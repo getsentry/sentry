@@ -222,8 +222,7 @@ const ReleaseStoreConfig: Reflux.StoreDefinition & ReleaseStoreInterface = {
   },
 };
 
-type ReleaseStore = Reflux.Store & ReleaseStoreInterface;
-
-const ReleaseStore = Reflux.createStore(ReleaseStoreConfig) as ReleaseStore;
+const ReleaseStore = Reflux.createStore(ReleaseStoreConfig) as Reflux.Store &
+  ReleaseStoreInterface;
 
 export default ReleaseStore;

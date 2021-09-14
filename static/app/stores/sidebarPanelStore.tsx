@@ -40,14 +40,11 @@ const sidebarPanelStoreConfig: Reflux.StoreDefinition & SidebarPanelStoreInterfa
   },
 };
 
-type SidebarPanelStore = Reflux.Store & SidebarPanelStoreInterface;
-
 /**
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
-const SidebarPanelStore = Reflux.createStore(
-  sidebarPanelStoreConfig
-) as SidebarPanelStore;
+const SidebarPanelStore = Reflux.createStore(sidebarPanelStoreConfig) as Reflux.Store &
+  SidebarPanelStoreInterface;
 
 export default SidebarPanelStore;

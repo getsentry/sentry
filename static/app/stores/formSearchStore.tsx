@@ -57,8 +57,7 @@ const formSearchStoreConfig: Reflux.StoreDefinition & Internals & StoreInterface
   },
 };
 
-type FormSearchStore = Reflux.Store & StoreInterface;
-
-const FormSearchStore = Reflux.createStore(formSearchStoreConfig) as FormSearchStore;
+const FormSearchStore = Reflux.createStore(formSearchStoreConfig) as Reflux.Store &
+  StoreInterface;
 
 export default FormSearchStore;

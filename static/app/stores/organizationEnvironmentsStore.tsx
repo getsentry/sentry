@@ -76,11 +76,7 @@ const storeConfig: Reflux.StoreDefinition & OrganizationEnvironmentsStoreInterfa
   },
 };
 
-type OrganizationEnvironmentsStore = Reflux.Store &
+const OrganizationEnvironmentsStore = Reflux.createStore(storeConfig) as Reflux.Store &
   OrganizationEnvironmentsStoreInterface;
-
-const OrganizationEnvironmentsStore = Reflux.createStore(
-  storeConfig
-) as OrganizationEnvironmentsStore;
 
 export default OrganizationEnvironmentsStore;

@@ -37,8 +37,6 @@ type GlobalSelectionStoreInterface = {
   onSave: (data: UpdateData) => void;
 };
 
-type GlobalSelectionStore = Reflux.Store & GlobalSelectionStoreInterface;
-
 const storeConfig: Reflux.StoreDefinition & GlobalSelectionStoreInterface = {
   state: getDefaultSelection(),
 
@@ -162,6 +160,7 @@ const storeConfig: Reflux.StoreDefinition & GlobalSelectionStoreInterface = {
   },
 };
 
-const GlobalSelectionStore = Reflux.createStore(storeConfig) as GlobalSelectionStore;
+const GlobalSelectionStore = Reflux.createStore(storeConfig) as Reflux.Store &
+  GlobalSelectionStoreInterface;
 
 export default GlobalSelectionStore;

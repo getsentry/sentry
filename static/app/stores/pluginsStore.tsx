@@ -121,8 +121,7 @@ const PluginStoreConfig: Reflux.StoreDefinition & PluginStoreInterface = {
   },
 };
 
-type PluginStore = Reflux.Store & PluginStoreInterface;
+const PluginStore = Reflux.createStore(PluginStoreConfig) as Reflux.Store &
+  PluginStoreInterface;
 
-const PluginStore = Reflux.createStore(PluginStoreConfig);
-
-export default PluginStore as PluginStore;
+export default PluginStore;

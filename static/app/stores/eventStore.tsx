@@ -98,8 +98,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & EventStoreInterface = {
   },
 };
 
-type EventStore = Reflux.Store & EventStoreInterface;
-
-const EventStore = Reflux.createStore(storeConfig) as EventStore;
+const EventStore = Reflux.createStore(storeConfig) as Reflux.Store & EventStoreInterface;
 
 export default EventStore;

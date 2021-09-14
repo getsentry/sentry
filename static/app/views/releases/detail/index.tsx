@@ -42,7 +42,7 @@ import ReleaseHeader from './releaseHeader';
 
 const DEFAULT_FRESH_RELEASE_STATS_PERIOD = '24h';
 
-type ReleaseContext = {
+type ReleaseContextType = {
   release: ReleaseWithHealth;
   project: Required<ReleaseProject>;
   deploys: Deploy[];
@@ -54,7 +54,7 @@ type ReleaseContext = {
   hasHealthData: boolean;
   releaseBounds: ReleaseBounds;
 };
-const ReleaseContext = createContext<ReleaseContext>({} as ReleaseContext);
+const ReleaseContext = createContext<ReleaseContextType>({} as ReleaseContextType);
 
 type RouteParams = {
   orgId: string;

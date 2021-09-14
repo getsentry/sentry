@@ -17,8 +17,6 @@ type OrganizationsStoreInterface = {
   load: (items: Organization[]) => void;
 };
 
-type OrganizationsStore = Reflux.Store & OrganizationsStoreInterface;
-
 const organizationsStoreConfig: Reflux.StoreDefinition & OrganizationsStoreInterface = {
   listenables: [OrganizationsActions],
 
@@ -87,8 +85,7 @@ const organizationsStoreConfig: Reflux.StoreDefinition & OrganizationsStoreInter
   },
 };
 
-const OrganizationsStore = Reflux.createStore(
-  organizationsStoreConfig
-) as OrganizationsStore;
+const OrganizationsStore = Reflux.createStore(organizationsStoreConfig) as Reflux.Store &
+  OrganizationsStoreInterface;
 
 export default OrganizationsStore;

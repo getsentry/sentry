@@ -171,8 +171,6 @@ type Internals = {
   api: Client;
 };
 
-type GroupingStore = Reflux.Store & GroupingStoreInterface;
-
 const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface = {
   listenables: [GroupingActions],
   api: new Client(),
@@ -618,6 +616,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
   },
 };
 
-const GroupingStore = Reflux.createStore(storeConfig) as GroupingStore;
+const GroupingStore = Reflux.createStore(storeConfig) as Reflux.Store &
+  GroupingStoreInterface;
 
 export default GroupingStore;

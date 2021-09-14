@@ -54,12 +54,11 @@ const preferenceStoreConfig: Reflux.StoreDefinition & PreferenceStoreInterface =
   },
 };
 
-type PreferenceStore = Reflux.Store & PreferenceStoreInterface;
-
 /**
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
-const PreferenceStore = Reflux.createStore(preferenceStoreConfig) as PreferenceStore;
+const PreferenceStore = Reflux.createStore(preferenceStoreConfig) as Reflux.Store &
+  PreferenceStoreInterface;
 
 export default PreferenceStore;

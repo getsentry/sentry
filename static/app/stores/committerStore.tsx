@@ -102,8 +102,7 @@ export function getCommitterStoreKey(
   return `${orgSlug} ${projectSlug} ${eventId}`;
 }
 
-type CommitterStore = Reflux.Store & CommitterStoreInterface;
-
-const CommitterStore = Reflux.createStore(CommitterStoreConfig) as CommitterStore;
+const CommitterStore = Reflux.createStore(CommitterStoreConfig) as Reflux.Store &
+  CommitterStoreInterface;
 
 export default CommitterStore;
