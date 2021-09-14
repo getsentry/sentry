@@ -345,7 +345,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         user_ids = []
         for user in list(notification.get_participants().values())[0]:
             user_ids.append(user.id)
-        assert list(get_email_addresses(user_ids, self.project).values())[1] == "ahmed@ahmed.io"
+        assert "ahmed@ahmed.io" in get_email_addresses(user_ids, self.project).values()
         assert not len(UserOption.objects.filter(key="mail:email", value="foo@bar.dodo"))
 
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
