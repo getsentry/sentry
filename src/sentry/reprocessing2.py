@@ -80,7 +80,10 @@ instead of group deletion is:
 import hashlib
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List, Union
+
+if TYPE_CHECKING:
+    from typing_extensions import Literal
 
 import sentry_sdk
 from django.conf import settings
@@ -117,8 +120,22 @@ GROUP_MODELS_TO_MIGRATE = tuple(x for x in GROUP_MODELS_TO_MIGRATE if x != model
 EVENT_MODELS_TO_MIGRATE = (models.EventAttachment, models.UserReport)
 
 
+# Note: This list of reasons is exposed in the EventReprocessableEndpoint to
+# the frontend.
+CannotReprocessReason = Union[
+    # Can have many reasons. The event is too old to be reprocessed (very
+    # unlikely!) or was not a native event.
+    "Literal['unprocessed_event.not_found']",
+    # The event does not exist.
+    "Literal['event.not_found']",
+    # A required attachment, such as the original minidump, is missing.
+    "Literal['attachment.not_found']",
+]
+
+
 class CannotReprocess(Exception):
-    pass
+    def __init__(self, reason: CannotReprocessReason):
+        Exception.__init__(self, reason)
 
 
 def _generate_unprocessed_event_node_id(project_id, event_id):
