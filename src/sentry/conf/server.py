@@ -886,6 +886,8 @@ SENTRY_FEATURES = {
     "organizations:boolean-search": False,
     # Enable unfurling charts using the Chartcuterie service
     "organizations:chart-unfurls": False,
+    # Enable alerting based on crash free sessions/users
+    "organizations:crash-rate-alerts": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
