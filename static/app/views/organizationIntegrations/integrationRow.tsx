@@ -32,8 +32,13 @@ type Props = {
   publishStatus: 'unpublished' | 'published' | 'internal';
   configurations: number;
   categories: string[];
+
+  /** If provided, render an alert message with this text. */
   alertText?: string;
+
+  /** If `alertText` was provided, this text overrides the "Resolve now" message in the alert. */
   resolveText?: string;
+
   plugin?: PluginWithProjectList;
 };
 
