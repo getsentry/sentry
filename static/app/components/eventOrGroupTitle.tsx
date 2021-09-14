@@ -7,7 +7,6 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {BaseGroup, GroupTombstone, Organization} from 'app/types';
 import {Event} from 'app/types/event';
 import {getTitle} from 'app/utils/events';
-import {isMobilePlatform, isNativePlatform} from 'app/utils/platform';
 import withOrganization from 'app/utils/withOrganization';
 
 import EventTitleTreeLabel from './eventTitleTreeLabel';
@@ -46,12 +45,7 @@ function EventOrGroupTitle({
   );
   const {id, eventID, groupID, projectID} = event;
 
-  const {title, subtitle, treeLabel} = getTitle(
-    event,
-    organization?.features,
-    hasGroupingTreeUI &&
-      (grouping || isNativePlatform(event.platform) || isMobilePlatform(event.platform))
-  );
+  const {title, subtitle, treeLabel} = getTitle(event, organization?.features, grouping);
 
   return (
     <Wrapper className={className} hasGroupingTreeUI={hasGroupingTreeUI}>

@@ -6,7 +6,7 @@ import {
   TreeLabelPart,
 } from 'app/types';
 import {Event} from 'app/types/event';
-import {isNativePlatform} from 'app/utils/platform';
+import {isMobilePlatform, isNativePlatform} from 'app/utils/platform';
 
 function isTombstone(maybe: BaseGroup | Event | GroupTombstone): maybe is GroupTombstone {
   return !maybe.hasOwnProperty('type');
@@ -100,7 +100,7 @@ function computeTitleWithTreeLabel(metadata: EventMetadata) {
 export function getTitle(
   event: Event | BaseGroup,
   features: string[] = [],
-  displayTitleWithTreeLabel = false
+  grouping = false
 ) {
   const {metadata, type, culprit} = event;
 
@@ -119,7 +119,13 @@ export function getTitle(
         };
       }
 
-      if (displayTitleWithTreeLabel && features.includes('grouping-title-ui')) {
+      const displayTitleWithTreeLabel =
+        features.includes('grouping-title-ui') &&
+        (grouping ||
+          isNativePlatform(event.platform) ||
+          isMobilePlatform(event.platform));
+
+      if (displayTitleWithTreeLabel) {
         return {
           subtitle: culprit,
           ...computeTitleWithTreeLabel(metadata),
