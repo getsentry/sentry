@@ -879,6 +879,16 @@ function routes() {
             component={SafeLazyLoad}
           />
           <Route
+            path="/organizations/:orgId/teamInsights/"
+            componentPromise={() => import('app/views/teamInsights')}
+            component={SafeLazyLoad}
+          >
+            <IndexRoute
+              componentPromise={() => import('app/views/teamInsights/overview')}
+              component={SafeLazyLoad}
+            />
+          </Route>
+          <Route
             path="/organizations/:orgId/dashboards/"
             componentPromise={() => import('app/views/dashboardsV2')}
             component={SafeLazyLoad}
