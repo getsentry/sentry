@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
 
@@ -112,6 +112,7 @@ function TeamSelector(props: Props) {
 
   const api = useApi();
   const [options, setOptions] = useState<TeamOption[]>([]);
+  const optionsRef = useRef<TeamOption[]>(options);
 
   // TODO(ts) This type could be improved when react-select types are better.
   const selectRef = useRef<any>(null);
@@ -126,6 +127,11 @@ function TeamSelector(props: Props) {
       name: team.slug,
     },
   });
+
+  function updateOptions(newOptions: TeamOption[]) {
+    optionsRef.current = newOptions;
+    setOptions(newOptions);
+  }
 
   /**
    * Closes the select menu by blurring input if possible since that seems to
@@ -160,7 +166,7 @@ function TeamSelector(props: Props) {
       await addTeamToProject(api, organization.slug, project.slug, team);
 
       // Remove add to project button without changing order
-      const newOptions = options.map(option => {
+      const newOptions = optionsRef.current.map(option => {
         if (option.actor?.id === team.id) {
           option.disabled = false;
           option.label = <IdBadge team={team} />;
@@ -169,7 +175,7 @@ function TeamSelector(props: Props) {
         return option;
       });
 
-      setOptions(newOptions);
+      updateOptions(newOptions);
     } catch (err) {
       // Unable to add team to project, revert select menu value
       onChange?.(oldValue);
@@ -241,7 +247,7 @@ function TeamSelector(props: Props) {
   }
 
   useEffect(
-    () => void setOptions(getInitialOptions()),
+    () => void updateOptions(getInitialOptions()),
     [teams, teamFilter, project, includeUnassigned]
   );
 
