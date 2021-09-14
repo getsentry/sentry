@@ -19,6 +19,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
+import {PerformanceEventViewProvider} from '../contexts/performanceEventViewContext';
 import {generatePerformanceVitalDetailView} from '../data';
 import {addRoutePerformanceContext, getTransactionName} from '../utils';
 
@@ -33,7 +34,7 @@ type Props = RouteComponentProps<{}, {}> & {
 };
 
 type State = {
-  eventView: EventView | undefined;
+  eventView: EventView;
 };
 
 class VitalDetail extends Component<Props, State> {
@@ -105,19 +106,21 @@ class VitalDetail extends Component<Props, State> {
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
-        <GlobalSelectionHeader>
-          <StyledPageContent>
-            <LightWeightNoProjectMessage organization={organization}>
-              <VitalDetailContent
-                location={location}
-                organization={organization}
-                eventView={eventView}
-                router={router}
-                vitalName={vitalName || WebVital.LCP}
-              />
-            </LightWeightNoProjectMessage>
-          </StyledPageContent>
-        </GlobalSelectionHeader>
+        <PerformanceEventViewProvider value={{eventView: this.state.eventView}}>
+          <GlobalSelectionHeader>
+            <StyledPageContent>
+              <LightWeightNoProjectMessage organization={organization}>
+                <VitalDetailContent
+                  location={location}
+                  organization={organization}
+                  eventView={eventView}
+                  router={router}
+                  vitalName={vitalName || WebVital.LCP}
+                />
+              </LightWeightNoProjectMessage>
+            </StyledPageContent>
+          </GlobalSelectionHeader>
+        </PerformanceEventViewProvider>
       </SentryDocumentTitle>
     );
   }

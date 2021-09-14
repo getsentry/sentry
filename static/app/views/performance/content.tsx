@@ -27,6 +27,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
+import {PerformanceEventViewProvider} from './contexts/performanceEventViewContext';
 import LandingContent from './landing/content';
 import {DEFAULT_MAX_DURATION} from './trends/utils';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
@@ -270,20 +271,24 @@ class PerformanceContent extends Component<Props, State> {
 
     return (
       <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
-        <GlobalSelectionHeader
-          defaultSelection={{
-            datetime: {
-              start: null,
-              end: null,
-              utc: false,
-              period: DEFAULT_STATS_PERIOD,
-            },
-          }}
-        >
-          <Feature features={['organizations:performance-landing-widgets']}>
-            {({hasFeature}) => (hasFeature ? this.renderLandingV3() : this.renderBody())}
-          </Feature>
-        </GlobalSelectionHeader>
+        <PerformanceEventViewProvider value={{eventView: this.state.eventView}}>
+          <GlobalSelectionHeader
+            defaultSelection={{
+              datetime: {
+                start: null,
+                end: null,
+                utc: false,
+                period: DEFAULT_STATS_PERIOD,
+              },
+            }}
+          >
+            <Feature features={['organizations:performance-landing-widgets']}>
+              {({hasFeature}) =>
+                hasFeature ? this.renderLandingV3() : this.renderBody()
+              }
+            </Feature>
+          </GlobalSelectionHeader>
+        </PerformanceEventViewProvider>
       </SentryDocumentTitle>
     );
   }

@@ -19,10 +19,10 @@ import {generateAggregateFields} from 'app/utils/discover/fields';
 import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import withTeams from 'app/utils/withTeams';
 
+import {OpBreakdownFilterProvider} from '../contexts/operationBreakdownFilter';
 import Filter, {SpanOperationBreakdownFilter} from '../transactionSummary/filter';
 import {getTransactionSearchQuery} from '../utils';
 
-import {OpBreakdownFilterProvider} from './contexts/operationBreakdownFilter';
 import {AllTransactionsView} from './views/allTransactionsView';
 import {BackendView} from './views/backendView';
 import {FrontendOtherView} from './views/frontendOtherView';

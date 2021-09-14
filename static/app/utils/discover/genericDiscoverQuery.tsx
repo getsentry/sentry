@@ -5,9 +5,13 @@ import {EventQuery} from 'app/actionCreators/events';
 import {Client, ResponseMeta} from 'app/api';
 import {t} from 'app/locale';
 import EventView, {
+  ImmutableEventView,
   isAPIPayloadSimilar,
   LocationQuery,
 } from 'app/utils/discover/eventView';
+import {usePerformanceEventView} from 'app/views/performance/contexts/performanceEventViewContext';
+
+import {useOrgSlug} from '../useOrganization';
 
 export type GenericChildrenProps<T> = {
   isLoading: boolean;
@@ -16,14 +20,17 @@ export type GenericChildrenProps<T> = {
   pageLinks: null | string;
 };
 
-export type DiscoverQueryProps = {
+type OptionalContextProps = {
+  eventView?: EventView | ImmutableEventView;
+  orgSlug?: string;
+};
+
+type BaseDiscoverQueryProps = {
   api: Client;
   /**
    * Used as the default source for cursor values.
    */
   location: Location;
-  eventView: EventView;
-  orgSlug: string;
   /**
    * Record limit to get.
    */
@@ -49,39 +56,48 @@ export type DiscoverQueryProps = {
   referrer?: string;
 };
 
-type RequestProps<P> = DiscoverQueryProps & P;
+export type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
+export type DiscoverQueryProps = BaseDiscoverQueryProps & {
+  orgSlug: string;
+  eventView: EventView | ImmutableEventView;
+};
+
+type InnerRequestProps<P> = DiscoverQueryProps & P;
+type OuterRequestProps<P> = DiscoverQueryPropsWithContext & P;
 
 type ReactProps<T> = {
   children?: (props: GenericChildrenProps<T>) => React.ReactNode;
 };
 
-type Props<T, P> = RequestProps<P> &
-  ReactProps<T> & {
-    /**
-     * Route to the endpoint
-     */
-    route: string;
-    /**
-     * Allows components to modify the payload before it is set.
-     */
-    getRequestPayload?: (props: Props<T, P>) => any;
-    /**
-     * An external hook in addition to the event view check to check if data should be refetched
-     */
-    shouldRefetchData?: (prevProps: Props<T, P>, props: Props<T, P>) => boolean;
-    /**
-     * A hook before fetch that can be used to do things like clearing the api
-     */
-    beforeFetch?: (api: Client) => void;
-    /**
-     * A hook to modify data into the correct output after data has been received
-     */
-    afterFetch?: (data: any, props?: Props<T, P>) => T;
-    /**
-     * A hook for parent orchestrators to pass down data based on query results, unlike afterFetch it is not meant for specializations as it will not modify data.
-     */
-    didFetch?: (data: T) => void;
-  };
+type ComponentProps<T, P> = {
+  /**
+   * Route to the endpoint
+   */
+  route: string;
+  /**
+   * Allows components to modify the payload before it is set.
+   */
+  getRequestPayload?: (props: Props<T, P>) => any;
+  /**
+   * An external hook in addition to the event view check to check if data should be refetched
+   */
+  shouldRefetchData?: (prevProps: Props<T, P>, props: Props<T, P>) => boolean;
+  /**
+   * A hook before fetch that can be used to do things like clearing the api
+   */
+  beforeFetch?: (api: Client) => void;
+  /**
+   * A hook to modify data into the correct output after data has been received
+   */
+  afterFetch?: (data: any, props?: Props<T, P>) => T;
+  /**
+   * A hook for parent orchestrators to pass down data based on query results, unlike afterFetch it is not meant for specializations as it will not modify data.
+   */
+  didFetch?: (data: T) => void;
+};
+
+type Props<T, P> = InnerRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;
+type OuterProps<T, P> = OuterRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;
 
 type State<T> = {
   tableFetchID: symbol | undefined;
@@ -90,7 +106,7 @@ type State<T> = {
 /**
  * Generic component for discover queries
  */
-class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> {
+class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> {
   state: State<T> = {
     isLoading: true,
     tableFetchID: undefined,
@@ -226,6 +242,19 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     const children: ReactProps<T>['children'] = this.props.children; // Explicitly setting type due to issues with generics and React's children
     return children?.(childrenProps);
   }
+}
+
+// Shim to allow us to use generic discover query or any specialization with or without passing org slug or eventview, which are now contexts.
+// This will help keep tests working and we can remove extra uses of context-provided props and update tests as we go.
+export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
+  const orgSlug = props.orgSlug ?? useOrgSlug();
+  const eventView = props.eventView ?? usePerformanceEventView();
+  const _props: Props<T, P> = {
+    ...props,
+    orgSlug,
+    eventView,
+  };
+  return <_GenericDiscoverQuery<T, P> {..._props} />;
 }
 
 export type DiscoverQueryRequestParams = Partial<EventQuery & LocationQuery>;
