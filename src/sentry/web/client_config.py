@@ -90,7 +90,7 @@ def _get_public_dsn():
         else:
             result = ""
         cache.set(cache_key, result, 60)
-    return result.replace("8000", "3001")
+    return result
 
 
 def _get_dsn_requests():
