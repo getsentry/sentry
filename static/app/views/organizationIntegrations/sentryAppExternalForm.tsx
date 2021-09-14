@@ -321,7 +321,9 @@ export class SentryAppExternalForm extends Component<Props, State> {
         key={action}
         apiEndpoint={this.getSubmitEndpoint()}
         apiMethod="POST"
-        onSubmitSuccess={this.props.onSubmitSuccess}
+        onSubmitSuccess={(...params) => {
+          this.props.onSubmitSuccess(...params);
+        }}
         onSubmitError={this.onSubmitError}
         onFieldChange={this.handleFieldChange}
         model={this.model}
