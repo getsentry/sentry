@@ -105,7 +105,7 @@ describe('ProjectAlertsCreate', function () {
       body: [TestStubs.User()],
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/?include=hasAlertIntegration`,
+      url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
       body: {},
     });
     metric.startTransaction.mockClear();

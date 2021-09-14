@@ -7,7 +7,7 @@ describe('SetupAlertIntegrationButton', function () {
   const project = TestStubs.Project();
   it('renders button if no alert integrations', async function () {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/?include=hasAlertIntegration`,
+      url: `/projects/${organization.slug}/${project.slug}/?expand=hasAlertIntegration`,
       body: {
         ...project,
         hasAlertIntegrationInstalled: false,
@@ -24,7 +24,7 @@ describe('SetupAlertIntegrationButton', function () {
   });
   it('does not renders button if alert integration installed', async function () {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/?include=hasAlertIntegration`,
+      url: `/projects/${organization.slug}/${project.slug}/?expand=hasAlertIntegration`,
       body: {
         ...project,
         hasAlertIntegrationInstalled: true,

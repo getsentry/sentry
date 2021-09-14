@@ -370,7 +370,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         include = set(filter(bool, request.GET.get("include", "").split(",")))
         if "stats" in include:
             data["stats"] = {"unresolved": self._get_unresolved_count(project)}
-        if "hasAlertIntegration" in include:
+
+        expand = request.GET.getlist("expand", [])
+        if "hasAlertIntegration" in expand:
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
         return Response(data)

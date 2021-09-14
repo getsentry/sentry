@@ -114,7 +114,9 @@ class ProjectDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
         response = self.get_valid_response(
-            project.organization.slug, project.slug, qs_params={"include": "hasAlertIntegration"}
+            project.organization.slug,
+            project.slug,
+            qs_params={"expand": "hasAlertIntegration"},
         )
         assert response.data["hasAlertIntegrationInstalled"]
 
@@ -127,7 +129,7 @@ class ProjectDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
         response = self.get_valid_response(
-            project.organization.slug, project.slug, qs_params={"include": "hasAlertIntegration"}
+            project.organization.slug, project.slug, qs_params={"expand": "hasAlertIntegration"}
         )
         assert not response.data["hasAlertIntegrationInstalled"]
 

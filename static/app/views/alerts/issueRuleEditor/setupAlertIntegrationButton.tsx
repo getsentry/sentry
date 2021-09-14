@@ -29,7 +29,7 @@ export default class SetupAlertIntegrationButton extends AsyncComponent<Props, S
     return [
       [
         'detailedProject',
-        `/projects/${organization.slug}/${projectSlug}/?include=hasAlertIntegration`,
+        `/projects/${organization.slug}/${projectSlug}/?expand=hasAlertIntegration`,
       ],
     ];
   }
