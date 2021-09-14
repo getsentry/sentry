@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import SelectControl from 'app/components/forms/selectControl';
+import TeamSelector from 'app/components/forms/teamSelector';
 import SelectMembers from 'app/components/selectMembers';
 import {Organization, Project, SelectValue} from 'app/types';
 import {
@@ -54,11 +55,20 @@ export default function ActionTargetSelector(props: Props) {
     case TargetType.USER:
       const isTeam = action.targetType === TargetType.TEAM;
 
-      return (
+      return isTeam ? (
+        <TeamSelector
+          disabled={disabled}
+          key="team"
+          project={project}
+          value={action.targetIdentifier}
+          onChange={handleChangeTargetIdentifier}
+          useId
+          includeUnassigned
+        />
+      ) : (
         <SelectMembers
           disabled={disabled}
-          key={isTeam ? 'team' : 'member'}
-          showTeam={isTeam}
+          key="member"
           project={project}
           organization={organization}
           value={action.targetIdentifier}
