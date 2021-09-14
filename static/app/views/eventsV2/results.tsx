@@ -446,8 +446,7 @@ class Results extends React.Component<Props, State> {
       : eventView.fields;
     const query = eventView.query;
     const title = this.getDocumentTitle();
-    const yAxis = location.query.yAxis;
-    const yAxisArray = yAxis ? (typeof yAxis === 'string' ? [yAxis] : yAxis) : [];
+    const yAxisArray = decodeList(location.query.yAxis);
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>

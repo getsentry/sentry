@@ -13,6 +13,7 @@ import Truncate from 'app/components/truncate';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
+import {aggregateMultiPlotType} from 'app/utils/discover/fields';
 
 const defaultProps = {
   menuWidth: 'auto',
@@ -57,10 +58,6 @@ class OptionCheckboxSelector extends Component<Props, State> {
 
   constructNewSelected(value: string) {
     const {selected} = this.props;
-    // Cannot have no option selected
-    if (selected.length === 1 && selected[0] === value) {
-      return selected;
-    }
     // Check if the value is already selected.
     // Return a new updated array with the value either selected or deselected depending on previous selected state.
     if (selected.includes(value)) {
@@ -74,8 +71,13 @@ class OptionCheckboxSelector extends Component<Props, State> {
   render() {
     const {menuContainerWidth} = this.state;
     const {options, onChange, selected, title, menuWidth} = this.props;
-    const selectedOption =
-      options.find(opt => selected.includes(opt.value)) || options[0];
+    const selectedOptionLabel =
+      options
+        .filter(opt => selected.includes(opt.value))
+        .map(({label}) => label)
+        .join(', ') || 'None';
+    const selectedPlotType =
+      selected.length > 0 ? aggregateMultiPlotType(selected[0]) : undefined;
 
     return (
       <InlineContainer>
@@ -85,7 +87,7 @@ class OptionCheckboxSelector extends Component<Props, State> {
             {({isOpen, getMenuProps, getActorProps}) => (
               <Fragment>
                 <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
-                  <TruncatedLabel>{String(selectedOption.label)}</TruncatedLabel>
+                  <TruncatedLabel>{String(selectedOptionLabel)}</TruncatedLabel>
                 </StyledDropdownButton>
                 <StyledDropdownBubble
                   {...getMenuProps()}
@@ -96,26 +98,41 @@ class OptionCheckboxSelector extends Component<Props, State> {
                   blendWithActor={false}
                   blendCorner
                 >
-                  {options.map(opt => (
-                    <StyledDropdownItem
-                      key={opt.value}
-                      onSelect={eventKey => onChange(this.constructNewSelected(eventKey))}
-                      eventKey={opt.value}
-                      disabled={opt.disabled}
-                      data-test-id={`option-${opt.value}`}
-                      isChecked={selected.includes(opt.value)}
-                    >
-                      <StyledTooltip title={opt.tooltip}>
-                        <StyledTruncate
-                          isActive={false}
-                          value={String(opt.label)}
-                          maxLength={60}
-                          expandDirection="left"
-                        />
-                      </StyledTooltip>
-                      <CheckboxFancy isChecked={selected.includes(opt.value)} />
-                    </StyledDropdownItem>
-                  ))}
+                  {options.map(opt => {
+                    // field plot type should match currently selected plot type otherwise we can't display both yAxis in the same chart
+                    const disabled =
+                      opt.disabled ||
+                      (selectedPlotType &&
+                        aggregateMultiPlotType(opt.value) !== selectedPlotType);
+                    return (
+                      <StyledDropdownItem
+                        key={opt.value}
+                        onSelect={eventKey =>
+                          onChange(this.constructNewSelected(eventKey))
+                        }
+                        eventKey={opt.value}
+                        disabled={disabled}
+                        data-test-id={`option-${opt.value}`}
+                        isChecked={selected.includes(opt.value)}
+                      >
+                        <StyledTooltip
+                          title={
+                            disabled
+                              ? 'This field cannot be plotted with currently selected fields.'
+                              : undefined
+                          }
+                        >
+                          <StyledTruncate
+                            isActive={false}
+                            value={String(opt.label)}
+                            maxLength={60}
+                            expandDirection="left"
+                          />
+                        </StyledTooltip>
+                        <CheckboxFancy isChecked={selected.includes(opt.value)} />
+                      </StyledDropdownItem>
+                    );
+                  })}
                 </StyledDropdownBubble>
               </Fragment>
             )}

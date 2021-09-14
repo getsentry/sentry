@@ -184,15 +184,17 @@ class ResultsChartContainer extends Component<ContainerProps> {
 
     return (
       <StyledPanel>
-        <ResultsChart
-          api={api}
-          eventView={eventView}
-          location={location}
-          organization={organization}
-          router={router}
-          confirmedQuery={confirmedQuery}
-          yAxisValue={yAxis}
-        />
+        {(yAxis && yAxis.length > 0 && (
+          <ResultsChart
+            api={api}
+            eventView={eventView}
+            location={location}
+            organization={organization}
+            router={router}
+            confirmedQuery={confirmedQuery}
+            yAxisValue={yAxis}
+          />
+        )) || <NoChartContainer>{'No Y-Axis selected.'}</NoChartContainer>}
         <Feature
           organization={organization}
           features={['connect-discover-and-dashboards']}
@@ -221,4 +223,21 @@ const StyledPanel = styled(Panel)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     margin: 0;
   }
+`;
+
+const NoChartContainer = styled('div')<{height?: string}>`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  flex: 1;
+  flex-shrink: 0;
+  overflow: hidden;
+  height: ${p => p.height || '200px'};
+  position: relative;
+  border-color: transparent;
+  margin-bottom: 0;
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;

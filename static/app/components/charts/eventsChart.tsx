@@ -22,6 +22,7 @@ import {Series} from 'app/types/echarts';
 import {defined} from 'app/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {aggregateMultiPlotType, getEquation, isEquation} from 'app/utils/discover/fields';
+import {decodeList} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
 
 import EventsRequest from './eventsRequest';
@@ -285,7 +286,7 @@ export type EventsChartProps = {
   /**
    * The aggregate/metric to plot.
    */
-  yAxis: string[];
+  yAxis: string | string[];
   /**
    * Relative datetime expression. eg. 14d
    */
@@ -388,7 +389,11 @@ type ChartDataProps = {
 
 class EventsChart extends React.Component<EventsChartProps> {
   isStacked() {
-    return typeof this.props.topEvents === 'number' && this.props.topEvents > 0;
+    const {topEvents, yAxis} = this.props;
+    return (
+      (typeof topEvents === 'number' && topEvents > 0) ||
+      (Array.isArray(yAxis) && yAxis.length > 1)
+    );
   }
 
   render() {
@@ -434,7 +439,8 @@ class EventsChart extends React.Component<EventsChartProps> {
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !disablePrevious && !start && !end;
 
-    const yAxisSeriesNames = yAxis.map(name => {
+    const yAxisArray = decodeList(yAxis);
+    const yAxisSeriesNames = yAxisArray.map(name => {
       let yAxisLabel = name && isEquation(name) ? getEquation(name) : name;
       if (yAxisLabel && yAxisLabel.length > 60) {
         yAxisLabel = yAxisLabel.substr(0, 60) + '...';
@@ -492,7 +498,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             seriesTransformer={seriesTransformer}
             previousSeriesTransformer={previousSeriesTransformer}
             stacked={this.isStacked()}
-            yAxis={yAxis[0]}
+            yAxis={yAxisArray[0]}
             showDaily={showDaily}
             colors={colors}
             legendOptions={legendOptions}
