@@ -324,6 +324,8 @@ register("store.load-shed-parsed-pipeline-projects", type=Any, default=[])
 register("store.load-shed-save-event-projects", type=Any, default=[])
 register("store.load-shed-process-event-projects", type=Any, default=[])
 register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
+register("store.symbolicate-event-dlq-never", type=Any, default=[])
+register("store.symbolicate-event-dlq-always", type=Any, default=[])
 
 # Switch for more performant project counter incr
 register("store.projectcounter-modern-upsert-sample-rate", default=0.0)
