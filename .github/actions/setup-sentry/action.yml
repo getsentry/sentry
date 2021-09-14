@@ -96,7 +96,6 @@ runs:
         # differently if these are set.
         if [ "$NEED_KAFKA" = "true" ]; then
           echo "SENTRY_KAFKA_HOSTS=127.0.0.1:9092" >> $GITHUB_ENV
-          echo "SENTRY_ZOOKEEPER_HOSTS=127.0.0.1:2181" >> $GITHUB_ENV
         fi
 
     - name: Setup python
@@ -158,12 +157,6 @@ runs:
 
         # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
         if [ "$NEED_KAFKA" = "true" ]; then
-          docker run \
-            --name sentry_zookeeper \
-            -d --network host \
-            -e ZOOKEEPER_CLIENT_PORT=2181 \
-            confluentinc/cp-zookeeper:4.1.0
-
           docker run \
             --name sentry_kafka \
             -d --network host \

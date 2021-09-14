@@ -22,10 +22,7 @@ settings.KAFKA_CLUSTERS["default"] = {
 
 @contextmanager
 def create_topic(partitions=1, replication_factor=1):
-    command = ["docker", "exec", "sentry_kafka", "kafka-topics"] + [
-        "--zookeeper",
-        os.environ["SENTRY_ZOOKEEPER_HOSTS"],
-    ]
+    command = ["docker", "exec", "sentry_kafka", "kafka-topics"]
     topic = f"test-{uuid.uuid1().hex}"
     subprocess.check_call(
         command
