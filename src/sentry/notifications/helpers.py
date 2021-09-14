@@ -80,6 +80,8 @@ def _get_setting_mapping_from_mapping(
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     # XXX(CEO): may not respect granularity of a setting for Slack a setting for email
     # but we'll worry about that later since we don't have a FE for it yet
+    from sentry.notifications.notify import notification_providers
+
     specific_scope = get_scope_type(type)
     notification_settings_mapping = notification_settings_by_user.get(user)
     if notification_settings_mapping:
@@ -91,7 +93,7 @@ def _get_setting_mapping_from_mapping(
 
     return {
         provider: _get_notification_setting_default(provider, type, user=user)
-        for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]
+        for provider in notification_providers()
     }
 
 

@@ -84,8 +84,8 @@ class MailAdapter:
         Return a collection of USERS that are eligible to receive
         notifications for the provided project.
         """
-        recipients = NotificationSetting.objects.get_notification_recipients(project)
-        return set.union(*recipients.values()) if recipients else {}
+        recipients_by_provider = NotificationSetting.objects.get_notification_recipients(project)
+        return set.union(*recipients_by_provider.values()) if recipients_by_provider else {}
 
     def get_sendable_user_ids(self, project):
         users = self.get_sendable_user_objects(project)
