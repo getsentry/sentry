@@ -2,15 +2,21 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
 import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import NotAvailable from 'app/components/notAvailable';
 import QuestionTooltip from 'app/components/questionTooltip';
+import SidebarSectionTitle from 'app/components/sidebarSectionTitle';
+import Tag from 'app/components/tag';
+import Tooltip from 'app/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 import {
   ReleaseProject,
   ReleaseWithHealth,
@@ -19,15 +25,18 @@ import {
 } from 'app/types';
 import {getAdoptionSeries, getCount} from 'app/utils/sessions';
 import {Theme} from 'app/utils/theme';
+import {isProjectMobileForReleases} from 'app/views/releases/list';
+import {ADOPTION_STAGE_LABELS} from 'app/views/releases/list/releaseHealth/content';
 
 import {getReleaseBounds, getReleaseParams} from '../../utils';
 import {generateReleaseMarkLines, releaseMarkLinesLabels} from '../utils';
 
-import {SectionHeading} from './styles';
+import {Wrapper} from './styles';
 
 type Props = {
   release: ReleaseWithHealth;
   project: ReleaseProject;
+  environment: string[];
   releaseSessions: SessionApiResponse | null;
   allSessions: SessionApiResponse | null;
   loading: boolean;
@@ -39,6 +48,7 @@ type Props = {
 function ReleaseComparisonChart({
   release,
   project,
+  environment,
   releaseSessions,
   allSessions,
   loading,
@@ -198,67 +208,126 @@ function ReleaseComparisonChart({
     allowEmptyPeriod: true,
   });
 
+  const isMobileProject = isProjectMobileForReleases(project.platform);
+  const adoptionStage = release.adoptionStages?.[project.slug].stage;
+  const adoptionStageLabel =
+    Boolean(adoptionStage) && ADOPTION_STAGE_LABELS[adoptionStage];
+  const multipleEnvironments = environment.length === 0 || environment.length > 1;
+
   return (
-    <RelativeBox>
-      <ChartLabel top="0px">
-        <ChartTitle>
-          {t('Sessions Adopted')}
-          <QuestionTooltip
-            position="top"
-            title={t(
-              'Adoption compares the sessions of a release with the total sessions for this project.'
-            )}
-            size="sm"
+    <Wrapper>
+      {isMobileProject && (
+        <Feature features={['release-adoption-stage']}>
+          <SidebarSectionTitle
+            title={t('Adoption Stage')}
+            icon={
+              multipleEnvironments && (
+                <QuestionTooltip
+                  position="top"
+                  title={t(
+                    'See if a release has low adoption, been adopted by users, or replaced by another release. Select an environment above to view the stage this release is in.'
+                  )}
+                  size="sm"
+                />
+              )
+            }
           />
-        </ChartTitle>
-      </ChartLabel>
-
-      {hasUsers && (
-        <ChartLabel top="140px">
-          <ChartTitle>
-            {t('Users Adopted')}
-            <QuestionTooltip
-              position="top"
-              title={t(
-                'Adoption compares the users of a release with the total users for this project.'
-              )}
-              size="sm"
-            />
-          </ChartTitle>
+          {adoptionStageLabel && !multipleEnvironments ? (
+            <div>
+              <StyledTooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
+                <Tag type={adoptionStageLabel.type}>{adoptionStageLabel.name}</Tag>
+              </StyledTooltip>
+              <AdoptionEnvironment>
+                {tct(`in [environment]`, {environment})}
+              </AdoptionEnvironment>
+            </div>
+          ) : (
+            <NotAvailableWrapper>
+              <NotAvailable />
+            </NotAvailableWrapper>
+          )}
+        </Feature>
+      )}
+      <RelativeBox>
+        <ChartLabel top="0px">
+          <ChartTitle
+            title={t('Sessions Adopted')}
+            icon={
+              <QuestionTooltip
+                position="top"
+                title={t(
+                  'Adoption compares the sessions of a release with the total sessions for this project.'
+                )}
+                size="sm"
+              />
+            }
+          />
         </ChartLabel>
-      )}
 
-      {errored ? (
-        <ErrorPanel height="280px">
-          <IconWarning color="gray300" size="lg" />
-        </ErrorPanel>
-      ) : (
-        <TransitionChart loading={loading} reloading={reloading} height="280px">
-          <TransparentLoadingMask visible={reloading} />
-          <ChartZoom
-            router={router}
-            period={period ?? undefined}
-            utc={utc === 'true'}
-            start={start}
-            end={end}
-            usePageDate
-            xAxisIndex={[0, 1]}
-          >
-            {zoomRenderProps => (
-              <LineChart {...chartOptions} {...zoomRenderProps} series={getSeries()} />
-            )}
-          </ChartZoom>
-        </TransitionChart>
-      )}
-    </RelativeBox>
+        {hasUsers && (
+          <ChartLabel top="140px">
+            <ChartTitle
+              title={t('Users Adopted')}
+              icon={
+                <QuestionTooltip
+                  position="top"
+                  title={t(
+                    'Adoption compares the users of a release with the total users for this project.'
+                  )}
+                  size="sm"
+                />
+              }
+            />
+          </ChartLabel>
+        )}
+
+        {errored ? (
+          <ErrorPanel height="280px">
+            <IconWarning color="gray300" size="lg" />
+          </ErrorPanel>
+        ) : (
+          <TransitionChart loading={loading} reloading={reloading} height="280px">
+            <TransparentLoadingMask visible={reloading} />
+            <ChartZoom
+              router={router}
+              period={period ?? undefined}
+              utc={utc === 'true'}
+              start={start}
+              end={end}
+              usePageDate
+              xAxisIndex={[0, 1]}
+            >
+              {zoomRenderProps => (
+                <LineChart {...chartOptions} {...zoomRenderProps} series={getSeries()} />
+              )}
+            </ChartZoom>
+          </TransitionChart>
+        )}
+      </RelativeBox>
+    </Wrapper>
   );
 }
+
+const StyledTooltip = styled(Tooltip)`
+  margin-bottom: ${space(3)};
+`;
+
+const NotAvailableWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-bottom: ${space(3)};
+`;
+
+const AdoptionEnvironment = styled('span')`
+  margin-left: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 const RelativeBox = styled('div')`
   position: relative;
 `;
 
-const ChartTitle = styled(SectionHeading)`
+const ChartTitle = styled(SidebarSectionTitle)`
   margin: 0;
 `;
 
