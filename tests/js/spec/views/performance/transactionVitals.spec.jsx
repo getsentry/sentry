@@ -75,6 +75,14 @@ describe('Performance > Web Vitals', function () {
       url: '/organizations/org-slug/is-key-transactions/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      method: 'GET',
+      body: {
+        threshold: '800',
+        metric: 'lcp',
+      },
+    });
     // Mock baseline measurements
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-vitals/',
@@ -107,6 +115,14 @@ describe('Performance > Web Vitals', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/key-transactions-list/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
   });

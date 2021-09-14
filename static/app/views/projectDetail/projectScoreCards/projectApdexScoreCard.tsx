@@ -50,16 +50,12 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
       return [];
     }
 
-    const apdexField = organization.features.includes('project-transaction-threshold')
-      ? 'apdex()'
-      : `apdex(${organization.apdexThreshold})`;
-
     const {projects, environments, datetime} = selection;
     const {period} = datetime;
     const commonQuery = {
       environment: environments,
       project: projects.map(proj => String(proj)),
-      field: [apdexField],
+      field: ['apdex()'],
       query: ['event.type:transaction count():>0', query].join(' ').trim(),
     };
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
@@ -114,12 +110,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
 
   get cardHelp() {
     const {organization} = this.props;
-    const performanceTerm = organization.features.includes(
-      'project-transaction-threshold'
-    )
-      ? PERFORMANCE_TERM.APDEX_NEW
-      : PERFORMANCE_TERM.APDEX;
-    const baseHelp = getTermHelp(this.props.organization, performanceTerm);
+    const baseHelp = getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW);
 
     if (this.trend) {
       return baseHelp + t(' This shows how it has changed since the last period.');
@@ -129,27 +120,17 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   get currentApdex() {
-    const {organization} = this.props;
     const {currentApdex} = this.state;
 
-    const apdexField = organization.features.includes('project-transaction-threshold')
-      ? 'apdex()'
-      : `apdex(${organization.apdexThreshold})`;
-
-    const apdex = currentApdex?.data[0]?.[getAggregateAlias(apdexField)];
+    const apdex = currentApdex?.data[0]?.[getAggregateAlias('apdex()')];
 
     return typeof apdex === 'undefined' ? undefined : Number(apdex);
   }
 
   get previousApdex() {
-    const {organization} = this.props;
     const {previousApdex} = this.state;
 
-    const apdexField = organization.features.includes('project-transaction-threshold')
-      ? 'apdex()'
-      : `apdex(${organization.apdexThreshold})`;
-
-    const apdex = previousApdex?.data[0]?.[getAggregateAlias(apdexField)];
+    const apdex = previousApdex?.data[0]?.[getAggregateAlias('apdex()')];
 
     return typeof apdex === 'undefined' ? undefined : Number(apdex);
   }
