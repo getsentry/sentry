@@ -1,10 +1,15 @@
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, Optional, Sequence
 
 from django.db import DataError
 from django.utils import timezone
 
-from sentry.models import KEYWORD_MAP, EventUser, Release, Team, User
+if TYPE_CHECKING:
+    from sentry.api.event_search import SearchFilter
+
+from sentry.models import KEYWORD_MAP, EventUser, FrozenSet, Release, Team, User
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
@@ -551,3 +556,33 @@ def convert_user_tag_to_query(key, value):
         sub_key, value = value.split(":", 1)
         if KEYWORD_MAP.get_key(sub_key, None):
             return 'user.{}:"{}"'.format(sub_key, value.replace('"', '\\"'))
+
+
+@dataclass
+class SupportedConditions:
+    field_name: str
+    operators: Optional[FrozenSet[str]] = None
+
+
+supported_cdc_conditions = [
+    SupportedConditions("status", frozenset(["IN"])),
+]
+supported_cdc_conditions_lookup = {
+    condition.field_name: condition for condition in supported_cdc_conditions
+}
+
+
+def validate_cdc_search_filters(search_filters: Sequence["SearchFilter"]) -> bool:
+    """
+    Validates whether a set of search filters can be handled by the cdc search backend.
+    """
+    for search_filter in search_filters:
+        supported_condition = supported_cdc_conditions_lookup.get(search_filter.key.name)
+        if not supported_condition:
+            return False
+        if (
+            supported_condition.operators
+            and search_filter.operator not in supported_condition.operators
+        ):
+            return False
+    return True

@@ -40,14 +40,24 @@ class ScheduledDeletion(Model):
 
     @classmethod
     def schedule(cls, instance, days=30, hours=0, data=None, actor=None):
-        record = cls.objects.create(
+        model_name = type(instance).__name__
+        record, created = cls.objects.create_or_update(
             app_label=instance._meta.app_label,
-            model_name=type(instance).__name__,
+            model_name=model_name,
             object_id=instance.pk,
-            date_scheduled=timezone.now() + timedelta(days=days, hours=hours),
-            data=data or {},
-            actor_id=actor.id if actor else None,
+            values={
+                "date_scheduled": timezone.now() + timedelta(days=days, hours=hours),
+                "data": data or {},
+                "actor_id": actor.id if actor else None,
+            },
         )
+        if not created:
+            record = cls.objects.get(
+                app_label=instance._meta.app_label,
+                model_name=model_name,
+                object_id=instance.pk,
+            )
+
         delete_logger.info(
             "object.delete.queued",
             extra={

@@ -148,17 +148,16 @@ class AlertRuleDetails extends Component<Props, State> {
       this.setState({selectedIncident: null});
     }
 
-    const timePeriod = this.getTimePeriod();
-    const {start, end} = timePeriod;
-
     try {
-      const rulePromise = fetchAlertRule(orgId, ruleId).then(rule =>
-        this.setState({rule})
-      );
-      const incidentsPromise = fetchIncidentsForRule(orgId, ruleId, start, end).then(
-        incidents => this.setState({incidents})
-      );
-      await Promise.all([rulePromise, incidentsPromise]);
+      const rule = await fetchAlertRule(orgId, ruleId);
+      this.setState({rule});
+
+      const timePeriod = this.getTimePeriod();
+      const {start, end} = timePeriod;
+
+      const incidents = await fetchIncidentsForRule(orgId, ruleId, start, end);
+      this.setState({incidents});
+
       this.setState({isLoading: false, hasError: false});
     } catch (_err) {
       this.setState({isLoading: false, hasError: true});

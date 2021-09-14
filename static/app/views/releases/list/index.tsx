@@ -534,6 +534,7 @@ class ReleasesList extends AsyncView<Props, State> {
       .some(project => project?.platform && isProjectMobileForReleases(project.platform));
     const showReleaseAdoptionStages =
       hasReleaseStages && hasAnyMobileProject && selection.environments.length === 1;
+    const hasReleasesSetup = releases && releases.length > 0;
 
     return (
       <GlobalSelectionHeader
@@ -551,7 +552,7 @@ class ReleasesList extends AsyncView<Props, State> {
             {this.renderHealthCta()}
 
             <SortAndFilterWrapper>
-              {hasSemver ? (
+              {hasSemver && hasReleasesSetup ? (
                 <GuideAnchor target="releases_search" position="bottom">
                   <GuideAnchorWrapper
                     target="release_stages"

@@ -4,6 +4,7 @@ from celery.task import current
 from django.urls import reverse
 from requests.exceptions import ConnectionError, RequestException, Timeout
 
+from sentry import features
 from sentry.api.serializers import AppPlatformEvent, serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event
@@ -18,7 +19,7 @@ from sentry.models import (
     ServiceHookProject,
     User,
 )
-from sentry.models.sentryapp import VALID_EVENTS, track_response_code, track_response_code_internal
+from sentry.models.sentryapp import VALID_EVENTS, track_response_code
 from sentry.shared_integrations.exceptions import (
     ApiHostError,
     ApiTimeoutError,
@@ -360,7 +361,18 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
         resp = safe_urlopen(
             url=url, data=app_platform_event.body, headers=app_platform_event.headers, timeout=5
         )
-
+        organization = Organization.objects.get_from_cache(id=org_id)
+        if features.has("organizations:sentry-app-debugging", organization):
+            project_id = app_platform_event.data["error"].get("project")
+            logger.info(
+                "send_and_save_webhook_request.debug",
+                extra={
+                    "event_type": event,
+                    "organization_id": org_id,
+                    "integration_slug": sentry_app.slug,
+                    "project_id": project_id,
+                },
+            )
     except (Timeout, ConnectionError) as e:
         error_type = e.__class__.__name__.lower()
         logger.info(
@@ -372,8 +384,6 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
             },
         )
         track_response_code(error_type, slug, event)
-        if sentry_app.is_internal:
-            track_response_code_internal(error_type, sentry_app.slug, event)
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
         # Re-raise the exception because some of these tasks might retry on the exception

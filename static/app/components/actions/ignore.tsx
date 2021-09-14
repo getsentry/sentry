@@ -16,6 +16,7 @@ import space from 'app/styles/space';
 import {
   ResolutionStatus,
   ResolutionStatusDetails,
+  SelectValue,
   UpdateResolutionStatus,
 } from 'app/types';
 
@@ -24,10 +25,10 @@ import MenuHeader from './menuHeader';
 
 const IGNORE_DURATIONS = [30, 120, 360, 60 * 24, 60 * 24 * 7];
 const IGNORE_COUNTS = [1, 10, 100, 1000, 10000, 100000];
-const IGNORE_WINDOWS: [number, string][] = [
-  [60, t('per hour')],
-  [24 * 60, t('per day')],
-  [24 * 7 * 60, t('per week')],
+const IGNORE_WINDOWS: SelectValue<number>[] = [
+  {value: 60, label: t('per hour')},
+  {value: 24 * 60, label: t('per day')},
+  {value: 24 * 7 * 60, label: t('per week')},
 ];
 
 type Props = {
@@ -87,7 +88,7 @@ const IgnoreActions = ({
       />
     ));
 
-  const openCustomIngoreCount = () =>
+  const openCustomIgnoreCount = () =>
     openModal(deps => (
       <CustomIgnoreCountModal
         {...deps}
@@ -96,7 +97,7 @@ const IgnoreActions = ({
         countLabel={t('Number of times')}
         countName="ignoreCount"
         windowName="ignoreWindow"
-        windowChoices={IGNORE_WINDOWS}
+        windowOptions={IGNORE_WINDOWS}
       />
     ));
 
@@ -109,7 +110,7 @@ const IgnoreActions = ({
         countLabel={t('Number of users')}
         countName="ignoreUserCount"
         windowName="ignoreUserWindow"
-        windowChoices={IGNORE_WINDOWS}
+        windowOptions={IGNORE_WINDOWS}
       />
     ));
 
@@ -209,14 +210,14 @@ const IgnoreActions = ({
                       {t('from now')}
                     </StyledActionLink>
                   </DropdownMenuItem>
-                  {IGNORE_WINDOWS.map(([hours, label]) => (
-                    <DropdownMenuItem key={hours}>
+                  {IGNORE_WINDOWS.map(({value, label}) => (
+                    <DropdownMenuItem key={value}>
                       <StyledActionLink
                         {...actionLinkProps}
                         onAction={() =>
                           onIgnore({
                             ignoreCount: count,
-                            ignoreWindow: hours,
+                            ignoreWindow: value,
                           })
                         }
                       >
@@ -229,7 +230,7 @@ const IgnoreActions = ({
             ))}
             <DropdownMenuItem>
               <ActionSubMenu>
-                <a onClick={openCustomIngoreCount}>{t('Custom')}</a>
+                <a onClick={openCustomIgnoreCount}>{t('Custom')}</a>
               </ActionSubMenu>
             </DropdownMenuItem>
           </DropdownLink>
@@ -271,14 +272,14 @@ const IgnoreActions = ({
                       {t('from now')}
                     </StyledActionLink>
                   </DropdownMenuItem>
-                  {IGNORE_WINDOWS.map(([hours, label]) => (
-                    <DropdownMenuItem key={hours}>
+                  {IGNORE_WINDOWS.map(({value, label}) => (
+                    <DropdownMenuItem key={value}>
                       <StyledActionLink
                         {...actionLinkProps}
                         onAction={() =>
                           onIgnore({
                             ignoreUserCount: count,
-                            ignoreUserWindow: hours,
+                            ignoreUserWindow: value,
                           })
                         }
                       >

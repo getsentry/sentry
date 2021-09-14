@@ -15,8 +15,6 @@ import {Organization, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-type SelectOption = Record<'value' | 'label', string>;
-
 type Props = {
   api: Client;
   organization: Organization;
@@ -26,8 +24,8 @@ type Props = {
 type State = {
   loading: boolean;
   error: boolean;
-  project?: Project;
   team: string | null;
+  project?: Project;
 };
 
 class MissingProjectMembership extends Component<Props, State> {
@@ -125,11 +123,6 @@ class MissingProjectMembership extends Component<Props, State> {
     return [request, pending];
   }
 
-  handleChangeTeam = (teamObj: SelectOption | null) => {
-    const team = teamObj ? teamObj.value : null;
-    this.setState({team});
-  };
-
   getPendingTeamOption = (team: string) => {
     return {
       value: team,
@@ -180,7 +173,10 @@ class MissingProjectMembership extends Component<Props, State> {
                   name="select"
                   placeholder={t('Select a Team')}
                   options={teamAccess}
-                  onChange={this.handleChangeTeam}
+                  onChange={teamObj => {
+                    const team = teamObj ? teamObj.value : null;
+                    this.setState({team});
+                  }}
                 />
                 {teamSlug ? (
                   this.renderJoinTeam(teamSlug, features)
