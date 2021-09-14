@@ -3,17 +3,22 @@ import {browserHistory} from 'react-router';
 import * as qs from 'query-string';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  cleanup,
-  fireEvent,
-  mountWithTheme,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'app/components/stream/group';
 import TagStore from 'app/stores/tagStore';
 import IssueListActions from 'app/views/issueList/actions';
 import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
+
+// Taken from https://stackoverflow.com/a/56859650/1015027
+const withMarkup = query => text =>
+  query((_content, node) => {
+    const hasText = node => node.textContent === text;
+    const childrenDontHaveText = Array.from(node.children).every(
+      child => !hasText(child)
+    );
+    return hasText(node) && childrenDontHaveText;
+  });
 
 // Mock <IssueListSidebar> and <IssueListActions>
 jest.mock('app/views/issueList/sidebar', () => jest.fn(() => null));
@@ -755,13 +760,8 @@ describe('IssueList', function () {
       });
       createWrapper();
 
-      await waitFor(() => {
-        expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
-      });
-
-      expect(wrapper.getByTestId('issues-pagination')).toHaveTextContent(
-        'Showing 25 of 500 issues'
-      );
+      const getByTextWithMarkup = withMarkup(wrapper.findByText);
+      expect(await getByTextWithMarkup('Showing 25 of 500 issues')).toBeInTheDocument();
     });
 
     it('displays a 2nd page count that represents the current page', async function () {
@@ -780,13 +780,8 @@ describe('IssueList', function () {
         },
       });
 
-      await waitFor(() => {
-        expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
-      });
-
-      expect(wrapper.getByTestId('issues-pagination')).toHaveTextContent(
-        'Showing 50 of 500 issues'
-      );
+      const getByTextWithMarkup = withMarkup(wrapper.findByText);
+      expect(await getByTextWithMarkup('Showing 50 of 500 issues')).toBeInTheDocument();
     });
 
     it('displays a count based on items removed', async function () {
@@ -826,9 +821,8 @@ describe('IssueList', function () {
       // actions are mocked out
       IssueListActions.mock.calls[0][0].onMarkReviewed(['1']);
 
-      expect(wrapper.getByTestId('issues-pagination')).toHaveTextContent(
-        'Showing 24 of 499 issues'
-      );
+      const getByTextWithMarkup = withMarkup(wrapper.findByText);
+      expect(await getByTextWithMarkup('Showing 24 of 499 issues')).toBeInTheDocument();
     });
 
     it('fetches and displays processing issues', async function () {

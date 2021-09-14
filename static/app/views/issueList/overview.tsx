@@ -1133,8 +1133,16 @@ class IssueListOverview extends React.Component<Props, State> {
               </PanelBody>
             </Panel>
             <StyledPagination
-              caption={tct('Showing [displayCount] issues', {
-                displayCount,
+              caption={tct('Showing [count] of [total] issues', {
+                count: pageCount,
+                total: (
+                  <StyledQueryCount
+                    hideParens
+                    hideIfEmpty={false}
+                    count={modifiedQueryCount}
+                    max={queryMaxCount || 100}
+                  />
+                ),
               })}
               pageLinks={pageLinks}
               onCursor={this.onCursorChange}
