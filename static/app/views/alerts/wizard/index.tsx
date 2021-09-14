@@ -22,7 +22,7 @@ import {Dataset} from 'app/views/alerts/incidentRules/types';
 import {
   AlertType,
   AlertWizardAlertNames,
-  AlertWizardOptions,
+  alertWizardCategories,
   AlertWizardPanelContent,
   AlertWizardRuleTemplates,
 } from './options';
@@ -180,19 +180,21 @@ class AlertWizard extends Component<Props, State> {
             <WizardBody>
               <WizardOptions>
                 <Styledh2>{t('Errors')}</Styledh2>
-                {AlertWizardOptions.map(({categoryHeading, options}, i) => (
-                  <OptionsWrapper key={categoryHeading}>
-                    {i > 0 && <Styledh2>{categoryHeading}</Styledh2>}
-                    <RadioPanelGroup
-                      choices={options.map(alertType => {
-                        return [alertType, AlertWizardAlertNames[alertType]];
-                      })}
-                      onChange={this.handleChangeAlertOption}
-                      value={alertOption}
-                      label="alert-option"
-                    />
-                  </OptionsWrapper>
-                ))}
+                {alertWizardCategories(organization).map(
+                  ({categoryHeading, options}, i) => (
+                    <OptionsWrapper key={categoryHeading}>
+                      {i > 0 && <Styledh2>{categoryHeading}</Styledh2>}
+                      <RadioPanelGroup
+                        choices={options.map(alertType => {
+                          return [alertType, AlertWizardAlertNames[alertType]];
+                        })}
+                        onChange={this.handleChangeAlertOption}
+                        value={alertOption}
+                        label="alert-option"
+                      />
+                    </OptionsWrapper>
+                  )
+                )}
               </WizardOptions>
               <WizardPanel visible={!!panelContent && !!alertOption}>
                 <WizardPanelBody>
