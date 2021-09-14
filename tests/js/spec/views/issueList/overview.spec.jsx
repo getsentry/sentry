@@ -13,7 +13,7 @@ import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overvi
 // Taken from https://stackoverflow.com/a/56859650/1015027
 const withMarkup = query => text =>
   query((_content, node) => {
-    const hasText = node => node.textContent === text;
+    const hasText = n => n.textContent === text;
     const childrenDontHaveText = Array.from(node.children).every(
       child => !hasText(child)
     );
@@ -163,12 +163,7 @@ describe('IssueList', function () {
       };
 
       wrapper = mountWithTheme(
-        <IssueListWithStores
-          data-test-id="test-overview"
-          {...newRouter}
-          {...defaultProps}
-          {...p}
-        />,
+        <IssueListWithStores {...newRouter} {...defaultProps} {...p} />,
         {context: routerContext}
       );
     };
@@ -985,9 +980,7 @@ describe('IssueList', function () {
           expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
         });
 
-        await waitFor(() =>
-          expect(wrapper.getByTestId('awaiting-events')).toBeInTheDocument()
-        );
+        expect(await wrapper.findByText('Waiting for events…')).toBeInTheDocument();
       });
 
       it('does not display when no projects selected and any projects have a first event', async function () {
