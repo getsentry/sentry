@@ -609,6 +609,7 @@ CELERY_QUEUES = [
     ),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
+    Queue("events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"

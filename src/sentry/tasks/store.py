@@ -343,6 +343,31 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
         symbolicate_task=symbolicate_event,
     )
 
+@instrumented_task(
+    name="sentry.tasks.store.symbolicate_event_low_priority",
+    queue="events.symbolicate_event_low_priority",
+    time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
+    soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
+    acks_late=True,
+)
+def symbolicate_event_low_priority(cache_key, start_time=None, event_id=None, **kwargs):
+    """
+    Handles event symbolication using the external service: symbolicator.
+
+    This puts the task on the low priority queue. Projects whose symbolication
+    events misbehave get sent there to protect the main queue.
+
+    :param string cache_key: the cache key for the event data
+    :param int start_time: the timestamp when the event was ingested
+    :param string event_id: the event identifier
+    """
+    return _do_symbolicate_event(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        symbolicate_task=symbolicate_event,
+    )
+
 
 @instrumented_task(
     name="sentry.tasks.store.symbolicate_event_from_reprocessing",
