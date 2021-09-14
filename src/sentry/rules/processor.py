@@ -2,6 +2,7 @@ import logging
 from collections import namedtuple
 from datetime import timedelta
 from random import randrange
+from typing import Mapping, Sequence, Set
 
 from django.core.cache import cache
 from django.utils import timezone
@@ -38,15 +39,66 @@ class RuleProcessor:
         """
         return Rule.get_for_project(self.project.id)
 
-    def get_rule_status(self, rule):
-        key = "grouprulestatus:1:%s" % hash_values([self.group.id, rule.id])
-        rule_status = cache.get(key)
-        if rule_status is None:
-            rule_status, _ = GroupRuleStatus.objects.get_or_create(
-                rule=rule, group=self.group, defaults={"project": self.project}
+    def _build_rule_status_cache_key(self, rule_id: int) -> str:
+        return "grouprulestatus:1:%s" % hash_values([self.group.id, rule_id])
+
+    def bulk_get_rule_status(self, rules: Sequence[Rule]) -> Mapping[int, GroupRuleStatus]:
+        keys = [self._build_rule_status_cache_key(rule.id) for rule in rules]
+        cache_results: Mapping[str, GroupRuleStatus] = cache.get_many(keys)
+        missing_rule_ids: Set[int] = set()
+        rule_statuses: Mapping[int, GroupRuleStatus] = {}
+        for key, rule in zip(keys, rules):
+            rule_status = cache_results.get(key)
+            if not rule_status:
+                missing_rule_ids.add(rule.id)
+            else:
+                rule_statuses[rule.id] = rule_status
+
+        if missing_rule_ids:
+            # If not cached, attempt to fetch status from the database
+            statuses = GroupRuleStatus.objects.filter(
+                group=self.group, rule_id__in=missing_rule_ids
             )
-            cache.set(key, rule_status, 300)
-        return rule_status
+            to_cache: Sequence[GroupRuleStatus] = list()
+            for status in statuses:
+                rule_statuses[status.rule_id] = status
+                missing_rule_ids.remove(status.rule_id)
+                to_cache.append(status)
+
+            # We might need to create some statuses if they don't already exist
+            if missing_rule_ids:
+                # We use `ignore_conflicts=True` here to avoid race conditions where the statuses
+                # might be created between when we queried above and attempt to create the rows now.
+                GroupRuleStatus.objects.bulk_create(
+                    [
+                        GroupRuleStatus(rule_id=rule_id, group=self.group, project=self.project)
+                        for rule_id in missing_rule_ids
+                    ],
+                    ignore_conflicts=True,
+                )
+                # Using `ignore_conflicts=True` prevents the pk from being set on the model
+                # instances. Re-query the database to fetch the rows, they should all exist at this
+                # point.
+                statuses = GroupRuleStatus.objects.filter(
+                    group=self.group, rule_id__in=missing_rule_ids
+                )
+                for status in statuses:
+                    rule_statuses[status.rule_id] = status
+                    missing_rule_ids.remove(status.rule_id)
+                    to_cache.append(status)
+
+                if missing_rule_ids:
+                    # Shouldn't happen, but log just in case
+                    self.logger.error(
+                        "Failed to fetch some GroupRuleStatuses in RuleProcessor",
+                        extra={"missing_rule_ids": missing_rule_ids, "group_id": self.group.id},
+                    )
+            if to_cache:
+                cache.set_many(
+                    {self._build_rule_status_cache_key(item.rule_id): item for item in to_cache}
+                )
+
+        return rule_statuses
 
     def condition_matches(self, condition, state, rule):
         condition_cls = rules.get(condition["id"])
@@ -82,7 +134,7 @@ class RuleProcessor:
             return lambda bool_iter: not any(bool_iter)
         return None
 
-    def apply_rule(self, rule):
+    def apply_rule(self, rule, status):
         """
         If all conditions and filters pass, execute every action.
 
@@ -100,11 +152,8 @@ class RuleProcessor:
         ):
             return
 
-        status = self.get_rule_status(rule)
-
         now = timezone.now()
         freq_offset = now - timedelta(minutes=frequency)
-
         if status.last_active and status.last_active > freq_offset:
             return
 
@@ -194,6 +243,8 @@ class RuleProcessor:
             return {}.values()
 
         self.grouped_futures.clear()
-        for rule in self.get_rules():
-            self.apply_rule(rule)
+        rules = self.get_rules()
+        rule_statuses = self.bulk_get_rule_status(rules)
+        for rule in rules:
+            self.apply_rule(rule, rule_statuses[rule.id])
         return self.grouped_futures.values()

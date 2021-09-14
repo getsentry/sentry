@@ -1,5 +1,9 @@
 from datetime import timedelta
+from unittest import mock
 
+from django.core.cache import cache
+from django.db import DEFAULT_DB_ALIAS, connections
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.models import GroupRuleStatus, GroupStatus, Rule
@@ -83,6 +87,73 @@ class RuleProcessorTest(TestCase):
         )
         results = list(rp.apply())
         assert len(results) == 0
+
+    def run_query_test(self, rp, expected_queries):
+        with CaptureQueriesContext(connections[DEFAULT_DB_ALIAS]) as queries:
+            results = list(rp.apply())
+        status_queries = [
+            q
+            for q in queries.captured_queries
+            if "grouprulestatus" in str(q) and "UPDATE" not in str(q)
+        ]
+        assert len(status_queries) == expected_queries, "\n".join(
+            "%d. %s" % (i, query["sql"]) for i, query in enumerate(status_queries, start=1)
+        )
+        assert len(results) == 2
+
+    def test_multiple_rules(self):
+        rule_2 = Rule.objects.create(
+            project=self.event.project,
+            data={"conditions": [EVERY_EVENT_COND_DATA], "actions": [EMAIL_ACTION_DATA]},
+        )
+        rp = RuleProcessor(
+            self.event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True,
+        )
+        self.run_query_test(rp, 3)
+
+        GroupRuleStatus.objects.filter(rule__in=[self.rule, rule_2]).update(
+            last_active=timezone.now() - timedelta(minutes=Rule.DEFAULT_FREQUENCY + 1)
+        )
+
+        # GroupRuleStatus queries should be cached
+        self.run_query_test(rp, 0)
+
+        cache.clear()
+        GroupRuleStatus.objects.filter(rule__in=[self.rule, rule_2]).update(
+            last_active=timezone.now() - timedelta(minutes=Rule.DEFAULT_FREQUENCY + 1)
+        )
+
+        # GroupRuleStatus rows should be created, so we should perform two fewer queries since we
+        # don't need to create/fetch the rows
+        self.run_query_test(rp, 1)
+
+        cache.clear()
+        GroupRuleStatus.objects.filter(rule__in=[self.rule, rule_2]).update(
+            last_active=timezone.now() - timedelta(minutes=Rule.DEFAULT_FREQUENCY + 1)
+        )
+
+        # Test that we don't get errors if we try to create statuses that already exist due to a
+        # race condition
+        with mock.patch("sentry.rules.processor.GroupRuleStatus") as mocked_GroupRuleStatus:
+            call_count = 0
+
+            def mock_filter(*args, **kwargs):
+                nonlocal call_count
+                if call_count == 0:
+                    call_count += 1
+                    # Make a query here to not throw the query counts off
+                    return GroupRuleStatus.objects.filter(id=-1)
+                return GroupRuleStatus.objects.filter(*args, **kwargs)
+
+            mocked_GroupRuleStatus.objects.filter.side_effect = mock_filter
+            # Even though the rows already exist, we should go through the creation step and make
+            # the extra queries. The conflicting insert doesn't seem to be counted here since it
+            # creates no rows.
+            self.run_query_test(rp, 2)
 
 
 # mock filter which always passes
