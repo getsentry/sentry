@@ -37,8 +37,7 @@ const storeConfig: Reflux.StoreDefinition & SdkUpdatesStoreInterface & Internal 
   },
 };
 
-type SdkUpdatesStore = Reflux.Store & SdkUpdatesStoreInterface;
-
-const SdkUpdatesStore = Reflux.createStore(storeConfig) as SdkUpdatesStore;
+const SdkUpdatesStore = Reflux.createStore(storeConfig) as Reflux.Store &
+  SdkUpdatesStoreInterface;
 
 export default SdkUpdatesStore;

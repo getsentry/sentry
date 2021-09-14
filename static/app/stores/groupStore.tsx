@@ -96,8 +96,6 @@ type GroupStoreInterface = Reflux.StoreDefinition & {
   onPopulateReleases: (itemId: string, releaseData: GroupRelease) => void;
 };
 
-type GroupStore = Reflux.Store & GroupStoreInterface;
-
 const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
   listenables: [GroupActions],
   pendingChanges: new PendingChangeQueue(),
@@ -513,6 +511,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
   },
 };
 
-const GroupStore = Reflux.createStore(storeConfig) as GroupStore;
+const GroupStore = Reflux.createStore(storeConfig) as Reflux.Store & GroupStoreInterface;
 
 export default GroupStore;

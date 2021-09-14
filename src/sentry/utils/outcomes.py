@@ -18,6 +18,7 @@ class Outcome(IntEnum):
     RATE_LIMITED = 2
     INVALID = 3
     ABUSE = 4
+    CLIENT_DISCARD = 5
 
     def api_name(self) -> str:
         return self.name.lower()

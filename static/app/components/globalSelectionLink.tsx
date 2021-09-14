@@ -68,6 +68,7 @@ class GlobalSelectionLink extends React.Component<Props> {
 
     const url =
       (typeof to === 'string' ? to : to.pathname) + '?' + qs.stringify(queryStringObject);
+
     return (
       <a {...this.props} href={url}>
         {this.props.children}

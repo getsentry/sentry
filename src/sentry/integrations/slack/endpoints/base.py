@@ -4,7 +4,6 @@ from typing import Any, Sequence, Tuple
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.features.helpers import any_organization_has_feature
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequest
 from sentry.integrations.slack.views.link_identity import build_linking_url
@@ -17,7 +16,6 @@ LINK_USER_MESSAGE = (
 UNLINK_USER_MESSAGE = "<{associate_url}|Click here to unlink your identity.>"
 NOT_LINKED_MESSAGE = "You do not have a linked identity to unlink."
 ALREADY_LINKED_MESSAGE = "You are already linked as `{username}`."
-FEATURE_FLAG_MESSAGE = "This feature hasn't been released yet, hang tight."
 
 
 class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
@@ -30,15 +28,6 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
 
         if command in ["help", ""]:
             return self.respond(SlackHelpMessageBuilder().build())
-
-        if (
-            not request.integration
-            or command in ["link", "unlink"]
-            and not any_organization_has_feature(
-                "organizations:notification-platform", request.integration.organizations.all()
-            )
-        ):
-            return self.reply(request, FEATURE_FLAG_MESSAGE)
 
         if command == "link":
             if not args:

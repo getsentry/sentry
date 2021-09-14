@@ -87,7 +87,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
       transaction: event.title,
-      projectID: decodeScalar(location.query.project),
+      projectID: event.projectID,
       query: newQuery,
     });
   };
@@ -138,7 +138,10 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     <Breadcrumb
                       organization={organization}
                       location={location}
-                      transactionName={transactionName}
+                      transaction={{
+                        project: event.projectID,
+                        name: transactionName,
+                      }}
                       eventSlug={eventSlug}
                     />
                     <Layout.Title data-test-id="event-header">{event.title}</Layout.Title>

@@ -55,7 +55,7 @@ function Modal({
                   })}
                 />
                 {getRelativeTimeFromEventDateCreated(
-                  event.dateCreated,
+                  event.dateCreated ? event.dateCreated : event.dateReceived,
                   dateCreated,
                   false
                 )}
@@ -73,7 +73,7 @@ function Modal({
             {defined(size) ? formatBytesBase2(size) : <NotAvailable />}
           </Value>
 
-          <Label>{t('Mimetype')}</Label>
+          <Label>{t('MIME Type')}</Label>
           <Value>{mimetype ?? <NotAvailable />}</Value>
         </GeralInfo>
 
