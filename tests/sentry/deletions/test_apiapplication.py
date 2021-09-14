@@ -1,10 +1,10 @@
 from sentry.models import ApiApplication, ApiGrant, ApiToken, ScheduledDeletion
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.tasks.deletion import run_deletion
-from sentry.testutils import TestCase
+from sentry.testutils import TransactionTestCase
 
 
-class DeleteApiApplicationTest(TestCase):
+class DeleteApiApplicationTest(TransactionTestCase):
     def test_simple(self):
         app = ApiApplication.objects.create(
             owner=self.user, status=ApiApplicationStatus.pending_deletion

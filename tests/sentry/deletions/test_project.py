@@ -17,10 +17,10 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.tasks.deletion import run_deletion
-from sentry.testutils import TestCase
+from sentry.testutils import TransactionTestCase
 
 
-class DeleteProjectTest(TestCase):
+class DeleteProjectTest(TransactionTestCase):
     def test_simple(self):
         project = self.create_project(name="test")
         event = self.store_event(data={}, project_id=project.id)

@@ -17,9 +17,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
         from sentry.discover.models import DiscoverSavedQuery, KeyTransaction, TeamKeyTransaction
         from sentry.incidents.models import AlertRule, Incident
         from sentry.models import (
-            Commit,
             CommitAuthor,
-            CommitFileChange,
             Dashboard,
             Distribution,
             Environment,
@@ -28,12 +26,9 @@ class OrganizationDeletionTask(ModelDeletionTask):
             Project,
             ProjectTransactionThreshold,
             PromptsActivity,
-            PullRequest,
             Release,
-            ReleaseCommit,
             ReleaseEnvironment,
             ReleaseFile,
-            ReleaseHeadCommit,
             Repository,
             Team,
         )
@@ -43,19 +38,14 @@ class OrganizationDeletionTask(ModelDeletionTask):
 
         model_list = (
             OrganizationMember,
-            CommitFileChange,
-            Commit,
-            PullRequest,
-            CommitAuthor,
-            Environment,
             Repository,
+            CommitAuthor,  # Depends on commit deletions, a child of Repository
+            ReleaseEnvironment,
+            Environment,
+            ReleaseFile,
             Project,
             Release,  # Depends on Group deletions, a child of Project
-            ReleaseCommit,
-            ReleaseEnvironment,
-            ReleaseFile,
             Distribution,
-            ReleaseHeadCommit,
             Dashboard,
             DiscoverSavedQuery,
             KeyTransaction,

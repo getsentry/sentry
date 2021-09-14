@@ -1,9 +1,9 @@
 from sentry.models import ExternalIssue, Integration, OrganizationIntegration, ScheduledDeletion
 from sentry.tasks.deletion import run_deletion
-from sentry.testutils import TestCase
+from sentry.testutils import TransactionTestCase
 
 
-class DeleteOrganizationIntegrationTest(TestCase):
+class DeleteOrganizationIntegrationTest(TransactionTestCase):
     def test_simple(self):
         org = self.create_organization()
         integration = Integration.objects.create(provider="example", name="Example")
