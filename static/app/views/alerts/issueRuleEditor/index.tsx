@@ -633,7 +633,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               <SetConditionsListItem>
                 {t('Set conditions')}
                 <SetupAlertIntegrationButton
-                  project={project}
+                  projectSlug={project.slug}
                   organization={organization}
                 />
               </SetConditionsListItem>

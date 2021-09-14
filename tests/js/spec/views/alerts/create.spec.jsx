@@ -105,10 +105,8 @@ describe('ProjectAlertsCreate', function () {
       body: [TestStubs.User()],
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/has-alert-integration-installed/`,
-      body: {
-        hasAlertIntegrationInstalled: true,
-      },
+      url: `/projects/org-slug/project-slug/?include=hasAlertIntegration`,
+      body: {},
     });
     metric.startTransaction.mockClear();
   });

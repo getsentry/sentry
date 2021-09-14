@@ -10,11 +10,11 @@ import {Organization, Project} from 'app/types';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
-  project: Project;
+  projectSlug: string;
 };
 
 type State = AsyncComponent['state'] & {
-  endpointResult?: {
+  detailedProject?: Project & {
     hasAlertIntegrationInstalled: boolean;
   };
 };
@@ -25,11 +25,11 @@ type State = AsyncComponent['state'] & {
  */
 export default class SetupAlertIntegrationButton extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {project, organization} = this.props;
+    const {projectSlug, organization} = this.props;
     return [
       [
-        'endpointResult',
-        `/projects/${organization.slug}/${project.slug}/has-alert-integration-installed/`,
+        'detailedProject',
+        `/projects/${organization.slug}/${projectSlug}/?include=hasAlertIntegration`,
       ],
     ];
   }
@@ -45,10 +45,10 @@ export default class SetupAlertIntegrationButton extends AsyncComponent<Props, S
 
   renderBody(): React.ReactNode {
     const {organization} = this.props;
-    const {endpointResult} = this.state;
-    // don't render anything if we don't have the result yet or if an alert integration
+    const {detailedProject} = this.state;
+    // don't render anything if we don't have the project yet or if an alert integration
     // is installed
-    if (!endpointResult || endpointResult.hasAlertIntegrationInstalled) {
+    if (!detailedProject || detailedProject.hasAlertIntegrationInstalled) {
       return null;
     }
 

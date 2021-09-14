@@ -79,10 +79,8 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
       body: TestStubs.Environments(),
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/has-alert-integration-installed/`,
-      body: {
-        hasAlertIntegrationInstalled: true,
-      },
+      url: `/projects/org-slug/project-slug/?include=hasAlertIntegration`,
+      body: {},
     });
   });
 
