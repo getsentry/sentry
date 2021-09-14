@@ -166,18 +166,18 @@ class ReprocessableEvent:
 def pull_event_data(project_id, event_id) -> ReprocessableEvent:
     from sentry.lang.native.processing import get_required_attachment_types
 
+    with sentry_sdk.start_span(op="reprocess_events.eventstore.get"):
+        event = eventstore.get_event_by_id(project_id, event_id)
+
+    if event is None:
+        raise CannotReprocess("event.not_found")
+
     with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
         node_id = Event.generate_node_id(project_id, event_id)
         data = nodestore.get(node_id, subkey="unprocessed")
         if data is None:
             node_id = _generate_unprocessed_event_node_id(project_id=project_id, event_id=event_id)
             data = nodestore.get(node_id)
-
-    with sentry_sdk.start_span(op="reprocess_events.eventstore.get"):
-        event = eventstore.get_event_by_id(project_id, event_id)
-
-    if event is None:
-        raise CannotReprocess("event.not_found")
 
     # Check data after checking presence of event to avoid too many instances.
     if data is None:
