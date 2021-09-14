@@ -188,13 +188,16 @@ def preprocess_event_from_reprocessing(
         project=project,
     )
 
+
 def increment_low_priority_metrics_counter(cluster, project_id, timestamp, ttl):
     # Increment the event counter for the given project_id in the given cluster.
     #
     # The key is computed from the project_id and the timestamp of the symbolication request, rounded
     # down to the nearest 10 seconds. If the key is not currently set to expire, it will be set to expire
     # in ttl seconds.
-    with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics.counter") as span:
+    with sentry_sdk.start_span(
+        op="tasks.store.symbolicate_event.low_priority.metrics.counter"
+    ) as span:
         # Round the time to the nearest 10s
         timestamp = int(timestamp)
         timestamp -= timestamp % 10
