@@ -65,7 +65,6 @@ export default class SelectField<
     optionObj: ValueType<OptionType>
   ) => {
     let value: any = undefined;
-
     // If optionObj is empty, then it probably means that the field was "cleared"
     if (!optionObj) {
       value = optionObj;
