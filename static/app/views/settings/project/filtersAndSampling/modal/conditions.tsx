@@ -43,7 +43,7 @@ function Conditions({conditions, onDelete, onChange}: Props) {
           displayLegacyBrowsers;
 
         return (
-          <Condition key={index}>
+          <ConditionWrapper key={index}>
             <LeftCell>{getInnerNameLabel(category)}</LeftCell>
             <CenterCell>
               {!isABooleanField && (
@@ -77,7 +77,7 @@ function Conditions({conditions, onDelete, onChange}: Props) {
                 }}
               />
             )}
-          </Condition>
+          </ConditionWrapper>
         );
       })}
     </Fragment>
@@ -86,7 +86,7 @@ function Conditions({conditions, onDelete, onChange}: Props) {
 
 export default Conditions;
 
-const Condition = styled('div')`
+const ConditionWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
   align-items: flex-start;

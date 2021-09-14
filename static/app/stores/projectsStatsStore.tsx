@@ -101,8 +101,7 @@ const projectsStatsStore: Reflux.StoreDefinition & ProjectsStatsStoreInterface =
   },
 };
 
-type ProjectsStatsStore = Reflux.Store & ProjectsStatsStoreInterface;
-
-const ProjectsStatsStore = Reflux.createStore(projectsStatsStore) as ProjectsStatsStore;
+const ProjectsStatsStore = Reflux.createStore(projectsStatsStore) as Reflux.Store &
+  ProjectsStatsStoreInterface;
 
 export default ProjectsStatsStore;
