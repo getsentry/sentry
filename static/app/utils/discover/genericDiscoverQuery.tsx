@@ -9,7 +9,7 @@ import EventView, {
   isAPIPayloadSimilar,
   LocationQuery,
 } from 'app/utils/discover/eventView';
-import {usePerformanceEventView} from 'app/views/performance/contexts/performanceEventViewContext';
+import {usePerformanceEventView} from 'app/utils/performance/contexts/performanceEventViewContext';
 
 import {useOrgSlug} from '../useOrganization';
 

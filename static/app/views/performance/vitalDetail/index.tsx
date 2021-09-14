@@ -13,13 +13,13 @@ import {PageContent} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
+import {PerformanceEventViewProvider} from 'app/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
-import {PerformanceEventViewProvider} from '../contexts/performanceEventViewContext';
 import {generatePerformanceVitalDetailView} from '../data';
 import {addRoutePerformanceContext, getTransactionName} from '../utils';
 

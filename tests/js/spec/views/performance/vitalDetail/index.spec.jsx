@@ -5,7 +5,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import {OrganizationContext} from 'app/views/organizationContext';
-import {PerformanceEventViewProvider} from 'app/views/performance/contexts/performanceEventViewContext';
 import VitalDetail from 'app/views/performance/vitalDetail/';
 
 function initializeData({query} = {query: {}}) {

@@ -17,9 +17,9 @@ import {Organization, Project, Team} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
 import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
+import {OpBreakdownFilterProvider} from 'app/utils/performance/contexts/operationBreakdownFilter';
 import withTeams from 'app/utils/withTeams';
 
-import {OpBreakdownFilterProvider} from '../contexts/operationBreakdownFilter';
 import Filter, {SpanOperationBreakdownFilter} from '../transactionSummary/filter';
 import {getTransactionSearchQuery} from '../utils';
 

@@ -20,6 +20,7 @@ import {PageContent, PageHeader} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
+import {PerformanceEventViewProvider} from 'app/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'app/utils/queryString';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
@@ -27,7 +28,6 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
-import {PerformanceEventViewProvider} from './contexts/performanceEventViewContext';
 import LandingContent from './landing/content';
 import {DEFAULT_MAX_DURATION} from './trends/utils';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
