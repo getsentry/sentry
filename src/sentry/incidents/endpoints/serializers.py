@@ -10,10 +10,6 @@ from rest_framework import serializers
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.constants import (
-    CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS,
-    CRASH_RATE_ALERTS_RAW_CUTOFF_MIN,
-)
 from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
@@ -79,6 +75,12 @@ dataset_valid_event_types = {
 
 # TODO(davidenwang): eventually we should pass some form of these to the event_search parser to raise an error
 unsupported_queries = {"release:latest"}
+
+# Represents the time window (in minutes) after which we cut off from sessions dataset query
+# granularity of 1 min to 1 hour
+CRASH_RATE_ALERTS_RAW_CUTOFF_MIN = 60
+# Allowed time windows (in minutes) for crash rate alerts
+CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS = [30, 60, 120, 240, 720, 1440]
 
 
 class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):

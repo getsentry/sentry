@@ -579,6 +579,11 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
             "dataset": "sessions",
             "eventTypes": ["session"],
         }
+        # Login
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
 
     @fixture
     def organization(self):
@@ -593,12 +598,6 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
         return self.create_user()
 
     def test_simple_crash_rate_alerts_for_sessions(self):
-        # Login
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_valid_response(
                 self.organization.slug, self.project.slug, status_code=201, **self.valid_alert_rule
@@ -608,11 +607,6 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
         assert resp.data == serialize(alert_rule, self.user)
 
     def test_simple_crash_rate_alerts_for_sessions_with_invalid_time_window(self):
-        # Login
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
         self.valid_alert_rule["timeWindow"] = "90"
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_valid_response(
@@ -634,10 +628,6 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
         self.integration = Integration.objects.create(
             provider="slack",
             name="Team A",

@@ -570,8 +570,3 @@ ALERTS_MEMBER_WRITE_DEFAULT = True
 
 # Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
 DataCategory = sentry_relay.DataCategory
-
-# Crash Rate Alerts
-CRASH_RATE_ALERTS_RAW_CUTOFF_SEC = 3600
-CRASH_RATE_ALERTS_RAW_CUTOFF_MIN = 60
-CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS = [30, 60, 120, 240, 720, 1440]

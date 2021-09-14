@@ -6,7 +6,6 @@ from django.utils import timezone
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.constants import CRASH_RATE_ALERTS_RAW_CUTOFF_SEC
 from sentry.models import Project
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
@@ -32,6 +31,9 @@ DATASET_CONDITIONS = {
     QueryDatasets.TRANSACTIONS: "event.type:transaction",
 }
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
+# Represents the time window (in seconds) after which we cut off from sessions dataset query
+# granularity of 1 min to 1 hour
+CRASH_RATE_ALERTS_RAW_CUTOFF_SEC = 3600
 
 
 def apply_dataset_query_conditions(dataset, query, event_types, discover=False):
@@ -174,7 +176,9 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         subscription.update(subscription_id=None)
 
 
-def build_snuba_filter(dataset, query, aggregate, environment, event_types, params=None):
+def build_snuba_filter(
+    dataset, query, aggregate, environment, event_types, params=None, time_window=None
+):
     resolve_func, use_rollup = {
         QueryDatasets.EVENTS: (resolve_column(Dataset.Events), False),
         QueryDatasets.SESSIONS: (resolve_column(Dataset.Sessions), True),
@@ -182,11 +186,8 @@ def build_snuba_filter(dataset, query, aggregate, environment, event_types, para
     }[dataset]
 
     rollup = None
-    if use_rollup:
-        try:
-            rollup = 60 if params["time_window"] <= CRASH_RATE_ALERTS_RAW_CUTOFF_SEC else 3600
-        except KeyError:
-            ...
+    if use_rollup and time_window:
+        rollup = 60 if time_window <= CRASH_RATE_ALERTS_RAW_CUTOFF_SEC else 3600
 
     query = apply_dataset_query_conditions(dataset, query, event_types)
     snuba_filter = get_filter(query, params=params)
@@ -209,7 +210,7 @@ def _create_in_snuba(subscription):
         snuba_query.aggregate,
         snuba_query.environment,
         snuba_query.event_types,
-        params={"time_window": snuba_query.time_window},
+        time_window=snuba_query.time_window,
     )
 
     body = {
