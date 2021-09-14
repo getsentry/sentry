@@ -343,6 +343,7 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
         symbolicate_task=symbolicate_event,
     )
 
+
 @instrumented_task(
     name="sentry.tasks.store.symbolicate_event_low_priority",
     queue="events.symbolicate_event_low_priority",
