@@ -76,7 +76,7 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
     // Note: This is the proper way to handle slug changes but unfortunately not all of our
     // components use stores correctly. To be safe reload browser :((
     if (response.slug !== itemId) {
-      // Remove old team
+      // Replace the team
       const teams = [...this.state.teams.filter(({slug}) => slug !== itemId), response];
 
       this.state = {...this.state, teams};
