@@ -2251,6 +2251,14 @@ SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 600
 # Log warning when process_event is taking more than n seconds to process event
 SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120
 
+# Number of seconds to keep symbolicate_event rates per project.
+#
+# symbolicate_event tasks report the rates of events per project to redis
+# so that projects that exceed a reasonable rate can be sent to the low
+# priority queue. This setting determines how long we keep these rates
+# around.
+SYMBOLICATOR_PROCESS_EVENT_LOW_PRIORITY_COUNTER_TTL = 300
+
 # Block symbolicate_event for this many seconds to wait for a initial response
 # from symbolicator after the task submission.
 SYMBOLICATOR_POLL_TIMEOUT = 10

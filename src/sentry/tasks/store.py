@@ -16,7 +16,7 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.models import Activity, Organization, Project, ProjectOption
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import metrics, redis
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.utils.dates import to_datetime
 from sentry.utils.safe import safe_execute
@@ -188,6 +188,20 @@ def preprocess_event_from_reprocessing(
         project=project,
     )
 
+def increment_low_priority_metrics_counter(cluster, project_id, timestamp, ttl):
+    # Increment the event counter for the given project_id in the given cluster.
+    #
+    # The key is computed from the project_id and the timestamp of the symbolication request, rounded
+    # down to the nearest 10 seconds. If the key is not currently set to expire, it will be set to expire
+    # in ttl seconds.
+    with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics.counter") as span:
+        # Round the time to the nearest 10s
+        timestamp = int(timestamp)
+        timestamp -= timestamp % 10
+        key = f"symbolicate_event_low_priority:{project_id}:{timestamp}"
+        cluster.incr(key)
+        cluster.expire(key, ttl, nx=True)
+
 
 def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, data=None):
     from sentry.lang.native.processing import get_symbolication_function
@@ -240,6 +254,11 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
 
     symbolication_start_time = time()
+
+    if not from_reprocessing:
+        cluster = redis.redis_clusters.get("default")
+        ttl = settings.SYMBOLICATOR_PROCESS_EVENT_LOW_PRIORITY_COUNTER_TTL
+        low_priority_counter(cluster, projet_id, symbolication_start_time, ttl)
 
     with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
         span.set_data("symbolication_function", symbolication_function_name)
