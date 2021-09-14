@@ -481,6 +481,7 @@ def callback_timing(
     results: Sequence[TimedFuture],
     metric_name: str,
     result_comparator: Optional[Callable[[str, str, str, Any, Any], Mapping[str, str]]] = None,
+    sample_rate: Optional[float] = None,
 ) -> None:
     """
     Collects timing stats on results returned to the callback method of a `ServiceDelegator`. Either
@@ -510,6 +511,10 @@ def callback_timing(
 
     primary_duration_ms = (primary_timing[1] - primary_timing[0]) * 1000
 
+    metric_kwargs = {}
+    if sample_rate is not None:
+        metric_kwargs["sample_rate"] = sample_rate
+
     metrics.timing(
         f"{metric_name}.timing_ms",
         primary_duration_ms,
@@ -519,7 +524,7 @@ def callback_timing(
             "status": primary_status,
             "primary": "true",
         },
-        sample_rate=1.0,
+        **metric_kwargs,
     )
 
     for i, secondary_backend_name in enumerate(backend_names[1:], 1):
@@ -563,17 +568,17 @@ def callback_timing(
                     "status": secondary_status,
                     "primary": "false",
                 },
-                sample_rate=1.0,
+                **metric_kwargs,
             )
             metrics.timing(
                 f"{metric_name}.timing_delta_ms",
                 secondary_duration_ms - primary_duration_ms,
                 tags=tags,
-                sample_rate=1.0,
+                **metric_kwargs,
             )
             metrics.timing(
                 f"{metric_name}.timing_relative_delta",
                 secondary_duration_ms / primary_duration_ms,
                 tags=tags,
-                sample_rate=1.0,
+                **metric_kwargs,
             )
