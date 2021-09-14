@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import (
@@ -6,10 +8,12 @@ from sentry.grouping.strategies.base import (
     produces_variants,
     strategy,
 )
-from sentry.interfaces.security import Csp, ExpectCT, ExpectStaple, Hpkp
+from sentry.interfaces.security import Csp, ExpectCT, ExpectStaple, Hpkp, SecurityReport
 
 
-def _security_v1(reported_id, obj, context, **meta):
+def _security_v1(
+    reported_id: str, obj: SecurityReport, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
     return {
         context["variant"]: GroupingComponent(
             id=reported_id,
@@ -23,25 +27,31 @@ def _security_v1(reported_id, obj, context, **meta):
 
 @strategy(ids=["expect-ct:v1"], interface=ExpectCT, score=1000)
 @produces_variants(["default"])
-def expect_ct_v1(expectct_interface, event, context, **meta):
-    return _security_v1("expect-ct", expectct_interface, context=context, **meta)
+def expect_ct_v1(
+    interface: ExpectCT, event: Event, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
+    return _security_v1("expect-ct", interface, context=context, **meta)
 
 
 @strategy(ids=["expect-staple:v1"], interface=ExpectStaple, score=1001)
 @produces_variants(["default"])
-def expect_staple_v1(expectstaple_interface, event, context, **meta):
-    return _security_v1("expect-staple", expectstaple_interface, context=context, **meta)
+def expect_staple_v1(
+    interface: ExpectStaple, event: Event, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
+    return _security_v1("expect-staple", interface, context=context, **meta)
 
 
 @strategy(ids=["hpkp:v1"], interface=Hpkp, score=1002)
 @produces_variants(["default"])
-def hpkp_v1(interface: Hpkp, event: Event, context: GroupingContext, **meta) -> ReturnedVariants:
+def hpkp_v1(
+    interface: Hpkp, event: Event, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
     return _security_v1("hpkp", interface, context=context, **meta)
 
 
 @strategy(ids=["csp:v1"], interface=Csp, score=1003)
 @produces_variants(["default"])
-def csp_v1(interface: Csp, event: Event, context: GroupingContext, **meta) -> ReturnedVariants:
+def csp_v1(interface: Csp, event: Event, context: GroupingContext, **meta: Any) -> ReturnedVariants:
     violation_component = GroupingComponent(id="violation")
     uri_component = GroupingComponent(id="uri")
 
