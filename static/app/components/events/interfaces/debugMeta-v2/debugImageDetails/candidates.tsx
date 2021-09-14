@@ -33,7 +33,7 @@ type ImageCandidates = Image['candidates'];
 type Props = {
   candidates: ImageCandidates;
   organization: Organization;
-  projectId: Project['id'];
+  projSlug: Project['slug'];
   baseUrl: string;
   isLoading: boolean;
   hasReprocessWarning: boolean;
@@ -288,7 +288,7 @@ class Candidates extends React.Component<Props, State> {
   render() {
     const {
       organization,
-      projectId,
+      projSlug,
       baseUrl,
       onDelete,
       isLoading,
@@ -357,7 +357,7 @@ class Candidates extends React.Component<Props, State> {
               candidate={candidate}
               organization={organization}
               baseUrl={baseUrl}
-              projectId={projectId}
+              projSlug={projSlug}
               eventDateReceived={eventDateReceived}
               hasReprocessWarning={hasReprocessWarning}
               haveCandidatesAtLeastOneAction={haveCandidatesAtLeastOneAction}
