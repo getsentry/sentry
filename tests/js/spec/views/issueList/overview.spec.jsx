@@ -123,7 +123,6 @@ describe('IssueList', function () {
   });
 
   afterEach(function () {
-    cleanup();
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
   });
