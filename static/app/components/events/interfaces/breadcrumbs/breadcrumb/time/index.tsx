@@ -16,7 +16,7 @@ type Props = {
   displayRelativeTime?: boolean;
 };
 
-const Time = memo(({timestamp, relativeTime, displayRelativeTime, searchTerm}: Props) => {
+function Time({timestamp, relativeTime, displayRelativeTime, searchTerm}: Props) {
   if (!(defined(timestamp) && defined(relativeTime))) {
     return null;
   }
@@ -48,9 +48,9 @@ const Time = memo(({timestamp, relativeTime, displayRelativeTime, searchTerm}: P
       </Tooltip>
     </Wrapper>
   );
-});
+}
 
-export default Time;
+export default memo(Time);
 
 const Wrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
