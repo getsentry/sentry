@@ -144,12 +144,19 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
     if should_process_with_symbolicator(data):
         reprocessing2.backup_unprocessed_event(project=project, data=original_data)
 
-        is_low_priority = killswitch_matches_context(
+        always_lowpri = killswitch_matches_context(
             "store.symbolicate-event-lpq-always",
             {
                 "project_id": project_id,
             },
         )
+        never_lowpri = killswitch_matches_context(
+            "store.symbolicate-event-lpq-never",
+            {
+                "project_id": project_id,
+            },
+        )
+        is_low_priority = not never_lowpri and always_lowpri
 
         task = submit_symbolicate_low_priority if is_low_priority else submit_symbolicate
         task(
