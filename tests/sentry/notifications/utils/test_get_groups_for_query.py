@@ -1,4 +1,4 @@
-from sentry.models import Group, Project
+from sentry.models import Group, Organization, Project
 from sentry.notifications.helpers import get_groups_for_query
 from sentry.notifications.types import NotificationScopeType, NotificationSettingOptionValues
 from sentry.testutils import TestCase
@@ -39,9 +39,10 @@ class GetGroupsForQueryTestCase(TestCase):
         )
 
     def test_get_groups_for_query(self):
-        project_0 = Project(id=100)
-        project_1 = Project(id=101)
-        project_2 = Project(id=102)
+        organization = Organization(id=1, slug="organization", name="My Company")
+        project_0 = Project(id=100, organization=organization)
+        project_1 = Project(id=101, organization=organization)
+        project_2 = Project(id=102, organization=organization)
 
         groups_by_project = {
             project_0: {Group(id=10, project=project_0), Group(id=11, project=project_0)},

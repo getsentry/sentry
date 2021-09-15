@@ -12,6 +12,7 @@ from typing import (
     Union,
 )
 
+from sentry import features
 from sentry.models import (
     Group,
     GroupSubscription,
@@ -123,6 +124,10 @@ def get_participants_for_release(
         notification_settings, users
     )
 
+    should_use_slack_automatic = features.has(
+        "organizations:notification-slack-automatic", organization
+    )
+
     # Map users to their setting value. Prioritize user/org specific, then
     # user default, then product default.
     users_to_reasons_by_provider: MutableMapping[
@@ -134,7 +139,7 @@ def get_participants_for_release(
             notification_settings_by_scope,
             notification_providers(),
             NotificationSettingTypes.DEPLOY,
-            organization=organization,
+            should_use_slack_automatic=should_use_slack_automatic,
         )
         for provider, value in values_by_provider.items():
             reason_option = get_reason(user, value, user_ids)

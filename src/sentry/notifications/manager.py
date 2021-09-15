@@ -14,7 +14,7 @@ from typing import (
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.db.models.manager import BaseManager
 from sentry.notifications.helpers import (
     get_scope,
@@ -313,8 +313,13 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             notification_settings, users
         )
         mapping = defaultdict(set)
+        should_use_slack_automatic = features.has(
+            "organizations:notification-slack-automatic", project.organization
+        )
         for user in users:
-            providers = where_should_user_be_notified(notification_settings_by_user, user)
+            providers = where_should_user_be_notified(
+                notification_settings_by_user, user, should_use_slack_automatic
+            )
             for provider in providers:
                 mapping[provider].add(user)
         return mapping

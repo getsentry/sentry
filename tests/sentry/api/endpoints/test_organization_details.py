@@ -93,9 +93,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         # TODO(mgaeta): Extra query while we're "dual reading" from UserOptions and NotificationSettings.
         expected_queries += 1
 
-        # TODO(mgaeta): Extra queries while we're checking a feature flag in the ProjectSerializer.
-        expected_queries += 4
-
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
 
