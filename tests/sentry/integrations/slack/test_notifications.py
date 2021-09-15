@@ -534,6 +534,43 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
 
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_issue_alert_issue_owners(self, mock_func):
+        """Test that issue alerts are sent to issue owners in Slack."""
+
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "IssueOwners",
+            "targetIdentifier": "",
+        }
+        rule = Rule.objects.create(
+            project=self.project,
+            label="ja rule",
+            data={
+                "match": "all",
+                "actions": [action_data],
+            },
+        )
+
+        notification = AlertRuleNotification(
+            Notification(event=event, rule=rule), ActionTargetType.ISSUE_OWNERS, self.user.id
+        )
+
+        with self.tasks():
+            notification.send()
+
+        attachment, text = get_attachment()
+
+        assert attachment["title"] == "Hello world"
+        assert (
+            attachment["footer"]
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=AlertRuleSlack|Notification Settings>"
+        )
+
+    @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_issue_alert_team(self, mock_func):
         """Test that issue alerts are sent to a team in Slack."""
 

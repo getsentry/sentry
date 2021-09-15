@@ -249,8 +249,7 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
   },
 };
 
-type GuideStore = Reflux.Store & GuideStoreInterface;
-
-const GuideStore = Reflux.createStore(guideStoreConfig) as GuideStore;
+const GuideStore = Reflux.createStore(guideStoreConfig) as Reflux.Store &
+  GuideStoreInterface;
 
 export default GuideStore;
