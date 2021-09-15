@@ -22,6 +22,7 @@ function NewIssue({sampleEvent, eventCount, organization}: Props) {
         <EventOrGroupHeader
           data={sampleEvent}
           organization={organization}
+          grouping
           hideIcons
           hideLevel
         />
