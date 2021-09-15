@@ -5,6 +5,7 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import EventsChart from 'app/components/charts/eventsChart';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
@@ -170,16 +171,23 @@ class ResultsChartContainer extends Component<ContainerProps> {
           router={router}
           confirmedQuery={confirmedQuery}
         />
-        <ChartFooter
+        <Feature
           organization={organization}
-          total={total}
-          yAxisValue={yAxis}
-          yAxisOptions={eventView.getYAxisOptions()}
-          onAxisChange={onAxisChange}
-          displayOptions={displayOptions}
-          displayMode={eventView.getDisplayMode()}
-          onDisplayChange={onDisplayChange}
-        />
+          features={['connect-discover-and-dashboards']}
+        >
+          {({hasFeature}) => (
+            <ChartFooter
+              organization={organization}
+              total={total}
+              yAxisValue={hasFeature ? yAxis : [eventView.getYAxis()]}
+              yAxisOptions={eventView.getYAxisOptions()}
+              onAxisChange={onAxisChange}
+              displayOptions={displayOptions}
+              displayMode={eventView.getDisplayMode()}
+              onDisplayChange={onDisplayChange}
+            />
+          )}
+        </Feature>
       </StyledPanel>
     );
   }
