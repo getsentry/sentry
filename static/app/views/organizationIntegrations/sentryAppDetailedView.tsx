@@ -6,6 +6,7 @@ import {
   installSentryApp,
   uninstallSentryApp,
 } from 'app/actionCreators/sentryAppInstallations';
+import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import Confirm from 'app/components/confirm';
@@ -35,18 +36,16 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   State & AbstractIntegrationDetailedView['state']
 > {
   tabs: Tab[] = ['overview'];
-  getEndpoints(): ([string, string, any] | [string, string])[] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {
       organization,
       params: {integrationSlug},
     } = this.props;
-    const baseEndpoints: ([string, string, any] | [string, string])[] = [
+    return [
       ['sentryApp', `/sentry-apps/${integrationSlug}/`],
       ['featureData', `/sentry-apps/${integrationSlug}/features/`],
       ['appInstalls', `/organizations/${organization.slug}/sentry-app-installations/`],
     ];
-
-    return baseEndpoints;
   }
 
   onLoadAllEndpointsSuccess() {

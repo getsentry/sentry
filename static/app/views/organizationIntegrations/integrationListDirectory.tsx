@@ -377,6 +377,7 @@ export class IntegrationListDirectory extends AsyncComponent<
         configurations={integrations.length}
         categories={getCategoriesForIntegration(provider)}
         alertText={getAlertText(integrations)}
+        resolveText={t('Update Now')}
       />
     );
   };

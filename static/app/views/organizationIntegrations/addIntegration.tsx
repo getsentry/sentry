@@ -63,24 +63,26 @@ export default class AddIntegration extends React.Component<Props> {
   }
 
   openDialog = (urlParams?: {[key: string]: string}) => {
+    const {account, analyticsParams, modalParams, organization, provider} = this.props;
+
     trackIntegrationAnalytics('integrations.installation_start', {
-      integration: this.props.provider.key,
+      integration: provider.key,
       integration_type: 'first_party',
-      organization: this.props.organization,
-      ...this.props.analyticsParams,
+      organization,
+      ...analyticsParams,
     });
     const name = 'sentryAddIntegration';
-    const {url, width, height} = this.props.provider.setupDialog;
+    const {url, width, height} = provider.setupDialog;
     const {left, top} = this.computeCenteredWindow(width, height);
 
     let query: {[key: string]: string} = {...urlParams};
 
-    if (this.props.account) {
-      query.account = this.props.account;
+    if (account) {
+      query.account = account;
     }
 
-    if (this.props.modalParams) {
-      query = {...query, ...this.props.modalParams};
+    if (modalParams) {
+      query = {...query, ...modalParams};
     }
 
     const installUrl = `${url}?${queryString.stringify(query)}`;
@@ -91,6 +93,8 @@ export default class AddIntegration extends React.Component<Props> {
   };
 
   didReceiveMessage = (message: MessageEvent) => {
+    const {analyticsParams, onInstall, organization, provider} = this.props;
+
     if (message.origin !== document.location.origin) {
       return;
     }
@@ -111,16 +115,18 @@ export default class AddIntegration extends React.Component<Props> {
       return;
     }
     trackIntegrationAnalytics('integrations.installation_complete', {
-      integration: this.props.provider.key,
+      integration: provider.key,
       integration_type: 'first_party',
-      organization: this.props.organization,
-      ...this.props.analyticsParams,
+      organization,
+      ...analyticsParams,
     });
-    addSuccessMessage(t('%s added', this.props.provider.name));
-    this.props.onInstall(data);
+    addSuccessMessage(t('%s added', provider.name));
+    onInstall(data);
   };
 
   render() {
-    return this.props.children(this.openDialog);
+    const {children} = this.props;
+
+    return children(this.openDialog);
   }
 }
