@@ -207,10 +207,10 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
           name="layout.type"
           label={t('Directory Layout')}
           help={t('The layout of the folder structure.')}
-          choices={Object.keys(DEBUG_SOURCE_LAYOUTS).map(key => [
-            key,
-            DEBUG_SOURCE_LAYOUTS[key],
-          ])}
+          options={Object.keys(DEBUG_SOURCE_LAYOUTS).map(key => ({
+            value: key,
+            label: DEBUG_SOURCE_LAYOUTS[key],
+          }))}
           value={data['layout.type']}
           onChange={value =>
             setData({
@@ -226,10 +226,10 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
           name="layout.casing"
           label={t('Path Casing')}
           help={t('The case of files and folders.')}
-          choices={Object.keys(DEBUG_SOURCE_CASINGS).map(key => [
-            key,
-            DEBUG_SOURCE_CASINGS[key],
-          ])}
+          options={Object.keys(DEBUG_SOURCE_CASINGS).map(key => ({
+            value: key,
+            label: DEBUG_SOURCE_CASINGS[key],
+          }))}
           value={data['layout.casing']}
           onChange={value =>
             setData({
