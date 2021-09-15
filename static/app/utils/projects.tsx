@@ -151,6 +151,7 @@ class Projects extends React.Component<Props, State> {
 
   componentDidUpdate(prevProps: Props) {
     const {projects} = this.props;
+
     if (projects !== prevProps.projects) {
       this.updateProjectsFromStore();
     }
