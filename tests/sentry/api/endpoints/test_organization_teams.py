@@ -110,6 +110,21 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
+    def test_query_by_slug(self):
+        self.create_team(organization=self.organization, name="foo")
+        self.create_team(organization=self.organization, name="bar")
+        self.login_as(user=self.user)
+
+        path = f"/api/0/organizations/{self.organization.slug}/teams/?query=slug:foo"
+        response = self.client.get(path)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        path = f"/api/0/organizations/{self.organization.slug}/teams/?query=slug:foo+slug:bar"
+        response = self.client.get(path)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+
 
 class OrganizationTeamsCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"

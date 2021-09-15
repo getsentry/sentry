@@ -4,10 +4,11 @@ import {withTheme} from '@emotion/react';
 
 import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
+import TeamSelector from 'app/components/forms/teamSelector';
 import RoleSelectControl from 'app/components/roleSelectControl';
 import {IconClose} from 'app/icons/iconClose';
 import {t} from 'app/locale';
-import {MemberRole, SelectValue, Team} from 'app/types';
+import {MemberRole, SelectValue} from 'app/types';
 import {Theme} from 'app/utils/theme';
 
 import renderEmailValue from './renderEmailValue';
@@ -24,7 +25,6 @@ type Props = {
   teams: string[];
   roleOptions: MemberRole[];
   roleDisabledUnallowed: boolean;
-  teamOptions: Team[];
   inviteStatus: InviteStatus;
   onRemove: () => void;
   theme: Theme;
@@ -81,7 +81,6 @@ class InviteRowControl extends React.Component<Props, State> {
       teams,
       roleOptions,
       roleDisabledUnallowed,
-      teamOptions,
       inviteStatus,
       onRemove,
       onChangeEmails,
@@ -128,15 +127,11 @@ class InviteRowControl extends React.Component<Props, State> {
           disableUnallowed={roleDisabledUnallowed}
           onChange={onChangeRole}
         />
-        <SelectControl
+        <TeamSelector
           data-test-id="select-teams"
           disabled={disabled}
           placeholder={t('Add to teams\u2026')}
           value={teams}
-          options={teamOptions.map(({slug}) => ({
-            value: slug,
-            label: `#${slug}`,
-          }))}
           onChange={onChangeTeams}
           multiple
           clearable

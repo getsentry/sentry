@@ -3,26 +3,36 @@ import Reflux from 'reflux';
 import TeamActions from 'app/actions/teamActions';
 import {Team} from 'app/types';
 
+type State = {
+  teams: Team[];
+  loading: boolean;
+  hasMore: boolean | null;
+};
+
 type TeamStoreInterface = {
   initialized: boolean;
-  state: Team[];
+  state: State;
   reset: () => void;
-  loadInitialData: (items: Team[]) => void;
+  loadInitialData: (items: Team[], hasMore?: boolean | null) => void;
   onUpdateSuccess: (itemId: string, response: Team) => void;
   onRemoveSuccess: (slug: string) => void;
   onCreateSuccess: (team: Team) => void;
+  get: () => State;
+  getAll: () => Team[];
   getById: (id: string) => Team | null;
   getBySlug: (slug: string) => Team | null;
-  get: () => Team[];
-  getAll: () => Team[];
 };
 
 const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
   initialized: false,
-  state: [],
+  state: {
+    teams: [],
+    loading: true,
+    hasMore: null,
+  },
 
   init() {
-    this.state = [];
+    this.reset();
 
     this.listenTo(TeamActions.createTeamSuccess, this.onCreateSuccess);
     this.listenTo(TeamActions.fetchDetailsSuccess, this.onUpdateSuccess);
@@ -32,12 +42,16 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
   },
 
   reset() {
-    this.state = [];
+    this.state = {teams: [], loading: true, hasMore: null};
   },
 
-  loadInitialData(items) {
+  loadInitialData(items, hasMore = null) {
     this.initialized = true;
-    this.state = items;
+    this.state = {
+      teams: items.sort((a, b) => a.slug.localeCompare(b.slug)),
+      loading: false,
+      hasMore,
+    };
     this.trigger(new Set(items.map(item => item.id)));
   },
 
@@ -49,7 +63,11 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
     const item = this.getBySlug(itemId);
 
     if (!item) {
-      this.state.push(response);
+      this.state = {
+        ...this.state,
+        teams: [...this.state.teams, response],
+      };
+
       this.trigger(new Set([itemId]));
       return;
     }
@@ -58,29 +76,29 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
     // Note: This is the proper way to handle slug changes but unfortunately not all of our
     // components use stores correctly. To be safe reload browser :((
     if (response.slug !== itemId) {
-      // Remove old team
-      this.state = this.state.filter(({slug}) => slug !== itemId);
+      // Replace the team
+      const teams = [...this.state.teams.filter(({slug}) => slug !== itemId), response];
 
-      // Add team w/ updated slug
-      this.state.push(response);
+      this.state = {...this.state, teams};
       this.trigger(new Set([response.slug]));
       return;
     }
 
-    const nextState = [...this.state];
-    const index = nextState.findIndex(team => team.slug === response.slug);
-    nextState[index] = response;
-    this.state = nextState;
+    const newTeams = [...this.state.teams];
+    const index = newTeams.findIndex(team => team.slug === response.slug);
+    newTeams[index] = response;
 
+    this.state = {...this.state, teams: newTeams};
     this.trigger(new Set([itemId]));
   },
 
   onRemoveSuccess(slug: string) {
-    this.loadInitialData(this.state.filter(team => team.slug !== slug));
+    const {teams} = this.state;
+    this.loadInitialData(teams.filter(team => team.slug !== slug));
   },
 
   onCreateSuccess(team: Team) {
-    this.loadInitialData([...this.state, team]);
+    this.loadInitialData([...this.state.teams, team]);
   },
 
   get() {
@@ -88,20 +106,21 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
   },
 
   getById(id: string) {
-    return this.state.find(item => item.id.toString() === id.toString()) || null;
+    const {teams} = this.state;
+    return teams.find(item => item.id.toString() === id.toString()) || null;
   },
 
   getBySlug(slug: string) {
-    return this.state.find(item => item.slug === slug) || null;
+    const {teams} = this.state;
+    return teams.find(item => item.slug === slug) || null;
   },
 
   getAll() {
-    return this.state;
+    return this.state.teams;
   },
 };
 
-type TeamStore = Reflux.Store & TeamStoreInterface;
-
-const TeamStore = Reflux.createStore(teamStoreConfig) as TeamStore;
+const TeamStore = Reflux.createStore(teamStoreConfig) as Reflux.Store &
+  TeamStoreInterface;
 
 export default TeamStore;
