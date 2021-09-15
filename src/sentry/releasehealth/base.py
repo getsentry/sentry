@@ -19,6 +19,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
 
     def get_current_and_previous_crash_free_rates(
         self,
+        org_id: int,
         project_ids: Sequence[int],
         current_start: datetime,
         current_end: datetime,

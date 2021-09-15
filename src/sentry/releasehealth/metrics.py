@@ -5,8 +5,23 @@ from snuba_sdk import Column, Condition, Entity, Op, Query
 from snuba_sdk.expressions import Granularity
 
 from sentry.releasehealth.base import ReleaseHealthBackend
+from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.snuba.dataset import Dataset
-from sentry.utils.snuba import raw_query
+from sentry.utils.snuba import raw_query, raw_snql_query
+
+
+def metric_id(org_id: int, name: str) -> int:
+    return indexer.resolve(org_id, UseCase.TAG_KEY, name)
+
+
+def tag_key(org_id: int, name: str) -> str:
+    index = indexer.resolve(org_id, UseCase.TAG_KEY, name)
+    return f"tags[{index}]"
+
+
+def tag_value(org_id: int, name: str) -> int:
+    return indexer.resolve(org_id, UseCase.TAG_VALUE, name)
 
 
 class MetricsReleaseHealthBackend(ReleaseHealthBackend):
@@ -14,6 +29,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     def get_current_and_previous_crash_free_rates(
         self,
+        org_id: int,
         project_ids: Sequence[int],
         current_start: datetime,
         current_end: datetime,
@@ -26,17 +42,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             for prj in project_ids
         }
 
-        metric_ids = {
-            metric_name: indexer.resolve(org_id, UseCase.METRIC, metric_name)
-            for metric_name in ("session",)
-        }
-
         previous = self._get_crash_free_rate_data(
-            project_ids, previous_start, previous_end, rollup, metric_ids
+            org_id,
+            project_ids,
+            previous_start,
+            previous_end,
+            rollup,
         )
-        current = self._get_crash_free_rate_data(
-            project_ids, current_start, current_end, rollup, metric_ids
-        )
+
         return projects_crash_free_rate_dict
 
     @staticmethod
@@ -46,18 +59,25 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         start: datetime,
         end: datetime,
         rollup: int,
-        metric_ids: Dict[str, int],
-    ) -> Sequence[Mapping[str, Any]]:
+    ) -> Mapping[str, Any]:
 
-        snql_counters = Query(
-            dataset=Dataset.Metrics,
+        snql_session_count = Query(
+            dataset=Dataset.Metrics.value,
             match=Entity("metrics_counters"),
+            select=[Column("value")],
             where=[
                 Condition(Column("org_id"), Op.EQ, org_id),
                 Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("metric_id"), Op.EQ, metric_ids["session"]),
+                Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+                Condition(
+                    Column(tag_key(org_id, "session.status")), Op.EQ, tag_value(org_id, "init")
+                ),
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("timestamp"), Op.LT, end),
             ],
+            groupby=[Column("project_id"), Column("bucketed_time")],
             granularity=Granularity(rollup),
         )
+
+        data = raw_snql_query(snql_session_count, referrer="", use_cache=False)["data"]
+        return {}
