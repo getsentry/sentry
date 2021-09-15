@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as modal from 'app/actionCreators/modal';
+import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import {t} from 'app/locale';
@@ -23,7 +24,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   AbstractIntegrationDetailedView['props'],
   State & AbstractIntegrationDetailedView['state']
 > {
-  getEndpoints(): ([string, string, any] | [string, string])[] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, integrationSlug} = this.props.params;
     return [
       ['plugins', `/organizations/${orgId}/plugins/configs/?plugins=${integrationSlug}`],
