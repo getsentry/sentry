@@ -162,9 +162,9 @@ runs:
             --name sentry_zookeeper \
             -d --network host \
             -e ZOOKEEPER_CLIENT_PORT=2181 \
-            # This is the production version; do not change w/o changing there
+            # This is *not* the production version. Unclear reason as to why this was chosen
             # https://github.com/getsentry/ops/blob/c823e62f930ecc6c97bb08898c71e49edc7232f6/cookbooks/getsentry/attributes/default.rb#L631
-            confluentinc/cp-zookeeper:3.4.11
+            confluentinc/cp-zookeeper:4.1.0
 
           docker run \
             --name sentry_kafka \
