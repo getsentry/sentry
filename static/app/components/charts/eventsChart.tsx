@@ -553,7 +553,6 @@ class EventsChart extends React.Component<EventsChartProps> {
             interval={intervalVal}
             query={query}
             includePrevious={includePrevious}
-            // TODO
             currentSeriesName={currentSeriesName[0]}
             previousSeriesName={previousSeriesName[0]}
             yAxis={yAxis}

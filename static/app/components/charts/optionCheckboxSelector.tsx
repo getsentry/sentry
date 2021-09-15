@@ -10,10 +10,10 @@ import {DropdownItem} from 'app/components/dropdownControl';
 import DropdownMenu from 'app/components/dropdownMenu';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
-import {aggregateMultiPlotType} from 'app/utils/discover/fields';
 
 const defaultProps = {
   menuWidth: 'auto',
@@ -58,6 +58,10 @@ class OptionCheckboxSelector extends Component<Props, State> {
 
   constructNewSelected(value: string) {
     const {selected} = this.props;
+    // Cannot have no option selected
+    if (selected.length === 1 && selected[0] === value) {
+      return selected;
+    }
     // Check if the value is already selected.
     // Return a new updated array with the value either selected or deselected depending on previous selected state.
     if (selected.includes(value)) {
@@ -76,8 +80,6 @@ class OptionCheckboxSelector extends Component<Props, State> {
         .filter(opt => selected.includes(opt.value))
         .map(({label}) => label)
         .join(', ') || 'None';
-    const selectedPlotType =
-      selected.length > 0 ? aggregateMultiPlotType(selected[0]) : undefined;
 
     return (
       <InlineContainer>
@@ -99,11 +101,8 @@ class OptionCheckboxSelector extends Component<Props, State> {
                   blendCorner
                 >
                   {options.map(opt => {
-                    // field plot type should match currently selected plot type otherwise we can't display both yAxis in the same chart
-                    const disabled =
-                      opt.disabled ||
-                      (selectedPlotType &&
-                        aggregateMultiPlotType(opt.value) !== selectedPlotType);
+                    // Y-Axis is capped at 3 fields
+                    const disabled = selected.length > 2 && !selected.includes(opt.value);
                     return (
                       <StyledDropdownItem
                         key={opt.value}
@@ -118,7 +117,9 @@ class OptionCheckboxSelector extends Component<Props, State> {
                         <StyledTooltip
                           title={
                             disabled
-                              ? 'This field cannot be plotted with currently selected fields.'
+                              ? t(
+                                  'Only a maximum of 3 fields can be displayed on the Y-Axis at a time'
+                                )
                               : undefined
                           }
                         >

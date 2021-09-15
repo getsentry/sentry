@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 
 describe('EventsV2 > OptionCheckboxSelector', function () {
   const features = ['discover-basic'];
-  const yAxisValue = ['count()'];
+  const yAxisValue = ['count()', 'failure_count()'];
   const yAxisOptions = [
     {label: 'count()', value: 'count()'},
     {label: 'failure_count()', value: 'failure_count()'},
@@ -55,36 +55,31 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
       'count_unique(user)'
     );
     expect(dropdownItem.at(0).props().isChecked).toEqual(true);
-    expect(dropdownItem.at(1).props().isChecked).toEqual(false);
+    expect(dropdownItem.at(1).props().isChecked).toEqual(true);
     expect(dropdownItem.at(2).props().isChecked).toEqual(false);
   });
 
   it('calls onChange prop with new checkbox option state', function () {
-    wrapper.setProps({selected: ['failure_count()', 'count_unique(user)']});
-    dropdownItem.at(2).find('span').first().simulate('click');
+    dropdownItem.at(0).find('span').first().simulate('click');
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
+    dropdownItem.at(0).find('span').first().simulate('click');
+    expect(onChangeStub).toHaveBeenCalledWith(['failure_count()', 'count()']);
+    dropdownItem.at(1).find('span').first().simulate('click');
+    expect(onChangeStub).toHaveBeenCalledWith(['count()']);
+    dropdownItem.at(1).find('span').first().simulate('click');
+    expect(onChangeStub).toHaveBeenCalledWith(['count()', 'failure_count()']);
     dropdownItem.at(2).find('span').first().simulate('click');
-    expect(onChangeStub).toHaveBeenCalledWith(['failure_count()', 'count_unique(user)']);
-    dropdownItem.at(1).find('span').first().simulate('click');
-    expect(onChangeStub).toHaveBeenCalledWith(['count_unique(user)']);
-    dropdownItem.at(1).find('span').first().simulate('click');
-    expect(onChangeStub).toHaveBeenCalledWith(['count_unique(user)', 'failure_count()']);
-    dropdownItem.at(1).find('span').first().simulate('click');
-    dropdownItem.at(2).find('span').first().simulate('click');
-    expect(onChangeStub).toHaveBeenCalledWith([]);
+    expect(onChangeStub).toHaveBeenCalledWith([
+      'count()',
+      'failure_count()',
+      'count_unique(user)',
+    ]);
   });
 
-  it('cannot select a Y-Axis field that is not compatible with already selected Y-Axis', function () {
-    wrapper.setProps({selected: ['failure_count()', 'count_unique(user)']});
+  it('does not uncheck options when clicked if only one option is currently selected', function () {
     dropdownItem.at(0).find('span').first().simulate('click');
-    expect(onChangeStub).not.toHaveBeenCalled();
-  });
-
-  it('can select a Y-Axis with a different plot type if all Y-Axis were deselected', function () {
-    dropdownItem.at(0).find('span').first().simulate('click');
-    expect(onChangeStub).toHaveBeenCalledWith([]);
+    expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
     dropdownItem.at(1).find('span').first().simulate('click');
-    dropdownItem.at(2).find('span').first().simulate('click');
-    expect(onChangeStub).toHaveBeenCalledWith(['failure_count()', 'count_unique(user)']);
+    expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
   });
 });

@@ -5,7 +5,7 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
+import AreaChart from 'app/components/charts/areaChart';
 import EventsChart from 'app/components/charts/eventsChart';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
@@ -49,6 +49,9 @@ class ResultsChart extends Component<ResultsChartProps> {
 
     const hasPerformanceChartInterpolation = organization.features.includes(
       'performance-chart-interpolation'
+    );
+    const hasConnectDiscoverAndDashboards = organization.features.includes(
+      'connect-discover-and-dashboards'
     );
 
     const globalSelection = eventView.getGlobalSelection();
@@ -95,6 +98,9 @@ class ResultsChart extends Component<ResultsChartProps> {
               utc={utc === 'true'}
               confirmedQuery={confirmedQuery}
               withoutZerofill={hasPerformanceChartInterpolation}
+              chartComponent={
+                hasConnectDiscoverAndDashboards && !isDaily ? AreaChart : undefined
+              }
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -149,6 +155,9 @@ class ResultsChartContainer extends Component<ContainerProps> {
     } = this.props;
 
     const hasQueryFeature = organization.features.includes('discover-query');
+    const hasConnectDiscoverAndDashboards = organization.features.includes(
+      'connect-discover-and-dashboards'
+    );
     const displayOptions = eventView
       .getDisplayOptions()
       .filter(opt => {
@@ -182,9 +191,11 @@ class ResultsChartContainer extends Component<ContainerProps> {
         return opt;
       });
 
+    const yAxisValue = hasConnectDiscoverAndDashboards ? yAxis : [eventView.getYAxis()];
+
     return (
       <StyledPanel>
-        {(yAxis && yAxis.length > 0 && (
+        {(yAxisValue.length > 0 && (
           <ResultsChart
             api={api}
             eventView={eventView}
@@ -192,26 +203,19 @@ class ResultsChartContainer extends Component<ContainerProps> {
             organization={organization}
             router={router}
             confirmedQuery={confirmedQuery}
-            yAxisValue={yAxis}
+            yAxisValue={yAxisValue}
           />
         )) || <NoChartContainer>{'No Y-Axis selected.'}</NoChartContainer>}
-        <Feature
+        <ChartFooter
           organization={organization}
-          features={['connect-discover-and-dashboards']}
-        >
-          {({hasFeature}) => (
-            <ChartFooter
-              organization={organization}
-              total={total}
-              yAxisValue={hasFeature ? yAxis : [eventView.getYAxis()]}
-              yAxisOptions={eventView.getYAxisOptions()}
-              onAxisChange={onAxisChange}
-              displayOptions={displayOptions}
-              displayMode={eventView.getDisplayMode()}
-              onDisplayChange={onDisplayChange}
-            />
-          )}
-        </Feature>
+          total={total}
+          yAxisValue={yAxisValue}
+          yAxisOptions={eventView.getYAxisOptions()}
+          onAxisChange={onAxisChange}
+          displayOptions={displayOptions}
+          displayMode={eventView.getDisplayMode()}
+          onDisplayChange={onDisplayChange}
+        />
       </StyledPanel>
     );
   }
