@@ -3,7 +3,7 @@ import functools
 from django.core import mail
 
 from sentry import options
-from sentry.models import GroupEmailThread, User, UserOption
+from sentry.models import GroupEmailThread, User, UserEmail, UserOption
 from sentry.testutils import TestCase
 from sentry.utils.compat.mock import patch
 from sentry.utils.email import MessageBuilder
@@ -84,8 +84,10 @@ class MessageBuilderTest(TestCase):
         user_b = User.objects.create(email="bar@example.com")
         user_c = User.objects.create(email="baz@example.com")
 
+        alternate_email = "bazzer@example.com"
+        UserEmail.objects.create(user=user_c, email=alternate_email)
         UserOption.objects.create(
-            user=user_c, project=project, key="mail:email", value="bazzer@example.com"
+            user=user_c, project=project, key="mail:email", value=alternate_email
         )
 
         msg = MessageBuilder(
