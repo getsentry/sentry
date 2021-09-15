@@ -180,7 +180,9 @@ def get_send_to(
     return {}
 
 
-def get_send_to_owners(event: "Event", project: Project) -> Mapping[ExternalProviders, Set[User]]:
+def get_send_to_owners(
+    event: "Event", project: Project
+) -> Mapping[ExternalProviders, Union[Set[User], Set[Team]]]:
     owners, _ = ProjectOwnership.get_owners(project.id, event.data)
     if owners == ProjectOwnership.Everyone:
         metrics.incr(
@@ -216,13 +218,31 @@ def get_send_to_owners(event: "Event", project: Project) -> Mapping[ExternalProv
     if user_ids_to_resolve:
         all_possible_users |= set(User.objects.filter(id__in=user_ids_to_resolve))
 
-    # Get all users in teams.
+    team_mapping = {ExternalProviders.SLACK: set()}
     if team_ids_to_resolve:
+        # check for team Slack settings. if present, notify there instead
+        for team_id in team_ids_to_resolve:
+            team = Team.objects.get(id=team_id)
+            team_slack_settings = NotificationSetting.objects.get_settings(
+                provider=ExternalProviders.SLACK,
+                type=NotificationSettingTypes.ISSUE_ALERTS,
+                team=team,
+                project=project,
+            )
+            if team_slack_settings == NotificationSettingOptionValues.ALWAYS:
+                team_mapping[ExternalProviders.SLACK].add(team)
+                team_ids_to_resolve.pop(team_id)
+        # Get all users in team.
         all_possible_users |= get_users_for_teams_to_resolve(team_ids_to_resolve)
 
     mapping: Mapping[
-        ExternalProviders, Set[User]
+        ExternalProviders, Union[Set[User], Set[Team]]
     ] = NotificationSetting.objects.filter_to_subscribed_users(project, all_possible_users)
+    # combine the user and team mappings
+    for provider in mapping:
+        for team in team_mapping:
+            if team_mapping.get(provider):
+                mapping[provider].add(team)
     return mapping
 
 
