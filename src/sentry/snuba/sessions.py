@@ -1049,8 +1049,8 @@ def __get_crash_free_rate_data(project_ids, start, end, rollup):
     Returns:
         Snuba query results
     """
-    return raw_query(
-        dataset=Dataset.Sessions,
+    # TODO: Convert more queries to releasehealth queries
+    return releasehealth.query(
         selected_columns=[
             "project_id",
             "sessions_crashed",
@@ -1064,7 +1064,7 @@ def __get_crash_free_rate_data(project_ids, start, end, rollup):
         rollup=rollup,
         groupby=["project_id"],
         referrer="sessions.totals",
-    )["data"]
+    )
 
 
 def get_current_and_previous_crash_free_rates(
