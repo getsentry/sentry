@@ -1,9 +1,9 @@
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence
 from urllib.parse import urlparse
 
-from sentry.spans.grouping.utils import parse_fingerprint_var
+from sentry.spans.grouping.utils import Hash, parse_fingerprint_var
 
 # TODO(3.8): This is a hack so we can get TypedDicts before 3.8
 if TYPE_CHECKING:
@@ -46,13 +46,27 @@ class SpanGroupingStrategy:
     # The strategies to use with the default fingerprint
     strategies: Sequence[CallableStrategy]
 
-    def execute(self, spans: Sequence[Span]) -> Dict[str, str]:
-        return {span["span_id"]: self.get_span_group(span) for span in spans}
+    def execute(self, event_data: Any) -> Dict[str, str]:
+        spans = event_data.get("spans", [])
+        span_groups = {span["span_id"]: self.get_span_group(span) for span in spans}
 
-    def get_span_group(self, span: Span) -> str:
+        # make sure to get the group id for the transaction root span
+        span_id = event_data["contexts"]["trace"]["span_id"]
+        span_groups[span_id] = self.get_transaction_span_group(event_data)
+
+        return {
+            span_id: group_result.hexdigest()[:16] for span_id, group_result in span_groups.items()
+        }
+
+    def get_transaction_span_group(self, event_data: Any) -> Hash:
+        result = Hash()
+        result.update(event_data["transaction"])
+        return result
+
+    def get_span_group(self, span: Span) -> Hash:
         fingerprints = span.get("fingerprint") or ["{{ default }}"]
 
-        result: List[str] = []
+        result = Hash()
 
         for fingerprint in fingerprints:
             values: Sequence[str] = [fingerprint]
@@ -61,9 +75,9 @@ class SpanGroupingStrategy:
             if var == "default":
                 values = self.handle_default_fingerprint(span)
 
-            result.extend(values)
+            result.update(values)
 
-        return " ".join(result)
+        return result
 
     def handle_default_fingerprint(self, span: Span) -> Sequence[str]:
         span_group = None

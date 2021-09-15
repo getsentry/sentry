@@ -24,8 +24,7 @@ class SpanGroupingConfig:
         if grouping_results is not None and grouping_results.id == self.id:
             return grouping_results
 
-        spans = event_data.get("spans", [])
-        results = self.strategy.execute(spans)
+        results = self.strategy.execute(event_data)
         return SpanGroupingResults(self.id, results)
 
 
