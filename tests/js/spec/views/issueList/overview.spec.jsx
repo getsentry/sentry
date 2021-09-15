@@ -1083,9 +1083,7 @@ describe('IssueList', function () {
           expect(wrapper.queryByTestId('loading-indicator')).toBe(null);
         });
 
-        await waitFor(() =>
-          expect(wrapper.getByTestId('awaiting-events')).toBeInTheDocument()
-        );
+        expect(await wrapper.findByText('Waiting for events…')).toBeInTheDocument();
       });
 
       it('does not display when any selected projects have first event', async function () {
