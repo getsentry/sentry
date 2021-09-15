@@ -46,12 +46,12 @@ discoverCharts.push({
       };
     }
 
-    const seriesName = Object.keys(data.stats).map(key =>
+    const stats = Object.keys(data.stats).map(key =>
       Object.assign({}, {key}, data.stats[key])
     );
-    const color = theme.charts.getColorPalette(seriesName.length - 2);
+    const color = theme.charts.getColorPalette(stats.length - 2);
 
-    const series = seriesName
+    const series = stats
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       .map((s, i) =>
         AreaSeries({
@@ -107,12 +107,12 @@ discoverCharts.push({
       };
     }
 
-    const seriesName = Object.keys(data.stats).map(key =>
+    const stats = Object.keys(data.stats).map(key =>
       Object.assign({}, {key}, data.stats[key])
     );
-    const color = theme.charts.getColorPalette(seriesName.length - 2);
+    const color = theme.charts.getColorPalette(stats.length - 2);
 
-    const series = seriesName
+    const series = stats
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       .map((s, i) =>
         BarSeries({
