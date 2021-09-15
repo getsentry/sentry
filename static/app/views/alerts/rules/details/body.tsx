@@ -237,7 +237,7 @@ export default class DetailsBody extends React.Component<Props> {
           <Status>
             <AlertBadge status={status} hideText />
             {activeIncident ? t('Triggered') : t('Resolved')}
-            {activityDate ? <TimeSince date={activityDate} /> : '-'}
+            {activityDate ? <TimeSince date={activityDate} /> : ''}
           </Status>
         </HeaderItem>
       </StatusContainer>
