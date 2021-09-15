@@ -2146,6 +2146,11 @@ FUNCTIONS = {
                 ],
             ],
         ),
+        DiscoverFunction(
+            "crash_free_percentage",
+            aggregate=["multiply(minus(1, divide(sessions_crashed, sessions)), 100)", None, None],
+            default_result_type="number",
+        ),
     ]
 }
 

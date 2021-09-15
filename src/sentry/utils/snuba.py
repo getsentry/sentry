@@ -963,6 +963,8 @@ def resolve_column(dataset):
         if dataset == Dataset.Discover:
             if isinstance(col, (list, tuple)) or col == "project_id":
                 return col
+        elif dataset == Dataset.Sessions:
+            return col
         else:
             if (
                 col in DATASET_FIELDS[dataset]
