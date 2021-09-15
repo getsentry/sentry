@@ -113,9 +113,9 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/api/endpoints/organization_tags.py                  @getsentry/visibility
 /tests/snuba/api/endpoints/                                     @getsentry/visibility
 /src/sentry/api/serializers/snuba.py                            @getsentry/visibility
-/src/sentry/snuba/                                              @getsentry/visibility
+/src/sentry/snuba/discover.py                                   @getsentry/visibility
 
-/src/sentry/search/                                             @getsentry/visibility
+/src/sentry/search/events/                                      @getsentry/visibility
 /tests/snuba/search/test_backend.py                             @getsentry/visibility
 /static/app/utils/discover/                                     @getsentry/visibility
 /tests/js/spec/utils/discover/                                  @getsentry/visibility
