@@ -66,6 +66,7 @@ export type GrowthEventParameters = {
   'growth.sample_transaction_docs_link_clicked': {
     project_id: string;
   };
+  'growth.issue_open_in_discover_btn_clicked': {};
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -100,4 +101,6 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.demo_modal_clicked_continue': 'Growth: Demo Modal Clicked Continue',
   'growth.sample_transaction_docs_link_clicked':
     'Growth: Sample Transacton Docs Link Clicked',
+  'growth.issue_open_in_discover_btn_clicked':
+    'Growth: Open in Discover Button in Issue Details clicked',
 };

@@ -10,6 +10,7 @@ from django.utils import timezone
 from sentry.db.models import (
     ArrayField,
     FlexibleForeignKey,
+    JSONField,
     Model,
     OneToOneCascadeDeletes,
     UUIDField,
@@ -571,6 +572,7 @@ class AlertRuleTriggerAction(Model):
     # Human readable name to display in the UI
     target_display = models.TextField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
+    sentry_app_config = JSONField(null=True)
 
     class Meta:
         app_label = "sentry"

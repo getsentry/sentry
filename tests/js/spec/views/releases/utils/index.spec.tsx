@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {getReleaseBounds, getReleaseParams} from 'app/views/releases/utils';
 
-describe('releases/details/utils', () => {
+describe('releases/utils', () => {
   describe('getReleaseBounds', () => {
     it('returns start and end of a release', () => {
       // @ts-expect-error

@@ -50,7 +50,7 @@ export default function getConfiguration({
           path: `${pathPrefix}/ownership/`,
           title: t('Issue Owners'),
           description: t('Manage issue ownership rules for a project'),
-          badge: () => 'beta',
+          badge: () => 'new',
         },
         {
           path: `${pathPrefix}/data-forwarding/`,
@@ -89,8 +89,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/processing-issues/`,
           title: t('Processing Issues'),
-          // TODO(eslint): Remove `no-shadow`
-          // eslint-disable-next-line no-shadow,@typescript-eslint/no-shadow
+          // eslint-disable-next-line @typescript-eslint/no-shadow
           badge: ({project}) => {
             if (!project) {
               return null;

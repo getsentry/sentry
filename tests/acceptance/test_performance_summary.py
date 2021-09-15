@@ -2,6 +2,7 @@ from urllib.parse import urlencode
 
 import pytz
 
+from sentry.models import AssistantActivity
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat.mock import patch
@@ -31,6 +32,10 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         self.path = "/organizations/{}/performance/summary/?{}".format(
             self.org.slug,
             urlencode({"transaction": "/country_by_code/", "project": self.project.id}),
+        )
+
+        AssistantActivity.objects.create(
+            user=self.user, guide_id=20, viewed_ts=before_now(minutes=1)
         )
 
         self.page = TransactionSummaryPage(self.browser)
@@ -210,13 +215,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        with self.feature(
-            (
-                "organizations:performance-view",
-                "organizations:project-transaction-threshold-override",
-                "organizations:project-transaction-threshold",
-            )
-        ):
+        with self.feature(FEATURE_NAMES):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
             # This test is flakey in that we sometimes load this page before the event is processed

@@ -886,6 +886,8 @@ SENTRY_FEATURES = {
     "organizations:boolean-search": False,
     # Enable unfurling charts using the Chartcuterie service
     "organizations:chart-unfurls": False,
+    # Enable alerting based on crash free sessions/users
+    "organizations:crash-rate-alerts": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
@@ -978,8 +980,6 @@ SENTRY_FEATURES = {
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
     "organizations:dashboards-edit": True,
-    # Enable dashboards manager.
-    "organizations:dashboards-manage": False,
     # Enable navigation features between Discover and Dashboards
     "organizations:connect-discover-and-dashboards": False,
     # Enable experimental performance improvements.
@@ -1068,6 +1068,8 @@ SENTRY_FEATURES = {
     "organizations:project-transaction-threshold-override": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
+    # Enable team insights page
+    "organizations:team-insights": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
