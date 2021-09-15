@@ -228,7 +228,6 @@ def get_send_to_owners(
                 provider=ExternalProviders.SLACK,
                 type=NotificationSettingTypes.ISSUE_ALERTS,
                 team=team,
-                # project=project,
             )
             if team_slack_settings == NotificationSettingOptionValues.ALWAYS:
                 team_mapping[ExternalProviders.SLACK].add(team)
