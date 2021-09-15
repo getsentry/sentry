@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Protocol, Sequence, TypeVar
+from typing import Any, Mapping, Optional, Sequence
 
 from sentry.utils.services import Service
 
@@ -12,6 +12,7 @@ class ReleaseHealthBackend(Service):
     def query(
         self,
         selected_columns: Sequence[str],
+        conditions: Sequence[Any],  # TODO: better typing
         filter_keys: Mapping[str, Any],
         start: datetime,
         end: datetime,

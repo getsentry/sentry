@@ -7,13 +7,13 @@ from sentry.utils.snuba import raw_query
 
 
 class SessionsReleaseHealthBackend(ReleaseHealthBackend):
-
     """Gets release health results from the session dataset"""
 
     def query(
         self,
         selected_columns: Sequence[str],
         filter_keys: Mapping[str, Any],
+        conditions: Sequence[Any],  # TODO: better typing
         start: datetime,
         end: datetime,
         rollup: int,

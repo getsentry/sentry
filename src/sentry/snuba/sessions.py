@@ -9,6 +9,7 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
+from sentry import releasehealth
 from sentry.snuba.dataset import Dataset
 from sentry.utils import snuba
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -596,8 +597,7 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
         stat + "_errored": 0,
     }
 
-    for rv in raw_query(
-        dataset=Dataset.Sessions,
+    for rv in releasehealth.query(
         selected_columns=[
             "bucketed_started",
             stat,
@@ -613,7 +613,7 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
         conditions=conditions,
         filter_keys=filter_keys,
         referrer="sessions.release-stats-details",
-    )["data"]:
+    ):
         ts = parse_snuba_datetime(rv["bucketed_started"])
         bucket = int((ts - start).total_seconds() / rollup)
         stats[bucket][1] = {
@@ -1049,8 +1049,8 @@ def __get_crash_free_rate_data(project_ids, start, end, rollup):
     Returns:
         Snuba query results
     """
-    # TODO: Convert more queries to releasehealth queries
-    return releasehealth.query(
+    return raw_query(
+        dataset=Dataset.Sessions,
         selected_columns=[
             "project_id",
             "sessions_crashed",
@@ -1064,7 +1064,7 @@ def __get_crash_free_rate_data(project_ids, start, end, rollup):
         rollup=rollup,
         groupby=["project_id"],
         referrer="sessions.totals",
-    )
+    )["data"]
 
 
 def get_current_and_previous_crash_free_rates(
