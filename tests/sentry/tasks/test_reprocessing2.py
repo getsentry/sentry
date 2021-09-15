@@ -408,4 +408,4 @@ def test_nodestore_missing(
             GroupRedirect.objects.get(previous_group_id=old_group.id).group_id == new_event.group_id
         )
 
-    assert logs == ["reprocessing2.reprocessing_nodestore.not_found"]
+    assert logs == ["reprocessing2.unprocessed_event.not_found"]
