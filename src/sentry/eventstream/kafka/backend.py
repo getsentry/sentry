@@ -2,7 +2,7 @@ import logging
 import random
 import signal
 import time
-from concurrent.futures import Future, ThreadPoolExecutor, wait
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from typing import Any, Generator, Mapping, MutableSequence, Optional, Tuple
 
@@ -149,17 +149,12 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self._batch_create_time_ms = int(time.time() * 1000)
 
     @staticmethod
-    def compute_metrics(partition: int, task_kwargs: Mapping[str, Any]) -> None:
-        if task_kwargs["group_id"] is None:
-            metrics.incr(
-                "eventstream.messages",
-                tags={"partition": partition, "type": "transactions"},
-            )
-        else:
-            metrics.incr(
-                "eventstream.messages",
-                tags={"partition": partition, "type": "errors"},
-            )
+    def record_metrics(partition: int, task_kwargs: Mapping[str, Any]) -> None:
+        event_type = "transactions" if task_kwargs["group_id"] is None else "errors"
+        metrics.incr(
+            "eventstream.messages",
+            tags={"partition": partition, "type": event_type},
+        )
 
     def run_post_process_forwarder(
         self,
@@ -276,18 +271,27 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 )
                 commit(offsets_to_commit)
 
-        def process_message(kafka_message: Message) -> None:
-            task_kwargs = self._get_task_kwargs(kafka_message)
+        def process_message(message: Message) -> None:
+            task_kwargs = self._get_task_kwargs(message)
             if not task_kwargs:
                 return
 
-            self.compute_metrics(kafka_message.partition(), task_kwargs)
+            self.record_metrics(message.partition(), task_kwargs)
             self._pending_futures.append(
                 executor.submit(self._dispatch_post_process_group_task, **task_kwargs)
             )
 
         def collect_results() -> None:
-            wait(self._pending_futures)
+            """
+            Collect results from all the pending futures. If any of the futures raised an exception,
+            we want to raise it so that the kafka offsets of the current batch don't get committed.
+            The batching is either all or none.
+            TODO: Add dead letter queue to handle this case.
+            """
+            for future in as_completed(self._pending_futures):
+                exc = future.exception()
+                if exc is not None:
+                    raise exc
             self.reset_batch()
 
         shutdown_requested = False
@@ -310,10 +314,10 @@ class KafkaEventStream(SnubaProtocolEventStream):
             to kafka.
             """
             nonlocal shutdown_requested
-            i = 0
+            loop_count = 0
             while not shutdown_requested:
                 if self._pending_futures and (
-                    (i % commit_batch_size == 0)
+                    (loop_count == commit_batch_size)
                     or (
                         (int(time.time() * 1000) - self._batch_create_time_ms)
                         >= commit_batch_timeout_ms
@@ -336,7 +340,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     logger.warning("Skipping message for unowned partition: %r", key)
                     continue
 
-                i = i + 1
+                loop_count = loop_count + 1
                 owned_partition_offsets[key] = message.offset() + 1
                 process_message(message)
 
