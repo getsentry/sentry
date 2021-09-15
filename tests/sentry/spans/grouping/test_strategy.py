@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, List, Mapping, Optional
 
 import pytest
 
@@ -15,6 +15,7 @@ from sentry.spans.grouping.strategy.config import (
     SpanGroupingConfig,
     register_configuration,
 )
+from sentry.spans.grouping.utils import hash_values
 
 
 def test_register_duplicate_confiig() -> None:
@@ -34,10 +35,10 @@ class SpanBuilder:
         self.same_process_as_parent: bool = True
         self.op: str = "default"
         self.description: Optional[str] = None
-        self.fingerprint: Optional[Sequence[str]] = None
+        self.fingerprint: Optional[List[str]] = None
         self.tags: Optional[Any] = None
         self.data: Optional[Any] = None
-        self.normalized: Optional[str] = None
+        self.hash: Optional[str] = None
 
     def with_op(self, op: str) -> "SpanBuilder":
         self.op = op
@@ -51,12 +52,12 @@ class SpanBuilder:
         self.span_id = span_id
         return self
 
-    def with_fingerprint(self, fingerprint: Sequence[str]) -> "SpanBuilder":
+    def with_fingerprint(self, fingerprint: List[str]) -> "SpanBuilder":
         self.fingerprint = fingerprint
         return self
 
-    def with_normalized(self, normalized: str) -> "SpanBuilder":
-        self.normalized = normalized
+    def with_hash(self, hash: str) -> "SpanBuilder":
+        self.hash = hash
         return self
 
     def build(self) -> Span:
@@ -73,8 +74,8 @@ class SpanBuilder:
             "tags": self.tags,
             "data": self.data,
         }
-        if self.normalized is not None:
-            span["normalized"] = self.normalized
+        if self.hash is not None:
+            span["hash"] = self.hash
         return span
 
 
@@ -86,7 +87,7 @@ class SpanBuilder:
         (SpanBuilder().with_description("test description").build(), ["test description"]),
     ],
 )
-def test_raw_description_strategy(span: Span, fingerprint: Optional[Sequence[str]]) -> None:
+def test_raw_description_strategy(span: Span, fingerprint: Optional[List[str]]) -> None:
     assert raw_description_strategy(span) == fingerprint
 
 
@@ -144,7 +145,7 @@ def test_raw_description_strategy(span: Span, fingerprint: Optional[Sequence[str
     ],
 )
 def test_normalized_db_span_in_condition_strategy(
-    span: Span, fingerprint: Optional[Sequence[str]]
+    span: Span, fingerprint: Optional[List[str]]
 ) -> None:
     assert normalized_db_span_in_condition_strategy(span) == fingerprint
 
@@ -181,7 +182,7 @@ def test_normalized_db_span_in_condition_strategy(
     ],
 )
 def test_remove_http_client_query_string_strategy(
-    span: Span, fingerprint: Optional[Sequence[str]]
+    span: Span, fingerprint: Optional[List[str]]
 ) -> None:
     assert remove_http_client_query_string_strategy(span) == fingerprint
 
@@ -196,7 +197,7 @@ def test_remove_http_client_query_string_strategy(
     ],
 )
 def test_remove_redis_command_arguments_strategy(
-    span: Span, fingerprint: Optional[Sequence[str]]
+    span: Span, fingerprint: Optional[List[str]]
 ) -> None:
     assert remove_redis_command_arguments_strategy(span) == fingerprint
 
@@ -206,15 +207,22 @@ def test_reuse_existing_grouping_results() -> None:
     strategy = SpanGroupingStrategy(config_id, [])
     config = SpanGroupingConfig(config_id, strategy)
     event = {
+        "transaction": "transaction name",
+        "contexts": {
+            "trace": {
+                "span_id": "a" * 16,
+                "hash": "a" * 16,
+            },
+        },
         "spans": [
-            SpanBuilder().with_span_id("b" * 16).with_normalized("b" * 32).build(),
+            SpanBuilder().with_span_id("b" * 16).with_hash("b" * 16).build(),
         ],
         "span_grouping_config": {
             "id": config_id,
         },
     }
     assert config.execute_strategy(event).results == {
-        "b" * 16: "b" * 32,
+        "b" * 16: "b" * 16,
     }
 
 
@@ -251,9 +259,21 @@ def test_reuse_existing_grouping_results() -> None:
         ),
     ],
 )
-def test_basic_span_grouping_strategy(spans: Sequence[Span], expected: Dict[str, str]) -> None:
+def test_basic_span_grouping_strategy(spans: List[Span], expected: Mapping[str, List[str]]) -> None:
+    event = {
+        "transaction": "transaction name",
+        "contexts": {
+            "trace": {
+                "span_id": "a" * 16,
+            },
+        },
+        "spans": spans,
+    }
     strategy = SpanGroupingStrategy(name="basic-strategy", strategies=[])
-    assert strategy.execute(spans) == expected
+    assert strategy.execute(event) == {
+        key: hash_values(values)
+        for key, values in {**expected, "a" * 16: ["transaction name"]}.items()
+    }
 
 
 @pytest.mark.parametrize(
@@ -292,12 +312,12 @@ def test_basic_span_grouping_strategy(spans: Sequence[Span], expected: Dict[str,
                 SpanBuilder().with_span_id("f" * 16).with_op("http.client").build(),
             ],
             {
-                "b" * 16: "GET https sentry.io /api/0/organization/sentry/projects/",
-                "c" * 16: "GET https sentry.io /api/0/organization/sentry/projects/",
-                "d" * 16: "POST https sentry.io /api/0/organization/sentry/projects/",
+                "b" * 16: ["GET", "https", "sentry.io", "/api/0/organization/sentry/projects/"],
+                "c" * 16: ["GET", "https", "sentry.io", "/api/0/organization/sentry/projects/"],
+                "d" * 16: ["POST", "https", "sentry.io", "/api/0/organization/sentry/projects/"],
                 "e"
-                * 16: "GET https://sentry.io/api/0/organization/sentry/projects/?all_projects=0",
-                "f" * 16: "",
+                * 16: ["GET https://sentry.io/api/0/organization/sentry/projects/?all_projects=0"],
+                "f" * 16: [""],
             },
         ),
         (
@@ -324,11 +344,11 @@ def test_basic_span_grouping_strategy(spans: Sequence[Span], expected: Dict[str,
                 SpanBuilder().with_span_id("f" * 16).with_op("db").build(),
             ],
             {
-                "b" * 16: "SELECT count() FROM table WHERE id IN (%s)",
-                "c" * 16: "SELECT count() FROM table WHERE id IN (%s)",
-                "d" * 16: "SELECT count() FROM table WHERE id = %s",
-                "e" * 16: "SELECT count() FROM table WHERE id IN (%s, %s)",
-                "f" * 16: "",
+                "b" * 16: ["SELECT count() FROM table WHERE id IN (%s)"],
+                "c" * 16: ["SELECT count() FROM table WHERE id IN (%s)"],
+                "d" * 16: ["SELECT count() FROM table WHERE id = %s"],
+                "e" * 16: ["SELECT count() FROM table WHERE id IN (%s, %s)"],
+                "f" * 16: [""],
             },
         ),
         (
@@ -350,14 +370,25 @@ def test_basic_span_grouping_strategy(spans: Sequence[Span], expected: Dict[str,
                 .build(),
             ],
             {
-                "b" * 16: "INCRBY",
-                "c" * 16: "INCRBY",
-                "d" * 16: "EXPIRE",
+                "b" * 16: ["INCRBY"],
+                "c" * 16: ["INCRBY"],
+                "d" * 16: ["EXPIRE"],
             },
         ),
     ],
 )
-def test_default_2021_08_25_strategy(spans: Sequence[Span], expected: Dict[str, str]) -> None:
-    event = {"spans": spans}
+def test_default_2021_08_25_strategy(spans: List[Span], expected: Mapping[str, List[str]]) -> None:
+    event = {
+        "transaction": "transaction name",
+        "contexts": {
+            "trace": {
+                "span_id": "a" * 16,
+            },
+        },
+        "spans": spans,
+    }
     configuration = CONFIGURATIONS["default:2021-08-25"]
-    assert configuration.execute_strategy(event).results == expected
+    assert configuration.execute_strategy(event).results == {
+        key: hash_values(values)
+        for key, values in {**expected, "a" * 16: ["transaction name"]}.items()
+    }

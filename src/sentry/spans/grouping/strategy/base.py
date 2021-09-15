@@ -54,16 +54,14 @@ class SpanGroupingStrategy:
         span_id = event_data["contexts"]["trace"]["span_id"]
         span_groups[span_id] = self.get_transaction_span_group(event_data)
 
-        return {
-            span_id: group_result.hexdigest()[:16] for span_id, group_result in span_groups.items()
-        }
+        return span_groups
 
-    def get_transaction_span_group(self, event_data: Any) -> Hash:
+    def get_transaction_span_group(self, event_data: Any) -> str:
         result = Hash()
         result.update(event_data["transaction"])
-        return result
+        return result.hexdigest()
 
-    def get_span_group(self, span: Span) -> Hash:
+    def get_span_group(self, span: Span) -> str:
         fingerprints = span.get("fingerprint") or ["{{ default }}"]
 
         result = Hash()
@@ -77,7 +75,7 @@ class SpanGroupingStrategy:
 
             result.update(values)
 
-        return result
+        return result.hexdigest()
 
     def handle_default_fingerprint(self, span: Span) -> Sequence[str]:
         span_group = None

@@ -18,15 +18,16 @@ class Hash:
     def __init__(self) -> None:
         self.result = md5()
 
-    def update(self, values: Sequence[str]) -> None:
+    def update(self, values: Sequence[str]) -> "Hash":
         for value in values:
             self.result.update(force_bytes(value, errors="replace"))
+        return self
 
     def hexdigest(self) -> str:
-        return self.result.hexdigest()
+        # Just want a 64 bit digest, so take
+        # the first 16 chars of the hexdigest
+        return self.result.hexdigest()[:16]
 
 
 def hash_values(values: Sequence[str]) -> str:
-    hash_ = Hash()
-    hash_.update(values)
-    return hash_.hexdigest()
+    return Hash().update(values).hexdigest()
