@@ -43,6 +43,34 @@ class ErrorEvent(BaseEvent):
             if func:
                 rv["function"] = func
 
+        if data.get("platform") not in (
+            # For now we disable rendering of tree labels for non-native/mobile
+            # platform in issuestream and everywhere else but the grouping
+            # breakdown. The grouping breakdown unsets this flag to force tree
+            # labels to show.
+            #
+            # In the frontend we look at the event platform directly when
+            # rendering the title to apply this logic to old data that doesn't
+            # have this flag materialized.
+            "cocoa",
+            "objc",
+            "native",
+            "swift",
+            "c",
+            "android",
+            "apple-ios",
+            "cordova",
+            "capacitor",
+            "javascript-cordova",
+            "javascript-capacitor",
+            "react-native",
+            "flutter",
+            "dart-flutter",
+            "unity",
+            "dotnet-xamarin",
+        ):
+            rv["hide_tree_labels"] = True
+
         return rv
 
     def compute_title(self, metadata):
@@ -52,7 +80,10 @@ class ErrorEvent(BaseEvent):
             if value:
                 title += f": {truncatechars(value.splitlines()[0], 100)}"
 
-        return compute_title_with_tree_label(title, metadata)
+        if not metadata.get("hide_tree_labels"):
+            return compute_title_with_tree_label(title, metadata)
+
+        return title or metadata.get("function") or "<unknown>"
 
     def get_location(self, metadata):
         return metadata.get("filename")
