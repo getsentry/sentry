@@ -189,15 +189,14 @@ def preprocess_event_from_reprocessing(
     )
 
 
-def increment_low_priority_metrics_counter(cluster, project_id, timestamp, ttl):
-    # Increment the event counter for the given project_id in the given cluster.
-    #
-    # The key is computed from the project_id and the timestamp of the symbolication request, rounded
-    # down to the nearest 10 seconds. If the key is not currently set to expire, it will be set to expire
-    # in ttl seconds.
-    with sentry_sdk.start_span(
-        op="tasks.store.symbolicate_event.low_priority.metrics.counter"
-    ) as span:
+def increment_project_event_counter(cluster, project_id, timestamp, ttl):
+    """Increment the event counter for the given project_id in the given cluster.
+
+    The key is computed from the project_id and the timestamp of the symbolication request, rounded
+    down to the nearest 10 seconds. If the key is not currently set to expire, it will be set to expire
+    in ttl seconds.
+    """
+    with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics.counter"):
         # Round the time to the nearest 10s
         timestamp = int(timestamp)
         timestamp -= timestamp % 10
@@ -261,7 +260,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     if not from_reprocessing:
         cluster = redis.redis_clusters.get("default")
         ttl = settings.SYMBOLICATOR_PROCESS_EVENT_LOW_PRIORITY_COUNTER_TTL
-        increment_low_priority_metrics_counter(cluster, project_id, symbolication_start_time, ttl)
+        increment_project_event_counter(cluster, project_id, symbolication_start_time, ttl)
 
     with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
         span.set_data("symbolication_function", symbolication_function_name)
