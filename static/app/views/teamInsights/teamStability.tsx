@@ -16,7 +16,9 @@ type Props = {
 
 function TeamStability({projects, organization, period, start, end, utc}: Props) {
   return (
-    <PanelTable headers={[t('Project'), t('Crash Free Rate'), t('New Issues')]}>
+    <PanelTable
+      headers={[t('Project'), t('Crash Free Rate'), t('New Issues'), t('Regressions')]}
+    >
       {projects.map(project => (
         <Fragment key={project.id}>
           <ProjectBadgeContainer>
@@ -32,7 +34,11 @@ function TeamStability({projects, organization, period, start, end, utc}: Props)
             end={end}
             utc={utc}
           />
-          <div>5</div>
+
+          {/* TODO(workflow): Add new issues count */}
+          <div>{'\u2015'}</div>
+          {/* TODO(workflow): Add issue regression count */}
+          <div>{'\u2015'}</div>
         </Fragment>
       ))}
     </PanelTable>

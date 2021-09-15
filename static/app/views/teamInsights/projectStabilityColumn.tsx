@@ -4,6 +4,7 @@ import round from 'lodash/round';
 import AsyncComponent from 'app/components/asyncComponent';
 import {DateTimeObject, getDiffInMinutes} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import Placeholder from 'app/components/placeholder';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconArrow} from 'app/icons';
 import {tct} from 'app/locale';
@@ -147,7 +148,11 @@ class ProjectStabilityColumn extends AsyncComponent<Props, State> {
   }
 
   renderLoading() {
-    return this.renderBody();
+    return (
+      <div>
+        <Placeholder width="300px" height="25px" />
+      </div>
+    );
   }
 
   renderScore() {
@@ -178,12 +183,6 @@ class ProjectStabilityColumn extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {hasSessions} = this.props;
-
-    if (hasSessions === false) {
-      return <ScoreWrapper>No Releases</ScoreWrapper>;
-    }
-
     return (
       <ScoreWrapper>
         {this.renderScore()}
