@@ -908,7 +908,7 @@ def _raw_snql_query(
         ):
             scope = thread_hub.scope
             if scope.transaction:
-                query.set_parent_api(scope.transaction.name)
+                query = query.set_parent_api(scope.transaction.name)
 
             metrics.incr(
                 "snuba.parent_api",
