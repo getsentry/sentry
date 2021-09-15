@@ -228,9 +228,9 @@ def get_send_to_owners(
                 provider=ExternalProviders.SLACK,
                 type=NotificationSettingTypes.ISSUE_ALERTS,
                 team=team,
-                project=project,
+                # project=project,
             )
-            if team_slack_settings == NotificationSettingOptionValues.DEFAULT:
+            if team_slack_settings == NotificationSettingOptionValues.ALWAYS:
                 team_mapping[ExternalProviders.SLACK].add(team)
                 team_ids_to_remove.add(team_id)
         # Get all users in teams that don't have Slack settings.
@@ -245,10 +245,12 @@ def get_send_to_owners(
 
     # combine the user and team mappings
     if team_mapping:
-        if mapping.get(ExternalProviders.SLACK):  # team mapping provider will only ever be Slack
-            mapping[ExternalProviders.SLACK].update(list(team_mapping[ExternalProviders.SLACK]))
-        else:
-            mapping[ExternalProviders.SLACK] = team_mapping[ExternalProviders.SLACK]
+        for provider in set.union(set(team_mapping.keys()), set(mapping.keys())):
+            if mapping.get(provider) and team_mapping.get(provider):
+                mapping[provider].update(list(team_mapping[provider]))
+            else:
+                if not mapping.get(provider) and team_mapping.get(provider):
+                    mapping[provider] = team_mapping[provider]
     return mapping
 
 
