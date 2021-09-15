@@ -39,6 +39,7 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     UserReport,
 )
+from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import TestCase, assert_mock_called_once_with_partial
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.compat import mock
@@ -1291,9 +1292,9 @@ class EventManagerTest(TestCase):
             data = event.data
             assert data["type"] == "transaction"
             assert data["span_grouping_config"]["id"] == "default:2021-08-25"
-            spans = [{"normalized": span["normalized"]} for span in data["spans"]]
+            spans = [{"hash": span["hash"]} for span in data["spans"]]
             # the basic strategy is to simply use the description
-            assert spans == [{"normalized": span["description"]} for span in data["spans"]]
+            assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
 
     def test_sdk(self):
         manager = EventManager(make_event(**{"sdk": {"name": "sentry-unity", "version": "1.0"}}))
