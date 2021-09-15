@@ -64,6 +64,12 @@ class ForbiddenError(ITunesError):
     pass
 
 
+class SmsBlockedError(ITunesError):
+    """Blocked from requesting more SMS codes for some period of time."""
+
+    pass
+
+
 PublicProviderId = NewType("PublicProviderId", str)
 
 
@@ -133,13 +139,32 @@ class ITunesClient:
         self.state = ClientState.NEW
 
         # The x-apple-id-session-id header as populated by :meth:`start_login_sequence`.
-        self.session_id: Optional[str] = None
+        self._session_id: Optional[str] = None
 
         # The scnt header as populated by :meth:`start_login_sequence`.
         self._scnt: Optional[str] = None
 
-        # The trusted phone info, set by :meth:`_request_trusted_phone_info`.
-        self._trusted_phone: Optional[TrustedPhoneInfo] = None
+    @property
+    def session_id(self) -> str:
+        """The session ID, if client already has one (after :meth:start_login_sequence).
+
+        :raises AttributeError: if this state does not yet exist.
+        """
+        if self._session_id is None:
+            raise AttributeError("No session_id available yet")
+        else:
+            return self._session_id
+
+    @property
+    def scnt(self) -> str:
+        """The scnt header, if the client already has one (after :meth:start_login_sequence).
+
+        :raises AttributeError: if this state does not yet exist.
+        """
+        if self._scnt is None:
+            raise AttributeError("No scnt header available yet")
+        else:
+            return self._scnt
 
     @classmethod
     def from_session_cookie(
@@ -165,10 +190,7 @@ class ITunesClient:
         if self.session_id is not None:
             context["session_id"] = self.session_id
         if self._scnt is not None:
-            context["scnt"] = self._scnt
-        if self._trusted_phone is not None:
-            context["phone_id"] = self._trusted_phone.id
-            context["phone_push_mode"] = self._trusted_phone.push_mode
+            context["scnt"] = self.scnt
         if self.state is ClientState.AUTHENTICATED:
             context["session_cookie"] = self.session_cookie()
         return context
@@ -191,12 +213,8 @@ class ITunesClient:
             ClientState.AUTH_REQUESTED,
             ClientState.SMS_AUTH_REQUESTED,
         ]:
-            obj.session_id = context["session_id"]
+            obj._session_id = context["session_id"]
             obj._scnt = context["scnt"]
-        if obj.state is ClientState.SMS_AUTH_REQUESTED:
-            obj._trusted_phone = TrustedPhoneInfo(
-                id=context["phone_id"], push_mode=context["phone_push_mode"]
-            )
         if obj.state in [ClientState.AUTHENTICATED, ClientState.EXPIRED]:
             obj.load_session_cookie(context["session_cookie"])
         return obj
@@ -226,7 +244,10 @@ class ITunesClient:
         Alternatively after calling this you can switch to SMS two factor authentication by
         calling :meth:`request_sms`.
         """
-        assert self.state in [ClientState.NEW, ClientState.EXPIRED]
+        assert self.state in [
+            ClientState.NEW,
+            ClientState.EXPIRED,
+        ], f"Actual client state: {self.state}"
         url = "https://idmsa.apple.com/appleauth/auth/signin"
         logger.debug("POST %s", url)
 
@@ -250,7 +271,7 @@ class ITunesClient:
                 f"Two factor auth not enabled for user, status_code={start_login.status_code}"
             )
         elif start_login.status_code == http.HTTPStatus.CONFLICT:
-            self.session_id = start_login.headers["x-apple-id-session-id"]
+            self._session_id = start_login.headers["x-apple-id-session-id"]
             self._scnt = start_login.headers["scnt"]
             self.state = ClientState.AUTH_REQUESTED
         elif start_login.status_code == http.HTTPStatus.UNAUTHORIZED:
@@ -263,7 +284,7 @@ class ITunesClient:
 
         :raises: :class:`InvalidTwoFactorAuthError`
         """
-        assert self.state is ClientState.AUTH_REQUESTED
+        assert self.state is ClientState.AUTH_REQUESTED, f"Actual client state: {self.state}"
         url = "https://idmsa.apple.com/appleauth/auth/verify/trusteddevice/securitycode"
         logger.debug("POST %s", url)
         response = self.session.post(
@@ -274,7 +295,7 @@ class ITunesClient:
                 }
             },
             headers={
-                "scnt": self._scnt,
+                "scnt": self.scnt,
                 "X-Apple-Id-Session-Id": self.session_id,
                 "Accept": "application/json",
                 "X-Apple-Widget-Key": self.service_key,
@@ -287,21 +308,22 @@ class ITunesClient:
         else:
             self.state = ClientState.AUTHENTICATED
 
-    def _request_trusted_phone_info(self) -> None:
+    def _request_trusted_phone_info(self) -> TrustedPhoneInfo:
         """Requests the trusted phone info for the account."""
-        assert self.state is ClientState.AUTH_REQUESTED
         url = "https://idmsa.apple.com/appleauth/auth"
         logger.debug("GET %s", url)
         response = self.session.get(
             url,
             headers={
-                "scnt": self._scnt,
+                "scnt": self.scnt,
                 "X-Apple-Id-Session-Id": self.session_id,
                 "Accept": "application/json",
                 "X-Apple-Widget-Key": self.service_key,
             },
             timeout=REQUEST_TIMEOUT,
         )
+        if response.status_code == HTTPStatus.LOCKED:
+            raise SmsBlockedError
         if not response.ok:
             raise ITunesError(f"Unexpected response status: {response.status_code}")
 
@@ -315,7 +337,7 @@ class ITunesClient:
             raise ITunesError(
                 f"Trusted phone info missing from response with status: {response.status_code}"
             )
-        self._trusted_phone = TrustedPhoneInfo(
+        return TrustedPhoneInfo(
             id=info["id"],
             push_mode=info["pushMode"],
         )
@@ -323,21 +345,25 @@ class ITunesClient:
     def request_sms_auth(self) -> None:
         """Requests sending the authentication code to a trusted phone.
 
+        :raises SmsBlockedError: if too many requests for the SMS auth code were made.
         :raises ITunesError: if there was an error requesting to use the trusted phone.
         """
-        assert self.state is ClientState.AUTH_REQUESTED
-        self._request_trusted_phone_info()
-        assert self._trusted_phone is not None
+
+        assert self.state in [
+            ClientState.AUTH_REQUESTED,
+            ClientState.SMS_AUTH_REQUESTED,
+        ], f"Actual client state: {self.state}"
+        trusted_phone = self._request_trusted_phone_info()
         url = "https://idmsa.apple.com/appleauth/auth/verify/phone"
         logger.debug("PUT %s", url)
         response = self.session.put(
             url,
             json={
-                "phoneNumber": {"id": self._trusted_phone.id},
-                "mode": self._trusted_phone.push_mode,
+                "phoneNumber": {"id": trusted_phone.id},
+                "mode": trusted_phone.push_mode,
             },
             headers={
-                "scnt": self._scnt,
+                "scnt": self.scnt,
                 "X-Apple-Id-Session-Id": self.session_id,
                 "Accept": "application/json",
                 "X-Apple-Widget-Key": self.service_key,
@@ -345,6 +371,8 @@ class ITunesClient:
             },
             timeout=REQUEST_TIMEOUT,
         )
+        if response.status_code == HTTPStatus.LOCKED:
+            raise SmsBlockedError
         if response.status_code != HTTPStatus.OK:
             raise ITunesError(f"Unexpected response status: {response.status_code}")
         self.state = ClientState.SMS_AUTH_REQUESTED
@@ -354,19 +382,19 @@ class ITunesClient:
 
         :raises InvalidSmsAuthError:
         """
-        assert self.state is ClientState.SMS_AUTH_REQUESTED
-        assert self._trusted_phone is not None
+        assert self.state is ClientState.SMS_AUTH_REQUESTED, f"Actual client state: {self.state}"
         url = "https://idmsa.apple.com/appleauth/auth/verify/phone/securitycode"
         logger.debug("PUT %s", url)
+        trusted_phone = self._request_trusted_phone_info()
         response = self.session.post(
             url,
             json={
                 "securityCode": {"code": code},
-                "phoneNumber": {"id": self._trusted_phone.id},
-                "mode": self._trusted_phone.push_mode,
+                "phoneNumber": {"id": trusted_phone.id},
+                "mode": trusted_phone.push_mode,
             },
             headers={
-                "scnt": self._scnt,
+                "scnt": self.scnt,
                 "X-Apple-Id-Session-Id": self.session_id,
                 "Accept": "application/json",
                 "X-Apple-Widget-Key": self.service_key,
@@ -403,7 +431,7 @@ class ITunesClient:
         :raises: an exception if the client is not yet authenticated and has no session
            cookie.
         """
-        assert self.state is ClientState.AUTHENTICATED
+        assert self.state is ClientState.AUTHENTICATED, f"Actual client state: {self.state}"
         return self.session.cookies.get(SESSION_COOKIE_NAME)  # type: ignore
 
     def load_session_cookie(self, cookie: str) -> None:
@@ -427,7 +455,11 @@ class ITunesClient:
         :returns: the dict with the session info.
         :raises SessionExpiredError: if the session is no longer valid.
         """
-        assert self.state in [ClientState.NEW, ClientState.AUTHENTICATED, ClientState.EXPIRED]
+        assert self.state in [
+            ClientState.NEW,
+            ClientState.AUTHENTICATED,
+            ClientState.EXPIRED,
+        ], f"Actual client state: {self.state}"
         return self._request_session_info()
 
     def _request_session_info(self) -> json.JSONData:
@@ -447,7 +479,7 @@ class ITunesClient:
 
         ITunes calls organisations providers.
         """
-        assert self.state is ClientState.AUTHENTICATED
+        assert self.state is ClientState.AUTHENTICATED, f"Actual client state: {self.state}"
         session_info = self.request_session_info()
         return [
             ITunesProvider(
@@ -467,7 +499,7 @@ class ITunesClient:
         in the API.  On a session you need to activate one before you can use the apps of that
         organisation.
         """
-        assert self.state is ClientState.AUTHENTICATED
+        assert self.state is ClientState.AUTHENTICATED, f"Actual client state: {self.state}"
 
         # Collect list of valid provider IDs so we can give better error reporting.  iTunes
         # reports this confusingly.
@@ -510,7 +542,7 @@ class ITunesClient:
 
         :raises SessionExpiredError:
         """
-        assert self.state is ClientState.AUTHENTICATED
+        assert self.state is ClientState.AUTHENTICATED, f"Actual client state: {self.state}"
         with sentry_sdk.start_span(
             op="itunes-dsym-url", description="Request iTunes dSYM download URL"
         ):

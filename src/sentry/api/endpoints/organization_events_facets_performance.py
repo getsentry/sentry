@@ -36,7 +36,10 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
     def has_tag_page_feature(self, organization, request):
         return features.has("organizations:performance-tag-page", organization, actor=request.user)
 
-    def setup(self, request, organization):
+    # NOTE: This used to be called setup, but since Django 2.2 it's a View method.
+    #       We don't fit its semantics, but I couldn't think of a better name, and
+    #       it's only used in child classes.
+    def _setup(self, request, organization):
         if not (
             self.has_feature(organization, request)
             or self.has_tag_page_feature(organization, request)
@@ -63,7 +66,7 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
 class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerformanceEndpointBase):
     def get(self, request, organization):
         try:
-            params, aggregate_column, filter_query = self.setup(request, organization)
+            params, aggregate_column, filter_query = self._setup(request, organization)
         except NoProjects:
             return Response([])
 
@@ -134,7 +137,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
 
     def get(self, request, organization):
         try:
-            params, aggregate_column, filter_query = self.setup(request, organization)
+            params, aggregate_column, filter_query = self._setup(request, organization)
         except NoProjects:
             return Response([])
 
@@ -494,22 +497,20 @@ def query_facet_performance_key_histogram(
 
     tag_values = [x["tags_value"] for x in top_tags]
 
-    num_buckets = num_buckets_per_key * limit
-
     results = discover.histogram_query(
         fields=[
             aggregate_column,
         ],
         user_query=filter_query,
         params=params,
-        num_buckets=num_buckets,
+        num_buckets=num_buckets_per_key,
         precision=precision,
         group_by=["tags_value", "tags_key"],
-        limit_by=[num_buckets_per_key, "tags_value"],
         extra_conditions=[
             ["tags_key", "IN", [tag_key]],
             ["tags_value", "IN", tag_values],
         ],
+        histogram_rows=limit,
         referrer="api.organization-events-facets-performance-histogram",
         normalize_results=False,
     )

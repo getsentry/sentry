@@ -1,28 +1,40 @@
 import logging
+from typing import Any, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.eventstore.models import Event
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.models import Integration
 from sentry.rules.actions.base import IntegrationEventAction
-from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
+from sentry.rules.processor import RuleFuture
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiRateLimitedError,
+    DuplicateDisplayNameError,
+)
 from sentry.utils import json, metrics
 
 from .client import SlackClient
-from .utils import get_channel_id, strip_channel_name, validate_channel_id
+from .utils import (
+    SLACK_RATE_LIMITED_MESSAGE,
+    get_channel_id,
+    strip_channel_name,
+    validate_channel_id,
+)
 
 logger = logging.getLogger("sentry.rules")
 
 
-class SlackNotifyServiceForm(forms.Form):
+class SlackNotifyServiceForm(forms.Form):  # type: ignore
     workspace = forms.ChoiceField(choices=(), widget=forms.Select())
     channel = forms.CharField(widget=forms.TextInput())
     channel_id = forms.HiddenInput()
     tags = forms.CharField(required=False, widget=forms.TextInput())
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         # NOTE: Workspace maps directly to the integration ID
         workspace_list = [(i.id, i.name) for i in kwargs.pop("integrations")]
         self.channel_transformer = kwargs.pop("channel_transformer")
@@ -40,7 +52,7 @@ class SlackNotifyServiceForm(forms.Form):
         # in the task (integrations/slack/tasks.py) if the channel_id is found.
         self._pending_save = False
 
-    def clean(self):
+    def clean(self) -> Mapping[str, Any]:
         channel_id = self.data.get("inputChannelId") or self.data.get("input_channel_id")
         if channel_id:
             logger.info(
@@ -53,9 +65,9 @@ class SlackNotifyServiceForm(forms.Form):
             # default to "#" if they have the channel name without the prefix
             channel_prefix = self.data["channel"][0] if self.data["channel"][0] == "@" else "#"
 
-        cleaned_data = super().clean()
+        cleaned_data: MutableMapping[str, Any] = super().clean()
 
-        workspace = cleaned_data.get("workspace")
+        workspace: Optional[int] = cleaned_data.get("workspace")
 
         if channel_id:
             try:
@@ -105,9 +117,10 @@ class SlackNotifyServiceForm(forms.Form):
                     code="invalid",
                     params=params,
                 )
+            except ApiRateLimitedError:
+                raise forms.ValidationError(_(SLACK_RATE_LIMITED_MESSAGE))
 
         channel = strip_channel_name(channel)
-
         if channel_id is None and timed_out:
             cleaned_data["channel"] = channel_prefix + channel
             self._pending_save = True
@@ -118,7 +131,6 @@ class SlackNotifyServiceForm(forms.Form):
                 "channel": channel,
                 "workspace": dict(self.fields["workspace"].choices).get(int(workspace)),
             }
-
             raise forms.ValidationError(
                 _(
                     'The slack resource "%(channel)s" does not exist or has not been granted access in the %(workspace)s Slack workspace.'
@@ -133,14 +145,14 @@ class SlackNotifyServiceForm(forms.Form):
         return cleaned_data
 
 
-class SlackNotifyServiceAction(IntegrationEventAction):
+class SlackNotifyServiceAction(IntegrationEventAction):  # type: ignore
     form_cls = SlackNotifyServiceForm
     label = "Send a notification to the {workspace} Slack workspace to {channel} and show tags {tags} in notification"
     prompt = "Send a Slack notification"
     provider = "slack"
     integration_key = "workspace"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.form_fields = {
             "workspace": {
@@ -151,7 +163,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "tags": {"type": "string", "placeholder": "i.e environment,user,my_tag"},
         }
 
-    def after(self, event, state):
+    def after(self, event: Event, state: str) -> Any:
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 
@@ -161,7 +173,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             # Integration removed, rule still active.
             return
 
-        def send_notification(event, futures):
+        def send_notification(event: Event, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
             attachments = [build_group_attachment(event.group, event=event, tags=tags, rules=rules)]
 
@@ -191,7 +203,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         metrics.incr("notifications.sent", instance="slack.notification", skip_internal=False)
         yield self.future(send_notification, key=key)
 
-    def render_label(self):
+    def render_label(self) -> str:
         tags = self.get_tags_list()
 
         return self.label.format(
@@ -200,13 +212,15 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             tags="[{}]".format(", ".join(tags)),
         )
 
-    def get_tags_list(self):
+    def get_tags_list(self) -> Sequence[str]:
         return [s.strip() for s in self.get_option("tags", "").split(",")]
 
-    def get_form_instance(self):
+    def get_form_instance(self) -> Any:
         return self.form_cls(
             self.data, integrations=self.get_integrations(), channel_transformer=self.get_channel_id
         )
 
-    def get_channel_id(self, integration, name):
+    def get_channel_id(
+        self, integration: Integration, name: str
+    ) -> Tuple[str, Optional[str], bool]:
         return get_channel_id(self.project.organization, integration, name)

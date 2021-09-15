@@ -830,9 +830,15 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         }
 
     def test_release_stage(self):
-        replaced_release = self.create_release(version="replaced_release")
-        adopted_release = self.create_release(version="adopted_release")
-        not_adopted_release = self.create_release(version="not_adopted_release")
+        replaced_release = self.create_release(
+            version="replaced_release", environments=[self.environment]
+        )
+        adopted_release = self.create_release(
+            version="adopted_release", environments=[self.environment]
+        )
+        not_adopted_release = self.create_release(
+            version="not_adopted_release", environments=[self.environment]
+        )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=adopted_release.id,
@@ -853,23 +859,43 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         )
 
         adopted_release_e_1 = self.store_event(
-            data={"release": adopted_release.version, "timestamp": self.min_ago},
+            data={
+                "release": adopted_release.version,
+                "timestamp": self.min_ago,
+                "environment": self.environment.name,
+            },
             project_id=self.project.id,
         ).event_id
         adopted_release_e_2 = self.store_event(
-            data={"release": adopted_release.version, "timestamp": self.min_ago},
+            data={
+                "release": adopted_release.version,
+                "timestamp": self.min_ago,
+                "environment": self.environment.name,
+            },
             project_id=self.project.id,
         ).event_id
         replaced_release_e_1 = self.store_event(
-            data={"release": replaced_release.version, "timestamp": self.min_ago},
+            data={
+                "release": replaced_release.version,
+                "timestamp": self.min_ago,
+                "environment": self.environment.name,
+            },
             project_id=self.project.id,
         ).event_id
         replaced_release_e_2 = self.store_event(
-            data={"release": replaced_release.version, "timestamp": self.min_ago},
+            data={
+                "release": replaced_release.version,
+                "timestamp": self.min_ago,
+                "environment": self.environment.name,
+            },
             project_id=self.project.id,
         ).event_id
 
-        query = {"field": ["id"], "query": f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}"}
+        query = {
+            "field": ["id"],
+            "query": f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            "environment": [self.environment.name],
+        }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert {r["id"] for r in response.data["data"]} == {
@@ -877,7 +903,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             adopted_release_e_2,
         }
 
-        query = {"field": ["id"], "query": f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}"}
+        query = {
+            "field": ["id"],
+            "query": f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
+            "environment": [self.environment.name],
+        }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert {r["id"] for r in response.data["data"]} == {
@@ -890,6 +920,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {
             "field": ["id"],
             "query": f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
+            "environment": [self.environment.name],
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
@@ -1164,7 +1195,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
                 "organizations:global-views": True,
             },
         )
@@ -1213,16 +1243,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "project": [project.id],
         }
 
-        # Cannot access it without feature enabled
-        response = self.do_request(query)
-        assert response.status_code == 404
-
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1236,10 +1258,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1315,16 +1333,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "project": [project.id],
         }
 
-        # Cannot access it without feature enabled
-        response = self.do_request(query)
-        assert response.status_code == 404
-
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1338,10 +1348,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1387,17 +1393,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "project": [project.id],
         }
 
-        # Cannot access it without feature enabled
         response = self.do_request(query)
-        assert response.status_code == 404
-
-        response = self.do_request(
-            query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
-        )
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 3
@@ -1410,10 +1406,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1465,10 +1457,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1494,10 +1482,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1567,7 +1551,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             features={
                 "organizations:discover-basic": True,
                 "organizations:global-views": True,
-                "organizations:project-transaction-threshold": True,
             },
         )
 
@@ -1605,7 +1588,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
                 "organizations:global-views": True,
             },
         )
@@ -2760,7 +2742,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         features = {
             "organizations:discover-basic": True,
             "organizations:global-views": True,
-            "organizations:project-transaction-threshold": True,
         }
 
         query = {
@@ -2898,7 +2879,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.store_event(data, project_id=project.id)
         features = {
             "organizations:discover-basic": True,
-            "organizations:project-transaction-threshold": True,
         }
 
         query = {
@@ -4433,7 +4413,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             {
                 "organizations:discover-basic": True,
-                "organizations:discover-arithmetic": True,
             },
         )
         assert response.status_code == 200
@@ -4453,7 +4432,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             {
                 "organizations:discover-basic": True,
-                "organizations:discover-arithmetic": True,
             },
         )
 
@@ -4470,7 +4448,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             {
                 "organizations:discover-basic": True,
-                "organizations:discover-arithmetic": True,
             },
         )
 

@@ -72,7 +72,6 @@ class CodeOwnersPanel extends Component<Props> {
             dateUpdated={dateUpdated}
             provider={provider}
             repoName={codeMapping?.repoName}
-            beta
             controls={[
               <Button
                 key="sync"
@@ -85,13 +84,9 @@ class CodeOwnersPanel extends Component<Props> {
                 onConfirm={() => this.handleDelete(codeowner)}
                 message={t('Are you sure you want to remove this CODEOWNERS file?')}
                 key="confirm-delete"
+                disabled={disabled}
               >
-                <Button
-                  key="delete"
-                  icon={<IconDelete size="xs" />}
-                  size="xsmall"
-                  disabled={disabled}
-                />
+                <Button key="delete" icon={<IconDelete size="xs" />} size="xsmall" />
               </Confirm>,
             ]}
           />

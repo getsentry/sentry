@@ -6,7 +6,7 @@ import {preloadIcons} from 'platformicons';
 import Button from 'app/components/button';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'app/utils/testableTransition';
 
 import FallingError from './components/fallingError';

@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
-from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry import roles
@@ -23,18 +22,12 @@ from sentry.signals import member_invited
 from sentry.utils.cursors import SCIMCursor
 
 from .constants import (
-    SCIM_400_INVALID_FILTER,
     SCIM_400_INVALID_PATCH,
     SCIM_400_TOO_MANY_PATCH_OPS_ERROR,
     SCIM_409_USER_EXISTS,
     MemberPatchOps,
 )
-from .utils import (
-    OrganizationSCIMMemberPermission,
-    SCIMEndpoint,
-    SCIMFilterError,
-    parse_filter_conditions,
-)
+from .utils import OrganizationSCIMMemberPermission, SCIMEndpoint
 
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 from rest_framework.exceptions import PermissionDenied
@@ -123,11 +116,8 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
     def get(self, request, organization):
         # note that SCIM doesn't care about changing results as they're queried
-        # TODO: sanitize get parameter inputs?
-        try:
-            filter_val = parse_filter_conditions(request.GET.get("filter"))
-        except SCIMFilterError:
-            raise ParseError(detail=SCIM_400_INVALID_FILTER)
+
+        query_params = self.get_query_parameters(request)
 
         queryset = (
             OrganizationMember.objects.filter(
@@ -138,9 +128,10 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             .select_related("user")
             .order_by("email", "user__email")
         )
-        if filter_val:
+        if query_params["filter"]:
             queryset = queryset.filter(
-                Q(email__iexact=filter_val) | Q(user__email__iexact=filter_val)
+                Q(email__iexact=query_params["filter"])
+                | Q(user__email__iexact=query_params["filter"])
             )  # not including secondary email vals (dups, etc.)
 
         def data_fn(offset, limit):
@@ -152,13 +143,13 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 None,
                 _scim_member_serializer_with_expansion(organization),
             )
-            return self.list_api_format(request, queryset.count(), results)
+            return self.list_api_format(results, queryset.count(), query_params["start_index"])
 
         return self.paginate(
             request=request,
             on_results=on_results,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
-            default_per_page=int(request.GET.get("count", 100)),
+            default_per_page=query_params["count"],
             queryset=queryset,
             cursor_cls=SCIMCursor,
         )
@@ -193,19 +184,21 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 role=result["role"],
                 inviter=request.user,
             )
-            self.create_audit_entry(
-                request=request,
-                organization_id=organization.id,
-                target_object=member.id,
-                data=member.get_audit_log_data(),
-                event=AuditLogEntryEvent.MEMBER_INVITE
-                if settings.SENTRY_ENABLE_INVITES
-                else AuditLogEntryEvent.MEMBER_ADD,
-            )
+
             # TODO: are invite tokens needed for SAML orgs?
             if settings.SENTRY_ENABLE_INVITES:
                 member.token = member.generate_token()
             member.save()
+
+        self.create_audit_entry(
+            request=request,
+            organization_id=organization.id,
+            target_object=member.id,
+            data=member.get_audit_log_data(),
+            event=AuditLogEntryEvent.MEMBER_INVITE
+            if settings.SENTRY_ENABLE_INVITES
+            else AuditLogEntryEvent.MEMBER_ADD,
+        )
 
         if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
             member.send_invite_email()

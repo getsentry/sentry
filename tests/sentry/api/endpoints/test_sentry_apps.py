@@ -482,18 +482,23 @@ class PostSentryAppsTest(SentryAppsTest):
                 "elements": [
                     {
                         "type": "alert-rule-action",
-                        "required_fields": [
-                            {
-                                "type": "select",
-                                "label": "Channel",
-                                "name": "channel",
-                                "options": [
-                                    # option items should have 2 elements
-                                    # i.e. ['channel_id', '#general']
-                                    ["#general"]
-                                ],
-                            }
-                        ],
+                        "title": "Create task",
+                        "settings": {
+                            "type": "alert-rule-settings",
+                            "uri": "/sentry/alert-rule",
+                            "required_fields": [
+                                {
+                                    "type": "select",
+                                    "label": "Channel",
+                                    "name": "channel",
+                                    "options": [
+                                        # option items should have 2 elements
+                                        # i.e. ['channel_id', '#general']
+                                        ["#general"]
+                                    ],
+                                }
+                            ],
+                        },
                     }
                 ]
             }

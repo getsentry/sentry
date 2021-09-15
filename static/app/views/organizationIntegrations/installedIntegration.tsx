@@ -12,7 +12,8 @@ import {IconDelete, IconFlag, IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'app/types';
-import {IntegrationAnalyticsKey} from 'app/utils/integrationEvents';
+import {IntegrationAnalyticsKey} from 'app/utils/analytics/integrationAnalyticsEvents';
+import {getAlertText} from 'app/utils/integrationUtil';
 import {Theme} from 'app/utils/theme';
 
 import IntegrationItem from './integrationItem';
@@ -23,13 +24,13 @@ export type Props = {
   integration: Integration;
   onRemove: (integration: Integration) => void;
   onDisable: (integration: Integration) => void;
-  trackIntegrationEvent: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
+  trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
   className?: string;
 };
 
 export default class InstalledIntegration extends React.Component<Props> {
   handleUninstallClick = () => {
-    this.props.trackIntegrationEvent('integrations.uninstall_clicked');
+    this.props.trackIntegrationAnalytics('integrations.uninstall_clicked');
   };
 
   getRemovalBodyAndText(aspects: Integration['provider']['aspects']) {
@@ -50,7 +51,7 @@ export default class InstalledIntegration extends React.Component<Props> {
 
   handleRemove(integration: Integration) {
     this.props.onRemove(integration);
-    this.props.trackIntegrationEvent('integrations.uninstall_completed');
+    this.props.trackIntegrationAnalytics('integrations.uninstall_completed');
   }
 
   get removeConfirmProps() {
@@ -99,6 +100,8 @@ export default class InstalledIntegration extends React.Component<Props> {
         ? this.disableConfirmProps
         : this.removeConfirmProps;
 
+    const alertText = getAlertText([integration]);
+
     return (
       <Access access={['org:integrations']}>
         {({hasAccess}) => (
@@ -106,6 +109,11 @@ export default class InstalledIntegration extends React.Component<Props> {
             <IntegrationItemBox>
               <IntegrationItem integration={integration} />
             </IntegrationItemBox>
+            {alertText && (
+              <Alert type="warning" icon={<IconFlag size="sm" />}>
+                {alertText}
+              </Alert>
+            )}
             <div>
               <Tooltip
                 disabled={hasAccess}

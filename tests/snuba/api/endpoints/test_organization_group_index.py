@@ -1280,9 +1280,15 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert [int(r["id"]) for r in response.json()] == []
 
     def test_release_stage(self):
-        replaced_release = self.create_release(version="replaced_release")
-        adopted_release = self.create_release(version="adopted_release")
-        not_adopted_release = self.create_release(version="not_adopted_release")
+        replaced_release = self.create_release(
+            version="replaced_release", environments=[self.environment]
+        )
+        adopted_release = self.create_release(
+            version="adopted_release", environments=[self.environment]
+        )
+        not_adopted_release = self.create_release(
+            version="not_adopted_release", environments=[self.environment]
+        )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=adopted_release.id,
@@ -1307,6 +1313,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 "timestamp": iso_format(before_now(minutes=1)),
                 "fingerprint": ["group-1"],
                 "release": adopted_release.version,
+                "environment": self.environment.name,
             },
             project_id=self.project.id,
         ).group.id
@@ -1315,6 +1322,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 "timestamp": iso_format(before_now(minutes=2)),
                 "fingerprint": ["group-2"],
                 "release": adopted_release.version,
+                "environment": self.environment.name,
             },
             project_id=self.project.id,
         ).group.id
@@ -1323,6 +1331,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 "timestamp": iso_format(before_now(minutes=3)),
                 "fingerprint": ["group-3"],
                 "release": replaced_release.version,
+                "environment": self.environment.name,
             },
             project_id=self.project.id,
         ).group.id
@@ -1331,13 +1340,17 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 "timestamp": iso_format(before_now(minutes=4)),
                 "fingerprint": ["group-4"],
                 "release": replaced_release.version,
+                "environment": self.environment.name,
             },
             project_id=self.project.id,
         ).group.id
 
         self.login_as(user=self.user)
         response = self.get_response(
-            sort_by="date", limit=10, query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}"
+            sort_by="date",
+            limit=10,
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [
@@ -1346,7 +1359,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
         ]
 
         response = self.get_response(
-            sort_by="date", limit=10, query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}"
+            sort_by="date",
+            limit=10,
+            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
+            environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [
@@ -1360,6 +1376,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             sort_by="date",
             limit=10,
             query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
+            environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [
@@ -1373,6 +1390,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             sort_by="date",
             limit=10,
             query=f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}, {ReleaseStages.REPLACED}]",
+            environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [
@@ -1496,7 +1514,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         query = "server:example.com"
         query += " status:unresolved"
-        query += " active_at:" + iso_format(before_now(seconds=350))
         query += " first_seen:" + iso_format(before_now(seconds=500))
 
         self.login_as(user=self.user)

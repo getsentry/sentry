@@ -1,7 +1,7 @@
 import logging
 import re
 import time
-from typing import List, Tuple, Union
+from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 from django.core.exceptions import ValidationError
@@ -9,6 +9,7 @@ from django.http import Http404, HttpResponse
 from rest_framework.request import Request
 
 from sentry.constants import ObjectStatus
+from sentry.incidents.models import AlertRuleTriggerAction, Incident
 from sentry.models import (
     Environment,
     Identity,
@@ -16,6 +17,7 @@ from sentry.models import (
     IdentityStatus,
     Integration,
     Organization,
+    OrganizationMember,
     Team,
     User,
 )
@@ -23,6 +25,7 @@ from sentry.notifications.notifications.activity.release import ReleaseActivityN
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiRateLimitedError,
     DuplicateDisplayNameError,
     IntegrationError,
 )
@@ -38,14 +41,20 @@ MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 SLACK_DEFAULT_TIMEOUT = 10
+SLACK_RATE_LIMITED_MESSAGE = "Requests to slack were rate limited. Please try again later."
 ALLOWED_ROLES = ["admin", "manager", "owner"]
+SLACK_GET_USERS_PAGE_LIMIT = 100
+SLACK_GET_USERS_PAGE_SIZE = 200
 
 
-def get_integration_type(integration: Integration):
+def get_integration_type(integration: Integration) -> str:
     metadata = integration.metadata
     # classic bots had a user_access_token in the metadata
     default_installation = "classic_bot" if "user_access_token" in metadata else "workspace_app"
-    return metadata.get("installation_type", default_installation)
+
+    # Explicitly typing to satisfy mypy.
+    integration_type: str = metadata.get("installation_type", default_installation)
+    return integration_type
 
 
 # Different list types in slack that we'll use to resolve a channel name. Format is
@@ -56,18 +65,19 @@ LIST_TYPES: List[Tuple[str, str, str]] = [
 ]
 
 
-def strip_channel_name(name: str):
+def strip_channel_name(name: str) -> str:
     return name.lstrip(strip_channel_chars)
 
 
 def get_channel_id(
     organization: Organization, integration: Integration, name: str, use_async_lookup: bool = False
-):
+) -> Tuple[str, Optional[str], bool]:
     """
     Fetches the internal slack id of a channel.
     :param organization: The organization that is using this integration
     :param integration: The slack integration
     :param name: The name of the channel
+    :param use_async_lookup: Give the function some extra time?
     :return: a tuple of three values
         1. prefix: string (`"#"` or `"@"`)
         2. channel_id: string or `None`
@@ -90,7 +100,7 @@ def get_channel_id(
     return get_channel_id_with_timeout(integration, name, timeout)
 
 
-def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -> None:
+def validate_channel_id(name: str, integration_id: Optional[int], input_channel_id: str) -> None:
     """
     In the case that the user is creating an alert via the API and providing the channel ID and name
     themselves, we want to make sure both values are correct.
@@ -124,7 +134,11 @@ def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -
         )
 
 
-def get_channel_id_with_timeout(integration: Integration, name: str, timeout: int):
+def get_channel_id_with_timeout(
+    integration: Integration,
+    name: Optional[str],
+    timeout: int,
+) -> Tuple[str, Optional[str], bool]:
     """
     Fetches the internal slack id of a channel.
     :param integration: The slack integration
@@ -149,10 +163,9 @@ def get_channel_id_with_timeout(integration: Integration, name: str, timeout: in
     time_to_quit = time.time() + timeout
 
     client = SlackClient()
-    id_data = None
+    id_data: Optional[Tuple[str, Optional[str], bool]] = None
     found_duplicate = False
     prefix = ""
-
     for list_type, result_name, prefix in list_types:
         cursor = ""
         while True:
@@ -162,8 +175,11 @@ def get_channel_id_with_timeout(integration: Integration, name: str, timeout: in
                 items = client.get(
                     endpoint, headers=headers, params=dict(payload, cursor=cursor, limit=1000)
                 )
+            except ApiRateLimitedError as e:
+                logger.info(f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)})
+                raise e
             except ApiError as e:
-                logger.info("rule.slack.%s_list_failed" % list_type, extra={"error": str(e)})
+                logger.info(f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)})
                 return (prefix, None, False)
 
             if not isinstance(items, dict):
@@ -173,7 +189,7 @@ def get_channel_id_with_timeout(integration: Integration, name: str, timeout: in
                 # The "name" field is unique (this is the username for users)
                 # so we return immediately if we find a match.
                 # convert to lower case since all names in Slack are lowercase
-                if c["name"].lower() == name.lower():
+                if name and c["name"].lower() == name.lower():
                     return (prefix, c["id"], False)
                 # If we don't get a match on a unique identifier, we look through
                 # the users' display names, and error if there is a repeat.
@@ -199,7 +215,12 @@ def get_channel_id_with_timeout(integration: Integration, name: str, timeout: in
     return (prefix, None, False)
 
 
-def send_incident_alert_notification(action, incident, metric_value, method):
+def send_incident_alert_notification(
+    action: AlertRuleTriggerAction,
+    incident: Incident,
+    metric_value: int,
+    method: str,
+) -> None:
     from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
 
     # Make sure organization integration is still active:
@@ -228,7 +249,9 @@ def send_incident_alert_notification(action, incident, metric_value, method):
         logger.info("rule.fail.slack_post", extra={"error": str(e)})
 
 
-def get_identity(user, organization_id, integration_id):
+def get_identity(
+    user: User, organization_id: int, integration_id: int
+) -> Tuple[Organization, Integration, IdentityProvider]:
     try:
         organization = Organization.objects.get(id__in=user.get_orgs(), id=organization_id)
     except Organization.DoesNotExist:
@@ -247,11 +270,11 @@ def get_identity(user, organization_id, integration_id):
     return organization, integration, idp
 
 
-def parse_link(url):
+def parse_link(url: str) -> str:
     """For data aggregation purposes, remove unique information from URL."""
 
     url_parts = list(urlparse(url))
-    query = dict(parse_qs(url_parts[4]))
+    query: MutableMapping[str, Union[List[str], str]] = dict(parse_qs(url_parts[4]))
     for param in query:
         if param == "project":
             query.update({"project": "{project}"})
@@ -266,48 +289,74 @@ def parse_link(url):
                 parsed_path[index + 1] = "{%s}" % (scrubbed_items[item])
         new_path.append(item)
 
-    parsed_path = "/".join(new_path)
-    parsed_path += "/" + str(url_parts[4])
-
-    return parsed_path
+    return "/".join(new_path) + "/" + str(url_parts[4])
 
 
-def get_slack_data_by_user(integration, organization, emails_by_user):
+def get_users(integration: Integration, organization: Organization) -> Sequence[Mapping[str, Any]]:
     access_token = (
         integration.metadata.get("user_access_token") or integration.metadata["access_token"]
     )
-    headers = {"Authorization": "Bearer %s" % access_token}
+    headers = {"Authorization": f"Bearer {access_token}"}
     client = SlackClient()
 
-    slack_data_by_user = {}
+    user_list = []
+    next_cursor = None
+    for i in range(SLACK_GET_USERS_PAGE_LIMIT):
+        try:
+            next_users = client.get(
+                "/users.list",
+                headers=headers,
+                params={"limit": SLACK_GET_USERS_PAGE_SIZE, "cursor": next_cursor},
+            )
+        except ApiError as e:
+            logger.info(
+                "post_install.fail.slack_users.list",
+                extra={
+                    "error": str(e),
+                    "organization": organization.slug,
+                    "integration_id": integration.id,
+                },
+            )
+            break
+        user_list += next_users["members"]
+
+        next_cursor = next_users["response_metadata"]["next_cursor"]
+        if not next_cursor:
+            break
+
+    return user_list
+
+
+def get_slack_info_by_email(
+    integration: Integration, organization: Organization
+) -> Mapping[str, Mapping[str, str]]:
+    return {
+        member["profile"]["email"]: {
+            "email": member["profile"]["email"],
+            "team_id": member["team_id"],
+            "slack_id": member["id"],
+        }
+        for member in get_users(integration, organization)
+        if not member["deleted"] and member["profile"].get("email")
+    }
+
+
+def get_slack_data_by_user(
+    integration: Integration,
+    organization: Organization,
+    emails_by_user: Mapping[User, Sequence[str]],
+) -> Mapping[User, Mapping[str, str]]:
+    slack_info_by_email = get_slack_info_by_email(integration, organization)
+    slack_data_by_user: MutableMapping[User, Mapping[str, str]] = {}
     for user, emails in emails_by_user.items():
         for email in emails:
-            try:
-                # TODO use users.list instead to reduce API calls
-                resp = client.get("/users.lookupByEmail/", headers=headers, params={"email": email})
-            except ApiError as e:
-                logger.info(
-                    "post_install.fail.slack_lookupByEmail",
-                    extra={
-                        "error": str(e),
-                        "organization": organization.slug,
-                        "integration_id": integration.id,
-                        "email": email,
-                    },
-                )
-                continue
-
-            if resp["ok"] is True:
-                slack_data_by_user[user] = {
-                    "email": resp["user"]["profile"]["email"],
-                    "team_id": resp["user"]["team_id"],
-                    "slack_id": resp["user"]["id"],
-                }
+            if email in slack_info_by_email:
+                slack_data_by_user[user] = slack_info_by_email[email]
                 break
     return slack_data_by_user
 
 
-def get_identities_by_user(idp, users):
+def get_identities_by_user(idp: IdentityProvider, users: Iterable[User]) -> Mapping[User, Identity]:
     identity_models = Identity.objects.filter(
         idp=idp,
         user__in=users,
@@ -316,7 +365,7 @@ def get_identities_by_user(idp, users):
     return {identity.user: identity for identity in identity_models}
 
 
-def is_valid_role(org_member):
+def is_valid_role(org_member: OrganizationMember) -> bool:
     return org_member.role in ALLOWED_ROLES
 
 
@@ -389,7 +438,7 @@ def build_notification_footer(notification: BaseNotification, recipient: Union[T
             return f"{notification.release.projects.all()[0].slug} | <{settings_url}|Notification Settings>"
         return f"<{settings_url}|Notification Settings>"
 
-    footer = notification.project.slug
+    footer: str = notification.project.slug
     group = getattr(notification, "group", None)
     latest_event = group.get_latest_event() if group else None
     environment = None

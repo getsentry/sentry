@@ -11,7 +11,7 @@ type UpdateOptions = {
   replace?: boolean;
 };
 
-type OutputState = {
+type State = {
   organization: Organization | null;
   loading: boolean;
   dirty: boolean;
@@ -27,7 +27,7 @@ type OrganizationStoreInterface = {
   onProjectOrTeamChange: () => void;
   onLoadProjects: (projects: Project[]) => void;
   onLoadTeams: (teams: Team[]) => void;
-  get: () => OutputState;
+  get: () => State;
 };
 
 const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {
@@ -124,8 +124,7 @@ const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {
   },
 };
 
-type OrganizationStore = Reflux.Store & OrganizationStoreInterface;
-
-const OrganizationStore = Reflux.createStore(storeConfig) as OrganizationStore;
+const OrganizationStore = Reflux.createStore(storeConfig) as Reflux.Store &
+  OrganizationStoreInterface;
 
 export default OrganizationStore;

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useEffect, useRef} from 'react';
 import ReactDOM from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -32,7 +32,7 @@ const PanelContainer = styled('div')<PositionProps>`
           right: 0;
         `
       : css`
-          width: 360px;
+          width: 460px;
           top: 0;
           left: ${p.collapsed
             ? p.theme.sidebar.collapsedWidth
@@ -49,7 +49,7 @@ type Props = React.ComponentProps<typeof PanelContainer> &
  * Get the container element of the sidebar that react portals into.
  */
 export const getSidebarPanelContainer = () =>
-  document.getElementById('sidebar-flyout-portal');
+  document.getElementById('sidebar-flyout-portal') as HTMLDivElement;
 
 const makePortal = () => {
   const portal = document.createElement('div');
@@ -59,23 +59,24 @@ const makePortal = () => {
   return portal;
 };
 
-class SidebarPanel extends React.Component<Props> {
-  constructor(props: Props) {
-    super(props);
-    this.portalEl = getSidebarPanelContainer() || makePortal();
-  }
+function SidebarPanel({
+  orientation,
+  collapsed,
+  hidePanel,
+  title,
+  children,
+  ...props
+}: Props) {
+  const portalEl = useRef<HTMLDivElement>(getSidebarPanelContainer() || makePortal());
 
-  componentDidMount() {
-    document.addEventListener('click', this.panelCloseHandler);
-  }
+  useEffect(() => {
+    document.addEventListener('click', panelCloseHandler);
+    return function cleanup() {
+      document.removeEventListener('click', panelCloseHandler);
+    };
+  }, []);
 
-  componentWillUnmount() {
-    document.removeEventListener('click', this.panelCloseHandler);
-  }
-
-  portalEl: Element;
-
-  panelCloseHandler = (evt: MouseEvent) => {
+  function panelCloseHandler(evt: MouseEvent) {
     if (!(evt.target instanceof Element)) {
       return;
     }
@@ -86,26 +87,22 @@ class SidebarPanel extends React.Component<Props> {
       return;
     }
 
-    this.props.hidePanel();
-  };
-
-  render() {
-    const {orientation, collapsed, hidePanel, title, children, ...props} = this.props;
-
-    const sidebar = (
-      <PanelContainer collapsed={collapsed} orientation={orientation} {...props}>
-        {title && (
-          <SidebarPanelHeader>
-            <Title>{title}</Title>
-            <PanelClose onClick={hidePanel} />
-          </SidebarPanelHeader>
-        )}
-        <SidebarPanelBody hasHeader={!!title}>{children}</SidebarPanelBody>
-      </PanelContainer>
-    );
-
-    return ReactDOM.createPortal(sidebar, this.portalEl);
+    hidePanel();
   }
+
+  const sidebar = (
+    <PanelContainer collapsed={collapsed} orientation={orientation} {...props}>
+      {title && (
+        <SidebarPanelHeader>
+          <Title>{title}</Title>
+          <PanelClose onClick={hidePanel} />
+        </SidebarPanelHeader>
+      )}
+      <SidebarPanelBody hasHeader={!!title}>{children}</SidebarPanelBody>
+    </PanelContainer>
+  );
+
+  return ReactDOM.createPortal(sidebar, portalEl.current);
 }
 
 export default SidebarPanel;

@@ -6,8 +6,8 @@ from sentry.digests.utilities import (
     get_personalized_digests,
     team_actors_to_user_ids,
 )
-from sentry.mail.adapter import ActionTargetType
 from sentry.models import ActorTuple, OrganizationMemberTeam, ProjectOwnership, Team, User
+from sentry.notifications.types import ActionTargetType
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format

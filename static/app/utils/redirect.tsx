@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useEffect} from 'react';
 import {InjectedRouter} from 'react-router';
 import {LocationDescriptor} from 'history';
 
@@ -9,14 +9,11 @@ type Props = {
 
 // This is react-router v4 <Redirect to="path/" /> component to allow things
 // to be declarative.
-class Redirect extends Component<Props> {
-  componentDidMount() {
-    this.props.router.replace(this.props.to);
-  }
+function Redirect({to, router}: Props) {
+  // Redirect on mount.
+  useEffect(() => router.replace(to), []);
 
-  render() {
-    return null;
-  }
+  return null;
 }
 
 export default Redirect;

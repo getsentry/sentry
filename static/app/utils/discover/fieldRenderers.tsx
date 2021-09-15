@@ -42,11 +42,11 @@ import KeyTransactionField from './keyTransactionField';
 import {
   BarContainer,
   Container,
+  FieldDateTime,
+  FieldShortId,
   FlexContainer,
   NumberContainer,
   OverflowLink,
-  StyledDateTime,
-  StyledShortId,
   UserIcon,
   VersionContainer,
 } from './styles';
@@ -112,7 +112,7 @@ const FIELD_FORMATTERS: FieldFormatters = {
       <Container>
         {data[field]
           ? getDynamicText({
-              value: <StyledDateTime date={data[field]} />,
+              value: <FieldDateTime date={data[field]} />,
               fixed: 'timestamp',
             })
           : emptyValue}
@@ -255,7 +255,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       if (!issueID) {
         return (
           <Container>
-            <StyledShortId shortId={`${data.issue}`} />
+            <FieldShortId shortId={`${data.issue}`} />
           </Container>
         );
       }
@@ -267,7 +267,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       return (
         <Container>
           <OverflowLink to={target} aria-label={issueID}>
-            <StyledShortId shortId={`${data.issue}`} />
+            <FieldShortId shortId={`${data.issue}`} />
           </OverflowLink>
         </Container>
       );
@@ -415,7 +415,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <StyledDateTime date={data['timestamp.to_hour']} format="lll z" />,
+          value: <FieldDateTime date={data['timestamp.to_hour']} format="lll z" />,
           fixed: 'timestamp.to_hour',
         })}
       </Container>
@@ -426,7 +426,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <StyledDateTime date={data['timestamp.to_day']} dateOnly utc />,
+          value: <FieldDateTime date={data['timestamp.to_day']} dateOnly utc />,
           fixed: 'timestamp.to_day',
         })}
       </Container>

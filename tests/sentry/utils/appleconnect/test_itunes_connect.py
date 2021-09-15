@@ -8,7 +8,7 @@ Firstly you need to create a file named ``credentials.json`` in this directory::
      "password": "your itunes password"
    }
 
-You account needs to have access to the "GetSentry LLC" organisation for all tests to run.
+Your account needs to have access to the "GetSentry LLC" organisation for all tests to run.
 Tests which require this are marked with ``getsentryllc`` so you can disable these tests
 using `pytest -m 'not getsentryllc'`.
 

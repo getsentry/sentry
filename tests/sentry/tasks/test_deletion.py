@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 import pytest
@@ -15,40 +16,151 @@ from sentry.models import (
     Commit,
     CommitAuthor,
     Environment,
-    EnvironmentProject,
     Group,
     GroupAssignee,
     GroupHash,
     GroupMeta,
     GroupRedirect,
-    GroupResolution,
     GroupStatus,
     Organization,
     OrganizationStatus,
     Project,
-    ProjectStatus,
     Release,
     ReleaseCommit,
     ReleaseEnvironment,
     Repository,
-    Rule,
+    ScheduledDeletion,
     Team,
-    TeamStatus,
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
+from sentry.signals import pending_delete
 from sentry.tasks.deletion import (
     delete_api_application,
     delete_groups,
     delete_organization,
-    delete_project,
     delete_repository,
-    delete_team,
     generic_delete,
+    reattempt_deletions,
     revoke_api_tokens,
+    run_scheduled_deletions,
 )
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.compat.mock import patch
+
+
+class RunScheduledDeletionTest(TestCase):
+    def test_duplicate_schedule(self):
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+
+        first = ScheduledDeletion.schedule(team, days=0)
+        second = ScheduledDeletion.schedule(team, days=1)
+        # Should get the same record.
+        assert first.id == second.id
+        assert first.guid == second.guid
+        # Date should be updated
+        assert second.date_scheduled - first.date_scheduled >= timedelta(days=1)
+
+    def test_simple(self):
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+        schedule = ScheduledDeletion.schedule(instance=team, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Team.objects.filter(id=team.id).exists()
+        assert not ScheduledDeletion.objects.filter(id=schedule.id).exists()
+
+    def test_should_proceed_check(self):
+        org = self.create_organization(name="test")
+        project = self.create_project(organization=org)
+        repo = self.create_repo(project=project, name="example/example")
+        assert repo.status == ObjectStatus.ACTIVE
+
+        schedule = ScheduledDeletion.schedule(instance=repo, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert Repository.objects.filter(id=repo.id).exists()
+        assert not ScheduledDeletion.objects.filter(id=schedule.id, in_progress=True).exists()
+
+    def test_ignore_in_progress(self):
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+        schedule = ScheduledDeletion.schedule(instance=team, days=0)
+        schedule.update(in_progress=True)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert Team.objects.filter(id=team.id).exists()
+        assert ScheduledDeletion.objects.filter(id=schedule.id, in_progress=True).exists()
+
+    def test_future_schedule(self):
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+        schedule = ScheduledDeletion.schedule(instance=team, days=1)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert Team.objects.filter(id=team.id).exists()
+        assert ScheduledDeletion.objects.filter(id=schedule.id, in_progress=False).exists()
+
+    def test_triggers_pending_delete_signal(self):
+        signal_handler = Mock()
+        pending_delete.connect(signal_handler)
+
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+        ScheduledDeletion.schedule(instance=team, actor=self.user, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert signal_handler.call_count == 1
+        args = signal_handler.call_args_list[0][1]
+        assert args["instance"] == team
+        assert args["actor"] == self.user
+        pending_delete.disconnect(signal_handler)
+
+    def test_handle_missing_record(self):
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+        schedule = ScheduledDeletion.schedule(instance=team, days=0)
+        # Delete the team, the deletion should remove itself, as its work is done.
+        team.delete()
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not ScheduledDeletion.objects.filter(id=schedule.id).exists()
+
+
+class ReattemptDeletionsTest(TestCase):
+    def test_simple(self):
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+        schedule = ScheduledDeletion.schedule(instance=team, days=-3)
+        schedule.update(in_progress=True)
+        with self.tasks():
+            reattempt_deletions()
+
+        schedule.refresh_from_db()
+        assert not schedule.in_progress
+
+    def test_ignore_recent_jobs(self):
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+        schedule = ScheduledDeletion.schedule(instance=team, days=0)
+        schedule.update(in_progress=True)
+        with self.tasks():
+            reattempt_deletions()
+
+        schedule.refresh_from_db()
+        assert schedule.in_progress is True
 
 
 class DeleteOrganizationTest(TestCase):
@@ -98,100 +210,6 @@ class DeleteOrganizationTest(TestCase):
                 delete_organization(object_id=org.id)
 
         assert Organization.objects.filter(id=org.id).exists()
-
-
-class DeleteTeamTest(TestCase):
-    def test_simple(self):
-        team = self.create_team(name="test", status=TeamStatus.PENDING_DELETION)
-        project = self.create_project(teams=[team], name="test1")
-        another_project = self.create_project(teams=[team], name="test2")
-        r1 = Rule.objects.create(label="test rule", project=project, owner=team.actor)
-        r2 = Rule.objects.create(
-            label="another test rule", project=another_project, owner=team.actor
-        )
-        ar1 = self.create_alert_rule(
-            name="test alert rule", owner=team.actor.get_actor_tuple(), projects=[project]
-        )
-        ar2 = self.create_alert_rule(
-            name="another test alert rule",
-            owner=team.actor.get_actor_tuple(),
-            projects=[another_project],
-        )
-
-        assert r1.owner == r2.owner == ar1.owner == ar2.owner == team.actor
-
-        with self.tasks():
-            delete_team(object_id=team.id)
-
-        r1.refresh_from_db()
-        r2.refresh_from_db()
-        ar1.refresh_from_db()
-        ar2.refresh_from_db()
-        assert not Team.objects.filter(id=team.id).exists()
-        assert r1.owner == r2.owner == ar1.owner == ar2.owner is None
-
-    def test_cancels_without_pending_status(self):
-        team = self.create_team(name="test", status=TeamStatus.VISIBLE)
-        self.create_project(teams=[team], name="test1")
-        self.create_project(teams=[team], name="test2")
-
-        with self.assertRaises(DeleteAborted):
-            with self.tasks():
-                delete_team(object_id=team.id)
-
-        assert Team.objects.filter(id=team.id).exists()
-
-
-class DeleteProjectTest(TestCase):
-    def test_simple(self):
-        project = self.create_project(name="test", status=ProjectStatus.PENDING_DELETION)
-        group = self.create_group(project=project)
-        GroupAssignee.objects.create(group=group, project=project, user=self.user)
-        GroupMeta.objects.create(group=group, key="foo", value="bar")
-        release = Release.objects.create(version="a" * 32, organization_id=project.organization_id)
-        release.add_project(project)
-        GroupResolution.objects.create(group=group, release=release)
-        env = Environment.objects.create(
-            organization_id=project.organization_id, project_id=project.id, name="foo"
-        )
-        env.add_project(project)
-        repo = Repository.objects.create(organization_id=project.organization_id, name=project.name)
-        commit_author = CommitAuthor.objects.create(
-            organization_id=project.organization_id, name="foo", email="foo@example.com"
-        )
-        commit = Commit.objects.create(
-            repository_id=repo.id,
-            organization_id=project.organization_id,
-            author=commit_author,
-            key="a" * 40,
-        )
-        ReleaseCommit.objects.create(
-            organization_id=project.organization_id,
-            project_id=project.id,
-            release=release,
-            commit=commit,
-            order=0,
-        )
-
-        with self.tasks():
-            delete_project(object_id=project.id)
-
-        assert not Project.objects.filter(id=project.id).exists()
-        assert not EnvironmentProject.objects.filter(
-            project_id=project.id, environment_id=env.id
-        ).exists()
-        assert Environment.objects.filter(id=env.id).exists()
-        assert Release.objects.filter(id=release.id).exists()
-        assert ReleaseCommit.objects.filter(release_id=release.id).exists()
-        assert Commit.objects.filter(id=commit.id).exists()
-
-    def test_cancels_without_pending_status(self):
-        project = self.create_project(name="test", status=ProjectStatus.VISIBLE)
-        with self.assertRaises(DeleteAborted):
-            with self.tasks():
-                delete_project(object_id=project.id)
-
-        assert Project.objects.filter(id=project.id).exists()
 
 
 class DeleteGroupTest(TestCase):

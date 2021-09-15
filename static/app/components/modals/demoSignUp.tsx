@@ -7,7 +7,7 @@ import ButtonBar from 'app/components/buttonBar';
 import HighlightModalContainer from 'app/components/highlightModalContainer';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import {emailQueryParameter, extraQueryParameter} from 'app/utils/demoMode';
 
 type Props = ModalRenderProps;

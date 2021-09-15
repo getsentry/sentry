@@ -5,7 +5,7 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import TextareaField from 'app/views/settings/components/forms/textareaField';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
@@ -37,7 +37,7 @@ export default class RequestIntegrationModal extends AsyncComponent<Props, State
     const {organization, slug, type} = this.props;
     const {message} = this.state;
 
-    trackIntegrationEvent('integrations.request_install', {
+    trackIntegrationAnalytics('integrations.request_install', {
       integration_type: type,
       integration: slug,
       organization,

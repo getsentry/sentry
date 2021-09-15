@@ -1,4 +1,5 @@
 import compact from 'lodash/compact';
+import mean from 'lodash/mean';
 import moment from 'moment';
 
 import {
@@ -23,6 +24,19 @@ export function getCrashFreeRate(
   const crashedRate = getSessionStatusRate(groups, field, SessionStatus.CRASHED);
 
   return defined(crashedRate) ? getCrashFreePercent(100 - crashedRate) : null;
+}
+
+export function getSeriesAverage(
+  groups: SessionApiResponse['groups'] = [],
+  field: SessionField
+) {
+  const totalCount = getCount(groups, field);
+
+  const dataPoints = groups.filter(group => !!group.totals[field]).length;
+
+  return !defined(totalCount) || dataPoints === null || totalCount === 0
+    ? null
+    : totalCount / dataPoints;
 }
 
 export function getSessionStatusRate(
@@ -104,6 +118,31 @@ export function getSessionStatusRateSeries(
       return {
         name: interval,
         value: getSessionStatusPercent(statusSessionsPercent),
+      };
+    })
+  );
+}
+
+export function getSessionP50Series(
+  groups: SessionApiResponse['groups'] = [],
+  intervals: SessionApiResponse['intervals'] = [],
+  field: SessionField,
+  valueFormatter?: (value: number) => number
+): SeriesDataUnit[] {
+  return compact(
+    intervals.map((interval, i) => {
+      const meanValue = mean(
+        groups.map(group => group.series[field][i]).filter(v => !!v)
+      );
+
+      if (!meanValue) {
+        return null;
+      }
+
+      return {
+        name: interval,
+        value:
+          typeof valueFormatter === 'function' ? valueFormatter(meanValue) : meanValue,
       };
     })
   );
@@ -205,6 +244,16 @@ export function filterSessionsInTimeWindow(
 
         return isBetween;
       });
+      if (field.startsWith('p50')) {
+        totals[field] = mean(series[field]);
+      }
+      if (field.startsWith('count_unique')) {
+        /* E.g. users
+        We cannot sum here because users would not be unique anymore.
+        User can be repeated and part of multiple buckets in series but it's still that one user so totals would be wrong.
+        This operation is not 100% correct, because we are filtering series in time window but the total is for unfiltered series (it's the closest thing we can do right now) */
+        totals[field] = group.totals[field];
+      }
     });
     return {...group, series, totals};
   });

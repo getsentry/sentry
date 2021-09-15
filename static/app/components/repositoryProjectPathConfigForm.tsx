@@ -9,7 +9,7 @@ import {
   Repository,
   RepositoryProjectPathConfig,
 } from 'app/types';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import {FieldFromConfig} from 'app/views/settings/components/forms';
 import Form from 'app/views/settings/components/forms/form';
 import {Field} from 'app/views/settings/components/forms/type';
@@ -93,7 +93,7 @@ export default class RepositoryProjectPathConfigForm extends Component<Props> {
   }
 
   handlePreSubmit() {
-    trackIntegrationEvent('integrations.stacktrace_submit_config', {
+    trackIntegrationAnalytics('integrations.stacktrace_submit_config', {
       setup_type: 'manual',
       view: 'integration_configuration_detail',
       provider: this.props.integration.provider.key,

@@ -10,7 +10,7 @@ import NavTabs from 'app/components/navTabs';
 import {IconAdd, IconArrow} from 'app/icons';
 import {t} from 'app/locale';
 import {IntegrationProvider, IntegrationWithConfig, Organization} from 'app/types';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import {singleLineRenderer} from 'app/utils/marked';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
@@ -68,7 +68,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     if (stateKey !== 'integration') {
       return;
     }
-    trackIntegrationEvent('integrations.details_viewed', {
+    trackIntegrationAnalytics('integrations.details_viewed', {
       integration: data.provider.key,
       integration_type: 'first_party',
       organization: this.props.organization,

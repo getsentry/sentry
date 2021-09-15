@@ -41,7 +41,7 @@ function MissingReleasesButtons({organization, health, projectId}: Props) {
   }
 
   return (
-    <StyledButtonBar gap={1}>
+    <MissingReleaseButtonBar gap={1}>
       <Button
         size="small"
         priority="primary"
@@ -65,13 +65,12 @@ function MissingReleasesButtons({organization, health, projectId}: Props) {
           )}
         </FeatureTourModal>
       )}
-    </StyledButtonBar>
+    </MissingReleaseButtonBar>
   );
 }
 
-const StyledButtonBar = styled(ButtonBar)`
+export const MissingReleaseButtonBar = styled(ButtonBar)`
   grid-template-columns: minmax(auto, max-content) minmax(auto, max-content);
 `;
 
-export {StyledButtonBar};
 export default MissingReleasesButtons;

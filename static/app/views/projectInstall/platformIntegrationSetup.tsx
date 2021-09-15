@@ -1,7 +1,7 @@
 import 'prism-sentry/index.css';
 
 import {Fragment} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -12,8 +12,8 @@ import {t} from 'app/locale';
 import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {IntegrationProvider, Organization, Project} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import FirstEventFooter from 'app/views/onboarding/components/firstEventFooter';
 import AddInstallationInstructions from 'app/views/onboarding/components/integrations/addInstallationInstructions';
@@ -25,7 +25,7 @@ import PlatformHeaderButtonBar from './components/platformHeaderButtonBar';
 type Props = {
   organization: Organization;
   integrationSlug: string;
-} & WithRouterProps<{orgId: string; projectId: string; platform: string}, {}> &
+} & RouteComponentProps<{orgId: string; projectId: string; platform: string}, {}> &
   AsyncComponent['props'];
 
 type State = {
@@ -95,7 +95,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
 
   trackSwitchToManual = () => {
     const {organization, integrationSlug} = this.props;
-    trackIntegrationEvent('integrations.switch_manual_sdk_setup', {
+    trackIntegrationAnalytics('integrations.switch_manual_sdk_setup', {
       integration_type: 'first_party',
       integration: integrationSlug,
       view: 'project_creation',

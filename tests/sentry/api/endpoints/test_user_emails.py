@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models import User, UserEmail
+from sentry.models import User, UserEmail, UserOption
 from sentry.testutils import APITestCase
 
 
@@ -42,6 +42,13 @@ class UserEmailsTest(APITestCase):
         response = self.client.post(self.url, data={"email": "altemail1@example.com"})
         assert response.status_code == 200, response.data
 
+    def test_cant_have_same_email_with_different_casing(self):
+        user = self.create_user(email="FOOBAR@example.com")
+        self.login_as(user=user)
+        url = reverse("sentry-api-0-user-emails", kwargs={"user_id": user.id})
+        response = self.client.post(url, data={"email": "foobar@example.com"})
+        assert response.status_code == 200, response.data
+
     def test_change_verified_secondary_to_primary(self):
         UserEmail.objects.create(user=self.user, email="altemail1@example.com", is_verified=True)
         response = self.client.put(self.url, data={"email": "altemail1@example.com"})
@@ -66,6 +73,20 @@ class UserEmailsTest(APITestCase):
         response = self.client.delete(self.url, data={"email": "altemail1@example.com"})
         assert response.status_code == 204, response.data
         assert not len(UserEmail.objects.filter(user=self.user, email="altemail1@example.com"))
+
+    def test_remove_email_also_deletes_user_option_with_same_email(self):
+        mail_to_del = "altemail1@example.com"
+        UserEmail.objects.create(user=self.user, email=mail_to_del)
+        UserOption.objects.create(
+            user=self.user, project=self.project, key="mail:email", value=mail_to_del
+        )
+
+        response = self.client.delete(self.url, data={"email": mail_to_del})
+        assert response.status_code == 204, response.data
+        assert not len(UserEmail.objects.filter(user=self.user, email=mail_to_del))
+        assert not len(
+            UserOption.objects.filter(user=self.user, key="mail:email", value=mail_to_del)
+        )
 
     def test_cant_remove_primary_email(self):
         response = self.client.delete(self.url, data={"email": "foo@example.com"})

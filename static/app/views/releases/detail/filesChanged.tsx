@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {InjectedRouter, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -21,7 +21,6 @@ import withReleaseRepos from './withReleaseRepos';
 
 type Props = RouteComponentProps<{orgId: string; release: string}, {}> & {
   location: Location;
-  router: InjectedRouter;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   release: string;

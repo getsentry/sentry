@@ -153,24 +153,12 @@ function buildRequestUrl(baseUrl: string, path: string, query: RequestOptions['q
     throw err;
   }
 
-  let fullUrl: string;
-
   // Append the baseUrl
-  if (path.indexOf(baseUrl) === -1) {
-    fullUrl = baseUrl + path;
-  } else {
-    fullUrl = path;
-  }
-
-  if (!params) {
-    return fullUrl;
-  }
+  let fullUrl = path.includes(baseUrl) ? path : baseUrl + path;
 
   // Append query parameters
-  if (fullUrl.indexOf('?') !== -1) {
-    fullUrl += '&' + params;
-  } else {
-    fullUrl += '?' + params;
+  if (params) {
+    fullUrl += fullUrl.includes('?') ? `&${params}` : `?${params}`;
   }
 
   return fullUrl;
@@ -204,8 +192,17 @@ export type APIRequestMethod = 'POST' | 'GET' | 'DELETE' | 'PUT';
 type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 
 export type RequestCallbacks = {
-  success?: (data: any, textStatus?: string, resp?: ResponseMeta) => void;
+  /**
+   * Callback for the request completing (success or error)
+   */
   complete?: (resp: ResponseMeta, textStatus: string) => void;
+  /**
+   * Callback for the request completing successfully
+   */
+  success?: (data: any, textStatus?: string, resp?: ResponseMeta) => void;
+  /**
+   * Callback for the request failing with an error
+   */
   // TODO(ts): Update this when sentry is mostly migrated to TS
   error?: FunctionCallback;
 };
@@ -265,25 +262,28 @@ export class Client {
   ) {
     return (...args: T) => {
       const req = this.activeRequests[id];
+
       if (cleanup === true) {
         delete this.activeRequests[id];
       }
 
-      if (req && req.alive) {
-        // Check if API response is a 302 -- means project slug was renamed and user
-        // needs to be redirected
-        // @ts-expect-error
-        if (hasProjectBeenRenamed(...args)) {
-          return;
-        }
-
-        if (isUndefined(func)) {
-          return;
-        }
-
-        // Call success callback
-        return func.apply(req, args); // eslint-disable-line
+      if (!req?.alive) {
+        return;
       }
+
+      // Check if API response is a 302 -- means project slug was renamed and user
+      // needs to be redirected
+      // @ts-expect-error
+      if (hasProjectBeenRenamed(...args)) {
+        return;
+      }
+
+      if (isUndefined(func)) {
+        return;
+      }
+
+      // Call success callback
+      return func.apply(req, args); // eslint-disable-line
     };
   }
 
@@ -579,20 +579,24 @@ export class Client {
       ? [any, string | undefined, ResponseMeta | undefined]
       : any
   > {
-    // Create an error object here before we make any async calls so
-    // that we have a helpful stack trace if it errors
+    // Create an error object here before we make any async calls so that we
+    // have a helpful stack trace if it errors
     //
     // This *should* get logged to Sentry only if the promise rejection is not handled
     // (since SDK captures unhandled rejections). Ideally we explicitly ignore rejection
     // or handle with a user friendly error message
     const preservedError = new Error();
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) =>
       this.request(path, {
         ...options,
         preservedError,
         success: (data, textStatus, resp) => {
-          includeAllArgs ? resolve([data, textStatus, resp] as any) : resolve(data);
+          if (includeAllArgs) {
+            resolve([data, textStatus, resp] as any);
+          } else {
+            resolve(data);
+          }
         },
         error: (resp: ResponseMeta) => {
           const errorObjectToUse = createRequestError(
@@ -607,7 +611,7 @@ export class Client {
           // potentially be logged by Sentry's unhandled rejection handler
           reject(errorObjectToUse);
         },
-      });
-    });
+      })
+    );
   }
 }

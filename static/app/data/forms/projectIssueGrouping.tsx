@@ -143,6 +143,9 @@ stack.function:mylibrary_* +app`}
     help: t(
       'Sets the secondary grouping algorithm that should be run in addition to avoid creating too many new groups. Controlled by expiration date below.'
     ),
+    saveMessage: t(
+      'Changing the secondary grouping strategy will affect how many new issues are created.'
+    ),
   },
   secondaryGroupingExpiry: {
     name: 'secondaryGroupingExpiry',
@@ -150,6 +153,11 @@ stack.function:mylibrary_* +app`}
     label: t('Expiration date of secondary grouping'),
     help: t(
       'If this UNIX timestamp is in the past, the secondary grouping configuration stops applying automatically.'
+    ),
+    saveOnBlur: false,
+    saveMessageAlertType: 'info',
+    saveMessage: t(
+      'Changing the expiration date will affect how many new issues are created.'
     ),
   },
 };

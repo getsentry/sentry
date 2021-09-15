@@ -122,27 +122,23 @@ class UsageTable extends React.Component<Props> {
 
 export default UsageTable;
 
-export const StyledPanelTable = styled(PanelTable)`
+const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: repeat(5, auto);
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 1fr repeat(4, minmax(0, auto));
   }
 `;
+
 export const CellStat = styled('div')`
   flex-shrink: 1;
   text-align: right;
 `;
+
 export const CellProject = styled(CellStat)`
   display: flex;
   align-items: center;
   text-align: left;
-`;
-export const CellSetting = styled(CellStat)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
 `;
 
 const StyledIdBadge = styled(IdBadge)`

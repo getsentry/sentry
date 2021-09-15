@@ -4,6 +4,7 @@ import {t} from 'app/locale';
 import {OrganizationSummary, Project} from 'app/types';
 import {
   ALL_PROVIDERS,
+  MIN_PROJECTS_FOR_CONFIRMATION,
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
   VALUE_MAPPING,
@@ -251,6 +252,17 @@ export const getParentData = (
       parent.id,
       getParentValues(notificationType, notificationSettings, parent.id)[provider],
     ])
+  );
+};
+
+export const isSufficientlyComplex = (
+  notificationType: string,
+  notificationSettings: NotificationSettingsObject
+): boolean => {
+  /** Are there are more than N project or organization settings? */
+  return (
+    getParentIds(notificationType, notificationSettings).length >
+    MIN_PROJECTS_FOR_CONFIRMATION
   );
 };
 

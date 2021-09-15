@@ -530,6 +530,12 @@ const commonTheme = {
     hovercard: 10002,
     tooltip: 10003,
 
+    // On mobile views org stats dropdowns overlap
+    orgStats: {
+      dataCategory: 1,
+      timeRange: 2,
+    },
+
     // On mobile views issue list dropdowns overlap
     issuesList: {
       stickyHeader: 1,
@@ -715,6 +721,7 @@ type MyTheme = Theme;
  * Configure Emotion to use our theme
  */
 declare module '@emotion/react' {
+  // eslint-disable-next-line @typescript-eslint/no-shadow
   export interface Theme extends MyTheme {}
 }
 

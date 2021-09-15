@@ -36,7 +36,6 @@ type RouteParams = {
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   project: Project;
-  hasMetricAlerts: boolean;
 };
 
 type State = {
@@ -151,7 +150,6 @@ class AlertWizard extends Component<Props, State> {
 
   render() {
     const {
-      hasMetricAlerts,
       organization,
       params: {projectId},
       routes,
@@ -167,7 +165,6 @@ class AlertWizard extends Component<Props, State> {
         <Layout.Header>
           <StyledHeaderContent>
             <BuilderBreadCrumbs
-              hasMetricAlerts={hasMetricAlerts}
               orgSlug={organization.slug}
               projectSlug={projectId}
               title={t('Select Alert')}

@@ -1,9 +1,9 @@
 import * as React from 'react';
-import {Link} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import {IconChevron, IconClose, IconInfo, IconLock, IconSettings} from 'app/icons';
 import {t} from 'app/locale';

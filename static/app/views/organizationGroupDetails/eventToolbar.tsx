@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment-timezone';
@@ -8,6 +7,7 @@ import DateTime from 'app/components/dateTime';
 import FileSize from 'app/components/fileSize';
 import GlobalAppStoreConnectUpdateAlert from 'app/components/globalAppStoreConnectUpdateAlert';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import NavigationButtonGroup from 'app/components/navigationButtonGroup';
 import Tooltip from 'app/components/tooltip';
 import {IconWarning} from 'app/icons';

@@ -7,7 +7,9 @@ import {Location, Query} from 'history';
 import moment from 'moment';
 
 import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
+import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import DropdownMenu from 'app/components/dropdownMenu';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import MenuItem from 'app/components/menuItem';
@@ -82,6 +84,23 @@ class QueryList extends React.Component<Props> {
       });
     });
   };
+
+  handleAddQueryToDashboard =
+    (eventView: EventView, savedQuery?: SavedQuery) =>
+    (event: React.MouseEvent<Element>) => {
+      const {organization} = this.props;
+      event.preventDefault();
+      event.stopPropagation();
+      openAddDashboardWidgetModal({
+        organization,
+        defaultQuery: eventView.query,
+        start: eventView.start,
+        end: eventView.end,
+        statsPeriod: eventView.statsPeriod,
+        fromDiscover: true,
+        defaultTitle: savedQuery?.name ?? eventView.name,
+      });
+    };
 
   renderQueries() {
     const {pageLinks, renderPrebuilt} = this.props;
@@ -158,6 +177,27 @@ class QueryList extends React.Component<Props> {
               query_name: eventView.name,
             });
           }}
+          renderContextMenu={() => (
+            <Feature
+              organization={organization}
+              features={['connect-discover-and-dashboards', 'dashboards-edit']}
+            >
+              {({hasFeature}) => {
+                return (
+                  hasFeature && (
+                    <ContextMenu>
+                      <MenuItem
+                        data-test-id="add-query-to-dashboard"
+                        onClick={this.handleAddQueryToDashboard(eventView)}
+                      >
+                        {t('Add to Dashboard')}
+                      </MenuItem>
+                    </ContextMenu>
+                  )
+                );
+              }}
+            </Feature>
+          )}
         />
       );
     });
@@ -208,6 +248,21 @@ class QueryList extends React.Component<Props> {
           )}
           renderContextMenu={() => (
             <ContextMenu>
+              <Feature
+                organization={organization}
+                features={['connect-discover-and-dashboards', 'dashboards-edit']}
+              >
+                {({hasFeature}) =>
+                  hasFeature && (
+                    <MenuItem
+                      data-test-id="add-query-to-dashboard"
+                      onClick={this.handleAddQueryToDashboard(eventView, savedQuery)}
+                    >
+                      {t('Add to Dashboard')}
+                    </MenuItem>
+                  )
+                }
+              </Feature>
               <MenuItem
                 data-test-id="delete-query"
                 onClick={this.handleDeleteQuery(eventView)}
@@ -235,7 +290,7 @@ class QueryList extends React.Component<Props> {
         <PaginationRow
           pageLinks={pageLinks}
           onCursor={(cursor, path, query, direction) => {
-            const offset = Number(cursor?.split(':')?.[1]);
+            const offset = Number(cursor?.split(':')?.[1] ?? 0);
 
             const newQuery: Query & {cursor?: string} = {...query, cursor};
             const isPrevious = direction === -1;

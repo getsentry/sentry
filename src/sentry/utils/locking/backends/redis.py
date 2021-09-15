@@ -1,3 +1,4 @@
+from typing import Optional
 from uuid import uuid4
 
 from sentry.utils import redis
@@ -40,7 +41,7 @@ class RedisLockBackend(LockBackend):
     def prefix_key(self, key):
         return f"{self.prefix}{key}"
 
-    def acquire(self, key, duration, routing_key=None):
+    def acquire(self, key: str, duration: int, routing_key: Optional[str] = None) -> None:
         client = self.get_client(key, routing_key)
         full_key = self.prefix_key(key)
         if client.set(full_key, self.uuid, ex=duration, nx=True) is not True:

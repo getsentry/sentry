@@ -18,6 +18,8 @@ type Props = Partial<DefaultProps> & {
   hasGuideAnchor?: boolean;
   withStackTracePreview?: boolean;
   guideAnchorName?: string;
+  /* is issue breakdown? */
+  grouping?: boolean;
   className?: string;
 };
 
@@ -31,6 +33,7 @@ function EventOrGroupTitle({
   data,
   withStackTracePreview,
   hasGuideAnchor,
+  grouping = false,
   className,
 }: Props) {
   const event = data as Event;
@@ -42,7 +45,7 @@ function EventOrGroupTitle({
   );
   const {id, eventID, groupID, projectID} = event;
 
-  const {title, subtitle, treeLabel} = getTitle(event, organization?.features);
+  const {title, subtitle, treeLabel} = getTitle(event, organization?.features, grouping);
 
   return (
     <Wrapper className={className} hasGroupingTreeUI={hasGroupingTreeUI}>
@@ -93,8 +96,9 @@ const StyledStacktracePreview = styled(StacktracePreview)<{
     p.hasGroupingStacktraceUI &&
     `
       display: inline-flex;
+      overflow: hidden;
       > span:first-child {
-        display: inline-flex;
+        ${overflowEllipsis}
       }
     `}
 `;
@@ -103,7 +107,6 @@ const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
   ${p =>
     p.hasGroupingTreeUI &&
     `
-
       display: inline-grid;
       grid-template-columns: auto max-content 1fr max-content;
       align-items: flex-end;

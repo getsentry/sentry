@@ -1,7 +1,9 @@
 from django.urls import reverse
 
 from sentry.models import OrganizationMember
-from sentry.testutils import SCIMAzureTestCase, SCIMTestCase
+from sentry.models.auditlogentry import AuditLogEntry, AuditLogEntryEvent
+from sentry.scim.endpoints.utils import SCIMQueryParamSerializer
+from sentry.testutils import SCIMAzureTestCase, SCIMTestCase, TestCase
 
 CREATE_USER_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -44,6 +46,10 @@ class SCIMMemberIndexTests(SCIMTestCase):
             "name": {"familyName": "N/A", "givenName": "N/A"},
             "meta": {"resourceType": "User"},
         }
+
+        assert AuditLogEntry.objects.filter(
+            target_object=member.id, event=AuditLogEntryEvent.MEMBER_INVITE
+        ).exists()
         assert correct_post_data == response.data
         assert member.email == "test.user@okta.local"
 
@@ -167,3 +173,35 @@ class SCIMMemberIndexAzureTests(SCIMAzureTestCase):
                 }
             ],
         }
+
+
+class SCIMQueryParameterSerializerTest(TestCase):
+    def test_defaults(self):
+        serializer = SCIMQueryParamSerializer(data={})
+        assert serializer.is_valid()
+        assert serializer.validated_data["start_index"] == 1
+        assert serializer.validated_data["count"] == 100
+        assert serializer.validated_data["excluded_attributes"] == []
+        assert serializer.validated_data["filter"] is None
+
+    def test_start_index(self):
+        serializer = SCIMQueryParamSerializer(data={"startIndex": 0})
+        assert not serializer.is_valid()
+
+        serializer = SCIMQueryParamSerializer(data={"startIndex": 1})
+        assert serializer.is_valid()
+
+    def test_count(self):
+        serializer = SCIMQueryParamSerializer(data={"count": -1})
+        assert not serializer.is_valid()
+
+        serializer = SCIMQueryParamSerializer(data={"count": 0})
+        assert serializer.is_valid()
+
+    def test_filter(self):
+        serializer = SCIMQueryParamSerializer(data={"filter": "aoiwefjoi3j9f"})
+        assert not serializer.is_valid()
+
+    def test_excluded_attributes(self):
+        serializer = SCIMQueryParamSerializer(data={"excludedAttributes": ["members"]})
+        assert serializer.is_valid()

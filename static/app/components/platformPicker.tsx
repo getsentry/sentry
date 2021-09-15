@@ -8,6 +8,7 @@ import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
+import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import categoryList, {filterAliases, PlatformKey} from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import {IconClose, IconProject, IconSearch} from 'app/icons';
@@ -15,7 +16,7 @@ import {t, tct} from 'app/locale';
 import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
 import {Organization, PlatformIntegration} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
@@ -87,7 +88,7 @@ class PlatformPicker extends React.Component<Props, State> {
         organization: this.props.organization ?? null,
       });
     }
-  }, 300);
+  }, DEFAULT_DEBOUNCE_DURATION);
 
   @keydown('/')
   focusSearch(e: KeyboardEvent) {

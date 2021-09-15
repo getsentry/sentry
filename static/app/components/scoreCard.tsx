@@ -20,7 +20,7 @@ type Props = {
 
 function ScoreCard({title, score, help, trend, trendStatus, className}: Props) {
   return (
-    <StyledPanel className={className}>
+    <ScorePanel className={className}>
       <HeaderTitle>
         <Title>{title}</Title>
         {help && <QuestionTooltip title={help} size="sm" position="top" />}
@@ -34,7 +34,7 @@ function ScoreCard({title, score, help, trend, trendStatus, className}: Props) {
           </Trend>
         )}
       </ScoreWrapper>
-    </StyledPanel>
+    </ScorePanel>
   );
 }
 
@@ -49,7 +49,7 @@ function getTrendColor(p: TrendProps & {theme: Theme}) {
   }
 }
 
-const StyledPanel = styled(Panel)`
+export const ScorePanel = styled(Panel)`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -57,7 +57,7 @@ const StyledPanel = styled(Panel)`
   min-height: 96px;
 `;
 
-const HeaderTitle = styled('div')`
+export const HeaderTitle = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
   grid-gap: ${space(1)};
@@ -69,14 +69,14 @@ const Title = styled('div')`
   ${overflowEllipsis};
 `;
 
-const ScoreWrapper = styled('div')`
+export const ScoreWrapper = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: flex-end;
   max-width: 100%;
 `;
 
-const Score = styled('span')`
+export const Score = styled('span')`
   flex-shrink: 1;
   font-size: 32px;
   line-height: 1;
@@ -85,12 +85,11 @@ const Score = styled('span')`
 
 type TrendProps = {trendStatus: Props['trendStatus']};
 
-const Trend = styled('div')<TrendProps>`
+export const Trend = styled('div')<TrendProps>`
   color: ${getTrendColor};
   margin-left: ${space(1)};
   line-height: 1;
   overflow: hidden;
 `;
 
-export {HeaderTitle, StyledPanel, Score, ScoreWrapper, Trend};
 export default ScoreCard;

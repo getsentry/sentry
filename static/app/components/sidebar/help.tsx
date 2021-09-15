@@ -38,10 +38,10 @@ const SidebarHelp = ({orientation, collapsed, hidePanel, organization}: Props) =
               data-test-id="search-docs-and-faqs"
               onClick={() => openHelpSearchModal({organization})}
             >
-              {t('Search support, docs and more')}
+              {t('Search Support, Docs and More')}
             </SidebarMenuItem>
             <SidebarMenuItem href="https://help.sentry.io/">
-              {t('Visit help center')}
+              {t('Visit Help Center')}
             </SidebarMenuItem>
             <Hook name="sidebar:help-menu" organization={organization} />
           </HelpMenu>

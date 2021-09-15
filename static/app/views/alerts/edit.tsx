@@ -72,7 +72,6 @@ class ProjectAlertsEditor extends Component<Props, State> {
         <Layout.Header>
           <Layout.HeaderContent>
             <BuilderBreadCrumbs
-              hasMetricAlerts={hasMetricAlerts}
               orgSlug={organization.slug}
               title={t('Edit Alert Rule')}
               projectSlug={project.slug}

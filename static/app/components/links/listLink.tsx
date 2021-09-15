@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {Link, withRouter, WithRouterProps} from 'react-router';
+import {Link as RouterLink, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import {LocationDescriptor} from 'history';
@@ -12,7 +12,7 @@ type DefaultProps = {
   disabled: boolean;
 };
 
-type LinkProps = Omit<React.ComponentProps<typeof Link>, 'to'>;
+type LinkProps = Omit<React.ComponentProps<typeof RouterLink>, 'to'>;
 
 type Props = WithRouterProps &
   Partial<DefaultProps> &
@@ -79,9 +79,9 @@ class ListLink extends React.Component<Props> {
 
     return (
       <StyledLi className={this.getClassName()} disabled={disabled}>
-        <Link {...carriedProps} onlyActiveOnIndex={index} to={disabled ? '' : to}>
+        <RouterLink {...carriedProps} onlyActiveOnIndex={index} to={disabled ? '' : to}>
           {children}
-        </Link>
+        </RouterLink>
       </StyledLi>
     );
   }

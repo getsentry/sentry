@@ -1,4 +1,4 @@
-from typing import Any, Mapping, MutableMapping, Optional
+from typing import Any, Dict, Mapping, MutableMapping, Optional
 
 from rest_framework import status as status_
 from rest_framework.request import Request
@@ -97,7 +97,7 @@ class SlackRequest:
         return self._data
 
     @property
-    def logging_data(self) -> Mapping[str, str]:
+    def logging_data(self) -> Dict[str, Any]:
         data = {
             "slack_team_id": self.team_id,
             "slack_channel_id": self.data.get("channel", {}).get("id"),

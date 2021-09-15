@@ -2459,9 +2459,15 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2}
 
     def test_release_stage_condition(self):
-        replaced_release = self.create_release(version="replaced_release")
-        adopted_release = self.create_release(version="adopted_release")
-        not_adopted_release = self.create_release(version="not_adopted_release")
+        replaced_release = self.create_release(
+            version="replaced_release", environments=[self.environment]
+        )
+        adopted_release = self.create_release(
+            version="adopted_release", environments=[self.environment]
+        )
+        not_adopted_release = self.create_release(
+            version="not_adopted_release", environments=[self.environment]
+        )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=adopted_release.id,
@@ -2482,26 +2488,30 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         )
 
         adopted_release_e_1 = self.store_event(
-            data={"release": adopted_release.version},
+            data={"release": adopted_release.version, "environment": self.environment.name},
             project_id=self.project.id,
         ).event_id
         adopted_release_e_2 = self.store_event(
-            data={"release": adopted_release.version},
+            data={"release": adopted_release.version, "environment": self.environment.name},
             project_id=self.project.id,
         ).event_id
         replaced_release_e_1 = self.store_event(
-            data={"release": replaced_release.version},
+            data={"release": replaced_release.version, "environment": self.environment.name},
             project_id=self.project.id,
         ).event_id
         replaced_release_e_2 = self.store_event(
-            data={"release": replaced_release.version},
+            data={"release": replaced_release.version, "environment": self.environment.name},
             project_id=self.project.id,
         ).event_id
 
         result = discover.query(
             selected_columns=["id"],
             query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            params={
+                "project_id": [self.project.id],
+                "organization_id": self.organization.id,
+                "environment": [self.environment.name],
+            },
         )
         assert {r["id"] for r in result["data"]} == {
             adopted_release_e_1,
@@ -2511,7 +2521,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            params={
+                "project_id": [self.project.id],
+                "organization_id": self.organization.id,
+                "environment": [self.environment.name],
+            },
         )
         assert {r["id"] for r in result["data"]} == {
             adopted_release_e_1,
@@ -2522,7 +2536,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
-            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            params={
+                "project_id": [self.project.id],
+                "organization_id": self.organization.id,
+                "environment": [self.environment.name],
+            },
         )
         assert {r["id"] for r in result["data"]} == {
             adopted_release_e_1,

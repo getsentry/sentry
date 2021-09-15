@@ -92,7 +92,7 @@ export const TreeToggleContainer = styled('div')<TogglerTypes>`
   align-items: center;
 `;
 
-export const StyledIconChevron = styled(IconChevron)`
+export const TreeToggleIcon = styled(IconChevron)`
   width: 7px;
   margin-left: ${space(0.25)};
 `;

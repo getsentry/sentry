@@ -447,10 +447,6 @@ export function generateFieldOptions({
     fieldKeys = fieldKeys.filter(item => !TRACING_FIELDS.includes(item));
     functions = functions.filter(item => !TRACING_FIELDS.includes(item));
   }
-  // Feature flagged by arithmetic for now
-  if (!organization.features.includes('discover-arithmetic')) {
-    functions = functions.filter(item => item !== 'count_if');
-  }
   const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
 
   // Index items by prefixed keys as custom tags can overlap both fields and

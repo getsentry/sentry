@@ -243,11 +243,6 @@ describe('Performance > Content', function () {
       url: `/organizations/org-slug/key-transactions-list/`,
       body: [],
     });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/legacy-key-transactions-count/`,
-      body: [],
-    });
   });
 
   afterEach(function () {
@@ -522,9 +517,7 @@ describe('Performance > Content', function () {
       TestStubs.Project({id: 1, firstTransactionEvent: false}),
       TestStubs.Project({id: 2, firstTransactionEvent: false}),
     ];
-    const data = initializeData(projects, {view: undefined}, [
-      'performance-create-sample-transaction',
-    ]);
+    const data = initializeData(projects, {view: undefined});
 
     const wrapper = mountWithTheme(
       <PerformanceContent
@@ -539,12 +532,11 @@ describe('Performance > Content', function () {
     ).toBe(true);
   });
 
-  it('Do not display Create Sample Transaction Button with feature flag turned off', async function () {
-    const projects = [
-      TestStubs.Project({id: 1, firstTransactionEvent: false}),
-      TestStubs.Project({id: 2, firstTransactionEvent: false}),
-    ];
-    const data = initializeData(projects, {view: undefined}, []);
+  it('Displays new landing component with feature flag on', async function () {
+    const projects = [TestStubs.Project({id: 1, firstTransactionEvent: false})];
+    const data = initializeData(projects, {view: undefined}, [
+      'performance-landing-widgets',
+    ]);
 
     const wrapper = mountWithTheme(
       <PerformanceContent
@@ -554,8 +546,8 @@ describe('Performance > Content', function () {
       data.routerContext
     );
 
-    expect(
-      wrapper.find('Button[data-test-id="create-sample-transaction-btn"]').exists()
-    ).toBe(false);
+    expect(wrapper.find('div[data-test-id="performance-landing-v3"]').exists()).toBe(
+      true
+    );
   });
 });

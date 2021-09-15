@@ -1,6 +1,10 @@
+from copy import deepcopy
+from unittest import mock
+
 from django.urls import reverse
 
 from sentry.models import ApiToken
+from sentry.snuba.metrics import _METRICS
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 
@@ -56,7 +60,7 @@ class ProjectMetricsTest(APITestCase):
     def test_response(self):
         response = self.get_valid_response(self.project.organization.slug, self.project.slug)
 
-        required_fields = {"name", "operations"}
+        required_fields = {"name", "operations", "type"}
         optional_fields = {"unit"}
 
         for item in response.data:
@@ -96,6 +100,13 @@ class ProjectMetricDetailsTest(APITestCase):
         assert all(isinstance(item, str) for item in response.data["tags"])
 
 
+_EXTENDED_METRICS = deepcopy(_METRICS)
+_EXTENDED_METRICS["user"]["tags"] = dict(_EXTENDED_METRICS["user"]["tags"], custom_user_tag=[""])
+_EXTENDED_METRICS["session"]["tags"] = dict(
+    _EXTENDED_METRICS["session"]["tags"], custom_session_tag=["foo", "bar"]
+)
+
+
 class ProjectMetricsTagsTest(APITestCase):
 
     endpoint = "sentry-api-0-project-metrics-tags"
@@ -105,7 +116,9 @@ class ProjectMetricsTagsTest(APITestCase):
         self.login_as(user=self.user)
 
     @with_feature(FEATURE_FLAG)
+    @mock.patch("sentry.snuba.metrics._METRICS", _EXTENDED_METRICS)
     def test_response(self):
+
         response = self.get_success_response(self.project.organization.slug, self.project.slug)
 
         # Check if data are sane:
@@ -118,6 +131,7 @@ class ProjectMetricsTagsTest(APITestCase):
         assert "custom_user_tag" in response.data  # from 'user' tags
 
     @with_feature(FEATURE_FLAG)
+    @mock.patch("sentry.snuba.metrics._METRICS", _EXTENDED_METRICS)
     def test_filtered_response(self):
 
         response = self.get_success_response(
@@ -182,6 +196,7 @@ class ProjectMetricsTagDetailsTest(APITestCase):
         assert "production" in response.data
 
     @with_feature(FEATURE_FLAG)
+    @mock.patch("sentry.snuba.metrics._METRICS", _EXTENDED_METRICS)
     def test_filtered_response(self):
 
         response = self.get_success_response(

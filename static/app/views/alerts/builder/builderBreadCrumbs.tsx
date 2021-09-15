@@ -14,7 +14,6 @@ import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem'
 import {RouteWithName} from 'app/views/settings/components/settingsBreadcrumb/types';
 
 type Props = {
-  hasMetricAlerts: boolean;
   orgSlug: string;
   title: string;
   projectSlug: string;
@@ -40,7 +39,7 @@ function BuilderBreadCrumbs(props: Props) {
   const isSuperuser = isActiveSuperuser();
 
   const projectCrumbLink = {
-    to: `/settings/${orgSlug}/projects/${projectSlug}/`,
+    to: `/organizations/${orgSlug}/alerts/rules/?project=${project?.id}`,
     label: <IdBadge project={project} avatarSize={18} disableLink />,
     preserveGlobalSelection: true,
   };

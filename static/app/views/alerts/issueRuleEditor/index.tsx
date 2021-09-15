@@ -17,11 +17,11 @@ import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import TeamSelector from 'app/components/forms/teamSelector';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import LoadingMask from 'app/components/loadingMask';
 import {Panel, PanelBody} from 'app/components/panels';
-import SelectMembers from 'app/components/selectMembers';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {IconChevron, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
@@ -532,11 +532,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     // check if superuser or if user is on the alert's team
     const canEdit = isActiveSuperuser() || (ownerId ? userTeams.includes(ownerId) : true);
 
-    const filteredTeamIds = new Set(userTeams);
-    if (ownerId) {
-      filteredTeamIds.add(ownerId);
-    }
-
     // Note `key` on `<Form>` below is so that on initial load, we show
     // the form with a loading mask on top of it, but force a re-render by using
     // a different key when we have fetched the rule so that form inputs are filled in
@@ -595,13 +590,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     help={t('The team that can edit this alert.')}
                     disabled={!hasAccess || !canEdit}
                   >
-                    <SelectMembers
-                      showTeam
-                      project={project}
-                      organization={organization}
+                    <TeamSelector
                       value={this.getTeamId()}
+                      project={project}
                       onChange={this.handleOwnerChange}
-                      filteredTeamIds={filteredTeamIds}
+                      teamFilter={(team: Team) => team.isMember || team.id === ownerId}
+                      useId
                       includeUnassigned
                       disabled={!hasAccess || !canEdit}
                     />

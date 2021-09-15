@@ -3,6 +3,7 @@ import * as React from 'react';
 import ModalActions from 'app/actions/modalActions';
 import GlobalModal from 'app/components/globalModal';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
+import type {DashboardWidgetQuerySelectorModalOptions} from 'app/components/modals/dashboardWidgetQuerySelectorModal';
 import {InviteRow} from 'app/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'app/components/modals/reprocessEventModal';
 import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
@@ -250,4 +251,13 @@ export async function demoSignupModal(options: ModalOptions = {}) {
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}
+
+export async function openDashboardWidgetQuerySelectorModal(
+  options: DashboardWidgetQuerySelectorModalOptions
+) {
+  const mod = await import('app/components/modals/dashboardWidgetQuerySelectorModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }

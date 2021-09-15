@@ -8,7 +8,7 @@ import {t} from 'app/locale';
 import pulsingIndicatorStyles from 'app/styles/pulsingIndicator';
 import space from 'app/styles/space';
 import {Group} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventWaiter from 'app/utils/eventWaiter';
 import testableTransition from 'app/utils/testableTransition';
 

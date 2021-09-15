@@ -68,6 +68,20 @@ class TestAppStoreConnectConfig:
 
         assert new_data == data
 
+    def test_to_redacted_json(self, data, now):
+        config = appconnect.AppStoreConnectConfig.from_json(data)
+        new_data = config.to_redacted_json()
+
+        # Fixup our input to expected JSON format
+        data["itunesCreated"] = now.isoformat()
+
+        # Redacted secrets
+        data["appconnectPrivateKey"] = {"hidden-secret": True}
+        data["itunesPassword"] = {"hidden-secret": True}
+        data["itunesSession"] = {"hidden-secret": True}
+
+        assert new_data == data
+
     @pytest.mark.django_db
     def test_from_project_config_empty_sources(self, default_project, data):
         with pytest.raises(KeyError):

@@ -2,6 +2,7 @@ import logging
 import re
 
 from sentry.constants import ObjectStatus
+from sentry.utils import metrics
 from sentry.utils.query import bulk_delete_objects
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
@@ -54,6 +55,14 @@ class BaseDeletionTask:
         more work, or ``False`` if the entity has been removed.
         """
         raise NotImplementedError
+
+    def should_proceed(self, instance):
+        """
+        Used by root tasks to ensure deletion is ok to proceed.
+        This allows deletes to be undone by API endpoints without
+        having to also update scheduled tasks.
+        """
+        return True
 
     def get_child_relations(self, instance):
         # TODO(dcramer): it'd be nice if we collected the default relationships
@@ -124,9 +133,14 @@ class BaseDeletionTask:
                 task=relation.task,
                 **relation.params,
             )
+            # If we want smaller tasks then this also has to return when has_more is true.
+            # This could significant increase the number of tasks we spawn. Get better estimates
+            # by collecting metrics.
             has_more = True
             while has_more:
                 has_more = task.chunk()
+                if has_more:
+                    metrics.incr("deletions.should_spawn", tags={"task": type(task).__name__})
         return False
 
     def mark_deletion_in_progress(self, instance_list):
@@ -169,10 +183,11 @@ class ModelDeletionTask(BaseDeletionTask):
     def chunk(self, num_shards=None, shard_id=None):
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
-        more work, or ``False`` if the entity has been removed.
+        more work, or ``False`` if all matching entities have been removed.
         """
         query_limit = self.query_limit
         remaining = self.chunk_size
+
         while remaining > 0:
             queryset = getattr(self.model, self.manager_name).filter(**self.query)
             if self.order_by:
@@ -184,11 +199,13 @@ class ModelDeletionTask(BaseDeletionTask):
                 queryset = queryset.extra(where=[f"id %% {num_shards} = {shard_id}"])
 
             queryset = list(queryset[:query_limit])
+            # If there are no more rows we are all done.
             if not queryset:
                 return False
 
             self.delete_bulk(queryset)
-            remaining -= query_limit
+            remaining = remaining - query_limit
+        # We have more work to do as we didn't run out of rows to delete.
         return True
 
     def delete_instance_bulk(self, instance_list):

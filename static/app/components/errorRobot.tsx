@@ -1,11 +1,11 @@
 import {Component} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import robotBackground from 'sentry-images/spot/sentry-robot.png';
 
 import {Client} from 'app/api';
 import Button from 'app/components/button';
+import Link from 'app/components/links/link';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {LightWeightOrganization, Project} from 'app/types';

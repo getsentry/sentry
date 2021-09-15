@@ -18,7 +18,7 @@ import requests
 import sentry_sdk
 from django.db import transaction
 
-from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA
+from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA, secret_fields
 from sentry.models import Project
 from sentry.utils import json, sdk
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
@@ -31,11 +31,6 @@ SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 
 # The symbol source type for an App Store Connect symbol source.
 SYMBOL_SOURCE_TYPE_NAME = "appStoreConnect"
-
-# The key in the project options under which all of the dates corresponding to the last time sentry
-# checked for new builds in App Store Connect are stored.
-# TODO: Remove this before App Store Connect GA
-APPSTORECONNECT_BUILD_REFRESHES_OPTION = "sentry:asc_build_refresh_dates"
 
 
 class InvalidCredentialsError(Exception):
@@ -67,9 +62,6 @@ class AppStoreConnectConfig:
     type: str
 
     # The ID which identifies this symbol source for this project.
-    #
-    # Currently we only allow one appStoreConnect source per project, but we already
-    # identify them using an ID anyway for future safety.
     id: str
 
     # The name of the symbol source.
@@ -190,9 +182,11 @@ class AppStoreConnectConfig:
         ]
 
     def to_json(self) -> Dict[str, Any]:
-        """Creates a dict which can be serialised to JSON.
+        """Creates a dict which can be serialised to JSON. This dict should only be
+        used internally and should never be sent to external clients, as it contains
+        the raw content of all of the secrets contained in the config.
 
-        The generated dict will validate according to the schema.
+        The generated dict will be validated according to the schema.
 
         :raises InvalidConfigError: if somehow the data in the class is not valid, this
            should only occur if the class was created in a weird way.
@@ -207,6 +201,19 @@ class AppStoreConnectConfig:
             jsonschema.validate(data, APP_STORE_CONNECT_SCHEMA)
         except jsonschema.exceptions.ValidationError as e:
             raise InvalidConfigError from e
+        return data
+
+    def to_redacted_json(self) -> Dict[str, Any]:
+        """Creates a dict which can be serialised to JSON. This should be used when the
+        config is meant to be passed to some external consumer, like the front end client.
+        This dict will have its secrets redacted.
+
+        :raises InvalidConfigError: if somehow the data in the class is not valid, this
+           should only occur if the class was created in a weird way.
+        """
+        data = self.to_json()
+        for to_redact in secret_fields("appStoreConnect"):
+            data[to_redact] = {"hidden-secret": True}
         return data
 
     def update_project_symbol_source(self, project: Project, allow_multiple: bool) -> json.JSONData:

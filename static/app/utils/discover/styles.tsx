@@ -7,9 +7,8 @@ import {IconUser} from 'app/icons/iconUser';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-/**
- * Styled components used to render discover result sets.
- */
+// Styled components used to render discover result sets.
+
 export const Container = styled('div')`
   ${overflowEllipsis};
 `;
@@ -23,7 +22,7 @@ export const NumberContainer = styled('div')`
   ${overflowEllipsis};
 `;
 
-export const StyledDateTime = styled(DateTime)`
+export const FieldDateTime = styled(DateTime)`
   color: ${p => p.theme.gray300};
   ${overflowEllipsis};
 `;
@@ -32,7 +31,7 @@ export const OverflowLink = styled(Link)`
   ${overflowEllipsis};
 `;
 
-export const StyledShortId = styled(ShortId)`
+export const FieldShortId = styled(ShortId)`
   justify-content: flex-start;
 `;
 

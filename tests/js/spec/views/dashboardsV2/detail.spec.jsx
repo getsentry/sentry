@@ -6,6 +6,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 
+import {DashboardState} from 'app/views/dashboardsV2/types';
 import ViewEditDashboard from 'app/views/dashboardsV2/view';
 
 describe('Dashboards > Detail', function () {
@@ -16,7 +17,7 @@ describe('Dashboards > Detail', function () {
 
   describe('prebuilt dashboards', function () {
     let wrapper;
-    let initialData;
+    let initialData, mockVisit;
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -39,6 +40,12 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
         body: TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'}),
+      });
+      mockVisit = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/visit/',
+        method: 'POST',
+        body: [],
+        statusCode: 200,
       });
     });
 
@@ -158,13 +165,12 @@ describe('Dashboards > Detail', function () {
         .find('Controls Button[data-test-id="dashboard-edit"]')
         .props();
       expect(editProps.disabled).toBe(true);
+      expect(mockVisit).not.toHaveBeenCalled();
     });
   });
 
   describe('custom dashboards', function () {
-    let wrapper;
-    let initialData;
-    let widgets;
+    let wrapper, initialData, widgets, mockVisit;
 
     beforeEach(function () {
       initialData = initializeOrg({organization});
@@ -200,7 +206,12 @@ describe('Dashboards > Detail', function () {
           }
         ),
       ];
-
+      mockVisit = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/visit/',
+        method: 'POST',
+        body: [],
+        statusCode: 200,
+      });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/',
         body: [],
@@ -224,6 +235,11 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/events-stats/',
         body: {data: []},
       });
+      MockApiClient.addMockResponse({
+        method: 'POST',
+        url: '/organizations/org-slug/dashboards/widgets/',
+        body: [],
+      });
     });
 
     afterEach(function () {
@@ -246,6 +262,8 @@ describe('Dashboards > Detail', function () {
       );
       await tick();
       wrapper.update();
+
+      expect(mockVisit).toHaveBeenCalledTimes(1);
 
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
@@ -279,6 +297,9 @@ describe('Dashboards > Detail', function () {
           }),
         })
       );
+
+      // Visit should not be called again on dashboard update
+      expect(mockVisit).toHaveBeenCalledTimes(1);
     });
 
     it('can enter edit mode for widgets', async function () {
@@ -353,6 +374,51 @@ describe('Dashboards > Detail', function () {
       expect(breadcrumbs.exists()).toBe(true);
       expect(breadcrumbs.find('BreadcrumbLink').find('a').text()).toEqual('Dashboards');
       expect(breadcrumbs.find('BreadcrumbItem').last().text()).toEqual('Custom Errors');
+    });
+
+    it('enters edit mode when given a new widget in location query', async function () {
+      initialData.router.location = {
+        query: {
+          displayType: 'line',
+          interval: '5m',
+          queryConditions: ['title:test', 'event.type:test'],
+          queryFields: ['count()', 'failure_count()'],
+          queryNames: ['1', '2'],
+          queryOrderby: '',
+          title: 'Widget Title',
+        },
+      };
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+      expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
+        DashboardState.EDIT
+      );
+    });
+
+    it('enters view mode when not given a new widget in location query', async function () {
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+      expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
+        DashboardState.VIEW
+      );
     });
   });
 });

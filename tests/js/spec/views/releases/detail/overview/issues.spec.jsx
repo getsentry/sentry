@@ -136,7 +136,9 @@ describe('Release Issues', function () {
       initializationObj.routerContext
     );
 
-    expect(wrapper.find('Link[data-test-id="discover-button"]').prop('to')).toEqual({
+    expect(
+      wrapper.find('Link[data-test-id="discover-button"]').first().prop('to')
+    ).toEqual({
       pathname: `/organizations/${props.organization.slug}/discover/results/`,
       query: {
         id: undefined,

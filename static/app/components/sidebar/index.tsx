@@ -426,7 +426,7 @@ class Sidebar extends React.Component<Props, State> {
     );
 
     return (
-      <StyledSidebar ref={this.sidebarRef} collapsed={collapsed}>
+      <SidebarWrapper ref={this.sidebarRef} collapsed={collapsed}>
         <SidebarSectionGroupPrimary>
           <SidebarSection>
             <SidebarDropdown
@@ -522,7 +522,7 @@ class Sidebar extends React.Component<Props, State> {
             )}
           </SidebarSectionGroup>
         )}
-      </StyledSidebar>
+      </SidebarWrapper>
     );
   }
 }
@@ -585,7 +585,7 @@ const responsiveFlex = css`
   }
 `;
 
-export const StyledSidebar = styled('div')<{collapsed: boolean}>`
+export const SidebarWrapper = styled('div')<{collapsed: boolean}>`
   background: ${p => p.theme.sidebar.background};
   background: ${p => p.theme.sidebarGradient};
   color: ${p => p.theme.sidebar.color};

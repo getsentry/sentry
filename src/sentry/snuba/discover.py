@@ -540,6 +540,7 @@ def top_events_timeseries(
     top_events=None,
     allow_empty=True,
     zerofill_results=True,
+    include_other=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -586,6 +587,7 @@ def top_events_timeseries(
             user_query,
             params,
         )
+        other_conditions = snuba_filter.conditions[:]
 
         for field in selected_columns:
             # If we have a project field, we need to limit results by project so we don't hit the result limit
@@ -608,16 +610,24 @@ def top_events_timeseries(
                     snuba_filter.conditions.append(
                         [[field, "=", value] for value in sorted(values)]
                     )
+                    other_conditions.append([[field, "!=", value] for value in sorted(values)])
                 elif None in values:
                     non_none_values = [value for value in values if value is not None]
                     condition = [[["isNull", [resolve_discover_column(field)]], "=", 1]]
+                    other_condition = [[["isNull", [resolve_discover_column(field)]], "!=", 1]]
                     if non_none_values:
                         condition.append([resolve_discover_column(field), "IN", non_none_values])
+                        other_condition.append(
+                            [resolve_discover_column(field), "NOT IN", non_none_values]
+                        )
                     snuba_filter.conditions.append(condition)
+                    other_conditions.append(other_condition)
                 elif field in FIELD_ALIASES:
                     snuba_filter.conditions.append([field, "IN", values])
+                    other_conditions.append([field, "NOT IN", values])
                 else:
                     snuba_filter.conditions.append([resolve_discover_column(field), "IN", values])
+                    other_conditions.append([resolve_discover_column(field), "NOT IN", values])
 
     with sentry_sdk.start_span(op="discover.discover", description="top_events.snuba_query"):
         result = raw_query(
@@ -634,8 +644,29 @@ def top_events_timeseries(
             limit=10000,
             referrer=referrer,
         )
+        if len(top_events["data"]) == limit and len(result.get("data", [])) and include_other:
+            # TODO(wmak): Conditions are incorrect in some cases, need to properly apply Demorgan's Law
+            other_result = raw_query(
+                aggregations=snuba_filter.aggregations,
+                conditions=other_conditions,
+                filter_keys=snuba_filter.filter_keys,
+                start=snuba_filter.start,
+                end=snuba_filter.end,
+                rollup=rollup,
+                orderby=["time"],
+                groupby=["time"],
+                dataset=Dataset.Discover,
+                limit=10000,
+                referrer=referrer + ".other",
+            )
+        else:
+            other_result = {"data": []}
 
-    if not allow_empty and not len(result.get("data", [])):
+    if (
+        not allow_empty
+        and not len(result.get("data", []))
+        and not len(other_result.get("data", []))
+    ):
         return SnubaTSResult(
             {
                 "data": zerofill([], snuba_filter.start, snuba_filter.end, rollup, "time")
@@ -669,7 +700,11 @@ def top_events_timeseries(
         # so the result key is consistent
         translated_groupby.sort()
 
-        results = {}
+        results = (
+            {"Other": {"order": limit + 1, "data": other_result["data"]}}
+            if len(other_result.get("data", []))
+            else {}
+        )
         # Using the top events add the order to the results
         for index, item in enumerate(top_events["data"]):
             result_key = create_result_key(item, translated_groupby, issues)
@@ -887,6 +922,7 @@ def histogram_query(
     group_by=None,
     order_by=None,
     limit_by=None,
+    histogram_rows=None,
     extra_conditions=None,
     normalize_results=True,
 ):
@@ -908,9 +944,10 @@ def histogram_query(
     :param float max_value: The maximum value allowed to be in the histogram.
         If left unspecified, it is queried using `user_query` and `params`.
     :param str data_filter: Indicate the filter strategy to be applied to the data.
-    :param [str] group_by: Experimental. Allows additional grouping to serve multifacet histograms.
-    :param [str] order_by: Experimental. Allows additional ordering within each alias to serve multifacet histograms.
-    :param [str] limit_by: Experimental. Allows limiting within a group when serving multifacet histograms.
+    :param [str] group_by: Allows additional grouping to serve multifacet histograms.
+    :param [str] order_by: Allows additional ordering within each alias to serve multifacet histograms.
+    :param [str] limit_by: Allows limiting within a group when serving multifacet histograms.
+    :param int histogram_rows: Used to modify the limit when fetching multiple rows of buckets (performance facets).
     :param [str] extra_conditions: Adds any additional conditions to the histogram query that aren't received from params.
     :param bool normalize_results: Indicate whether to normalize the results by column into bins.
     """
@@ -965,7 +1002,8 @@ def histogram_query(
         conditions.append([histogram_alias, "<=", max_bin])
 
     columns = [] if key_column is None else [key_column]
-    limit = len(fields) * num_buckets
+    groups = len(fields) if histogram_rows is None else histogram_rows
+    limit = groups * num_buckets
 
     histogram_query = prepare_discover_query(
         selected_columns=columns + [histogram_column, "count()"],

@@ -1059,12 +1059,7 @@ def trigger_incident_triggers(incident):
     triggers = IncidentTrigger.objects.filter(incident=incident).select_related(
         "alert_rule_trigger"
     )
-    actions = list(
-        AlertRuleTriggerAction.objects.filter(
-            alert_rule_trigger__in=[t.alert_rule_trigger for t in triggers]
-        ).select_related("alert_rule_trigger")
-    )
-    actions = deduplicate_trigger_actions(actions)
+    actions = deduplicate_trigger_actions(triggers=triggers)
     with transaction.atomic():
         for trigger in triggers:
             trigger.status = TriggerStatus.RESOLVED.value
@@ -1082,24 +1077,64 @@ def trigger_incident_triggers(incident):
                 )
 
 
-def deduplicate_trigger_actions(actions):
+def sort_by_priority_list(incident_triggers):
+    priority_dict = {
+        (CRITICAL_TRIGGER_LABEL, TriggerStatus.ACTIVE.value): 0,
+        (WARNING_TRIGGER_LABEL, TriggerStatus.ACTIVE.value): 1,
+        (CRITICAL_TRIGGER_LABEL, TriggerStatus.RESOLVED.value): 2,
+        (WARNING_TRIGGER_LABEL, TriggerStatus.RESOLVED.value): 3,
+    }
+    return sorted(
+        incident_triggers,
+        key=lambda t: priority_dict.get(
+            (t.alert_rule_trigger.label, t.status), len(incident_triggers) + t.id
+        ),
+    )
+
+
+def prioritize_actions(incident_triggers):
     """
-    Given a list of trigger actions, this returns a list of actions that is unique on
-    (type, target_type, target_identifier, integration_id, sentry_app_id). If there are
+    Function that given an input array of incident_triggers, prioritizes those incident_triggers
+    based on the label of related alert_rule_trigger and their TriggerStatus, and then re-orders
+    actions based on that ordering
+    Inputs:
+        * incident_triggers: Array of instances of `IncidentTrigger`
+    Returns:
+        List of instances of `AlertRuleTriggerAction` that are ordered according to the ordering
+        of related prioritized instances of `IncidentTriggers`
+    """
+    actions = list(
+        AlertRuleTriggerAction.objects.filter(
+            alert_rule_trigger__in=[it.alert_rule_trigger for it in incident_triggers]
+        ).select_related("alert_rule_trigger")
+    )
+
+    incident_triggers = sort_by_priority_list(incident_triggers=incident_triggers)
+    incident_triggers_dict = {
+        it.alert_rule_trigger.id: idx for idx, it in enumerate(incident_triggers)
+    }
+
+    sorted_actions = sorted(
+        actions,
+        key=lambda action: incident_triggers_dict.get(
+            action.alert_rule_trigger.id, len(actions) + action.id
+        ),
+    )
+    return sorted_actions
+
+
+def deduplicate_trigger_actions(triggers):
+    """
+    Given a list of incident triggers, we fetch actions, this returns a list of actions that is
+    unique on (type, target_type, target_identifier, integration_id, sentry_app_id). If there are
     duplicate actions, we'll prefer the action from a critical trigger over a warning
     trigger. If there are duplicate actions on a critical trigger, we'll just choose
     one arbitrarily.
-    :param actions: A list of `AlertRuleTriggerAction` instances from the same
-    `AlertRule`.
+    :param triggers: A list of `IncidentTrigger` instances from the same `AlertRule`
     :return: A list of deduplicated `AlertRuleTriggerAction` instances.
     """
-    # Make sure we process actions from the critical trigger first
-    actions.sort(
-        key=lambda action: (
-            0 if action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL else 1,
-            action.id,
-        )
-    )
+    actions = prioritize_actions(incident_triggers=triggers)
+
     deduped = {}
     for action in actions:
         deduped.setdefault(

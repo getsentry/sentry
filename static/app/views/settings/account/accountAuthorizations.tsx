@@ -1,8 +1,10 @@
-import {Link, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
+import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {IconDelete} from 'app/icons';
 import {t, tct} from 'app/locale';
@@ -89,9 +91,9 @@ class AccountAuthorizations extends AsyncView<Props, State> {
                       <ApplicationName>{authorization.application.name}</ApplicationName>
                       {authorization.homepageUrl && (
                         <Url>
-                          <a href={authorization.homepageUrl}>
+                          <ExternalLink href={authorization.homepageUrl}>
                             {authorization.homepageUrl}
-                          </a>
+                          </ExternalLink>
                         </Url>
                       )}
                       <Scopes>{authorization.scopes.join(', ')}</Scopes>

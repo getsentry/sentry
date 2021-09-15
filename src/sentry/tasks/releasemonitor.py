@@ -184,7 +184,6 @@ def sum_sessions_and_releases(org_id, project_ids):
                 "process_projects_with_sessions.loop_timeout",
                 extra={"org_id": org_id, "project_ids": project_ids},
             )
-
     return totals
 
 
@@ -206,6 +205,7 @@ def adopt_releases(org_id, totals):
                         / environment_totals["total_sessions"]
                         >= threshold
                     ):
+                        rpe = None
                         try:
                             rpe = ReleaseProjectEnvironment.objects.get(
                                 project_id=project_id,
@@ -215,9 +215,17 @@ def adopt_releases(org_id, totals):
                                 environment__name=environment,
                                 environment__organization_id=org_id,
                             )
-                            adopted_ids.append(rpe.id)
+
+                            updates = {}
                             if rpe.adopted is None:
-                                rpe.update(adopted=timezone.now())
+                                updates["adopted"] = timezone.now()
+
+                            if rpe.unadopted is not None:
+                                updates["unadopted"] = None
+
+                            if updates:
+                                rpe.update(**updates)
+
                         except (Release.DoesNotExist, ReleaseProjectEnvironment.DoesNotExist):
                             metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
                             try:
@@ -244,7 +252,7 @@ def adopt_releases(org_id, totals):
                                     environment=env, organization_id=org_id, release=release
                                 )
 
-                                ReleaseProjectEnvironment.objects.create(
+                                rpe = ReleaseProjectEnvironment.objects.create(
                                     project_id=project_id,
                                     release_id=release.id,
                                     environment=env,
@@ -260,6 +268,8 @@ def adopt_releases(org_id, totals):
                                     "sentry.tasks.process_projects_with_sessions.skipped_update"
                                 )
                                 capture_exception(exc)
+                        if rpe:
+                            adopted_ids.append(rpe.id)
 
     return adopted_ids
 

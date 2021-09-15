@@ -50,7 +50,7 @@ export default function getConfiguration({
           path: `${pathPrefix}/ownership/`,
           title: t('Issue Owners'),
           description: t('Manage issue ownership rules for a project'),
-          badge: () => 'beta',
+          badge: () => 'new',
         },
         {
           path: `${pathPrefix}/data-forwarding/`,
@@ -89,7 +89,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/processing-issues/`,
           title: t('Processing Issues'),
-          // eslint-disable-next-line no-shadow
+          // eslint-disable-next-line @typescript-eslint/no-shadow
           badge: ({project}) => {
             if (!project) {
               return null;
@@ -116,8 +116,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/performance/`,
           title: t('Performance'),
-          badge: () => 'new',
-          show: () => !!organization?.features?.includes('project-transaction-threshold'),
+          show: () => !!organization?.features?.includes('performance-view'),
         },
       ],
     },

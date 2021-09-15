@@ -14,7 +14,7 @@ import {IconClose, IconQuestion} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {CodeOwner, Organization, Project} from 'app/types';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 
 import SidebarSection from '../sidebarSection';
 
@@ -56,7 +56,8 @@ const OwnershipRules = ({
   const codeOwnersCTA = (
     <Container dashedBorder>
       <HeaderContainer>
-        <Header>{t('Codeowners sync')}</Header> <FeatureBadge type="beta" noTooltip />
+        <Header>{t('Codeowners sync')}</Header>{' '}
+        <FeatureBadge style={{top: -3}} type="new" noTooltip />
         <DismissButton
           icon={<IconClose size="xs" />}
           priority="link"
@@ -74,7 +75,7 @@ const OwnershipRules = ({
           priority="primary"
           href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
           onClick={() =>
-            trackIntegrationEvent('integrations.code_owners_cta_setup_clicked', {
+            trackIntegrationAnalytics('integrations.code_owners_cta_setup_clicked', {
               view: 'stacktrace_issue_details',
               project_id: project.id,
               organization,
@@ -88,7 +89,7 @@ const OwnershipRules = ({
           external
           href="https://docs.sentry.io/product/issues/issue-owners/#code-owners"
           onClick={() =>
-            trackIntegrationEvent('integrations.code_owners_cta_docs_clicked', {
+            trackIntegrationAnalytics('integrations.code_owners_cta_docs_clicked', {
               view: 'stacktrace_issue_details',
               project_id: project.id,
               organization,
@@ -165,16 +166,16 @@ const HeaderContainer = styled('div')`
   align-items: flex-start;
 `;
 
-const Header = styled('h4')`
+const Header = styled('h6')`
   margin-bottom: ${space(1)};
   text-transform: uppercase;
   font-weight: bold;
-  color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 
 const Content = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.gray500};
   margin-bottom: ${space(2)};
 `;
 

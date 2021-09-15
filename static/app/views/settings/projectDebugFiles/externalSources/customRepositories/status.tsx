@@ -2,7 +2,6 @@ import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Placeholder from 'app/components/placeholder';
-import {appStoreConnectAlertMessage} from 'app/components/projects/appStoreConnectContext/utils';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
 import {IconDownload} from 'app/icons/iconDownload';
@@ -21,33 +20,18 @@ type Props = {
 };
 
 function Status({theme, details, onEditRepository, onRevalidateItunesSession}: Props) {
+  if (!details) {
+    return <Placeholder height="14px" />;
+  }
+
   const {
     pendingDownloads,
-    updateAlertMessage,
-    itunesSessionValid,
+    promptItunesSession,
     appstoreCredentialsValid,
     lastCheckedBuilds,
   } = details ?? {};
 
-  if (
-    itunesSessionValid &&
-    appstoreCredentialsValid &&
-    updateAlertMessage === appStoreConnectAlertMessage.isTodayAfterItunesSessionRefreshAt
-  ) {
-    return (
-      <Wrapper color={theme.red300} onClick={onRevalidateItunesSession}>
-        <StyledTooltip
-          title={t('We recommend that you revalidate the iTunes session')}
-          containerDisplayMode="inline-flex"
-        >
-          <IconWarning size="sm" />
-        </StyledTooltip>
-        {t('iTunes session will likely expire soon')}
-      </Wrapper>
-    );
-  }
-
-  if (itunesSessionValid === false) {
+  if (promptItunesSession) {
     return (
       <Wrapper color={theme.red300} onClick={onRevalidateItunesSession}>
         <StyledTooltip
@@ -97,7 +81,7 @@ function Status({theme, details, onEditRepository, onRevalidateItunesSession}: P
     );
   }
 
-  return <Placeholder height="14px" />;
+  return null;
 }
 
 export default withTheme(Status);

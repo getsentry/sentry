@@ -27,18 +27,21 @@ import {Hooks} from 'app/types/hooks';
  * which includes Reload, Amplitude, and Google Analytics.
  * All events go to Reload. If eventName is defined, events also go to Amplitude.
  * For more details, refer to the API defined in hooks.
+ *
+ * Shold NOT be used directly.
+ * Instead, use makeAnalyticsFunction to generate an analytics function.
  */
 export const trackAnalyticsEventV2: Hooks['analytics:track-event-v2'] = (data, options) =>
   HookStore.get('analytics:track-event-v2').forEach(cb => cb(data, options));
 
 /**
- * @deprecated Prefer `trackAnalyticsEventV2`
+ * @deprecated Use a method generated from makeAnalyticsFunction
  */
 export const trackAnalyticsEvent: Hooks['analytics:track-event'] = options =>
   HookStore.get('analytics:track-event').forEach(cb => cb(options));
 
 /**
- * @deprecated Prefer `trackAnalyticsEventV2`
+ * @deprecated Use a method generated from makeAnalyticsFunction
  */
 export const trackAdhocEvent: Hooks['analytics:track-adhoc-event'] = options =>
   HookStore.get('analytics:track-adhoc-event').forEach(cb => cb(options));

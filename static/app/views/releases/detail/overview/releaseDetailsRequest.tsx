@@ -75,7 +75,7 @@ class ReleaseDetailsRequest extends React.Component<Props, State> {
     });
 
     return {
-      field: ['count_unique(user)', 'sum(session)'],
+      field: ['count_unique(user)', 'sum(session)', 'p50(session.duration)'],
       groupBy: ['session.status'],
       interval: getSessionsInterval(
         {

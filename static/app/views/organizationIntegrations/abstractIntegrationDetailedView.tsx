@@ -20,14 +20,15 @@ import {
   IntegrationType,
   Organization,
 } from 'app/types';
+import {defined} from 'app/utils';
 import {
   IntegrationAnalyticsKey,
   IntegrationEventParameters,
-} from 'app/utils/integrationEvents';
+} from 'app/utils/analytics/integrationAnalyticsEvents';
 import {
   getCategories,
   getIntegrationFeatureGate,
-  trackIntegrationEvent,
+  trackIntegrationAnalytics,
 } from 'app/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -39,6 +40,7 @@ type Tab = 'overview' | 'configurations';
 
 type AlertType = React.ComponentProps<typeof Alert> & {
   text: string;
+  feature?: string;
 };
 
 type State = {
@@ -64,7 +66,7 @@ class AbstractIntegrationDetailedView<
   }
 
   onLoadAllEndpointsSuccess() {
-    this.trackIntegrationEvent('integrations.integration_viewed', {
+    this.trackIntegrationAnalytics('integrations.integration_viewed', {
       integration_tab: this.state.tab,
     });
   }
@@ -133,7 +135,7 @@ class AbstractIntegrationDetailedView<
   }
 
   onTabChange = (value: Tab) => {
-    this.trackIntegrationEvent('integrations.integration_tab_clicked', {
+    this.trackIntegrationAnalytics('integrations.integration_tab_clicked', {
       integration_tab: value,
     });
     this.setState({tab: value});
@@ -188,8 +190,8 @@ class AbstractIntegrationDetailedView<
     return this.props.params.integrationSlug;
   }
 
-  // Wrapper around trackIntegrationEvent that automatically provides many fields and the org
-  trackIntegrationEvent = <T extends IntegrationAnalyticsKey>(
+  // Wrapper around trackIntegrationAnalytics that automatically provides many fields and the org
+  trackIntegrationAnalytics = <T extends IntegrationAnalyticsKey>(
     eventKey: IntegrationAnalyticsKey,
     options?: Partial<IntegrationEventParameters[T]>
   ) => {
@@ -203,7 +205,7 @@ class AbstractIntegrationDetailedView<
       organization: this.props.organization,
       ...options,
     };
-    trackIntegrationEvent(eventKey, params);
+    trackIntegrationAnalytics(eventKey, params);
   };
 
   // Returns the props as needed by the hooks integrations:feature-gates
@@ -329,13 +331,19 @@ class AbstractIntegrationDetailedView<
               provider={{key: this.props.params.integrationSlug}}
             />
             {this.renderPermissions()}
-            {this.alerts.map((alert, i) => (
-              <Alert key={i} type={alert.type} icon={alert.icon}>
-                <span
-                  dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
-                />
-              </Alert>
-            ))}
+            {this.alerts.map((alert, i) => {
+              return (
+                (defined(alert.feature)
+                  ? this.props.organization.features.includes(alert.feature)
+                  : true) && (
+                  <Alert key={i} type={alert.type} icon={alert.icon}>
+                    <span
+                      dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
+                    />
+                  </Alert>
+                )
+              );
+            })}
           </FlexContainer>
           <Metadata>
             {!!this.author && (

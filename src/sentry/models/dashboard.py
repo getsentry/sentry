@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models.fields.bounded import BoundedBigIntegerField
 
 
 class Dashboard(Model):
@@ -15,6 +16,8 @@ class Dashboard(Model):
     created_by = FlexibleForeignKey("sentry.User")
     organization = FlexibleForeignKey("sentry.Organization")
     date_added = models.DateTimeField(default=timezone.now)
+    visits = BoundedBigIntegerField(null=True, default=1)
+    last_visited = models.DateTimeField(null=True, default=timezone.now)
 
     class Meta:
         app_label = "sentry"

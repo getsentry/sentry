@@ -36,6 +36,8 @@ class ApiError(Exception):
     def from_response(cls, response, url=None):
         if response.status_code == 401:
             return ApiUnauthorized(response.text)
+        elif response.status_code == 429:
+            return ApiRateLimitedError(response.text)
         return cls(response.text, response.status_code, url=url)
 
 
@@ -71,6 +73,10 @@ class ApiTimeoutError(ApiError):
 
 class ApiUnauthorized(ApiError):
     code = 401
+
+
+class ApiRateLimitedError(ApiError):
+    code = 429
 
 
 class UnsupportedResponseType(ApiError):

@@ -2,7 +2,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import EventView from 'app/utils/discover/eventView';
-import TransactionHeader, {Tab} from 'app/views/performance/transactionSummary/header';
+import TransactionHeader from 'app/views/performance/transactionSummary/header';
+import Tab from 'app/views/performance/transactionSummary/tabs';
 
 function initializeData(opts?: {platform?: string}) {
   // @ts-expect-error
@@ -57,6 +58,7 @@ describe('Performance > Transaction Summary Header', function () {
         location={router.location}
         organization={organization}
         projects={[project]}
+        projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
         hasWebVitals="yes"
@@ -80,6 +82,7 @@ describe('Performance > Transaction Summary Header', function () {
         location={router.location}
         organization={organization}
         projects={[project]}
+        projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
         hasWebVitals="no"
@@ -105,6 +108,7 @@ describe('Performance > Transaction Summary Header', function () {
         location={router.location}
         organization={organization}
         projects={[project]}
+        projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
         hasWebVitals="maybe"
@@ -134,6 +138,7 @@ describe('Performance > Transaction Summary Header', function () {
         location={router.location}
         organization={organization}
         projects={[project]}
+        projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
         hasWebVitals="maybe"
@@ -163,6 +168,7 @@ describe('Performance > Transaction Summary Header', function () {
         location={router.location}
         organization={organization}
         projects={[project]}
+        projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
         hasWebVitals="maybe"

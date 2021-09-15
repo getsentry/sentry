@@ -1,4 +1,4 @@
-import {Link, withRouter, WithRouterProps} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -8,6 +8,7 @@ import InboxShortId from 'app/components/group/inboxBadges/shortId';
 import TimesTag from 'app/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'app/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import {IconChat} from 'app/icons';
 import {tct} from 'app/locale';

@@ -130,7 +130,7 @@ export const DropdownItemSubContainer = styled('div')`
   }
 `;
 
-export const StyledTruncate = styled(Truncate)`
+export const QuickTraceValue = styled(Truncate)`
   padding-left: ${space(1)};
   white-space: nowrap;
 `;

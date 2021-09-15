@@ -1,4 +1,3 @@
-import {Link} from 'react-router';
 import {css} from '@emotion/react';
 import {Query} from 'history';
 import * as queryString from 'query-string';
@@ -6,6 +5,7 @@ import * as queryString from 'query-string';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import {IconInfo, IconOpen} from 'app/icons';
@@ -27,7 +27,6 @@ type Props = {
   query: Query;
   organization: Organization;
   projectId: string;
-  hasQueryFeature: boolean;
 };
 
 const EventTagsPill = ({

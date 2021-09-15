@@ -360,13 +360,20 @@ SILENCED_SYSTEM_CHECKS = (
     # the trailing slash. This confuses the warning as the regex is `/$` which
     # looks like it starts with a slash but it doesn't.
     "urls.W002",
+    # Our own AuthenticationMiddleware suffices as a replacement for
+    # django.contrib.auth.middleware.AuthenticationMiddleware; both add the
+    # authenticated user to the HttpRequest which is what's needed here.
+    "admin.E408",
+    # This is fixed in Django@7c08f26bf0439c1ed593b51b51ad847f7e262bc1.
+    # It's not our problem; refer to Django issue 32260.
+    "urls.E007",
 )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
 # webpack assets live at a different URL that is unversioned
 # as we configure webpack to include file content based hash in the filename
-STATIC_UNVERSIONED_URL = "/_static/dist/"
+STATIC_FRONTEND_APP_URL = "/_static/dist/"
 
 # The webpack output directory
 STATICFILES_DIRS = [
@@ -569,10 +576,10 @@ CELERY_IMPORTS = (
     "sentry.tasks.scheduler",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
-    "sentry.tasks.signals",
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
+    "sentry.tasks.user_report",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -720,6 +727,11 @@ CELERYBEAT_SCHEDULE = {
     "schedule-deletions": {
         "task": "sentry.tasks.deletion.run_scheduled_deletions",
         "schedule": timedelta(minutes=15),
+        "options": {"expires": 60 * 25},
+    },
+    "reattempt-deletions": {
+        "task": "sentry.tasks.deletion.reattempt_deletions",
+        "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "options": {"expires": 60 * 25},
     },
     "schedule-weekly-organization-reports": {
@@ -874,6 +886,8 @@ SENTRY_FEATURES = {
     "organizations:boolean-search": False,
     # Enable unfurling charts using the Chartcuterie service
     "organizations:chart-unfurls": False,
+    # Enable alerting based on crash free sessions/users
+    "organizations:crash-rate-alerts": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
@@ -895,6 +909,8 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
+    # Enable discover top events queries with other & higher options
+    "organizations:discover-top-events": False,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable multi project selection
@@ -953,6 +969,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
+    # Allow orgs to debug internal/unpublished sentry apps with logging
+    "organizations:sentry-app-debugging": False,
     # Temporary safety measure, turned on for specific orgs only if
     # absolutely necessary, to be removed shortly
     "organizations:slack-allow-workspace": False,
@@ -962,8 +980,6 @@ SENTRY_FEATURES = {
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
     "organizations:dashboards-edit": True,
-    # Enable dashboards manager.
-    "organizations:dashboards-manage": False,
     # Enable navigation features between Discover and Dashboards
     "organizations:connect-discover-and-dashboards": False,
     # Enable experimental performance improvements.
@@ -974,17 +990,22 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable Jira AC for select organizations.
-    "organizations:jira-ac-plugin": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
     # Display a global dashboard notification for this org
     "organizations:prompt-dashboards": False,
+    "organizations:prompt-additional-volume": False,
+    "organizations:prompt-additional-volume-on-demand": False,
+    "organizations:prompt-on-demand-orgs": False,
+    "organizations:prompt-release-health-adoption": False,
+    "organizations:prompt-upgrade-via-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable views for tag explorer
-    "organizations:performance-tag-explorer": False,
+    "organizations:performance-tag-explorer": True,
+    # Enable views for tag page
+    "organizations:performance-tag-page": True,
     # Enable landing improvements for performance
     "organizations:performance-landing-widgets": False,
     # Enable views for transaction events page in performance
@@ -995,8 +1016,6 @@ SENTRY_FEATURES = {
     "organizations:performance-suspect-spans-ingestion": False,
     # Enable views for suspect tags
     "organizations:performance-suspect-spans-view": False,
-    # Allow the user to create a sample transaction while onboarding
-    "organizations:performance-create-sample-transaction": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1004,9 +1023,8 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": False,
-    # Enable option to send alert, workflow, and deploy notifications
-    # to 3rd parties (e.g. Slack) in addition to email
-    "organizations:notification-platform": False,
+    # Automatically opt IN users to receiving Slack notifications.
+    "organizations:notification-slack-automatic": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
@@ -1050,6 +1068,8 @@ SENTRY_FEATURES = {
     "organizations:project-transaction-threshold-override": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
+    # Enable team insights page
+    "organizations:team-insights": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1143,10 +1163,13 @@ SENTRY_RELAY_ENDPOINT_APM_SAMPLING = 0
 SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
 
 # sample rate for Apple App Store Connect tasks transactions
-SENTRY_APPCONNECT_APM_SAMPLING = 1
+SENTRY_APPCONNECT_APM_SAMPLING = SENTRY_BACKEND_APM_SAMPLING
 
 # sample rate for suspect commits task
 SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
+
+# sample rate for post_process_group task
+SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
 
 # ----
 # end APM config
@@ -1328,6 +1351,10 @@ SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+
+# Metrics product
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
+SENTRY_METRICS_INDEXER_OPTIONS = {}
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
@@ -1931,16 +1958,16 @@ SDK_VERSIONS = {
     "sentry-php": "2.0.1",
 }
 
+# Some of the migration links below are not ideal, but that is all migration documentation we currently have and can provide at this point
 SDK_URLS = {
-    "raven-js": "https://docs.sentry.io/clients/javascript/",
-    "raven-node": "https://docs.sentry.io/clients/node/",
-    "raven-python": "https://docs.sentry.io/clients/python/",
-    "raven-ruby": "https://docs.sentry.io/clients/ruby/",
-    "raven-swift": "https://docs.sentry.io/clients/cocoa/",
-    "sentry-java": "https://docs.sentry.io/clients/java/",
+    "sentry-java": "https://docs.sentry.io/platforms/java/legacy/migration/",
+    "@sentry/browser": "https://github.com/getsentry/sentry-javascript/blob/master/MIGRATION.md#migrating-from-raven-js-to-sentrybrowser",
+    "sentry-cocoa": "https://docs.sentry.io/platforms/apple/migration/",
     "sentry-php": "https://docs.sentry.io/platforms/php/",
-    "sentry-laravel": "https://docs.sentry.io/platforms/php/laravel/",
-    "sentry-swift": "https://docs.sentry.io/clients/cocoa/",
+    "sentry-python": "https://docs.sentry.io/platforms/python/migration/",
+    "sentry-ruby": "https://docs.sentry.io/platforms/ruby/migration/",
+    "sentry-dotnet": "https://docs.sentry.io/platforms/dotnet/migration/#migrating-from-sharpraven-to-sentry-sdk",
+    "sentry-go": "https://docs.sentry.io/platforms/go/migration/",
 }
 
 DEPRECATED_SDKS = {
@@ -1950,16 +1977,20 @@ DEPRECATED_SDKS = {
     "raven-java:log4j": "sentry-java",
     "raven-java:log4j2": "sentry-java",
     "raven-java:logback": "sentry-java",
-    "raven-js": "sentry.javascript.browser",
-    "raven-node": "sentry.javascript.node",
-    "raven-objc": "sentry-swift",
+    "raven-js": "@sentry/browser",
+    "raven-node": "@sentry/browser",
+    "raven-objc": "sentry-cocoa",
     "raven-php": "sentry-php",
-    "raven-python": "sentry.python",
-    "sentry-android": "raven-java",
+    "raven-python": "sentry-python",
+    "raven-ruby": "sentry-ruby",
+    "raven-swift": "sentry-cocoa",
+    "raven-csharp": "sentry-dotnet",
+    "raven-go": "sentry-go",
+    "sentry-android": "sentry-java",
     "sentry-swift": "sentry-cocoa",
-    "SharpRaven": "sentry.dotnet",
+    "SharpRaven": "sentry-dotnet",
     # The Ruby SDK used to go by the name 'sentry-raven'...
-    "sentry-raven": "raven-ruby",
+    "sentry-raven": "sentry-ruby",
 }
 
 TERMS_URL = None
@@ -2199,9 +2230,6 @@ SOUTH_MIGRATION_CONVERSIONS = (
         True,
         "Please upgrade to Sentry 9.1.2 before upgrading to any later versions.",
     ),
-    # From sentry-plugins
-    ("sentry_plugins.jira_ac", "0001_initial", "jira_ac", "0001_initial", False, ""),
-    ("jira_ac", "0001_initial", "jira_ac", "0001_initial", False, ""),
 )
 
 # Whether to use Django migrations to create the database, or just build it based off
@@ -2211,7 +2239,6 @@ MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
-    "jira_ac",
     "nodestore",
     "sentry",
     "social_auth",

@@ -11,7 +11,7 @@ import PlatformPicker from 'app/components/platformPicker';
 import {PlatformKey} from 'app/data/platformCategories';
 import {t, tct} from 'app/locale';
 import {Team} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'app/utils/withApi';
 import withTeams from 'app/utils/withTeams';
 

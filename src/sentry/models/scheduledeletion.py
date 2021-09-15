@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 from uuid import uuid4
 
@@ -6,6 +7,8 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import BoundedBigIntegerField, JSONField, Model
+
+delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 def default_guid():
@@ -36,15 +39,34 @@ class ScheduledDeletion(Model):
         db_table = "sentry_scheduleddeletion"
 
     @classmethod
-    def schedule(cls, instance, days=30, data=None, actor=None):
-        return cls.objects.create(
+    def schedule(cls, instance, days=30, hours=0, data=None, actor=None):
+        model_name = type(instance).__name__
+        record, created = cls.objects.create_or_update(
             app_label=instance._meta.app_label,
-            model_name=type(instance).__name__,
+            model_name=model_name,
             object_id=instance.pk,
-            date_scheduled=timezone.now() + timedelta(days=days),
-            data=data or {},
-            actor_id=actor.id if actor else None,
+            values={
+                "date_scheduled": timezone.now() + timedelta(days=days, hours=hours),
+                "data": data or {},
+                "actor_id": actor.id if actor else None,
+            },
         )
+        if not created:
+            record = cls.objects.get(
+                app_label=instance._meta.app_label,
+                model_name=model_name,
+                object_id=instance.pk,
+            )
+
+        delete_logger.info(
+            "object.delete.queued",
+            extra={
+                "object_id": instance.id,
+                "transaction_id": record.guid,
+                "model": type(instance).__name__,
+            },
+        )
+        return record
 
     def get_model(self):
         return apps.get_model(self.app_label, self.model_name)

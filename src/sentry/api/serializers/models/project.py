@@ -18,6 +18,7 @@ from sentry.digests import backend as digests
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
+from sentry.lang.native.symbolicator import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
@@ -40,6 +41,7 @@ from sentry.notifications.helpers import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba import discover
 from sentry.snuba.sessions import check_has_health_data, get_current_and_previous_crash_free_rates
+from sentry.utils import json
 from sentry.utils.compat import zip
 
 STATUS_LABELS = {
@@ -654,6 +656,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:relay_pii_config",
             "sentry:dynamic_sampling",
             "sentry:breakdowns",
+            "sentry:span_attributes",
             "feedback:branding",
             "digests:mail:minimum_delay",
             "digests:mail:maximum_delay",
@@ -791,8 +794,24 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
-                "symbolSources": attrs["options"].get("sentry:symbol_sources"),
                 "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
+            }
+        )
+        custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")
+        try:
+            sources = parse_sources(custom_symbol_sources_json, False)
+        except Exception:
+            # In theory sources stored on the project should be valid. If they are invalid, we don't
+            # want to abort serialization just for sources, so just return an empty list instead of
+            # returning sources with their secrets included.
+            serialized_sources = "[]"
+        else:
+            redacted_sources = redact_source_secrets(sources)
+            serialized_sources = json.dumps(redacted_sources)
+
+        data.update(
+            {
+                "symbolSources": serialized_sources,
             }
         )
 

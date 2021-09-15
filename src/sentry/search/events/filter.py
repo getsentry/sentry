@@ -20,7 +20,7 @@ from sentry.api.event_search import (
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Organization, Project, Release, SemverFilter
+from sentry.models import Environment, Organization, Project, Release, SemverFilter
 from sentry.models.group import Group
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
@@ -60,7 +60,7 @@ from sentry.utils.snuba import (
     Dataset,
     QueryOutsideRetentionError,
 )
-from sentry.utils.validators import INVALID_EVENT_DETAILS
+from sentry.utils.validators import INVALID_ID_DETAILS
 
 
 def is_condition(term):
@@ -362,12 +362,14 @@ def _release_stage_filter_converter(
 
     organization_id: int = params["organization_id"]
     project_ids: Optional[list[int]] = params.get("project_id")
+    environments: Optional[list[int]] = params.get("environment")
     qs = (
         Release.objects.filter_by_stage(
             organization_id,
             search_filter.operator,
             search_filter.value.value,
             project_ids=project_ids,
+            environments=environments,
         )
         .values_list("version", flat=True)
         .order_by("date_added")[:MAX_SEARCH_RELEASES]
@@ -636,12 +638,15 @@ def convert_search_filter_to_snuba_query(
         }:
             value = int(to_timestamp(value)) * 1000
 
-        # Validate event ids are uuids
-        if name == "id":
+        # Validate event ids and trace ids are uuids
+        if name in {"id", "trace"}:
             if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery("Wildcard conditions are not permitted on `id` field.")
+                raise InvalidSearchQuery(
+                    f"Wildcard conditions are not permitted on `{name}` field."
+                )
             elif not search_filter.value.is_event_id():
-                raise InvalidSearchQuery(INVALID_EVENT_DETAILS.format("Filter"))
+                label = "Filter ID" if name == "id" else "Filter Trace ID"
+                raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
 
         # most field aliases are handled above but timestamp.to_{hour,day} are
         # handled here
@@ -1344,12 +1349,15 @@ class QueryFilter(QueryFields):
         }:
             value = int(to_timestamp(value)) * 1000
 
-        # Validate event ids are uuids
-        if name == "id":
+        # Validate event ids and trace ids are uuids
+        if name in {"id", "trace"}:
             if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery("Wildcard conditions are not permitted on `id` field.")
+                raise InvalidSearchQuery(
+                    f"Wildcard conditions are not permitted on `{name}` field."
+                )
             elif not search_filter.value.is_event_id():
-                raise InvalidSearchQuery(INVALID_EVENT_DETAILS.format("Filter"))
+                label = "Filter ID" if name == "id" else "Filter Trace ID"
+                raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
 
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
@@ -1627,12 +1635,19 @@ class QueryFilter(QueryFields):
 
         organization_id: int = self.params["organization_id"]
         project_ids: Optional[list[int]] = self.params.get("project_id")
+        environment_ids: Optional[list[int]] = self.params.get("environment_id", [])
+        environments = list(
+            Environment.objects.filter(
+                organization_id=organization_id, id__in=environment_ids
+            ).values_list("name", flat=True)
+        )
         qs = (
             Release.objects.filter_by_stage(
                 organization_id,
                 search_filter.operator,
                 search_filter.value.value,
                 project_ids=project_ids,
+                environments=environments,
             )
             .values_list("version", flat=True)
             .order_by("date_added")[:MAX_SEARCH_RELEASES]

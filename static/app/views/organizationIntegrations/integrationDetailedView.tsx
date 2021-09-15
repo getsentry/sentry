@@ -150,7 +150,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   };
 
   handleExternalInstall = () => {
-    this.trackIntegrationEvent('integrations.installation_start');
+    this.trackIntegrationAnalytics('integrations.installation_start');
   };
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
@@ -221,7 +221,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
               onRemove={this.onRemove}
               onDisable={this.onDisable}
               data-test-id={integration.id}
-              trackIntegrationEvent={this.trackIntegrationEvent}
+              trackIntegrationAnalytics={this.trackIntegrationAnalytics}
             />
           </InstallWrapper>
         );

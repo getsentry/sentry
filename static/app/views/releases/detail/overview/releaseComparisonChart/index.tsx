@@ -1,23 +1,22 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
+import Button from 'app/components/button';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import {ChartContainer} from 'app/components/charts/styles';
 import Count from 'app/components/count';
+import Duration from 'app/components/duration';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import NotAvailable from 'app/components/notAvailable';
 import {Panel, PanelTable} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
-import Radio from 'app/components/radio';
 import Tooltip from 'app/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
-import {IconArrow, IconWarning} from 'app/icons';
+import {IconActivity, IconArrow, IconChevron, IconWarning} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -33,7 +32,12 @@ import {
 import {defined} from 'app/utils';
 import {formatPercentage} from 'app/utils/formatters';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
-import {getCount, getCrashFreeRate, getSessionStatusRate} from 'app/utils/sessions';
+import {
+  getCount,
+  getCrashFreeRate,
+  getSeriesAverage,
+  getSessionStatusRate,
+} from 'app/utils/sessions';
 import {Color} from 'app/utils/theme';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {
@@ -42,14 +46,14 @@ import {
   getReleaseHandledIssuesUrl,
   getReleaseParams,
   getReleaseUnhandledIssuesUrl,
+  roundDuration,
 } from 'app/views/releases/utils';
 
-import {releaseComparisonChartLabels} from '../../utils';
-
+import ReleaseComparisonChartRow from './releaseComparisonChartRow';
 import ReleaseEventsChart from './releaseEventsChart';
 import ReleaseSessionsChart from './releaseSessionsChart';
 
-type ComparisonRow = {
+export type ReleaseComparisonRow = {
   type: ReleaseComparisonChartType;
   thisRelease: React.ReactNode;
   allReleases: React.ReactNode;
@@ -106,7 +110,10 @@ function ReleaseComparisonChart({
   const [issuesTotals, setIssuesTotals] = useState<IssuesTotals>(null);
   const [eventsTotals, setEventsTotals] = useState<EventsTotals>(null);
   const [eventsLoading, setEventsLoading] = useState(false);
-  const charts: ComparisonRow[] = [];
+  const [expanded, setExpanded] = useState(new Set());
+  const [isOtherExpanded, setIsOtherExpanded] = useState(false);
+  const charts: ReleaseComparisonRow[] = [];
+  const additionalCharts: ReleaseComparisonRow[] = [];
   const hasDiscover =
     organization.features.includes('discover-basic') ||
     organization.features.includes('performance-view');
@@ -134,6 +141,42 @@ function ReleaseComparisonChart({
       fetchIssuesTotals();
     }
   }, [period, start, end, organization.slug, location]);
+
+  useEffect(() => {
+    const chartInUrl = decodeScalar(location.query.chart) as ReleaseComparisonChartType;
+    if (
+      [
+        ReleaseComparisonChartType.HEALTHY_SESSIONS,
+        ReleaseComparisonChartType.ABNORMAL_SESSIONS,
+        ReleaseComparisonChartType.ERRORED_SESSIONS,
+        ReleaseComparisonChartType.CRASHED_SESSIONS,
+      ].includes(chartInUrl)
+    ) {
+      setExpanded(new Set(expanded.add(ReleaseComparisonChartType.CRASH_FREE_SESSIONS)));
+    }
+
+    if (
+      [
+        ReleaseComparisonChartType.HEALTHY_USERS,
+        ReleaseComparisonChartType.ABNORMAL_USERS,
+        ReleaseComparisonChartType.ERRORED_USERS,
+        ReleaseComparisonChartType.CRASHED_USERS,
+      ].includes(chartInUrl)
+    ) {
+      setExpanded(new Set(expanded.add(ReleaseComparisonChartType.CRASH_FREE_USERS)));
+    }
+
+    if (
+      [
+        ReleaseComparisonChartType.SESSION_COUNT,
+        ReleaseComparisonChartType.USER_COUNT,
+        ReleaseComparisonChartType.ERROR_COUNT,
+        ReleaseComparisonChartType.TRANSACTION_COUNT,
+      ].includes(chartInUrl)
+    ) {
+      setIsOtherExpanded(true);
+    }
+  }, [location.query.chart]);
 
   async function fetchEventsTotals() {
     const url = `/organizations/${organization.slug}/eventsv2/`;
@@ -386,284 +429,295 @@ function ReleaseComparisonChart({
   const releaseUsersCount = getCount(releaseSessions?.groups, SessionField.USERS);
   const allUsersCount = getCount(allSessions?.groups, SessionField.USERS);
 
+  const sessionDurationTotal = roundDuration(
+    (getSeriesAverage(releaseSessions?.groups, SessionField.DURATION) ?? 0) / 1000
+  );
+  const allSessionDurationTotal = roundDuration(
+    (getSeriesAverage(allSessions?.groups, SessionField.DURATION) ?? 0) / 1000
+  );
+
   const diffFailure =
     eventsTotals?.releaseFailureRate && eventsTotals?.allFailureRate
       ? eventsTotals.releaseFailureRate - eventsTotals.allFailureRate
       : null;
 
   if (hasHealthData) {
-    charts.push(
-      {
-        type: ReleaseComparisonChartType.CRASH_FREE_SESSIONS,
-        role: 'parent',
-        drilldown: null,
-        thisRelease: defined(releaseCrashFreeSessions)
-          ? displaySessionStatusPercent(releaseCrashFreeSessions)
-          : null,
-        allReleases: defined(allCrashFreeSessions)
-          ? displaySessionStatusPercent(allCrashFreeSessions)
-          : null,
-        diff: defined(diffCrashFreeSessions)
-          ? displaySessionStatusPercent(diffCrashFreeSessions)
-          : null,
-        diffDirection: diffCrashFreeSessions
-          ? diffCrashFreeSessions > 0
-            ? 'up'
-            : 'down'
-          : null,
-        diffColor: diffCrashFreeSessions
-          ? diffCrashFreeSessions > 0
-            ? 'green300'
-            : 'red300'
-          : null,
-      },
-      {
-        type: ReleaseComparisonChartType.HEALTHY_SESSIONS,
-        role: 'children',
-        drilldown: null,
-        thisRelease: defined(releaseHealthySessions)
-          ? displaySessionStatusPercent(releaseHealthySessions)
-          : null,
-        allReleases: defined(allHealthySessions)
-          ? displaySessionStatusPercent(allHealthySessions)
-          : null,
-        diff: defined(diffHealthySessions)
-          ? displaySessionStatusPercent(diffHealthySessions)
-          : null,
-        diffDirection: diffHealthySessions
-          ? diffHealthySessions > 0
-            ? 'up'
-            : 'down'
-          : null,
-        diffColor: diffHealthySessions
-          ? diffHealthySessions > 0
-            ? 'green300'
-            : 'red300'
-          : null,
-      },
-      {
-        type: ReleaseComparisonChartType.ABNORMAL_SESSIONS,
-        role: 'children',
-        drilldown: null,
-        thisRelease: defined(releaseAbnormalSessions)
-          ? displaySessionStatusPercent(releaseAbnormalSessions)
-          : null,
-        allReleases: defined(allAbnormalSessions)
-          ? displaySessionStatusPercent(allAbnormalSessions)
-          : null,
-        diff: defined(diffAbnormalSessions)
-          ? displaySessionStatusPercent(diffAbnormalSessions)
-          : null,
-        diffDirection: diffAbnormalSessions
-          ? diffAbnormalSessions > 0
-            ? 'up'
-            : 'down'
-          : null,
-        diffColor: diffAbnormalSessions
-          ? diffAbnormalSessions > 0
-            ? 'red300'
-            : 'green300'
-          : null,
-      },
-      {
-        type: ReleaseComparisonChartType.ERRORED_SESSIONS,
-        role: 'children',
-        drilldown: defined(issuesTotals?.handled) ? (
-          <Tooltip title={t('Open in Issues')}>
-            <GlobalSelectionLink
-              to={getReleaseHandledIssuesUrl(
-                organization.slug,
-                project.id,
-                release.version,
-                {start, end, period: period ?? undefined}
-              )}
-            >
-              {tct('([count] handled [issues])', {
-                count: issuesTotals?.handled
-                  ? issuesTotals.handled >= 100
-                    ? '99+'
-                    : issuesTotals.handled
-                  : 0,
-                issues: tn('issue', 'issues', issuesTotals?.handled),
-              })}
-            </GlobalSelectionLink>
-          </Tooltip>
-        ) : null,
-        thisRelease: defined(releaseErroredSessions)
-          ? displaySessionStatusPercent(releaseErroredSessions)
-          : null,
-        allReleases: defined(allErroredSessions)
-          ? displaySessionStatusPercent(allErroredSessions)
-          : null,
-        diff: defined(diffErroredSessions)
-          ? displaySessionStatusPercent(diffErroredSessions)
-          : null,
-        diffDirection: diffErroredSessions
-          ? diffErroredSessions > 0
-            ? 'up'
-            : 'down'
-          : null,
-        diffColor: diffErroredSessions
-          ? diffErroredSessions > 0
-            ? 'red300'
-            : 'green300'
-          : null,
-      },
-      {
-        type: ReleaseComparisonChartType.CRASHED_SESSIONS,
-        role: 'default',
-        drilldown: defined(issuesTotals?.unhandled) ? (
-          <Tooltip title={t('Open in Issues')}>
-            <GlobalSelectionLink
-              to={getReleaseUnhandledIssuesUrl(
-                organization.slug,
-                project.id,
-                release.version,
-                {start, end, period: period ?? undefined}
-              )}
-            >
-              {tct('([count] unhandled [issues])', {
-                count: issuesTotals?.unhandled
-                  ? issuesTotals.unhandled >= 100
-                    ? '99+'
-                    : issuesTotals.unhandled
-                  : 0,
-                issues: tn('issue', 'issues', issuesTotals?.unhandled),
-              })}
-            </GlobalSelectionLink>
-          </Tooltip>
-        ) : null,
-        thisRelease: defined(releaseCrashedSessions)
-          ? displaySessionStatusPercent(releaseCrashedSessions)
-          : null,
-        allReleases: defined(allCrashedSessions)
-          ? displaySessionStatusPercent(allCrashedSessions)
-          : null,
-        diff: defined(diffCrashedSessions)
-          ? displaySessionStatusPercent(diffCrashedSessions)
-          : null,
-        diffDirection: diffCrashedSessions
-          ? diffCrashedSessions > 0
-            ? 'up'
-            : 'down'
-          : null,
-        diffColor: diffCrashedSessions
-          ? diffCrashedSessions > 0
-            ? 'red300'
-            : 'green300'
-          : null,
-      }
-    );
+    charts.push({
+      type: ReleaseComparisonChartType.CRASH_FREE_SESSIONS,
+      role: 'parent',
+      drilldown: null,
+      thisRelease: defined(releaseCrashFreeSessions)
+        ? displaySessionStatusPercent(releaseCrashFreeSessions)
+        : null,
+      allReleases: defined(allCrashFreeSessions)
+        ? displaySessionStatusPercent(allCrashFreeSessions)
+        : null,
+      diff: defined(diffCrashFreeSessions)
+        ? displaySessionStatusPercent(diffCrashFreeSessions)
+        : null,
+      diffDirection: diffCrashFreeSessions
+        ? diffCrashFreeSessions > 0
+          ? 'up'
+          : 'down'
+        : null,
+      diffColor: diffCrashFreeSessions
+        ? diffCrashFreeSessions > 0
+          ? 'green300'
+          : 'red300'
+        : null,
+    });
+    if (expanded.has(ReleaseComparisonChartType.CRASH_FREE_SESSIONS)) {
+      charts.push(
+        {
+          type: ReleaseComparisonChartType.HEALTHY_SESSIONS,
+          role: 'children',
+          drilldown: null,
+          thisRelease: defined(releaseHealthySessions)
+            ? displaySessionStatusPercent(releaseHealthySessions)
+            : null,
+          allReleases: defined(allHealthySessions)
+            ? displaySessionStatusPercent(allHealthySessions)
+            : null,
+          diff: defined(diffHealthySessions)
+            ? displaySessionStatusPercent(diffHealthySessions)
+            : null,
+          diffDirection: diffHealthySessions
+            ? diffHealthySessions > 0
+              ? 'up'
+              : 'down'
+            : null,
+          diffColor: diffHealthySessions
+            ? diffHealthySessions > 0
+              ? 'green300'
+              : 'red300'
+            : null,
+        },
+        {
+          type: ReleaseComparisonChartType.ABNORMAL_SESSIONS,
+          role: 'children',
+          drilldown: null,
+          thisRelease: defined(releaseAbnormalSessions)
+            ? displaySessionStatusPercent(releaseAbnormalSessions)
+            : null,
+          allReleases: defined(allAbnormalSessions)
+            ? displaySessionStatusPercent(allAbnormalSessions)
+            : null,
+          diff: defined(diffAbnormalSessions)
+            ? displaySessionStatusPercent(diffAbnormalSessions)
+            : null,
+          diffDirection: diffAbnormalSessions
+            ? diffAbnormalSessions > 0
+              ? 'up'
+              : 'down'
+            : null,
+          diffColor: diffAbnormalSessions
+            ? diffAbnormalSessions > 0
+              ? 'red300'
+              : 'green300'
+            : null,
+        },
+        {
+          type: ReleaseComparisonChartType.ERRORED_SESSIONS,
+          role: 'children',
+          drilldown: defined(issuesTotals?.handled) ? (
+            <Tooltip title={t('Open in Issues')}>
+              <GlobalSelectionLink
+                to={getReleaseHandledIssuesUrl(
+                  organization.slug,
+                  project.id,
+                  release.version,
+                  {start, end, period: period ?? undefined}
+                )}
+              >
+                {tct('([count] handled [issues])', {
+                  count: issuesTotals?.handled
+                    ? issuesTotals.handled >= 100
+                      ? '99+'
+                      : issuesTotals.handled
+                    : 0,
+                  issues: tn('issue', 'issues', issuesTotals?.handled),
+                })}
+              </GlobalSelectionLink>
+            </Tooltip>
+          ) : null,
+          thisRelease: defined(releaseErroredSessions)
+            ? displaySessionStatusPercent(releaseErroredSessions)
+            : null,
+          allReleases: defined(allErroredSessions)
+            ? displaySessionStatusPercent(allErroredSessions)
+            : null,
+          diff: defined(diffErroredSessions)
+            ? displaySessionStatusPercent(diffErroredSessions)
+            : null,
+          diffDirection: diffErroredSessions
+            ? diffErroredSessions > 0
+              ? 'up'
+              : 'down'
+            : null,
+          diffColor: diffErroredSessions
+            ? diffErroredSessions > 0
+              ? 'red300'
+              : 'green300'
+            : null,
+        },
+        {
+          type: ReleaseComparisonChartType.CRASHED_SESSIONS,
+          role: 'default',
+          drilldown: defined(issuesTotals?.unhandled) ? (
+            <Tooltip title={t('Open in Issues')}>
+              <GlobalSelectionLink
+                to={getReleaseUnhandledIssuesUrl(
+                  organization.slug,
+                  project.id,
+                  release.version,
+                  {start, end, period: period ?? undefined}
+                )}
+              >
+                {tct('([count] unhandled [issues])', {
+                  count: issuesTotals?.unhandled
+                    ? issuesTotals.unhandled >= 100
+                      ? '99+'
+                      : issuesTotals.unhandled
+                    : 0,
+                  issues: tn('issue', 'issues', issuesTotals?.unhandled),
+                })}
+              </GlobalSelectionLink>
+            </Tooltip>
+          ) : null,
+          thisRelease: defined(releaseCrashedSessions)
+            ? displaySessionStatusPercent(releaseCrashedSessions)
+            : null,
+          allReleases: defined(allCrashedSessions)
+            ? displaySessionStatusPercent(allCrashedSessions)
+            : null,
+          diff: defined(diffCrashedSessions)
+            ? displaySessionStatusPercent(diffCrashedSessions)
+            : null,
+          diffDirection: diffCrashedSessions
+            ? diffCrashedSessions > 0
+              ? 'up'
+              : 'down'
+            : null,
+          diffColor: diffCrashedSessions
+            ? diffCrashedSessions > 0
+              ? 'red300'
+              : 'green300'
+            : null,
+        }
+      );
+    }
   }
 
   const hasUsers = !!getCount(releaseSessions?.groups, SessionField.USERS);
   if (hasHealthData && (hasUsers || loading)) {
-    charts.push(
-      {
-        type: ReleaseComparisonChartType.CRASH_FREE_USERS,
-        role: 'parent',
-        drilldown: null,
-        thisRelease: defined(releaseCrashFreeUsers)
-          ? displaySessionStatusPercent(releaseCrashFreeUsers)
-          : null,
-        allReleases: defined(allCrashFreeUsers)
-          ? displaySessionStatusPercent(allCrashFreeUsers)
-          : null,
-        diff: defined(diffCrashFreeUsers)
-          ? displaySessionStatusPercent(diffCrashFreeUsers)
-          : null,
-        diffDirection: diffCrashFreeUsers
-          ? diffCrashFreeUsers > 0
-            ? 'up'
-            : 'down'
-          : null,
-        diffColor: diffCrashFreeUsers
-          ? diffCrashFreeUsers > 0
-            ? 'green300'
-            : 'red300'
-          : null,
-      },
-      {
-        type: ReleaseComparisonChartType.HEALTHY_USERS,
-        role: 'children',
-        drilldown: null,
-        thisRelease: defined(releaseHealthyUsers)
-          ? displaySessionStatusPercent(releaseHealthyUsers)
-          : null,
-        allReleases: defined(allHealthyUsers)
-          ? displaySessionStatusPercent(allHealthyUsers)
-          : null,
-        diff: defined(diffHealthyUsers)
-          ? displaySessionStatusPercent(diffHealthyUsers)
-          : null,
-        diffDirection: diffHealthyUsers ? (diffHealthyUsers > 0 ? 'up' : 'down') : null,
-        diffColor: diffHealthyUsers
-          ? diffHealthyUsers > 0
-            ? 'green300'
-            : 'red300'
-          : null,
-      },
-      {
-        type: ReleaseComparisonChartType.ABNORMAL_USERS,
-        role: 'children',
-        drilldown: null,
-        thisRelease: defined(releaseAbnormalUsers)
-          ? displaySessionStatusPercent(releaseAbnormalUsers)
-          : null,
-        allReleases: defined(allAbnormalUsers)
-          ? displaySessionStatusPercent(allAbnormalUsers)
-          : null,
-        diff: defined(diffAbnormalUsers)
-          ? displaySessionStatusPercent(diffAbnormalUsers)
-          : null,
-        diffDirection: diffAbnormalUsers ? (diffAbnormalUsers > 0 ? 'up' : 'down') : null,
-        diffColor: diffAbnormalUsers
-          ? diffAbnormalUsers > 0
-            ? 'red300'
-            : 'green300'
-          : null,
-      },
-      {
-        type: ReleaseComparisonChartType.ERRORED_USERS,
-        role: 'children',
-        drilldown: null,
-        thisRelease: defined(releaseErroredUsers)
-          ? displaySessionStatusPercent(releaseErroredUsers)
-          : null,
-        allReleases: defined(allErroredUsers)
-          ? displaySessionStatusPercent(allErroredUsers)
-          : null,
-        diff: defined(diffErroredUsers)
-          ? displaySessionStatusPercent(diffErroredUsers)
-          : null,
-        diffDirection: diffErroredUsers ? (diffErroredUsers > 0 ? 'up' : 'down') : null,
-        diffColor: diffErroredUsers
-          ? diffErroredUsers > 0
-            ? 'red300'
-            : 'green300'
-          : null,
-      },
-      {
-        type: ReleaseComparisonChartType.CRASHED_USERS,
-        role: 'default',
-        drilldown: null,
-        thisRelease: defined(releaseCrashedUsers)
-          ? displaySessionStatusPercent(releaseCrashedUsers)
-          : null,
-        allReleases: defined(allCrashedUsers)
-          ? displaySessionStatusPercent(allCrashedUsers)
-          : null,
-        diff: defined(diffCrashedUsers)
-          ? displaySessionStatusPercent(diffCrashedUsers)
-          : null,
-        diffDirection: diffCrashedUsers ? (diffCrashedUsers > 0 ? 'up' : 'down') : null,
-        diffColor: diffCrashedUsers
-          ? diffCrashedUsers > 0
-            ? 'red300'
-            : 'green300'
-          : null,
-      }
-    );
+    charts.push({
+      type: ReleaseComparisonChartType.CRASH_FREE_USERS,
+      role: 'parent',
+      drilldown: null,
+      thisRelease: defined(releaseCrashFreeUsers)
+        ? displaySessionStatusPercent(releaseCrashFreeUsers)
+        : null,
+      allReleases: defined(allCrashFreeUsers)
+        ? displaySessionStatusPercent(allCrashFreeUsers)
+        : null,
+      diff: defined(diffCrashFreeUsers)
+        ? displaySessionStatusPercent(diffCrashFreeUsers)
+        : null,
+      diffDirection: diffCrashFreeUsers ? (diffCrashFreeUsers > 0 ? 'up' : 'down') : null,
+      diffColor: diffCrashFreeUsers
+        ? diffCrashFreeUsers > 0
+          ? 'green300'
+          : 'red300'
+        : null,
+    });
+    if (expanded.has(ReleaseComparisonChartType.CRASH_FREE_USERS)) {
+      charts.push(
+        {
+          type: ReleaseComparisonChartType.HEALTHY_USERS,
+          role: 'children',
+          drilldown: null,
+          thisRelease: defined(releaseHealthyUsers)
+            ? displaySessionStatusPercent(releaseHealthyUsers)
+            : null,
+          allReleases: defined(allHealthyUsers)
+            ? displaySessionStatusPercent(allHealthyUsers)
+            : null,
+          diff: defined(diffHealthyUsers)
+            ? displaySessionStatusPercent(diffHealthyUsers)
+            : null,
+          diffDirection: diffHealthyUsers ? (diffHealthyUsers > 0 ? 'up' : 'down') : null,
+          diffColor: diffHealthyUsers
+            ? diffHealthyUsers > 0
+              ? 'green300'
+              : 'red300'
+            : null,
+        },
+        {
+          type: ReleaseComparisonChartType.ABNORMAL_USERS,
+          role: 'children',
+          drilldown: null,
+          thisRelease: defined(releaseAbnormalUsers)
+            ? displaySessionStatusPercent(releaseAbnormalUsers)
+            : null,
+          allReleases: defined(allAbnormalUsers)
+            ? displaySessionStatusPercent(allAbnormalUsers)
+            : null,
+          diff: defined(diffAbnormalUsers)
+            ? displaySessionStatusPercent(diffAbnormalUsers)
+            : null,
+          diffDirection: diffAbnormalUsers
+            ? diffAbnormalUsers > 0
+              ? 'up'
+              : 'down'
+            : null,
+          diffColor: diffAbnormalUsers
+            ? diffAbnormalUsers > 0
+              ? 'red300'
+              : 'green300'
+            : null,
+        },
+        {
+          type: ReleaseComparisonChartType.ERRORED_USERS,
+          role: 'children',
+          drilldown: null,
+          thisRelease: defined(releaseErroredUsers)
+            ? displaySessionStatusPercent(releaseErroredUsers)
+            : null,
+          allReleases: defined(allErroredUsers)
+            ? displaySessionStatusPercent(allErroredUsers)
+            : null,
+          diff: defined(diffErroredUsers)
+            ? displaySessionStatusPercent(diffErroredUsers)
+            : null,
+          diffDirection: diffErroredUsers ? (diffErroredUsers > 0 ? 'up' : 'down') : null,
+          diffColor: diffErroredUsers
+            ? diffErroredUsers > 0
+              ? 'red300'
+              : 'green300'
+            : null,
+        },
+        {
+          type: ReleaseComparisonChartType.CRASHED_USERS,
+          role: 'default',
+          drilldown: null,
+          thisRelease: defined(releaseCrashedUsers)
+            ? displaySessionStatusPercent(releaseCrashedUsers)
+            : null,
+          allReleases: defined(allCrashedUsers)
+            ? displaySessionStatusPercent(allCrashedUsers)
+            : null,
+          diff: defined(diffCrashedUsers)
+            ? displaySessionStatusPercent(diffCrashedUsers)
+            : null,
+          diffDirection: diffCrashedUsers ? (diffCrashedUsers > 0 ? 'up' : 'down') : null,
+          diffColor: diffCrashedUsers
+            ? diffCrashedUsers > 0
+              ? 'red300'
+              : 'green300'
+            : null,
+        }
+      );
+    }
   }
 
   if (hasPerformance) {
@@ -684,22 +738,34 @@ function ReleaseComparisonChart({
   }
 
   if (hasHealthData) {
-    charts.push(
-      {
-        type: ReleaseComparisonChartType.SESSION_COUNT,
-        role: 'default',
-        drilldown: null,
-        thisRelease: defined(releaseSessionsCount) ? (
-          <Count value={releaseSessionsCount} />
-        ) : null,
-        allReleases: defined(allSessionsCount) ? (
-          <Count value={allSessionsCount} />
-        ) : null,
-        diff: null,
-        diffDirection: null,
-        diffColor: null,
-      },
-      {
+    charts.push({
+      type: ReleaseComparisonChartType.SESSION_DURATION,
+      role: 'default',
+      drilldown: null,
+      thisRelease: defined(sessionDurationTotal) ? (
+        <Duration seconds={sessionDurationTotal} abbreviation />
+      ) : null,
+      allReleases: defined(allSessionDurationTotal) ? (
+        <Duration seconds={allSessionDurationTotal} abbreviation />
+      ) : null,
+      diff: null,
+      diffDirection: null,
+      diffColor: null,
+    });
+    additionalCharts.push({
+      type: ReleaseComparisonChartType.SESSION_COUNT,
+      role: 'default',
+      drilldown: null,
+      thisRelease: defined(releaseSessionsCount) ? (
+        <Count value={releaseSessionsCount} />
+      ) : null,
+      allReleases: defined(allSessionsCount) ? <Count value={allSessionsCount} /> : null,
+      diff: null,
+      diffDirection: null,
+      diffColor: null,
+    });
+    if (hasUsers || loading) {
+      additionalCharts.push({
         type: ReleaseComparisonChartType.USER_COUNT,
         role: 'default',
         drilldown: null,
@@ -710,12 +776,12 @@ function ReleaseComparisonChart({
         diff: null,
         diffDirection: null,
         diffColor: null,
-      }
-    );
+      });
+    }
   }
 
   if (hasDiscover) {
-    charts.push({
+    additionalCharts.push({
       type: ReleaseComparisonChartType.ERROR_COUNT,
       role: 'default',
       drilldown: null,
@@ -732,7 +798,7 @@ function ReleaseComparisonChart({
   }
 
   if (hasPerformance) {
-    charts.push({
+    additionalCharts.push({
       type: ReleaseComparisonChartType.TRANSACTION_COUNT,
       role: 'default',
       drilldown: null,
@@ -758,10 +824,32 @@ function ReleaseComparisonChart({
     });
   }
 
+  function handleExpanderToggle(chartType: ReleaseComparisonChartType) {
+    if (expanded.has(chartType)) {
+      expanded.delete(chartType);
+      setExpanded(new Set(expanded));
+    } else {
+      setExpanded(new Set(expanded.add(chartType)));
+    }
+  }
+
+  function getTableHeaders(withExpanders: boolean) {
+    const headers = [
+      <DescriptionCell key="description">{t('Description')}</DescriptionCell>,
+      <Cell key="releases">{t('All Releases')}</Cell>,
+      <Cell key="release">{t('This Release')}</Cell>,
+      <Cell key="change">{t('Change')}</Cell>,
+    ];
+    if (withExpanders) {
+      headers.push(<Cell key="expanders" />);
+    }
+    return headers;
+  }
+
   function getChartDiff(
-    diff: ComparisonRow['diff'],
-    diffColor: ComparisonRow['diffColor'],
-    diffDirection: ComparisonRow['diffDirection']
+    diff: ReleaseComparisonRow['diff'],
+    diffColor: ReleaseComparisonRow['diffColor'],
+    diffDirection: ReleaseComparisonRow['diffDirection']
   ) {
     return diff ? (
       <Change color={defined(diffColor) ? diffColor : undefined}>
@@ -775,6 +863,12 @@ function ReleaseComparisonChart({
     ) : null;
   }
 
+  // if there are no sessions, we do not need to do row toggling because there won't be as many rows
+  if (!hasHealthData) {
+    charts.push(...additionalCharts);
+    additionalCharts.splice(0, additionalCharts.length);
+  }
+
   let activeChart = decodeScalar(
     location.query.chart,
     hasHealthData
@@ -784,7 +878,7 @@ function ReleaseComparisonChart({
       : ReleaseComparisonChartType.ERROR_COUNT
   ) as ReleaseComparisonChartType;
 
-  let chart = charts.find(ch => ch.type === activeChart);
+  let chart = [...charts, ...additionalCharts].find(ch => ch.type === activeChart);
 
   if (!chart) {
     chart = charts[0];
@@ -792,6 +886,7 @@ function ReleaseComparisonChart({
   }
 
   const showPlaceholders = loading || eventsLoading;
+  const withExpanders = hasHealthData || additionalCharts.length > 0;
 
   if (errored || !chart) {
     return (
@@ -807,6 +902,28 @@ function ReleaseComparisonChart({
     chart.diff !== '0%' && chart.thisRelease !== '0%'
       ? getChartDiff(chart.diff, chart.diffColor, chart.diffDirection)
       : null;
+
+  function renderChartRow({
+    diff,
+    diffColor,
+    diffDirection,
+    ...rest
+  }: ReleaseComparisonRow) {
+    return (
+      <ReleaseComparisonChartRow
+        {...rest}
+        key={rest.type}
+        diff={diff}
+        showPlaceholders={showPlaceholders}
+        activeChart={activeChart}
+        onChartChange={handleChartChange}
+        chartDiff={getChartDiff(diff, diffColor, diffDirection)}
+        onExpanderToggle={handleExpanderToggle}
+        expanded={expanded.has(rest.type)}
+        withExpanders={withExpanders}
+      />
+    );
+  }
 
   return (
     <Fragment>
@@ -849,75 +966,33 @@ function ReleaseComparisonChart({
         </ChartContainer>
       </ChartPanel>
       <ChartTable
-        headers={[
-          <DescriptionCell key="description">{t('Description')}</DescriptionCell>,
-          <Cell key="releases">{t('All Releases')}</Cell>,
-          <Cell key="release">{t('This Release')}</Cell>,
-          <Cell key="change">{t('Change')}</Cell>,
-        ]}
+        headers={getTableHeaders(withExpanders)}
         data-test-id="release-comparison-table"
+        withExpanders={withExpanders}
       >
-        {charts.map(
-          ({
-            type,
-            role,
-            drilldown,
-            thisRelease,
-            allReleases,
-            diff,
-            diffDirection,
-            diffColor,
-          }) => {
-            return (
-              <ChartTableRow
-                key={type}
-                htmlFor={type}
-                isActive={type === activeChart}
-                isLoading={showPlaceholders}
-                role={role}
-              >
-                <DescriptionCell>
-                  <TitleWrapper>
-                    <Radio
-                      id={type}
-                      disabled={false}
-                      checked={type === activeChart}
-                      onChange={() => handleChartChange(type)}
-                    />
-                    {releaseComparisonChartLabels[type]}&nbsp;{drilldown}
-                  </TitleWrapper>
-                </DescriptionCell>
-                <Cell>
-                  {showPlaceholders ? (
-                    <Placeholder height="20px" />
-                  ) : defined(allReleases) ? (
-                    allReleases
-                  ) : (
-                    <NotAvailable />
-                  )}
-                </Cell>
-                <Cell>
-                  {showPlaceholders ? (
-                    <Placeholder height="20px" />
-                  ) : defined(thisRelease) ? (
-                    thisRelease
-                  ) : (
-                    <NotAvailable />
-                  )}
-                </Cell>
-                <Cell>
-                  {showPlaceholders ? (
-                    <Placeholder height="20px" />
-                  ) : defined(diff) ? (
-                    getChartDiff(diff, diffColor, diffDirection)
-                  ) : (
-                    <NotAvailable />
-                  )}
-                </Cell>
-              </ChartTableRow>
-            );
-          }
+        {charts.map(chartRow => renderChartRow(chartRow))}
+        {additionalCharts.length > 0 && (
+          <ShowMoreWrapper
+            onClick={() => setIsOtherExpanded(!isOtherExpanded)}
+            isExpanded={isOtherExpanded}
+          >
+            <ShowMoreTitle>
+              <IconActivity size="xs" />
+              {isOtherExpanded
+                ? tn('Hide %s Other', 'Hide %s Others', additionalCharts.length)
+                : tn('Show %s Other', 'Show %s Others', additionalCharts.length)}
+            </ShowMoreTitle>
+            <ShowMoreButton>
+              <Button
+                borderless
+                size="zero"
+                icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
+                label={t('Toggle additional charts')}
+              />
+            </ShowMoreButton>
+          </ShowMoreWrapper>
         )}
+        {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
       </ChartTable>
     </Fragment>
   );
@@ -940,131 +1015,58 @@ const DescriptionCell = styled(Cell)`
   overflow: visible;
 `;
 
-const TitleWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  position: relative;
-  z-index: 1;
-  background: ${p => p.theme.background};
-
-  input {
-    width: ${space(2)};
-    height: ${space(2)};
-    flex-shrink: 0;
-    background-color: ${p => p.theme.background};
-    margin-right: ${space(1)} !important;
-
-    &:checked:after {
-      width: ${space(1)};
-      height: ${space(1)};
-    }
-
-    &:hover {
-      cursor: pointer;
-    }
-  }
-`;
-
 const Change = styled('div')<{color?: Color}>`
   font-size: ${p => p.theme.fontSizeLarge};
   ${p => p.color && `color: ${p.theme[p.color]}`}
 `;
 
-const ChartTableRow = styled('label')<{
-  isActive: boolean;
-  role: ComparisonRow['role'];
-  isLoading: boolean;
-}>`
-  display: contents;
-  font-weight: 400;
-  margin-bottom: 0;
-
-  > * {
-    padding: ${space(1)} ${space(2)};
-  }
-
-  ${p =>
-    p.isActive &&
-    !p.isLoading &&
-    css`
-      ${Cell}, ${DescriptionCell}, ${TitleWrapper} {
-        background-color: ${p.theme.bodyBackground};
-      }
-    `}
-
-  &:hover {
-    cursor: pointer;
-    ${/* sc-selector */ Cell}, ${/* sc-selector */ DescriptionCell}, ${
-      /* sc-selector */ TitleWrapper
-    } {
-      ${p => !p.isLoading && `background-color: ${p.theme.bodyBackground}`}
-    }
-  }
-
-  ${p =>
-    p.role === 'default' &&
-    css`
-      &:not(:last-child) {
-        ${Cell}, ${DescriptionCell} {
-          border-bottom: 1px solid ${p.theme.border};
-        }
-      }
-    `}
-
-  ${p =>
-    p.role === 'parent' &&
-    css`
-      ${Cell}, ${DescriptionCell} {
-        margin-top: ${space(0.75)};
-      }
-    `}
-
-  ${p =>
-    p.role === 'children' &&
-    css`
-      ${DescriptionCell} {
-        padding-left: 44px;
-        position: relative;
-        &:before {
-          content: '';
-          width: 15px;
-          height: 36px;
-          position: absolute;
-          top: -17px;
-          left: 24px;
-          border-bottom: 1px solid ${p.theme.border};
-          border-left: 1px solid ${p.theme.border};
-        }
-      }
-    `}
-
-    ${p =>
-    (p.role === 'parent' || p.role === 'children') &&
-    css`
-      ${Cell}, ${DescriptionCell} {
-        padding-bottom: ${space(0.75)};
-        padding-top: ${space(0.75)};
-        border-bottom: 0;
-      }
-    `}
-`;
-
-const ChartTable = styled(PanelTable)`
+const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-  grid-template-columns: minmax(424px, auto) repeat(3, minmax(min-content, 1fr));
+  grid-template-columns: minmax(400px, auto) repeat(3, minmax(min-content, 1fr)) ${p =>
+      p.withExpanders ? '75px' : ''};
 
   > * {
     border-bottom: 1px solid ${p => p.theme.border};
   }
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: repeat(4, minmax(min-content, 1fr));
+    grid-template-columns: repeat(4, minmax(min-content, 1fr)) 75px;
   }
 `;
 
 const StyledNotAvailable = styled(NotAvailable)`
   display: inline-block;
+`;
+
+const ShowMoreWrapper = styled('div')<{isExpanded: boolean}>`
+  display: contents;
+  &:hover {
+    cursor: pointer;
+  }
+  > * {
+    padding: ${space(1)} ${space(2)};
+    ${p => p.isExpanded && `border-bottom: 1px solid ${p.theme.border};`}
+  }
+`;
+
+const ShowMoreTitle = styled('div')`
+  color: ${p => p.theme.gray300};
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-start;
+  svg {
+    margin-left: ${space(0.25)};
+  }
+`;
+
+const ShowMoreButton = styled('div')`
+  grid-column: 2 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 `;
 
 export default ReleaseComparisonChart;

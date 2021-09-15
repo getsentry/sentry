@@ -133,23 +133,34 @@ class WidgetQueries extends React.Component<Props, State> {
     const {selection, widget} = this.props;
 
     // We do not fetch data whenever the query name changes.
-    const [prevWidgetQueryNames, prevWidgetQueries] = prevProps.widget.queries.reduce(
-      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
-        names.push(name);
-        queries.push(rest);
-        return [names, queries];
-      },
-      [[], []]
-    );
+    // Also don't count empty fields when checking for field changes
+    const [prevWidgetQueryNames, prevWidgetQueries] = prevProps.widget.queries
+      .map((query: WidgetQuery) => {
+        query.fields = query.fields.filter(field => !!field);
+        return query;
+      })
+      .reduce(
+        ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+          names.push(name);
+          queries.push(rest);
+          return [names, queries];
+        },
+        [[], []]
+      );
 
-    const [widgetQueryNames, widgetQueries] = widget.queries.reduce(
-      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
-        names.push(name);
-        queries.push(rest);
-        return [names, queries];
-      },
-      [[], []]
-    );
+    const [widgetQueryNames, widgetQueries] = widget.queries
+      .map((query: WidgetQuery) => {
+        query.fields = query.fields.filter(field => !!field);
+        return query;
+      })
+      .reduce(
+        ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+          names.push(name);
+          queries.push(rest);
+          return [names, queries];
+        },
+        [[], []]
+      );
 
     if (
       !isEqual(widget.displayType, prevProps.widget.displayType) ||

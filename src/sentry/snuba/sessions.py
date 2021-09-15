@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import List, Optional, Set
 
 import pytz
 from snuba_sdk.column import Column
@@ -9,6 +10,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
 from sentry.snuba.dataset import Dataset
+from sentry.utils import snuba
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.snuba import (
     QueryOutsideRetentionError,
@@ -147,6 +149,38 @@ def check_has_health_data(projects_list):
     return {data_tuple(x) for x in raw_query(**raw_query_args)["data"]}
 
 
+def check_releases_have_health_data(
+    organization_id: int,
+    project_ids: List[int],
+    release_versions: List[str],
+    start: datetime,
+    end: datetime,
+) -> Set[str]:
+    """
+    Returns a set of all release versions that have health data within a given period of time.
+    """
+    if not release_versions:
+        return set()
+
+    query = Query(
+        dataset="sessions",
+        match=Entity("sessions"),
+        select=[Column("release")],
+        groupby=[Column("release")],
+        where=[
+            Condition(Column("started"), Op.GTE, start),
+            Condition(Column("started"), Op.LT, end),
+            Condition(Column("org_id"), Op.EQ, organization_id),
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("release"), Op.IN, release_versions),
+        ],
+    )
+    data = snuba.raw_snql_query(query, referrer="snuba.sessions.check_releases_have_health_data")[
+        "data"
+    ]
+    return {row["release"] for row in data}
+
+
 def get_project_releases_by_stability(
     project_ids, offset, limit, scope, stats_period=None, environments=None
 ):
@@ -197,6 +231,51 @@ def get_project_releases_by_stability(
         rv.append((x["project_id"], x["release"]))
 
     return rv
+
+
+def get_project_releases_count(
+    organization_id: int,
+    project_ids: List[int],
+    scope: str,
+    stats_period: Optional[str] = None,
+    environments: Optional[str] = None,
+) -> int:
+    """
+    Fetches the total count of releases/project combinations
+    """
+    if stats_period is None:
+        stats_period = "24h"
+
+    # Special rule that we support sorting by the last 24h only.
+    if scope.endswith("_24h"):
+        stats_period = "24h"
+
+    _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
+
+    where = [
+        Condition(Column("started"), Op.GTE, stats_start),
+        Condition(Column("started"), Op.LT, datetime.now()),
+        Condition(Column("project_id"), Op.IN, project_ids),
+        Condition(Column("org_id"), Op.EQ, organization_id),
+    ]
+    if environments is not None:
+        where.append(Condition(Column("environment"), Op.IN, environments))
+
+    having = []
+    # Filter out releases with zero users when sorting by either `users` or `crash_free_users`
+    if scope in ["users", "crash_free_users"]:
+        having.append(Condition(Column("users"), Op.GT, 0))
+
+    query = Query(
+        dataset="sessions",
+        match=Entity("sessions"),
+        select=[Function("uniqExact", [Column("release"), Column("project_id")], alias="count")],
+        where=where,
+        having=having,
+    )
+    return snuba.raw_snql_query(query, referrer="snuba.sessions.check_releases_have_health_data")[
+        "data"
+    ][0]["count"]
 
 
 def _make_stats(start, rollup, buckets, default=0):

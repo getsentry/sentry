@@ -89,6 +89,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert set(errors["missing_external_users"]) == {"@AnotherUser"}
         assert errors["missing_user_emails"] == []
         assert errors["teams_without_access"] == []
+        assert errors["users_without_access"] == []
 
     def test_invalid_code_mapping_id_update(self):
         with self.feature({"organizations:integrations-codeowners": True}):

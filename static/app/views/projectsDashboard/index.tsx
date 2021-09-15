@@ -1,14 +1,16 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import LazyLoad from 'react-lazyload';
-import {Link, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
 
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
+import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NoProjectMessage from 'app/components/noProjectMessage';
@@ -23,6 +25,7 @@ import {sortProjects} from 'app/utils';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeamsForUser from 'app/utils/withTeamsForUser';
+import TeamInsightsHeaderTabs from 'app/views/teamInsights/headerTabs';
 
 import Resources from './resources';
 import TeamSection from './teamSection';
@@ -35,56 +38,50 @@ type Props = {
   error: Error | null;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-class Dashboard extends Component<Props> {
-  componentWillUnmount() {
-    ProjectsStatsStore.reset();
+function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
+  useEffect(() => {
+    return function cleanup() {
+      ProjectsStatsStore.reset();
+    };
+  }, []);
+
+  if (loadingTeams) {
+    return <LoadingIndicator />;
   }
 
-  render() {
-    const {teams, params, organization, loadingTeams, error} = this.props;
+  if (error) {
+    return <LoadingError message={t('An error occurred while fetching your projects')} />;
+  }
 
-    if (loadingTeams) {
-      return <LoadingIndicator />;
-    }
+  const filteredTeams = teams.filter(team => team.projects.length);
+  filteredTeams.sort((team1, team2) => team1.slug.localeCompare(team2.slug));
 
-    if (error) {
-      return <LoadingError message="An error occurred while fetching your projects" />;
-    }
+  const projects = uniqBy(flatten(teams.map(teamObj => teamObj.projects)), 'id');
+  const favorites = projects.filter(project => project.isBookmarked);
 
-    const filteredTeams = teams.filter(team => team.projects.length);
-    filteredTeams.sort((team1, team2) => team1.slug.localeCompare(team2.slug));
+  const canCreateProjects = organization.access.includes('project:admin');
+  const hasTeamAdminAccess = organization.access.includes('team:admin');
 
-    const projects = uniqBy(flatten(teams.map(teamObj => teamObj.projects)), 'id');
-    const favorites = projects.filter(project => project.isBookmarked);
+  const showEmptyMessage = projects.length === 0 && favorites.length === 0;
+  const showResources = projects.length === 1 && !projects[0].firstEvent;
 
-    const access = new Set(organization.access);
-    const canCreateProjects = access.has('project:admin');
-    const hasTeamAdminAccess = access.has('team:admin');
-
-    const showEmptyMessage = projects.length === 0 && favorites.length === 0;
-    const showResources = projects.length === 1 && !projects[0].firstEvent;
-
-    if (showEmptyMessage) {
-      return (
-        <NoProjectMessage
-          organization={organization}
-          projects={projects}
-          superuserNeedsToBeProjectMember
-        >
-          {null}
-        </NoProjectMessage>
-      );
-    }
-
+  if (showEmptyMessage) {
     return (
-      <Fragment>
-        <SentryDocumentTitle
-          title={t('Projects Dashboard')}
-          orgSlug={organization.slug}
-        />
-        {projects.length > 0 && (
+      <NoProjectMessage
+        organization={organization}
+        projects={projects}
+        superuserNeedsToBeProjectMember
+      />
+    );
+  }
+
+  return (
+    <Fragment>
+      <SentryDocumentTitle title={t('Projects Dashboard')} orgSlug={organization.slug} />
+      {projects.length > 0 && (
+        <Fragment>
           <ProjectsHeader>
-            <PageHeading>Projects</PageHeading>
+            <PageHeading>{t('Projects')}</PageHeading>
             <Button
               size="small"
               disabled={!canCreateProjects}
@@ -100,36 +97,37 @@ class Dashboard extends Component<Props> {
               {t('Create Project')}
             </Button>
           </ProjectsHeader>
-        )}
+          <Feature organization={organization} features={['team-insights']}>
+            <TabsWrapper>
+              <TeamInsightsHeaderTabs organization={organization} activeTab="projects" />
+            </TabsWrapper>
+          </Feature>
+        </Fragment>
+      )}
 
-        {filteredTeams.map((team, index) => {
-          const showBorder = index !== teams.length - 1;
-          return (
-            <LazyLoad key={team.slug} once debounce={50} height={300} offset={300}>
-              <TeamSection
-                orgId={params.orgId}
-                team={team}
-                showBorder={showBorder}
-                title={
-                  hasTeamAdminAccess ? (
-                    <TeamLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
-                      <IdBadge team={team} avatarSize={22} />
-                    </TeamLink>
-                  ) : (
-                    <IdBadge team={team} avatarSize={22} />
-                  )
-                }
-                projects={sortProjects(team.projects)}
-                access={access}
-              />
-            </LazyLoad>
-          );
-        })}
-
-        {showResources && <Resources organization={organization} />}
-      </Fragment>
-    );
-  }
+      {filteredTeams.map((team, index) => (
+        <LazyLoad key={team.slug} once debounce={50} height={300} offset={300}>
+          <TeamSection
+            orgId={params.orgId}
+            team={team}
+            showBorder={index !== teams.length - 1}
+            title={
+              hasTeamAdminAccess ? (
+                <TeamLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
+                  <IdBadge team={team} avatarSize={22} />
+                </TeamLink>
+              ) : (
+                <IdBadge team={team} avatarSize={22} />
+              )
+            }
+            projects={sortProjects(team.projects)}
+            access={new Set(organization.access)}
+          />
+        </LazyLoad>
+      ))}
+      {showResources && <Resources organization={organization} />}
+    </Fragment>
+  );
 }
 
 const OrganizationDashboard = (props: Props) => (
@@ -148,6 +146,10 @@ const ProjectsHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+`;
+
+const TabsWrapper = styled('div')`
+  padding: ${space(2)} ${space(4)} ${space(1)} ${space(4)};
 `;
 
 const OrganizationDashboardWrapper = styled('div')`

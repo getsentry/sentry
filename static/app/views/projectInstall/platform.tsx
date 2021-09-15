@@ -1,7 +1,7 @@
 import 'prism-sentry/index.css';
 
 import {Component, Fragment} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {loadDocs} from 'app/actionCreators/projects';
@@ -31,7 +31,7 @@ import withOrganization from 'app/utils/withOrganization';
 type Props = {
   api: Client;
   organization: Organization;
-} & WithRouterProps<{orgId: string; projectId: string; platform: string}, {}>;
+} & RouteComponentProps<{orgId: string; projectId: string; platform: string}, {}>;
 
 type State = {
   loading: boolean;

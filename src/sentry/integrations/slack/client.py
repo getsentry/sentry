@@ -4,13 +4,14 @@ from requests import Response
 from sentry_sdk.tracing import Transaction
 
 from sentry.integrations.client import ApiClient
+from sentry.shared_integrations.client import BaseApiResponse
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 
 SLACK_DATADOG_METRIC = "integrations.slack.http_response"
 
 
-class SlackClient(ApiClient):
+class SlackClient(ApiClient):  # type: ignore
     allow_redirects = False
     integration_name = "slack"
     base_url = "https://slack.com/api"
@@ -74,7 +75,7 @@ class SlackClient(ApiClient):
         params: Optional[Mapping[str, Any]] = None,
         json: bool = False,
         timeout: Optional[int] = None,
-    ):
+    ) -> BaseApiResponse:
         # TODO(meredith): Slack actually supports json now for the chat.postMessage so we
         # can update that so we don't have to pass json=False here
         response = self._request(method, path, headers=headers, data=data, params=params, json=json)

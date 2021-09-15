@@ -1,5 +1,7 @@
 import logging
 
+import sentry_sdk
+
 from sentry import analytics, features
 from sentry.app import locks
 from sentry.exceptions import PluginError
@@ -184,7 +186,11 @@ def update_existing_attachments(event):
     )
 
 
-@instrumented_task(name="sentry.tasks.post_process.post_process_group")
+@instrumented_task(
+    name="sentry.tasks.post_process.post_process_group",
+    time_limit=120,
+    soft_time_limit=110,
+)
 def post_process_group(
     is_new, is_regression, is_new_group_environment, cache_key, group_id=None, **kwargs
 ):
@@ -243,6 +249,7 @@ def post_process_group(
             return
 
         is_reprocessed = is_reprocessed_event(event.data)
+        sentry_sdk.set_tag("is_reprocessed", is_reprocessed)
 
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
@@ -266,8 +273,9 @@ def post_process_group(
 
         _capture_stats(event, is_new)
 
-        if is_reprocessed and is_new:
-            add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
+        with sentry_sdk.start_span(op="tasks.post_process_group.add_group_to_inbox"):
+            if is_reprocessed and is_new:
+                add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
 
         if not is_reprocessed:
             # we process snoozes before rules as it might create a regression
@@ -279,17 +287,19 @@ def post_process_group(
                 elif is_regression:
                     add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
 
-            handle_owner_assignment(event.project, event.group, event)
+            with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
+                handle_owner_assignment(event.project, event.group, event)
 
             rp = RuleProcessor(
                 event, is_new, is_regression, is_new_group_environment, has_reappeared
             )
             has_alert = False
-            # TODO(dcramer): ideally this would fanout, but serializing giant
-            # objects back and forth isn't super efficient
-            for callback, futures in rp.apply():
-                has_alert = True
-                safe_execute(callback, event, futures, _with_transaction=False)
+            with sentry_sdk.start_span(op="tasks.post_process_group.rule_processor_callbacks"):
+                # TODO(dcramer): ideally this would fanout, but serializing giant
+                # objects back and forth isn't super efficient
+                for callback, futures in rp.apply():
+                    has_alert = True
+                    safe_execute(callback, event, futures, _with_transaction=False)
 
             try:
                 lock = locks.get(
@@ -361,10 +371,12 @@ def post_process_group(
 
             from sentry import similarity
 
-            safe_execute(similarity.record, event.project, [event], _with_transaction=False)
+            with sentry_sdk.start_span(op="tasks.post_process_group.similarity"):
+                safe_execute(similarity.record, event.project, [event], _with_transaction=False)
 
         # Patch attachments that were ingested on the standalone path.
-        update_existing_attachments(event)
+        with sentry_sdk.start_span(op="tasks.post_process_group.update_existing_attachments"):
+            update_existing_attachments(event)
 
         if not is_reprocessed:
             event_processed.send_robust(

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.notify import NotifyPlugin
 from sentry.utils.http import absolute_uri
@@ -29,6 +31,9 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
             IntegrationFeatures.ALERT_RULE,
         ),
     ]
+    deprecation_date = datetime(2021, 9, 20)
+    alternative = "pagerduty"
+    alt_is_sentry_app = False
 
     def error_message_from_json(self, data):
         message = data.get("message", "unknown error")

@@ -28,7 +28,7 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
       location: {
         query: {
           transaction: '/performance',
-          project: 1,
+          project: '1',
           transactionCursor: '1:0:0',
           ...query,
         },
@@ -160,7 +160,6 @@ describe('Performance > TransactionSummary', function () {
       <TransactionEvents
         organization={initialData.organization}
         location={initialData.router.location}
-        projects={[]}
       />,
       initialData.routerContext
     );
@@ -169,16 +168,14 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     expect(
-      wrapper
-        .find('NavTabs')
-        .find({children: ['All Events']})
-        .find('Link')
+      wrapper.find('NavTabs').find({children: 'All Events'}).find('Link')
     ).toHaveLength(1);
     expect(wrapper.find('SentryDocumentTitle')).toHaveLength(1);
     expect(wrapper.find('SearchBar')).toHaveLength(1);
     expect(wrapper.find('GridEditable')).toHaveLength(1);
     expect(wrapper.find('Pagination')).toHaveLength(1);
-    expect(wrapper.find('EventsPageContent')).toHaveLength(1);
+    expect(wrapper.find('EventsContent')).toHaveLength(1);
+    expect(wrapper.find('TransactionHeader')).toHaveLength(1);
   });
 
   it('renders alert when not feature flagged', async function () {
@@ -187,7 +184,6 @@ describe('Performance > TransactionSummary', function () {
       <TransactionEvents
         organization={initialData.organization}
         location={initialData.router.location}
-        projects={[]}
       />,
       initialData.routerContext
     );
@@ -200,7 +196,8 @@ describe('Performance > TransactionSummary', function () {
     expect(wrapper.find('SearchBar')).toHaveLength(0);
     expect(wrapper.find('TransactionsTable')).toHaveLength(0);
     expect(wrapper.find('Pagination')).toHaveLength(0);
-    expect(wrapper.find('EventsPageContent')).toHaveLength(0);
+    expect(wrapper.find('EventsContent')).toHaveLength(0);
+    expect(wrapper.find('TransactionHeader')).toHaveLength(0);
   });
 
   it('renders relative span breakdown header when no filter selected', async function () {
@@ -209,7 +206,6 @@ describe('Performance > TransactionSummary', function () {
       <TransactionEvents
         organization={initialData.organization}
         location={initialData.router.location}
-        projects={[]}
       />,
       initialData.routerContext
     );
@@ -229,7 +225,6 @@ describe('Performance > TransactionSummary', function () {
       <TransactionEvents
         organization={initialData.organization}
         location={initialData.router.location}
-        projects={[]}
       />,
       initialData.routerContext
     );
@@ -269,7 +264,6 @@ describe('Performance > TransactionSummary', function () {
       <TransactionEvents
         organization={initialData.organization}
         location={initialData.router.location}
-        projects={[]}
       />,
       initialData.routerContext
     );

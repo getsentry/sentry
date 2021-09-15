@@ -65,14 +65,7 @@ class HumanRenderer:
 
 
 class StructLogHandler(logging.StreamHandler):
-    def emit(self, record, logger=None):
-        # If anyone wants to use the 'extra' kwarg to provide context within
-        # structlog, we have to strip all of the default attributes from
-        # a record because the RootLogger will take the 'extra' dictionary
-        # and just turn them into attributes.
-        if logger is None:
-            logger = get_logger()
-
+    def get_log_kwargs(self, record, logger):
         kwargs = {k: v for k, v in vars(record).items() if k not in throwaways and v is not None}
         kwargs.update({"level": record.levelno, "event": record.msg})
 
@@ -87,7 +80,16 @@ class StructLogHandler(logging.StreamHandler):
             else:
                 kwargs["positional_args"] = (record.args,)
 
-        logger.log(**kwargs)
+        return kwargs
+
+    def emit(self, record, logger=None):
+        # If anyone wants to use the 'extra' kwarg to provide context within
+        # structlog, we have to strip all of the default attributes from
+        # a record because the RootLogger will take the 'extra' dictionary
+        # and just turn them into attributes.
+        if logger is None:
+            logger = get_logger()
+        logger.log(**self.get_log_kwargs(record=record, logger=logger))
 
 
 class MessageContainsFilter(logging.Filter):

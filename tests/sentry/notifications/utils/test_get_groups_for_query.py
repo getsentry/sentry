@@ -1,16 +1,13 @@
-from unittest import TestCase
-
-from sentry.models import Group, Project, User
+from sentry.models import Group, Project
 from sentry.notifications.helpers import get_groups_for_query
 from sentry.notifications.types import NotificationScopeType, NotificationSettingOptionValues
+from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
 
 
 class GetGroupsForQueryTestCase(TestCase):
     def setUp(self) -> None:
-        self.user = User(1)
-        self.project = Project(id=123)
-        self.group = Group(id=456, project=self.project)
+        super().setUp()
 
     def test_get_groups_for_query_empty(self):
         groups_by_project = {self.project: {self.group}}
