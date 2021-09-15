@@ -16,6 +16,7 @@ from sentry.models import (
     Project,
     ProjectKey,
     Release,
+    ScheduledDeletion,
     Team,
     User,
 )
@@ -164,7 +165,6 @@ class DemoOrgManagerTest(TestCase):
         assign_demo_org()
         mock_handle_python_react_scenario.assert_called_once_with(mock.ANY, mock.ANY)
 
-    @mock.patch("sentry.demo.demo_org_manager.delete_organization.apply_async")
     @mock.patch.object(DataPopulation, "handle_react_python_scenario")
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
     @mock.patch.object(DataPopulation, "generate_releases")
@@ -173,7 +173,6 @@ class DemoOrgManagerTest(TestCase):
         mock_generate_releases,
         mock_generate_name,
         mock_handle_scenario,
-        mock_delete_organization,
     ):
         User.objects.create(email=org_owner_email)
 
@@ -186,5 +185,6 @@ class DemoOrgManagerTest(TestCase):
 
         org = Organization.objects.get(name=org_name)
         assert org.status == OrganizationStatus.PENDING_DELETION
-
-        mock_delete_organization.assert_called_once_with(kwargs={"object_id": org.id})
+        assert ScheduledDeletion.objects.filter(
+            object_id=org.id, model_name="Organization"
+        ).exists()

@@ -3,7 +3,7 @@ from django.test import override_settings
 
 from sentry.demo.models import DemoOrganization, DemoOrgStatus, DemoUser
 from sentry.demo.tasks import build_up_org_buffer, delete_initializing_orgs, delete_users_orgs
-from sentry.models import Organization, User
+from sentry.models import Organization, OrganizationStatus, User
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.compat import mock
@@ -39,7 +39,7 @@ class DeleteUsersOrgTest(DemoTaskBaseClass):
         with self.tasks():
             delete_users_orgs()
 
-        assert not Organization.objects.filter(id=org.id).exists()
+        assert not Organization.objects.filter(id=org.id, status=OrganizationStatus.ACTIVE).exists()
         assert not User.objects.filter(id=user.id).exists()
 
     @override_settings(DEMO_MODE=False)
@@ -147,7 +147,9 @@ class DeleteInitializingOrgTest(DemoTaskBaseClass):
         with self.tasks():
             delete_initializing_orgs()
 
-        assert not Organization.objects.filter(id=org1.id).exists()
+        assert not Organization.objects.filter(
+            id=org1.id, status=OrganizationStatus.ACTIVE
+        ).exists()
         assert Organization.objects.filter(id=org2.id).exists()
         assert Organization.objects.filter(id=org3.id).exists()
 
