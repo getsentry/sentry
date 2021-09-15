@@ -461,5 +461,10 @@ def test_should_demote_symbolication_never(default_project):
 
 
 def test_should_demote_symbolication_always_and_never(default_project):
-    with override_options({"store.symbolicate-event-lpq-never": [default_project.id], "store.symbolicate-event-lpq-always": [default_project.id]}):
+    with override_options(
+        {
+            "store.symbolicate-event-lpq-never": [default_project.id],
+            "store.symbolicate-event-lpq-always": [default_project.id],
+        }
+    ):
         assert not should_demote_symbolication(default_project.id)
