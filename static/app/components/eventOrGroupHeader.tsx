@@ -32,6 +32,8 @@ type Props = WithRouterProps<{orgId: string}> & {
   index?: number;
   includeLink?: boolean;
   size?: Size;
+  /* is issue breakdown? */
+  grouping?: boolean;
 };
 
 /**
@@ -49,6 +51,7 @@ function EventOrGroupHeader({
   hideLevel,
   includeLink = true,
   size = 'normal',
+  grouping = false,
   ...props
 }: Props) {
   const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
@@ -82,6 +85,7 @@ function EventOrGroupHeader({
             withStackTracePreview
             hasGuideAnchor={index === 0}
             guideAnchorName="issue_stream_title"
+            grouping={grouping}
           />
         </ErrorBoundary>
       </Fragment>
