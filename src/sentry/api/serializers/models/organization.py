@@ -136,7 +136,8 @@ class OrganizationSerializer(Serializer):
                 org_features.remove(feature_name)
 
         for feature_name in org_features:
-            if features.has(feature_name, obj, actor=user):
+            # Skip the entity handler entirely since batch_has would've checked it
+            if features.has(feature_name, obj, skip_entity=True, actor=user):
                 # Remove the organization scope prefix
                 feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
 

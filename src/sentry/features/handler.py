@@ -19,7 +19,7 @@ class FeatureHandler:
         return self.has(feature, actor)
 
     @abc.abstractmethod
-    def has(self, feature: "Feature", actor: "User") -> bool:
+    def has(self, feature: "Feature", actor: "User", skip_entity: Optional[bool] = False) -> bool:
         raise NotImplementedError
 
     def has_for_batch(self, batch: "FeatureCheckBatch") -> Mapping["Project", bool]:
