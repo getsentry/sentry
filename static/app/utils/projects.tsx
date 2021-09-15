@@ -164,9 +164,7 @@ class Projects extends React.Component<Props, State> {
     const {allProjects, projects, slugs} = this.props;
 
     if (allProjects) {
-      this.setState({
-        fetchedProjects: projects,
-      });
+      this.setState({fetchedProjects: projects});
       return;
     }
 
@@ -174,9 +172,7 @@ class Projects extends React.Component<Props, State> {
       // Extract the requested projects from the store based on props.slugs
       const projectsMap = this.getProjectsMap(projects);
       const projectsFromStore = slugs.map(slug => projectsMap.get(slug)).filter(defined);
-      this.setState({
-        projectsFromStore,
-      });
+      this.setState({projectsFromStore});
     }
   };
 
