@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, Mapping, Optional, Sequence, cast
+from typing import Any, Dict, List, Mapping, Optional, Sequence, cast
 
 from snuba_sdk import Column, Condition, Entity, Op, Query
 from snuba_sdk.expressions import Granularity
@@ -50,6 +50,19 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             rollup,
         )
 
+        for project_id, project_data in previous.items():
+            projects_crash_free_rate_dict[project_id][
+                "previousCrashFreeRate"
+            ] = self._compute_crash_free_rate(project_data)
+
+        current = self._get_crash_free_rate_data(
+            org_id,
+            project_ids,
+            current_start,
+            current_end,
+            rollup,
+        )
+
         return projects_crash_free_rate_dict
 
     @staticmethod
@@ -59,9 +72,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         start: datetime,
         end: datetime,
         rollup: int,
-    ) -> Mapping[str, Any]:
+    ) -> Mapping[int, Dict[str, float]]:
 
-        snql_session_count = Query(
+        data = {}
+
+        session_status = tag_key(org_id, "session.status")
+
+        count_query = Query(
             dataset=Dataset.Metrics.value,
             match=Entity("metrics_counters"),
             select=[Column("value")],
@@ -69,15 +86,59 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 Condition(Column("org_id"), Op.EQ, org_id),
                 Condition(Column("project_id"), Op.IN, project_ids),
                 Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
-                Condition(
-                    Column(tag_key(org_id, "session.status")), Op.EQ, tag_value(org_id, "init")
-                ),
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("timestamp"), Op.LT, end),
             ],
-            groupby=[Column("project_id"), Column("bucketed_time")],
+            groupby=[
+                Column("project_id"),
+                Column(session_status),
+            ],
             granularity=Granularity(rollup),
         )
 
-        data = raw_snql_query(snql_session_count, referrer="", use_cache=False)["data"]
-        return {}
+        # TODO: Add appropriate referrer
+        count_data = raw_snql_query(count_query, use_cache=False)["data"]
+
+        for row in count_data:
+            project_data = data.setdefault(row["project_id"], {})
+            tag_value = reverse_tag_value(org_id, row[session_status])
+            if tag_value is not None:
+                project_data[tag_value] = row["value"]
+
+        set_query = Query(
+            dataset=Dataset.Metrics.value,
+            match=Entity("metrics_sets"),
+            select=[Column("value")],  # count_unique
+            where=[
+                Condition(Column("org_id"), Op.EQ, org_id),
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.error")),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("timestamp"), Op.LT, end),
+            ],
+            groupby=[Column("project_id")],
+            granularity=Granularity(rollup),
+        )
+
+        set_data = raw_snql_query(set_query, use_cache=False)["data"]
+
+        for row in set_data:
+            project_data = data.setdefault(row["project_id"], {})
+            project_data["errored"] = row["value"]
+
+        return data
+
+    @staticmethod
+    def _compute_crash_free_rate(data: Dict[str, float]) -> Optional[float]:
+        total_session_count = data.get("init", 0)
+        crash_count = data.get("crashed", 0)
+
+        if total_session_count == 0:
+            return None
+
+        crash_free_rate = 1.0 - (crash_count / total_session_count)
+
+        # If crash count is larger than total session count for some reason
+        crash_free_rate = max(0.0, crash_free_rate)
+
+        return crash_free_rate
