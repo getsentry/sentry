@@ -203,7 +203,7 @@ def increment_low_priority_metrics_counter(cluster, project_id, timestamp, ttl):
         timestamp -= timestamp % 10
         key = f"symbolicate_event_low_priority:{project_id}:{timestamp}"
         cluster.incr(key)
-        cluster.expire(key, ttl, nx=True)
+        cluster.expire(key, ttl, NX=True)
 
 
 def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, data=None):
