@@ -806,7 +806,9 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             ][0]["count"]
 
         paginator_results = SequencePaginator(
-            [(row["score"], row["g.id"]) for row in data], reverse=True, **paginator_options
+            [(row["score"] if row["score"] else 0, row["g.id"]) for row in data],
+            reverse=True,
+            **paginator_options,
         ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
         # We filter against `group_queryset` here so that we recheck all conditions in Postgres.
         # Since replag between Postgres and Clickhouse can happen, we might get back results that
