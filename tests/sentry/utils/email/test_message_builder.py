@@ -124,8 +124,7 @@ class MessageBuilderTest(TestCase):
 
         assert len(mail.outbox) == 0
 
-    # TODO MARCOS FIRST
-    @patch("sentry.utils.email.make_msgid")
+    @patch("sentry.utils.email.message_builder.make_msgid")
     def test_message_id(self, make_msgid):
         make_msgid.return_value = "abc123"
 
@@ -150,7 +149,7 @@ class MessageBuilderTest(TestCase):
             "text/html",
         )
 
-    @patch("sentry.utils.email.make_msgid")
+    @patch("sentry.utils.email.message_builder.make_msgid")
     def test_add_groupemailthread(self, make_msgid):
         make_msgid.return_value = "abc123"
 
@@ -181,7 +180,7 @@ class MessageBuilderTest(TestCase):
         assert thread.email == "foo@example.com"
         assert thread.group == self.group
 
-    @patch("sentry.utils.email.make_msgid")
+    @patch("sentry.utils.email.message_builder.make_msgid")
     def test_reply_reference(self, make_msgid):
         make_msgid.return_value = "abc123"
 

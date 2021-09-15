@@ -1,6 +1,5 @@
 import re
 from email.utils import parseaddr
-from typing import Optional
 
 from django.utils.encoding import force_bytes
 
@@ -25,15 +24,6 @@ def get_from_email_domain():
     if not _from_email_domain_cache[0] == from_:
         _from_email_domain_cache = (from_, domain_from_email(from_))
     return _from_email_domain_cache[1]
-
-
-def parse_email(email: str) -> Optional[str]:
-    """TODO MARCOS DESCRIBE"""
-    # TODO MARCOS FIRST
-    try:
-        return EMAIL_PARSER.search(email).group(1)  # type: ignore
-    except AttributeError:
-        return None
 
 
 def email_to_group_id(address):

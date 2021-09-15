@@ -18,7 +18,6 @@ from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_string
 
-# TODO MARCOS FIRST this might cause circular dependency
 from .address import get_from_email_domain
 from .list_resolver import ListResolver
 from .manager import get_email_addresses

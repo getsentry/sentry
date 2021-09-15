@@ -1,7 +1,6 @@
 import logging
 
-from django.core.mail import EmailMessage
-from django.core.mail import get_connection as _get_connection
+from django.core import mail
 
 from sentry import options
 from sentry.utils import metrics
@@ -25,10 +24,8 @@ def send_messages(messages, fail_silently=False):
 
 
 def get_connection(fail_silently=False):
-    """
-    Gets an SMTP connection using our OptionsStore
-    """
-    return _get_connection(
+    """Gets an SMTP connection using our OptionsStore."""
+    return mail.get_connection(
         backend=get_mail_backend(),
         host=options.get("mail.host"),
         port=options.get("mail.port"),
@@ -46,7 +43,7 @@ def send_mail(subject, message, from_email, recipient_list, fail_silently=False,
     Wrapper that forces sending mail through our connection.
     Uses EmailMessage class which has more options than the simple send_mail
     """
-    email = EmailMessage(
+    email = mail.EmailMessage(
         subject,
         message,
         from_email,
