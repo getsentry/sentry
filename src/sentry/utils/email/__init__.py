@@ -14,6 +14,12 @@ __all__ = (
     "send_messages",
 )
 
+"""
+This is the Email Module. It contains a hodgepodge of helpers for thinks like
+parsing email address strings, building and sending messages, and looking up
+user emails in the database.
+"""
+
 from .address import email_to_group_id, group_id_to_email
 from .backend import PreviewBackend, is_smtp_enabled
 from .faker import create_fake_email
