@@ -1,19 +1,9 @@
-import pytest
 from django.utils.encoding import force_bytes, force_text
 
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.testutils import TestCase
-from sentry.utils.compat import map
 
 
-def psycopg2_version():
-    import psycopg2
-
-    version = psycopg2.__version__.split()[0].split(".")
-    return tuple(map(int, version))
-
-
-@pytest.mark.skipif(psycopg2_version() < (2, 7), reason="Test requires psycopg 2.7+")
 class CursorWrapperTestCase(TestCase):
     def test_null_bytes(self):
         from django.db import connection

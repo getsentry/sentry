@@ -310,6 +310,11 @@ class StreamGroup extends React.Component<Props, State> {
     const {data} = this.state;
     const {statusDetails, count} = data as GroupReprocessing;
     const {info, pendingEvents} = statusDetails;
+
+    if (!info) {
+      return null;
+    }
+
     const {totalEvents, dateCreated} = info;
 
     const remainingEventsToReprocess = totalEvents - pendingEvents;
