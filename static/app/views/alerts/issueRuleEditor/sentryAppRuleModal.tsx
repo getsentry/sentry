@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
+import {closeModal, ModalRenderProps} from 'app/actionCreators/modal';
 import {tct} from 'app/locale';
 import SentryAppExternalForm, {
   Config,
@@ -10,7 +10,7 @@ type Props = ModalRenderProps & {
   sentryAppInstallationUuid: string;
   appName: string;
   config: Config;
-  action: 'create' | 'update';
+  resetValues: {[key: string]: any};
   onSubmitSuccess: Function;
 };
 
@@ -20,7 +20,7 @@ const SentryAppRuleModal = ({
   sentryAppInstallationUuid,
   appName,
   config,
-  action,
+  resetValues,
   onSubmitSuccess,
 }: Props) => (
   <Fragment>
@@ -29,11 +29,14 @@ const SentryAppRuleModal = ({
       <SentryAppExternalForm
         sentryAppInstallationUuid={sentryAppInstallationUuid}
         appName={appName}
-        element="alert-rule-action"
         config={config}
-        action={action}
-        onSubmitSuccess={onSubmitSuccess}
-        // TODO(leander): Add new defaulting fields for alerts
+        element="alert-rule-action"
+        action="create"
+        onSubmitSuccess={(...params) => {
+          closeModal();
+          onSubmitSuccess(...params);
+        }}
+        resetValues={resetValues}
       />
     </Body>
   </Fragment>

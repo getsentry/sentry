@@ -46,7 +46,14 @@ type Props = {
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
 
-class RuleNode extends React.Component<Props> {
+type State = {
+  /** Used to preserve values after modal closes, in case of edits */
+  sentryAppFormData: {[key: string]: any};
+};
+
+class RuleNode extends React.Component<Props, State> {
+  state: State = {sentryAppFormData: {}};
+
   handleDelete = () => {
     const {index, onDelete} = this.props;
     onDelete(index);
@@ -328,7 +335,7 @@ class RuleNode extends React.Component<Props> {
    * @param formData Form data
    * @param fetchedFieldOptionsCache Object
    */
-  updateParent = (
+  updateParentFromTicketRule = (
     formData: {[key: string]: string},
     fetchedFieldOptionsCache: Record<string, Choices>
   ): void => {
@@ -347,6 +354,22 @@ class RuleNode extends React.Component<Props> {
         return field;
       }
     );
+
+    for (const [name, value] of Object.entries(formData)) {
+      onPropertyChange(index, name, value);
+    }
+  };
+
+  /**
+   * Update all the AlertRuleAction's fields from the SentryAppRuleModal together
+   * only after the user clicks "Save Changes". Also saves the form state from the modal
+   * to repopulate it if the user makes changes
+   * @param formData Form data
+   * @param fetchedFieldOptionsCache Object
+   */
+  updateParentFromSentryAppRule = (formData: {[key: string]: string}): void => {
+    this.setState({sentryAppFormData: formData});
+    const {index, onPropertyChange} = this.props;
 
     for (const [name, value] of Object.entries(formData)) {
       onPropertyChange(index, name, value);
@@ -387,7 +410,7 @@ class RuleNode extends React.Component<Props> {
                       ticketType={node.ticketType}
                       instance={data}
                       index={index}
-                      onSubmitAction={this.updateParent}
+                      onSubmitAction={this.updateParentFromTicketRule}
                       organization={organization}
                     />
                   ))
@@ -402,16 +425,19 @@ class RuleNode extends React.Component<Props> {
                 icon={<IconSettings size="xs" />}
                 type="button"
                 onClick={() => {
-                  openModal(deps => (
-                    <SentryAppRuleModal
-                      {...deps}
-                      sentryAppInstallationUuid={sentryAppInstallationUuid}
-                      config={node.formFields as Config}
-                      appName={node.prompt}
-                      action="create"
-                      onSubmitSuccess={this.updateParent}
-                    />
-                  ));
+                  openModal(
+                    deps => (
+                      <SentryAppRuleModal
+                        {...deps}
+                        sentryAppInstallationUuid={sentryAppInstallationUuid}
+                        config={node.formFields as Config}
+                        appName={node.prompt}
+                        onSubmitSuccess={this.updateParentFromSentryAppRule}
+                        resetValues={this.state.sentryAppFormData}
+                      />
+                    ),
+                    {allowClickClose: false}
+                  );
                 }}
               >
                 {t('Settings')}

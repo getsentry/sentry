@@ -40,12 +40,17 @@ type Props = {
   sentryAppInstallationUuid: string;
   appName: string;
   config: Config;
-  action: 'create' | 'update' | 'link';
+  action: 'create' | 'link';
   element: 'issue-link' | 'alert-rule-action';
+  /** Addtional form data to submit with the request */
   extraFields?: {[key: string]: any};
+  /** Addtional body parameters to submit with the request */
   extraRequestBody?: {[key: string]: any};
-  onSubmitSuccess: Function;
+  /** Object containing reset values for fields if previously entered, in case this   form is unmounted */
+  resetValues?: {[key: string]: any};
+  /** Function to provide fields with pre-written data if a default is specified */
   getFieldDefault?: (field: FieldFromSchema) => string;
+  onSubmitSuccess: Function;
 };
 
 /**
@@ -257,6 +262,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
       fieldToPass = {
         ...fieldToPass,
         options,
+        defaultValue: (this.props.resetValues || {})[field.name],
         defaultOptions,
         filterOption,
         allowClear,
@@ -265,12 +271,18 @@ export class SentryAppExternalForm extends Component<Props, State> {
       if (isAsync) {
         fieldToPass.noOptionsMessage = () => 'Type to search';
       }
-    } else if (
-      ['text', 'textarea'].includes(fieldToPass.type || '') &&
-      field.default &&
-      this.props.getFieldDefault
-    ) {
-      fieldToPass = {...fieldToPass, defaultValue: this.props.getFieldDefault(field)};
+    } else if (['text', 'textarea'].includes(fieldToPass.type || '')) {
+      // Interpret the default if a getFieldDefault function is provided
+      let defaultValue = '';
+      if (field.default && this.props.getFieldDefault) {
+        defaultValue = this.props.getFieldDefault(field);
+      }
+      // Override this default if a reset value is provided
+      defaultValue = (this.props.resetValues || {})[field.name] || defaultValue;
+      fieldToPass = {
+        ...fieldToPass,
+        defaultValue,
+      };
     }
 
     if (field.depends_on) {
@@ -306,23 +318,31 @@ export class SentryAppExternalForm extends Component<Props, State> {
     );
   };
 
+  handleAlertRuleSubmit = (formData, onSubmitSuccess) => {
+    if (this.model.validateForm()) {
+      onSubmitSuccess(formData);
+    }
+  };
+
   render() {
-    const {sentryAppInstallationUuid, action} = this.props;
+    const {sentryAppInstallationUuid, action, element, onSubmitSuccess} = this.props;
 
     const requiredFields = this.state.required_fields || [];
     const optionalFields = this.state.optional_fields || [];
 
-    if (!sentryAppInstallationUuid) {
-      return '';
-    }
+    if (!sentryAppInstallationUuid) return '';
 
     return (
       <Form
         key={action}
-        apiEndpoint={this.getSubmitEndpoint()}
+        apiEndpoint={`/sentry-app-installations/${sentryAppInstallationUuid}/external-issue-actions/`}
         apiMethod="POST"
+        // Without defining onSubmit, the Form will send an `apiMethod` request to the above `apiEndpoint`
+        onSubmit={
+          element === 'alert-rule-action' ? this.handleAlertRuleSubmit : undefined
+        }
         onSubmitSuccess={(...params) => {
-          this.props.onSubmitSuccess(...params);
+          onSubmitSuccess(...params);
         }}
         onSubmitError={this.onSubmitError}
         onFieldChange={this.handleFieldChange}
