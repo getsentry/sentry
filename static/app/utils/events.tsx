@@ -6,7 +6,7 @@ import {
   TreeLabelPart,
 } from 'app/types';
 import {Event} from 'app/types/event';
-import {isNativePlatform} from 'app/utils/platform';
+import {isMobilePlatform, isNativePlatform} from 'app/utils/platform';
 
 function isTombstone(maybe: BaseGroup | Event | GroupTombstone): maybe is GroupTombstone {
   return !maybe.hasOwnProperty('type');
@@ -71,11 +71,11 @@ export function getTreeLabelPartDetails(part: TreeLabelPart) {
   return label || '<unknown>';
 }
 
-function computeTitleWithTreeLabel(metadata: EventMetadata, features: string[] = []) {
+function computeTitleWithTreeLabel(metadata: EventMetadata) {
   const {type, current_tree_label, finest_tree_label} = metadata;
-  const treeLabel = features.includes('grouping-title-ui')
-    ? current_tree_label || finest_tree_label
-    : undefined;
+
+  const treeLabel = current_tree_label || finest_tree_label;
+
   const formattedTreeLabel = treeLabel
     ? treeLabel.map(labelPart => getTreeLabelPartDetails(labelPart)).join(' | ')
     : undefined;
@@ -97,7 +97,11 @@ function computeTitleWithTreeLabel(metadata: EventMetadata, features: string[] =
   };
 }
 
-export function getTitle(event: Event | BaseGroup, features: string[] = []) {
+export function getTitle(
+  event: Event | BaseGroup,
+  features: string[] = [],
+  grouping = false
+) {
   const {metadata, type, culprit} = event;
 
   const customTitle =
@@ -115,9 +119,23 @@ export function getTitle(event: Event | BaseGroup, features: string[] = []) {
         };
       }
 
+      const displayTitleWithTreeLabel =
+        features.includes('grouping-title-ui') &&
+        (grouping ||
+          isNativePlatform(event.platform) ||
+          isMobilePlatform(event.platform));
+
+      if (displayTitleWithTreeLabel) {
+        return {
+          subtitle: culprit,
+          ...computeTitleWithTreeLabel(metadata),
+        };
+      }
+
       return {
         subtitle: culprit,
-        ...computeTitleWithTreeLabel(metadata, features),
+        title: metadata.type || metadata.function || '<unknown>',
+        treeLabel: undefined,
       };
     }
     case EventOrGroupType.CSP:

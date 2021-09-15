@@ -1062,7 +1062,7 @@ export type BaseGroupStatusReprocessing = {
     info: {
       dateCreated: string;
       totalEvents: number;
-    };
+    } | null;
   };
 };
 
