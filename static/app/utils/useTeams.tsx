@@ -42,8 +42,9 @@ export type Result = {
   teams: Team[];
   /**
    * This is an action provided to consumers for them to update the current
-   * teams result set using a simple search query. You can allow the new
-   * results to either be appended or replace the existing results.
+   * teams result set using a simple search query.
+   *
+   * Will always add new options into the store.
    */
   onSearch: (searchTerm: string) => Promise<void>;
 } & Pick<State, 'fetching' | 'hasMore' | 'fetchError'>;
