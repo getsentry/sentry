@@ -365,6 +365,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
         data = serialize(project, request.user, DetailedProjectSerializer())
 
+        data["eventProcessing"] = {
+            "symbolicationDegraded": False,
+        }
+
         include = set(filter(bool, request.GET.get("include", "").split(",")))
         if "stats" in include:
             data["stats"] = {"unresolved": self._get_unresolved_count(project)}
