@@ -82,6 +82,25 @@ def submit_process(
     )
 
 
+def should_demote_symbolication(project_id):
+    """
+    Determines whether a project's symbolication events should be pushed to the low priority queue.
+    """
+    always_lowpri = killswitch_matches_context(
+        "store.symbolicate-event-lpq-always",
+        {
+            "project_id": project_id,
+        },
+    )
+    never_lowpri = killswitch_matches_context(
+        "store.symbolicate-event-lpq-never",
+        {
+            "project_id": project_id,
+        },
+    )
+    return not never_lowpri and always_lowpri
+
+
 def submit_symbolicate(project, from_reprocessing, cache_key, event_id, start_time, data):
     task = symbolicate_event_from_reprocessing if from_reprocessing else symbolicate_event
     task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
@@ -144,20 +163,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
     if should_process_with_symbolicator(data):
         reprocessing2.backup_unprocessed_event(project=project, data=original_data)
 
-        always_lowpri = killswitch_matches_context(
-            "store.symbolicate-event-lpq-always",
-            {
-                "project_id": project_id,
-            },
-        )
-        never_lowpri = killswitch_matches_context(
-            "store.symbolicate-event-lpq-never",
-            {
-                "project_id": project_id,
-            },
-        )
-        is_low_priority = not never_lowpri and always_lowpri
-
+        is_low_priority = should_demote_symbolication(project_id)
         task = submit_symbolicate_low_priority if is_low_priority else submit_symbolicate
         task(
             project,

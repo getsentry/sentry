@@ -10,6 +10,7 @@ from sentry.tasks.store import (
     preprocess_event,
     process_event,
     save_event,
+    should_demote_symbolication,
     symbolicate_event,
     time_synthetic_monitoring_event,
 )
@@ -443,3 +444,22 @@ def test_time_synthetic_monitoring_event_in_save_event(mock_metrics_timing):
         mock.ANY,
     )
     assert to_process.kwargs == {"tags": tags, "sample_rate": 1.0}
+
+
+def test_should_demote_symbolication_empty(default_project):
+    assert not should_demote_symbolication(default_project.id)
+
+
+def test_should_demote_symbolication_always(default_project):
+    with override_options({"store.symbolicate-event-lpq-always": [default_project.id]}):
+        assert should_demote_symbolication(default_project.id)
+
+
+def test_should_demote_symbolication_never(default_project):
+    with override_options({"store.symbolicate-event-lpq-never": [default_project.id]}):
+        assert should_demote_symbolication(default_project.id)
+
+
+def test_should_demote_symbolication_always_and_never(default_project):
+    with override_options({"store.symbolicate-event-lpq-never": [default_project.id], "store.symbolicate-event-lpq-always": [default_project.id]}):
+        assert not should_demote_symbolication(default_project.id)
