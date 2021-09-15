@@ -79,7 +79,7 @@ ALL_KILLSWITCH_OPTIONS = {
     ),
     "store.symbolicate-event-lpq-never": KillswitchInfo(
         description="""
-        Never allow a project's symbolication events to be demoted to symbolicator's Low Priority queue.
+        Never allow a project's symbolication events to be demoted to symbolicator's low priority queue.
 
         If a project is in both store.symbolicate-event-lpq-never and store.symbolicate-event-lpq-always,
         store.symbolicate-event-lpq-never will always take precedence.
@@ -90,7 +90,7 @@ ALL_KILLSWITCH_OPTIONS = {
     ),
     "store.symbolicate-event-lpq-always": KillswitchInfo(
         description="""
-        Always push a project's symbolication events to symbolicator's Low Priority queue.
+        Always push a project's symbolication events to symbolicator's low priority queue.
 
         If a project is in both store.symbolicate-event-lpq-never and store.symbolicate-event-lpq-always,
         store.symbolicate-event-lpq-never will always take precedence.
