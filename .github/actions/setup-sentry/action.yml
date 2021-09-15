@@ -158,14 +158,16 @@ runs:
 
         # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
         if [ "$NEED_KAFKA" = "true" ]; then
+          # This is *not* the production version. Unclear reason as to why this was chosen
+          # https://github.com/getsentry/ops/blob/c823e62f930ecc6c97bb08898c71e49edc7232f6/cookbooks/getsentry/attributes/default.rb#L631
           docker run \
             --name sentry_zookeeper \
             -d --network host \
             -e ZOOKEEPER_CLIENT_PORT=2181 \
-            # This is *not* the production version. Unclear reason as to why this was chosen
-            # https://github.com/getsentry/ops/blob/c823e62f930ecc6c97bb08898c71e49edc7232f6/cookbooks/getsentry/attributes/default.rb#L631
             confluentinc/cp-zookeeper:4.1.0
 
+          # This is the production version; do not change w/o changing it there as well
+          # https://github.com/getsentry/ops/blob/c823e62f930ecc6c97bb08898c71e49edc7232f6/cookbooks/getsentry/attributes/default.rb#L643
           docker run \
             --name sentry_kafka \
             -d --network host \
@@ -175,9 +177,7 @@ runs:
             -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT \
             -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
             -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
-            # This is the production version; do not change w/o changing it there as well
-            # https://github.com/getsentry/ops/blob/c823e62f930ecc6c97bb08898c71e49edc7232f6/cookbooks/getsentry/attributes/default.rb#L643
-            confluentinc/cp-kafka:4.1.2-3
+            confluentinc/cp-kafka:5.1.2
         fi
 
         if [ "$NEED_SNUBA" = "true" ]; then
