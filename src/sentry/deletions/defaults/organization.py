@@ -19,7 +19,6 @@ class OrganizationDeletionTask(ModelDeletionTask):
         from sentry.models import (
             CommitAuthor,
             Dashboard,
-            Distribution,
             Environment,
             ExternalIssue,
             OrganizationMember,
@@ -27,8 +26,6 @@ class OrganizationDeletionTask(ModelDeletionTask):
             ProjectTransactionThreshold,
             PromptsActivity,
             Release,
-            ReleaseEnvironment,
-            ReleaseFile,
             Repository,
             Team,
         )
@@ -40,12 +37,9 @@ class OrganizationDeletionTask(ModelDeletionTask):
             OrganizationMember,
             Repository,
             CommitAuthor,  # Depends on commit deletions, a child of Repository
-            ReleaseEnvironment,
-            Environment,
-            ReleaseFile,
+            Release,
             Project,
-            Release,  # Depends on Group deletions, a child of Project
-            Distribution,
+            Environment,
             Dashboard,
             DiscoverSavedQuery,
             KeyTransaction,
