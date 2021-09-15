@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Sequence, cast
+from typing import Dict, Optional, Sequence
 
 from snuba_sdk import Column, Condition, Entity, Op, Query
 from snuba_sdk.expressions import Granularity
@@ -8,20 +8,31 @@ from sentry.releasehealth.base import ReleaseHealthBackend
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.snuba.dataset import Dataset
-from sentry.utils.snuba import raw_query, raw_snql_query
+from sentry.utils.snuba import raw_snql_query
 
 
 def metric_id(org_id: int, name: str) -> int:
-    return indexer.resolve(org_id, UseCase.TAG_KEY, name)
+    index = indexer.resolve(org_id, UseCase.TAG_KEY, name)
+    assert index is not None  # TODO: assert too strong?
+    return index
 
 
 def tag_key(org_id: int, name: str) -> str:
     index = indexer.resolve(org_id, UseCase.TAG_KEY, name)
+    assert index is not None
     return f"tags[{index}]"
 
 
 def tag_value(org_id: int, name: str) -> int:
-    return indexer.resolve(org_id, UseCase.TAG_VALUE, name)
+    index = indexer.resolve(org_id, UseCase.TAG_VALUE, name)
+    assert index is not None
+    return index
+
+
+def reverse_tag_value(org_id: int, index: int) -> str:
+    str_value = indexer.reverse_resolve(org_id, UseCase.TAG_VALUE, index)
+    assert str_value is not None
+    return str_value
 
 
 class MetricsReleaseHealthBackend(ReleaseHealthBackend):
@@ -63,6 +74,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             rollup,
         )
 
+        for project_id, project_data in current.items():
+            projects_crash_free_rate_dict[project_id][
+                "currentCrashFreeRate"
+            ] = self._compute_crash_free_rate(project_data)
+
         return projects_crash_free_rate_dict
 
     @staticmethod
@@ -72,9 +88,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         start: datetime,
         end: datetime,
         rollup: int,
-    ) -> Mapping[int, Dict[str, float]]:
+    ) -> Dict[int, Dict[str, float]]:
 
-        data = {}
+        data: Dict[int, Dict[str, float]] = {}
 
         session_status = tag_key(org_id, "session.status")
 
@@ -102,29 +118,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         for row in count_data:
             project_data = data.setdefault(row["project_id"], {})
             tag_value = reverse_tag_value(org_id, row[session_status])
-            if tag_value is not None:
-                project_data[tag_value] = row["value"]
-
-        set_query = Query(
-            dataset=Dataset.Metrics.value,
-            match=Entity("metrics_sets"),
-            select=[Column("value")],  # count_unique
-            where=[
-                Condition(Column("org_id"), Op.EQ, org_id),
-                Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.error")),
-                Condition(Column("timestamp"), Op.GTE, start),
-                Condition(Column("timestamp"), Op.LT, end),
-            ],
-            groupby=[Column("project_id")],
-            granularity=Granularity(rollup),
-        )
-
-        set_data = raw_snql_query(set_query, use_cache=False)["data"]
-
-        for row in set_data:
-            project_data = data.setdefault(row["project_id"], {})
-            project_data["errored"] = row["value"]
+            project_data[tag_value] = row["value"]
 
         return data
 
@@ -139,6 +133,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         crash_free_rate = 1.0 - (crash_count / total_session_count)
 
         # If crash count is larger than total session count for some reason
-        crash_free_rate = max(0.0, crash_free_rate)
+        crash_free_rate = 100 * max(0.0, crash_free_rate)
 
         return crash_free_rate
