@@ -7,7 +7,7 @@ import pick from 'lodash/pick';
 import {fetchTagValues} from 'app/actionCreators/tags';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
-import GuideAnchorWrapper, {GuideAnchor} from 'app/components/assistant/guideAnchor';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import ExternalLink from 'app/components/links/externalLink';
@@ -552,9 +552,13 @@ class ReleasesList extends AsyncView<Props, State> {
             {this.renderHealthCta()}
 
             <SortAndFilterWrapper>
-              {hasSemver && hasReleasesSetup ? (
-                <GuideAnchor target="releases_search" position="bottom">
-                  <GuideAnchorWrapper
+              {hasSemver ? (
+                <GuideAnchor
+                  target="releases_search"
+                  position="bottom"
+                  disabled={!hasReleasesSetup}
+                >
+                  <GuideAnchor
                     target="release_stages"
                     position="bottom"
                     disabled={!showReleaseAdoptionStages}
@@ -569,7 +573,7 @@ class ReleasesList extends AsyncView<Props, State> {
                       onSearch={this.handleSearch}
                       onGetTagValues={this.getTagValues}
                     />
-                  </GuideAnchorWrapper>
+                  </GuideAnchor>
                 </GuideAnchor>
               ) : (
                 <SearchBar
