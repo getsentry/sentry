@@ -1,19 +1,21 @@
 import {useEffect, useRef, useState} from 'react';
 import {StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {addTeamToProject} from 'app/actionCreators/projects';
 import Button from 'app/components/button';
 import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
 import IdBadge from 'app/components/idBadge';
 import Tooltip from 'app/components/tooltip';
+import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import {IconAdd, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, Team} from 'app/types';
 import useApi from 'app/utils/useApi';
+import useTeams from 'app/utils/useTeams';
 import withOrganization from 'app/utils/withOrganization';
-import withTeams from 'app/utils/withTeams';
 
 const UnassignedWrapper = styled('div')`
   display: flex;
@@ -74,7 +76,6 @@ const placeholderSelectStyles: StylesConfig = {
 
 type Props = {
   organization: Organization;
-  teams: Team[];
   onChange: (value: any) => any;
   /**
    * Function to control whether a team should be shown in the dropdown
@@ -107,10 +108,11 @@ type TeamOption = {
 
 function TeamSelector(props: Props) {
   const {includeUnassigned, styles, ...extraProps} = props;
-  const {teams, teamFilter, organization, project, multiple, value, useId, onChange} =
-    props;
+  const {teamFilter, organization, project, multiple, value, useId, onChange} = props;
 
   const api = useApi();
+  const {teams, fetching, onSearch} = useTeams();
+
   const [options, setOptions] = useState<TeamOption[]>([]);
 
   // TODO(ts) This type could be improved when react-select types are better.
@@ -249,12 +251,14 @@ function TeamSelector(props: Props) {
     <SelectControl
       ref={selectRef}
       options={options}
+      onInputChange={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
       isOptionDisabled={option => !!option.disabled}
       styles={{
         ...(styles ?? {}),
         ...(includeUnassigned ? unassignedSelectStyles : {}),
         ...placeholderSelectStyles,
       }}
+      isLoading={fetching}
       {...extraProps}
     />
   );
@@ -279,6 +283,6 @@ const AddToProjectButton = styled(Button)`
 export {TeamSelector};
 
 // TODO(davidenwang): this is broken due to incorrect types on react-select
-export default withTeams(withOrganization(TeamSelector)) as unknown as (
-  p: Omit<Props, 'teams' | 'organization'>
+export default withOrganization(TeamSelector) as unknown as (
+  p: Omit<Props, 'organization'>
 ) => JSX.Element;

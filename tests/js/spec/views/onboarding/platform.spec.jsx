@@ -1,3 +1,5 @@
+import {act} from 'react-dom/test-utils';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {createProject} from 'app/actionCreators/projects';
@@ -32,7 +34,9 @@ describe('OnboardingWelcome', function () {
 
     // Select a platform to create
     wrapper.setProps({platform: 'dotnet'});
-    TeamStore.loadInitialData([{id: '1', slug: 'team-slug'}]);
+    act(() => {
+      TeamStore.loadInitialData([{id: '1', slug: 'team-slug'}]);
+    });
     expect(getButton().text()).toEqual('Create Project');
     expect(getButton().props().disabled).toBe(false);
 
@@ -71,7 +75,9 @@ describe('OnboardingWelcome', function () {
 
     const getButton = () => wrapper.find('Button[priority="primary"]');
 
-    TeamStore.loadInitialData([{id: '1', slug: 'team-slug'}]);
+    act(() => {
+      TeamStore.loadInitialData([{id: '1', slug: 'team-slug'}]);
+    });
     expect(getButton().text()).toEqual('Set Up Your Project');
     expect(getButton().props().disabled).toBe(false);
 
