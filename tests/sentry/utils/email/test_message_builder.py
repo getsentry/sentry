@@ -1,44 +1,13 @@
 import functools
 
-import pytest
 from django.core import mail
 
 from sentry import options
 from sentry.models import GroupEmailThread, User, UserOption
 from sentry.testutils import TestCase
 from sentry.utils.compat.mock import patch
-from sentry.utils.email import (
-    ListResolver,
-    MessageBuilder,
-    create_fake_email,
-    default_list_type_handlers,
-    get_from_email_domain,
-    get_mail_backend,
-    send_mail,
-)
-
-
-class ListResolverTestCase(TestCase):
-    resolver = ListResolver("namespace", default_list_type_handlers)
-
-    def test_rejects_invalid_namespace(self):
-        with pytest.raises(AssertionError):
-            ListResolver("\x00", {})
-
-    def test_rejects_invalid_types(self):
-        with pytest.raises(ListResolver.UnregisteredTypeError):
-            self.resolver(object())
-
-    def test_generates_list_ids(self):
-        expected = "<{0.project.slug}.{0.organization.slug}.namespace>".format(self.event)
-        assert self.resolver(self.event.group) == expected
-        assert self.resolver(self.event.project) == expected
-
-    def test_rejects_invalid_objects(self):
-        resolver = ListResolver("namespace", {object: lambda value: ("\x00",)})
-
-        with pytest.raises(AssertionError):
-            resolver(object())
+from sentry.utils.email import MessageBuilder
+from sentry.utils.email.faker import create_fake_email
 
 
 class MessageBuilderTest(TestCase):
@@ -155,6 +124,7 @@ class MessageBuilderTest(TestCase):
 
         assert len(mail.outbox) == 0
 
+    # TODO MARCOS FIRST
     @patch("sentry.utils.email.make_msgid")
     def test_message_id(self, make_msgid):
         make_msgid.return_value = "abc123"
@@ -327,47 +297,3 @@ class MessageBuilderTest(TestCase):
 
         assert len(mail.outbox) == 1
         assert mail.outbox[0].subject == "Foo"
-
-
-class MiscTestCase(TestCase):
-    def test_get_from_email_domain(self):
-        with self.options({"mail.from": "matt@example.com"}):
-            assert get_from_email_domain() == "example.com"
-
-        with self.options({"mail.from": "root@localhost"}):
-            assert get_from_email_domain() == "localhost"
-
-        with self.options({"mail.from": "garbage"}):
-            assert get_from_email_domain() == "garbage"
-
-    def test_get_mail_backend(self):
-        with self.options({"mail.backend": "smtp"}):
-            assert get_mail_backend() == "django.core.mail.backends.smtp.EmailBackend"
-
-        with self.options({"mail.backend": "dummy"}):
-            assert get_mail_backend() == "django.core.mail.backends.dummy.EmailBackend"
-
-        with self.options({"mail.backend": "console"}):
-            assert get_mail_backend() == "django.core.mail.backends.console.EmailBackend"
-
-        with self.options({"mail.backend": "something.else"}):
-            assert get_mail_backend() == "something.else"
-
-
-class SendMail(TestCase):
-    @patch("django.core.mail.EmailMessage", autospec=True)
-    @patch("django.core.mail.get_connection", return_value="connection")
-    def test_send_mail_with_kwargs(self, get_connection, MockEmailMessage):
-        patch.object(MockEmailMessage.return_value, "send")
-        send_mail(
-            "subject", "my_message", "fake@example.com", ["a@b.com"], reply_to=["emusk@tesla.com"]
-        )
-        MockEmailMessage.assert_called_once_with(
-            "subject",
-            "my_message",
-            "fake@example.com",
-            ["a@b.com"],
-            connection="connection",
-            reply_to=["emusk@tesla.com"],
-        )
-        MockEmailMessage.return_value.send.assert_called_once_with(fail_silently=False)
