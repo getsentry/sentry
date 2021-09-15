@@ -219,6 +219,7 @@ def get_send_to_owners(
         all_possible_users |= set(User.objects.filter(id__in=user_ids_to_resolve))
 
     team_mapping = {ExternalProviders.SLACK: set()}
+    team_ids_to_remove = set()
     if team_ids_to_resolve:
         # check for team Slack settings. if present, notify there instead
         for team_id in team_ids_to_resolve:
@@ -229,20 +230,25 @@ def get_send_to_owners(
                 team=team,
                 project=project,
             )
-            if team_slack_settings == NotificationSettingOptionValues.ALWAYS:
+            if team_slack_settings == NotificationSettingOptionValues.DEFAULT:
                 team_mapping[ExternalProviders.SLACK].add(team)
-                team_ids_to_resolve.pop(team_id)
-        # Get all users in team.
+                team_ids_to_remove.add(team_id)
+        # Get all users in teams that don't have Slack settings.
+        team_ids_to_resolve -= team_ids_to_remove
         all_possible_users |= get_users_for_teams_to_resolve(team_ids_to_resolve)
-
     mapping: Mapping[
         ExternalProviders, Union[Set[User], Set[Team]]
     ] = NotificationSetting.objects.filter_to_subscribed_users(project, all_possible_users)
+
+    if not mapping:
+        return team_mapping
+
     # combine the user and team mappings
-    for provider in mapping:
-        for team in team_mapping:
-            if team_mapping.get(provider):
-                mapping[provider].add(team)
+    if team_mapping:
+        if mapping.get(ExternalProviders.SLACK):  # team mapping provider will only ever be Slack
+            mapping[ExternalProviders.SLACK].update(list(team_mapping[ExternalProviders.SLACK]))
+        else:
+            mapping[ExternalProviders.SLACK] = team_mapping[ExternalProviders.SLACK]
     return mapping
 
 
