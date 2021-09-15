@@ -70,7 +70,9 @@ type DisabledAppStoreConnectItem = {
 };
 type DisabledMemberTooltipProps = {children: React.ReactNode};
 type DashboardHeadersProps = {organization: Organization};
-
+type CodeOwnersHeaderProps = {
+  addCodeOwner: () => void;
+};
 /**
  * Component wrapping hooks
  */
@@ -80,6 +82,7 @@ export type ComponentHooks = {
   'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
+  'component:codeowners-header': () => React.ComponentType<CodeOwnersHeaderProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:disabled-app-store-connect-item': () => React.ComponentType<DisabledAppStoreConnectItem>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;

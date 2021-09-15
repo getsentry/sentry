@@ -7,6 +7,7 @@ import Access from 'app/components/acl/access';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import HookOrDefault from 'app/components/hookOrDefault';
 import ExternalLink from 'app/components/links/externalLink';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
@@ -40,6 +41,11 @@ type State = {
   codeowners?: CodeOwner[];
   integrations: Integration[];
 } & AsyncView['state'];
+
+const CodeOwnersHeader = HookOrDefault({
+  hookName: 'component:codeowners-header',
+  defaultComponent: () => <Fragment />,
+});
 
 class ProjectOwnership extends AsyncView<Props, State> {
   getTitle() {
@@ -292,6 +298,8 @@ tags.sku_class:enterprise #enterprise`;
           }
         />
         <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
+        <CodeOwnersHeader addCodeOwner={this.handleAddCodeOwner} />
+
         <PermissionAlert />
         <FeedbackAlert />
         {this.renderCodeOwnerErrors()}
