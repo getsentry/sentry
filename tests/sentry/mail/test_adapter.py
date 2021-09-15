@@ -345,7 +345,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         user_ids = []
         for user in list(notification.get_participants().values())[0]:
             user_ids.append(user.id)
-        assert list(get_email_addresses(user_ids, self.project).values())[1] == "ahmed@ahmed.io"
+        assert "ahmed@ahmed.io" in get_email_addresses(user_ids, self.project).values()
         assert not len(UserOption.objects.filter(key="mail:email", value="foo@bar.dodo"))
 
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
@@ -1085,12 +1085,9 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
         )
 
         with self.tasks():
-            self.adapter.handle_signal(
-                name="user-reports.created",
+            self.adapter.handle_user_report(
                 project=self.project,
-                payload={
-                    "report": serialize(report, AnonymousUser(), UserReportWithGroupSerializer())
-                },
+                report=serialize(report, AnonymousUser(), UserReportWithGroupSerializer()),
             )
 
         assert len(mail.outbox) == 1
@@ -1119,12 +1116,9 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
         report = self.create_report()
 
         with self.tasks():
-            self.adapter.handle_signal(
-                name="user-reports.created",
+            self.adapter.handle_user_report(
                 project=self.project,
-                payload={
-                    "report": serialize(report, AnonymousUser(), UserReportWithGroupSerializer())
-                },
+                report=serialize(report, AnonymousUser(), UserReportWithGroupSerializer()),
             )
 
         assert len(mail.outbox) == 1

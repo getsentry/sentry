@@ -230,10 +230,7 @@ const savedSearchesStoreConfig: Reflux.StoreDefinition & SavedSearchesStoreInter
   },
 };
 
-type SavedSearchesStore = Reflux.Store & SavedSearchesStoreInterface;
-
-const SavedSearchesStore = Reflux.createStore(
-  savedSearchesStoreConfig
-) as SavedSearchesStore;
+const SavedSearchesStore = Reflux.createStore(savedSearchesStoreConfig) as Reflux.Store &
+  SavedSearchesStoreInterface;
 
 export default SavedSearchesStore;

@@ -14,7 +14,7 @@ import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import withOrganization from 'app/utils/withOrganization';
-import OrganizationContext from 'app/views/organizationContext';
+import OrganizationContextContainer from 'app/views/organizationContext';
 
 type InProgressProps = {
   organization: Organization;
@@ -175,11 +175,11 @@ export default class OrganizationDetails extends Component<Props> {
   }
   render() {
     return (
-      <OrganizationContext includeSidebar useLastOrganization {...this.props}>
+      <OrganizationContextContainer includeSidebar useLastOrganization {...this.props}>
         <OrganizationDetailsBody {...this.props}>
           {this.props.children}
         </OrganizationDetailsBody>
-      </OrganizationContext>
+      </OrganizationContextContainer>
     );
   }
 }

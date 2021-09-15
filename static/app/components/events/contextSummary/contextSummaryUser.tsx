@@ -49,7 +49,7 @@ const ContextSummaryUser = ({data}: Props) => {
     }
 
     return (
-      <TextOverflow isParagraph>
+      <TextOverflow isParagraph data-test-id="context-sub-title">
         <Subject>{userDetails.subject}</Subject>
         <AnnotatedText value={userDetails.value} meta={userDetails.meta} />
       </TextOverflow>

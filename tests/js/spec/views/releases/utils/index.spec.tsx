@@ -2,13 +2,13 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {getReleaseBounds, getReleaseParams} from 'app/views/releases/utils';
 
-describe('releases/details/utils', () => {
+describe('releases/utils', () => {
   describe('getReleaseBounds', () => {
     it('returns start and end of a release', () => {
       // @ts-expect-error
       expect(getReleaseBounds(TestStubs.Release())).toEqual({
         releaseStart: '2020-03-23T01:02:00Z',
-        releaseEnd: '2020-03-24T02:04:00Z',
+        releaseEnd: '2020-03-24T02:04:59Z',
       });
     });
 
@@ -22,7 +22,7 @@ describe('releases/details/utils', () => {
         )
       ).toEqual({
         releaseStart: '2020-03-23T01:02:00Z',
-        releaseEnd: '2020-03-24T03:04:00Z',
+        releaseEnd: '2020-03-24T03:04:59Z',
       });
     });
 
@@ -30,7 +30,7 @@ describe('releases/details/utils', () => {
       // @ts-expect-error
       expect(getReleaseBounds(TestStubs.Release({lastEvent: null}))).toEqual({
         releaseStart: '2020-03-23T01:02:00Z',
-        releaseEnd: '2017-10-17T02:41:00Z',
+        releaseEnd: '2017-10-17T02:41:59Z',
       });
     });
 
@@ -45,7 +45,7 @@ describe('releases/details/utils', () => {
         )
       ).toEqual({
         releaseStart: '2020-03-23T01:02:00Z',
-        releaseEnd: '2020-03-23T01:03:00Z',
+        releaseEnd: '2020-03-23T01:03:59Z',
       });
     });
   });
@@ -92,7 +92,7 @@ describe('releases/details/utils', () => {
         })
       ).toEqual({
         start: '2020-03-23T01:02:00Z',
-        end: '2020-03-24T02:04:00Z',
+        end: '2020-03-24T02:04:59Z',
       });
     });
 

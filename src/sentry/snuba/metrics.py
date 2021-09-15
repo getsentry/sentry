@@ -42,7 +42,8 @@ OPERATIONS = (
 MAX_POINTS = 10000
 
 
-TS_COL = "timestamp"
+TS_COL_QUERY = "timestamp"
+TS_COL_GROUP = "bucketed_time"
 
 
 def parse_field(field: str) -> Tuple[str, str]:
@@ -203,6 +204,11 @@ _METRICS = {
         "operations": _FIELDS_BY_ENTITY["metrics_distributions"],
         "tags": _BASE_TAGS,
         "unit": "seconds",
+    },
+    "session.error": {
+        "type": "set",
+        "operations": _FIELDS_BY_ENTITY["metrics_sets"],
+        "tags": _BASE_TAGS,
     },
 }
 
@@ -455,8 +461,8 @@ class SnubaQueryBuilder:
                     for _, name in query_definition.fields.values()
                 ],
             ),
-            Condition(Column(TS_COL), Op.GTE, query_definition.start),
-            Condition(Column(TS_COL), Op.LT, query_definition.end),
+            Condition(Column(TS_COL_QUERY), Op.GTE, query_definition.start),
+            Condition(Column(TS_COL_QUERY), Op.LT, query_definition.end),
         ]
         filter_ = self._build_filter(query_definition)
         if filter_:
@@ -502,7 +508,9 @@ class SnubaQueryBuilder:
             offset=Offset(0),
             granularity=Granularity(query_definition.rollup),
         )
-        series_query = totals_query.set_groupby((totals_query.groupby or []) + [Column(TS_COL)])
+        series_query = totals_query.set_groupby(
+            (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
+        )
 
         return {
             "totals": totals_query,
@@ -522,17 +530,36 @@ class SnubaQueryBuilder:
         return entity
 
 
+_DEFAULT_AGGREGATES = {
+    "avg": None,
+    "count_unique": 0,
+    "count": 0,
+    "max": None,
+    "p50": None,
+    "p75": None,
+    "p90": None,
+    "p95": None,
+    "p99": None,
+    "sum": 0,
+}
+
+
 class SnubaResultConverter:
     """Interpret a Snuba result and convert it to API format"""
 
-    def __init__(self, project_id: int, query_definition: QueryDefinition, results):
+    def __init__(
+        self, project_id: int, query_definition: QueryDefinition, intervals: List[datetime], results
+    ):
         self._project_id = project_id
         self._query_definition = query_definition
+        self._intervals = intervals
         self._results = results
 
         self._ops_by_metric = ops_by_metric = {}
         for op, metric in query_definition.fields.values():
             ops_by_metric.setdefault(metric, []).append(op)
+
+        self._timestamp_index = {timestamp: index for index, timestamp in enumerate(intervals)}
 
     def _parse_tag(self, tag_string: str) -> str:
         tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
@@ -540,32 +567,38 @@ class SnubaResultConverter:
 
     def _extract_data(self, entity, data, groups):
         tags = tuple((key, data[key]) for key in sorted(data.keys()) if key.startswith("tags["))
-        tag_data = groups.setdefault(tags, {"totals": {}, "series": {}})
-
-        # If this is time series data, add it to the appropriate series.
-        # Else, add to totals
-        timestamp = data.pop("timestamp", None)
-        if timestamp is None:
-            target = tag_data["totals"]
-        else:
-            # Create an entry for current timestamp
-            target = tag_data["series"].setdefault(timestamp, {})
 
         metric_name = indexer.reverse_resolve(self._project_id, UseCase.METRIC, data["metric_id"])
-
         ops = self._ops_by_metric[metric_name]
+
+        tag_data = groups.setdefault(
+            tags,
+            {
+                "totals": {},
+                "series": {},
+            },
+        )
+
+        timestamp = data.pop(TS_COL_GROUP, None)
+
         for op in ops:
+            key = f"{op}({metric_name})"
+            series = tag_data["series"].setdefault(
+                key, len(self._intervals) * [_DEFAULT_AGGREGATES[op]]
+            )
+
             field = _OP_TO_FIELD[entity][op]
             value = data[field]
             if field == "percentiles":
                 value = value[Percentile[op].value]
 
-            target[f"{op}({metric_name})"] = finite_or_none(value)
-
-    def _transform_series(self, groups):
-        for data in groups:
-            series = data["series"]
-            data["series"] = [series[ts] for ts in sorted(series.keys())]
+            # If this is time series data, add it to the appropriate series.
+            # Else, add to totals
+            if timestamp is None:
+                tag_data["totals"][key] = finite_or_none(value)
+            else:
+                series_index = self._timestamp_index[timestamp]
+                series[series_index] = finite_or_none(value)
 
     def translate_results(self):
         groups = {}
@@ -594,8 +627,6 @@ class SnubaResultConverter:
             for tags, data in groups.items()
         ]
 
-        self._transform_series(groups)
-
         return groups
 
 
@@ -609,11 +640,15 @@ class SnubaDataSource(IndexMockingDataSource):
 
         snuba_queries = SnubaQueryBuilder(project, query).get_snuba_queries()
         results = {
-            entity: {key: raw_snql_query(query) for key, query in queries.items()}
+            entity: {
+                # TODO: Should we use cache?
+                key: raw_snql_query(query, use_cache=False, referrer=f"api.metrics.{key}")
+                for key, query in queries.items()
+            }
             for entity, queries in snuba_queries.items()
         }
 
-        converter = SnubaResultConverter(project.id, query, results)
+        converter = SnubaResultConverter(project.id, query, intervals, results)
 
         return {
             "start": query.start,

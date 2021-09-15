@@ -246,7 +246,6 @@ function GenericCards(props: GenericCardsProps) {
 }
 
 function _BackendCards(props: BaseCardsProps) {
-  const {organization} = props;
   const functions: Column[] = [
     {
       kind: 'function',
@@ -254,15 +253,10 @@ function _BackendCards(props: BaseCardsProps) {
     },
     {kind: 'function', function: ['tpm', '', undefined, undefined]},
     {kind: 'function', function: ['failure_rate', '', undefined, undefined]},
-    organization.features.includes('project-transaction-threshold')
-      ? {
-          kind: 'function',
-          function: ['apdex', '', undefined, undefined],
-        }
-      : {
-          kind: 'function',
-          function: ['apdex', `${organization.apdexThreshold}`, undefined, undefined],
-        },
+    {
+      kind: 'function',
+      function: ['apdex', '', undefined, undefined],
+    },
   ];
   return <GenericCards {...props} functions={functions} />;
 }
