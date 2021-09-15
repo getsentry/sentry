@@ -25,7 +25,7 @@ type Props = {
   height?: string;
 };
 
-function Breadcrumb({
+const Breadcrumb = memo(function Breadcrumb({
   orgId,
   event,
   breadcrumb,
@@ -68,9 +68,9 @@ function Breadcrumb({
       </GridCell>
     </Fragment>
   );
-}
+});
 
-export default memo(Breadcrumb);
+export default Breadcrumb;
 
 const GridCellCategory = styled(GridCell)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {

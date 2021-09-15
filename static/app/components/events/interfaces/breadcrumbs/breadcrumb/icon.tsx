@@ -11,13 +11,13 @@ import {IconWrapper} from '../styles';
 type Props = Pick<BreadcrumbsWithDetails[0], 'color' | 'icon'> &
   Pick<SvgIconProps, 'size'>;
 
-function Icon({icon, color, size}: Props) {
+const Icon = memo(function Icon({icon, color, size}: Props) {
   const Svg = icon as React.ComponentType<SvgIconProps>;
   return (
     <IconWrapper color={color}>
       <Svg size={size} />
     </IconWrapper>
   );
-}
+});
 
-export default memo(Icon);
+export default Icon;
