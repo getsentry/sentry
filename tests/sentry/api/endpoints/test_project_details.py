@@ -12,6 +12,7 @@ from sentry.models import (
     AuditLogEntryEvent,
     DeletedProject,
     EnvironmentProject,
+    Integration,
     NotificationSetting,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
@@ -103,6 +104,34 @@ class ProjectDetailsTest(APITestCase):
             project.organization.slug, project.slug, qs_params={"include": "stats"}
         )
         assert response.data["stats"]["unresolved"] == 1
+
+    def test_has_alert_integration(self):
+        integration = Integration.objects.create(provider="msteams")
+        integration.add_organization(self.organization)
+
+        project = self.create_project()
+        self.create_group(project=project)
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            project.organization.slug,
+            project.slug,
+            qs_params={"expand": "hasAlertIntegration"},
+        )
+        assert response.data["hasAlertIntegrationInstalled"]
+
+    def test_no_alert_integration(self):
+        integration = Integration.objects.create(provider="jira")
+        integration.add_organization(self.organization)
+
+        project = self.create_project()
+        self.create_group(project=project)
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            project.organization.slug, project.slug, qs_params={"expand": "hasAlertIntegration"}
+        )
+        assert not response.data["hasAlertIntegrationInstalled"]
 
     def test_with_dynamic_sampling_rules(self):
         project = self.project  # force creation
