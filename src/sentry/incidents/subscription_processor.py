@@ -27,6 +27,7 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.models import Project
+from sentry.snuba.dataset import Dataset
 from sentry.utils import metrics, redis
 from sentry.utils.compat import zip
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -210,6 +211,9 @@ class SubscriptionProcessor:
         # aggregations like avg. Defaulting this to 0 for now. It might turn out that
         # we'd prefer to skip the update in the future.
         if aggregation_value is None:
+            if Dataset(self.subscription.snuba_query.dataset) == Dataset.Sessions:
+                metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
+                return
             aggregation_value = 0
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)

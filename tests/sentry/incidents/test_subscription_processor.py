@@ -36,7 +36,7 @@ from sentry.incidents.subscription_processor import (
     update_alert_rule_stats,
 )
 from sentry.models import Integration
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.utils.compat import map
@@ -108,6 +108,48 @@ class ProcessUpdateTest(TestCase):
     @fixture
     def action(self):
         return self.trigger.alertruletriggeraction_set.get()
+
+    @fixture
+    def crash_rate_alert_rule(self):
+        rule = self.create_alert_rule(
+            projects=[self.project],
+            dataset=QueryDatasets.SESSIONS,
+            name="JustAValidRule",
+            query="",
+            aggregate="crash_free_percentage()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.BELOW,
+            threshold_period=1,
+        )
+        trigger = create_alert_rule_trigger(rule, "critical", 80)
+        create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            str(self.user.id),
+        )
+        return rule
+
+    @fixture
+    def crash_rate_alert_critical_trigger(self):
+        return self.crash_rate_alert_rule.alertruletrigger_set.get()
+
+    @fixture
+    def crash_rate_alert_critical_action(self):
+        return self.crash_rate_alert_critical_trigger.alertruletriggeraction_set.get()
+
+    @fixture
+    def crash_rate_alert_warning_trigger(self):
+        return create_alert_rule_trigger(self.crash_rate_alert_rule, "warning", 90)
+
+    @fixture
+    def crash_rate_alert_warning_action(self):
+        return create_alert_rule_trigger_action(
+            self.crash_rate_alert_warning_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            str(self.user.id),
+        )
 
     def build_subscription_update(self, subscription, time_delta=None, value=EMPTY):
         if time_delta is not None:
@@ -989,6 +1031,172 @@ class ProcessUpdateTest(TestCase):
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(incident, [self.action])
+
+    def test_crash_rate_alert_for_sessions_with_auto_resolve_critical(self):
+        """
+        Test that ensures that a Critical alert is triggered when `crash_free_percentage` falls
+        below the Critical threshold and then is Resolved once `crash_free_percentage` goes above
+        the threshold (when no resolve_threshold is set)
+        """
+        rule = self.crash_rate_alert_rule
+        trigger = self.crash_rate_alert_critical_trigger
+        action_critical = self.crash_rate_alert_critical_action
+
+        # Send Critical Update
+        self.send_update(
+            rule,
+            trigger.alert_threshold - 1,
+            timedelta(minutes=-10),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        incident = self.assert_active_incident(rule)
+        self.assert_actions_fired_for_incident(incident, [action_critical])
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+
+        self.send_update(
+            rule,
+            trigger.alert_threshold + 5,
+            timedelta(minutes=-1),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        self.assert_no_active_incident(rule)
+
+    def test_crash_rate_alert_for_sessions_with_auto_resolve_warning(self):
+        """
+        Test that ensures that a Warning alert is triggered when `crash_free_percentage` falls
+        below the Warning threshold and then is Resolved once `crash_free_percentage` goes above
+        the threshold (when no resolve_threshold is set)
+        """
+        rule = self.crash_rate_alert_rule
+        trigger_warning = self.crash_rate_alert_warning_trigger
+        action_warning = self.crash_rate_alert_warning_action
+
+        # Send Warning Update
+        self.send_update(
+            rule,
+            trigger_warning.alert_threshold - 5,
+            timedelta(minutes=-3),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+
+        incident = self.assert_active_incident(rule)
+        self.assert_actions_fired_for_incident(incident, [action_warning])
+        self.assert_trigger_exists_with_status(incident, trigger_warning, TriggerStatus.ACTIVE)
+
+        self.send_update(
+            rule,
+            trigger_warning.alert_threshold + 5,
+            timedelta(minutes=-1),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        self.assert_no_active_incident(rule)
+
+    def test_crash_rate_alert_for_sessions_with_critical_warning_then_resolved(self):
+        """
+        Test that tests the behavior of going from Critical status to Warning status to Resolved
+        for Crash Rate Alerts
+        """
+        rule = self.crash_rate_alert_rule
+
+        trigger = self.crash_rate_alert_critical_trigger
+        trigger_warning = self.crash_rate_alert_warning_trigger
+
+        action_critical = self.crash_rate_alert_critical_action
+        action_warning = self.crash_rate_alert_warning_action
+
+        # Send Critical Update
+        self.send_update(
+            rule,
+            trigger.alert_threshold - 1,
+            timedelta(minutes=-10),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        incident = self.assert_active_incident(rule)
+        self.assert_actions_fired_for_incident(incident, [action_critical])
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+
+        # Send Warning Update
+        self.send_update(
+            rule,
+            trigger_warning.alert_threshold - 5,
+            timedelta(minutes=-3),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+
+        incident = self.assert_active_incident(rule)
+        self.assert_actions_fired_for_incident(incident, [action_warning])
+        self.assert_trigger_exists_with_status(incident, trigger_warning, TriggerStatus.ACTIVE)
+
+        # Send update higher than warning threshold
+        self.send_update(
+            rule,
+            trigger_warning.alert_threshold + 1,
+            timedelta(minutes=-1),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        self.assert_no_active_incident(rule)
+
+    def test_crash_rate_alert_for_sessions_with_triggers_lower_than_resolve_threshold(self):
+        """
+        Test that ensures that when `crash_rate_percentage` goes above the warning threshold but
+        lower than the resolve threshold, incident is not resolved
+        """
+        rule = self.crash_rate_alert_rule
+        rule.resolve_threshold = 95
+        rule.save()
+
+        trigger = self.crash_rate_alert_critical_trigger
+        trigger_warning = self.crash_rate_alert_warning_trigger
+
+        action_critical = self.crash_rate_alert_critical_action
+        action_warning = self.crash_rate_alert_warning_action
+
+        # Send Critical Update
+        self.send_update(
+            rule,
+            trigger.alert_threshold - 1,
+            timedelta(minutes=-10),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        incident = self.assert_active_incident(rule)
+        self.assert_actions_fired_for_incident(incident, [action_critical])
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+
+        # Send Warning Update
+        self.send_update(
+            rule,
+            trigger_warning.alert_threshold - 5,
+            timedelta(minutes=-3),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+
+        incident = self.assert_active_incident(rule)
+        self.assert_actions_fired_for_incident(incident, [action_warning])
+        self.assert_trigger_exists_with_status(incident, trigger_warning, TriggerStatus.ACTIVE)
+
+        # Send update higher than warning threshold but lower than resolve threshold
+        self.send_update(
+            rule,
+            trigger_warning.alert_threshold + 1,
+            timedelta(minutes=-1),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        self.assert_active_incident(rule)
+
+    def test_crash_rate_alert_for_sessions_with_no_sessions_data(self):
+        """
+        Test that ensures we skip the Crash Rate Alert processing if we have no sessions data
+        """
+        rule = self.crash_rate_alert_rule
+
+        self.send_update(
+            rule,
+            None,
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        self.metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.ignore_update_no_session_data"
+        )
 
 
 class TestBuildAlertRuleStatKeys(unittest.TestCase):
