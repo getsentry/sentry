@@ -13,7 +13,7 @@ from typing import (
     Union,
 )
 
-from sentry.features.helpers import any_organization_has_feature
+from sentry import features
 from sentry.notifications.defaults import (
     NOTIFICATION_SETTING_DEFAULTS,
     NOTIFICATION_SETTINGS_ALL_SOMETIMES,
@@ -46,26 +46,13 @@ if TYPE_CHECKING:
 def _get_notification_setting_default(
     provider: ExternalProviders,
     type: NotificationSettingTypes,
-    organization: Optional["Organization"] = None,
-    user: Optional["User"] = None,
+    should_use_slack_automatic: bool = False,
 ) -> NotificationSettingOptionValues:
     """
     In order to increase engagement, we automatically opt users into receiving
     Slack notifications if they install Slack and link their identity.
     """
-    actor, organizations = None, []
-    if organization:
-        organizations = [organization]
-    elif user:
-        if user.is_anonymous:
-            organizations = []
-        else:
-            organizations = user.get_orgs()
-        actor = user
-
-    if any_organization_has_feature(
-        "organizations:notification-slack-automatic", organizations, actor=actor
-    ):
+    if should_use_slack_automatic:
         return NOTIFICATION_SETTINGS_ALL_SOMETIMES[type]
     return NOTIFICATION_SETTING_DEFAULTS[provider][type]
 
@@ -77,6 +64,7 @@ def _get_setting_mapping_from_mapping(
     ],
     user: "User",
     type: NotificationSettingTypes,
+    should_use_slack_automatic: bool = False,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     # XXX(CEO): may not respect granularity of a setting for Slack a setting for email
     # but we'll worry about that later since we don't have a FE for it yet
@@ -92,7 +80,9 @@ def _get_setting_mapping_from_mapping(
             return notification_setting_option
 
     return {
-        provider: _get_notification_setting_default(provider, type, user=user)
+        provider: _get_notification_setting_default(
+            provider, type, should_use_slack_automatic=should_use_slack_automatic
+        )
         for provider in notification_providers()
     }
 
@@ -103,6 +93,7 @@ def where_should_user_be_notified(
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
     user: "User",
+    should_use_slack_automatic: bool = False,
 ) -> List[ExternalProviders]:
     """
     Given a mapping of default and specific notification settings by user,
@@ -112,6 +103,7 @@ def where_should_user_be_notified(
         notification_settings_by_user,
         user,
         NotificationSettingTypes.ISSUE_ALERTS,
+        should_use_slack_automatic=should_use_slack_automatic,
     )
     return [
         provider
@@ -141,6 +133,7 @@ def where_should_be_participating(
         "User",
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
+    should_use_slack_automatic: bool = False,
 ) -> List[ExternalProviders]:
     """
     Given a mapping of users to subscriptions and a mapping of default and
@@ -153,6 +146,7 @@ def where_should_be_participating(
         notification_settings_by_user,
         user,
         NotificationSettingTypes.WORKFLOW,
+        should_use_slack_automatic=should_use_slack_automatic,
     )
     return [
         provider
@@ -167,13 +161,13 @@ def get_values_by_provider_by_type(
     ],
     all_providers: Iterable[ExternalProviders],
     type: NotificationSettingTypes,
-    organization: "Organization",
+    should_use_slack_automatic: bool = False,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     """
     Given a mapping of scopes to a mapping of default and specific notification
     settings by provider, determine the notification setting by provider for
     the given notification type.
-    TODO(mgaeta): Remove `organization` parameter.
+    TODO(mgaeta): Remove `should_use_slack_automatic` parameter.
     """
     parent_scope = get_scope_type(type)
 
@@ -186,7 +180,7 @@ def get_values_by_provider_by_type(
         provider: (
             parent_specific_mapping.get(provider)
             or organization_independent_mapping.get(provider)
-            or _get_notification_setting_default(provider, type, organization=organization)
+            or _get_notification_setting_default(provider, type, should_use_slack_automatic)
         )
         for provider in all_providers
     }
@@ -322,6 +316,12 @@ def get_groups_for_query(
     that to know if a user is subscribed or not, as long as notifications aren't
     disabled for the project.
     """
+    # TODO(mgaeta): Remove `should_use_slack_automatic` parameter.
+    should_use_slack_automatic_by_organization_id = {
+        organization.id: features.has("organizations:notification-slack-automatic", organization)
+        for organization in {project.organization for project in groups_by_project.keys()}
+    }
+
     # Although this can be done with a comprehension, looping for clarity.
     output = set()
     for project, groups in groups_by_project.items():
@@ -330,6 +330,9 @@ def get_groups_for_query(
             user=user,
             parent_id=project.id,
             type=NotificationSettingTypes.WORKFLOW,
+            should_use_slack_automatic=should_use_slack_automatic_by_organization_id[
+                project.organization_id
+            ],
         )
         if value != NotificationSettingOptionValues.NEVER:
             output |= groups
@@ -358,6 +361,12 @@ def get_user_subscriptions_for_groups(
     user: "User",
 ) -> Mapping[int, Tuple[bool, bool, Optional["GroupSubscription"]]]:
     """Takes collected data and returns a mapping of group IDs to a three-tuple of values."""
+    # TODO(mgaeta): Remove `should_use_slack_automatic` parameter.
+    should_use_slack_automatic_by_organization_id = {
+        organization.id: features.has("organizations:notification-slack-automatic", organization)
+        for organization in {project.organization for project in groups_by_project.keys()}
+    }
+
     results = {}
     for project, groups in groups_by_project.items():
         value = get_most_specific_notification_setting_value(
@@ -365,6 +374,9 @@ def get_user_subscriptions_for_groups(
             user=user,
             parent_id=project.id,
             type=NotificationSettingTypes.WORKFLOW,
+            should_use_slack_automatic=should_use_slack_automatic_by_organization_id[
+                project.organization_id
+            ],
         )
         for group in groups:
             subscription = subscriptions_by_group_id.get(group.id)
@@ -406,6 +418,7 @@ def get_fallback_settings(
     project_ids: Iterable[int],
     organization_ids: Iterable[int],
     user: Optional["User"] = None,
+    should_use_slack_automatic: bool = False,
 ) -> MutableMapping[str, MutableMapping[str, MutableMapping[int, MutableMapping[str, str]]]]:
     """
     The API is responsible for calculating the implied setting values when a
@@ -439,7 +452,9 @@ def get_fallback_settings(
             # Only users (i.e. not teams) have parent-independent notification settings.
             if user:
                 # Each provider has it's own defaults by type.
-                value = _get_notification_setting_default(provider, type_enum, user=user)
+                value = _get_notification_setting_default(
+                    provider, type_enum, should_use_slack_automatic
+                )
                 value_str = NOTIFICATION_SETTING_OPTION_VALUES[value]
                 user_scope_str = NOTIFICATION_SCOPE_TYPE[NotificationScopeType.USER]
 
@@ -479,6 +494,7 @@ def get_most_specific_notification_setting_value(
     user: "User",
     parent_id: int,
     type: NotificationSettingTypes,
+    should_use_slack_automatic: bool = False,
 ) -> NotificationSettingOptionValues:
     """
     Get the "most specific" notification setting value for a given user and
@@ -491,5 +507,7 @@ def get_most_specific_notification_setting_value(
         or get_highest_notification_setting_value(
             notification_settings_by_scope.get(NotificationScopeType.USER, {}).get(user.id, {})
         )
-        or _get_notification_setting_default(ExternalProviders.EMAIL, type, user=user)
+        or _get_notification_setting_default(
+            ExternalProviders.EMAIL, type, should_use_slack_automatic
+        )
     )
