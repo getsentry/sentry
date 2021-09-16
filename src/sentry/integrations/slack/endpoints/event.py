@@ -141,7 +141,6 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         data = slack_request.data.get("event")
 
         # An unfurl may have multiple links to unfurl
-        requires_linking = False
         for item in data["links"]:
             try:
                 # We would like to track what types of links users are sharing,
@@ -160,8 +159,8 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
                 continue
 
             if link_type == LinkType.DISCOVER and not slack_request.has_identity:
-                requires_linking = True
-                break
+                self.prompt_link(data, slack_request, integration)
+                return self.respond()
 
             # Don't unfurl the same thing multiple times
             seen_marker = hash(json.dumps((link_type, args), sort_keys=True))
@@ -171,12 +170,8 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
             links_seen.add(seen_marker)
             matches[link_type].append(UnfurlableUrl(url=item["url"], args=args))
 
-        if not matches and not requires_linking:
+        if not matches:
             return None
-
-        if requires_linking:
-            self.prompt_link(data, slack_request, integration)
-            return self.respond()
 
         # Unfurl each link type
         results: Dict[str, Any] = {}
