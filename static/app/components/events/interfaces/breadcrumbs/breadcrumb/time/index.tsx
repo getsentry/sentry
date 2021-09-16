@@ -16,7 +16,12 @@ type Props = {
   displayRelativeTime?: boolean;
 };
 
-const Time = memo(({timestamp, relativeTime, displayRelativeTime, searchTerm}: Props) => {
+const Time = memo(function Time({
+  timestamp,
+  relativeTime,
+  displayRelativeTime,
+  searchTerm,
+}: Props) {
   if (!(defined(timestamp) && defined(relativeTime))) {
     return null;
   }

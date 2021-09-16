@@ -2,8 +2,8 @@ import * as React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Icon from 'app/components/events/interfaces/breadcrumbs/icon';
-import Level from 'app/components/events/interfaces/breadcrumbs/level';
+import Icon from 'app/components/events/interfaces/breadcrumbs/breadcrumb/icon';
+import Level from 'app/components/events/interfaces/breadcrumbs/breadcrumb/level';
 import SearchBarActionFilter from 'app/components/events/interfaces/searchBarAction/searchBarActionFilter';
 import {IconFire, IconFix, IconLocation, IconSpan, IconSwitch, IconUser} from 'app/icons';
 import {BreadcrumbLevelType, BreadcrumbType} from 'app/types/breadcrumbs';

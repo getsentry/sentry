@@ -12,7 +12,7 @@ type Props = {
   category?: string | null;
 };
 
-const Category = memo(({category, searchTerm}: Props) => {
+const Category = memo(function Category({category, searchTerm}: Props) {
   const title = !defined(category) ? t('generic') : category;
   return (
     <Wrapper title={title}>
