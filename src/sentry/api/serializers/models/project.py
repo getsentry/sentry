@@ -298,7 +298,6 @@ class ProjectSerializer(Serializer):
         previous_interval_start = now - (2 * segments * interval)
 
         project_health_data_dict = releasehealth.get_current_and_previous_crash_free_rates(
-            org_id=0,  # FIXME(jjbayer): With metrics, this needs an actual org_id
             project_ids=project_ids,
             current_start=current_interval_start,
             current_end=now,

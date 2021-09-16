@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, Mapping, Optional, Sequence
+from typing import Dict, Optional, Sequence
 
 from typing_extensions import TypedDict
 
@@ -19,13 +19,13 @@ class ReleaseHealthBackend(Service):  # type: ignore
 
     def get_current_and_previous_crash_free_rates(
         self,
-        org_id: int,
         project_ids: Sequence[int],
         current_start: datetime,
         current_end: datetime,
         previous_start: datetime,
         previous_end: datetime,
         rollup: int,
+        org_id: Optional[int] = None,
     ) -> CurrentAndPreviousCrashFreeRates:
         """
         Function that returns `currentCrashFreeRate` and the `previousCrashFreeRate` of projects

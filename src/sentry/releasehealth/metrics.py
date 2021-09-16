@@ -4,6 +4,7 @@ from typing import Dict, Optional, Sequence
 from snuba_sdk import Column, Condition, Entity, Op, Query
 from snuba_sdk.expressions import Granularity
 
+from sentry.models.project import Project
 from sentry.releasehealth.base import ReleaseHealthBackend
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.base import UseCase
@@ -40,14 +41,17 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     def get_current_and_previous_crash_free_rates(
         self,
-        org_id: int,
         project_ids: Sequence[int],
         current_start: datetime,
         current_end: datetime,
         previous_start: datetime,
         previous_end: datetime,
         rollup: int,
+        org_id: Optional[int] = None,
     ) -> ReleaseHealthBackend.CurrentAndPreviousCrashFreeRates:
+        if org_id is None:
+            org_id = self._get_org_id(project_ids)
+
         projects_crash_free_rate_dict: ReleaseHealthBackend.CurrentAndPreviousCrashFreeRates = {
             prj: {"currentCrashFreeRate": None, "previousCrashFreeRate": None}
             for prj in project_ids
@@ -82,6 +86,15 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         return projects_crash_free_rate_dict
 
     @staticmethod
+    def _get_org_id(project_ids: Sequence[int]) -> int:
+        projects = Project.objects.get_many_from_cache(project_ids)
+        org_ids = {project.organization_id for project in projects}
+        if len(org_ids) != 1:
+            raise ValueError("Expected projects to be from the same organization")
+
+        return org_ids.pop()
+
+    @staticmethod
     def _get_crash_free_rate_data(
         org_id: int,
         project_ids: Sequence[int],
@@ -112,8 +125,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             granularity=Granularity(rollup),
         )
 
-        # TODO: Add appropriate referrer
-        count_data = raw_snql_query(count_query, use_cache=False)["data"]
+        count_data = raw_snql_query(
+            count_query, referrer="releasehealth.metrics.get_crash_free_data", use_cache=False
+        )["data"]
 
         for row in count_data:
             project_data = data.setdefault(row["project_id"], {})
