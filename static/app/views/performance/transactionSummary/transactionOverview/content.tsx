@@ -380,7 +380,6 @@ class SummaryContent extends React.Component<Props> {
             error={error}
             totals={totalValues}
             transactionName={transactionName}
-            eventView={eventView}
           />
           {!isFrontendView && (
             <StatusBreakdown

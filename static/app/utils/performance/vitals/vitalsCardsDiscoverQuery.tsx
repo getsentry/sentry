@@ -4,7 +4,7 @@ import pick from 'lodash/pick';
 import {MetaType} from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
 import GenericDiscoverQuery, {
-  DiscoverQueryProps,
+  DiscoverQueryPropsWithContext,
   GenericChildrenProps,
 } from 'app/utils/discover/genericDiscoverQuery';
 import {PERFORMANCE_URL_PARAM} from 'app/utils/performance/constants';
@@ -34,7 +34,7 @@ type VitalsProps = {
   vitals: WebVital[];
 };
 
-type RequestProps = DiscoverQueryProps & VitalsProps;
+type RequestProps = DiscoverQueryPropsWithContext & VitalsProps;
 
 type ChildrenProps = Omit<GenericChildrenProps<VitalsProps>, 'tableData'> & {
   vitalsData: VitalsData | null;

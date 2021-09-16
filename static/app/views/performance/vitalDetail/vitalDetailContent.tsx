@@ -236,12 +236,7 @@ class VitalDetailContent extends React.Component<Props, State> {
               statsPeriod={eventView.statsPeriod}
             />
             <StyledVitalInfo>
-              <VitalInfo
-                eventView={eventView}
-                organization={organization}
-                location={location}
-                vital={vital}
-              />
+              <VitalInfo location={location} vital={vital} />
             </StyledVitalInfo>
             <TeamKeyTransactionManager.Provider
               organization={organization}
