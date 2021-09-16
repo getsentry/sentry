@@ -1,4 +1,5 @@
 import logging
+import random
 from datetime import datetime
 from time import sleep, time
 
@@ -242,7 +243,8 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     symbolication_start_time = time()
 
-    if not from_reprocessing:
+    submission_ratio = options.get("symbolicate-event.low-priority.metrics.submission-rate")
+    if not from_reprocessing and random.random() < submission_ratio:
         metrics_cluster.increment_project_event_counter(project_id, symbolication_start_time)
 
     with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
