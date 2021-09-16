@@ -23,7 +23,7 @@ class QueryBuilder(QueryFilter):
         auto_aggregations: bool = False,
         use_aggregate_conditions: bool = False,
         limit: int = 50,
-        offset: int = 0,
+        offset: Optional[int] = 0,
     ):
         super().__init__(dataset, params)
 
@@ -31,7 +31,7 @@ class QueryBuilder(QueryFilter):
         self.auto_aggregations = auto_aggregations
 
         self.limit = Limit(limit)
-        self.offset = Offset(offset)
+        self.offset = Offset(0 if offset is None else offset)
 
         self.where, self.having = self.resolve_conditions(
             query, use_aggregate_conditions=use_aggregate_conditions
