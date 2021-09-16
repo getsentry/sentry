@@ -3,7 +3,6 @@ from collections import defaultdict
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
     Iterable,
     Mapping,
     MutableMapping,
@@ -211,24 +210,11 @@ def get_send_to_owners(
         tags={"organization": project.organization_id, "outcome": "match"},
         skip_internal=True,
     )
-    user_ids_to_resolve = set()
-    team_ids_to_resolve = set()
-    for owner in owners:
-        if owner.type == User:
-            user_ids_to_resolve.add(owner.id)
-        else:
-            team_ids_to_resolve.add(owner.id)
-
-    recipients = set()
-    if user_ids_to_resolve:
-        recipients |= set(User.objects.filter(id__in=user_ids_to_resolve))
-    if team_ids_to_resolve:
-        recipients |= set(Team.objects.filter(id__in=team_ids_to_resolve))
 
     # Explicitly typing to satisfy mypy.
     mapping: Mapping[
         ExternalProviders, Union[Set["User"], Set["Team"]]
-    ] = NotificationSetting.objects.filter_to_accepting_recipients(project, recipients)
+    ] = NotificationSetting.objects.filter_to_accepting_recipients(project, owners)
     return mapping
 
 
