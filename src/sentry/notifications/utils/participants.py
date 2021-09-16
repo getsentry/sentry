@@ -3,6 +3,7 @@ from collections import defaultdict
 from typing import (
     TYPE_CHECKING,
     Any,
+    Dict,
     Iterable,
     Mapping,
     MutableMapping,
@@ -223,7 +224,7 @@ def get_send_to_owners(
     if user_ids_to_resolve:
         all_possible_users |= set(User.objects.filter(id__in=user_ids_to_resolve))
 
-    team_mapping = {ExternalProviders.SLACK: set()}
+    team_mapping: Dict[ExternalProviders, Set[Team]] = {ExternalProviders.SLACK: set()}
     team_ids_to_remove = set()
     if team_ids_to_resolve:
         # check for team Slack settings. if present, notify there instead
@@ -240,7 +241,7 @@ def get_send_to_owners(
         # Get all users in teams that don't have Slack settings.
         team_ids_to_resolve -= team_ids_to_remove
         all_possible_users |= get_users_for_teams_to_resolve(team_ids_to_resolve)
-    mapping: Mapping[
+    mapping: MutableMapping[
         ExternalProviders, Union[Set[User], Set[Team]]
     ] = NotificationSetting.objects.filter_to_subscribed_users(project, all_possible_users)
 
