@@ -8,6 +8,7 @@ from typing import (
     MutableSet,
     Optional,
     Sequence,
+    Set,
     Union,
 )
 
@@ -20,9 +21,9 @@ from sentry.notifications.helpers import (
     get_scope,
     get_scope_type,
     get_target_id,
-    transform_to_notification_settings_by_user,
+    transform_to_notification_settings_by_recipient,
     validate,
-    where_should_user_be_notified,
+    where_should_recipient_be_notified,
 )
 from sentry.notifications.types import (
     VALID_VALUES_FOR_KEY,
@@ -256,7 +257,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         self,
         type_: NotificationSettingTypes,
         parent: Union["Organization", "Project"],
-        recipients: Sequence[Union["Team", "User"]],
+        recipients: Union[Set["User"], Set["Team"]],
     ) -> QuerySet:
         from sentry.models import Team, User
 
@@ -300,28 +301,28 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def filter_to_subscribed_users(
         self,
         project: "Project",
-        users: List["User"],
+        recipients: Union[Set["User"], Set["Team"]],
     ) -> Mapping[ExternalProviders, Iterable["User"]]:
         """
         Filters a list of users down to the users by provider who are subscribed to alerts.
         We check both the project level settings and global default settings.
         """
         notification_settings = self.get_for_recipient_by_parent(
-            NotificationSettingTypes.ISSUE_ALERTS, parent=project, recipients=users
+            NotificationSettingTypes.ISSUE_ALERTS, parent=project, recipients=recipients
         )
-        notification_settings_by_user = transform_to_notification_settings_by_user(
-            notification_settings, users
+        notification_settings_by_user = transform_to_notification_settings_by_recipient(
+            notification_settings, recipients
         )
         mapping = defaultdict(set)
         should_use_slack_automatic = features.has(
             "organizations:notification-slack-automatic", project.organization
         )
-        for user in users:
-            providers = where_should_user_be_notified(
-                notification_settings_by_user, user, should_use_slack_automatic
+        for recipient in recipients:
+            providers = where_should_recipient_be_notified(
+                notification_settings_by_user, recipient, should_use_slack_automatic
             )
             for provider in providers:
-                mapping[provider].add(user)
+                mapping[provider].add(recipient)
         return mapping
 
     def get_notification_recipients(

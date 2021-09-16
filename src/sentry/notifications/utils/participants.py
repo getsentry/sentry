@@ -28,7 +28,7 @@ from sentry.models import (
 from sentry.notifications.helpers import (
     get_settings_by_provider,
     get_values_by_provider_by_type,
-    transform_to_notification_settings_by_user,
+    transform_to_notification_settings_by_recipient,
 )
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
@@ -112,7 +112,7 @@ def get_participants_for_release(
     projects: Iterable[Project], organization: Organization, user_ids: Set[int]
 ) -> Mapping[ExternalProviders, Mapping[User, int]]:
     # Collect all users with verified emails on a team in the related projects.
-    users = list(User.objects.get_team_members_with_verified_email_for_projects(projects))
+    users = set(User.objects.get_team_members_with_verified_email_for_projects(projects))
 
     # Get all the involved users' settings for deploy-emails (including
     # users' organization-independent settings.)
@@ -121,7 +121,7 @@ def get_participants_for_release(
         recipients=users,
         parent=organization,
     )
-    notification_settings_by_user = transform_to_notification_settings_by_user(
+    notification_settings_by_user = transform_to_notification_settings_by_recipient(
         notification_settings, users
     )
 
@@ -188,7 +188,7 @@ def get_send_to(
 
 def get_send_to_owners(
     event: "Event", project: Project
-) -> Mapping[ExternalProviders, Union[Set[User], Set[Team]]]:
+) -> Mapping[ExternalProviders, Union[Set["User"], Set["Team"]]]:
     owners, _ = ProjectOwnership.get_owners(project.id, event.data)
     if owners == ProjectOwnership.Everyone:
         metrics.incr(
@@ -219,53 +219,17 @@ def get_send_to_owners(
         else:
             team_ids_to_resolve.add(owner.id)
 
-    all_possible_users = set()
-
+    recipients = set()
     if user_ids_to_resolve:
-        all_possible_users |= set(User.objects.filter(id__in=user_ids_to_resolve))
-
-    team_mapping: Dict[ExternalProviders, Set[Team]] = {ExternalProviders.SLACK: set()}
-    team_ids_to_remove = set()
+        recipients |= set(User.objects.filter(id__in=user_ids_to_resolve))
     if team_ids_to_resolve:
-        # check for team Slack settings. if present, notify there instead
-        for team_id in team_ids_to_resolve:
-            team = Team.objects.get(id=team_id)
-            team_slack_settings = NotificationSetting.objects.get_settings(
-                provider=ExternalProviders.SLACK,
-                type=NotificationSettingTypes.ISSUE_ALERTS,
-                team=team,
-            )
-            if team_slack_settings == NotificationSettingOptionValues.ALWAYS:
-                team_mapping[ExternalProviders.SLACK].add(team)
-                team_ids_to_remove.add(team_id)
-        # Get all users in teams that don't have Slack settings.
-        team_ids_to_resolve -= team_ids_to_remove
-        all_possible_users |= get_users_for_teams_to_resolve(team_ids_to_resolve)
-    mapping: MutableMapping[
-        ExternalProviders, Union[Set[User], Set[Team]]
-    ] = NotificationSetting.objects.filter_to_subscribed_users(project, all_possible_users)
+        recipients |= set(Team.objects.filter(id__in=team_ids_to_resolve))
 
-    if not mapping:
-        return team_mapping
-
-    # combine the user and team mappings
-    if team_mapping:
-        for provider in set.union(set(team_mapping.keys()), set(mapping.keys())):
-            if mapping.get(provider) and team_mapping.get(provider):
-                mapping[provider].update(list(team_mapping[provider]))
-            else:
-                if not mapping.get(provider) and team_mapping.get(provider):
-                    mapping[provider] = team_mapping[provider]
+    # Explicitly typing to satisfy mypy.
+    mapping: Mapping[
+        ExternalProviders, Union[Set["User"], Set["Team"]]
+    ] = NotificationSetting.objects.filter_to_subscribed_users(project, recipients)
     return mapping
-
-
-def get_users_for_teams_to_resolve(teams_to_resolve: Set[int]) -> Set[User]:
-    return set(
-        User.objects.filter(
-            is_active=True,
-            sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
-        )
-    )
 
 
 def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, Set[User]]:
@@ -277,7 +241,7 @@ def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, 
         parent=project,
         recipients=users,
     )
-    notification_settings_by_user = transform_to_notification_settings_by_user(
+    notification_settings_by_user = transform_to_notification_settings_by_recipient(
         notification_settings, users
     )
     # Although this can be done with dict comprehension, looping for clarity.

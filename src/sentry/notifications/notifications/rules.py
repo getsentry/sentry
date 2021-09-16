@@ -1,9 +1,9 @@
 import logging
-from typing import Any, Mapping, MutableMapping, Optional, Set
+from typing import Any, Mapping, MutableMapping, Optional, Set, Union
 
 import pytz
 
-from sentry.models import User, UserOption
+from sentry.models import Team, User, UserOption
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.notifications.utils import (
@@ -63,24 +63,26 @@ class AlertRuleNotification(BaseNotification):
     def get_reference(self) -> Any:
         return self.group
 
-    def get_user_context(
-        self, user: User, extra_context: Mapping[str, Any]
+    def get_recipient_context(
+        self, recipient: Union["Team", "User"], extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        parent_context = super().get_user_context(user, extra_context)
+        parent_context = super().get_recipient_context(recipient, extra_context)
         user_context = {"timezone": pytz.timezone("UTC"), **parent_context}
         try:
             # AlertRuleNotification is shared among both email and slack notifications, and in slack
             # notifications, the `user` arg could be of type `Team` which is why we need this check
-            if isinstance(user, User):
+            if isinstance(recipient, User):
                 user_context.update(
                     {
                         "timezone": pytz.timezone(
-                            UserOption.objects.get_value(user=user, key="timezone", default="UTC")
+                            UserOption.objects.get_value(
+                                user=recipient, key="timezone", default="UTC"
+                            )
                         )
                     }
                 )
         except pytz.UnknownTimeZoneError:
-            ...
+            pass
         return user_context
 
     def get_context(self) -> MutableMapping[str, Any]:

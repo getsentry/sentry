@@ -291,7 +291,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         args, kwargs = mock_func.call_args
         notification = args[1]
 
-        assert notification.get_user_context(self.user, {})["timezone"] == pytz.timezone(
+        assert notification.get_recipient_context(self.user, {})["timezone"] == pytz.timezone(
             "Europe/Vienna"
         )
 

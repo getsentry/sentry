@@ -1,10 +1,10 @@
 import logging
-from typing import Any, Mapping, Optional, Set
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Set, Union
 
 from django.utils.encoding import force_text
 
 from sentry import options
-from sentry.models import Project, ProjectOption, User
+from sentry.models import ProjectOption
 from sentry.notifications.notifications.activity.base import ActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
@@ -13,6 +13,10 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.linksign import generate_signed_link
+
+if TYPE_CHECKING:
+    from sentry.models import Project, Team, User
+
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +40,7 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
     return headers
 
 
-def build_subject_prefix(project: Project, mail_option_key: Optional[str] = None) -> str:
+def build_subject_prefix(project: "Project", mail_option_key: Optional[str] = None) -> str:
     key = mail_option_key or "mail:subject_prefix"
     return force_text(
         ProjectOption.objects.get_value(project, key) or options.get("mail.subject-prefix")
@@ -64,10 +68,10 @@ def get_unsubscribe_link(
     )
 
 
-def log_message(notification: BaseNotification, user: User) -> None:
+def log_message(notification: BaseNotification, recipient: Union["Team", "User"]) -> None:
     extra = {
         "project_id": notification.project.id,
-        "user_id": user.id,
+        "actor_id": recipient.actor_id,
     }
     group = getattr(notification, "group", None)
     if group:
@@ -88,7 +92,7 @@ def log_message(notification: BaseNotification, user: User) -> None:
 
 def get_context(
     notification: BaseNotification,
-    user: User,
+    recipient: Union["Team", "User"],
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
@@ -99,12 +103,12 @@ def get_context(
     """
     context = {
         **shared_context,
-        **notification.get_user_context(user, extra_context),
+        **notification.get_recipient_context(recipient, extra_context),
     }
-    if notification.get_unsubscribe_key():
+    if isinstance(recipient, User) and notification.get_unsubscribe_key():
         key, resource_id, referrer = notification.get_unsubscribe_key()
         context.update(
-            {"unsubscribe_link": get_unsubscribe_link(user.id, resource_id, key, referrer)}
+            {"unsubscribe_link": get_unsubscribe_link(recipient.id, resource_id, key, referrer)}
         )
 
     return context
@@ -113,16 +117,19 @@ def get_context(
 @register_notification_provider(ExternalProviders.EMAIL)
 def send_notification_as_email(
     notification: BaseNotification,
-    users: Set[User],
+    recipients: Union[Set["User"], Set["Team"]],
     shared_context: Mapping[str, Any],
     extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
 ) -> None:
     headers = get_headers(notification)
 
-    for user in users:
-        extra_context = (extra_context_by_user_id or {}).get(user.id, {})
-        log_message(notification, user)
-        context = get_context(notification, user, shared_context, extra_context)
+    for recipient in recipients:
+        if isinstance(recipient, Team):
+            # TODO(mgaeta): MessageBuilder only works with Users so filter out Teams for now.
+            continue
+        extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
+        log_message(notification, recipient)
+        context = get_context(notification, recipient, shared_context, extra_context)
         subject = get_subject_with_prefix(notification, context=context)
         msg = MessageBuilder(
             subject=subject,
@@ -134,5 +141,5 @@ def send_notification_as_email(
             reply_reference=notification.get_reply_reference(),
             type=notification.get_type(),
         )
-        msg.add_users([user.id], project=notification.project)
+        msg.add_users([recipient.id], project=notification.project)
         msg.send_async()

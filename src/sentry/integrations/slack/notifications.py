@@ -27,7 +27,7 @@ def get_context(
     """Compose the various levels of context and add Slack-specific fields."""
     return {
         **shared_context,
-        **notification.get_user_context(recipient, extra_context),
+        **notification.get_recipient_context(recipient, extra_context),
     }
 
 
