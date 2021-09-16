@@ -806,7 +806,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             ][0]["count"]
 
         paginator_results = SequencePaginator(
-            [(row["score"] if row["score"] else 0, row["g.id"]) for row in data],
+            [(row["score"] if row["score"] is not None else 0, row["g.id"]) for row in data],
             reverse=True,
             **paginator_options,
         ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
