@@ -34,6 +34,13 @@ def get_revision():
     return None
 
 
+def get_short_revision(revision):
+    if not revision:
+        return ""
+
+    return revision[:12]
+
+
 def get_version():
     if __build__:
         return f"{__version__}.{__build__}"
@@ -51,6 +58,9 @@ def is_docker():
 __version__ = VERSION
 __build__ = get_revision()
 __docformat__ = "restructuredtext en"
+
+_build_or_empty = "" if __build__ is None else f"+{get_short_revision(__build__)}"
+__full_version__ = f"{__version__}{_build_or_empty}"
 
 # This triggers monkey patches that don't require django initialization.
 # There are other monkey patches in sentry's runner initializer.
