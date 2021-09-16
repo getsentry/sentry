@@ -174,9 +174,10 @@ def get_values_by_provider_by_type(
     parent_scope = get_scope_type(type)
 
     parent_specific_mapping = notification_settings_by_scope.get(parent_scope, {})
-    # TODO MARCOS FIRST
-    organization_independent_mapping = notification_settings_by_scope.get(
-        NotificationScopeType.USER, {}
+    organization_independent_mapping = (
+        notification_settings_by_scope.get(NotificationScopeType.USER)
+        or notification_settings_by_scope.get(NotificationScopeType.TEAM)
+        or {}
     )
 
     return {
@@ -507,7 +508,11 @@ def get_most_specific_notification_setting_value(
             notification_settings_by_scope.get(get_scope_type(type), {}).get(parent_id, {})
         )
         or get_highest_notification_setting_value(
-            notification_settings_by_scope.get(NotificationScopeType.USER, {}).get(user.id, {})
+            (
+                notification_settings_by_scope.get(NotificationScopeType.USER)
+                or notification_settings_by_scope.get(NotificationScopeType.TEAM)
+                or {}
+            ).get(recipient.id, {})
         )
         or _get_notification_setting_default(
             ExternalProviders.EMAIL, type, should_use_slack_automatic

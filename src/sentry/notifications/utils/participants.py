@@ -252,7 +252,9 @@ def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, 
             settings_by_provider = get_settings_by_provider(settings)
             for provider, settings_value_by_scope in settings_by_provider.items():
                 project_setting = settings_value_by_scope.get(NotificationScopeType.PROJECT)
-                user_setting = settings_value_by_scope.get(NotificationScopeType.USER)
+                user_setting = settings_value_by_scope.get(
+                    NotificationScopeType.USER
+                ) or settings_value_by_scope.get(NotificationScopeType.TEAM)
                 if project_setting == NotificationSettingOptionValues.NEVER or (
                     not project_setting and user_setting == NotificationSettingOptionValues.NEVER
                 ):
