@@ -195,7 +195,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         user_id = slack_request.user_id
         response_url = data.get("response_url")
 
-        if data.get("actions") and data["actions"][0].get("action_id", "") in ["link", "ignore"]:
+        if data.get("actions") and data["actions"][0].get("value", "") in ["link", "ignore"]:
             payload = {"delete_original": "true"}
             try:
                 requests.post(response_url, json=payload)

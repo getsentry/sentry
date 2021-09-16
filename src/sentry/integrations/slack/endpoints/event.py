@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.slack.client import SlackClient
+from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.event import SlackEventMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
@@ -87,31 +88,13 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
             response_url=slack_request.response_url,
         )
 
+        builder = BlockSlackMessageBuilder()
+
         blocks = [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Link your Slack identity to Sentry to unfurl Discover charts.",
-                },
-            },
-            {
-                "type": "actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "action_id": "link",
-                        "text": {"type": "plain_text", "text": "Link"},
-                        "style": "primary",
-                        "url": associate_url,
-                    },
-                    {
-                        "type": "button",
-                        "action_id": "ignore",
-                        "text": {"type": "plain_text", "text": "Cancel"},
-                    },
-                ],
-            },
+            builder.get_markdown_block(
+                "Link your Slack identity to Sentry to unfurl Discover charts."
+            ),
+            builder.get_action_block([("Link", associate_url, "link"), ("Cancel", None, "ignore")]),
         ]
 
         payload = {
