@@ -43,7 +43,7 @@ class ErrorEvent(BaseEvent):
             if func:
                 rv["function"] = func
 
-        rv["display_title_with_tree_label"] = data.get("platform") not in (
+        rv["display_title_with_tree_label"] = data.get("platform") in (
             # For now we disable rendering of tree labels for non-native/mobile
             # platform in issuestream and everywhere else but the grouping
             # breakdown. The grouping breakdown overrides this flag to force
