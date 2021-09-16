@@ -3,7 +3,7 @@ from urllib.parse import parse_qsl
 
 import responses
 
-from sentry.integrations.slack.unfurl import Handler, make_type_coercer
+from sentry.integrations.slack.unfurl import Handler, LinkType, make_type_coercer
 from sentry.models import (
     Identity,
     IdentityProvider,
@@ -194,6 +194,75 @@ class LinkSharedEventTest(BaseEventTest):
 
         data = self.share_links()
         assert data["token"] == "xoxt-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+
+
+class DiscovereLinkSharedEvent(BaseEventTest):
+    @responses.activate
+    @patch(
+        "sentry.integrations.slack.endpoints.event.match_link",
+        # match_link will be called twice, for each our links. Resolve into
+        # two unique links and one duplicate.
+        side_effect=[
+            (LinkType.DISCOVER, {"arg1": "value1"}),
+            (LinkType.DISCOVER, {"arg1", "value2"}),
+            (LinkType.DISCOVER, {"arg1": "value1"}),
+        ],
+    )
+    @patch("sentry.integrations.slack.requests.event.has_discover_links", return_value=True)
+    @patch(
+        "sentry.integrations.slack.endpoints.event.link_handlers",
+        {
+            LinkType.DISCOVER: Handler(
+                matcher=re.compile(r"test"),
+                arg_mapper=make_type_coercer({}),
+                fn=Mock(return_value={"link1": "unfurl", "link2": "unfurl"}),
+            )
+        },
+    )
+    def share_discover_links(self, mock_match_link, mock_):
+        responses.add(responses.POST, "https://slack.com/api/chat.postEphemeral", json={"ok": True})
+        responses.add(responses.POST, "https://slack.com/api/chat.unfurl", json={"ok": True})
+
+        resp = self.post_webhook(event_data=json.loads(LINK_SHARED_EVENT))
+
+        assert resp.status_code == 200, resp.content
+        assert len(mock_match_link.mock_calls) == 1
+
+        data = dict(parse_qsl(responses.calls[0].request.body))
+
+        return data
+
+    def test_share_discover_links_unlinked_user(self):
+        data = self.share_discover_links()
+        blocks = json.loads(data["blocks"])
+
+        assert blocks[0]["type"] == "section"
+        assert (
+            blocks[0]["text"]["text"]
+            == "Link your Slack identity to Sentry to unfurl Discover charts."
+        )
+
+        assert blocks[1]["type"] == "actions"
+        assert len(blocks[1]["elements"]) == 2
+        assert [button["text"]["text"] for button in blocks[1]["elements"]] == ["Link", "Cancel"]
+
+    def test_share_discover_links_linked_user(self):
+        idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+        Identity.objects.create(
+            external_id="Uxxxxxxx",
+            idp=idp,
+            user=self.user,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
+        data = self.share_discover_links()
+
+        unfurls = json.loads(data["unfurls"])
+
+        # We only have two unfurls since one link was duplicated
+        assert len(unfurls) == 2
+        assert unfurls["link1"] == "unfurl"
+        assert unfurls["link2"] == "unfurl"
 
 
 class MessageIMEventTest(BaseEventTest):

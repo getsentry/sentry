@@ -1,6 +1,6 @@
 from typing import Any, Dict, Mapping
 
-import requests
+from requests import post
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -198,7 +198,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if data.get("actions") and data["actions"][0].get("value", "") in ["link", "ignore"]:
             payload = {"delete_original": "true"}
             try:
-                requests.post(response_url, json=payload)
+                post(response_url, json=payload)
             except ApiError as e:
                 logger.error("slack.action.response-error", extra={"error": str(e)})
 
