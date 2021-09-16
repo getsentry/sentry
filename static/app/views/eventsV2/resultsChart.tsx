@@ -205,7 +205,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
             confirmedQuery={confirmedQuery}
             yAxisValue={yAxisValue}
           />
-        )) || <NoChartContainer>{'No Y-Axis selected.'}</NoChartContainer>}
+        )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
         <ChartFooter
           organization={organization}
           total={total}

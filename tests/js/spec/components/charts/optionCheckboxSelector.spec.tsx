@@ -11,6 +11,7 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
     {label: 'count()', value: 'count()'},
     {label: 'failure_count()', value: 'failure_count()'},
     {label: 'count_unique(user)', value: 'count_unique(user)'},
+    {label: 'avg(transaction.duration)', value: 'avg(transaction.duration)'},
   ];
   let organization, initialData, selected, wrapper, onChangeStub, dropdownItem;
 
@@ -81,5 +82,29 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
     dropdownItem.at(1).find('span').first().simulate('click');
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
+  });
+
+  it('only allows up to 3 options to be checked at one time', function () {
+    dropdownItem.at(2).find('span').first().simulate('click');
+    expect(onChangeStub).toHaveBeenCalledWith([
+      'count()',
+      'failure_count()',
+      'count_unique(user)',
+    ]);
+    dropdownItem.at(3).find('span').first().simulate('click');
+    expect(onChangeStub).not.toHaveBeenCalledWith([
+      'count()',
+      'failure_count()',
+      'count_unique(user)',
+      'avg(transaction.duration)',
+    ]);
+    dropdownItem.at(2).find('span').first().simulate('click');
+    expect(onChangeStub).toHaveBeenCalledWith(['count()', 'failure_count()']);
+    dropdownItem.at(3).find('span').first().simulate('click');
+    expect(onChangeStub).toHaveBeenCalledWith([
+      'count()',
+      'failure_count()',
+      'avg(transaction.duration)',
+    ]);
   });
 });
