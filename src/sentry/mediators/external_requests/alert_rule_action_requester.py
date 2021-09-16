@@ -1,5 +1,5 @@
 import logging
-from urllib.parse import urlencode, urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
 from sentry.http import safe_urlread
@@ -28,9 +28,6 @@ class AlertRuleActionRequester(Mediator):
     def _build_url(self):
         urlparts = list(urlparse(self.sentry_app.webhook_url))
         urlparts[2] = self.uri
-        if self.http_method == "GET":
-            query = {"installationId": self.install.uuid}
-            urlparts[4] = urlencode(query)
         return urlunparse(urlparts)
 
     def _make_request(self):

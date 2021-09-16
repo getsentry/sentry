@@ -30,11 +30,6 @@ class TestAlertRuleActionRequester(TestCase):
         responses.add(
             method=responses.POST,
             url="https://example.com/alert-rule",
-            json={
-                "project": "ProjectName",
-                "webUrl": "https://example.com/project/alert-rule",
-                "identifier": "alert-1",
-            },
             status=200,
             content_type="application/json",
         )
@@ -44,11 +39,7 @@ class TestAlertRuleActionRequester(TestCase):
             uri="/alert-rule",
             fields=fields,
         )
-        assert result == {
-            "project": "ProjectName",
-            "webUrl": "https://example.com/project/alert-rule",
-            "identifier": "alert-1",
-        }
+        assert not result
 
         request = responses.calls[0].request
         assert request.headers["Sentry-App-Signature"]
