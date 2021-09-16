@@ -101,6 +101,8 @@ def get_context(
         **shared_context,
         **notification.get_recipient_context(recipient, extra_context),
     }
+    # TODO(mgaeta): The unsubscribe system relies on `user_id` so it doesn't
+    #  work with Teams. We should add the `actor_id` to the signed link.
     if isinstance(recipient, User) and notification.get_unsubscribe_key():
         key, resource_id, referrer = notification.get_unsubscribe_key()
         context.update(
