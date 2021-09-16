@@ -18,11 +18,15 @@ The companion API in project_symbol_sources_details.py provides:
 4. ``DELETE /{org_slug}/{proj_slug}/symbolsources/{id}`` to delete an existing config object.
 """
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
+from sentry.lang.native import symbolicator
 from sentry.models import Project
+from sentry.utils import json
 
 
 class ProjectSymbolSourcesIndexEndpoint(ProjectEndpoint):  # type: ignore
@@ -43,7 +47,16 @@ class ProjectSymbolSourcesIndexEndpoint(ProjectEndpoint):  # type: ignore
     permission_classes = [StrictProjectPermission]
 
     def get(self, request: Request, project: Project) -> Response:
-        pass
+        if not features.has("organizations:symbol-sources", project.organization):
+            return Response(status=404)
+        configs_unredacted = project.get_option("sentry:symbol_sources", "[]")
+        try:
+            configs_str = symbolicator.redact_source_secrets(configs_unredacted)
+            configs_json = json.loads(configs_str)
+        except Exception:
+            sentry_sdk.capture_exception()
+            configs_json = []
+        return Response(configs_json, status=200)
 
     def post(self, request: Request, project: Project) -> Response:
         pass
