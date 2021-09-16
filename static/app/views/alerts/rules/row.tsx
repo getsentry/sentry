@@ -14,6 +14,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
+import NotAvailable from 'app/components/notAvailable';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
 import {IconArrow, IconDelete, IconEllipsis, IconSettings} from 'app/icons';
@@ -97,12 +98,19 @@ class RuleListRow extends React.Component<Props, State> {
     const activeIncident = this.activeIncident();
     const criticalTrigger = rule?.triggers.find(({label}) => label === 'critical');
     const warningTrigger = rule?.triggers.find(({label}) => label === 'warning');
+    const resolvedTrigger = rule?.resolveThreshold;
     const trigger =
       activeIncident && rule.latestIncident?.status === IncidentStatus.CRITICAL
         ? criticalTrigger
         : warningTrigger ?? criticalTrigger;
 
     let iconColor: Color = 'green300';
+    let iconDirection;
+    let thresholdTypeText =
+      activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
+        ? t('Above')
+        : t('Below');
+
     if (activeIncident) {
       iconColor =
         trigger?.label === 'critical'
@@ -110,24 +118,35 @@ class RuleListRow extends React.Component<Props, State> {
           : trigger?.label === 'warning'
           ? 'yellow300'
           : 'green300';
+      iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'up' : 'down';
+    } else {
+      if (!rule?.latestIncident) {
+        // If there's no latest incident, use the Resolved threshold type, which is opposite of Critical
+        iconColor =
+          rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'green300' : 'red300';
+        iconDirection =
+          rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'down' : 'up';
+        thresholdTypeText =
+          rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('Below') : t('Above');
+      }
     }
-
-    const thresholdTypeText =
-      activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
-        ? t('Above')
-        : t('Below');
 
     return (
       <FlexCenter>
-        <IconArrow
-          color={iconColor}
-          direction={
-            activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
-              ? 'up'
-              : 'down'
-          }
-        />
-        <TriggerText>{`${thresholdTypeText} ${trigger?.alertThreshold?.toLocaleString()}`}</TriggerText>
+        {!rule.latestIncident && !resolvedTrigger ? (
+          <NotAvailable />
+        ) : (
+          <StatusWrapper>
+            <IconArrow color={iconColor} direction={iconDirection} />
+            <TriggerText>
+              {`${thresholdTypeText} ${
+                rule.latestIncident
+                  ? trigger?.alertThreshold?.toLocaleString()
+                  : resolvedTrigger?.toLocaleString()
+              }`}
+            </TriggerText>
+          </StatusWrapper>
+        )}
       </FlexCenter>
     );
   }
@@ -338,6 +357,11 @@ const CreatedBy = styled('div')`
 `;
 
 const FlexCenter = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const StatusWrapper = styled('div')`
   display: flex;
   align-items: center;
 `;
