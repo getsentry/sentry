@@ -934,15 +934,13 @@ class SnubaTestCase(BaseTestCase):
         )
 
 
-@pytest.mark.snuba
-@requires_snuba
-class SessionMetricsTestCase(BaseTestCase):
+class SessionMetricsTestCase(SnubaTestCase):
     """Store metrics instead of sessions"""
 
     # NOTE: This endpoint does not exist yet, but we need something alike
     # because /tests/<dataset>/insert always writes to the default entity
     # (in the case of metrics, that's "metrics_sets")
-    snuba_endpoint = "/tests/metrics_counters/insert-entity"
+    snuba_endpoint = "/tests/entities/metrics_counters/insert"
 
     def store_session(self, session):
         """Mimic relays behavior of always emitting a metric for a started session,
