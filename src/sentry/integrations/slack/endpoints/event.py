@@ -9,6 +9,7 @@ from sentry.integrations.slack.message_builder.event import SlackEventMessageBui
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
+from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
@@ -69,6 +70,64 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
     def on_url_verification(self, request: Request, data: Mapping[str, str]) -> Response:
         return self.respond({"challenge": data["challenge"]})
 
+    def prompt_link(
+        self,
+        data: Mapping[str, Any],
+        slack_request: SlackRequest,
+        integration: Integration,
+    ):
+        # This will break if multiple Sentry orgs are added
+        # to a single Slack workspace.
+        organization = integration.organizations.all()[0]
+        associate_url = build_linking_url(
+            integration=integration,
+            organization=organization,
+            slack_id=slack_request.user_id,
+            channel_id=slack_request.channel_id,
+            response_url=slack_request.response_url,
+        )
+
+        blocks = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Link your Slack identity to Sentry to unfurl Discover charts.",
+                },
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "action_id": "link",
+                        "text": {"type": "plain_text", "text": "Link"},
+                        "style": "primary",
+                        "url": associate_url,
+                    },
+                    {
+                        "type": "button",
+                        "action_id": "ignore",
+                        "text": {"type": "plain_text", "text": "Cancel"},
+                    },
+                ],
+            },
+        ]
+
+        payload = {
+            "token": self._get_access_token(integration),
+            "channel": data["channel"],
+            "user": data["user"],
+            "text": "Link your Slack identity to Sentry to unfurl Discover charts.",
+            "blocks": json.dumps(blocks),
+        }
+
+        client = SlackClient()
+        try:
+            client.post("/chat.postEphemeral", data=payload)
+        except ApiError as e:
+            logger.error("slack.event.unfurl-error", extra={"error": str(e)}, exc_info=True)
+
     def on_message(
         self, request: Request, integration: Integration, token: str, data: Mapping[str, Any]
     ) -> Response:
@@ -88,12 +147,18 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         return self.respond()
 
     def on_link_shared(
-        self, request: Request, integration: Integration, token: str, data: Mapping[str, Any]
+        self,
+        request: Request,
+        slack_request: SlackRequest,
     ) -> Optional[Response]:
         matches: Dict[LinkType, List[UnfurlableUrl]] = defaultdict(list)
         links_seen = set()
 
+        integration = slack_request.integration
+        data = slack_request.data.get("event")
+
         # An unfurl may have multiple links to unfurl
+        requires_linking = False
         for item in data["links"]:
             try:
                 # We would like to track what types of links users are sharing,
@@ -111,6 +176,10 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
             if link_type is None or args is None:
                 continue
 
+            if link_type == LinkType.DISCOVER and not slack_request.has_identity:
+                requires_linking = True
+                break
+
             # Don't unfurl the same thing multiple times
             seen_marker = hash(json.dumps((link_type, args), sort_keys=True))
             if seen_marker in links_seen:
@@ -119,13 +188,21 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
             links_seen.add(seen_marker)
             matches[link_type].append(UnfurlableUrl(url=item["url"], args=args))
 
-        if not matches:
+        if not matches and not requires_linking:
             return None
+
+        if requires_linking:
+            self.prompt_link(data, slack_request, integration)
+            return self.respond()
 
         # Unfurl each link type
         results: Dict[str, Any] = {}
         for link_type, unfurl_data in matches.items():
-            results.update(link_handlers[link_type].fn(request, integration, unfurl_data))
+            results.update(
+                link_handlers[link_type].fn(
+                    request, integration, unfurl_data, slack_request.identity
+                )
+            )
 
         if not results:
             return None
@@ -162,9 +239,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         if slack_request.type == "link_shared":
             resp = self.on_link_shared(
                 request,
-                slack_request.integration,
-                slack_request.data.get("token"),
-                slack_request.data.get("event"),
+                slack_request,
             )
 
             if resp:

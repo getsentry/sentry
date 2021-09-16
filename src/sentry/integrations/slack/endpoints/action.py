@@ -1,5 +1,6 @@
 from typing import Any, Dict, Mapping
 
+import requests
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -193,6 +194,15 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         channel_id = slack_request.channel_id
         user_id = slack_request.user_id
         response_url = data.get("response_url")
+
+        if data.get("actions") and data["actions"][0].get("action_id", "") in ["link", "ignore"]:
+            payload = {"delete_original": "true"}
+            try:
+                requests.post(response_url, json=payload)
+            except ApiError as e:
+                logger.error("slack.action.response-error", extra={"error": str(e)})
+
+            return self.respond()
 
         logging_data["channel_id"] = channel_id
         logging_data["slack_user_id"] = user_id

@@ -30,10 +30,16 @@ TOP_N = 5
 
 
 def unfurl_discover(
-    data: HttpRequest, integration: Integration, links: List[UnfurlableUrl]
+    data: HttpRequest,
+    integration: Integration,
+    links: List[UnfurlableUrl],
+    identity: User,
 ) -> UnfurledUrl:
     orgs_by_slug = {org.slug: org for org in integration.organizations.all()}
     unfurls = {}
+
+    if not identity:
+        return unfurls
 
     for link in links:
         org_slug = link.args["org_slug"]
@@ -47,13 +53,6 @@ def unfurl_discover(
 
         params = link.args["query"]
         query_id = params.get("id", None)
-
-        user_id = params.get("user", None)
-        user = (
-            User.objects.get(id=user_id, sentry_orgmember_set__organization=org)
-            if user_id
-            else None
-        )
 
         saved_query = {}
         if query_id:
@@ -105,7 +104,7 @@ def unfurl_discover(
         try:
             resp = client.get(
                 auth=ApiKey(organization=org, scope_list=["org:read"]),
-                user=user,
+                user=identity,
                 path=f"/organizations/{org_slug}/events-stats/",
                 params=params,
             )
