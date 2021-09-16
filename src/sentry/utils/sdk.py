@@ -233,6 +233,7 @@ def configure_sdk():
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration
     from sentry_sdk.integrations.redis import RedisIntegration
+    from sentry_sdk.integrations.threading import ThreadingIntegration
 
     assert sentry_sdk.Hub.main.client is None
 
@@ -326,6 +327,7 @@ def configure_sdk():
             LoggingIntegration(event_level=None),
             RustInfoIntegration(),
             RedisIntegration(),
+            ThreadingIntegration(propagate_hub=True),
         ],
         **sdk_options,
     )
