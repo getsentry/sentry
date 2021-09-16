@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -6,6 +8,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     Environment,
     ExternalIssue,
+    Group,
     Organization,
     OrganizationStatus,
     PullRequest,
@@ -16,10 +19,10 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.tasks.deletion import run_deletion
-from sentry.testutils import TestCase
+from sentry.testutils import TransactionTestCase
 
 
-class DeleteOrganizationTest(TestCase):
+class DeleteOrganizationTest(TransactionTestCase):
     def test_simple(self):
         org = self.create_organization(name="test")
         org2 = self.create_organization(name="test2")
@@ -107,3 +110,50 @@ class DeleteOrganizationTest(TestCase):
         assert Organization.objects.filter(id=org.id).exists()
         assert Release.objects.filter(id=release.id).exists()
         assert not ScheduledDeletion.objects.filter(id=deletion.id).exists()
+
+    def test_large_child_relation_deletion(self):
+        org = self.create_organization(name="test")
+        self.create_team(organization=org, name="test1")
+        repo = Repository.objects.create(organization_id=org.id, name=org.name, provider="dummy")
+        author_bob = CommitAuthor.objects.create(
+            organization_id=org.id, name="bob", email="bob@example.com"
+        )
+        author_sally = CommitAuthor.objects.create(
+            organization_id=org.id, name="sally", email="sally@example.com"
+        )
+        # Make >100 commits so we can ensure that all commits are removed before authors are.
+        for i in range(0, 150):
+            author = author_bob if i % 2 == 0 else author_sally
+            Commit.objects.create(
+                repository_id=repo.id, organization_id=org.id, author=author, key=uuid4().hex
+            )
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        deletion = ScheduledDeletion.schedule(org, days=0)
+        deletion.update(in_progress=True)
+
+        with self.tasks():
+            run_deletion(deletion.id)
+
+        assert not Organization.objects.filter(id=org.id).exists()
+        assert not Commit.objects.filter(organization_id=org.id).exists()
+        assert not CommitAuthor.objects.filter(organization_id=org.id).exists()
+
+    def test_group_first_release(self):
+        org = self.create_organization(name="test")
+        project = self.create_project(organization=org)
+        release = self.create_release(project=project, user=self.user, version="1.2.3")
+        group = Group.objects.create(project=project, first_release=release)
+
+        # Simulate the project being deleted but the deletion crashing.
+        project.delete()
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        deletion = ScheduledDeletion.schedule(org, days=0)
+        deletion.update(in_progress=True)
+
+        with self.tasks():
+            run_deletion(deletion.id)
+
+        assert not Group.objects.filter(id=group.id).exists()
+        assert not Organization.objects.filter(id=org.id).exists()

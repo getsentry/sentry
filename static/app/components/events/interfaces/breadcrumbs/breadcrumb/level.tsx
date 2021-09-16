@@ -10,7 +10,7 @@ type Props = {
   searchTerm?: string;
 };
 
-const Level = memo(({level, searchTerm = ''}: Props) => {
+const Level = memo(function Level({level, searchTerm = ''}: Props) {
   switch (level) {
     case BreadcrumbLevelType.FATAL:
       return (
