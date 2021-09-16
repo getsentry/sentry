@@ -324,6 +324,8 @@ register("store.load-shed-parsed-pipeline-projects", type=Any, default=[])
 register("store.load-shed-save-event-projects", type=Any, default=[])
 register("store.load-shed-process-event-projects", type=Any, default=[])
 register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
+register("store.symbolicate-event-lpq-never", type=Sequence, default=[])
+register("store.symbolicate-event-lpq-always", type=Sequence, default=[])
 
 # Switch for more performant project counter incr
 register("store.projectcounter-modern-upsert-sample-rate", default=0.0)
@@ -361,3 +363,9 @@ register("post-process-forwarder:concurrency", default=1)
 
 # Subscription queries sampling rate
 register("subscriptions-query.sample-rate", default=0.01)
+
+# The ratio of symbolication requests for which metrics will be submitted to redis.
+#
+# This is to allow gradual rollout of metrics collection for symbolication requests and can be
+# removed once it is fully rolled out.
+register("symbolicate-event.low-priority.metrics.submission-rate", default=0.0)

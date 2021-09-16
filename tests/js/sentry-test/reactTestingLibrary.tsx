@@ -50,4 +50,5 @@ const mountWithTheme = (ui: React.ReactElement, options?: ContextRenderOptions) 
 };
 
 export * from '@testing-library/react';
+
 export {mountWithTheme};

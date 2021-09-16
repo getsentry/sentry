@@ -32,7 +32,6 @@ type Props = {
   project?: Project;
   organization: Organization;
   value: any;
-  showTeam: boolean;
   onChange: (value: any) => any;
   onInputChange?: (value: any) => any;
   disabled?: boolean;
@@ -198,7 +197,7 @@ class SelectMembers extends React.Component<Props, State> {
         onChange={this.handleChange}
         value={this.state.options?.find(({value}) => value === this.props.value)}
         styles={{
-          styles,
+          ...(styles ?? {}),
           option: (provided, state: any) => ({
             ...provided,
             svg: {

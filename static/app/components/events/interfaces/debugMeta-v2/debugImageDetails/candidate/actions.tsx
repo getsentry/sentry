@@ -12,7 +12,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import Tooltip from 'app/components/tooltip';
 import {IconDelete, IconDownload, IconEllipsis} from 'app/icons';
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {CandidateDownloadStatus, ImageCandidate} from 'app/types/debugImage';
 
 const noPermissionToDownloadDebugFilesInfo = t(
@@ -30,7 +30,7 @@ type Props = {
   organization: Organization;
   isInternalSource: boolean;
   baseUrl: string;
-  projectId: string;
+  projSlug: Project['slug'];
   onDelete: (debugFileId: string) => void;
 };
 
@@ -39,7 +39,7 @@ function Actions({
   organization,
   isInternalSource,
   baseUrl,
-  projectId,
+  projSlug,
   onDelete,
 }: Props) {
   const {download, location: debugFileId} = candidate;
@@ -50,7 +50,7 @@ function Actions({
   }
 
   const deleted = status === CandidateDownloadStatus.DELETED;
-  const downloadUrl = `${baseUrl}/projects/${organization.slug}/${projectId}/files/dsyms/?id=${debugFileId}`;
+  const downloadUrl = `${baseUrl}/projects/${organization.slug}/${projSlug}/files/dsyms/?id=${debugFileId}`;
 
   const actions = (
     <Role role={organization.debugFilesRole} organization={organization}>
