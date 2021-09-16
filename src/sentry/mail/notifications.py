@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, Optional, Union
+from typing import Any, Iterable, Mapping, Optional, Union
 
 from django.utils.encoding import force_text
 

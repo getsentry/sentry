@@ -330,7 +330,7 @@ def get_groups_for_query(
     for project, groups in groups_by_project.items():
         value = get_most_specific_notification_setting_value(
             notification_settings_by_scope,
-            user=user,
+            recipient=user,
             parent_id=project.id,
             type=NotificationSettingTypes.WORKFLOW,
             should_use_slack_automatic=should_use_slack_automatic_by_organization_id[
@@ -374,7 +374,7 @@ def get_user_subscriptions_for_groups(
     for project, groups in groups_by_project.items():
         value = get_most_specific_notification_setting_value(
             notification_settings_by_scope,
-            user=user,
+            recipient=user,
             parent_id=project.id,
             type=NotificationSettingTypes.WORKFLOW,
             should_use_slack_automatic=should_use_slack_automatic_by_organization_id[
@@ -420,7 +420,7 @@ def get_fallback_settings(
     types_to_serialize: Iterable[NotificationSettingTypes],
     project_ids: Iterable[int],
     organization_ids: Iterable[int],
-    user: Optional["User"] = None,
+    recipient: Optional[Union["Team", "User"]] = None,
     should_use_slack_automatic: bool = False,
 ) -> MutableMapping[str, MutableMapping[str, MutableMapping[int, MutableMapping[str, str]]]]:
     """
@@ -452,8 +452,7 @@ def get_fallback_settings(
             for parent_id in parent_ids:
                 data[type_str][scope_str][parent_id][provider_str] = parent_independent_value_str
 
-            # Only users (i.e. not teams) have parent-independent notification settings.
-            if user:
+            if recipient:
                 # Each provider has it's own defaults by type.
                 value = _get_notification_setting_default(
                     provider, type_enum, should_use_slack_automatic
@@ -461,7 +460,7 @@ def get_fallback_settings(
                 value_str = NOTIFICATION_SETTING_OPTION_VALUES[value]
                 user_scope_str = NOTIFICATION_SCOPE_TYPE[NotificationScopeType.USER]
 
-                data[type_str][user_scope_str][user.id][provider_str] = value_str
+                data[type_str][user_scope_str][recipient.id][provider_str] = value_str
     return data
 
 

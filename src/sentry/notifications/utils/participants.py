@@ -121,7 +121,7 @@ def get_participants_for_release(
         recipients=users,
         parent=organization,
     )
-    notification_settings_by_user = transform_to_notification_settings_by_recipient(
+    notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
         notification_settings, users
     )
 
@@ -135,7 +135,7 @@ def get_participants_for_release(
         ExternalProviders, MutableMapping[User, int]
     ] = defaultdict(dict)
     for user in users:
-        notification_settings_by_scope = notification_settings_by_user.get(user, {})
+        notification_settings_by_scope = notification_settings_by_recipient.get(user, {})
         values_by_provider = get_values_by_provider_by_type(
             notification_settings_by_scope,
             notification_providers(),
@@ -228,7 +228,7 @@ def get_send_to_owners(
     # Explicitly typing to satisfy mypy.
     mapping: Mapping[
         ExternalProviders, Union[Set["User"], Set["Team"]]
-    ] = NotificationSetting.objects.filter_to_subscribed_users(project, recipients)
+    ] = NotificationSetting.objects.filter_to_accepting_recipients(project, recipients)
     return mapping
 
 
@@ -241,13 +241,13 @@ def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, 
         parent=project,
         recipients=users,
     )
-    notification_settings_by_user = transform_to_notification_settings_by_recipient(
+    notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
         notification_settings, users
     )
     # Although this can be done with dict comprehension, looping for clarity.
     output = defaultdict(set)
     for user in users:
-        settings = notification_settings_by_user.get(user)
+        settings = notification_settings_by_recipient.get(user)
         if settings:
             settings_by_provider = get_settings_by_provider(settings)
             for provider, settings_value_by_scope in settings_by_provider.items():
@@ -293,7 +293,7 @@ def get_send_to_team(
 
     mapping: Mapping[
         ExternalProviders, Set[User]
-    ] = NotificationSetting.objects.filter_to_subscribed_users(project, users)
+    ] = NotificationSetting.objects.filter_to_accepting_recipients(project, users)
     return mapping
 
 

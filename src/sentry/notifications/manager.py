@@ -297,19 +297,20 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             target__in=actor_ids,
         )
 
-    def filter_to_subscribed_users(
+    def filter_to_accepting_recipients(
         self,
         project: "Project",
         recipients: Iterable[Union["Team", "User"]],
     ) -> Mapping[ExternalProviders, Iterable["User"]]:
         """
-        Filters a list of users down to the users by provider who are subscribed to alerts.
-        We check both the project level settings and global default settings.
+        Filters a list of teams or users down to the recipients by provider who
+        are subscribed to alerts. We check both the project level settings and
+        global default settings.
         """
         notification_settings = self.get_for_recipient_by_parent(
             NotificationSettingTypes.ISSUE_ALERTS, parent=project, recipients=recipients
         )
-        notification_settings_by_user = transform_to_notification_settings_by_recipient(
+        notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
             notification_settings, recipients
         )
         mapping = defaultdict(set)
@@ -318,7 +319,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         )
         for recipient in recipients:
             providers = where_should_recipient_be_notified(
-                notification_settings_by_user, recipient, should_use_slack_automatic
+                notification_settings_by_recipient, recipient, should_use_slack_automatic
             )
             for provider in providers:
                 mapping[provider].add(recipient)
@@ -338,7 +339,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
         user_ids = project.member_set.values_list("user", flat=True)
         users = User.objects.filter(id__in=user_ids)
-        return self.filter_to_subscribed_users(project, users)
+        return self.filter_to_accepting_recipients(project, users)
 
     def update_settings_bulk(
         self,

@@ -39,22 +39,22 @@ class TransformTestCase(TestCase):
 
 
 class TransformToNotificationSettingsByUserTestCase(TransformTestCase):
-    def test_transform_to_notification_settings_by_user_empty(self):
+    def test_transform_to_notification_settings_by_recipient_empty(self):
         assert (
-            transform_to_notification_settings_by_recipient(notification_settings=[], users=[])
+            transform_to_notification_settings_by_recipient(notification_settings=[], recipients=[])
             == {}
         )
 
         assert (
             transform_to_notification_settings_by_recipient(
-                notification_settings=[], users=[self.user]
+                notification_settings=[], recipients=[self.user]
             )
             == {}
         )
 
-    def test_transform_to_notification_settings_by_user(self):
+    def test_transform_to_notification_settings_by_recipient(self):
         assert transform_to_notification_settings_by_recipient(
-            notification_settings=self.notification_settings, users=[self.user]
+            notification_settings=self.notification_settings, recipients=[self.user]
         ) == {
             self.user: {
                 NotificationScopeType.USER: {

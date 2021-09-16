@@ -122,7 +122,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         subscriptions_by_user_id = {
             subscription.user_id: subscription for subscription in active_and_disabled_subscriptions
         }
-        notification_settings_by_user = transform_to_notification_settings_by_recipient(
+        notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
             notification_settings, all_possible_users
         )
 
@@ -136,7 +136,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
             providers = where_should_be_participating(
                 user,
                 subscription_option,
-                notification_settings_by_user,
+                notification_settings_by_recipient,
                 should_use_slack_automatic=should_use_slack_automatic,
             )
             for provider in providers:
