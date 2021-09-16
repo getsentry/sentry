@@ -196,7 +196,7 @@ class LinkSharedEventTest(BaseEventTest):
         assert data["token"] == "xoxt-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
 
 
-class DiscovereLinkSharedEvent(BaseEventTest):
+class DiscoverLinkSharedEvent(BaseEventTest):
     @responses.activate
     @patch(
         "sentry.integrations.slack.endpoints.event.match_link",
