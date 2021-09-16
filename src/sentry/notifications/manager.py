@@ -8,7 +8,6 @@ from typing import (
     MutableSet,
     Optional,
     Sequence,
-    Set,
     Union,
 )
 
@@ -257,7 +256,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         self,
         type_: NotificationSettingTypes,
         parent: Union["Organization", "Project"],
-        recipients: Union[Set["User"], Set["Team"]],
+        recipients: Iterable[Union["Team", "User"]],
     ) -> QuerySet:
         from sentry.models import Team, User
 
@@ -301,7 +300,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def filter_to_subscribed_users(
         self,
         project: "Project",
-        recipients: Union[Set["User"], Set["Team"]],
+        recipients: Iterable[Union["Team", "User"]],
     ) -> Mapping[ExternalProviders, Iterable["User"]]:
         """
         Filters a list of users down to the users by provider who are subscribed to alerts.

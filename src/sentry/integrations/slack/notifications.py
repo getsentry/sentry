@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import AbstractSet, Any, Mapping, MutableMapping, Optional, Set, Union
+from typing import Any, Iterable, Mapping, MutableMapping, Optional, Union
 
 from sentry import analytics
 from sentry.integrations.slack.client import SlackClient  # NOQA
@@ -20,7 +20,7 @@ SLACK_TIMEOUT = 5
 
 def get_context(
     notification: BaseNotification,
-    recipient: Union[User, Team],
+    recipient: Union["Team", "User"],
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
@@ -32,8 +32,8 @@ def get_context(
 
 
 def get_channel_and_integration_by_user(
-    user: User, organization: Organization
-) -> Mapping[str, Integration]:
+    user: "User", organization: "Organization"
+) -> Mapping[str, "Integration"]:
 
     identities = Identity.objects.filter(
         idp__type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
@@ -63,8 +63,8 @@ def get_channel_and_integration_by_user(
 
 
 def get_channel_and_integration_by_team(
-    team: Team, organization: Organization
-) -> Mapping[str, Integration]:
+    team: "Team", organization: "Organization"
+) -> Mapping[str, "Integration"]:
     try:
         external_actor = (
             ExternalActor.objects.filter(
@@ -82,9 +82,9 @@ def get_channel_and_integration_by_team(
 
 
 def get_channel_and_token_by_recipient(
-    organization: Organization, recipients: AbstractSet[Union[User, Team]]
-) -> Mapping[Union[User, Team], Mapping[str, str]]:
-    output: MutableMapping[Union[User, Team], MutableMapping[str, str]] = defaultdict(dict)
+    organization: "Organization", recipients: Iterable[Union["Team", "User"]]
+) -> Mapping[Union["Team", "User"], Mapping[str, str]]:
+    output: MutableMapping[Union["Team", "User"], MutableMapping[str, str]] = defaultdict(dict)
     for recipient in recipients:
         channels_to_integrations = (
             get_channel_and_integration_by_user(recipient, organization)
@@ -121,7 +121,7 @@ def get_key(notification: BaseNotification) -> str:
 @register_notification_provider(ExternalProviders.SLACK)
 def send_notification_as_slack(
     notification: BaseNotification,
-    recipients: Union[Set[User], Set[Team]],
+    recipients: Iterable[Union["Team", "User"]],
     shared_context: Mapping[str, Any],
     extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
 ) -> None:

@@ -1,10 +1,10 @@
 import logging
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Set, Union
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, Optional, Union
 
 from django.utils.encoding import force_text
 
 from sentry import options
-from sentry.models import ProjectOption
+from sentry.models import Project, ProjectOption, Team, User
 from sentry.notifications.notifications.activity.base import ActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
@@ -13,10 +13,6 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.linksign import generate_signed_link
-
-if TYPE_CHECKING:
-    from sentry.models import Project, Team, User
-
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +113,7 @@ def get_context(
 @register_notification_provider(ExternalProviders.EMAIL)
 def send_notification_as_email(
     notification: BaseNotification,
-    recipients: Union[Set["User"], Set["Team"]],
+    recipients: Iterable[Union["Team", "User"]],
     shared_context: Mapping[str, Any],
     extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
 ) -> None:

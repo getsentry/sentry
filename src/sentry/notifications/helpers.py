@@ -191,7 +191,7 @@ def get_values_by_provider_by_type(
 
 def transform_to_notification_settings_by_recipient(
     notification_settings: Iterable["NotificationSetting"],
-    recipients: Union[Set["User"], Set["Team"]],
+    recipients: Iterable[Union["Team", "User"]],
 ) -> Mapping[
     Union["Team", "User"],
     Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
@@ -494,7 +494,7 @@ def get_most_specific_notification_setting_value(
         NotificationScopeType,
         Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    user: "User",
+    recipient: Union["Team", "User"],
     parent_id: int,
     type: NotificationSettingTypes,
     should_use_slack_automatic: bool = False,
