@@ -1,10 +1,9 @@
 from django.urls import reverse
 
-from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, KeyTransaction, TeamKeyTransaction
+from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, TeamKeyTransaction
 from sentry.models import ProjectTeam
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 
 
@@ -944,44 +943,3 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
                 ],
             },
         ]
-
-
-class KeyTransactionTest(APITestCase, SnubaTestCase):
-    def setUp(self):
-        super().setUp()
-
-        self.login_as(user=self.user, superuser=False)
-
-        self.org = self.create_organization(owner=self.user, name="foo")
-
-        self.project = self.create_project(name="bar", organization=self.org)
-
-    def test_legacy_key_transactions_count(self):
-        with self.feature("organizations:performance-view"):
-            url = reverse(
-                "sentry-api-0-organization-legacy-key-transactions-count", args=[self.org.slug]
-            )
-            response = self.client.get(url, {"project": [self.project.id]})
-
-        assert response.status_code == 200
-        assert response.data["keyed"] == 0
-
-        event_data = load_data("transaction")
-        start_timestamp = iso_format(before_now(minutes=1))
-        end_timestamp = iso_format(before_now(minutes=1))
-        event_data.update({"start_timestamp": start_timestamp, "timestamp": end_timestamp})
-        KeyTransaction.objects.create(
-            owner=self.user,
-            organization=self.org,
-            transaction=event_data["transaction"],
-            project=self.project,
-        )
-
-        with self.feature("organizations:performance-view"):
-            url = reverse(
-                "sentry-api-0-organization-legacy-key-transactions-count", args=[self.org.slug]
-            )
-            response = self.client.get(url, {"project": [self.project.id]})
-
-        assert response.status_code == 200
-        assert response.data["keyed"] == 1

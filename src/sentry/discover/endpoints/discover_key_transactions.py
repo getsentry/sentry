@@ -24,32 +24,6 @@ class KeyTransactionPermission(OrganizationPermission):
     }
 
 
-class LegacyKeyTransactionCountEndpoint(KeyTransactionBase):
-    permission_classes = (KeyTransactionPermission,)
-
-    def get(self, request, organization):
-        """
-        Check how many legacy Key Transactions a user has
-
-        This is used to show the guide to users who previously had key
-        transactions to update their team key transactions
-        """
-        if not self.has_feature(request, organization):
-            return Response(status=404)
-
-        projects = self.get_projects(request, organization)
-
-        try:
-            count = KeyTransaction.objects.filter(
-                organization=organization,
-                owner=request.user,
-                project__in=projects,
-            ).count()
-            return Response({"keyed": count}, status=200)
-        except KeyTransaction.DoesNotExist:
-            return Response({"keyed": 0}, status=200)
-
-
 class IsKeyTransactionEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 

@@ -10,7 +10,6 @@ from sentry.discover.endpoints.discover_key_transactions import (
     IsKeyTransactionEndpoint,
     KeyTransactionEndpoint,
     KeyTransactionListEndpoint,
-    LegacyKeyTransactionCountEndpoint,
 )
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
@@ -837,11 +836,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/key-transactions-list/$",
                     KeyTransactionListEndpoint.as_view(),
                     name="sentry-api-0-organization-key-transactions-list",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/legacy-key-transactions-count/$",
-                    LegacyKeyTransactionCountEndpoint.as_view(),
-                    name="sentry-api-0-organization-legacy-key-transactions-count",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/is-key-transactions/$",
