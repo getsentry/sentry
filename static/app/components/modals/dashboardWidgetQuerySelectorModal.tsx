@@ -38,6 +38,9 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
         selection,
         widget.displayType
       );
+      const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
+      // Pull Y-Axis from the widget
+      discoverLocation.query.yAxis = query.fields;
       return (
         <React.Fragment key={index}>
           <QueryContainer>
@@ -51,7 +54,7 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
               priority="primary"
               icon={<IconChevron size="xs" direction="right" />}
               onClick={() => {
-                browserHistory.push(eventView.getResultsViewUrlTarget(organization.slug));
+                browserHistory.push(discoverLocation);
               }}
             />
           </QueryContainer>
