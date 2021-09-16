@@ -50,39 +50,36 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
 };
 
 type AlertWizardCategory = {categoryHeading: string; options: AlertType[]};
-export function alertWizardCategories(org: Organization): AlertWizardCategory[] {
-  const options: AlertWizardCategory[] = [
-    {
-      categoryHeading: t('Errors'),
-      options: ['issues', 'num_errors', 'users_experiencing_errors'],
-    },
-    {
-      categoryHeading: t('Performance'),
-      options: [
-        'throughput',
-        'trans_duration',
-        'apdex',
-        'failure_rate',
-        'lcp',
-        'fid',
-        'cls',
-      ],
-    },
-    {
-      categoryHeading: t('Other'),
-      options: ['custom'],
-    },
-  ];
-
-  if (org.features.includes('crash-rate-alerts')) {
-    options.splice(1, 0, {
-      categoryHeading: t('Sessions'),
-      options: ['crash_free_sessions', 'crash_free_users'],
-    });
-  }
-
-  return options;
-}
+export const getAlertWizardCategories = (org: Organization): AlertWizardCategory[] => [
+  {
+    categoryHeading: t('Errors'),
+    options: ['issues', 'num_errors', 'users_experiencing_errors'],
+  },
+  ...(org.features.includes('crash-rate-alerts')
+    ? [
+        {
+          categoryHeading: t('Sessions'),
+          options: ['crash_free_sessions', 'crash_free_users'] as AlertType[],
+        },
+      ]
+    : []),
+  {
+    categoryHeading: t('Performance'),
+    options: [
+      'throughput',
+      'trans_duration',
+      'apdex',
+      'failure_rate',
+      'lcp',
+      'fid',
+      'cls',
+    ],
+  },
+  {
+    categoryHeading: t('Other'),
+    options: ['custom'],
+  },
+];
 
 type PanelContent = {
   description: string;

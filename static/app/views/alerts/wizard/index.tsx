@@ -22,9 +22,9 @@ import {Dataset} from 'app/views/alerts/incidentRules/types';
 import {
   AlertType,
   AlertWizardAlertNames,
-  alertWizardCategories,
   AlertWizardPanelContent,
   AlertWizardRuleTemplates,
+  getAlertWizardCategories,
 } from './options';
 import RadioPanelGroup from './radioPanelGroup';
 
@@ -180,7 +180,7 @@ class AlertWizard extends Component<Props, State> {
             <WizardBody>
               <WizardOptions>
                 <Styledh2>{t('Errors')}</Styledh2>
-                {alertWizardCategories(organization).map(
+                {getAlertWizardCategories(organization).map(
                   ({categoryHeading, options}, i) => (
                     <OptionsWrapper key={categoryHeading}>
                       {i > 0 && <Styledh2>{categoryHeading}</Styledh2>}
