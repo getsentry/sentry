@@ -1035,3 +1035,110 @@ def __get_scope_value_for_release(
     elif scope == "crash_free_users":
         scope_value = rq_row["users_crashed"] / rq_row["users"]
     return scope_value
+
+
+def __get_crash_free_rate_data(project_ids, start, end, rollup):
+    """
+    Helper function that executes a snuba query on project_ids to fetch the number of crashed
+    sessions and total sessions and returns the crash free rate for those project_ids.
+    Inputs:
+        * project_ids
+        * start
+        * end
+        * rollup
+    Returns:
+        Snuba query results
+    """
+    return raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=[
+            "project_id",
+            "sessions_crashed",
+            "sessions_errored",
+            "sessions_abnormal",
+            "sessions",
+        ],
+        filter_keys={"project_id": project_ids},
+        start=start,
+        end=end,
+        rollup=rollup,
+        groupby=["project_id"],
+        referrer="sessions.totals",
+    )["data"]
+
+
+def get_current_and_previous_crash_free_rates(
+    project_ids, current_start, current_end, previous_start, previous_end, rollup
+):
+    """
+    Function that returns `currentCrashFreeRate` and the `previousCrashFreeRate` of projects
+    based on the inputs provided
+    Inputs:
+        * project_ids
+        * current_start: start interval of currentCrashFreeRate
+        * current_end: end interval of currentCrashFreeRate
+        * previous_start: start interval of previousCrashFreeRate
+        * previous_end: end interval of previousCrashFreeRate
+        * rollup
+    Returns:
+        A dictionary of project_id as key and as value the `currentCrashFreeRate` and the
+        `previousCrashFreeRate`
+
+        As an example:
+        {
+            1: {
+                "currentCrashFreeRate": 100,
+                "previousCrashFreeRate": 66.66666666666667
+            },
+            2: {
+                "currentCrashFreeRate": 50.0,
+                "previousCrashFreeRate": None
+            },
+            ...
+        }
+    """
+    projects_crash_free_rate_dict = {
+        prj: {"currentCrashFreeRate": None, "previousCrashFreeRate": None} for prj in project_ids
+    }
+
+    def calculate_crash_free_percentage(row):
+        # XXX: Calculation is done in this way to clamp possible negative values and so to calculate
+        # crash free rates similar to how it is calculated here
+        # Ref: https://github.com/getsentry/sentry/pull/25543
+        healthy_sessions = max(row["sessions"] - row["sessions_errored"], 0)
+        errored_sessions = max(
+            row["sessions_errored"] - row["sessions_crashed"] - row["sessions_abnormal"], 0
+        )
+        totals = (
+            healthy_sessions + errored_sessions + row["sessions_crashed"] + row["sessions_abnormal"]
+        )
+        try:
+            crash_free_rate = 100 - (row["sessions_crashed"] / totals) * 100
+        except ZeroDivisionError:
+            crash_free_rate = None
+        return crash_free_rate
+
+    # currentCrashFreeRate
+    current_crash_free_data = __get_crash_free_rate_data(
+        project_ids=project_ids,
+        start=current_start,
+        end=current_end,
+        rollup=rollup,
+    )
+    for row in current_crash_free_data:
+        projects_crash_free_rate_dict[row["project_id"]].update(
+            {"currentCrashFreeRate": calculate_crash_free_percentage(row)}
+        )
+
+    # previousCrashFreeRate
+    previous_crash_free_data = __get_crash_free_rate_data(
+        project_ids=project_ids,
+        start=previous_start,
+        end=previous_end,
+        rollup=rollup,
+    )
+    for row in previous_crash_free_data:
+        projects_crash_free_rate_dict[row["project_id"]].update(
+            {"previousCrashFreeRate": calculate_crash_free_percentage(row)}
+        )
+    return projects_crash_free_rate_dict
