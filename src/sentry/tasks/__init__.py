@@ -1,5 +1,5 @@
 import sentry_sdk
-from django import settings
+from django.conf import settings
 
 from sentry.utils import redis
 
@@ -8,8 +8,9 @@ class MetricsCluster:
     def __init__(self, cluster, counter_ttl: int, prefix: str = "symbolicate_event_low_priority"):
         self.inner = cluster
         self.counter_ttl = counter_ttl
+        self.prefix = prefix
 
-    def increment_project_event_counter(self, project_id: str, timestamp: float, ttl: int):
+    def increment_project_event_counter(self, project_id: str, timestamp: float):
         """Increment the event counter for the given project_id.
 
         The key is computed from the project_id and the timestamp of the symbolication request, rounded
@@ -22,8 +23,8 @@ class MetricsCluster:
             key = f"{self.prefix}:{project_id}:{timestamp}"
 
             with self.inner.pipeline() as pipeline:
+                pipeline.set(key, 0, nx=True, ex=self.counter_ttl)
                 pipeline.incr(key)
-                pipeline.expire(key, self.counter_ttl, NX=True)
                 pipeline.execute()
 
 
