@@ -21,24 +21,57 @@ export const discoverCharts: RenderDescriptor<ChartType>[] = [];
 
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_TOTAL_PERIOD,
-  getOption: (data: {seriesName: string; stats: EventsStats}) => {
-    const color = theme.charts.getColorPalette(data.stats.data.length - 2);
+  getOption: (
+    data:
+      | {seriesName: string; stats: EventsStats}
+      | {seriesName?: string; stats: Record<string, EventsStats>}
+  ) => {
+    if (isArray(data.stats.data)) {
+      const color = theme.charts.getColorPalette(data.stats.data.length - 2);
+      const areaSeries = AreaSeries({
+        name: data.seriesName,
+        data: data.stats.data.map(([timestamp, countsForTimestamp]) => [
+          timestamp * 1000,
+          countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+        ]),
+        lineStyle: {color: color?.[0], opacity: 1, width: 0.4},
+        areaStyle: {color: color?.[0], opacity: 1},
+      });
 
-    const areaSeries = AreaSeries({
-      name: data.seriesName,
-      data: data.stats.data.map(([timestamp, countsForTimestamp]) => [
-        timestamp * 1000,
-        countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-      ]),
-      lineStyle: {color: color?.[0], opacity: 1, width: 0.4},
-      areaStyle: {color: color?.[0], opacity: 1},
-    });
+      return {
+        ...slackChartDefaults,
+        useUTC: true,
+        color,
+        series: [areaSeries],
+      };
+    }
+
+    const stats = Object.keys(data.stats).map(key =>
+      Object.assign({}, {key}, data.stats[key])
+    );
+    const color = theme.charts.getColorPalette(stats.length - 2);
+
+    const series = stats
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((s, i) =>
+        AreaSeries({
+          name: s.key,
+          stack: 'area',
+          data: s.data.map(([timestamp, countsForTimestamp]) => [
+            timestamp * 1000,
+            countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+          ]),
+          lineStyle: {color: color?.[i], opacity: 1, width: 0.4},
+          areaStyle: {color: color?.[i], opacity: 1},
+        })
+      );
 
     return {
       ...slackChartDefaults,
+      xAxis: discoverxAxis,
       useUTC: true,
       color,
-      series: [areaSeries],
+      series,
     };
   },
   ...slackChartSize,
@@ -46,26 +79,61 @@ discoverCharts.push({
 
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_TOTAL_DAILY,
-  getOption: (data: {seriesName: string; stats: EventsStats}) => {
-    const color = theme.charts.getColorPalette(data.stats.data.length - 2);
+  getOption: (
+    data:
+      | {seriesName: string; stats: EventsStats}
+      | {seriesName?: string; stats: Record<string, EventsStats>}
+  ) => {
+    if (isArray(data.stats.data)) {
+      const color = theme.charts.getColorPalette(data.stats.data.length - 2);
 
-    const barSeries = BarSeries({
-      name: data.seriesName,
-      data: data.stats.data.map(([timestamp, countsForTimestamp]) => ({
-        value: [
-          timestamp * 1000,
-          countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-        ],
-      })),
-      itemStyle: {color: color?.[0], opacity: 1},
-    });
+      const barSeries = BarSeries({
+        name: data.seriesName,
+        data: data.stats.data.map(([timestamp, countsForTimestamp]) => ({
+          value: [
+            timestamp * 1000,
+            countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+          ],
+        })),
+        itemStyle: {color: color?.[0], opacity: 1},
+      });
+
+      return {
+        ...slackChartDefaults,
+        xAxis: discoverxAxis,
+        useUTC: true,
+        color,
+        series: [barSeries],
+      };
+    }
+
+    const stats = Object.keys(data.stats).map(key =>
+      Object.assign({}, {key}, data.stats[key])
+    );
+    const color = theme.charts.getColorPalette(stats.length - 2);
+
+    const series = stats
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((s, i) =>
+        BarSeries({
+          name: s.key,
+          stack: 'area',
+          data: s.data.map(([timestamp, countsForTimestamp]) => ({
+            value: [
+              timestamp * 1000,
+              countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+            ],
+          })),
+          itemStyle: {color: color?.[i], opacity: 1},
+        })
+      );
 
     return {
       ...slackChartDefaults,
       xAxis: discoverxAxis,
       useUTC: true,
       color,
-      series: [barSeries],
+      series,
     };
   },
   ...slackChartSize,

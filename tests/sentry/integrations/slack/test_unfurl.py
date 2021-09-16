@@ -141,6 +141,44 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == 288
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    def test_unfurl_discover_multi_y_axis(self, mock_generate_chart):
+        project1 = self.create_project(organization=self.org)
+        min_ago = iso_format(before_now(minutes=1))
+        self.store_event(
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+        )
+        self.store_event(
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+        )
+
+        url = f"https://sentry.io/organizations/{self.org.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={project1.id}&query=&sort=-timestamp&statsPeriod=24h&yAxis=count_unique%28user%29&yAxis=count%28%29"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise Exception("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(
+            [
+                "organizations:discover-basic",
+                "organizations:chart-unfurls",
+            ]
+        ):
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+
+        assert len(chart_data["stats"]["count()"]["data"]) == 288
+        assert len(chart_data["stats"]["count_unique(user)"]["data"]) == 288
+
+    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover_html_escaped(self, mock_generate_chart):
         project1 = self.create_project(organization=self.org)
         min_ago = iso_format(before_now(minutes=1))
