@@ -363,3 +363,6 @@ register("post-process-forwarder:concurrency", default=1)
 
 # Subscription queries sampling rate
 register("subscriptions-query.sample-rate", default=0.01)
+
+# The ratio of symbolication requests for which metrics will be submitted to redis.
+register("symbolicate-event.low-priority.metrics.submission-rate", default=0.0)
