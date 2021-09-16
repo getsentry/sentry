@@ -117,6 +117,7 @@ discoverCharts.push({
       .map((s, i) =>
         BarSeries({
           name: s.key,
+          stack: 'area',
           data: s.data.map(([timestamp, countsForTimestamp]) => ({
             value: [
               timestamp * 1000,
