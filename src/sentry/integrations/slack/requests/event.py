@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from rest_framework import status
 from rest_framework.request import Request
@@ -12,6 +12,15 @@ from sentry.models.user import User
 logger = logging.getLogger("sentry.integrations.slack")
 
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
+
+
+def has_discover_links(links: List[str]) -> bool:
+    for link in links:
+        link_type, _ = match_link(link)
+        if link_type == LinkType.DISCOVER:
+            return True
+
+    return False
 
 
 class SlackEventRequest(SlackRequest):
@@ -71,7 +80,7 @@ class SlackEventRequest(SlackRequest):
         return data.get("text")
 
     @property
-    def links(self) -> Any:
+    def links(self) -> List[str]:
         links = self.data.get("event", {}).get("links", [])
         return [link.get("url", "") for link in links]
 
@@ -104,12 +113,3 @@ class SlackEventRequest(SlackRequest):
 
     def _log_request(self) -> None:
         self._info(f"slack.event.{self.type}")
-
-
-def has_discover_links(links):
-    for link in links:
-        link_type, _ = match_link(link)
-        if link_type == LinkType.DISCOVER:
-            return True
-
-    return False
