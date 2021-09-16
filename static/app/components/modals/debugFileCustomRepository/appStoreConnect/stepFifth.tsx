@@ -16,10 +16,10 @@ function StepFifth({appleStoreOrgs, stepFifthData, onSetStepFifthData}: Props) {
     <StyledSelectField
       name="organization"
       label={t('iTunes Organization')}
-      choices={appleStoreOrgs.map(appleStoreOrg => [
-        appleStoreOrg.organizationId,
-        appleStoreOrg.name,
-      ])}
+      options={appleStoreOrgs.map(appleStoreOrg => ({
+        value: appleStoreOrg.organizationId,
+        label: appleStoreOrg.name,
+      }))}
       placeholder={t('Select organization')}
       onChange={organizationId => {
         const selectedAppleStoreOrg = appleStoreOrgs.find(
