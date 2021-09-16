@@ -36,7 +36,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
         model_list = (
             OrganizationMember,
             Repository,
-            CommitAuthor,  # Depends on commit deletions, a child of Repository
+            CommitAuthor,
             Release,
             Project,
             Environment,

@@ -39,7 +39,7 @@ def load_defaults():
     default_manager.register(models.ApiGrant, BulkModelDeletionTask)
     default_manager.register(models.ApiToken, BulkModelDeletionTask)
     default_manager.register(models.Commit, defaults.CommitDeletionTask)
-    default_manager.register(models.CommitAuthor, BulkModelDeletionTask)
+    default_manager.register(models.CommitAuthor, defaults.CommitAuthorDeletionTask)
     default_manager.register(models.CommitFileChange, BulkModelDeletionTask)
     default_manager.register(models.Deploy, BulkModelDeletionTask)
     default_manager.register(models.Distribution, BulkModelDeletionTask)
