@@ -209,6 +209,8 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     event_id = data["event_id"]
 
+    from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
+
     def _continue_to_process_event():
         process_task = process_event_from_reprocessing if from_reprocessing else process_event
         _do_process_event(
@@ -236,8 +238,6 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
         return _continue_to_process_event()
 
     has_changed = False
-
-    from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
 
     symbolication_start_time = time()
 
