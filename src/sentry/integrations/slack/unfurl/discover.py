@@ -1,6 +1,6 @@
 import html
 import re
-from typing import Any, List, Mapping
+from typing import Any, List, Mapping, Optional
 from urllib.parse import urlparse
 
 from django.http.request import HttpRequest, QueryDict
@@ -33,7 +33,7 @@ def unfurl_discover(
     data: HttpRequest,
     integration: Integration,
     links: List[UnfurlableUrl],
-    identity: User,
+    identity: Optional[User],
 ) -> UnfurledUrl:
     orgs_by_slug = {org.slug: org for org in integration.organizations.all()}
     unfurls = {}
