@@ -94,11 +94,9 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         links_seen = set()
 
         # An unfurl may have multiple links to unfurl
-        for i in range(len(data["links"])):
+        for item in data["links"]:
             try:
-                # Sometimes `links` is an array and sometimes it's a dictionary that
-                # maps indexes to values. In either case this should work.
-                url = data["links"][i]["url"]
+                url = item["url"]
                 # We would like to track what types of links users are sharing,
                 # but it's a little difficult to do in sentry since we filter
                 # requests from Slack bots. Instead we just log to Kibana
