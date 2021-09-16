@@ -14,7 +14,6 @@ import DropdownLink from 'app/components/dropdownLink';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
-import NotAvailable from 'app/components/notAvailable';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
 import {IconArrow, IconDelete, IconEllipsis, IconSettings} from 'app/icons';
@@ -133,20 +132,16 @@ class RuleListRow extends React.Component<Props, State> {
 
     return (
       <FlexCenter>
-        {!rule.latestIncident && !resolvedTrigger ? (
-          <NotAvailable />
-        ) : (
-          <StatusWrapper>
-            <IconArrow color={iconColor} direction={iconDirection} />
-            <TriggerText>
-              {`${thresholdTypeText} ${
-                rule.latestIncident
-                  ? trigger?.alertThreshold?.toLocaleString()
-                  : resolvedTrigger?.toLocaleString()
-              }`}
-            </TriggerText>
-          </StatusWrapper>
-        )}
+        <StatusWrapper>
+          <IconArrow color={iconColor} direction={iconDirection} />
+          <TriggerText>
+            {`${thresholdTypeText} ${
+              rule.latestIncident || (!rule.latestIncident && !resolvedTrigger)
+                ? trigger?.alertThreshold?.toLocaleString()
+                : resolvedTrigger?.toLocaleString()
+            }`}
+          </TriggerText>
+        </StatusWrapper>
       </FlexCenter>
     );
   }
