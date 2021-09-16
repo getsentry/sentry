@@ -43,11 +43,11 @@ class ErrorEvent(BaseEvent):
             if func:
                 rv["function"] = func
 
-        if data.get("platform") not in (
+        rv["display_title_with_tree_label"] = data.get("platform") not in (
             # For now we disable rendering of tree labels for non-native/mobile
             # platform in issuestream and everywhere else but the grouping
-            # breakdown. The grouping breakdown unsets this flag to force tree
-            # labels to show.
+            # breakdown. The grouping breakdown overrides this flag to force
+            # tree labels to show.
             #
             # In the frontend we look at the event platform directly when
             # rendering the title to apply this logic to old data that doesn't
@@ -68,8 +68,7 @@ class ErrorEvent(BaseEvent):
             "dart-flutter",
             "unity",
             "dotnet-xamarin",
-        ):
-            rv["hide_tree_labels"] = True
+        )
 
         return rv
 
@@ -80,7 +79,10 @@ class ErrorEvent(BaseEvent):
             if value:
                 title += f": {truncatechars(value.splitlines()[0], 100)}"
 
-        if not metadata.get("hide_tree_labels"):
+        # If there's no value for display_title_with_tree_label, or if the
+        # value is None, we should show the tree labels anyway since it's an
+        # old event.
+        if metadata.get("display_title_with_tree_label") in (None, True):
             return compute_title_with_tree_label(title, metadata)
 
         return title or metadata.get("function") or "<unknown>"
