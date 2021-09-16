@@ -55,7 +55,7 @@ function Modal({
                   })}
                 />
                 {getRelativeTimeFromEventDateCreated(
-                  event.dateCreated,
+                  event.dateCreated ? event.dateCreated : event.dateReceived,
                   dateCreated,
                   false
                 )}
