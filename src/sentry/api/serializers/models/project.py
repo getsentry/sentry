@@ -23,6 +23,7 @@ from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
     NotificationSetting,
+    Organization,
     Project,
     ProjectAvatar,
     ProjectBookmark,
@@ -76,19 +77,22 @@ def get_access_by_project(
     for pt in project_teams:
         project_team_map[pt.project_id].append(pt.team)
 
+    org_ids = {i.organization_id for i in projects}
     team_memberships = get_team_memberships([pt.team for pt in project_teams], user)
-    org_roles = get_org_roles({i.organization_id for i in projects}, user)
+    org_roles = get_org_roles(org_ids, user)
+    organization_map = {org.id: org for org in Organization.objects.filter(id__in=org_ids)}
 
     is_superuser = request and is_active_superuser(request) and request.user == user
     result = {}
     for project in projects:
         is_member = any(t.id in team_memberships for t in project_team_map.get(project.id, []))
-        org_role = org_roles.get(project.organization_id)
+        organization = organization_map[project.organization_id]
+        org_role = org_roles.get(organization.id)
         if is_member:
             has_access = True
         elif is_superuser:
             has_access = True
-        elif project.organization.flags.allow_joinleave:
+        elif organization.flags.allow_joinleave:
             has_access = True
         elif org_role and roles.get(org_role).is_global:
             has_access = True
