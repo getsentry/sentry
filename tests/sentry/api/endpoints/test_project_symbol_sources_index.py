@@ -71,7 +71,7 @@ class ApiClient(django.test.Client):  # type: ignore
 
 @pytest.fixture
 def apiclient(default_project: Project, default_user: User) -> ApiClient:
-    """An :class:`ApiClient instance to test the Sentry API endpoints.
+    """An :class:`ApiClient` instance to test the Sentry API endpoints.
 
     This client has the ``default_user`` fixture logged in and uses the ``default_project``
     for requests to the project endpoints.  It has some convenience methods to work with the
