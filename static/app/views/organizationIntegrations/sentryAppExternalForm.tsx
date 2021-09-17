@@ -79,17 +79,21 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
   // reset the state when we mount or the action changes
   resetStateFromProps() {
-    const {config, action, extraFields} = this.props;
+    const {config, action, extraFields, element} = this.props;
     this.setState({
       required_fields: config.required_fields,
       optional_fields: config.optional_fields,
     });
-    // we need to pass these fields in the API so just set them as values so we don't need hidden form fields
-    this.model.setInitialData({
-      ...extraFields,
-      action,
-      uri: config.uri,
-    });
+    this.model.setInitialData(
+      element === 'alert-rule-action'
+        ? {...extraFields}
+        : {
+            ...extraFields,
+            // we need to pass these fields in the API so just set them as values so we don't need hidden form fields
+            action,
+            uri: config.uri,
+          }
+    );
   }
 
   onSubmitError = () => {
