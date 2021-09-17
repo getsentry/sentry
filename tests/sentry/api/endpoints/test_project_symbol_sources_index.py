@@ -1,10 +1,30 @@
+from typing import TYPE_CHECKING
+
 import django.test
 import pytest
 
+from sentry.models import Project, User
 from sentry.utils import json
 
+if TYPE_CHECKING:
+    from typing import Any, Callable, TypeVar
 
-class ApiClient(django.test.Client):
+    F = TypeVar("F", bound=Callable[..., Any])
+
+    # Declare django_db mark as a decorator which preserves the signature
+    def _django_db(func: F) -> F:
+        ...
+
+    pytest.mark.django_db = _django_db
+
+    # Declare fixture decorator to preserve the signature
+    def _fixture(func: F) -> F:
+        ...
+
+    pytest.fixture = _fixture
+
+
+class ApiClient(django.test.Client):  # type: ignore
     """Sentry-specific Django test client.
 
     This adds a few more convenience methods to call the sentry API and automatically logs
@@ -12,31 +32,36 @@ class ApiClient(django.test.Client):
     instead.
     """
 
-    def __init__(self, project, user):
+    def __init__(self, project: Project, user: User):
         super().__init__()
         self.login(username=user.username, password="admin")
         self.project_slug = project.slug
         self.organization_slug = project.organization.slug
 
-    def project_get(self, path, data=None, follow=False, secure=False, **extra):
+    def project_get_response(self, path: str) -> django.test.Response:
         """Call a Project API endpoint.
 
-        The ``path`` is automatically prefixed with
-        ``/api/0/projects/{org_slug}/{proj_slug}/``.  The ``format='json'`` argument is
-        added automatically so that all requests are JSON requests by default.
+        You probably should prefer :meth:`project_get` instead.
+
+        The ``path`` is prefixed with ``/api/0/projects/{org_slug}/{proj_slug}/``.
+
+        If you need the full control of the request use :meth:`get` directly.
         """
         path = f"/api/0/projects/{self.organization_slug}/{self.project_slug}/" + path
-        return self.get(path, data, follow, secure, **extra)
+        return self.get(path)
 
-    def project_get_2xx(self, path, data=None, follow=None, secure=False, **extra):
-        """Call a Project API endpoint, expect a 2XX response.
+    def project_get(self, path: str, *, status_code: int = 200) -> json.JSONData:
+        """Call a Project API endpoint, expect response code and return JSON response body.
 
-        Similar to :meth:`project_get` but also asserts the response status code was in the 200
-        range and returns only the JSON response body.
+        The ``path`` is prefixed with ``/api/0/projects/{org_slug}/{proj_slug}/`` and the
+        response code is asserted before the response JSON body is returned.
+
+        If you need more control over the response use :meth:`project_get_response`, if you
+        need full control of the request use :meth:`get` directly.
         """
         __tracebackhide__ = True
-        response = self.project_get(path, data, follow, secure, **extra)
-        if not 200 <= response.status_code < 300:
+        response = self.project_get(path)
+        if response.status_code != status_code:
             pytest.fail(
                 f"API request to /api/0/projects/{{org_slug}}/{{proj_slug}}/{path}"
                 f" bad status code: {response.status_code}"
@@ -45,7 +70,7 @@ class ApiClient(django.test.Client):
 
 
 @pytest.fixture
-def apiclient(default_project, default_user):
+def apiclient(default_project: Project, default_user: User) -> ApiClient:
     """An :class:`ApiClient instance to test the Sentry API endpoints.
 
     This client has the ``default_user`` fixture logged in and uses the ``default_project``
@@ -56,7 +81,7 @@ def apiclient(default_project, default_user):
 
 
 @pytest.fixture
-def default_http_source(default_project):
+def default_http_source(default_project: Project) -> json.JSONData:
     """Ensures there is an HTTP custom symbol source configured for ``default_project``.
 
     The config object itself is returned as the fixture value.
@@ -81,7 +106,7 @@ def default_http_source(default_project):
 
 
 @pytest.fixture
-def default_s3_source(default_project):
+def default_s3_source(default_project: Project) -> json.JSONData:
     """Ensures there is an S3 custom symbol source configured for ``default_project``.
 
     The config object itself is returned as the fixture value.
@@ -108,19 +133,21 @@ def default_s3_source(default_project):
 
 
 @pytest.mark.django_db
-def test_no_sources(apiclient):
-    data = apiclient.project_get_2xx("symbolsources/")
+def test_no_sources(apiclient: ApiClient) -> None:
+    data = apiclient.project_get("symbolsources/", status_code=200)
     assert data == []
 
 
 @pytest.mark.django_db
-def test_some_sources(apiclient, default_http_source, default_s3_source):
-    data = apiclient.project_get_2xx("symbolsources/")
+def test_some_sources(
+    apiclient: ApiClient, default_http_source: json.JSONData, default_s3_source: json.JSONData
+) -> json.JSONData:
+    data = apiclient.project_get("symbolsources/", status_code=200)
     assert len(data) == 2
 
 
 @pytest.mark.django_db
-def test_http_secrets_redacted(apiclient, default_http_source):
-    data = apiclient.project_get_2xx("symbolsources/")
+def test_http_secrets_redacted(apiclient: ApiClient, default_http_source: json.JSONData) -> None:
+    data = apiclient.project_get("symbolsources/", status_code=200)
     config = data[0]
     assert config["password"] == {"hidden-secret": True}
