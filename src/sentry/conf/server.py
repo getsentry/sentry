@@ -1899,7 +1899,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 
 
 SENTRY_SDK_CONFIG = {
-    "release": sentry.__full_version__,
+    "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
     "in_app_include": ["sentry", "sentry_plugins"],
     "debug": True,

@@ -15,7 +15,7 @@ from sentry.utils.imports import import_string
 datetime.datetime.strptime("", "")
 
 # Parse out a pretty version for use with --version
-version_string = sentry.__full_version__
+version_string = sentry.__semantic_version__
 
 
 @click.group(context_settings={"max_content_width": 150})
