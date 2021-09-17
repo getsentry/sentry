@@ -132,16 +132,14 @@ class RuleListRow extends React.Component<Props, State> {
 
     return (
       <FlexCenter>
-        <StatusWrapper>
-          <IconArrow color={iconColor} direction={iconDirection} />
-          <TriggerText>
-            {`${thresholdTypeText} ${
-              rule.latestIncident || (!rule.latestIncident && !resolvedTrigger)
-                ? trigger?.alertThreshold?.toLocaleString()
-                : resolvedTrigger?.toLocaleString()
-            }`}
-          </TriggerText>
-        </StatusWrapper>
+        <IconArrow color={iconColor} direction={iconDirection} />
+        <TriggerText>
+          {`${thresholdTypeText} ${
+            rule.latestIncident || (!rule.latestIncident && !resolvedTrigger)
+              ? trigger?.alertThreshold?.toLocaleString()
+              : resolvedTrigger?.toLocaleString()
+          }`}
+        </TriggerText>
       </FlexCenter>
     );
   }
@@ -352,11 +350,6 @@ const CreatedBy = styled('div')`
 `;
 
 const FlexCenter = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const StatusWrapper = styled('div')`
   display: flex;
   align-items: center;
 `;
