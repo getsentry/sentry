@@ -6,13 +6,14 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.integrations.slack import tasks
-from sentry.mediators import project_rules
+from sentry.mediators import alert_rule_actions, project_rules
 from sentry.models import (
     AuditLogEntryEvent,
     Rule,
     RuleActivity,
     RuleActivityType,
     RuleStatus,
+    SentryAppInstallation,
     Team,
     User,
 )
@@ -109,6 +110,19 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
                 return Response(context, status=202)
 
             updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
+            for action in kwargs.get("actions"):
+                # Only call creator for Sentry Apps with UI Components for alert rules
+                if not action.get("hasSentryAppUIComponents"):
+                    continue
+                sentry_app_kwargs = {
+                    "install": SentryAppInstallation.objects.get(
+                        uuid=action.get("sentryAppInstallationUuid")
+                    ),
+                    "fields": action.get("settings"),
+                    "uri": action.get("uri"),
+                    "rule": updated_rule,
+                }
+                alert_rule_actions.AlertRuleActionCreator.run(request=request, **sentry_app_kwargs)
             RuleActivity.objects.create(
                 rule=updated_rule, user=request.user, type=RuleActivityType.UPDATED.value
             )

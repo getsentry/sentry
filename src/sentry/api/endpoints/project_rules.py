@@ -5,7 +5,7 @@ from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import RuleSerializer
 from sentry.integrations.slack import tasks
-from sentry.mediators import project_rules
+from sentry.mediators import alert_rule_actions, project_rules
 from sentry.models import (
     AuditLogEntryEvent,
     Rule,
@@ -15,6 +15,7 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.models.sentryappinstallation import SentryAppInstallation
 from sentry.signals import alert_rule_created
 from sentry.web.decorators import transaction_start
 
@@ -103,6 +104,20 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             RuleActivity.objects.create(
                 rule=rule, user=request.user, type=RuleActivityType.CREATED.value
             )
+            for action in kwargs.get("actions"):
+                # Only call creator for Sentry Apps with UI Components for alert rules
+                if not action.get("hasSentryAppUIComponents"):
+                    continue
+                sentry_app_kwargs = {
+                    "install": SentryAppInstallation.objects.get(
+                        uuid=action.get("sentryAppInstallationUuid")
+                    ),
+                    "fields": action.get("settings"),
+                    "uri": action.get("uri"),
+                    "rule": rule,
+                }
+                alert_rule_actions.AlertRuleActionCreator.run(request=request, **sentry_app_kwargs)
+
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
