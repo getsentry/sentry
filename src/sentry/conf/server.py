@@ -609,6 +609,9 @@ CELERY_QUEUES = [
     ),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
+    Queue(
+        "events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"
+    ),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
@@ -1062,10 +1065,6 @@ SENTRY_FEATURES = {
     "organizations:release-archives": False,
     # Enable the new release details experience
     "organizations:release-comparison": False,
-    # Enable the project level transaction thresholds
-    "organizations:project-transaction-threshold": False,
-    # Enable the transaction level thresholds
-    "organizations:project-transaction-threshold-override": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
     # Enable team insights page
@@ -1896,7 +1895,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 
 
 SENTRY_SDK_CONFIG = {
-    "release": sentry.__build__,
+    "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
     "in_app_include": ["sentry", "sentry_plugins"],
     "debug": True,
