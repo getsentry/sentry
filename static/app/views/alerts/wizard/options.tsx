@@ -196,7 +196,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
   },
   crash_free_sessions: {
     description: t(
-      'A session begins when a user starts the application and ends when it’s closed or sent to the background.  A crash is when a session ends due to an error and this type of alert lets you monitor when those crashed sessions exceeds a threshold. This lets you get a better picture of the health of your app.'
+      'A session begins when a user starts the application and ends when it’s closed or sent to the background. A crash is when a session ends due to an error and this type of alert lets you monitor when those crashed sessions exceed a threshold. This lets you get a better picture of the health of your app.'
     ),
     examples: [
       t('When the Crash Free Rate is below 98%, send a Slack notification to the team.'),
@@ -205,7 +205,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
   },
   crash_free_users: {
     description: t(
-      'Crash Free Users is the percentage of distinct users that haven’t experienced a crash and so this type of alert tells you when the overall user experience dips below a certain unaccpetable threshold.'
+      'Crash Free Users is the percentage of distinct users that haven’t experienced a crash and so this type of alert tells you when the overall user experience dips below a certain unacceptable threshold.'
     ),
     examples: [
       t('When the Crash Free Rate is below 97%, send an email notification to yourself.'),
