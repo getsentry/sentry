@@ -156,7 +156,7 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
     (moment(sessionsUpperBound).isAfter(lastEvent) ? sessionsUpperBound : lastEvent) ??
       undefined
   )
-    .startOf('minute')
+    .endOf('minute')
     .utc()
     .format();
 
