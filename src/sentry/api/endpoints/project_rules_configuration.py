@@ -11,6 +11,30 @@ from sentry.models import SentryAppComponent, SentryAppInstallation
 from sentry.rules import rules
 
 
+def get_sentry_apps_with_alerts(request, project):
+    action_list = []
+    for install in SentryAppInstallation.get_installed_for_org(project.organization_id):
+        _components = SentryAppComponent.objects.filter(
+            sentry_app_id=install.sentry_app_id, type="alert-rule-action"
+        )
+        for component in _components:
+            try:
+                sentry_app_components.Preparer.run(
+                    component=component, install=install, project=project
+                )
+                action_list.append(
+                    serialize(
+                        component,
+                        request.user,
+                        SentryAppAlertRuleActionSerializer(),
+                        install=install,
+                    )
+                )
+
+            except APIError:
+                continue
+
+
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
     def get(self, request, project):
         """
@@ -36,6 +60,10 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 continue
 
             if not can_create_tickets and node.id in TICKET_ACTIONS:
+                continue
+
+            if node.id == "sentry.rules.actions.notify_event_service.NotifyEventServiceAction":
+                sentry_app_actions = get_sentry_apps_with_alerts(request, project)
                 continue
 
             context = {"id": node.id, "label": node.label, "enabled": node.is_enabled()}
@@ -70,27 +98,6 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 filter_list.append(context)
             elif rule_type.startswith("action/"):
                 action_list.append(context)
-
-        for install in SentryAppInstallation.get_installed_for_org(project.organization_id):
-            _components = SentryAppComponent.objects.filter(
-                sentry_app_id=install.sentry_app_id, type="alert-rule-action"
-            )
-            for component in _components:
-                try:
-                    sentry_app_components.Preparer.run(
-                        component=component, install=install, project=project
-                    )
-                    action_list.append(
-                        serialize(
-                            component,
-                            request.user,
-                            SentryAppAlertRuleActionSerializer(),
-                            install=install,
-                        )
-                    )
-
-                except APIError:
-                    continue
 
         context = {"actions": action_list, "conditions": condition_list, "filters": filter_list}
 
