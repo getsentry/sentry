@@ -95,7 +95,10 @@ export default class AdminQueue extends AsyncView<{}, State> {
               onChange={value => this.changeTask(value as string)}
               value={activeTask}
               clearable
-              choices={taskList.map(t => [t, t])}
+              options={taskList.map(t => ({
+                value: t,
+                label: t,
+              }))}
             />
           </div>
           {activeTask ? (
