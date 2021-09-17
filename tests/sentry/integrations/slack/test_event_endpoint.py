@@ -226,13 +226,13 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         resp = self.post_webhook(event_data=json.loads(LINK_SHARED_EVENT))
 
         assert resp.status_code == 200, resp.content
-        assert len(mock_match_link.mock_calls) == 1
 
         data = dict(parse_qsl(responses.calls[0].request.body))
 
         return data
 
     def test_share_discover_links_unlinked_user(self):
+        IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
         data = self.share_discover_links()
         blocks = json.loads(data["blocks"])
 
