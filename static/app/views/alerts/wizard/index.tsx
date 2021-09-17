@@ -179,11 +179,11 @@ class AlertWizard extends Component<Props, State> {
           <Layout.Main fullWidth>
             <WizardBody>
               <WizardOptions>
-                <Styledh2>{t('Errors')}</Styledh2>
+                <CategoryTitle>{t('Errors')}</CategoryTitle>
                 {getAlertWizardCategories(organization).map(
                   ({categoryHeading, options}, i) => (
                     <OptionsWrapper key={categoryHeading}>
-                      {i > 0 && <Styledh2>{categoryHeading}</Styledh2>}
+                      {i > 0 && <CategoryTitle>{categoryHeading}</CategoryTitle>}
                       <RadioPanelGroup
                         choices={options.map(alertType => {
                           return [alertType, AlertWizardAlertNames[alertType]];
@@ -237,7 +237,7 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
   overflow: visible;
 `;
 
-const Styledh2 = styled('h2')`
+const CategoryTitle = styled('h2')`
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)} !important;
