@@ -113,12 +113,12 @@ function getCrumbDescriptionAndColor(
       };
     case BreadcrumbType.SYSTEM:
       return {
-        color: 'pink200',
+        color: 'pink300',
         description: t('System'),
       };
     case BreadcrumbType.SESSION:
       return {
-        color: 'orange500',
+        color: 'orange300',
         description: t('Session'),
       };
     case BreadcrumbType.TRANSACTION:
@@ -128,7 +128,7 @@ function getCrumbDescriptionAndColor(
       };
     default:
       return {
-        color: 'purple300',
+        color: 'gray300',
         description: t('Default'),
       };
   }
