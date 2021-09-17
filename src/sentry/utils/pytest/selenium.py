@@ -348,6 +348,9 @@ class Browser:
 
         with self.mobile_viewport():
             screenshot_path = f"{snapshot_dir}-mobile/{filename}.png"
+            html = self.driver.execute_script("return document.documentElement.innerHTML;")
+            with open(f"{snapshot_dir}-mobile/{filename}.html", "w+") as f:
+                f.write(html)
             self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
 
             if os.environ.get("SENTRY_SCREENSHOT"):

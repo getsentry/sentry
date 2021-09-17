@@ -4,6 +4,13 @@ description: 'Handles uploading coverage/test artifacts to codecov'
 runs:
   using: "composite"
   steps:
+    - name: debug
+      uses: actions/upload-artifact@v2
+      with:
+        retention-days: 3
+        name: debug
+        path: .artifacts/visual-snapshots/acceptance-mobile
+
     - name: Upload to codecov
       shell: bash
       run: |
