@@ -1,57 +1,43 @@
 import logging
 
 from django.utils.translation import ugettext as _
-from rest_framework import status
-from rest_framework.exceptions import ValidationError
 
 from sentry import roles
-from sentry.api.bases.organization_request_change import OrganizationRequestChangeEndpoint
-from sentry.models import OrganizationMember, Project
+from sentry.api.bases.project_request_change import ProjectRequestChangeEndpoint
+from sentry.models import OrganizationMember
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
 
 
-class OrganizationCodeOwnersRequestEndpoint(OrganizationRequestChangeEndpoint):
-    def post(self, request, organization):
+class ProjectCodeOwnersRequestEndpoint(ProjectRequestChangeEndpoint):
+    def post(self, request, project):
         """
-        Add a invite request to Organization
+        Request to Add CODEOWNERS to a Project
         ````````````````````````````````````
-
-        Creates an invite request given an email and suggested role / teams.
-
         :pparam string organization_slug: the slug of the organization the member will belong to
-        :param string projectId: the id of the project
-
+        :pparam string project_slug: the slug of the project
         :auth: required
         """
-        if not request.data.get("projectId"):
-            raise ValidationError(
-                "Missing projectId body parameter.", code=status.HTTP_400_BAD_REQUEST
-            )
-        try:
-            project = Project.objects.get(id=request.data["projectId"], organization=organization)
-        except Project.DoesNotExist:
-            raise ValidationError("Invalid projectId.", code=status.HTTP_400_BAD_REQUEST)
 
         requester_name = request.user.get_display_name()
         integrations_roles = [r.id for r in roles.get_all() if r.has_scope("org:integrations")]
         recipients = OrganizationMember.objects.get_contactable_members_for_org(
-            organization.id
+            project.organization.id
         ).filter(role__in=integrations_roles)
 
         for recipient in recipients:
             msg = MessageBuilder(
                 **{
-                    "subject": _("A team member is asking to setup Sentry's Code Owners"),
+                    "subject": _("A team member is asking to set up Sentry's Code Owners"),
                     "type": "organization.codeowners-request",
                     "context": {
                         "requester_name": requester_name,
-                        "organization_name": organization.name,
+                        "organization_name": project.organization.name,
                         "project_name": project.name,
                         "codeowners_url": absolute_uri(
-                            f"/settings/{organization.slug}/projects/{project.slug}/ownership/"
+                            f"/settings/{project.organization.slug}/projects/{project.slug}/ownership/?referrer=codeowners-email"
                         ),
                     },
                     "template": "emails/codeowners-request/body.txt",
@@ -59,7 +45,9 @@ class OrganizationCodeOwnersRequestEndpoint(OrganizationRequestChangeEndpoint):
                 }
             )
             email = recipient.get_email()
-            logger.info("send_email", extra={"organization_id": organization.id, "email": email})
+            logger.info(
+                "send_email", extra={"organization_id": project.organization.id, "email": email}
+            )
             msg.send_async([email])
 
         return self.respond(status=202)

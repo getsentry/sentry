@@ -152,10 +152,10 @@ tags.sku_class:enterprise #enterprise`;
     try {
       addLoadingMessage(t('Requesting\u2026'));
       await this.api.requestPromise(
-        `/organizations/${organization.slug}/codeowners-request/`,
+        `/projects/${organization.slug}/${project.slug}/codeowners-request/`,
         {
           method: 'POST',
-          data: {projectId: project.id},
+          data: {},
         }
       );
 

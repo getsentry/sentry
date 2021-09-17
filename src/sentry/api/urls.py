@@ -150,7 +150,6 @@ from .endpoints.organization_code_mapping_codeowners import (
 )
 from .endpoints.organization_code_mapping_details import OrganizationCodeMappingDetailsEndpoint
 from .endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
-from .endpoints.organization_codeowners_request import OrganizationCodeOwnersRequestEndpoint
 from .endpoints.organization_config_integrations import OrganizationConfigIntegrationsEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_dashboard_details import (
@@ -287,6 +286,7 @@ from .endpoints.project_app_store_connect_credentials import (
 from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_codeowners import ProjectCodeOwnersEndpoint
 from .endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
+from .endpoints.project_codeowners_request import ProjectCodeOwnersRequestEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
@@ -1377,11 +1377,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-request-project-creation",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/codeowners-request/$",
-                    OrganizationCodeOwnersRequestEndpoint.as_view(),
-                    name="getsentry-api-0-organization-codeowners-request",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/scim/v2/",
                     include(
                         [
@@ -1893,6 +1888,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners/(?P<codeowners_id>[^\/]+)/$",
                     ProjectCodeOwnersDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-codeowners-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners-request/$",
+                    ProjectCodeOwnersRequestEndpoint.as_view(),
+                    name="getsentry-api-0-project-codeowners-request",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/transaction-threshold/configure/$",
