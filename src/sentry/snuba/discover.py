@@ -234,6 +234,7 @@ def query(
             auto_aggregations=auto_aggregations,
             use_aggregate_conditions=use_aggregate_conditions,
             limit=limit,
+            offset=offset,
         )
         snql_query = builder.get_snql_query()
 
