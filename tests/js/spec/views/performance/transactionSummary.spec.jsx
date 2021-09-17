@@ -90,10 +90,6 @@ describe('Performance > TransactionSummary', function () {
       url: '/prompts-activity/',
       body: {},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/is-key-transactions/',
-      body: [],
-    });
 
     // Mock totals for the sidebar and other summary data
     MockApiClient.addMockResponse(

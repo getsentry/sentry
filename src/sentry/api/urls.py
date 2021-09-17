@@ -7,7 +7,6 @@ from sentry.api.endpoints.project_transaction_threshold_override import (
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
-    IsKeyTransactionEndpoint,
     KeyTransactionEndpoint,
     KeyTransactionListEndpoint,
 )
@@ -836,11 +835,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/key-transactions-list/$",
                     KeyTransactionListEndpoint.as_view(),
                     name="sentry-api-0-organization-key-transactions-list",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/is-key-transactions/$",
-                    IsKeyTransactionEndpoint.as_view(),
-                    name="sentry-api-0-organization-is-key-transactions",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/related-issues/$",
