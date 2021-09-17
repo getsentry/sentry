@@ -83,9 +83,6 @@ const Wrapper = styled('div')<{error: boolean}>`
         grid-row: 1/-1;
       }
 
-      :nth-child(5n-3) {
-      }
-
       /* Data */
       :nth-child(5n-2) {
         grid-row: 2/2;
