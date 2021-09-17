@@ -1182,7 +1182,11 @@ class EventManagerTest(TestCase):
         event = manager.save(self.project.id)
         group = event.group
         assert group.data.get("type") == "error"
-        assert group.data.get("metadata") == {"type": "Foo", "value": "bar"}
+        assert group.data.get("metadata") == {
+            "type": "Foo",
+            "value": "bar",
+            "display_title_with_tree_label": False,
+        }
 
     def test_csp_event_type(self):
         manager = EventManager(

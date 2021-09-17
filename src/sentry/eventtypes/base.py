@@ -55,15 +55,13 @@ class BaseEvent:
     id = None
 
     def get_metadata(self, data):
-        metadata = {}
+        metadata = self.extract_metadata(data)
         title = data.get("title")
         if title is not None:
+            # If we already have a custom title, it needs to be in metadata
+            # regardless of what extract_metadata returns.
             metadata["title"] = title
-        for key, value in self.extract_metadata(data).items():
-            # If we already have a custom title, do not override with the
-            # computed title.
-            if key not in metadata:
-                metadata[key] = value
+
         return metadata
 
     def get_title(self, metadata):
