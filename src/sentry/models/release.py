@@ -675,14 +675,6 @@ class Release(Model):
             defaults={"date_added": date_added, "organization_id": self.organization_id},
         )[0]
 
-    def get_dist(self, name):
-        from sentry.models import Distribution
-
-        try:
-            return Distribution.objects.get(name=name, release=self)
-        except Distribution.DoesNotExist:
-            pass
-
     def add_project(self, project):
         """
         Add a project to this release.

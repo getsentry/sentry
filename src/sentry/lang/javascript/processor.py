@@ -5,6 +5,7 @@ import re
 import sys
 import time
 import zlib
+from datetime import datetime
 from io import BytesIO
 from os.path import splitext
 from typing import IO, Optional, Tuple
@@ -12,6 +13,7 @@ from urllib.parse import urlsplit
 
 import sentry_sdk
 from django.conf import settings
+from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from requests.utils import get_encoding_from_headers
 from symbolic import SourceMapView
@@ -826,7 +828,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         with sentry_sdk.start_span(op="JavaScriptStacktraceProcessor.preprocess_step.get_release"):
             self.release = self.get_release(create=True)
             if self.data.get("dist") and self.release:
-                self.dist = self.release.get_dist(self.data["dist"])
+                timestamp = self.data.get("timestamp")
+                date = timestamp and datetime.fromtimestamp(timestamp).replace(tzinfo=timezone.utc)
+                self.dist = self.release.add_dist(self.data["dist"], date)
 
         with sentry_sdk.start_span(
             op="JavaScriptStacktraceProcessor.preprocess_step.populate_source_cache"
