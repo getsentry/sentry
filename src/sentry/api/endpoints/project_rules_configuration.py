@@ -62,8 +62,11 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             if not can_create_tickets and node.id in TICKET_ACTIONS:
                 continue
 
-            if node.id == "sentry.rules.actions.notify_event_service.NotifyEventServiceAction":
-                sentry_app_actions = get_sentry_apps_with_alerts(request, project)
+            # Create as many of these nodes as there are Sentry Apps with UI Alert Rule components
+            if node.id == "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction":
+                custom_actions = node.get_custom_actions(project)
+                if len(custom_actions) != 0:
+                    action_list.extend(custom_actions)
                 continue
 
             context = {"id": node.id, "label": node.label, "enabled": node.is_enabled()}
