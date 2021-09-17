@@ -1,14 +1,13 @@
 import logging
 from typing import Any, Dict
 
+from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 from sentry.utils.kafka import create_batching_kafka_consumer
-from sentry.utils.pubsub import KafkaPublisher
 
 logger = logging.getLogger(__name__)
 
@@ -27,31 +26,50 @@ class MetricsIndexerWorker(AbstractBatchWorker):
         new_message = original.copy()
 
         org_id = int(new_message["org_id"])
-        metric_id = indexer.record(org_id, UseCase.METRIC, new_message["name"])
-
+        metric_name = new_message["name"]
         tags = new_message["tags"]
+
+        strings = {metric_name}
+        strings.update(tags.keys())
+        strings.update(tags.values())
+
+        mapping = indexer.bulk_record(org_id, list(strings))
+
         new_tags = {}
         for tag_k, tag_v in tags.items():
-            new_k = indexer.record(org_id, UseCase.TAG_KEY, tag_k)
-            new_v = indexer.record(org_id, UseCase.TAG_VALUE, tag_v)
+            new_k = mapping[tag_k]
+            new_v = mapping[tag_v]
             new_tags[new_k] = new_v
 
         new_message["tags"] = new_tags
-        new_message["metric_id"] = metric_id
+        new_message["metric_id"] = mapping[metric_name]
         new_message["retention_days"] = 90
         return new_message
 
     def flush_batch(self, batch):
         # produce the translated message to snuba-metrics topic
         global snuba_metrics
+        messages = 0
+        cluster_name = snuba_metrics["cluster"]
+        snuba_metrics_producer = Producer(
+            kafka_config.get_kafka_producer_cluster_options(cluster_name),
+        )
         for message in batch:
-            cluster_name = snuba_metrics["cluster"]
-            snuba_metrics_publisher = KafkaPublisher(
-                kafka_config.get_kafka_producer_cluster_options(cluster_name),
-                asynchronous=False,
+            snuba_metrics_producer.produce(
+                topic=snuba_metrics["topic"],
+                key=None,
+                value=json.dumps(message),
+                on_delivery=self.callback,
             )
-            snuba_metrics_publisher.publish(snuba_metrics["topic"], json.dumps(message))
+            messages += snuba_metrics_producer.poll(0.5)
+
+        if messages < len(batch):
+            raise Exception("didn't get all the callbacks")
 
     def shutdown(self):
         # do any other processes need to be shutdown?
         return
+
+    def callback(self, error, message):
+        if error is not None:
+            raise Exception(error.str())

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+from typing import Dict, List, Optional
 
 from sentry.models import Organization
 from sentry.utils.services import Service
@@ -17,7 +17,10 @@ class StringIndexer(Service):  # type: ignore
     and the corresponding reverse lookup.
     """
 
-    __all__ = ("record", "resolve", "reverse_resolve")
+    __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
+
+    def bulk_record(self, org_id: str, strings: List[str]) -> Dict[str, int]:
+        raise NotImplementedError()
 
     def record(self, organization: Organization, use_case: UseCase, string: str) -> int:
         """Store a string and return the integer ID generated for it
