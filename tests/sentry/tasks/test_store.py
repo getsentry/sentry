@@ -10,9 +10,11 @@ from sentry.tasks.store import (
     preprocess_event,
     process_event,
     save_event,
+    should_demote_symbolication,
     symbolicate_event,
     time_synthetic_monitoring_event,
 )
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.compat import mock
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -58,6 +60,12 @@ def mock_process_event():
 @pytest.fixture
 def mock_symbolicate_event():
     with mock.patch("sentry.tasks.store.symbolicate_event") as m:
+        yield m
+
+
+@pytest.fixture
+def mock_symbolicate_event_low_priority():
+    with mock.patch("sentry.tasks.store.symbolicate_event_low_priority") as m:
         yield m
 
 
@@ -123,6 +131,33 @@ def test_move_to_symbolicate_event(
     assert mock_symbolicate_event.delay.call_count == 1
     assert mock_process_event.delay.call_count == 0
     assert mock_save_event.delay.call_count == 0
+
+
+@pytest.mark.django_db
+def test_move_to_symbolicate_event_low_priority(
+    default_project,
+    mock_process_event,
+    mock_save_event,
+    mock_symbolicate_event,
+    mock_symbolicate_event_low_priority,
+    register_plugin,
+):
+    with override_options({"store.symbolicate-event-lpq-always": [default_project.id]}):
+        register_plugin(globals(), BasicPreprocessorPlugin)
+        data = {
+            "project": default_project.id,
+            "platform": "native",
+            "logentry": {"formatted": "test"},
+            "event_id": EVENT_ID,
+            "extra": {"foo": "bar"},
+        }
+
+        preprocess_event(data=data)
+
+        assert mock_symbolicate_event_low_priority.delay.call_count == 1
+        assert mock_symbolicate_event.delay.call_count == 0
+        assert mock_process_event.delay.call_count == 0
+        assert mock_save_event.delay.call_count == 0
 
 
 @pytest.mark.django_db
@@ -409,3 +444,31 @@ def test_time_synthetic_monitoring_event_in_save_event(mock_metrics_timing):
         mock.ANY,
     )
     assert to_process.kwargs == {"tags": tags, "sample_rate": 1.0}
+
+
+@pytest.mark.django_db
+def test_should_demote_symbolication_empty(default_project):
+    assert not should_demote_symbolication(default_project.id)
+
+
+@pytest.mark.django_db
+def test_should_demote_symbolication_always(default_project):
+    with override_options({"store.symbolicate-event-lpq-always": [default_project.id]}):
+        assert should_demote_symbolication(default_project.id)
+
+
+@pytest.mark.django_db
+def test_should_demote_symbolication_never(default_project):
+    with override_options({"store.symbolicate-event-lpq-never": [default_project.id]}):
+        assert not should_demote_symbolication(default_project.id)
+
+
+@pytest.mark.django_db
+def test_should_demote_symbolication_always_and_never(default_project):
+    with override_options(
+        {
+            "store.symbolicate-event-lpq-never": [default_project.id],
+            "store.symbolicate-event-lpq-always": [default_project.id],
+        }
+    ):
+        assert not should_demote_symbolication(default_project.id)
