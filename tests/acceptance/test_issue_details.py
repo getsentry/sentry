@@ -72,11 +72,13 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def test_pii_tooltips(self):
         event = self.create_sample_event(platform="pii-tooltips")
         self.page.visit_issue(self.org.slug, event.group.id)
+        self.browser.wait_until_test_id("loaded-device-name")
         self.browser.snapshot("issue details pii tooltips")
 
     def test_cocoa_event(self):
         event = self.create_sample_event(platform="cocoa")
         self.page.visit_issue(self.org.slug, event.group.id)
+        self.browser.wait_until_test_id("loaded-device-name")
         self.browser.snapshot("issue details cocoa")
 
     def test_cocoa_event_frame_line_hover(self):
@@ -89,6 +91,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def test_unity_event(self):
         event = self.create_sample_event(default="unity", platform="csharp")
         self.page.visit_issue(self.org.slug, event.group.id)
+        self.browser.wait_until_test_id("loaded-device-name")
         self.browser.snapshot("issue details unity")
 
     def test_android_event(self):
@@ -99,11 +102,13 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def test_android_ndk_event(self):
         event = self.create_sample_event(default="android-ndk", platform="android-ndk")
         self.page.visit_issue(self.org.slug, event.group.id)
+        self.browser.wait_until_test_id("loaded-device-name")
         self.browser.snapshot("issue details android-ndk")
 
     def test_aspnetcore_event(self):
         event = self.create_sample_event(default="aspnetcore", platform="csharp")
         self.page.visit_issue(self.org.slug, event.group.id)
+        self.browser.wait_until_test_id("loaded-device-name")
         self.browser.snapshot("issue details aspnetcore")
 
     def test_javascript_specific_event(self):
@@ -119,6 +124,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         event = self.create_sample_event(platform="native", sample_name="Rust")
         self.page.visit_issue(self.org.slug, event.group.id)
 
+        self.browser.wait_until_test_id("loaded-device-name")
         self.browser.snapshot("issue details rust")
 
     def test_cordova_event(self):
@@ -135,11 +141,13 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def test_empty_exception(self):
         event = self.create_sample_event(platform="empty-exception")
         self.page.visit_issue(self.org.slug, event.group.id)
+        self.browser.wait_until_test_id("loaded-device-name")
         self.browser.snapshot("issue details empty exception")
 
     def test_empty_stacktrace(self):
         event = self.create_sample_event(platform="empty-stacktrace")
         self.page.visit_issue(self.org.slug, event.group.id)
+        self.browser.wait_until_test_id("loaded-device-name")
         self.browser.snapshot("issue details empty stacktrace")
 
     def test_invalid_interfaces(self):
@@ -208,6 +216,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def test_python_invalid_json_error(self):
         event = self.create_sample_event(default="python-invalid-json-error", platform="native")
         self.page.visit_issue(self.org.slug, event.group.id)
+        self.browser.wait_until_test_id("loaded-device-name")
         self.browser.snapshot("issue details invalid json error exception")
 
     def test_exception_with_address_instruction(self):
@@ -215,4 +224,5 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
             default="exception-with-address-instruction", platform="cocoa"
         )
         self.page.visit_issue(self.org.slug, event.group.id)
+        self.browser.wait_until_test_id("loaded-device-name")
         self.browser.snapshot("issue details exception with address instruction")
