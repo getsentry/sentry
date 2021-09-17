@@ -45,15 +45,7 @@ type Props = {
   onReset: (rowIndex: number, name: string, value: string) => void;
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
-
-type State = {
-  /** Used to preserve values after modal closes, in case of edits */
-  sentryAppFormData: {[key: string]: any};
-};
-
-class RuleNode extends React.Component<Props, State> {
-  state: State = {sentryAppFormData: {}};
-
+class RuleNode extends React.Component<Props> {
   handleDelete = () => {
     const {index, onDelete} = this.props;
     onDelete(index);
@@ -362,13 +354,10 @@ class RuleNode extends React.Component<Props, State> {
 
   /**
    * Update all the AlertRuleAction's fields from the SentryAppRuleModal together
-   * only after the user clicks "Save Changes". Also saves the form state from the modal
-   * to repopulate it if the user makes changes
+   * only after the user clicks "Save Changes".
    * @param formData Form data
-   * @param fetchedFieldOptionsCache Object
    */
   updateParentFromSentryAppRule = (formData: {[key: string]: string}): void => {
-    this.setState({sentryAppFormData: formData});
     const {index, onPropertyChange} = this.props;
 
     for (const [name, value] of Object.entries(formData)) {
@@ -433,7 +422,7 @@ class RuleNode extends React.Component<Props, State> {
                         config={node.formFields as Config}
                         appName={node.prompt}
                         onSubmitSuccess={this.updateParentFromSentryAppRule}
-                        resetValues={this.state.sentryAppFormData}
+                        resetValues={data}
                       />
                     ),
                     {allowClickClose: false}
