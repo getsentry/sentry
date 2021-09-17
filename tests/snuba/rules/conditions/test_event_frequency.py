@@ -109,6 +109,76 @@ class StandardIntervalMixin:
         data = {"interval": "30d", "value": 6}
         self._run_test(data=data, minutes=43200 - 1, passes=False)
 
+    def test_comparison(self):
+        with freeze_time(before_now(minutes=0)):
+            # Test data is 4 events in the current period and 2 events in the comparison period, so
+            # a 100% increase.
+            event = self.store_event(
+                data={
+                    "fingerprint": ["something_random"],
+                    "timestamp": iso_format(before_now(minutes=1)),
+                    "user": {"id": uuid4().hex},
+                },
+                project_id=self.project.id,
+            )
+            self.increment(
+                event,
+                3,
+                timestamp=now() - timedelta(minutes=1),
+            )
+            self.increment(
+                event,
+                2,
+                timestamp=now() - timedelta(days=1, minutes=20),
+            )
+            data = {
+                "interval": "1h",
+                "value": 99,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            }
+            rule = self.get_rule(data=data, rule=Rule(environment_id=None))
+            self.assertPasses(rule, event)
+
+            data = {
+                "interval": "1h",
+                "value": 101,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            }
+            rule = self.get_rule(data=data, rule=Rule(environment_id=None))
+            self.assertDoesNotPass(rule, event)
+
+    def test_comparison_empty_comparison_period(self):
+        with freeze_time(before_now(minutes=0)):
+            # Test data is 1 event in the current period and 0 events in the comparison period. This
+            # should always result in 0 and never fire.
+            event = self.store_event(
+                data={
+                    "fingerprint": ["something_random"],
+                    "timestamp": iso_format(before_now(minutes=1)),
+                    "user": {"id": uuid4().hex},
+                },
+                project_id=self.project.id,
+            )
+            data = {
+                "interval": "1h",
+                "value": 0,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            }
+            rule = self.get_rule(data=data, rule=Rule(environment_id=None))
+            self.assertDoesNotPass(rule, event)
+
+            data = {
+                "interval": "1h",
+                "value": 100,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            }
+            rule = self.get_rule(data=data, rule=Rule(environment_id=None))
+            self.assertDoesNotPass(rule, event)
+
 
 class EventFrequencyConditionTestCase(
     FrequencyConditionMixin, StandardIntervalMixin, RuleTestCase, SnubaTestCase
@@ -287,3 +357,48 @@ class EventFrequencyPercentConditionTestCase(
         self._make_sessions(60, 60)
         data = {"interval": "1h", "value": 49}
         self._run_test(data=data, minutes=60, passes=False)
+
+    @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
+    def test_comparison(self):
+        with freeze_time(before_now(minutes=0)):
+            self._make_sessions(10, 1)
+            # Create sessions for previous period
+            self._make_sessions(10, 60 * 24 + 20)
+
+            # Test data is 2 events in the current period and 1 events in the comparison period.
+            # Number of sessions is 20 in each period, so current period is 20% of sessions, prev
+            # is 10%. Overall a 100% increase comparitively.
+            event = self.store_event(
+                data={
+                    "fingerprint": ["something_random"],
+                    "timestamp": iso_format(before_now(minutes=1)),
+                },
+                project_id=self.project.id,
+            )
+            self.increment(
+                event,
+                1,
+                timestamp=now() - timedelta(minutes=1),
+            )
+            self.increment(
+                event,
+                1,
+                timestamp=now() - timedelta(days=1, minutes=20),
+            )
+            data = {
+                "interval": "1h",
+                "value": 99,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            }
+            rule = self.get_rule(data=data, rule=Rule(environment_id=None))
+            self.assertPasses(rule, event)
+
+            data = {
+                "interval": "1h",
+                "value": 101,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            }
+            rule = self.get_rule(data=data, rule=Rule(environment_id=None))
+            self.assertDoesNotPass(rule, event)
