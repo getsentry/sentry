@@ -11,6 +11,24 @@ from sentry.utils.http import absolute_uri
 logger = logging.getLogger(__name__)
 
 
+def get_codeowners_request_builder_args(project, recipient, requester_name):
+    return {
+        "subject": _("A team member is asking to set up Sentry's Code Owners"),
+        "type": "organization.codeowners-request",
+        "context": {
+            "requester_name": requester_name,
+            "recipient_name": recipient.get_display_name(),
+            "organization_name": project.organization.name,
+            "project_name": project.name,
+            "codeowners_url": absolute_uri(
+                f"/settings/{project.organization.slug}/projects/{project.slug}/ownership/?referrer=codeowners-email"
+            ),
+        },
+        "template": "sentry/emails/requests/codeowners.txt",
+        "html_template": "sentry/emails/requests/codeowners.html",
+    }
+
+
 class ProjectCodeOwnersRequestEndpoint(ProjectRequestChangeEndpoint):
     def post(self, request, project):
         """
@@ -29,20 +47,7 @@ class ProjectCodeOwnersRequestEndpoint(ProjectRequestChangeEndpoint):
 
         for recipient in recipients:
             msg = MessageBuilder(
-                **{
-                    "subject": _("A team member is asking to set up Sentry's Code Owners"),
-                    "type": "organization.codeowners-request",
-                    "context": {
-                        "requester_name": requester_name,
-                        "organization_name": project.organization.name,
-                        "project_name": project.name,
-                        "codeowners_url": absolute_uri(
-                            f"/settings/{project.organization.slug}/projects/{project.slug}/ownership/?referrer=codeowners-email"
-                        ),
-                    },
-                    "template": "emails/codeowners-request/body.txt",
-                    "html_template": "emails/codeowners-request/body.html",
-                }
+                **get_codeowners_request_builder_args(project, recipient, requester_name)
             )
             email = recipient.get_email()
             logger.info(
