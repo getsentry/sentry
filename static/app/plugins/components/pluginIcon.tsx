@@ -9,6 +9,7 @@ import bitbucketserver from 'sentry-logos/logo-bitbucket-server.svg';
 import calixa from 'sentry-logos/logo-calixa.svg';
 import campfire from 'sentry-logos/logo-campfire.svg';
 import clickup from 'sentry-logos/logo-clickup.svg';
+import clubhouse from 'sentry-logos/logo-clubhouse.svg';
 import datadog from 'sentry-logos/logo-datadog.svg';
 import placeholder from 'sentry-logos/logo-default.svg';
 import flowdock from 'sentry-logos/logo-flowdock.svg';
@@ -37,7 +38,6 @@ import rocketchat from 'sentry-logos/logo-rocketchat.svg';
 import rookout from 'sentry-logos/logo-rookout.svg';
 import segment from 'sentry-logos/logo-segment.svg';
 import sentry from 'sentry-logos/logo-sentry.svg';
-import shortcut from 'sentry-logos/logo-shortcut.svg';
 import slack from 'sentry-logos/logo-slack.svg';
 import spikesh from 'sentry-logos/logo-spikesh.svg';
 import split from 'sentry-logos/logo-split.svg';
@@ -75,6 +75,7 @@ export const ICON_PATHS = {
   calixa,
   campfire,
   clickup,
+  clubhouse,
   datadog,
   flowdock,
   fullstory,
@@ -101,7 +102,6 @@ export const ICON_PATHS = {
   rocketchat,
   rookout,
   segment,
-  shortcut,
   slack,
   spikesh,
   split,
