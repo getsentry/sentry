@@ -23,8 +23,8 @@ import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartContro
 import {TrendColumnField, TrendFunctionField} from '../../trends/types';
 import {
   generateTrendFunctionAsString,
-  getTrendsParameters,
   TRENDS_FUNCTIONS,
+  TRENDS_PARAMETERS,
 } from '../../trends/utils';
 import {SpanOperationBreakdownFilter} from '../filter';
 
@@ -120,12 +120,12 @@ class TransactionSummaryCharts extends Component<Props> {
       withoutZerofill,
     } = this.props;
 
-    const TREND_PARAMETERS_OPTIONS: SelectValue<string>[] = getTrendsParameters({
-      canSeeSpanOpTrends: organization.features.includes('performance-ops-breakdown'),
-    }).map(({column, label}) => ({
-      value: column,
-      label,
-    }));
+    const TREND_PARAMETERS_OPTIONS: SelectValue<string>[] = TRENDS_PARAMETERS.map(
+      ({column, label}) => ({
+        value: column,
+        label,
+      })
+    );
 
     let display = decodeScalar(location.query.display, DisplayModes.DURATION);
     let trendFunction = decodeScalar(

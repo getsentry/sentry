@@ -7,8 +7,8 @@ import ProjectsStore from 'app/stores/projectsStore';
 import TrendsIndex from 'app/views/performance/trends/';
 import {
   DEFAULT_MAX_DURATION,
-  getTrendsParameters,
   TRENDS_FUNCTIONS,
+  TRENDS_PARAMETERS,
 } from 'app/views/performance/trends/utils';
 
 const trendsViewQuery = {
@@ -393,7 +393,7 @@ describe('Performance > Trends', function () {
     await tick();
     wrapper.update();
 
-    for (const parameter of getTrendsParameters()) {
+    for (const parameter of TRENDS_PARAMETERS) {
       selectTrendParameter(wrapper, parameter.label);
 
       await tick();

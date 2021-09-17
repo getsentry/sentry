@@ -31,10 +31,10 @@ import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,
   getSelectedQueryKey,
-  getTrendsParameters,
   modifyTrendsViewDefaultPeriod,
   resetCursors,
   TRENDS_FUNCTIONS,
+  TRENDS_PARAMETERS,
 } from './utils';
 
 type Props = {
@@ -194,10 +194,6 @@ class TrendsContent extends React.Component<Props, State> {
     const currentTrendFunction = getCurrentTrendFunction(location);
     const currentTrendParameter = getCurrentTrendParameter(location);
     const query = getTransactionSearchQuery(location);
-
-    const TRENDS_PARAMETERS = getTrendsParameters({
-      canSeeSpanOpTrends: organization.features.includes('performance-ops-breakdown'),
-    });
 
     return (
       <GlobalSelectionHeader
