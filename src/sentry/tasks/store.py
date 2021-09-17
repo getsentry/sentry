@@ -111,8 +111,8 @@ def submit_symbolicate_low_priority(
 ):
     task = (
         symbolicate_event_from_reprocessing_low_priority
-        # if from_reprocessing
-        # else symbolicate_event_low_priority
+        if from_reprocessing
+        else symbolicate_event_low_priority
     )
     task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
 
