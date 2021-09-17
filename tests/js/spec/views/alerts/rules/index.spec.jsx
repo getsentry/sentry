@@ -53,7 +53,6 @@ describe('OrganizationRuleList', () => {
         }),
       ],
     });
-
     projectMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [TestStubs.Project({slug: 'earth', platform: 'javascript'})],
@@ -233,7 +232,7 @@ describe('OrganizationRuleList', () => {
     expect(row.find('TriggerText').text()).toBe('Above 70');
 
     row = wrapper.find('RuleListRow').at(2);
-    expect(row.find('TriggerText').text()).toBe('Below 70');
+    expect(row.find('TriggerText').text()).toBe('Below 36');
     expect(wrapper.find('AlertIconWrapper').exists()).toBe(true);
   });
 
