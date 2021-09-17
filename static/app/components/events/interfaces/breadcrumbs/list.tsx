@@ -12,7 +12,7 @@ import isEqual from 'lodash/isEqual';
 
 import {BreadcrumbsWithDetails} from 'app/types/breadcrumbs';
 
-import ListBody from './listBody';
+import Breadcrumb from './breadcrumb';
 import ListHeader from './listHeader';
 import {aroundContentStyle} from './styles';
 
@@ -22,7 +22,7 @@ type Props = {
   onSwitchTimeFormat: () => void;
   breadcrumbs: BreadcrumbsWithDetails;
   relativeTime: string;
-} & Omit<React.ComponentProps<typeof ListBody>, 'breadcrumb' | 'isLastItem' | 'column'>;
+} & Omit<React.ComponentProps<typeof Breadcrumb>, 'breadcrumb' | 'isLastItem' | 'column'>;
 
 const cache = new CellMeasurerCache({
   fixedWidth: true,
@@ -71,14 +71,14 @@ class ListContainer extends React.Component<Props, State> {
     this.setState({scrollbarSize: size});
   };
 
-  renderBody(
+  renderBreadcrumb(
     breadcrumb: BreadcrumbsWithDetails[0],
     height: string | number | undefined,
     isLastItem = false
   ) {
     const {event, orgId, searchTerm, relativeTime, displayRelativeTime} = this.props;
     return (
-      <ListBody
+      <Breadcrumb
         orgId={orgId}
         searchTerm={searchTerm}
         breadcrumb={breadcrumb}
@@ -107,11 +107,11 @@ class ListContainer extends React.Component<Props, State> {
         {({measure}) =>
           isLastItem ? (
             <Row style={style} onLoad={measure} data-test-id="last-crumb">
-              {this.renderBody(breadcrumb, height, isLastItem)}
+              {this.renderBreadcrumb(breadcrumb, height, isLastItem)}
             </Row>
           ) : (
-            <Row style={style} onLoad={measure}>
-              {this.renderBody(breadcrumb, height)}
+            <Row style={style} onLoad={measure} data-test-id="crumb">
+              {this.renderBreadcrumb(breadcrumb, height)}
             </Row>
           )
         }

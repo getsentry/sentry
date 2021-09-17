@@ -212,8 +212,6 @@ register("snuba.search.max-chunk-size", default=2000)
 register("snuba.search.max-total-chunk-time-seconds", default=30.0)
 register("snuba.search.hits-sample-size", default=100)
 register("snuba.track-outcomes-sample-rate", default=0.0)
-register("snuba.snql.referrer-rate", default=0.0)
-register("snuba.snql.snql_only", default=1.0)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register("snuba.tagstore.cache-tagkeys-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
@@ -363,3 +361,9 @@ register("post-process-forwarder:concurrency", default=1)
 
 # Subscription queries sampling rate
 register("subscriptions-query.sample-rate", default=0.01)
+
+# The ratio of symbolication requests for which metrics will be submitted to redis.
+#
+# This is to allow gradual rollout of metrics collection for symbolication requests and can be
+# removed once it is fully rolled out.
+register("symbolicate-event.low-priority.metrics.submission-rate", default=0.0)
