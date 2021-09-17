@@ -96,6 +96,20 @@ class BaseEventFrequencyCondition(EventCondition):
                     )
                 ],
             },
+            "comparisonType": {
+                "type": "choice",
+                "choices": list(sorted(comparison_types.items(), key=lambda item: item[1])),
+            },
+            "comparisonInterval": {
+                "type": "choice",
+                "choices": [
+                    (key, label)
+                    for key, (label, duration) in sorted(
+                        comparison_intervals.items(),
+                        key=lambda item: item[1][1],
+                    )
+                ],
+            },
         }
 
         super().__init__(*args, **kwargs)
