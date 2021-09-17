@@ -505,7 +505,7 @@ class AuthIdentityHandler:
 
         if features.has("organizations:idp-automatic-migration", self.organization):
             existing_user = self._get_user(identity)
-            if existing_user:
+            if existing_user and not existing_user.has_usable_password():
                 create_verification_key(existing_user, self.organization, identity["email"])
                 return existing_user, "auth-confirm-account"
 
