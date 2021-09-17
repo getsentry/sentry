@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Optional, Sequence
+from typing import Dict, Optional, Sequence, Set
 
 from snuba_sdk import Column, Condition, Entity, Op, Query
 from snuba_sdk.expressions import Granularity
@@ -13,27 +13,27 @@ from sentry.utils.snuba import raw_snql_query
 
 
 def metric_id(org_id: int, name: str) -> int:
-    index = indexer.resolve(org_id, UseCase.TAG_KEY, name)
+    index = indexer.resolve(org_id, UseCase.TAG_KEY, name)  # type: ignore
     assert index is not None  # TODO: assert too strong?
-    return index
+    return index  # type: ignore
 
 
 def tag_key(org_id: int, name: str) -> str:
-    index = indexer.resolve(org_id, UseCase.TAG_KEY, name)
+    index = indexer.resolve(org_id, UseCase.TAG_KEY, name)  # type: ignore
     assert index is not None
     return f"tags[{index}]"
 
 
 def tag_value(org_id: int, name: str) -> int:
-    index = indexer.resolve(org_id, UseCase.TAG_VALUE, name)
+    index = indexer.resolve(org_id, UseCase.TAG_VALUE, name)  # type: ignore
     assert index is not None
-    return index
+    return index  # type: ignore
 
 
 def reverse_tag_value(org_id: int, index: int) -> str:
-    str_value = indexer.reverse_resolve(org_id, UseCase.TAG_VALUE, index)
+    str_value = indexer.reverse_resolve(org_id, UseCase.TAG_VALUE, index)  # type: ignore
     assert str_value is not None
-    return str_value
+    return str_value  # type: ignore
 
 
 class MetricsReleaseHealthBackend(ReleaseHealthBackend):
@@ -88,7 +88,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     @staticmethod
     def _get_org_id(project_ids: Sequence[int]) -> int:
         projects = Project.objects.get_many_from_cache(project_ids)
-        org_ids = {project.organization_id for project in projects}
+        org_ids: Set[int] = {project.organization_id for project in projects}
         if len(org_ids) != 1:
             raise ValueError("Expected projects to be from the same organization")
 
