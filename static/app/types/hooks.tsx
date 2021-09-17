@@ -72,6 +72,7 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 type DashboardHeadersProps = {organization: Organization};
 type CodeOwnersHeaderProps = {
   addCodeOwner: () => void;
+  handleRequest: () => void;
 };
 /**
  * Component wrapping hooks

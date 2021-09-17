@@ -150,6 +150,7 @@ from .endpoints.organization_code_mapping_codeowners import (
 )
 from .endpoints.organization_code_mapping_details import OrganizationCodeMappingDetailsEndpoint
 from .endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
+from .endpoints.organization_codeowners_request import OrganizationCodeOwnersRequestEndpoint
 from .endpoints.organization_config_integrations import OrganizationConfigIntegrationsEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_dashboard_details import (
@@ -1374,6 +1375,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",
                     OrganizationRequestProjectCreation.as_view(),
                     name="sentry-api-0-organization-request-project-creation",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/codeowners-request/$",
+                    OrganizationCodeOwnersRequestEndpoint.as_view(),
+                    name="getsentry-api-0-organization-codeowners-request",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/scim/v2/",

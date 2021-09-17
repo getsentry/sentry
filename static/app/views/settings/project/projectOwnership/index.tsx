@@ -1,7 +1,13 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
 import {openEditOwnershipRules, openModal} from 'app/actionCreators/modal';
 import Access from 'app/components/acl/access';
 import Feature from 'app/components/acl/feature';
@@ -139,6 +145,25 @@ tags.sku_class:enterprise #enterprise`;
     this.setState({
       codeowners: [...codeowners.slice(0, index), data, ...codeowners.slice(index + 1)],
     });
+  };
+
+  handleAddCodeOwnerRequest = async () => {
+    const {organization, project} = this.props;
+    try {
+      addLoadingMessage(t('Requesting\u2026'));
+      await this.api.requestPromise(
+        `/organizations/${organization.slug}/codeowners-request/`,
+        {
+          method: 'POST',
+          data: {projectId: project.id},
+        }
+      );
+
+      addSuccessMessage(t('Request Sent'));
+    } catch (err) {
+      addErrorMessage(t('Unable to send request'));
+      Sentry.captureException(err);
+    }
   };
 
   renderCodeOwnerErrors = () => {
@@ -279,9 +304,9 @@ tags.sku_class:enterprise #enterprise`;
                 {t('View Issues')}
               </Button>
               <Feature features={['integrations-codeowners']}>
-                <Access access={['project:write']}>
+                <Access access={['org:integrations']}>
                   {({hasAccess}) =>
-                    hasAccess && (
+                    hasAccess ? (
                       <CodeOwnerButton
                         onClick={this.handleAddCodeOwner}
                         size="small"
@@ -289,6 +314,15 @@ tags.sku_class:enterprise #enterprise`;
                         data-test-id="add-codeowner-button"
                       >
                         {t('Add CODEOWNERS File')}
+                      </CodeOwnerButton>
+                    ) : (
+                      <CodeOwnerButton
+                        onClick={this.handleAddCodeOwnerRequest}
+                        size="small"
+                        priority="primary"
+                        data-test-id="add-codeowner-request-button"
+                      >
+                        {t('Request to Add CODEOWNERS File')}
                       </CodeOwnerButton>
                     )
                   }
@@ -298,7 +332,10 @@ tags.sku_class:enterprise #enterprise`;
           }
         />
         <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
-        <CodeOwnersHeader addCodeOwner={this.handleAddCodeOwner} />
+        <CodeOwnersHeader
+          addCodeOwner={this.handleAddCodeOwner}
+          handleRequest={this.handleAddCodeOwnerRequest}
+        />
 
         <PermissionAlert />
         <FeedbackAlert />
