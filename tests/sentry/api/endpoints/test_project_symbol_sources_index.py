@@ -38,7 +38,7 @@ class ApiClient(django.test.Client):  # type: ignore
         self.project_slug = project.slug
         self.organization_slug = project.organization.slug
 
-    def project_get_response(self, path: str) -> django.test.Response:
+    def project_get_response(self, path: str) -> "django.test.Response":
         """Call a Project API endpoint.
 
         You probably should prefer :meth:`project_get` instead.
@@ -60,7 +60,7 @@ class ApiClient(django.test.Client):  # type: ignore
         need full control of the request use :meth:`get` directly.
         """
         __tracebackhide__ = True
-        response = self.project_get(path)
+        response = self.project_get_response(path)
         if response.status_code != status_code:
             pytest.fail(
                 f"API request to /api/0/projects/{{org_slug}}/{{proj_slug}}/{path}"
