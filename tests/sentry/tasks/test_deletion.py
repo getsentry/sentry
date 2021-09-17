@@ -22,6 +22,18 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class RunScheduledDeletionTest(TestCase):
+    def test_duplicate_schedule(self):
+        org = self.create_organization(name="test")
+        team = self.create_team(organization=org, name="delete")
+
+        first = ScheduledDeletion.schedule(team, days=0)
+        second = ScheduledDeletion.schedule(team, days=1)
+        # Should get the same record.
+        assert first.id == second.id
+        assert first.guid == second.guid
+        # Date should be updated
+        assert second.date_scheduled - first.date_scheduled >= timedelta(days=1)
+
     def test_simple(self):
         org = self.create_organization(name="test")
         team = self.create_team(organization=org, name="delete")

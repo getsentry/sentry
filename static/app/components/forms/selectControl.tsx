@@ -12,6 +12,7 @@ import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
 import {withTheme} from '@emotion/react';
 
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconChevron, IconClose} from 'app/icons';
 import space from 'app/styles/space';
 import {Choices, SelectValue} from 'app/types';
@@ -53,6 +54,10 @@ const MultiValueRemove = (
   <selectComponents.MultiValueRemove {...props}>
     <IconClose size="8px" />
   </selectComponents.MultiValueRemove>
+);
+
+const SelectLoadingIndicator = () => (
+  <LoadingIndicator mini size={20} style={{height: 20, width: 20}} />
 );
 
 export type ControlProps<OptionType = GeneralSelectValue> = Omit<
@@ -336,6 +341,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     ClearIndicator,
     DropdownIndicator,
     MultiValueRemove,
+    LoadingIndicator: SelectLoadingIndicator,
     IndicatorSeparator: null,
   };
 

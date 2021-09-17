@@ -57,7 +57,7 @@ const OwnershipRules = ({
     <Container dashedBorder>
       <HeaderContainer>
         <Header>{t('Codeowners sync')}</Header>{' '}
-        <FeatureBadge style={{top: -3}} type="beta" noTooltip />
+        <FeatureBadge style={{top: -3}} type="new" noTooltip />
         <DismissButton
           icon={<IconClose size="xs" />}
           priority="link"

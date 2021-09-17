@@ -1,7 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import * as modals from 'app/actionCreators/modal';
+import TeamStore from 'app/stores/teamStore';
 import App from 'app/views/app';
 import ProjectTeams from 'app/views/settings/project/projectTeams';
 
@@ -10,19 +12,21 @@ jest.unmock('app/actionCreators/modal');
 describe('ProjectTeams', function () {
   let org;
   let project;
-  let team;
-  const team2 = {
+
+  const team1 = TestStubs.Team();
+  const team2 = TestStubs.Team({
     id: '2',
     slug: 'team-slug-2',
     name: 'Team Name 2',
     hasAccess: true,
-  };
+  });
 
   beforeEach(function () {
     jest.spyOn(modals, 'openCreateTeamModal');
     org = TestStubs.Organization();
     project = TestStubs.ProjectDetails();
-    team = TestStubs.Team();
+
+    act(() => void TeamStore.loadInitialData([team1, team2]));
 
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
@@ -32,12 +36,12 @@ describe('ProjectTeams', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
-      body: [team],
+      body: [team1],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'GET',
-      body: [team, team2],
+      body: [team1, team2],
     });
   });
 
@@ -64,10 +68,10 @@ describe('ProjectTeams', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
-      body: [team, team2],
+      body: [team1, team2],
     });
 
-    const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team.slug}/`;
+    const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team1.slug}/`;
     const mock = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'DELETE',
@@ -126,10 +130,10 @@ describe('ProjectTeams', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
-      body: [team, team2],
+      body: [team1, team2],
     });
 
-    const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team.slug}/`;
+    const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team1.slug}/`;
     const mock = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'DELETE',

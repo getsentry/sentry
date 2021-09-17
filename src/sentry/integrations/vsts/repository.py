@@ -1,17 +1,21 @@
 import logging
+from typing import Any, Mapping, MutableMapping, Optional, Sequence
 
-from sentry.models import Integration
+from sentry.integrations import IntegrationInstallation
+from sentry.models import Commit, Integration, Organization, Repository
 from sentry.plugins import providers
 from sentry.shared_integrations.exceptions import IntegrationError
 
 MAX_COMMIT_DATA_REQUESTS = 90
 
 
-class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
+class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):  # type: ignore
     name = "Azure DevOps"
     logger = logging.getLogger("sentry.integrations.vsts")
 
-    def get_installation(self, integration_id, organization_id):
+    def get_installation(
+        self, integration_id: Optional[int], organization_id: int
+    ) -> IntegrationInstallation:
         if integration_id is None:
             raise IntegrationError("%s requires an integration id." % self.name)
 
@@ -19,9 +23,13 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
             id=integration_id, organizations=organization_id, provider="vsts"
         )
 
-        return integration_model.get_installation(organization_id)
+        # Explicitly typing to satisfy mypy.
+        installation: IntegrationInstallation = integration_model.get_installation(organization_id)
+        return installation
 
-    def get_repository_data(self, organization, config):
+    def get_repository_data(
+        self, organization: Organization, config: MutableMapping[str, Any]
+    ) -> Mapping[str, str]:
         installation = self.get_installation(config.get("installation"), organization.id)
         client = installation.get_client()
         instance = installation.instance
@@ -43,7 +51,9 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
         )
         return config
 
-    def build_repository_config(self, organization, data):
+    def build_repository_config(
+        self, organization: Organization, data: Mapping[str, str]
+    ) -> Mapping[str, Any]:
         return {
             "name": data["name"],
             "external_id": data["external_id"],
@@ -56,7 +66,9 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
             "integration_id": data["installation"],
         }
 
-    def transform_changes(self, patch_set):
+    def transform_changes(
+        self, patch_set: Sequence[Mapping[str, Any]]
+    ) -> Sequence[Mapping[str, str]]:
         type_mapping = {"add": "A", "delete": "D", "edit": "M"}
         file_changes = []
         # https://docs.microsoft.com/en-us/rest/api/vsts/git/commits/get%20changes#versioncontrolchangetype
@@ -68,7 +80,9 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return file_changes
 
-    def zip_commit_data(self, repo, commit_list, organization_id):
+    def zip_commit_data(
+        self, repo: Repository, commit_list: Sequence[Commit], organization_id: int
+    ) -> Sequence[Commit]:
         installation = self.get_installation(repo.integration_id, organization_id)
         client = installation.get_client()
         n = 0
@@ -95,7 +109,10 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return commit_list
 
-    def compare_commits(self, repo, start_sha, end_sha):
+    def compare_commits(
+        self, repo: Repository, start_sha: Optional[str], end_sha: str
+    ) -> Sequence[Mapping[str, str]]:
+        """TODO(mgaeta): This function is kinda a mess."""
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         instance = repo.config["instance"]
@@ -111,7 +128,9 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
         commits = self.zip_commit_data(repo, res["value"], repo.organization_id)
         return self._format_commits(repo, commits)
 
-    def _format_commits(self, repo, commit_list):
+    def _format_commits(
+        self, repo: Repository, commit_list: Sequence[Mapping[str, Any]]
+    ) -> Sequence[Mapping[str, Any]]:
         return [
             {
                 "id": c["commitId"],
@@ -125,5 +144,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
             for c in commit_list
         ]
 
-    def repository_external_slug(self, repo):
-        return repo.external_id
+    def repository_external_slug(self, repo: Repository) -> str:
+        # Explicitly typing to satisfy mypy.
+        external_id: str = repo.external_id
+        return external_id

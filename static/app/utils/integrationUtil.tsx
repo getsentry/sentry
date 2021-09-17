@@ -224,5 +224,7 @@ export const isSlackIntegrationUpToDate = (integrations: Integration[]): boolean
 export const getAlertText = (integrations?: Integration[]): string | undefined => {
   return isSlackIntegrationUpToDate(integrations || [])
     ? undefined
-    : t('Your Slack installation is out of date. Please re-install.');
+    : t(
+        'Update to the latest version of our Slack app to get access to personal and team notifications.'
+      );
 };

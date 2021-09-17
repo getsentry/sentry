@@ -229,12 +229,22 @@ class ProjectSerializer(Serializer):
                 serialized["features"] = features_by_project[project]
 
         with measure_span("other"):
+            # TODO(mgaeta): Remove `should_use_slack_automatic` parameter.
+            should_use_slack_automatic_by_organization_id = {
+                organization.id: features.has(
+                    "organizations:notification-slack-automatic", organization
+                )
+                for organization in {project.organization for project in item_list}
+            }
             for project, serialized in result.items():
                 value = get_most_specific_notification_setting_value(
                     notification_settings_by_scope,
                     user=user,
                     parent_id=project.id,
                     type=NotificationSettingTypes.ISSUE_ALERTS,
+                    should_use_slack_automatic=should_use_slack_automatic_by_organization_id[
+                        project.organization_id
+                    ],
                 )
                 is_subscribed = value == NotificationSettingOptionValues.ALWAYS
                 serialized.update(
@@ -795,6 +805,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
                 "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
+                "eventProcessing": {
+                    "symbolicationDegraded": False,
+                },
             }
         )
         custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")

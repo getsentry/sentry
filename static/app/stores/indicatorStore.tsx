@@ -138,8 +138,7 @@ const storeConfig: Reflux.StoreDefinition & IndicatorStoreInterface & Internals 
   },
 };
 
-type IndicatorStore = Reflux.Store & IndicatorStoreInterface;
-
-const IndicatorStore = Reflux.createStore(storeConfig) as IndicatorStore;
+const IndicatorStore = Reflux.createStore(storeConfig) as Reflux.Store &
+  IndicatorStoreInterface;
 
 export default IndicatorStore;

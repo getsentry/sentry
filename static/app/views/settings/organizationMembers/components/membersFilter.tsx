@@ -74,7 +74,7 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
       <FilterHeader>{t('Filter By')}</FilterHeader>
 
       <FilterLists>
-        <Filters>
+        <FilterList>
           <h3>{t('User Role')}</h3>
           {roles.map(({id, name}) => (
             <label key={id}>
@@ -86,9 +86,9 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
               {name}
             </label>
           ))}
-        </Filters>
+        </FilterList>
 
-        <Filters>
+        <FilterList>
           <h3>{t('Status')}</h3>
           <BooleanFilter
             data-test-id="filter-isInvited"
@@ -111,7 +111,7 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
           >
             {t('SSO Linked')}
           </BooleanFilter>
-        </Filters>
+        </FilterList>
       </FilterLists>
     </FilterContainer>
   );
@@ -159,7 +159,7 @@ const FilterLists = styled('div')`
   margin-top: ${space(0.75)};
 `;
 
-const Filters = styled('div')`
+const FilterList = styled('div')`
   display: grid;
   grid-template-rows: repeat(auto-fit, minmax(0, max-content));
   grid-gap: ${space(1)};

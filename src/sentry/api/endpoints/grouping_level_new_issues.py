@@ -217,6 +217,8 @@ def _process_snuba_results(query_res, group: Group, id: int, user):
             event_type = get_event_type(event.data)
             metadata = dict(event.get_event_metadata())
             metadata["current_tree_label"] = tree_label
+            # Force rendering of grouping tree labels irrespective of platform
+            metadata["display_title_with_tree_label"] = True
             title = event_type.get_title(metadata)
             response_item["title"] = title or event.title
             response_item["metadata"] = metadata

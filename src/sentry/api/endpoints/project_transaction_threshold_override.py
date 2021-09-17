@@ -3,7 +3,6 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.bases import ProjectTransactionThresholdOverridePermission
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
 from sentry.api.serializers import serialize
@@ -55,13 +54,6 @@ class ProjectTransactionThresholdOverrideSerializer(serializers.Serializer):
 
 class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBase):
     permission_classes = (ProjectTransactionThresholdOverridePermission,)
-
-    def has_feature(self, organization, request):
-        return features.has(
-            "organizations:project-transaction-threshold-override",
-            organization,
-            actor=request.user,
-        )
 
     def get_project(self, request, organization):
         projects = self.get_projects(request, organization)

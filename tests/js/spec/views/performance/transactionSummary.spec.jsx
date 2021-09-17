@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
@@ -34,7 +35,10 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
     },
   });
   ProjectsStore.loadInitialData(initialData.organization.projects);
-  TeamStore.loadInitialData(teams);
+
+  act(() => {
+    TeamStore.loadInitialData(teams);
+  });
   return initialData;
 }
 
@@ -98,24 +102,26 @@ describe('Performance > TransactionSummary', function () {
         body: {
           meta: {
             count: 'number',
-            apdex_400: 'number',
-            count_miserable_user_400: 'number',
-            user_misery_400: 'number',
+            apdex: 'number',
+            count_miserable_user: 'number',
+            user_misery: 'number',
             count_unique_user: 'number',
             p95: 'number',
             failure_rate: 'number',
             tpm: 'number',
+            project_threshold_config: 'string',
           },
           data: [
             {
               count: 2,
-              apdex_400: 0.6,
-              count_miserable_user_400: 122,
-              user_misery_400: 0.114,
+              apdex: 0.6,
+              count_miserable_user: 122,
+              user_misery: 0.114,
               count_unique_user: 1,
               p95: 750.123,
               failure_rate: 1,
               tpm: 1,
+              project_threshold_config: ['duration', 300],
             },
           ],
         },
@@ -200,6 +206,14 @@ describe('Performance > TransactionSummary', function () {
           topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
         },
       ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      method: 'GET',
+      body: {
+        threshold: '800',
+        metric: 'lcp',
+      },
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-vitals/',
@@ -314,9 +328,7 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('fetches transaction threshdold', async function () {
-    const initialData = initializeData({
-      features: ['project-transaction-threshold-override'],
-    });
+    const initialData = initializeData();
     const getTransactionThresholdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',
@@ -351,9 +363,7 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('fetches project transaction threshdold', async function () {
-    const initialData = initializeData({
-      features: ['project-transaction-threshold-override'],
-    });
+    const initialData = initializeData();
     const getTransactionThresholdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',

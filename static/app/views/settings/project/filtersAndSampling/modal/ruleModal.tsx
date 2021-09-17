@@ -28,14 +28,14 @@ import Conditions from './conditions';
 import handleXhrErrorResponse from './handleXhrErrorResponse';
 import {isLegacyBrowser} from './utils';
 
-type Conditions = React.ComponentProps<typeof Conditions>['conditions'];
+type ConditionsProps = React.ComponentProps<typeof Conditions>['conditions'];
 
 type State = {
-  conditions: Conditions;
+  conditions: ConditionsProps;
   errors: {
     sampleRate?: string;
   };
-  sampleRate?: number;
+  sampleRate: number | null;
 };
 
 type Props = ModalRenderProps & {
@@ -117,7 +117,7 @@ function RuleModal({
 
     return {
       conditions: [],
-      sampleRate: undefined,
+      sampleRate: null,
       errors: {},
     };
   }
@@ -171,10 +171,10 @@ function RuleModal({
     setData({...data, conditions: newConditions});
   }
 
-  function handleChangeCondition<T extends keyof Conditions[0]>(
+  function handleChangeCondition<T extends keyof ConditionsProps[0]>(
     index: number,
     field: T,
-    value: Conditions[0][T]
+    value: ConditionsProps[0][T]
   ) {
     const newConditions = [...conditions];
     newConditions[index][field] = value;
@@ -260,7 +260,7 @@ function RuleModal({
             label={`${t('Sampling Rate')} \u0025`}
             name="sampleRate"
             onChange={value => {
-              setData({...data, sampleRate: !!value ? Number(value) : undefined});
+              setData({...data, sampleRate: !!value ? Number(value) : null});
             }}
             placeholder={'\u0025'}
             value={sampleRate}

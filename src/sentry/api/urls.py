@@ -10,7 +10,6 @@ from sentry.discover.endpoints.discover_key_transactions import (
     IsKeyTransactionEndpoint,
     KeyTransactionEndpoint,
     KeyTransactionListEndpoint,
-    LegacyKeyTransactionCountEndpoint,
 )
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
@@ -88,6 +87,7 @@ from .endpoints.event_attachments import EventAttachmentsEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
+from .endpoints.event_reprocessable import EventReprocessableEndpoint
 from .endpoints.external_team import ExternalTeamEndpoint
 from .endpoints.external_team_details import ExternalTeamDetailsEndpoint
 from .endpoints.external_user import ExternalUserEndpoint
@@ -836,11 +836,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/key-transactions-list/$",
                     KeyTransactionListEndpoint.as_view(),
                     name="sentry-api-0-organization-key-transactions-list",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/legacy-key-transactions-count/$",
-                    LegacyKeyTransactionCountEndpoint.as_view(),
-                    name="sentry-api-0-organization-legacy-key-transactions-count",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/is-key-transactions/$",
@@ -1599,6 +1594,11 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/attachments/$",
                     EventAttachmentsEndpoint.as_view(),
+                    name="sentry-api-0-event-attachments",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/reprocessable/$",
+                    EventReprocessableEndpoint.as_view(),
                     name="sentry-api-0-event-attachments",
                 ),
                 url(
