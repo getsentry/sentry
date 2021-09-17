@@ -206,15 +206,24 @@ class SubscriptionProcessor:
                 },
             )
         aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
-        # In some cases Snuba can return a None value for an aggregation. This means
-        # there were no rows present when we made the query, for certain types of
-        # aggregations like avg. Defaulting this to 0 for now. It might turn out that
-        # we'd prefer to skip the update in the future.
-        if aggregation_value is None:
-            if Dataset(self.subscription.snuba_query.dataset) == Dataset.Sessions:
+
+        is_sessions_dataset = Dataset(self.subscription.snuba_query.dataset) == Dataset.Sessions
+        if is_sessions_dataset:
+            if aggregation_value is None:
                 metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
                 return
-            aggregation_value = 0
+            # The subscription aggregation for crash rate alerts uses the Discover percentage
+            # function, which would technically return a ratio of sessions_crashed/sessions and
+            # so we need to calculate the crash free percentage out of that returned value
+            aggregation_value = (1 - aggregation_value) * 100
+        else:
+            # In some cases Snuba can return a None value for an aggregation. This means
+            # there were no rows present when we made the query, for certain types of
+            # aggregations like avg. Defaulting this to 0 for now. It might turn out that
+            # we'd prefer to skip the update in the future.
+            if aggregation_value is None:
+                aggregation_value = 0
+
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]
