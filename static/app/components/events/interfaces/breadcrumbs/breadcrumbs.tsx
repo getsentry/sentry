@@ -127,6 +127,7 @@ function Breadcrumbs({
         t('Level'),
         <Time key="time" onClick={onSwitchTimeFormat}>
           <Tooltip
+            containerDisplayMode="inline-flex"
             title={
               displayRelativeTime ? t('Switch to absolute') : t('Switch to relative')
             }

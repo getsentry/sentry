@@ -7,11 +7,11 @@ import {Organization} from 'app/types';
 import {BreadcrumbsWithDetails, BreadcrumbType} from 'app/types/breadcrumbs';
 import {Event} from 'app/types/event';
 
-import Icon from './type/icon';
 import Category from './category';
 import Data from './data';
 import Level from './level';
 import Time from './time';
+import Type from './type';
 
 type Props = {
   breadcrumb: BreadcrumbsWithDetails[0];
@@ -42,7 +42,7 @@ const Breadcrumb = memo(function Breadcrumb({
 
   return (
     <Wrapper style={style} error={error} onLoad={onLoad} data-test-id={dataTestId}>
-      <Icon type={type} color={color} description={description} error={error} />
+      <Type type={type} color={color} description={description} error={error} />
       <Category category={category} searchTerm={searchTerm} />
       <Data
         event={event}
