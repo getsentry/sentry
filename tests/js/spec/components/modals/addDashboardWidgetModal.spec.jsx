@@ -211,6 +211,65 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     wrapper.unmount();
   });
 
+  it('additional fields get added to new seach filters', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: [],
+    });
+
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+
+    // Click the add button
+    const add = wrapper.find('button[aria-label="Add Overlay"]');
+    add.simulate('click');
+    wrapper.update();
+
+    // Should be another field input.
+    expect(wrapper.find('QueryField')).toHaveLength(2);
+
+    selectByLabel(wrapper, 'p95(\u2026)', {name: 'field', at: 1, control: true});
+
+    await clickSubmit(wrapper);
+
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+
+    // Add another search filter
+    const addQuery = wrapper.find('button[aria-label="Add Query"]');
+    addQuery.simulate('click');
+    wrapper.update();
+    // Set second query search conditions
+    const secondSearchBar = wrapper.find('SearchConditionsWrapper StyledSearchBar').at(1);
+    await setSearchConditions(secondSearchBar, 'event.type:error');
+
+    // Set second query legend alias
+    wrapper
+      .find('SearchConditionsWrapper input[placeholder="Legend Alias"]')
+      .at(1)
+      .simulate('change', {target: {value: 'Errors'}});
+
+    // Save widget
+    await clickSubmit(wrapper);
+
+    expect(widget.queries[0]).toMatchObject({
+      name: '',
+      conditions: '',
+      fields: ['count()', 'p95(transaction.duration)'],
+    });
+    expect(widget.queries[1]).toMatchObject({
+      name: 'Errors',
+      conditions: 'event.type:error',
+      fields: ['count()', 'p95(transaction.duration)'],
+    });
+
+    wrapper.unmount();
+  });
+
   it('can add and delete additional queries', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/event.type/values/',

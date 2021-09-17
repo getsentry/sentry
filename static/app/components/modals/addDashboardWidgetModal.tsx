@@ -259,7 +259,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   handleAddSearchConditions = () => {
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
-      newState.queries.push(cloneDeep(newQuery));
+      const query = cloneDeep(newQuery);
+      query.fields = this.state.queries[0].fields;
+      newState.queries.push(query);
 
       return newState;
     });
