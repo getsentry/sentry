@@ -94,7 +94,7 @@ from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
-from .skips import requires_snuba
+from .skips import requires_snuba, requires_snuba_metrics
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -934,6 +934,7 @@ class SnubaTestCase(BaseTestCase):
         )
 
 
+@requires_snuba_metrics
 class SessionMetricsTestCase(SnubaTestCase):
     """Store metrics instead of sessions"""
 
