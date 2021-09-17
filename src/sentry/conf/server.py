@@ -607,6 +607,10 @@ CELERY_QUEUES = [
     Queue(
         "events.reprocessing.symbolicate_event", routing_key="events.reprocessing.symbolicate_event"
     ),
+    Queue(
+        "events.reprocessing.symbolicate_event_low_priority",
+        routing_key="events.reprocessing.symbolicate_event_low_priority",
+    ),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
     Queue(
