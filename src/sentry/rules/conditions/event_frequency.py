@@ -29,6 +29,10 @@ comparison_intervals = {
 }
 COMPARISON_TYPE_COUNT = "count"
 COMPARISON_TYPE_PERCENT = "percent"
+comparison_types = {
+    COMPARISON_TYPE_COUNT: "Absolute increase",
+    COMPARISON_TYPE_PERCENT: "Percent increase",
+}
 
 
 class EventFrequencyForm(forms.Form):
@@ -42,6 +46,32 @@ class EventFrequencyForm(forms.Form):
         ]
     )
     value = forms.IntegerField(widget=forms.TextInput())
+    comparisonType = forms.ChoiceField(
+        choices=list(sorted(comparison_types.items(), key=lambda item: item[1])),
+        required=False,
+    )
+    comparisonInterval = forms.ChoiceField(
+        choices=[
+            (key, label)
+            for key, (label, duration) in sorted(
+                comparison_intervals.items(), key=lambda item: item[1][1]
+            )
+        ],
+        required=False,
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        # Don't store an empty string here if the value isn't passed
+        if cleaned_data.get("comparisonInterval") == "":
+            del cleaned_data["comparisonInterval"]
+        cleaned_data["comparisonType"] = cleaned_data.get("comparisonType") or COMPARISON_TYPE_COUNT
+        if cleaned_data["comparisonType"] == COMPARISON_TYPE_PERCENT and not cleaned_data.get(
+            "comparisonInterval"
+        ):
+            msg = forms.ValidationError("comparisonInterval is required when comparing by percent")
+            self.add_error("comparisonInterval", msg)
+            return
 
 
 class BaseEventFrequencyCondition(EventCondition):
@@ -60,6 +90,20 @@ class BaseEventFrequencyCondition(EventCondition):
                     for key, (label, duration) in sorted(
                         self.intervals.items(),
                         key=lambda key____label__duration: key____label__duration[1][1],
+                    )
+                ],
+            },
+            "comparisonType": {
+                "type": "choice",
+                "choices": list(sorted(comparison_types.items(), key=lambda item: item[1])),
+            },
+            "comparisonInterval": {
+                "type": "choice",
+                "choices": [
+                    (key, label)
+                    for key, (label, duration) in sorted(
+                        comparison_intervals.items(),
+                        key=lambda item: item[1][1],
                     )
                 ],
             },
