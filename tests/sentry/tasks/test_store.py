@@ -460,7 +460,7 @@ def test_should_demote_symbolication_always(default_project):
 @pytest.mark.django_db
 def test_should_demote_symbolication_never(default_project):
     with override_options({"store.symbolicate-event-lpq-never": [default_project.id]}):
-        assert should_demote_symbolication(default_project.id)
+        assert not should_demote_symbolication(default_project.id)
 
 
 @pytest.mark.django_db
