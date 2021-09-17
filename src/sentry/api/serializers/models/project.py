@@ -4,6 +4,7 @@ from typing import Any, List, MutableMapping, Optional, Sequence
 
 import sentry_sdk
 from django.db import connection
+from django.db.models import prefetch_related_objects
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
@@ -70,7 +71,6 @@ def get_access_by_project(
     request = env.request
 
     project_teams = list(ProjectTeam.objects.filter(project__in=projects).select_related("team"))
-
     project_team_map = defaultdict(list)
 
     for pt in project_teams:
@@ -78,6 +78,7 @@ def get_access_by_project(
 
     team_memberships = get_team_memberships([pt.team for pt in project_teams], user)
     org_roles = get_org_roles({i.organization_id for i in projects}, user)
+    prefetch_related_objects(projects, "organization")
 
     is_superuser = request and is_active_superuser(request) and request.user == user
     result = {}
