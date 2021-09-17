@@ -2980,6 +2980,36 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             assert data[0]["any_user_id"] is None
             assert data[0]["count"] == 1
 
+    def test_offsets(self):
+        self.store_event(
+            data={"message": "hello1", "timestamp": iso_format(self.one_min_ago)},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"message": "hello2", "timestamp": iso_format(self.one_min_ago)},
+            project_id=self.project.id,
+        )
+
+        for use_snql in [False, True]:
+            result = discover.query(
+                selected_columns=["message"],
+                query="",
+                params={
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="message",
+                use_snql=use_snql,
+                limit=1,
+                offset=1,
+            )
+
+            data = result["data"]
+            assert len(data) == 1, use_snql
+            # because we're ording by `message`, and offset by 1, the message should be `hello2`
+            assert data[0]["message"] == "hello2"
+
     def test_reflective_types(self):
         results = discover.query(
             selected_columns=[
