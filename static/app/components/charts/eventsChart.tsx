@@ -64,6 +64,7 @@ type ChartProps = {
     | React.ComponentType<LineChart['props']>;
   height?: number;
   timeframe?: {start: number; end: number};
+  topEvents?: number;
 };
 
 type State = {
@@ -130,9 +131,10 @@ class Chart extends React.Component<ChartProps, State> {
     const {disableableSeries = []} = this.props;
     const {selected} = legendChange;
     const seriesSelection = Object.keys(selected).reduce((state, key) => {
-      // we only want them to be able to disable the Releases series,
+      // we only want them to be able to disable the Releases&Other series,
       // and not any of the other possible series here
-      const disableable = key === 'Releases' || disableableSeries.includes(key);
+      const disableable =
+        ['Releases', 'Other'].includes(key) || disableableSeries.includes(key);
       state[key] = disableable ? selected[key] : true;
       return state;
     }, {});
@@ -164,6 +166,7 @@ class Chart extends React.Component<ChartProps, State> {
       colors,
       height,
       timeframe,
+      topEvents,
       ...props
     } = this.props;
     const {seriesSelection} = this.state;
@@ -171,6 +174,11 @@ class Chart extends React.Component<ChartProps, State> {
     const data = [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous')];
 
     const releasesLegend = t('Releases');
+
+    if (topEvents && topEvents + 1 === timeseriesData.length) {
+      data.push('Other');
+    }
+
     if (Array.isArray(releaseSeries)) {
       data.push(releasesLegend);
     }
@@ -376,6 +384,7 @@ type ChartDataProps = {
   previousTimeseriesData?: Series | null;
   releaseSeries?: Series[];
   timeframe?: {start: number; end: number};
+  topEvents?: number;
 };
 
 class EventsChart extends React.Component<EventsChartProps> {
@@ -487,6 +496,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             chartComponent={chartComponent}
             height={height}
             timeframe={timeframe}
+            topEvents={topEvents}
           />
         </TransitionChart>
       );
