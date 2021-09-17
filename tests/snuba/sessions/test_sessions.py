@@ -1785,11 +1785,7 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
         org = self.create_organization()
         proj = self.create_project(organization=org)
         assert (
-            get_project_releases_count(
-                org.id,
-                [proj.id],
-                "",
-            )
+            get_project_releases_count(org.id, [proj.id], "crash_free_users", stats_period="14d")
             == 0
         )
 
