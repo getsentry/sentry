@@ -22,7 +22,11 @@ import {
 } from 'app/types';
 import {defined} from 'app/utils';
 import {getDuration, getExactDuration} from 'app/utils/formatters';
-import {getCrashFreeRateSeries, getSessionStatusRateSeries} from 'app/utils/sessions';
+import {
+  getCrashFreeRateSeries,
+  getSessionP50Series,
+  getSessionStatusRateSeries,
+} from 'app/utils/sessions';
 import {Theme} from 'app/utils/theme';
 import {displayCrashFreePercent, roundDuration} from 'app/views/releases/utils';
 
@@ -478,15 +482,29 @@ class ReleaseSessionsChart extends React.Component<Props> {
         };
       case ReleaseComparisonChartType.SESSION_DURATION:
         return {
-          series: Object.values(
-            fillChartDataFromSessionsResponse({
-              response: releaseSessions,
-              field: SessionField.DURATION,
-              groupBy: 'session.status',
-              chartData: initSessionsBreakdownChartData(theme),
-              valueFormatter: duration => roundDuration(duration ? duration / 1000 : 0),
-            })
-          ),
+          series: [
+            {
+              seriesName: t('This Release'),
+              connectNulls: true,
+              data: getSessionP50Series(
+                releaseSessions?.groups,
+                releaseSessions?.intervals,
+                SessionField.DURATION,
+                duration => roundDuration(duration / 1000)
+              ),
+            },
+          ],
+          previousSeries: [
+            {
+              seriesName: t('All Releases'),
+              data: getSessionP50Series(
+                allSessions?.groups,
+                allSessions?.intervals,
+                SessionField.DURATION,
+                duration => roundDuration(duration / 1000)
+              ),
+            },
+          ],
           markLines,
         };
       case ReleaseComparisonChartType.USER_COUNT:

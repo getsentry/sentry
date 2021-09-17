@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import breadcrumbsImg from 'sentry-images/spot/breadcrumbs-generic.svg';
@@ -16,40 +16,33 @@ type Props = {
   organization: Organization;
 };
 
-class Resources extends Component<Props> {
-  componentDidMount() {
-    const {organization} = this.props;
+function Resources({organization}: Props) {
+  useEffect(() => {
     trackAnalyticsEvent({
       eventKey: 'orgdash.resources_shown',
       eventName: 'Projects Dashboard: Resources Shown',
       organization_id: organization.id,
     });
-  }
+  }, []);
 
-  render() {
-    return (
-      <ResourcesWrapper data-test-id="resources">
-        <PageHeading withMargins>{t('Resources')}</PageHeading>
-        <ResourceCards>
-          <ResourceCard
-            link="https://blog.sentry.io/2018/03/06/the-sentry-workflow"
-            imgUrl={releasesImg}
-            title={t('The Sentry Workflow')}
-          />
-          <ResourceCard
-            link="https://sentry.io/vs/logging/"
-            imgUrl={breadcrumbsImg}
-            title={t('Sentry vs Logging')}
-          />
-          <ResourceCard
-            link="https://docs.sentry.io/"
-            imgUrl={docsImg}
-            title={t('Docs')}
-          />
-        </ResourceCards>
-      </ResourcesWrapper>
-    );
-  }
+  return (
+    <ResourcesWrapper data-test-id="resources">
+      <PageHeading withMargins>{t('Resources')}</PageHeading>
+      <ResourceCards>
+        <ResourceCard
+          link="https://blog.sentry.io/2018/03/06/the-sentry-workflow"
+          imgUrl={releasesImg}
+          title={t('The Sentry Workflow')}
+        />
+        <ResourceCard
+          link="https://sentry.io/vs/logging/"
+          imgUrl={breadcrumbsImg}
+          title={t('Sentry vs Logging')}
+        />
+        <ResourceCard link="https://docs.sentry.io/" imgUrl={docsImg} title={t('Docs')} />
+      </ResourceCards>
+    </ResourcesWrapper>
+  );
 }
 
 export default Resources;

@@ -12,7 +12,7 @@ import TagKeyHistogramQuery from 'app/utils/performance/segmentExplorer/tagKeyHi
 import {decodeScalar} from 'app/utils/queryString';
 
 import {SpanOperationBreakdownFilter} from '../filter';
-import {getTransactionField} from '../tagExplorer';
+import {getTransactionField} from '../transactionOverview/tagExplorer';
 
 import TagsHeatMap from './tagsHeatMap';
 import {TagValueTable} from './tagValueTable';

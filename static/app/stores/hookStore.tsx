@@ -39,6 +39,7 @@ const validHookNames = new Set<HookName>([
   'feature-disabled:events-sidebar-item',
   'feature-disabled:grid-editable-actions',
   'feature-disabled:open-discover',
+  'feature-disabled:open-in-discover',
   'feature-disabled:dashboards-edit',
   'feature-disabled:dashboards-page',
   'feature-disabled:dashboards-sidebar-item',
@@ -50,6 +51,7 @@ const validHookNames = new Set<HookName>([
   'feature-disabled:project-performance-score-card',
   'feature-disabled:project-selector-checkbox',
   'feature-disabled:rate-limits',
+  'feature-disabled:relay',
   'feature-disabled:sso-basic',
   'feature-disabled:sso-rippling',
   'feature-disabled:sso-saml2',
@@ -129,14 +131,13 @@ const hookStoreConfig: Reflux.StoreDefinition & HookStoreInterface = {
   },
 };
 
-type HookStore = Reflux.Store & HookStoreInterface;
-
 /**
  * HookStore is used to allow extensibility into Sentry's frontend via
  * registration of 'hook functions'.
  *
  * This functionality is primarily used by the SASS sentry.io product.
  */
-const HookStore = Reflux.createStore(hookStoreConfig) as HookStore;
+const HookStore = Reflux.createStore(hookStoreConfig) as Reflux.Store &
+  HookStoreInterface;
 
 export default HookStore;

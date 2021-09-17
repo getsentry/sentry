@@ -26,6 +26,7 @@ from sentry.lang.native.symbolicator import (
     InvalidSourcesError,
     parse_backfill_sources,
     parse_sources,
+    redact_source_secrets,
 )
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
@@ -41,6 +42,7 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.notifications.types import NotificationSettingTypes
+from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -364,9 +366,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
         data = serialize(project, request.user, DetailedProjectSerializer())
 
+        # TODO: should switch to expand and move logic into the serializer
         include = set(filter(bool, request.GET.get("include", "").split(",")))
         if "stats" in include:
             data["stats"] = {"unresolved": self._get_unresolved_count(project)}
+
+        expand = request.GET.getlist("expand", [])
+        if "hasAlertIntegration" in expand:
+            data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
         return Response(data)
 
@@ -559,7 +566,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ]
         if result.get("symbolSources") is not None:
             if project.update_option("sentry:symbol_sources", result["symbolSources"]):
-                changed_proj_settings["sentry:symbol_sources"] = result["symbolSources"] or None
+                # Redact secrets so they don't get logged directly to the Audit Log
+                sources_json = result["symbolSources"] or None
+                try:
+                    sources = parse_sources(sources_json)
+                except Exception:
+                    sources = []
+                redacted_sources = redact_source_secrets(sources)
+                changed_proj_settings["sentry:symbol_sources"] = redacted_sources
         if "defaultEnvironment" in result:
             if result["defaultEnvironment"] is None:
                 project.delete_option("sentry:default_environment")

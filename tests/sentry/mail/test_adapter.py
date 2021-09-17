@@ -26,6 +26,7 @@ from sentry.models import (
     Repository,
     Rule,
     User,
+    UserEmail,
     UserOption,
     UserReport,
 )
@@ -50,7 +51,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import mock
-from sentry.utils.email import MessageBuilder
+from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 
@@ -297,6 +298,55 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         self.assertEquals(notification.project, self.project)
         self.assertEquals(notification.get_reference(), group)
         assert notification.get_subject() == "BAR-1 - hello world"
+
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_email_notification_is_not_sent_to_deleted_email(self, mock_func):
+        """
+        Test that ensures if we still have some stale emails in UserOption, then upon attempting
+        to send an email notification to those emails, these stale `UserOption` instances are
+        deleted
+        """
+        # Initial Creation
+        user = self.create_user(email="foo@bar.dodo", is_active=True)
+        self.create_member(user=user, organization=self.organization, teams=[self.team])
+
+        UserOption.objects.create(
+            user=user, key="mail:email", value="foo@bar.dodo", project=self.project
+        )
+
+        # New secondary email is created
+        useremail = UserEmail.objects.create(user=user, email="ahmed@ahmed.io", is_verified=True)
+
+        # Set secondary email to be primary
+        user.email = useremail.email
+        user.save()
+
+        # Delete first email
+        old_useremail = UserEmail.objects.get(email="foo@bar.dodo")
+        old_useremail.delete()
+
+        event_manager = EventManager({"message": "hello world", "level": "error"})
+        event_manager.normalize()
+        event_data = event_manager.get_data()
+        event_type = get_event_type(event_data)
+        event_data["type"] = event_type.key
+        event_data["metadata"] = event_type.get_metadata(event_data)
+
+        event = event_manager.save(self.project.id)
+
+        with self.tasks():
+            AlertRuleNotification(Notification(event=event), ActionTargetType.ISSUE_OWNERS).send()
+
+        assert mock_func.call_count == 1
+
+        args, kwargs = mock_func.call_args
+        notification = args[1]
+
+        user_ids = []
+        for user in list(notification.get_participants().values())[0]:
+            user_ids.append(user.id)
+        assert "ahmed@ahmed.io" in get_email_addresses(user_ids, self.project).values()
+        assert not len(UserOption.objects.filter(key="mail:email", value="foo@bar.dodo"))
 
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_multiline_error(self, mock_func):
@@ -1035,12 +1085,9 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
         )
 
         with self.tasks():
-            self.adapter.handle_signal(
-                name="user-reports.created",
+            self.adapter.handle_user_report(
                 project=self.project,
-                payload={
-                    "report": serialize(report, AnonymousUser(), UserReportWithGroupSerializer())
-                },
+                report=serialize(report, AnonymousUser(), UserReportWithGroupSerializer()),
             )
 
         assert len(mail.outbox) == 1
@@ -1069,12 +1116,9 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
         report = self.create_report()
 
         with self.tasks():
-            self.adapter.handle_signal(
-                name="user-reports.created",
+            self.adapter.handle_user_report(
                 project=self.project,
-                payload={
-                    "report": serialize(report, AnonymousUser(), UserReportWithGroupSerializer())
-                },
+                report=serialize(report, AnonymousUser(), UserReportWithGroupSerializer()),
             )
 
         assert len(mail.outbox) == 1

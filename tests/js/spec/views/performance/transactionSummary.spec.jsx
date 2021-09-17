@@ -2,10 +2,11 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
-import TransactionSummary from 'app/views/performance/transactionSummary';
+import TransactionSummary from 'app/views/performance/transactionSummary/transactionOverview';
 
 const teams = [
   TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
@@ -26,7 +27,7 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
       location: {
         query: {
           transaction: '/performance',
-          project: 2,
+          project: '2',
           transactionCursor: '1:0:0',
           ...query,
         },
@@ -34,7 +35,10 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
     },
   });
   ProjectsStore.loadInitialData(initialData.organization.projects);
-  TeamStore.loadInitialData(teams);
+
+  act(() => {
+    TeamStore.loadInitialData(teams);
+  });
   return initialData;
 }
 
@@ -86,10 +90,6 @@ describe('Performance > TransactionSummary', function () {
       url: '/prompts-activity/',
       body: {},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/is-key-transactions/',
-      body: [],
-    });
 
     // Mock totals for the sidebar and other summary data
     MockApiClient.addMockResponse(
@@ -98,24 +98,26 @@ describe('Performance > TransactionSummary', function () {
         body: {
           meta: {
             count: 'number',
-            apdex_400: 'number',
-            count_miserable_user_400: 'number',
-            user_misery_400: 'number',
+            apdex: 'number',
+            count_miserable_user: 'number',
+            user_misery: 'number',
             count_unique_user: 'number',
             p95: 'number',
             failure_rate: 'number',
             tpm: 'number',
+            project_threshold_config: 'string',
           },
           data: [
             {
               count: 2,
-              apdex_400: 0.6,
-              count_miserable_user_400: 122,
-              user_misery_400: 0.114,
+              apdex: 0.6,
+              count_miserable_user: 122,
+              user_misery: 0.114,
               count_unique_user: 1,
               p95: 750.123,
               failure_rate: 1,
               tpm: 1,
+              project_threshold_config: ['duration', 300],
             },
           ],
         },
@@ -202,6 +204,14 @@ describe('Performance > TransactionSummary', function () {
       ],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      method: 'GET',
+      body: {
+        threshold: '800',
+        metric: 'lcp',
+      },
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-vitals/',
       body: {
         'measurements.fcp': {
@@ -267,6 +277,9 @@ describe('Performance > TransactionSummary', function () {
     await tick();
     wrapper.update();
 
+    // It shows the header
+    expect(wrapper.find('TransactionHeader')).toHaveLength(1);
+
     // It shows a chart
     expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
 
@@ -311,9 +324,7 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('fetches transaction threshdold', async function () {
-    const initialData = initializeData({
-      features: ['project-transaction-threshold-override'],
-    });
+    const initialData = initializeData();
     const getTransactionThresholdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',
@@ -348,9 +359,7 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('fetches project transaction threshdold', async function () {
-    const initialData = initializeData({
-      features: ['project-transaction-threshold-override'],
-    });
+    const initialData = initializeData();
     const getTransactionThresholdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',
@@ -405,7 +414,7 @@ describe('Performance > TransactionSummary', function () {
       pathname: undefined,
       query: {
         transaction: '/performance',
-        project: 2,
+        project: '2',
         statsPeriod: '14d',
         query: 'user.email:uhoh*',
         transactionCursor: '1:0:0',
@@ -469,7 +478,7 @@ describe('Performance > TransactionSummary', function () {
       pathname: undefined,
       query: {
         transaction: '/performance',
-        project: 2,
+        project: '2',
         showTransactions: 'slow',
         transactionCursor: undefined,
       },
@@ -499,7 +508,7 @@ describe('Performance > TransactionSummary', function () {
       pathname: undefined,
       query: {
         transaction: '/performance',
-        project: 2,
+        project: '2',
         transactionCursor: '2:0:0',
       },
     });

@@ -4,6 +4,7 @@ from typing import Any, List, MutableMapping, Optional, Sequence
 
 import sentry_sdk
 from django.db import connection
+from django.db.models import prefetch_related_objects
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
@@ -18,7 +19,7 @@ from sentry.digests import backend as digests
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.lang.native.symbolicator import redact_source_secrets
+from sentry.lang.native.symbolicator import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
@@ -41,6 +42,7 @@ from sentry.notifications.helpers import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba import discover
 from sentry.snuba.sessions import check_has_health_data, get_current_and_previous_crash_free_rates
+from sentry.utils import json
 from sentry.utils.compat import zip
 
 STATUS_LABELS = {
@@ -69,7 +71,6 @@ def get_access_by_project(
     request = env.request
 
     project_teams = list(ProjectTeam.objects.filter(project__in=projects).select_related("team"))
-
     project_team_map = defaultdict(list)
 
     for pt in project_teams:
@@ -77,6 +78,7 @@ def get_access_by_project(
 
     team_memberships = get_team_memberships([pt.team for pt in project_teams], user)
     org_roles = get_org_roles({i.organization_id for i in projects}, user)
+    prefetch_related_objects(projects, "organization")
 
     is_superuser = request and is_active_superuser(request) and request.user == user
     result = {}
@@ -228,12 +230,22 @@ class ProjectSerializer(Serializer):
                 serialized["features"] = features_by_project[project]
 
         with measure_span("other"):
+            # TODO(mgaeta): Remove `should_use_slack_automatic` parameter.
+            should_use_slack_automatic_by_organization_id = {
+                organization.id: features.has(
+                    "organizations:notification-slack-automatic", organization
+                )
+                for organization in {project.organization for project in item_list}
+            }
             for project, serialized in result.items():
                 value = get_most_specific_notification_setting_value(
                     notification_settings_by_scope,
                     user=user,
                     parent_id=project.id,
                     type=NotificationSettingTypes.ISSUE_ALERTS,
+                    should_use_slack_automatic=should_use_slack_automatic_by_organization_id[
+                        project.organization_id
+                    ],
                 )
                 is_subscribed = value == NotificationSettingOptionValues.ALWAYS
                 serialized.update(
@@ -655,6 +667,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:relay_pii_config",
             "sentry:dynamic_sampling",
             "sentry:breakdowns",
+            "sentry:span_attributes",
             "feedback:branding",
             "digests:mail:minimum_delay",
             "digests:mail:maximum_delay",
@@ -793,20 +806,26 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
                 "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
+                "eventProcessing": {
+                    "symbolicationDegraded": False,
+                },
             }
         )
         custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")
         try:
-            symbol_sources = redact_source_secrets(custom_symbol_sources_json)
+            sources = parse_sources(custom_symbol_sources_json, False)
         except Exception:
             # In theory sources stored on the project should be valid. If they are invalid, we don't
             # want to abort serialization just for sources, so just return an empty list instead of
             # returning sources with their secrets included.
-            symbol_sources = "[]"
+            serialized_sources = "[]"
+        else:
+            redacted_sources = redact_source_secrets(sources)
+            serialized_sources = json.dumps(redacted_sources)
 
         data.update(
             {
-                "symbolSources": symbol_sources,
+                "symbolSources": serialized_sources,
             }
         )
 

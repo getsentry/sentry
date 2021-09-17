@@ -61,6 +61,14 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-scim-member-details": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-scim-team-index": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-scim-team-details": settings.SAMPLED_DEFAULT_RATE,
+    # login
+    "sentry-login": 0.1,
+    "sentry-auth-organization": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-auth-link-identity": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-auth-sso": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-logout": 0.1,
+    "sentry-register": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-2fa-dialog": settings.SAMPLED_DEFAULT_RATE,
 }
 if settings.ADDITIONAL_SAMPLED_URLS:
     SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)
@@ -234,6 +242,7 @@ def configure_sdk():
     internal_project_key = get_project_key()
     upstream_dsn = sdk_options.pop("dsn", None)
     sdk_options["traces_sampler"] = traces_sampler
+    sdk_options["release"] = f"backend@{sdk_options['release']}"
 
     if upstream_dsn:
         transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))

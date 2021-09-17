@@ -8,9 +8,6 @@ export const appStoreConnectAlertMessage = {
   appStoreCredentialsInvalid: t(
     'The credentials of your configured App Store Connect are invalid.'
   ),
-  isTodayAfterItunesSessionRefreshAt: t(
-    'The iTunes session of your configured App Store Connect will likely expire soon.'
-  ),
 };
 
 export function getAppConnectStoreUpdateAlertMessage(

@@ -65,12 +65,13 @@ class EventDataSection extends React.Component<Props> {
       actions,
       isCentered,
       showPermalink,
+      ...props
     } = this.props;
 
     const titleNode = wrapTitle ? <h3>{title}</h3> : title;
 
     return (
-      <DataSection ref={this.dataSectionDOMRef} className={className || ''}>
+      <DataSection ref={this.dataSectionDOMRef} className={className || ''} {...props}>
         {title && (
           <SectionHeader id={type} isCentered={isCentered}>
             <Title>

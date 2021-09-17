@@ -4,6 +4,7 @@ import random
 import sys
 import time
 import uuid
+from copy import deepcopy
 from urllib.parse import urljoin
 
 import jsonschema
@@ -306,7 +307,7 @@ def secret_fields(source_type):
     Returns a string list of all of the fields that contain a secret in a given source.
     """
     if source_type == "appStoreConnect":
-        yield from ["appconnectPrivateKey", "itunesPassword"]
+        yield from ["appconnectPrivateKey", "itunesPassword", "itunesSession"]
     elif source_type == "http":
         yield "password"
     elif source_type == "s3":
@@ -389,20 +390,21 @@ def parse_backfill_sources(sources_json, original_sources):
     return sources
 
 
-def redact_source_secrets(config_sources):
+def redact_source_secrets(config_sources: json.JSONData) -> json.JSONData:
     """
-    Returns a json string with all of the secrets redacted from every source.
+    Returns a JSONData with all of the secrets redacted from every source.
 
-    May raise InvalidSourcesError if the provided sources are invalid.
+    The original value is not mutated in the process; A clone is created
+    and returned by this function.
     """
 
-    sources = parse_sources(config_sources, False)
-    for source in sources:
+    redacted_sources = deepcopy(config_sources)
+    for source in redacted_sources:
         for secret in secret_fields(source["type"]):
             if secret in source:
                 source[secret] = {"hidden-secret": True}
 
-    return json.dumps(sources)
+    return redacted_sources
 
 
 def get_options_for_project(project):

@@ -234,6 +234,7 @@ def query(
             auto_aggregations=auto_aggregations,
             use_aggregate_conditions=use_aggregate_conditions,
             limit=limit,
+            offset=offset,
         )
         snql_query = builder.get_snql_query()
 
@@ -645,6 +646,7 @@ def top_events_timeseries(
             referrer=referrer,
         )
         if len(top_events["data"]) == limit and len(result.get("data", [])) and include_other:
+            # TODO(wmak): Conditions are incorrect in some cases, need to properly apply Demorgan's Law
             other_result = raw_query(
                 aggregations=snuba_filter.aggregations,
                 conditions=other_conditions,
@@ -661,7 +663,11 @@ def top_events_timeseries(
         else:
             other_result = {"data": []}
 
-    if not allow_empty and not len(result.get("data", [])) + len(other_result.get("data", [])):
+    if (
+        not allow_empty
+        and not len(result.get("data", []))
+        and not len(other_result.get("data", []))
+    ):
         return SnubaTSResult(
             {
                 "data": zerofill([], snuba_filter.start, snuba_filter.end, rollup, "time")

@@ -1,13 +1,16 @@
+import {browserHistory} from 'react-router';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {getOptionByLabel, selectByLabel} from 'sentry-test/select-new';
 
 import AddDashboardWidgetModal from 'app/components/modals/addDashboardWidgetModal';
+import {t} from 'app/locale';
 import TagStore from 'app/stores/tagStore';
 
 const stubEl = props => <div>{props.children}</div>;
 
-function mountModal({initialData, onAddWidget, onUpdateWidget, widget}) {
+function mountModal({initialData, onAddWidget, onUpdateWidget, widget, fromDiscover}) {
   return mountWithTheme(
     <AddDashboardWidgetModal
       Header={stubEl}
@@ -18,6 +21,7 @@ function mountModal({initialData, onAddWidget, onUpdateWidget, widget}) {
       onUpdateWidget={onUpdateWidget}
       widget={widget}
       closeModal={() => void 0}
+      fromDiscover={fromDiscover}
     />,
     initialData.routerContext
   );
@@ -34,6 +38,11 @@ async function clickSubmit(wrapper) {
 
 function getDisplayType(wrapper) {
   return wrapper.find('input[name="displayType"]');
+}
+
+function selectDashboard(wrapper, dashboard) {
+  const input = wrapper.find('SelectControl[name="dashboard"]');
+  input.props().onChange(dashboard);
 }
 
 async function setSearchConditions(el, query) {
@@ -86,10 +95,42 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [{id: '1', title: t('Test Dashboard')}],
+    });
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+  });
+
+  it('redirects correctly when creating a new dashboard', async function () {
+    const wrapper = mountModal({initialData, fromDiscover: true});
+    // @ts-expect-error
+    await tick();
+    selectDashboard(wrapper, {label: t('+ Create New Dashboard'), value: 'new'});
+    await clickSubmit(wrapper);
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/dashboards/new/',
+      })
+    );
+    wrapper.unmount();
+  });
+
+  it('redirects correctly when choosing an existing dashboard', async function () {
+    const wrapper = mountModal({initialData, fromDiscover: true});
+    // @ts-expect-error
+    await tick();
+    selectDashboard(wrapper, {label: t('Test Dashboard'), value: '1'});
+    await clickSubmit(wrapper);
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/dashboard/1/',
+      })
+    );
+    wrapper.unmount();
   });
 
   it('can update the title', async function () {
@@ -167,6 +208,65 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+    wrapper.unmount();
+  });
+
+  it('additional fields get added to new seach filters', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: [],
+    });
+
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+
+    // Click the add button
+    const add = wrapper.find('button[aria-label="Add Overlay"]');
+    add.simulate('click');
+    wrapper.update();
+
+    // Should be another field input.
+    expect(wrapper.find('QueryField')).toHaveLength(2);
+
+    selectByLabel(wrapper, 'p95(\u2026)', {name: 'field', at: 1, control: true});
+
+    await clickSubmit(wrapper);
+
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+
+    // Add another search filter
+    const addQuery = wrapper.find('button[aria-label="Add Query"]');
+    addQuery.simulate('click');
+    wrapper.update();
+    // Set second query search conditions
+    const secondSearchBar = wrapper.find('SearchConditionsWrapper StyledSearchBar').at(1);
+    await setSearchConditions(secondSearchBar, 'event.type:error');
+
+    // Set second query legend alias
+    wrapper
+      .find('SearchConditionsWrapper input[placeholder="Legend Alias"]')
+      .at(1)
+      .simulate('change', {target: {value: 'Errors'}});
+
+    // Save widget
+    await clickSubmit(wrapper);
+
+    expect(widget.queries[0]).toMatchObject({
+      name: '',
+      conditions: '',
+      fields: ['count()', 'p95(transaction.duration)'],
+    });
+    expect(widget.queries[1]).toMatchObject({
+      name: 'Errors',
+      conditions: 'event.type:error',
+      fields: ['count()', 'p95(transaction.duration)'],
+    });
+
     wrapper.unmount();
   });
 

@@ -59,7 +59,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, projectoptions
+from sentry import features
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.api.exceptions import (
     AppConnectAuthenticationError,
@@ -70,7 +70,7 @@ from sentry.api.exceptions import (
 )
 from sentry.api.fields.secret import SecretField, validate_secret
 from sentry.lang.native import appconnect
-from sentry.lang.native.symbolicator import secret_fields
+from sentry.lang.native.symbolicator import redact_source_secrets, secret_fields
 from sentry.models import AppConnectBuild, AuditLogEntryEvent, LatestAppConnectBuildsCheck, Project
 from sentry.tasks.app_store_connect import dsym_download
 from sentry.utils import json
@@ -240,12 +240,8 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
     The returned JSON only contains an ``id`` field which can be used in other endpoints to refer
     to this set of credentials.
 
-    Credentials as saved using the ``symbolSources`` field under project details page
-    (:class:`ProjectDetailsEndpoint` in :file:`src/sentry/api/endpoints/project_details.py`)
-    which contains a JSON blob containing all the symbol sources.
-
-    The UI itself is responsible for posting this blob, but this endpoint must be called
-    first with the results of authenticating to get the correct JSON format to save.
+    The config object is already stored so no further action must be taken by clients once
+    they receive the saved configuration.
     """
 
     permission_classes = [StrictProjectPermission]
@@ -287,12 +283,14 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             new_sources = validated_config.update_project_symbol_source(project, allow_multiple)
         except ValueError:
             raise AppConnectMultipleSourcesError
+
+        redacted_sources = redact_source_secrets(new_sources)
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=project.id,
             event=AuditLogEntryEvent.PROJECT_EDIT,
-            data={appconnect.SYMBOL_SOURCES_PROP_NAME: new_sources},
+            data={appconnect.SYMBOL_SOURCES_PROP_NAME: redacted_sources},
         )
 
         dsym_download.apply_async(
@@ -403,12 +401,13 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             project, allow_multiple=True
         )
 
+        redacted_sources = redact_source_secrets(new_sources)
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=project.id,
             event=AuditLogEntryEvent.PROJECT_EDIT,
-            data={appconnect.SYMBOL_SOURCES_PROP_NAME: new_sources},
+            data={appconnect.SYMBOL_SOURCES_PROP_NAME: redacted_sources},
         )
 
         dsym_download.apply_async(
@@ -433,7 +432,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
     ```json
     {
         "appstoreCredentialsValid": true,
-        "itunesSessionValid": true,
         "promptItunesSession": false,
         "pendingDownloads": 123,
         "latestBuildVersion: "9.8.7" | null,
@@ -500,12 +498,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
             latestBuildVersion = latest_build.bundle_short_version
             latestBuildNumber = latest_build.bundle_version
 
-        # All existing usages of this option are internal, so it's fine if we don't carry these over
-        # to the table
-        # TODO: Clean this up by App Store Connect GA
-        if projectoptions.isset(project, appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION):
-            project.delete_option(appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION)
-
         try:
             check_entry = LatestAppConnectBuildsCheck.objects.get(
                 project=project, source_id=symbol_source_cfg.id
@@ -520,12 +512,11 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
         return Response(
             {
                 "appstoreCredentialsValid": apps is not None,
-                "itunesSessionValid": itunes_session_info is not None,
                 "pendingDownloads": pending_downloads,
                 "latestBuildVersion": latestBuildVersion,
                 "latestBuildNumber": latestBuildNumber,
                 "lastCheckedBuilds": last_checked_builds,
-                "promptItunesSession": pending_downloads and itunes_session_info is None,
+                "promptItunesSession": bool(pending_downloads and itunes_session_info is None),
             },
             status=200,
         )

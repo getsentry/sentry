@@ -227,18 +227,10 @@ def _prepare_containers(project, skip_only_if=False, silent=False):
     containers = {}
 
     for name, option_builder in settings.SENTRY_DEVSERVICES.items():
-        if callable(option_builder):
-            options = option_builder(settings, sentry_options)
-        else:
-            # TODO: Backwards compat, remove once we update getsentry to have callables here
-            options = options.copy()
-        only_if = options.pop("only_if", lambda settings, options: True)
+        options = option_builder(settings, sentry_options)
+        only_if = options.pop("only_if", True)
 
-        # TODO: Temporarily handle only if as both a callable and a bool
-        if not skip_only_if and (
-            (callable(only_if) and not only_if(settings, sentry_options))
-            or (not callable(only_if) and not only_if)
-        ):
+        if not skip_only_if and not only_if:
             if not silent:
                 click.secho(f"! Skipping {name} due to only_if condition", err=True, fg="cyan")
             continue

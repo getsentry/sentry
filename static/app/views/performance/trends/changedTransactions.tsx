@@ -33,7 +33,7 @@ import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 import {RadioLineItem} from 'app/views/settings/components/forms/controls/radioGroup';
 
-import {DisplayModes} from '../transactionSummary/charts';
+import {DisplayModes} from '../transactionSummary/transactionOverview/charts';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
 import Chart from './chart';
@@ -414,6 +414,7 @@ function TrendsListItem(props: TrendsListItemProps) {
               </span>
             </TooltipContent>
           }
+          disableForVisualTest // Disabled tooltip in snapshots because of overlap order issues.
         >
           <RadioLineItem index={index} role="radio">
             <Radio
@@ -555,7 +556,7 @@ const ChartContainer = styled('div')`
 
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)} ${space(3)};
+  margin: ${space(2)} ${space(3)};
 `;
 
 const StyledButton = styled(Button)`

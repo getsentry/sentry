@@ -18,7 +18,7 @@ function initializeData({query} = {query: {}}) {
       location: {
         query: {
           transaction: 'Test Transaction',
-          project: 1,
+          project: '1',
           ...query,
         },
       },
@@ -44,10 +44,6 @@ describe('Performance > Transaction Tags', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/user.email/values/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/is-key-transactions/',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -107,6 +103,14 @@ describe('Performance > Transaction Tags', function () {
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {},
+    });
   });
 
   afterEach(function () {
@@ -141,7 +145,7 @@ describe('Performance > Transaction Tags', function () {
 
     expect(browserHistory.replace).toHaveBeenCalledWith({
       query: {
-        project: 1,
+        project: '1',
         statsPeriod: '14d',
         tagKey: 'hardwareConcurrency',
         transaction: 'Test Transaction',
@@ -174,7 +178,7 @@ describe('Performance > Transaction Tags', function () {
 
     expect(browserHistory.replace).toHaveBeenCalledWith({
       query: {
-        project: 1,
+        project: '1',
         statsPeriod: '14d',
         tagKey: 'hardwareConcurrency',
         transaction: 'Test Transaction',
@@ -214,7 +218,7 @@ describe('Performance > Transaction Tags', function () {
 
     expect(browserHistory.replace).toHaveBeenCalledWith({
       query: {
-        project: 1,
+        project: '1',
         statsPeriod: '14d',
         tagKey: 'effectiveConnectionType',
         transaction: 'Test Transaction',

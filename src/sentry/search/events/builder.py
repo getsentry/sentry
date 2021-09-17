@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from snuba_sdk.entity import Entity
-from snuba_sdk.expressions import Limit
+from snuba_sdk.expressions import Limit, Offset
 from snuba_sdk.query import Query
 
 from sentry.search.events.fields import InvalidSearchQuery
@@ -23,6 +23,7 @@ class QueryBuilder(QueryFilter):
         auto_aggregations: bool = False,
         use_aggregate_conditions: bool = False,
         limit: int = 50,
+        offset: Optional[int] = 0,
     ):
         super().__init__(dataset, params)
 
@@ -30,6 +31,7 @@ class QueryBuilder(QueryFilter):
         self.auto_aggregations = auto_aggregations
 
         self.limit = Limit(limit)
+        self.offset = Offset(0 if offset is None else offset)
 
         self.where, self.having = self.resolve_conditions(
             query, use_aggregate_conditions=use_aggregate_conditions
@@ -76,4 +78,5 @@ class QueryBuilder(QueryFilter):
             groupby=self.groupby,
             orderby=self.orderby,
             limit=self.limit,
+            offset=self.offset,
         )

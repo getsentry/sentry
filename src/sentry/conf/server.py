@@ -373,7 +373,7 @@ STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
 # webpack assets live at a different URL that is unversioned
 # as we configure webpack to include file content based hash in the filename
-STATIC_UNVERSIONED_URL = "/_static/dist/"
+STATIC_FRONTEND_APP_URL = "/_static/dist/"
 
 # The webpack output directory
 STATICFILES_DIRS = [
@@ -576,10 +576,10 @@ CELERY_IMPORTS = (
     "sentry.tasks.scheduler",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
-    "sentry.tasks.signals",
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
+    "sentry.tasks.user_report",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -609,6 +609,9 @@ CELERY_QUEUES = [
     ),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
+    Queue(
+        "events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"
+    ),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
@@ -727,6 +730,11 @@ CELERYBEAT_SCHEDULE = {
     "schedule-deletions": {
         "task": "sentry.tasks.deletion.run_scheduled_deletions",
         "schedule": timedelta(minutes=15),
+        "options": {"expires": 60 * 25},
+    },
+    "reattempt-deletions": {
+        "task": "sentry.tasks.deletion.reattempt_deletions",
+        "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "options": {"expires": 60 * 25},
     },
     "schedule-weekly-organization-reports": {
@@ -881,6 +889,8 @@ SENTRY_FEATURES = {
     "organizations:boolean-search": False,
     # Enable unfurling charts using the Chartcuterie service
     "organizations:chart-unfurls": False,
+    # Enable alerting based on crash free sessions/users
+    "organizations:crash-rate-alerts": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
@@ -962,6 +972,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
+    # Allow orgs to debug internal/unpublished sentry apps with logging
+    "organizations:sentry-app-debugging": False,
     # Temporary safety measure, turned on for specific orgs only if
     # absolutely necessary, to be removed shortly
     "organizations:slack-allow-workspace": False,
@@ -971,8 +983,6 @@ SENTRY_FEATURES = {
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
     "organizations:dashboards-edit": True,
-    # Enable dashboards manager.
-    "organizations:dashboards-manage": False,
     # Enable navigation features between Discover and Dashboards
     "organizations:connect-discover-and-dashboards": False,
     # Enable experimental performance improvements.
@@ -983,8 +993,6 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable Jira AC for select organizations.
-    "organizations:jira-ac-plugin": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -998,7 +1006,9 @@ SENTRY_FEATURES = {
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable views for tag explorer
-    "organizations:performance-tag-explorer": False,
+    "organizations:performance-tag-explorer": True,
+    # Enable views for tag page
+    "organizations:performance-tag-page": True,
     # Enable landing improvements for performance
     "organizations:performance-landing-widgets": False,
     # Enable views for transaction events page in performance
@@ -1016,9 +1026,6 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": False,
-    # Enable option to send alert, workflow, and deploy notifications
-    # to 3rd parties (e.g. Slack) in addition to email
-    "organizations:notification-platform": False,
     # Automatically opt IN users to receiving Slack notifications.
     "organizations:notification-slack-automatic": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
@@ -1058,12 +1065,10 @@ SENTRY_FEATURES = {
     "organizations:release-archives": False,
     # Enable the new release details experience
     "organizations:release-comparison": False,
-    # Enable the project level transaction thresholds
-    "organizations:project-transaction-threshold": False,
-    # Enable the transaction level thresholds
-    "organizations:project-transaction-threshold-override": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
+    # Enable team insights page
+    "organizations:team-insights": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1345,6 +1350,10 @@ SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+
+# Metrics product
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
+SENTRY_METRICS_INDEXER_OPTIONS = {}
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
@@ -1716,7 +1725,9 @@ SENTRY_DEVSERVICES = {
     ),
     "zookeeper": lambda settings, options: (
         {
-            "image": "confluentinc/cp-zookeeper:5.1.2",
+            # Upgrading to version 6.x allows zookeeper to run properly on Apple's arm64
+            # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
+            "image": "confluentinc/cp-zookeeper:6.2.0",
             "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
             "volumes": {"zookeeper": {"bind": "/var/lib/zookeeper"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
@@ -1724,7 +1735,8 @@ SENTRY_DEVSERVICES = {
     ),
     "kafka": lambda settings, options: (
         {
-            "image": "confluentinc/cp-kafka:5.1.2",
+            # We upgrade to version 6.x to match zookeeper's version (I believe they both release together)
+            "image": "confluentinc/cp-kafka:6.2.0",
             "ports": {"9092/tcp": 9092},
             "environment": {
                 "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
@@ -1883,7 +1895,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 
 
 SENTRY_SDK_CONFIG = {
-    "release": sentry.__build__,
+    "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
     "in_app_include": ["sentry", "sentry_plugins"],
     "debug": True,
@@ -2220,9 +2232,6 @@ SOUTH_MIGRATION_CONVERSIONS = (
         True,
         "Please upgrade to Sentry 9.1.2 before upgrading to any later versions.",
     ),
-    # From sentry-plugins
-    ("sentry_plugins.jira_ac", "0001_initial", "jira_ac", "0001_initial", False, ""),
-    ("jira_ac", "0001_initial", "jira_ac", "0001_initial", False, ""),
 )
 
 # Whether to use Django migrations to create the database, or just build it based off
@@ -2232,7 +2241,6 @@ MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
-    "jira_ac",
     "nodestore",
     "sentry",
     "social_auth",

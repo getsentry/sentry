@@ -1,7 +1,9 @@
 import logging
+from datetime import timedelta
 from uuid import uuid4
 
 from django.apps import apps
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.utils import timezone
 
@@ -10,10 +12,26 @@ from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.deletions.api")
 
 
 MAX_RETRIES = 5
+
+
+@instrumented_task(
+    name="sentry.tasks.deletion.reattempt_deletions", queue="cleanup", acks_late=True
+)
+def reattempt_deletions():
+    from sentry.models import ScheduledDeletion
+
+    # If a deletion is in progress and was scheduled to run more than
+    # a day ago we can assume the previous job died/failed.
+    # Turning off the in_progress flag will result in the job being picked
+    # up in the next deletion run allowing us to start over.
+    queryset = ScheduledDeletion.objects.filter(
+        in_progress=True, date_scheduled__lte=timezone.now() - timedelta(days=1)
+    )
+    queryset.update(in_progress=False)
 
 
 @instrumented_task(
@@ -23,12 +41,13 @@ def run_scheduled_deletions():
     from sentry.models import ScheduledDeletion
 
     queryset = ScheduledDeletion.objects.filter(
-        in_progress=False, aborted=False, date_scheduled__lte=timezone.now()
+        in_progress=False, date_scheduled__lte=timezone.now()
     )
     for item in queryset:
         with transaction.atomic():
             affected = ScheduledDeletion.objects.filter(
-                id=item.id, in_progress=False, aborted=False
+                id=item.id,
+                in_progress=False,
             ).update(in_progress=True)
             if not affected:
                 continue
@@ -44,7 +63,7 @@ def run_scheduled_deletions():
     acks_late=True,
 )
 @retry(exclude=(DeleteAborted,))
-def run_deletion(deletion_id):
+def run_deletion(deletion_id, first_pass=True):
     from sentry import deletions
     from sentry.models import ScheduledDeletion
 
@@ -53,15 +72,23 @@ def run_deletion(deletion_id):
     except ScheduledDeletion.DoesNotExist:
         return
 
-    if deletion.aborted:
-        raise DeleteAborted
-
-    if not deletion.in_progress:
-        actor = deletion.get_actor()
+    try:
         instance = deletion.get_instance()
-        with transaction.atomic():
-            deletion.update(in_progress=True)
-            pending_delete.send(sender=type(instance), instance=instance, actor=actor)
+    except ObjectDoesNotExist:
+        logger.info(
+            "object.delete.object-missing",
+            extra={
+                "object_id": deletion.object_id,
+                "transaction_id": deletion.guid,
+                "model": deletion.model_name,
+            },
+        )
+        deletion.delete()
+        return
+
+    if first_pass:
+        actor = deletion.get_actor()
+        pending_delete.send(sender=type(instance), instance=instance, actor=actor)
 
     task = deletions.get(
         model=deletion.get_model(),
@@ -69,10 +96,25 @@ def run_deletion(deletion_id):
         transaction_id=deletion.guid,
         actor_id=deletion.actor_id,
     )
+    if not task.should_proceed(instance):
+        logger.info(
+            "object.delete.aborted",
+            extra={
+                "object_id": deletion.object_id,
+                "transaction_id": deletion.guid,
+                "model": deletion.model_name,
+            },
+        )
+        deletion.delete()
+        return
+
     has_more = task.chunk()
     if has_more:
-        run_deletion.apply_async(kwargs={"deletion_id": deletion_id}, countdown=15)
-    deletion.delete()
+        run_deletion.apply_async(
+            kwargs={"deletion_id": deletion_id, "first_pass": False}, countdown=15
+        )
+    else:
+        deletion.delete()
 
 
 @instrumented_task(
@@ -118,6 +160,7 @@ def revoke_api_tokens(object_id, transaction_id=None, timestamp=None, **kwargs):
 )
 @retry(exclude=(DeleteAborted,))
 def delete_organization(object_id, transaction_id=None, actor_id=None, **kwargs):
+    # TODO(mark) remove this task once all in flight jobs have been processed.
     from sentry import deletions
     from sentry.models import Organization, OrganizationStatus
 
@@ -144,73 +187,6 @@ def delete_organization(object_id, transaction_id=None, actor_id=None, **kwargs)
         delete_organization.apply_async(
             kwargs={"object_id": object_id, "transaction_id": transaction_id, "actor_id": actor_id},
             countdown=15,
-        )
-
-
-@instrumented_task(
-    name="sentry.tasks.deletion.delete_team",
-    queue="cleanup",
-    default_retry_delay=60 * 5,
-    max_retries=MAX_RETRIES,
-    acks_late=True,
-)
-@retry(exclude=(DeleteAborted,))
-def delete_team(object_id, transaction_id=None, **kwargs):
-    # TODO this method is deleted and should be removed/nerfed when it is no longer enqueuing jobs.
-    from sentry import deletions
-    from sentry.incidents.models import AlertRule
-    from sentry.models import Rule, Team, TeamStatus
-
-    try:
-        instance = Team.objects.get(id=object_id)
-    except Team.DoesNotExist:
-        return
-
-    if instance.status == TeamStatus.VISIBLE:
-        raise DeleteAborted
-
-    task = deletions.get(
-        model=Team, query={"id": object_id}, transaction_id=transaction_id or uuid4().hex
-    )
-    AlertRule.objects.filter(owner_id=instance.actor_id).update(owner=None)
-    Rule.objects.filter(owner_id=instance.actor_id).update(owner=None)
-
-    has_more = task.chunk()
-    if has_more:
-        delete_team.apply_async(
-            kwargs={"object_id": object_id, "transaction_id": transaction_id}, countdown=15
-        )
-
-
-@instrumented_task(
-    name="sentry.tasks.deletion.delete_project",
-    queue="cleanup",
-    default_retry_delay=60 * 5,
-    max_retries=MAX_RETRIES,
-    acks_late=True,
-)
-@retry(exclude=(DeleteAborted,))
-def delete_project(object_id, transaction_id=None, **kwargs):
-    # TODO this method is no longer in use and should be removed when jobs are
-    # no longer being enqueued for it.
-    from sentry import deletions
-    from sentry.models import Project, ProjectStatus
-
-    try:
-        instance = Project.objects.get(id=object_id)
-    except Project.DoesNotExist:
-        return
-
-    if instance.status == ProjectStatus.VISIBLE:
-        raise DeleteAborted
-
-    task = deletions.get(
-        model=Project, query={"id": object_id}, transaction_id=transaction_id or uuid4().hex
-    )
-    has_more = task.chunk()
-    if has_more:
-        delete_project.apply_async(
-            kwargs={"object_id": object_id, "transaction_id": transaction_id}, countdown=15
         )
 
 
@@ -260,6 +236,8 @@ def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwa
 )
 @retry(exclude=(DeleteAborted,))
 def delete_api_application(object_id, transaction_id=None, **kwargs):
+    # TODO this method is no longer in use and should be removed when jobs are
+    # no longer being enqueued for it.
     from sentry import deletions
     from sentry.models import ApiApplication, ApiApplicationStatus
 
@@ -339,6 +317,8 @@ def generic_delete(app_label, model_name, object_id, transaction_id=None, actor_
 )
 @retry(exclude=(DeleteAborted,))
 def delete_repository(object_id, transaction_id=None, actor_id=None, **kwargs):
+    # TODO this method is no longer in use and should be removed when jobs are
+    # no longer being enqueued for it.
     from sentry import deletions
     from sentry.models import Repository, User
 

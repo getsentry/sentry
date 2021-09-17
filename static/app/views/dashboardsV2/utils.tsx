@@ -1,10 +1,12 @@
+import {Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
+import pick from 'lodash/pick';
 
 import {GlobalSelection} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 
-import {DashboardDetails, DisplayType, WidgetQuery} from './types';
+import {DashboardDetails, DisplayType, Widget, WidgetQuery} from './types';
 
 export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
   return cloneDeep(dashboard);
@@ -42,4 +44,43 @@ export function eventViewFromWidget(
     end: end ? getUtcDateString(end) : undefined,
     environment: environments,
   });
+}
+
+function coerceStringToArray(value?: string | string[] | null) {
+  return typeof value === 'string' ? [value] : value;
+}
+
+export function constructWidgetFromQuery(query?: Query): Widget | undefined {
+  if (query) {
+    const queryNames = coerceStringToArray(query.queryNames);
+    const queryConditions = coerceStringToArray(query.queryConditions);
+    const queryFields = coerceStringToArray(query.queryFields);
+    const queries: WidgetQuery[] = [];
+    if (
+      queryConditions &&
+      queryNames &&
+      queryFields &&
+      typeof query.queryOrderby === 'string'
+    )
+      queryConditions.forEach((condition, index) => {
+        queries.push({
+          name: queryNames[index],
+          conditions: condition,
+          fields: queryFields,
+          orderby: query.queryOrderby as string,
+        });
+      });
+    if (query.title && query.displayType && query.interval && queries.length > 0) {
+      const newWidget: Widget = {
+        ...(pick(query, ['title', 'displayType', 'interval']) as {
+          title: string;
+          displayType: DisplayType;
+          interval: string;
+        }),
+        queries,
+      };
+      return newWidget;
+    }
+  }
+  return undefined;
 }

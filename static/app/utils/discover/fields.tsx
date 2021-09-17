@@ -680,6 +680,23 @@ const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
   [MobileVital.StallPercentage]: 'percentage',
 };
 
+export function isSpanOperationBreakdownField(field: string) {
+  return field.startsWith('spans.');
+}
+
+export const SPAN_OP_RELATIVE_BREAKDOWN_FIELD = 'span_ops_breakdown.relative';
+
+export function isRelativeSpanOperationBreakdownField(field: string) {
+  return field === SPAN_OP_RELATIVE_BREAKDOWN_FIELD;
+}
+
+export const SPAN_OP_BREAKDOWN_FIELDS = [
+  'spans.http',
+  'spans.db',
+  'spans.browser',
+  'spans.resource',
+];
+
 // This list contains fields/functions that are available with performance-view feature.
 export const TRACING_FIELDS = [
   'avg',
@@ -702,6 +719,8 @@ export const TRACING_FIELDS = [
   'key_transaction',
   'team_key_transaction',
   ...Object.keys(MEASUREMENTS),
+  ...SPAN_OP_BREAKDOWN_FIELDS,
+  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 ];
 
 export const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
@@ -1088,23 +1107,6 @@ export function fieldAlignment(
 export function isLegalYAxisType(match: ColumnType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }
-
-export function isSpanOperationBreakdownField(field: string) {
-  return field.startsWith('spans.');
-}
-
-export const SPAN_OP_RELATIVE_BREAKDOWN_FIELD = 'span_ops_breakdown.relative';
-
-export function isRelativeSpanOperationBreakdownField(field: string) {
-  return field === SPAN_OP_RELATIVE_BREAKDOWN_FIELD;
-}
-
-export const SPAN_OP_BREAKDOWN_FIELDS = [
-  'spans.http',
-  'spans.db',
-  'spans.browser',
-  'spans.resource',
-];
 
 export function getSpanOperationName(field: string): string | null {
   const results = field.match(SPAN_OP_BREAKDOWN_PATTERN);

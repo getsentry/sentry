@@ -4,7 +4,6 @@ import {Location, LocationDescriptorObject} from 'history';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
-import {fetchLegacyKeyTransactionsCount} from 'app/actionCreators/performance';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
@@ -63,7 +62,6 @@ type Props = {
 
 type State = {
   widths: number[];
-  keyedTransactions: number | null;
   transaction: string | undefined;
   transactionThreshold: number | undefined;
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
@@ -71,25 +69,10 @@ type State = {
 class Table extends React.Component<Props, State> {
   state: State = {
     widths: [],
-    keyedTransactions: null,
     transaction: undefined,
     transactionThreshold: undefined,
     transactionThresholdMetric: undefined,
   };
-
-  componentDidMount() {
-    this.fetchKeyTransactionCount();
-  }
-
-  async fetchKeyTransactionCount() {
-    const {organization} = this.props;
-    try {
-      const count = await fetchLegacyKeyTransactionsCount(organization.slug);
-      this.setState({keyedTransactions: count});
-    } catch (error) {
-      this.setState({keyedTransactions: null});
-    }
-  }
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>, dataRow: TableDataRow) => {
     return (action: Actions, value: React.ReactText) => {
@@ -178,11 +161,8 @@ class Table extends React.Component<Props, State> {
       Actions.EXCLUDE,
       Actions.SHOW_GREATER_THAN,
       Actions.SHOW_LESS_THAN,
+      Actions.EDIT_THRESHOLD,
     ];
-
-    if (organization.features.includes('project-transaction-threshold-override')) {
-      allowActions.push(Actions.EDIT_THRESHOLD);
-    }
 
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
@@ -278,7 +258,7 @@ class Table extends React.Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     title: React.ReactNode
   ): React.ReactNode {
-    const {eventView, location, organization} = this.props;
+    const {eventView, location} = this.props;
 
     const align = fieldAlignment(column.name, column.type, tableMeta);
     const field = {field: column.name, width: column.width};
@@ -314,11 +294,7 @@ class Table extends React.Component<Props, State> {
     );
     if (field.field.startsWith('user_misery')) {
       return (
-        <GuideAnchor
-          target="project_transaction_threshold"
-          position="top"
-          disabled={!organization.features.includes('project-transaction-threshold')}
-        >
+        <GuideAnchor target="project_transaction_threshold" position="top">
           {sortLink}
         </GuideAnchor>
       );
@@ -334,7 +310,6 @@ class Table extends React.Component<Props, State> {
 
   renderPrependCellWithData = (tableData: TableData | null) => {
     const {eventView} = this.props;
-    const {keyedTransactions} = this.state;
 
     const keyTransactionColumn = eventView
       .getColumns()
@@ -360,23 +335,13 @@ class Table extends React.Component<Props, State> {
       } else if (teamKeyTransactionColumn) {
         if (isHeader) {
           const star = (
-            <GuideAnchor
-              target="team_key_transaction_header"
-              position="top"
-              disabled={keyedTransactions === null} // wait for the legacy counts to load
-            >
-              <GuideAnchor
-                target="team_key_transaction_existing"
-                position="top"
-                disabled={!keyedTransactions}
-              >
-                <IconStar
-                  key="keyTransaction"
-                  color="yellow300"
-                  isSolid
-                  data-test-id="team-key-transaction-header"
-                />
-              </GuideAnchor>
+            <GuideAnchor target="team_key_transaction_header" position="top">
+              <IconStar
+                key="keyTransaction"
+                color="yellow300"
+                isSolid
+                data-test-id="team-key-transaction-header"
+              />
             </GuideAnchor>
           );
           return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];

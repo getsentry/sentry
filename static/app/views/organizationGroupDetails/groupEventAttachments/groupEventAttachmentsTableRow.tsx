@@ -5,7 +5,7 @@ import EventAttachmentActions from 'app/components/events/eventAttachmentActions
 import FileSize from 'app/components/fileSize';
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
-import {EventAttachment} from 'app/types';
+import {IssueAttachment} from 'app/types';
 import AttachmentUrl from 'app/utils/attachmentUrl';
 import {types} from 'app/views/organizationGroupDetails/groupEventAttachments/types';
 
@@ -13,7 +13,7 @@ type Props = {
   orgId: string;
   projectId: string;
   groupId: string;
-  attachment: EventAttachment;
+  attachment: IssueAttachment;
   onDelete: (attachmentId: string) => void;
   isDeleted: boolean;
 };

@@ -30,7 +30,7 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
-import {DisplayModes} from 'app/views/performance/transactionSummary/charts';
+import {DisplayModes} from 'app/views/performance/transactionSummary/transactionOverview/charts';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
 
@@ -377,6 +377,7 @@ class ReleaseOverview extends AsyncView<Props> {
           const yAxis = this.getYAxis(hasHealthData, hasPerformance);
           const eventType = this.getEventType(yAxis);
           const vitalType = this.getVitalType(yAxis);
+          const {environments} = selection;
 
           const {selectedSort, sortOptions} = getTransactionsListSort(location);
           const releaseEventView = this.getReleaseEventView(
@@ -550,6 +551,7 @@ class ReleaseOverview extends AsyncView<Props> {
                           errored={errored}
                           release={release}
                           project={project}
+                          environment={environments}
                         />
                       )}
                     </Feature>

@@ -8,13 +8,20 @@ type Props = {
   children: React.ReactNode;
   isParagraph?: boolean;
   ellipsisDirection?: 'left' | 'right';
+  ['data-test-id']?: string;
   className?: string;
 };
 
-const TextOverflow = styled(({isParagraph, className, children}: Props) => {
-  const Component = isParagraph ? 'p' : 'div';
-  return <Component className={className}>{children}</Component>;
-})`
+const TextOverflow = styled(
+  ({isParagraph, className, children, ['data-test-id']: dataTestId}: Props) => {
+    const Component = isParagraph ? 'p' : 'div';
+    return (
+      <Component className={className} data-test-id={dataTestId}>
+        {children}
+      </Component>
+    );
+  }
+)`
   ${p => (p.ellipsisDirection === 'right' ? overflowEllipsis : overflowEllipsisLeft)};
   width: auto;
   line-height: 1.1;
