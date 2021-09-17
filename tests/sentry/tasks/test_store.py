@@ -446,20 +446,24 @@ def test_time_synthetic_monitoring_event_in_save_event(mock_metrics_timing):
     assert to_process.kwargs == {"tags": tags, "sample_rate": 1.0}
 
 
+@pytest.mark.django_db
 def test_should_demote_symbolication_empty(default_project):
     assert not should_demote_symbolication(default_project.id)
 
 
+@pytest.mark.django_db
 def test_should_demote_symbolication_always(default_project):
     with override_options({"store.symbolicate-event-lpq-always": [default_project.id]}):
         assert should_demote_symbolication(default_project.id)
 
 
+@pytest.mark.django_db
 def test_should_demote_symbolication_never(default_project):
     with override_options({"store.symbolicate-event-lpq-never": [default_project.id]}):
         assert should_demote_symbolication(default_project.id)
 
 
+@pytest.mark.django_db
 def test_should_demote_symbolication_always_and_never(default_project):
     with override_options(
         {
