@@ -9,15 +9,18 @@ from sentry.utils import json
 if TYPE_CHECKING:
     from typing import Any, Callable, TypeVar
 
+    # Declare django_db mark as a decorator which preserves the signature
     F = TypeVar("F", bound=Callable[..., Any])
 
-    # Declare django_db mark as a decorator which preserves the signature
     def _django_db(func: F) -> F:
         ...
 
     pytest.mark.django_db = _django_db
 
-    # Declare fixture decorator to preserve the signature
+    # Declare fixture decorator to swallow the function, this isn't the actual type returned
+    # but the type is unusable as a function which is what matters.
+    G = TypeVar("G", bound=Callable[..., None])
+
     def _fixture(func: F) -> F:
         ...
 
