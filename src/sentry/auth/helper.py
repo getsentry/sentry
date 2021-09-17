@@ -467,7 +467,7 @@ class AuthIdentityHandler:
             op = None
 
         if not op:
-            existing_user, template = self._dispatch_to_confirmation(acting_user, identity)
+            existing_user, template = self._dispatch_to_confirmation(identity)
 
             # A blank character is needed to prevent the HTML span from collapsing
             provider_name = self.auth_provider.get_provider().name if self.auth_provider else " "
@@ -477,7 +477,7 @@ class AuthIdentityHandler:
                 "provider": provider_name,
                 "identity_display_name": identity.get("name") or identity.get("email"),
                 "identity_identifier": identity.get("email") or identity.get("id"),
-                "existing_user": existing_user,  # nullable
+                "existing_user": existing_user or acting_user,
             }
             if login_form:
                 context["login_form"] = login_form
@@ -499,7 +499,7 @@ class AuthIdentityHandler:
             self.request.session["activeorg"] = self.organization.slug
         return self._post_login_redirect()
 
-    def _dispatch_to_confirmation(self, acting_user: Any, identity: Identity) -> Tuple[Any, str]:
+    def _dispatch_to_confirmation(self, identity: Identity) -> Tuple[Optional[User], str]:
         if self.user.is_authenticated:
             return self.user, "auth-confirm-link"
 
@@ -510,7 +510,7 @@ class AuthIdentityHandler:
                 return existing_user, "auth-confirm-account"
 
         self.request.session.set_test_cookie()
-        return acting_user, "auth-confirm-identity"
+        return None, "auth-confirm-identity"
 
     def handle_new_user(self, identity: Identity) -> AuthIdentity:
         user = User.objects.create(
