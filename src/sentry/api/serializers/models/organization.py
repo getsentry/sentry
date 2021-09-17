@@ -123,6 +123,7 @@ class OrganizationSerializer(Serializer):
         ]
         feature_list = set()
 
+        # Check features in batch using the entity handler
         batch_features = features.batch_has(org_features, actor=user, organization=obj)
 
         # batch_has has found some features
@@ -135,8 +136,8 @@ class OrganizationSerializer(Serializer):
                 # This feature_name was found via `batch_has`, don't check again using `has`
                 org_features.remove(feature_name)
 
+        # Remaining features should not be checked via the entity handler
         for feature_name in org_features:
-            # Skip the entity handler entirely since batch_has would've checked it
             if features.has(feature_name, obj, skip_entity=True, actor=user):
                 # Remove the organization scope prefix
                 feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
