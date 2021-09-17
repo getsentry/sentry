@@ -1,5 +1,3 @@
-import {PureComponent} from 'react';
-
 import DateTime from 'app/components/dateTime';
 import Duration from 'app/components/duration';
 import {BannerContainer, BannerSummary} from 'app/components/events/styles';
@@ -11,10 +9,10 @@ type Props = {
   statusDetails: ResolutionStatusDetails;
 };
 
-class MutedBox extends PureComponent<Props> {
-  renderReason = () => {
+function MutedBox({statusDetails}: Props) {
+  const renderReason = () => {
     const {ignoreUntil, ignoreCount, ignoreWindow, ignoreUserCount, ignoreUserWindow} =
-      this.props.statusDetails;
+      statusDetails;
 
     if (ignoreUntil) {
       return t(
@@ -54,12 +52,12 @@ class MutedBox extends PureComponent<Props> {
     return t('This issue has been ignored');
   };
 
-  render = () => (
+  return (
     <BannerContainer priority="default">
       <BannerSummary>
         <IconMute color="red300" size="sm" />
         <span>
-          {this.renderReason()}&nbsp;&mdash;&nbsp;
+          {renderReason()}&nbsp;&mdash;&nbsp;
           {t(
             'You will not be notified of any changes and it will not show up by default in feeds.'
           )}
