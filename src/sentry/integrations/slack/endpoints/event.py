@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.event import SlackEventMessageBuilder
@@ -158,7 +159,15 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
             if link_type is None or args is None:
                 continue
 
-            if link_type == LinkType.DISCOVER and not slack_request.has_identity:
+            if (
+                link_type == LinkType.DISCOVER
+                and not slack_request.has_identity
+                and features.has(
+                    "organizations:chart-unfurls",
+                    slack_request.integration.organizations.all()[0],
+                    actor=request.user,
+                )
+            ):
                 self.prompt_link(data, slack_request, integration)
                 return self.respond()
 
