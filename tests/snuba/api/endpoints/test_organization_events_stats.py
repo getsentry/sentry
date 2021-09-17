@@ -875,12 +875,14 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         transaction_data = load_data("transaction")
         transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
         transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=4))
+        transaction_data["tags"] = {"shared-tag": "yup"}
         self.event_data = [
             {
                 "data": {
                     "message": "poof",
                     "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
                     "user": {"email": self.user.email},
+                    "tags": {"shared-tag": "yup"},
                     "fingerprint": ["group1"],
                 },
                 "project": self.project2,
@@ -892,6 +894,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
                     "fingerprint": ["group2"],
                     "user": {"email": self.user2.email},
+                    "tags": {"shared-tag": "yup"},
                 },
                 "project": self.project2,
                 "count": 6,
@@ -902,6 +905,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
                     "fingerprint": ["group3"],
                     "user": {"email": "foo@example.com"},
+                    "tags": {"shared-tag": "yup"},
                 },
                 "project": self.project,
                 "count": 5,
@@ -912,6 +916,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
                     "fingerprint": ["group4"],
                     "user": {"email": "bar@example.com"},
+                    "tags": {"shared-tag": "yup"},
                 },
                 "project": self.project,
                 "count": 4,
@@ -924,6 +929,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
                     "fingerprint": ["group5"],
                     "user": {"email": "bar@example.com"},
+                    "tags": {"shared-tag": "yup"},
                 },
                 "project": self.project,
                 "count": 2,
@@ -934,6 +940,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
                     "fingerprint": ["group6"],
                     "user": {"email": "bar@example.com"},
+                    "tags": {"shared-tag": "yup"},
                 },
                 "project": self.project,
                 "count": 1,
@@ -951,6 +958,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         self.enabled_features = {
             "organizations:discover-basic": True,
+            "organizations:discover-top-events": True,
         }
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
@@ -1025,7 +1033,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         data = response.data
         assert response.status_code == 200, response.content
-        assert len(data) == 5
+        assert len(data) == 6
 
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
@@ -1034,8 +1042,12 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             ]
             assert results["order"] == index
             assert [{"count": self.event_data[index]["count"]}] in [
-                attrs for time, attrs in results["data"]
+                attrs for _, attrs in results["data"]
             ]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
     def test_top_events_limits(self):
         data = {
@@ -1078,7 +1090,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         data = response.data
 
         assert response.status_code == 200, response.content
-        assert len(data) == 5
+        assert len(data) == 6
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
             results = data[",".join([message, event.project.slug])]
@@ -1086,6 +1098,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert [{"count": self.event_data[index]["count"]}] in [
                 attrs for time, attrs in results["data"]
             ]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
     def test_top_events_with_issue(self):
         # delete a group to make sure if this happens the value becomes unknown
@@ -1111,7 +1127,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         data = response.data
 
         assert response.status_code == 200, response.content
-        assert len(data) == 5
+        assert len(data) == 6
 
         for index, event in enumerate(self.events[:4]):
             message = event.message
@@ -1126,6 +1142,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert [{"count": self.event_data[index]["count"]}] in [
                 attrs for time, attrs in results["data"]
             ]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
 
     def test_top_events_with_functions(self):
         with self.feature(self.enabled_features):
@@ -1239,7 +1259,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         data = response.data
         assert response.status_code == 200, response.content
-        assert len(data) == 5
+        assert len(data) == 6
 
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
@@ -1250,6 +1270,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert [{"count": self.event_data[index]["count"] / (3600.0 / 60.0)}] in [
                 attrs for time, attrs in results["data"]
             ]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 0.05}] in [attrs for _, attrs in other["data"]]
 
     def test_top_events_with_multiple_yaxis(self):
         with self.feature(self.enabled_features):
@@ -1269,7 +1293,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         data = response.data
         assert response.status_code == 200, response.content
-        assert len(data) == 5
+        assert len(data) == 6
 
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
@@ -1286,6 +1310,13 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert [{"count": self.event_data[index]["count"]}] in [
                 attrs for time, attrs in results["count()"]["data"]
             ]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert other["epm()"]["order"] == 0
+        assert other["count()"]["order"] == 1
+        assert [{"count": 0.05}] in [attrs for _, attrs in other["epm()"]["data"]]
+        assert [{"count": 3}] in [attrs for _, attrs in other["count()"]["data"]]
 
     def test_top_events_with_boolean(self):
         with self.feature(self.enabled_features):
@@ -1305,7 +1336,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         data = response.data
         assert response.status_code == 200, response.content
-        assert len(data) == 5
+        assert len(data) == 6
 
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
@@ -1314,6 +1345,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert [{"count": self.event_data[index]["count"]}] in [
                 attrs for time, attrs in results["data"]
             ]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
     def test_top_events_with_error_unhandled(self):
         self.login_as(user=self.user)
@@ -1364,7 +1399,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         data = response.data
         assert response.status_code == 200, response.content
-        assert len(data) == 5
+        assert len(data) == 6
         # Transactions won't be in the results because of the query
         del self.events[4]
         del self.event_data[4]
@@ -1375,6 +1410,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert [{"count": self.event_data[index]["count"]}] in [
                 attrs for time, attrs in results["data"]
             ]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
 
     def test_top_events_with_int(self):
         with self.feature(self.enabled_features):
@@ -1642,7 +1681,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         data = response.data
-        assert len(data) == 2
+        assert len(data) == 3
 
         current = data["current"]
         assert current["order"] == 1
@@ -1653,6 +1692,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert sum(attrs[0]["count"] for _, attrs in others["data"]) == sum(
             event_data["count"] for event_data in self.event_data
         )
+
+        other = data["Other"]
+        assert other["order"] == 2
+        assert [{"count": 23}] in [attrs for _, attrs in other["data"]]
 
     def test_top_events_with_equations(self):
         with self.feature(self.enabled_features):
@@ -1672,7 +1715,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         data = response.data
         assert response.status_code == 200, response.content
-        assert len(data) == 5
+        assert len(data) == 6
 
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
@@ -1683,6 +1726,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert [{"count": self.event_data[index]["count"] / 100}] in [
                 attrs for time, attrs in results["data"]
             ]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 0.03}] in [attrs for _, attrs in other["data"]]
 
     def test_invalid_interval(self):
         with self.feature("organizations:discover-basic"):
@@ -1786,3 +1833,35 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             )
             results = data[key]
             assert [{"count": count}] in [attrs for time, attrs in results["data"]]
+
+    def test_top_events_other_with_matching_columns(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "tags[shared-tag]", "message"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 6
+
+        for index, event in enumerate(self.events[:5]):
+            message = event.message or event.transaction
+            results = data[",".join([message, "yup"])]
+            assert results["order"] == index
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for _, attrs in results["data"]
+            ]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
