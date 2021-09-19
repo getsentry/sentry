@@ -49,6 +49,9 @@ const Level = memo(function Level({level, searchTerm = ''}: Props) {
 export default Level;
 
 const StyledTag = styled(Tag)`
+  height: 24px;
+  display: flex;
+  align-items: center;
   ${Background} {
     overflow: hidden;
   }

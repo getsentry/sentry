@@ -235,7 +235,7 @@ class Tooltip extends React.Component<Props, State> {
       this.props;
     const {isOpen, usesGlobalPortal} = this.state;
 
-    if (disabled) {
+    if (disabled || !title) {
       return children;
     }
 

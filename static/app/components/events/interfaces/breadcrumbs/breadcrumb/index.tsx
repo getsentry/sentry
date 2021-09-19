@@ -50,7 +50,9 @@ const Breadcrumb = memo(function Breadcrumb({
         breadcrumb={breadcrumb}
         searchTerm={searchTerm}
       />
-      <Level level={level} searchTerm={searchTerm} />
+      <div>
+        <Level level={level} searchTerm={searchTerm} />
+      </div>
       <Time
         timestamp={timestamp}
         relativeTime={relativeTime}
@@ -98,6 +100,7 @@ const Wrapper = styled('div')<{error: boolean}>`
         padding-right: 0;
         display: flex;
         justify-content: flex-end;
+        align-items: flex-start;
       }
 
       /* Time */
