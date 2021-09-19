@@ -12,37 +12,37 @@ const options: React.ComponentProps<typeof SearchBarActionFilter>['options'] = {
     {
       id: BreadcrumbType.HTTP,
       description: 'HTTP request',
-      symbol: <Type color="green300" type={BreadcrumbType.HTTP} size="xs" />,
+      symbol: <Type color="green300" type={BreadcrumbType.HTTP} />,
       isChecked: true,
     },
     {
       id: BreadcrumbType.TRANSACTION,
       description: 'Transaction',
-      symbol: <Type color="pink300" type={BreadcrumbType.TRANSACTION} size="xs" />,
+      symbol: <Type color="pink300" type={BreadcrumbType.TRANSACTION} />,
       isChecked: true,
     },
     {
       id: BreadcrumbType.UI,
       description: 'User Action',
-      symbol: <Type color="purple300" type={BreadcrumbType.UI} size="xs" />,
+      symbol: <Type color="purple300" type={BreadcrumbType.UI} />,
       isChecked: true,
     },
     {
       id: BreadcrumbType.NAVIGATION,
       description: 'Navigation',
-      symbol: <Type color="green300" type={BreadcrumbType.NAVIGATION} size="xs" />,
+      symbol: <Type color="green300" type={BreadcrumbType.NAVIGATION} />,
       isChecked: true,
     },
     {
       id: BreadcrumbType.DEBUG,
       description: 'Debug',
-      symbol: <Type color="purple300" type={BreadcrumbType.DEBUG} size="xs" />,
+      symbol: <Type color="purple300" type={BreadcrumbType.DEBUG} />,
       isChecked: true,
     },
     {
       id: BreadcrumbType.ERROR,
       description: 'Error',
-      symbol: <Type color="red300" type={BreadcrumbType.ERROR} size="xs" />,
+      symbol: <Type color="red300" type={BreadcrumbType.ERROR} />,
       isChecked: true,
     },
   ],
@@ -81,7 +81,7 @@ describe('SearchBarActionFilter', () => {
     expect(headers.at(1).text()).toBe('Levels');
 
     // Lists
-    const lists = filterDropdownMenu.find('List');
+    const lists = filterDropdownMenu.find('StyledList');
     expect(lists).toHaveLength(2);
     expect(lists.at(0).find('StyledListItem')).toHaveLength(6);
     expect(lists.at(1).find('StyledListItem')).toHaveLength(2);
@@ -111,7 +111,7 @@ describe('SearchBarActionFilter', () => {
     expect(header.text()).toBe('Types');
 
     // List
-    const list = filterDropdownMenu.find('List');
+    const list = filterDropdownMenu.find('StyledList');
     expect(list).toHaveLength(1);
 
     // List Items
@@ -143,7 +143,7 @@ describe('SearchBarActionFilter', () => {
     expect(header.text()).toBe('Levels');
 
     // List
-    const list = filterDropdownMenu.find('List');
+    const list = filterDropdownMenu.find('StyledList');
     expect(list).toHaveLength(1);
 
     // List Items
