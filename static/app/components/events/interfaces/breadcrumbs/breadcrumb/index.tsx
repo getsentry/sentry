@@ -65,7 +65,7 @@ export default Breadcrumb;
 
 const Wrapper = styled('div')<{error: boolean}>`
   display: grid;
-  grid-template-columns: 65px 140px 1fr 106px 100px;
+  grid-template-columns: 64px 140px 1fr 106px 100px;
 
   > * {
     padding: ${space(1)} ${space(2)};
@@ -73,7 +73,7 @@ const Wrapper = styled('div')<{error: boolean}>`
 
   @media (max-width: ${props => props.theme.breakpoints[0]}) {
     grid-template-rows: repeat(2, auto);
-    grid-template-columns: 48px 1fr 75px 81px;
+    grid-template-columns: max-content 1fr 75px 81px;
 
     > * {
       padding: ${space(1)};
@@ -81,6 +81,9 @@ const Wrapper = styled('div')<{error: boolean}>`
       /* Type */
       :nth-child(5n-4) {
         grid-row: 1/-1;
+        padding-right: 0;
+        padding-left: 0;
+        margin-left: ${space(2)};
       }
 
       /* Data */

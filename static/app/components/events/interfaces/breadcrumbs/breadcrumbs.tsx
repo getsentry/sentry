@@ -172,11 +172,12 @@ export default Breadcrumbs;
 
 const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
   display: grid;
-  grid-template-columns: 65px 140px 1fr 106px 100px ${p => `${p.scrollbarSize}px`};
+  grid-template-columns: 64px 140px 1fr 106px 100px ${p => `${p.scrollbarSize}px`};
 
   > * {
     :nth-child(-n + 6) {
       border-bottom: 1px solid ${p => p.theme.border};
+      border-radius: 0;
 
       /* Type */
       :nth-child(6n-5) {
@@ -199,6 +200,11 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
     grid-template-columns: 48px 1fr 75px 81px;
     > * {
       :nth-child(-n + 6) {
+        /* Type */
+        :nth-child(6n-5) {
+          padding-right: 0;
+        }
+
         /* Type, Category & Level */
         :nth-child(6n-5),
         :nth-child(6n-4),

@@ -12,40 +12,39 @@ import {
   IconUser,
   IconWarning,
 } from 'app/icons';
-import SvgIcon from 'app/icons/svgIcon';
 import {BreadcrumbType} from 'app/types/breadcrumbs';
 
-type Props = Pick<React.ComponentProps<typeof SvgIcon>, 'size'> & {
+type Props = {
   type: BreadcrumbType;
 };
 
-function Icon({type, size}: Props) {
+function Icon({type}: Props) {
   switch (type) {
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
-      return <IconUser size={size} />;
+      return <IconUser size="xs" />;
     case BreadcrumbType.NAVIGATION:
-      return <IconLocation size={size} />;
+      return <IconLocation size="xs" />;
     case BreadcrumbType.DEBUG:
-      return <IconFix size={size} />;
+      return <IconFix size="xs" />;
     case BreadcrumbType.INFO:
-      return <IconInfo size={size} />;
+      return <IconInfo size="xs" />;
     case BreadcrumbType.ERROR:
-      return <IconFire size={size} />;
+      return <IconFire size="xs" />;
     case BreadcrumbType.HTTP:
-      return <IconSwitch size={size} />;
+      return <IconSwitch size="xs" />;
     case BreadcrumbType.WARNING:
-      return <IconWarning size={size} />;
+      return <IconWarning size="xs" />;
     case BreadcrumbType.QUERY:
-      return <IconStack size={size} />;
+      return <IconStack size="xs" />;
     case BreadcrumbType.SYSTEM:
-      return <IconMobile size={size} />;
+      return <IconMobile size="xs" />;
     case BreadcrumbType.SESSION:
-      return <IconRefresh size={size} />;
+      return <IconRefresh size="xs" />;
     case BreadcrumbType.TRANSACTION:
-      return <IconSpan size={size} />;
+      return <IconSpan size="xs" />;
     default:
-      return <IconTerminal size={size} />;
+      return <IconTerminal size="xs" />;
   }
 }
 

@@ -11,12 +11,12 @@ type Props = Required<Pick<React.ComponentProps<typeof SvgIcon>, 'color'>> &
     error?: boolean;
   };
 
-function Type({type, color, description, size, error}: Props) {
+function Type({type, color, description, error}: Props) {
   return (
     <Wrapper error={error}>
       <Tooltip title={description} disabled={!description}>
         <IconWrapper color={color}>
-          <Icon type={type} size={size} />
+          <Icon type={type} />
         </IconWrapper>
       </Tooltip>
     </Wrapper>
@@ -36,6 +36,7 @@ const Wrapper = styled('div')<Pick<Props, 'error'>>`
     top: 0;
     bottom: 0;
     left: 50%;
+    transform: translate(-50%);
     position: absolute;
     background: ${p => (p.error ? p.theme.red300 : p.theme.innerBorder)};
   }
@@ -45,8 +46,8 @@ const IconWrapper = styled('div')<Pick<Props, 'color'>>`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 25px;
-  height: 25px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   color: ${p => p.theme.white};
   background: ${p => p.theme[p.color] ?? p.color};

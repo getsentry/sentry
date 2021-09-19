@@ -129,7 +129,7 @@ function BreadcrumbsContainer({data, event, organization, type: eventType}: Prop
       if (foundFilterType === -1) {
         filterTypes.push({
           id: breadcrumb.type,
-          symbol: <Type type={breadcrumb.type} color={breadcrumb.color} size="xs" />,
+          symbol: <Type type={breadcrumb.type} color={breadcrumb.color} />,
           isChecked: false,
           description: breadcrumb.description,
           levels: breadcrumb?.level ? [breadcrumb.level] : [],
