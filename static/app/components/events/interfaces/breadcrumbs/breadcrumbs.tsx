@@ -52,9 +52,8 @@ function Breadcrumbs({
   relativeTime,
   emptyMessage,
 }: Props) {
-  const [state, setState] = useState<State>({
-    scrollToIndex: breadcrumbs.length - 1,
-  });
+  const [state, setState] = useState<State>({});
+  const {scrollToIndex, scrollbarSize} = state;
 
   let listRef: List | null = null;
 
@@ -63,16 +62,18 @@ function Breadcrumbs({
   }, []);
 
   useEffect(() => {
-    if (!scrollToIndex) {
-      setState({...state, scrollToIndex: undefined});
+    if (!!breadcrumbs.length && !scrollToIndex) {
+      setState({...state, scrollToIndex: breadcrumbs.length - 1});
+      return;
     }
+    updateGrid();
   }, [breadcrumbs]);
 
   useEffect(() => {
-    if (!!breadcrumbs.length) {
+    if (scrollToIndex !== undefined) {
       updateGrid();
     }
-  }, [breadcrumbs, searchTerm, relativeTime, displayRelativeTime]);
+  }, [scrollToIndex]);
 
   function updateGrid() {
     if (listRef) {
@@ -114,8 +115,6 @@ function Breadcrumbs({
       </CellMeasurer>
     );
   }
-
-  const {scrollToIndex, scrollbarSize} = state;
 
   return (
     <StyledPanelTable
