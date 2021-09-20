@@ -1,5 +1,5 @@
 import itertools
-from typing import DefaultDict, Optional
+from typing import DefaultDict, Dict, Optional
 
 from sentry.models import Organization
 
@@ -27,10 +27,10 @@ class SimpleIndexer(StringIndexer):
 
     """Simple indexer with in-memory store. Do not use in production."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._counter = itertools.count(start=len(_STRINGS))
-        self._strings = DefaultDict(self._counter.__next__)
-        self._reverse = {}
+        self._strings: Dict[str, int] = DefaultDict(self._counter.__next__)
+        self._reverse: Dict[int, str] = {}
 
     def record(self, organization: Organization, use_case: UseCase, string: str) -> int:
         # NOTE: Ignores ``use_case`` for simplicity.
@@ -54,7 +54,7 @@ class MockIndexer(SimpleIndexer):
     Mock string indexer. Comes with a prepared set of strings.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         for string, index in _STRINGS.items():
             self._strings[string] = index
