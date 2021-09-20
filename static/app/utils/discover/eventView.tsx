@@ -430,7 +430,8 @@ class EventView {
         },
         'environment'
       ),
-      yAxis: saved.yAxis,
+      // Workaround to only use the first yAxis since eventView yAxis doesn't accept string[]
+      yAxis: Array.isArray(saved.yAxis) ? saved.yAxis[0] : saved.yAxis,
       display: saved.display,
       createdBy: saved.createdBy,
       expired: saved.expired,
@@ -463,7 +464,10 @@ class EventView {
             ? decodeQuery(location)
             : queryStringFromSavedQuery(saved),
         sorts: sorts.length === 0 ? fromSorts(saved.orderby) : sorts,
-        yAxis: decodeScalar(location.query.yAxis) || saved.yAxis,
+        yAxis:
+          decodeScalar(location.query.yAxis) ||
+          // Workaround to only use the first yAxis since eventView yAxis doesn't accept string[]
+          (Array.isArray(saved.yAxis) ? saved.yAxis[0] : saved.yAxis),
         display: decodeScalar(location.query.display) || saved.display,
         interval: decodeScalar(location.query.interval),
         createdBy: saved.createdBy,

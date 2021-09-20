@@ -32,7 +32,7 @@ import {defined, generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
-import {CHART_AXIS_OPTIONS, DisplayModes} from 'app/utils/discover/types';
+import {DisplayModes} from 'app/utils/discover/types';
 import localStorage from 'app/utils/localStorage';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
@@ -109,9 +109,6 @@ class Results extends React.Component<Props, State> {
     this.canLoadEvents();
     if (defined(location.query.id)) {
       updateSavedQueryVisit(organization.slug, location.query.id);
-    }
-    if (organization.features.includes('connect-discover-and-dashboards')) {
-      this.defaultYAxis();
     }
   }
 
@@ -405,18 +402,6 @@ class Results extends React.Component<Props, State> {
     this.setState({incompatibleAlertNotice});
   };
 
-  defaultYAxis() {
-    const {location} = this.props;
-    const yAxisArray = decodeList(location.query.yAxis);
-    // Default Y-Axis to count() if none is selected
-    if (yAxisArray.length === 0) {
-      browserHistory.replace({
-        ...location,
-        query: {...location.query, yAxis: [CHART_AXIS_OPTIONS[0].value]},
-      });
-    }
-  }
-
   renderError(error: string) {
     if (!error) {
       return null;
@@ -433,7 +418,7 @@ class Results extends React.Component<Props, State> {
   };
 
   render() {
-    const {organization, location, router} = this.props;
+    const {organization, location, router, savedQuery} = this.props;
     const {
       eventView,
       error,
@@ -448,7 +433,11 @@ class Results extends React.Component<Props, State> {
       : eventView.fields;
     const query = eventView.query;
     const title = this.getDocumentTitle();
-    const yAxisArray = decodeList(location.query.yAxis);
+    const yAxisArray = location.query.yAxis
+      ? decodeList(location.query.yAxis)
+      : savedQuery?.yAxis && savedQuery.yAxis.length > 0
+      ? decodeList(savedQuery?.yAxis)
+      : [eventView.getYAxis()];
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
@@ -460,6 +449,7 @@ class Results extends React.Component<Props, State> {
               location={location}
               eventView={eventView}
               onIncompatibleAlertQuery={this.handleIncompatibleQuery}
+              yAxis={yAxisArray}
             />
             <Layout.Body>
               {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
