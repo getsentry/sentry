@@ -138,7 +138,19 @@ class WidgetCard extends React.Component<Props> {
                   selection,
                   widget.displayType
                 );
-                browserHistory.push(eventView.getResultsViewUrlTarget(organization.slug));
+                const discoverLocation = eventView.getResultsViewUrlTarget(
+                  organization.slug
+                );
+                if (this.isAllowWidgetsToDiscover()) {
+                  // Pull a max of 3 valid Y-Axis from the widget
+                  const yAxisOptions = eventView
+                    .getYAxisOptions()
+                    .map(({value}) => value);
+                  discoverLocation.query.yAxis = widget.queries[0].fields
+                    .filter(field => yAxisOptions.includes(field))
+                    .slice(0, 3);
+                }
+                browserHistory.push(discoverLocation);
               } else {
                 openDashboardWidgetQuerySelectorModal({organization, widget});
               }

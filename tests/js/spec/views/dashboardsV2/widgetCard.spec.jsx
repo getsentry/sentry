@@ -21,8 +21,16 @@ describe('Dashboards > WidgetCard', function () {
     interval: '5m',
     displayType: 'line',
     queries: [
-      {conditions: 'event.type:error', fields: ['count()'], name: 'errors'},
-      {conditions: 'event.type:default', fields: ['count()'], name: 'default'},
+      {
+        conditions: 'event.type:error',
+        fields: ['count()', 'failure_count()'],
+        name: 'errors',
+      },
+      {
+        conditions: 'event.type:default',
+        fields: ['count()', 'failure_count()'],
+        name: 'default',
+      },
     ],
   };
   const selection = {
@@ -86,5 +94,44 @@ describe('Dashboards > WidgetCard', function () {
       organization: initialData.organization,
       widget: multipleQueryWidget,
     });
+  });
+
+  it('renders with Open in Discover button and opens in Discover when clicked', async function () {
+    const wrapper = mountWithTheme(
+      <WidgetCard
+        api={api}
+        organization={initialData.organization}
+        widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]]}}
+        selection={selection}
+        isEditing={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        renderErrorMessage={() => undefined}
+        isSorting={false}
+        currentWidgetDragging={false}
+        showContextMenu
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetCard>,
+      initialData.routerContext
+    );
+
+    await tick();
+
+    const menuOptions = wrapper.find('ContextMenu').props().children;
+    expect(menuOptions.length > 0).toBe(true);
+    expect(menuOptions[0].props.children).toEqual(t('Open in Discover'));
+    menuOptions[0].props.onClick(mockEvent);
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/discover/results/',
+        query: expect.objectContaining({
+          field: ['count()', 'failure_count()'],
+          name: 'Errors',
+          query: 'event.type:error',
+          yAxis: ['count()', 'failure_count()'],
+        }),
+      })
+    );
   });
 });
