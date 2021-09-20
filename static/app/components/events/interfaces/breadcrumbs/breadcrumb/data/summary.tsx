@@ -63,7 +63,6 @@ const ContextDataWrapper = styled('div')`
 
 const StyledCode = styled('code')`
   line-height: 26px;
-  color: inherit;
   font-size: inherit;
   white-space: pre-wrap;
   background: none;

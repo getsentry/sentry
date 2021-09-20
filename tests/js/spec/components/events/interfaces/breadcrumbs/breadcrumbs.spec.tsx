@@ -96,7 +96,7 @@ describe('Breadcrumbs', () => {
 
       // breadcrumbs + filter item
       // TODO(Priscila): Filter should not render in the dom if not open
-      expect(await findAllByTextContent(component, 'warning')).toHaveLength(6);
+      expect(await findAllByTextContent(component, 'Warning')).toHaveLength(6);
     });
 
     it('should filter crumbs based on crumb category', async function () {
