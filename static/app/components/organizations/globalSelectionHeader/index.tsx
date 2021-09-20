@@ -24,9 +24,21 @@ type Props = {
     Pick<React.ComponentProps<typeof InitializeGlobalSelectionHeader>, 'skipLoadLastUsed'>
   >;
 
-class GlobalSelectionHeaderContainer extends React.Component<Props> {
-  getProjects = () => {
-    const {organization, projects} = this.props;
+function GlobalSelectionHeaderContainer({
+  organization,
+  projects,
+  loadingProjects,
+  location,
+  router,
+  routes,
+  defaultSelection,
+  forceProject,
+  shouldForceProject,
+  skipLoadLastUsed,
+  showAbsolute,
+  ...props
+}: Props) {
+  function getProjects() {
     const {isSuperuser} = ConfigStore.get('user');
     const isOrgAdmin = organization.access.includes('org:admin');
 
@@ -40,60 +52,45 @@ class GlobalSelectionHeaderContainer extends React.Component<Props> {
     }
 
     return [memberProjects, []];
-  };
+  }
 
-  render() {
-    const {
-      loadingProjects,
-      location,
-      organization,
-      router,
-      routes,
+  const enforceSingleProject = !organization.features.includes('global-views');
+  const [memberProjects, nonMemberProjects] = getProjects();
 
-      defaultSelection,
-      forceProject,
-      shouldForceProject,
-      skipLoadLastUsed,
-      showAbsolute,
-      ...props
-    } = this.props;
-    const enforceSingleProject = !organization.features.includes('global-views');
-    const [memberProjects, nonMemberProjects] = this.getProjects();
-
-    // We can initialize before ProjectsStore is fully loaded if we don't need to enforce single project.
-    return (
-      <React.Fragment>
-        {(!loadingProjects || (!shouldForceProject && !enforceSingleProject)) && (
-          <InitializeGlobalSelectionHeader
-            location={location}
-            skipLoadLastUsed={!!skipLoadLastUsed}
-            router={router}
-            organization={organization}
-            defaultSelection={defaultSelection}
-            forceProject={forceProject}
-            shouldForceProject={!!shouldForceProject}
-            shouldEnforceSingleProject={enforceSingleProject}
-            memberProjects={memberProjects}
-            showAbsolute={showAbsolute}
-          />
-        )}
-        <GlobalSelectionHeader
-          {...props}
-          loadingProjects={loadingProjects}
+  // We can initialize before ProjectsStore is fully loaded if we don't need to enforce single project.
+  return (
+    <React.Fragment>
+      {(!loadingProjects || (!shouldForceProject && !enforceSingleProject)) && (
+        <InitializeGlobalSelectionHeader
           location={location}
-          organization={organization}
+          skipLoadLastUsed={!!skipLoadLastUsed}
           router={router}
-          routes={routes}
-          shouldForceProject={!!shouldForceProject}
+          organization={organization}
           defaultSelection={defaultSelection}
           forceProject={forceProject}
+          shouldForceProject={!!shouldForceProject}
+          shouldEnforceSingleProject={enforceSingleProject}
           memberProjects={memberProjects}
-          nonMemberProjects={nonMemberProjects}
           showAbsolute={showAbsolute}
         />
-      </React.Fragment>
-    );
-  }
+      )}
+      <GlobalSelectionHeader
+        {...props}
+        loadingProjects={loadingProjects}
+        location={location}
+        organization={organization}
+        router={router}
+        routes={routes}
+        projects={projects}
+        shouldForceProject={!!shouldForceProject}
+        defaultSelection={defaultSelection}
+        forceProject={forceProject}
+        memberProjects={memberProjects}
+        nonMemberProjects={nonMemberProjects}
+        showAbsolute={showAbsolute}
+      />
+    </React.Fragment>
+  );
 }
 
 export default withOrganization(

@@ -82,8 +82,38 @@ def submit_process(
     )
 
 
+def should_demote_symbolication(project_id):
+    """
+    Determines whether a project's symbolication events should be pushed to the low priority queue.
+    """
+    always_lowpri = killswitch_matches_context(
+        "store.symbolicate-event-lpq-always",
+        {
+            "project_id": project_id,
+        },
+    )
+    never_lowpri = killswitch_matches_context(
+        "store.symbolicate-event-lpq-never",
+        {
+            "project_id": project_id,
+        },
+    )
+    return not never_lowpri and always_lowpri
+
+
 def submit_symbolicate(project, from_reprocessing, cache_key, event_id, start_time, data):
     task = symbolicate_event_from_reprocessing if from_reprocessing else symbolicate_event
+    task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
+
+
+def submit_symbolicate_low_priority(
+    project, from_reprocessing, cache_key, event_id, start_time, data
+):
+    task = (
+        symbolicate_event_from_reprocessing_low_priority
+        if from_reprocessing
+        else symbolicate_event_low_priority
+    )
     task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
 
 
@@ -132,8 +162,16 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
 
     if should_process_with_symbolicator(data):
         reprocessing2.backup_unprocessed_event(project=project, data=original_data)
-        submit_symbolicate(
-            project, from_reprocessing, cache_key, event_id, start_time, original_data
+
+        is_low_priority = should_demote_symbolication(project_id)
+        task = submit_symbolicate_low_priority if is_low_priority else submit_symbolicate
+        task(
+            project,
+            from_reprocessing,
+            cache_key,
+            event_id,
+            start_time,
+            original_data,
         )
         return
 
@@ -383,6 +421,24 @@ def symbolicate_event_from_reprocessing(cache_key, start_time=None, event_id=Non
         start_time=start_time,
         event_id=event_id,
         symbolicate_task=symbolicate_event_from_reprocessing,
+    )
+
+
+@instrumented_task(
+    name="sentry.tasks.store.symbolicate_event_from_reprocessing_low_priority",
+    queue="events.reprocessing.symbolicate_event_low_priority",
+    time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
+    soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
+    acks_late=True,
+)
+def symbolicate_event_from_reprocessing_low_priority(
+    cache_key, start_time=None, event_id=None, **kwargs
+):
+    return _do_symbolicate_event(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        symbolicate_task=symbolicate_event_from_reprocessing_low_priority,
     )
 
 
