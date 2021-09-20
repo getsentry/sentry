@@ -449,12 +449,10 @@ class Sidebar extends React.Component<Props, State> {
                   {userFeedback}
                   {alerts}
                   {discover2}
+                  {dashboards}
                 </SidebarSection>
 
-                <SidebarSection>
-                  {dashboards}
-                  {monitors}
-                </SidebarSection>
+                <SidebarSection>{monitors}</SidebarSection>
 
                 <SidebarSection>
                   {activity}
