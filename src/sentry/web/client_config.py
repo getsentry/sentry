@@ -12,7 +12,7 @@ from sentry.api.serializers.models.user import DetailedUserSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import ProjectKey
 from sentry.utils import auth
-from sentry.utils.assets import get_unversioned_asset_url
+from sentry.utils.assets import get_frontend_app_asset_url
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.support import get_support_mail
 
@@ -146,7 +146,7 @@ def get_client_config(request=None):
         "urlPrefix": options.get("system.url-prefix"),
         "version": version_info,
         "features": enabled_features,
-        "distPrefix": get_unversioned_asset_url("sentry", ""),
+        "distPrefix": get_frontend_app_asset_url("sentry", ""),
         "needsUpgrade": needs_upgrade,
         "dsn": public_dsn,
         "dsn_requests": _get_dsn_requests(),
@@ -167,7 +167,7 @@ def get_client_config(request=None):
         "csrfCookieName": settings.CSRF_COOKIE_NAME,
         "sentryConfig": {
             "dsn": public_dsn,
-            "release": settings.SENTRY_SDK_CONFIG["release"],
+            "release": f"frontend@{settings.SENTRY_SDK_CONFIG['release']}",
             "environment": settings.SENTRY_SDK_CONFIG["environment"],
             # By default `ALLOWED_HOSTS` is [*], however the JS SDK does not support globbing
             "whitelistUrls": (

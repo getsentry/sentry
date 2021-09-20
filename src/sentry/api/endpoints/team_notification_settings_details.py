@@ -2,9 +2,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.bases.team import TeamEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.api.validators.notifications import validate, validate_type_option
@@ -25,10 +23,6 @@ class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
         :qparam string type: If set, filter the NotificationSettings to this type.
         :auth required:
         """
-        if not features.has(
-            "organizations:notification-platform", team.organization, actor=request.user
-        ):
-            raise ResourceDoesNotExist
 
         type_option = validate_type_option(request.GET.get("type"))
 
@@ -70,10 +64,6 @@ class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
 
         :auth required:
         """
-        if not features.has(
-            "organizations:notification-platform", team.organization, actor=request.user
-        ):
-            raise ResourceDoesNotExist
 
         notification_settings = validate(request.data, team=team)
         NotificationSetting.objects.update_settings_bulk(notification_settings, team=team)

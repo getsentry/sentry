@@ -1,19 +1,10 @@
-import {
-  IconFire,
-  IconFix,
-  IconInfo,
-  IconLocation,
-  IconMobile,
-  IconRefresh,
-  IconSpan,
-  IconStack,
-  IconSwitch,
-  IconTerminal,
-  IconUser,
-  IconWarning,
-} from 'app/icons';
 import {t} from 'app/locale';
-import {Breadcrumb, BreadcrumbLevelType, BreadcrumbType} from 'app/types/breadcrumbs';
+import {
+  Breadcrumb,
+  BreadcrumbLevelType,
+  BreadcrumbsWithDetails,
+  BreadcrumbType,
+} from 'app/types/breadcrumbs';
 import {defined} from 'app/utils';
 
 function convertCrumbType(breadcrumb: Breadcrumb): Breadcrumb {
@@ -69,98 +60,90 @@ function convertCrumbType(breadcrumb: Breadcrumb): Breadcrumb {
   return breadcrumb;
 }
 
-function getCrumbDetails(type: BreadcrumbType) {
+function getCrumbDescriptionAndColor(
+  type: BreadcrumbType
+): Pick<BreadcrumbsWithDetails[0], 'color' | 'description'> {
   switch (type) {
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
       return {
         color: 'purple300',
-        icon: IconUser,
         description: t('User Action'),
       };
 
     case BreadcrumbType.NAVIGATION:
       return {
         color: 'green300',
-        icon: IconLocation,
         description: t('Navigation'),
       };
 
     case BreadcrumbType.DEBUG:
       return {
         color: 'purple300',
-        icon: IconFix,
         description: t('Debug'),
       };
 
     case BreadcrumbType.INFO:
       return {
         color: 'blue300',
-        icon: IconInfo,
         description: t('Info'),
       };
 
     case BreadcrumbType.ERROR:
       return {
         color: 'red300',
-        icon: IconFire,
         description: t('Error'),
       };
 
     case BreadcrumbType.HTTP:
       return {
         color: 'green300',
-        icon: IconSwitch,
         description: t('HTTP request'),
       };
 
     case BreadcrumbType.WARNING:
       return {
         color: 'orange400',
-        icon: IconWarning,
         description: t('Warning'),
       };
     case BreadcrumbType.QUERY:
       return {
         color: 'blue300',
-        icon: IconStack,
         description: t('Query'),
       };
     case BreadcrumbType.SYSTEM:
       return {
-        color: 'pink200',
-        icon: IconMobile,
+        color: 'pink300',
         description: t('System'),
       };
     case BreadcrumbType.SESSION:
       return {
-        color: 'orange500',
-        icon: IconRefresh,
+        color: 'orange300',
         description: t('Session'),
       };
     case BreadcrumbType.TRANSACTION:
       return {
         color: 'pink300',
-        icon: IconSpan,
         description: t('Transaction'),
       };
     default:
       return {
-        icon: IconTerminal,
+        color: 'gray300',
         description: t('Default'),
       };
   }
 }
 
-export function transformCrumbs(breadcrumbs: Array<Breadcrumb>) {
+export function transformCrumbs(breadcrumbs: Array<Breadcrumb>): BreadcrumbsWithDetails {
   return breadcrumbs.map((breadcrumb, index) => {
     const convertedCrumbType = convertCrumbType(breadcrumb);
-    const crumbDetails = getCrumbDetails(convertedCrumbType.type);
+    const {color, description} = getCrumbDescriptionAndColor(convertedCrumbType.type);
     return {
-      id: index,
       ...convertedCrumbType,
-      ...crumbDetails,
-      level: convertedCrumbType?.level ?? BreadcrumbLevelType.UNDEFINED,
+      id: index,
+      color,
+      description,
+      level: convertedCrumbType.level ?? BreadcrumbLevelType.UNDEFINED,
     };
   });
 }

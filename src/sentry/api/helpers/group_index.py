@@ -331,12 +331,12 @@ def handle_discard(request, group_list, projects, user):
                 )
 
     for project in projects:
-        _delete_groups(request, project, groups_to_delete.get(project.id), delete_type="discard")
+        delete_group_list(request, project, groups_to_delete.get(project.id), delete_type="discard")
 
     return Response(status=204)
 
 
-def _delete_groups(request, project, group_list, delete_type):
+def delete_group_list(request, project, group_list, delete_type):
     if not group_list:
         return
 
@@ -352,7 +352,14 @@ def _delete_groups(request, project, group_list, delete_type):
     eventstream_state = eventstream.start_delete_groups(project.id, group_ids)
     transaction_id = uuid4().hex
 
-    GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
+    # We do not want to delete split hashes as they are necessary for keeping groups... split.
+    GroupHash.objects.filter(
+        project_id=project.id, group__id__in=group_ids, state=GroupHash.State.SPLIT
+    ).update(group=None)
+    GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).exclude(
+        state=GroupHash.State.SPLIT
+    ).delete()
+
     # We remove `GroupInbox` rows here so that they don't end up influencing queries for
     # `Group` instances that are pending deletion
     GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
@@ -379,13 +386,14 @@ def _delete_groups(request, project, group_list, delete_type):
             "object.delete.queued",
             extra={
                 "object_id": group.id,
+                "organization_id": project.organization_id,
                 "transaction_id": transaction_id,
                 "model": type(group).__name__,
             },
         )
 
         issue_deleted.send_robust(
-            group=group, user=request.user, delete_type=delete_type, sender=_delete_groups
+            group=group, user=request.user, delete_type=delete_type, sender=delete_group_list
         )
 
 
@@ -422,7 +430,9 @@ def delete_groups(request, projects, organization_id, search_fn):
         groups_by_project_id[group.project_id].append(group)
 
     for project in projects:
-        _delete_groups(request, project, groups_by_project_id.get(project.id), delete_type="delete")
+        delete_group_list(
+            request, project, groups_by_project_id.get(project.id), delete_type="delete"
+        )
 
     return Response(status=204)
 
@@ -457,7 +467,7 @@ def track_slo_response(name):
                     tags={
                         "status": 429,
                         "detail": "snuba.RateLimitExceeded",
-                        "func": function,
+                        "func": function.__qualname__,
                     },
                 )
                 raise
@@ -482,12 +492,16 @@ def track_slo_response(name):
     return inner_func
 
 
+def build_rate_limit_key(function, request):
+    ip = request.META["REMOTE_ADDR"]
+    return f"rate_limit_endpoint:{md5_text(function.__qualname__).hexdigest()}:{ip}"
+
+
 def rate_limit_endpoint(limit=1, window=1):
     def inner(function):
         def wrapper(self, request, *args, **kwargs):
-            ip = request.META["REMOTE_ADDR"]
             if ratelimiter.is_limited(
-                f"rate_limit_endpoint:{md5_text(function).hexdigest()}:{ip}",
+                build_rate_limit_key(function, request),
                 limit=limit,
                 window=window,
             ):

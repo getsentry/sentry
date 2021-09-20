@@ -56,8 +56,6 @@ function CustomRepositories({
   }, [location.query, appStoreConnectContext]);
 
   const orgSlug = organization.slug;
-  const hasAppStoreConnectFeatureFlag =
-    !!organization.features?.includes('app-store-connect');
 
   const hasAppStoreConnectMultipleFeatureFlag = !!organization.features?.includes(
     'app-store-connect-multiple'
@@ -68,7 +66,6 @@ function CustomRepositories({
   );
 
   if (
-    hasAppStoreConnectFeatureFlag &&
     !appStoreConnectContext &&
     !dropDownItems.find(
       dropDownItem => dropDownItem.value === CustomRepoType.APP_STORE_CONNECT
@@ -203,6 +200,9 @@ function CustomRepositories({
         {t('Custom Repositories')}
         <DropdownAutoComplete
           alignMenu="right"
+          onSelect={item => {
+            handleAddRepository(item.value);
+          }}
           items={dropDownItems.map(dropDownItem => {
             const disabled =
               dropDownItem.value === CustomRepoType.APP_STORE_CONNECT &&
@@ -211,6 +211,8 @@ function CustomRepositories({
 
             return {
               ...dropDownItem,
+              value: dropDownItem.value,
+              disabled,
               label: (
                 <HookedAppStoreConnectItem
                   disabled={disabled}
@@ -218,13 +220,7 @@ function CustomRepositories({
                     handleAddRepository(dropDownItem.value);
                   }}
                 >
-                  <StyledMenuItem
-                    onClick={event => {
-                      event.preventDefault();
-                      handleAddRepository(dropDownItem.value);
-                    }}
-                    disabled={disabled}
-                  >
+                  <StyledMenuItem disabled={disabled}>
                     {dropDownItem.label}
                   </StyledMenuItem>
                 </HookedAppStoreConnectItem>

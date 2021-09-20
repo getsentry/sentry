@@ -1,97 +1,166 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {findAllByTextContent} from 'sentry-test/utils';
 
-import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
+import Breadcrumbs from 'app/components/events/interfaces/breadcrumbs';
+import {BreadcrumbLevelType, BreadcrumbType} from 'app/types/breadcrumbs';
+import {EntryType} from 'app/types/event';
 
-describe('BreadcrumbsInterface', () => {
-  let props;
+describe('Breadcrumbs', () => {
+  let props: React.ComponentProps<typeof Breadcrumbs>;
 
   beforeEach(() => {
     props = {
-      // @ts-ignore Cannot find TestStubs
+      // @ts-expect-error
       organization: TestStubs.Organization(),
-      event: {
-        entries: [],
-        id: '4',
-      },
-      type: 'blah',
+      // @ts-expect-error
+      event: TestStubs.Event({entries: []}),
+      type: EntryType.BREADCRUMBS,
       data: {
         values: [
-          {message: 'sup', category: 'default', level: 'extreme'},
-          {message: 'hey', category: 'error', level: 'info'},
-          {message: 'hello', category: 'default', level: 'extreme'},
-          {message: 'bye', category: 'default', level: 'extreme'},
-          {message: 'ok', category: 'error', level: 'extreme'},
-          {message: 'sup', category: 'default', level: 'extreme'},
-          {message: 'sup', category: 'default', level: 'extreme'},
-          {message: 'sup', category: 'default', level: 'extreme'},
-          {message: 'sup', category: 'default', level: 'extreme'},
-          {message: 'sup', category: 'default', level: 'extreme'},
-          {message: 'sup', category: 'default', level: 'extreme'},
-          {message: 'sup', category: 'default', level: 'extreme'},
-          {message: 'sup', category: 'default', level: 'extreme'},
-          {message: 'sup', category: 'default', level: 'extreme'},
-          {message: 'sup', category: 'default', level: 'extreme'},
-          {message: 'sup', category: 'default', level: 'extreme'},
-          {message: 'sup', category: 'default', level: 'extreme'},
+          {
+            message: 'sup',
+            category: 'default',
+            level: BreadcrumbLevelType.WARNING,
+            type: BreadcrumbType.INFO,
+          },
+          {
+            message: 'hey',
+            category: 'error',
+            level: BreadcrumbLevelType.INFO,
+            type: BreadcrumbType.INFO,
+          },
+          {
+            message: 'hello',
+            category: 'default',
+            level: BreadcrumbLevelType.WARNING,
+            type: BreadcrumbType.INFO,
+          },
+          {
+            message: 'bye',
+            category: 'default',
+            level: BreadcrumbLevelType.WARNING,
+            type: BreadcrumbType.INFO,
+          },
+          {
+            message: 'ok',
+            category: 'error',
+            level: BreadcrumbLevelType.WARNING,
+            type: BreadcrumbType.INFO,
+          },
+          {
+            message: 'sup',
+            category: 'default',
+            level: BreadcrumbLevelType.WARNING,
+            type: BreadcrumbType.INFO,
+          },
+          {
+            message: 'sup',
+            category: 'default',
+            level: BreadcrumbLevelType.INFO,
+            type: BreadcrumbType.INFO,
+          },
         ],
       },
     };
   });
 
-  describe('filterCrumbs', () => {
-    it('should filter crumbs based on crumb message', () => {
-      const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...props} />);
+  describe('filterCrumbs', function () {
+    it('should filter crumbs based on crumb message', async function () {
+      const component = mountWithTheme(<Breadcrumbs {...props} />);
 
-      breadcrumbs.instance().handleSearch('hi');
-      expect(breadcrumbs.state().searchTerm).toBe('hi');
-      expect(breadcrumbs.state().filteredBySearch).toHaveLength(0);
+      const {getByPlaceholderText, findByText, queryByText} = component;
 
-      breadcrumbs.instance().handleSearch('up');
-      expect(breadcrumbs.state().searchTerm).toBe('up');
-      expect(breadcrumbs.state().filteredBySearch).toHaveLength(13);
+      const searchInput = getByPlaceholderText('Search breadcrumbs');
+
+      fireEvent.change(searchInput, {target: {value: 'hi'}});
+
+      expect(
+        await findByText('Sorry, no breadcrumbs match your search query')
+      ).toBeInTheDocument();
+
+      fireEvent.change(searchInput, {target: {value: 'up'}});
+
+      expect(queryByText('Sorry, no breadcrumbs match your search query')).toBe(null);
+
+      expect(await findAllByTextContent(component, 'sup')).toHaveLength(3);
     });
 
-    it('should filter crumbs based on crumb level', () => {
-      const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...props} />);
+    it('should filter crumbs based on crumb level', async function () {
+      const component = mountWithTheme(<Breadcrumbs {...props} />);
 
-      breadcrumbs.instance().handleSearch('ext');
-      expect(breadcrumbs.state().searchTerm).toBe('ext');
-      expect(breadcrumbs.state().filteredBySearch).toHaveLength(16);
+      const {getByPlaceholderText} = component;
+
+      const searchInput = getByPlaceholderText('Search breadcrumbs');
+
+      fireEvent.change(searchInput, {target: {value: 'war'}});
+
+      // breadcrumbs + filter item
+      // TODO(Priscila): Filter should not render in the dom if not open
+      expect(await findAllByTextContent(component, 'Warning')).toHaveLength(6);
     });
 
-    it('should filter crumbs based on crumb category', () => {
-      const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...props} />);
+    it('should filter crumbs based on crumb category', async function () {
+      const component = mountWithTheme(<Breadcrumbs {...props} />);
 
-      breadcrumbs.instance().handleSearch('error');
-      expect(breadcrumbs.state().searchTerm).toBe('error');
-      expect(breadcrumbs.state().filteredBySearch).toHaveLength(2);
+      const {getByPlaceholderText} = component;
+
+      const searchInput = getByPlaceholderText('Search breadcrumbs');
+
+      fireEvent.change(searchInput, {target: {value: 'error'}});
+
+      expect(await findAllByTextContent(component, 'error')).toHaveLength(2);
     });
   });
 
-  describe('render', () => {
-    it('should display the correct number of crumbs with no filter', () => {
+  describe('render', function () {
+    it('should display the correct number of crumbs with no filter', function () {
       props.data.values = props.data.values.slice(0, 4);
-      const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...props} />);
-      expect(breadcrumbs.find('Row')).toHaveLength(4);
+
+      const {queryAllByTestId, getByTestId} = mountWithTheme(<Breadcrumbs {...props} />);
+
+      // data.values + virtual crumb
+      expect(queryAllByTestId('crumb')).toHaveLength(4);
+
+      expect(getByTestId('last-crumb')).toBeInTheDocument();
     });
 
-    it('should display the correct number of crumbs with a filter', () => {
+    it('should display the correct number of crumbs with a filter', function () {
       props.data.values = props.data.values.slice(0, 4);
-      const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...props} />);
 
-      breadcrumbs.instance().handleSearch('sup');
-      expect(breadcrumbs.state().searchTerm).toBe('sup');
-      breadcrumbs.update();
-      expect(breadcrumbs.find('Row')).toHaveLength(1);
+      const component = mountWithTheme(<Breadcrumbs {...props} />);
+
+      const {getByPlaceholderText, queryAllByTestId, getByTestId} = component;
+
+      const searchInput = getByPlaceholderText('Search breadcrumbs');
+
+      fireEvent.change(searchInput, {target: {value: 'sup'}});
+
+      expect(queryAllByTestId('crumb')).toHaveLength(0);
+
+      expect(getByTestId('last-crumb')).toBeInTheDocument();
     });
 
-    it('should not crash if data contains a toString attribute', () => {
+    it('should not crash if data contains a toString attribute', function () {
       // Regression test: A "toString" property in data should not falsely be
       // used to coerce breadcrumb data to string. This would cause a TypeError.
       const data = {nested: {toString: 'hello'}};
-      props.data.values = [{message: 'sup', category: 'default', level: 'info', data}];
-      const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...props} />);
-      expect(breadcrumbs.find('Row')).toHaveLength(1);
+
+      props.data.values = [
+        {
+          message: 'sup',
+          category: 'default',
+          level: BreadcrumbLevelType.INFO,
+          type: BreadcrumbType.INFO,
+          data,
+        },
+      ];
+
+      const {getByTestId, queryAllByTestId} = mountWithTheme(<Breadcrumbs {...props} />);
+
+      // data.values + virtual crumb
+      expect(queryAllByTestId('crumb')).toHaveLength(1);
+
+      expect(getByTestId('last-crumb')).toBeInTheDocument();
     });
   });
 });

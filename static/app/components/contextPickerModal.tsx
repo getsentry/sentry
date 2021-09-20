@@ -67,14 +67,14 @@ type Props = ModalRenderProps & {
   integrationConfigs: Integration[];
 };
 
-const selectStyles = {
-  menu: (provided: StylesConfig) => ({
+const selectStyles: StylesConfig = {
+  menu: provided => ({
     ...provided,
-    position: 'auto',
+    position: 'initial',
     boxShadow: 'none',
     marginBottom: 0,
   }),
-  option: (provided: StylesConfig, state: any) => ({
+  option: (provided, state: any) => ({
     ...provided,
     opacity: state.isDisabled ? 0.6 : 1,
     cursor: state.isDisabled ? 'not-allowed' : 'pointer',

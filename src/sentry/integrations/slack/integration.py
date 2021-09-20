@@ -4,7 +4,6 @@ from typing import Any, Mapping, Optional, Sequence
 from django.utils.translation import ugettext_lazy as _
 from django.views import View
 
-from sentry import features
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
     FeatureDescription,
@@ -55,6 +54,13 @@ setup_alert = {
     "text": "The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.",
 }
 
+discover_unfurl_alert = {
+    "type": "warning",
+    "text": "Project permissions will not apply when unfurling Sentry Discover charts from within your Slack workspace.",
+    "icon": "icon-warning-sm",
+    "feature": "chart-unfurls",
+}
+
 metadata = IntegrationMetadata(
     description=_(DESCRIPTION.strip()),
     features=FEATURES,
@@ -62,7 +68,7 @@ metadata = IntegrationMetadata(
     noun=_("Workspace"),
     issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Slack%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack",
-    aspects={"alerts": [setup_alert]},
+    aspects={"alerts": [setup_alert, discover_unfurl_alert]},
 )
 
 
@@ -189,6 +195,5 @@ class SlackIntegrationProvider(IntegrationProvider):  # type: ignore
         """
         Create Identity records for an organization's users if their emails match in Sentry and Slack
         """
-        if features.has("organizations:notification-platform", organization):
-            run_args = {"integration": integration, "organization": organization}
-            tasks.link_slack_user_identities.apply_async(kwargs=run_args)
+        run_args = {"integration": integration, "organization": organization}
+        tasks.link_slack_user_identities.apply_async(kwargs=run_args)

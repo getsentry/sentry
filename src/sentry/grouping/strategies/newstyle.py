@@ -1,12 +1,22 @@
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
+from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent, calculate_tree_label
-from sentry.grouping.strategies.base import call_with_variants, strategy
+from sentry.grouping.strategies.base import (
+    GroupingContext,
+    ReturnedVariants,
+    call_with_variants,
+    strategy,
+)
 from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
 from sentry.grouping.strategies.message import trim_message_for_grouping
 from sentry.grouping.strategies.similarity_encoders import ident_encoder, text_shingle_encoder
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
+from sentry.interfaces.exception import Exception as ChainedException
+from sentry.interfaces.exception import SingleException
+from sentry.interfaces.stacktrace import Frame, Stacktrace
+from sentry.interfaces.threads import Threads
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.iterators import shingle
 
@@ -48,8 +58,11 @@ RECURSION_COMPARISON_FIELDS = [
     "colno",
 ]
 
+# TODO(markus)
+StacktraceEncoderReturnValue = Any
 
-def is_recursion_v1(frame1, frame2):
+
+def is_recursion_v1(frame1: Frame, frame2: Frame) -> bool:
     """
     Returns a boolean indicating whether frames are recursive calls.
     """
@@ -63,14 +76,14 @@ def is_recursion_v1(frame1, frame2):
     return True
 
 
-def get_basename(string):
+def get_basename(string: str) -> str:
     """
     Returns best-effort basename of a string irrespective of platform.
     """
     return _basename_re.split(string)[-1]
 
 
-def get_package_component(package, platform):
+def get_package_component(package: str, platform: Optional[str]) -> GroupingComponent:
     if package is None or platform != "native":
         return GroupingComponent(id="package")
 
@@ -81,7 +94,12 @@ def get_package_component(package, platform):
     return package_component
 
 
-def get_filename_component(abs_path, filename, platform, allow_file_origin=False):
+def get_filename_component(
+    abs_path: str,
+    filename: Optional[str],
+    platform: Optional[str],
+    allow_file_origin: bool = False,
+) -> GroupingComponent:
     """Attempt to normalize filenames by detecting special filenames and by
     using the basename only.
     """
@@ -115,7 +133,9 @@ def get_filename_component(abs_path, filename, platform, allow_file_origin=False
     return filename_component
 
 
-def get_module_component(abs_path, module, platform):
+def get_module_component(
+    abs_path: Optional[str], module: Optional[str], platform: Optional[str]
+) -> GroupingComponent:
     """Given an absolute path, module and platform returns the module component
     with some necessary cleaning performed.
     """
@@ -158,13 +178,13 @@ def get_module_component(abs_path, module, platform):
 
 
 def get_function_component(
-    context,
-    function,
-    raw_function,
-    platform,
-    sourcemap_used=False,
-    context_line_available=False,
-):
+    context: GroupingContext,
+    function: Optional[str],
+    raw_function: Optional[str],
+    platform: Optional[str],
+    sourcemap_used: bool = False,
+    context_line_available: bool = False,
+) -> GroupingComponent:
     """
     Attempt to normalize functions by removing common platform outliers.
 
@@ -272,9 +292,12 @@ def get_function_component(
 
 @strategy(
     ids=["frame:v1"],
-    interfaces=["frame"],
+    interface=Frame,
 )
-def frame(frame, event, context, **meta):
+def frame(
+    interface: Frame, event: Event, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
+    frame = interface
     platform = frame.platform or event.platform
 
     # Safari throws [native code] frames in for calls like ``forEach``
@@ -303,7 +326,7 @@ def frame(frame, event, context, **meta):
             context=context,
         )
 
-    context_line_available = context_line_component and context_line_component.contributes
+    context_line_available = bool(context_line_component and context_line_component.contributes)
 
     function_component = get_function_component(
         context=context,
@@ -408,7 +431,9 @@ def frame(frame, event, context, **meta):
     return {context["variant"]: rv}
 
 
-def get_contextline_component(frame, platform, function, context):
+def get_contextline_component(
+    frame: Frame, platform: Optional[str], function: str, context: GroupingContext
+) -> GroupingComponent:
     """Returns a contextline component.  The caller's responsibility is to
     make sure context lines are only used for platforms where we trust the
     quality of the sourcecode.  It does however protect against some bad
@@ -438,33 +463,42 @@ def get_contextline_component(frame, platform, function, context):
     return component
 
 
-@strategy(id="stacktrace:v1", interfaces=["stacktrace"], score=1800)
-def stacktrace(stacktrace, context, **meta):
+@strategy(ids=["stacktrace:v1"], interface=Stacktrace, score=1800)
+def stacktrace(
+    interface: Stacktrace, event: Event, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
     assert context["variant"] is None
 
     if context["hierarchical_grouping"]:
         with context:
             context["variant"] = "system"
-            return _single_stacktrace_variant(stacktrace, context=context, meta=meta)
+            return _single_stacktrace_variant(interface, event=event, context=context, meta=meta)
 
     else:
         return call_with_variants(
-            _single_stacktrace_variant, ["!system", "app"], stacktrace, context=context, meta=meta
+            _single_stacktrace_variant,
+            ["!system", "app"],
+            interface,
+            event=event,
+            context=context,
+            meta=meta,
         )
 
 
-def _single_stacktrace_variant(stacktrace, context, meta):
+def _single_stacktrace_variant(
+    stacktrace: Stacktrace, event: Event, context: GroupingContext, meta: Dict[str, Any]
+) -> ReturnedVariants:
     variant = context["variant"]
 
     frames = stacktrace.frames
 
-    values = []
+    values: List[GroupingComponent] = []
     prev_frame = None
     frames_for_filtering = []
     for frame in frames:
         with context:
             context["is_recursion"] = is_recursion_v1(frame, prev_frame)
-            frame_component = context.get_grouping_component(frame, **meta)
+            frame_component = context.get_grouping_component(frame, event=event, **meta)
         if not context["hierarchical_grouping"] and variant == "app" and not frame.in_app:
             frame_component.update(contributes=False, hint="non app frame")
         values.append(frame_component)
@@ -477,8 +511,7 @@ def _single_stacktrace_variant(stacktrace, context, meta):
     if (
         len(frames) == 1
         and values[0].contributes
-        and get_behavior_family_for_platform(frames[0].platform or meta["event"].platform)
-        == "javascript"
+        and get_behavior_family_for_platform(frames[0].platform or event.platform) == "javascript"
         and not frames[0].function
         and frames[0].is_url()
     ):
@@ -487,7 +520,7 @@ def _single_stacktrace_variant(stacktrace, context, meta):
     main_variant, inverted_hierarchy = context.config.enhancements.assemble_stacktrace_component(
         values,
         frames_for_filtering,
-        meta["event"].platform,
+        event.platform,
         exception_data=context["exception_data"],
         similarity_self_encoder=_stacktrace_encoder,
     )
@@ -500,7 +533,7 @@ def _single_stacktrace_variant(stacktrace, context, meta):
     if not context["hierarchical_grouping"]:
         return {variant: main_variant}
 
-    all_variants = get_stacktrace_hierarchy(
+    all_variants: ReturnedVariants = get_stacktrace_hierarchy(
         main_variant, values, frames_for_filtering, inverted_hierarchy
     )
 
@@ -511,11 +544,13 @@ def _single_stacktrace_variant(stacktrace, context, meta):
 
 
 @stacktrace.variant_processor
-def stacktrace_variant_processor(variants, context, **meta):
+def stacktrace_variant_processor(
+    variants: ReturnedVariants, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
     return remove_non_stacktrace_variants(variants)
 
 
-def _stacktrace_encoder(id, stacktrace):
+def _stacktrace_encoder(id: str, stacktrace: Stacktrace) -> StacktraceEncoderReturnValue:
     encoded_frames = []
 
     for frame in stacktrace.values:
@@ -547,20 +582,22 @@ def _stacktrace_encoder(id, stacktrace):
 
 @strategy(
     ids=["single-exception:v1"],
-    interfaces=["singleexception"],
+    interface=SingleException,
 )
-def single_exception(exception, context, **meta):
+def single_exception(
+    interface: SingleException, event: Event, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
     type_component = GroupingComponent(
         id="type",
-        values=[exception.type] if exception.type else [],
+        values=[interface.type] if interface.type else [],
         similarity_encoder=ident_encoder,
     )
     system_type_component = type_component.shallow_copy()
 
     ns_error_component = None
 
-    if exception.mechanism:
-        if exception.mechanism.synthetic:
+    if interface.mechanism:
+        if interface.mechanism.synthetic:
             # Ignore synthetic exceptions as they are produced from platform
             # specific error codes.
             #
@@ -571,19 +608,21 @@ def single_exception(exception, context, **meta):
             # can be continuously modified without unnecessarily creating new
             # groups.
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
-        if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
+        if interface.mechanism.meta and "ns_error" in interface.mechanism.meta:
             ns_error_component = GroupingComponent(
                 id="ns-error",
                 values=[
-                    exception.mechanism.meta["ns_error"].get("domain"),
-                    exception.mechanism.meta["ns_error"].get("code"),
+                    interface.mechanism.meta["ns_error"].get("domain"),
+                    interface.mechanism.meta["ns_error"].get("code"),
                 ],
             )
 
-    if exception.stacktrace is not None:
+    if interface.stacktrace is not None:
         with context:
-            context["exception_data"] = exception.to_json()
-            stacktrace_variants = context.get_grouping_component(exception.stacktrace, **meta)
+            context["exception_data"] = interface.to_json()
+            stacktrace_variants = context.get_grouping_component(
+                interface.stacktrace, event=event, **meta
+            )
     else:
         stacktrace_variants = {
             "app": GroupingComponent(id="stacktrace"),
@@ -605,7 +644,7 @@ def single_exception(exception, context, **meta):
                 id="value", similarity_encoder=text_shingle_encoder(5)
             )
 
-            value_in = exception.value
+            value_in = interface.value
             if value_in is not None:
                 value_trimmed = trim_message_for_grouping(value_in)
                 hint = "stripped common values" if value_in != value_trimmed else None
@@ -637,19 +676,23 @@ def single_exception(exception, context, **meta):
     return rv
 
 
-@strategy(id="chained-exception:v1", interfaces=["exception"], score=2000)
-def chained_exception(chained_exception, context, **meta):
+@strategy(ids=["chained-exception:v1"], interface=ChainedException, score=2000)
+def chained_exception(
+    interface: ChainedException, event: Event, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
     # Case 1: we have a single exception, use the single exception
     # component directly to avoid a level of nesting
-    exceptions = chained_exception.exceptions()
+    exceptions = interface.exceptions()
     if len(exceptions) == 1:
-        return context.get_grouping_component(exceptions[0], **meta)
+        return context.get_grouping_component(exceptions[0], event=event, **meta)
 
     # Case 2: produce a component for each chained exception
-    by_name = {}
+    by_name: Dict[str, List[GroupingComponent]] = {}
 
     for exception in exceptions:
-        for name, component in context.get_grouping_component(exception, **meta).items():
+        for name, component in context.get_grouping_component(
+            exception, event=event, **meta
+        ).items():
             by_name.setdefault(name, []).append(component)
 
     rv = {}
@@ -665,25 +708,29 @@ def chained_exception(chained_exception, context, **meta):
 
 
 @chained_exception.variant_processor
-def chained_exception_variant_processor(variants, context, **meta):
+def chained_exception_variant_processor(
+    variants: ReturnedVariants, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
     return remove_non_stacktrace_variants(variants)
 
 
-@strategy(id="threads:v1", interfaces=["threads"], score=1900)
-def threads(threads_interface, context, **meta):
+@strategy(ids=["threads:v1"], interface=Threads, score=1900)
+def threads(
+    interface: Threads, event: Event, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
     thread_variants = _filtered_threads(
-        [thread for thread in threads_interface.values if thread.get("crashed")], context, meta
+        [thread for thread in interface.values if thread.get("crashed")], event, context, meta
     )
     if thread_variants is not None:
         return thread_variants
 
     thread_variants = _filtered_threads(
-        [thread for thread in threads_interface.values if thread.get("current")], context, meta
+        [thread for thread in interface.values if thread.get("current")], event, context, meta
     )
     if thread_variants is not None:
         return thread_variants
 
-    thread_variants = _filtered_threads(threads_interface.values, context, meta)
+    thread_variants = _filtered_threads(interface.values, event, context, meta)
     if thread_variants is not None:
         return thread_variants
 
@@ -694,13 +741,15 @@ def threads(threads_interface, context, **meta):
             hint=(
                 "ignored because does not contain exactly one crashing, "
                 "one current or just one thread, instead contains %s threads"
-                % len(threads_interface.values)
+                % len(interface.values)
             ),
         )
     }
 
 
-def _filtered_threads(threads: List[Dict[str, Any]], context, meta):
+def _filtered_threads(
+    threads: List[Dict[str, Any]], event: Event, context: GroupingContext, meta: Dict[str, Any]
+) -> Optional[ReturnedVariants]:
     if len(threads) != 1:
         return None
 
@@ -714,12 +763,16 @@ def _filtered_threads(threads: List[Dict[str, Any]], context, meta):
 
     rv = {}
 
-    for name, stacktrace_component in context.get_grouping_component(stacktrace, **meta).items():
+    for name, stacktrace_component in context.get_grouping_component(
+        stacktrace, event=event, **meta
+    ).items():
         rv[name] = GroupingComponent(id="threads", values=[stacktrace_component])
 
     return rv
 
 
 @threads.variant_processor
-def threads_variant_processor(variants, context, **meta):
+def threads_variant_processor(
+    variants: ReturnedVariants, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
     return remove_non_stacktrace_variants(variants)

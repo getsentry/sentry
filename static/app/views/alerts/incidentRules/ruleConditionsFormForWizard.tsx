@@ -224,7 +224,6 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
                     }}
                     options={dataSourceOptions}
                     isDisabled={disabled}
-                    required
                   />
                 );
               }}

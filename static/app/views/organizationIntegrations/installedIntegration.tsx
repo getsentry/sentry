@@ -8,13 +8,14 @@ import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import Confirm from 'app/components/confirm';
 import Tooltip from 'app/components/tooltip';
-import {IconDelete, IconFlag, IconSettings} from 'app/icons';
+import {IconDelete, IconFlag, IconSettings, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'app/types';
 import {IntegrationAnalyticsKey} from 'app/utils/analytics/integrationAnalyticsEvents';
 import {Theme} from 'app/utils/theme';
 
+import AddIntegrationButton from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
 
 export type Props = {
@@ -25,6 +26,7 @@ export type Props = {
   onDisable: (integration: Integration) => void;
   trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
   className?: string;
+  requiresUpgrade?: boolean;
 };
 
 export default class InstalledIntegration extends React.Component<Props> {
@@ -92,7 +94,7 @@ export default class InstalledIntegration extends React.Component<Props> {
   }
 
   render() {
-    const {className, integration, provider, organization} = this.props;
+    const {className, integration, organization, provider, requiresUpgrade} = this.props;
 
     const removeConfirmProps =
       integration.status === 'active' && integration.provider.canDisable
@@ -114,10 +116,27 @@ export default class InstalledIntegration extends React.Component<Props> {
                   'You must be an organization owner, manager or admin to configure'
                 )}
               >
+                {requiresUpgrade && (
+                  <AddIntegrationButton
+                    analyticsParams={{
+                      view: 'integrations_directory_integration_detail',
+                      already_installed: true,
+                    }}
+                    buttonText={t('Update Now')}
+                    data-test-id="integration-upgrade-button"
+                    disabled={!(hasAccess && integration.status === 'active')}
+                    icon={<IconWarning />}
+                    onAddIntegration={() => {}}
+                    organization={organization}
+                    provider={provider}
+                    priority="primary"
+                    size="small"
+                  />
+                )}
                 <StyledButton
                   borderless
                   icon={<IconSettings />}
-                  disabled={!hasAccess || integration.status !== 'active'}
+                  disabled={!(hasAccess && integration.status === 'active')}
                   to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
                   data-test-id="integration-configure-button"
                 >

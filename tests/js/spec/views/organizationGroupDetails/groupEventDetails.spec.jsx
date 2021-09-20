@@ -120,6 +120,11 @@ describe('groupEventDetails', () => {
       url: `/organizations/${org.slug}/sentry-app-components/?projectId=${project.id}`,
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      body: project,
+    });
   });
 
   afterEach(function () {
@@ -421,7 +426,7 @@ describe('groupEventDetails', () => {
         body: [unpublishedInstall, internalInstall],
       });
 
-      wrapper = mountWithThemeWrapper();
+      mountWithThemeWrapper();
     });
 
     it('loads Integration UI components', () => {

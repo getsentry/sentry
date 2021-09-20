@@ -31,6 +31,10 @@ const defaultProps = {
   shouldSelectWithTab: false,
 };
 
+type Item = {
+  disabled?: boolean;
+};
+
 type GetInputArgs<E extends HTMLInputElement> = {
   type?: string;
   placeholder?: string;
@@ -99,7 +103,7 @@ type Props<T> = typeof defaultProps & {
   onMenuOpen?: () => void;
 };
 
-class AutoComplete<T> extends React.Component<Props<T>, State<T>> {
+class AutoComplete<T extends Item> extends React.Component<Props<T>, State<T>> {
   static defaultProps = defaultProps;
 
   state: State<T> = this.getInitialState();
@@ -219,7 +223,12 @@ class AutoComplete<T> extends React.Component<Props<T>, State<T>> {
       const canSelectWithTab = this.props.shouldSelectWithTab && e.key === 'Tab';
 
       if (hasHighlightedItem && (canSelectWithEnter || canSelectWithTab)) {
-        this.handleSelect(this.items.get(this.state.highlightedIndex), e);
+        const item = this.items.get(this.state.highlightedIndex);
+
+        if (!item.disabled) {
+          this.handleSelect(item, e);
+        }
+
         e.preventDefault();
       }
 
@@ -241,14 +250,18 @@ class AutoComplete<T> extends React.Component<Props<T>, State<T>> {
     };
 
   handleItemClick =
-    ({onClick, item, index}: GetItemArgs<T>) =>
+    ({item, index}: GetItemArgs<T>) =>
     (e: React.MouseEvent) => {
+      if (item.disabled) {
+        return;
+      }
+
       if (this.blurTimer) {
         clearTimeout(this.blurTimer);
       }
+
       this.setState({highlightedIndex: index});
       this.handleSelect(item, e);
-      onClick?.(item)(e);
     };
 
   handleMenuMouseDown = () => {

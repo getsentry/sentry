@@ -380,6 +380,8 @@ export type TreeLabelPart =
       classbase?: string;
       filebase?: string;
       datapath?: (string | number)[];
+      // is_sentinel is no longer being used,
+      // but we will still assess whether we will use this property in the near future.
       is_sentinel?: boolean;
       is_prefix?: boolean;
     };
@@ -401,7 +403,8 @@ export type EventMetadata = {
   current_level?: number;
 };
 
-export type EventAttachment = {
+// endpoint: /api/0/issues/:issueId/attachments/?limit=50
+export type IssueAttachment = {
   id: string;
   dateCreated: string;
   headers: Object;
@@ -412,6 +415,9 @@ export type EventAttachment = {
   type: string;
   event_id: string;
 };
+
+// endpoint: /api/0/projects/:orgSlug/:projSlug/events/:eventId/attachments/
+export type EventAttachment = Omit<IssueAttachment, 'event_id'>;
 
 export type EntryData = Record<string, any | Array<any>>;
 
@@ -1056,7 +1062,7 @@ export type BaseGroupStatusReprocessing = {
     info: {
       dateCreated: string;
       totalEvents: number;
-    };
+    } | null;
   };
 };
 
@@ -1347,6 +1353,7 @@ export type Integration = {
   icon: string;
   domainName: string;
   accountType: string;
+  scopes?: string[];
   status: ObjectStatus;
   provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
   dynamicDisplayInformation?: {
