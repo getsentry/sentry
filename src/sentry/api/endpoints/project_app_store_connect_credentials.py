@@ -79,9 +79,6 @@ from sentry.utils.appleconnect import appstore_connect, itunes_connect
 logger = logging.getLogger(__name__)
 
 
-# The name of the feature flag which enables the App Store Connect symbol source.
-APP_STORE_CONNECT_FEATURE_NAME = "organizations:app-store-connect"
-
 # The feature which allows multiple sources per project.
 MULTIPLE_SOURCES_FEATURE_NAME = "organizations:app-store-connect-multiple"
 
@@ -150,11 +147,6 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
     permission_classes = [StrictProjectPermission]
 
     def post(self, request: Request, project: Project) -> Response:
-        if not features.has(
-            APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
-        ):
-            return Response(status=404)
-
         serializer = AppStoreConnectCredentialsSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -247,11 +239,6 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
     permission_classes = [StrictProjectPermission]
 
     def post(self, request: Request, project: Project) -> Response:
-        if not features.has(
-            APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
-        ):
-            return Response(status=404)
-
         serializer = AppStoreCreateCredentialsSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -353,11 +340,6 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
     permission_classes = [StrictProjectPermission]
 
     def post(self, request: Request, project: Project, credentials_id: str) -> Response:
-        if not features.has(
-            APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
-        ):
-            return Response(status=404)
-
         serializer = AppStoreUpdateCredentialsSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -455,11 +437,6 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
     permission_classes = [StrictProjectPermission]
 
     def get(self, request: Request, project: Project, credentials_id: str) -> Response:
-        if not features.has(
-            APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
-        ):
-            return Response(status=404)
-
         try:
             symbol_source_cfg = appconnect.AppStoreConnectConfig.from_project_config(
                 project, credentials_id
@@ -570,10 +547,6 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):  # type: ignore
     permission_classes = [StrictProjectPermission]
 
     def post(self, request: Request, project: Project) -> Response:
-        if not features.has(
-            APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
-        ):
-            return Response(status=404)
         if (
             not features.has(
                 MULTIPLE_SOURCES_FEATURE_NAME, project.organization, actor=request.user
@@ -650,11 +623,6 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):  # type: ignore
     permission_classes = [StrictProjectPermission]
 
     def post(self, request: Request, project: Project) -> Response:
-        if not features.has(
-            APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
-        ):
-            return Response(status=404)
-
         serializer = AppStoreConnectRequestSmsSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -729,11 +697,6 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):  # type: ignore
     permission_classes = [StrictProjectPermission]
 
     def post(self, request: Request, project: Project) -> Response:
-        if not features.has(
-            APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
-        ):
-            return Response(status=404)
-
         serializer = AppStoreConnect2FactorAuthSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
