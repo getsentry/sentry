@@ -5,7 +5,6 @@ import {
   CellMeasurerCache,
   List,
   ListRowProps,
-  ScrollbarPresenceParams,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -37,11 +36,6 @@ type Props = Pick<
   >;
 };
 
-type State = {
-  scrollToIndex?: number;
-  scrollbarSize?: number;
-};
-
 function Breadcrumbs({
   breadcrumbs,
   displayRelativeTime,
@@ -52,8 +46,8 @@ function Breadcrumbs({
   relativeTime,
   emptyMessage,
 }: Props) {
-  const [state, setState] = useState<State>({});
-  const {scrollToIndex, scrollbarSize} = state;
+  const [scrollToIndex, setScrollToIndex] = useState<number | undefined>(undefined);
+  const [scrollbarSize, setScrollbarSize] = useState(0);
 
   let listRef: List | null = null;
 
@@ -63,9 +57,10 @@ function Breadcrumbs({
 
   useEffect(() => {
     if (!!breadcrumbs.length && !scrollToIndex) {
-      setState({...state, scrollToIndex: breadcrumbs.length - 1});
+      setScrollToIndex(breadcrumbs.length - 1);
       return;
     }
+
     updateGrid();
   }, [breadcrumbs]);
 
@@ -80,10 +75,6 @@ function Breadcrumbs({
       cache.clearAll();
       listRef.forceUpdateGrid();
     }
-  }
-
-  function setScrollbarSize({size}: ScrollbarPresenceParams) {
-    setState({scrollbarSize: size});
   }
 
   function renderRow({index, key, parent, style}: ListRowProps) {
@@ -118,7 +109,7 @@ function Breadcrumbs({
 
   return (
     <StyledPanelTable
-      scrollbarSize={scrollbarSize ?? 0}
+      scrollbarSize={scrollbarSize}
       headers={[
         t('Type'),
         t('Category'),
@@ -155,7 +146,7 @@ function Breadcrumbs({
               rowHeight={cache.rowHeight}
               rowRenderer={renderRow}
               width={width}
-              onScrollbarPresenceChange={setScrollbarSize}
+              onScrollbarPresenceChange={({size}) => setScrollbarSize(size)}
               // when the component mounts, it scrolls to the last item
               scrollToIndex={scrollToIndex}
               scrollToAlignment={scrollToIndex ? 'end' : undefined}
