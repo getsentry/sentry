@@ -436,7 +436,7 @@ class Release(Model):
     build_number = models.BigIntegerField(null=True)
 
     # HACK HACK HACK
-    # As a transitionary step we permit release rows to exist multiple times
+    # As a transitional step we permit release rows to exist multiple times
     # where they are "specialized" for a specific project.  The goal is to
     # later split up releases by project again.  This is for instance used
     # by the org release listing.
@@ -1124,8 +1124,8 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
         # ToDo(ahmed): re-visit/replace these conditions once we enable project wide `semver` setting
         # A project is said to be following semver versioning schemes if it satisfies the following
         # conditions:-
-        # 1: Atleast one semver compliant in the most recent 3 releases
-        # 2: Atleast 3 semver compliant releases in the most recent 10 releases
+        # 1: At least one semver compliant in the most recent 3 releases
+        # 2: At least 3 semver compliant releases in the most recent 10 releases
         if len(releases_list) <= 2:
             # Most recent release is considered to decide if project follows semver
             follows_semver = releases_list[0].is_semver_release
@@ -1137,12 +1137,12 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
             # Count number of semver releases in the last ten
             semver_matches = sum(map(lambda release: release.is_semver_release, releases_list))
 
-            atleast_three_in_last_ten = semver_matches >= 3
-            atleast_one_in_last_three = any(
+            at_least_three_in_last_ten = semver_matches >= 3
+            at_least_one_in_last_three = any(
                 release.is_semver_release for release in releases_list[0:3]
             )
 
-            follows_semver = atleast_one_in_last_three and atleast_three_in_last_ten
+            follows_semver = at_least_one_in_last_three and at_least_three_in_last_ten
         cache.set(cache_key, follows_semver, 3600)
 
     # Check release_version that is passed is semver compliant
