@@ -1,7 +1,7 @@
 from django.urls import reverse
 from structlog import get_logger
 
-from sentry import roles
+from sentry import analytics, roles
 from sentry.models import InviteStatus, OrganizationMember
 from sentry.tasks.base import instrumented_task
 from sentry.utils.email import MessageBuilder
@@ -63,3 +63,11 @@ def send_invite_request_notification_email(member_id):
         except Exception as e:
             logger = get_logger(name="sentry.mail")
             logger.exception(e)
+        analytics.record(
+            "admin_request.sent",
+            organization_id=om.organization.id,
+            user_id=member_id,
+            target_user_id=recipient.id,
+            providers="email",
+            ty="invite_request",
+        )
