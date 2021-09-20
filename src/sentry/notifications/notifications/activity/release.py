@@ -110,7 +110,7 @@ class ReleaseActivityNotification(ActivityNotification):
         text = "this project"
         if len(self.projects) > 1:
             text = "these projects"
-        return f"Release {self.version[:12]} was deployed to {self.environment} for {text}"
+        return f"Release {self.version} was deployed to {self.environment}{projects_text}"
 
     def get_filename(self) -> str:
         return "activity/release"
