@@ -18,7 +18,8 @@ from sentry.models import (
     InviteStatus,
     OrganizationMember,
 )
-from sentry.signals import member_invited
+
+# from sentry.signals import member_invited
 from sentry.utils.cursors import SCIMCursor
 
 from .constants import (
@@ -200,14 +201,14 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             else AuditLogEntryEvent.MEMBER_ADD,
         )
 
-        if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
-            member.send_invite_email()
-            member_invited.send_robust(
-                member=member,
-                user=request.user,
-                sender=self,
-                referrer=request.data.get("referrer"),
-            )
+        # if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
+        # member.send_invite_email()
+        #     member_invited.send_robust(
+        #         member=member,
+        #         user=request.user,
+        #         sender=self,
+        #         referrer=request.data.get("referrer"),
+        #     )
 
         context = serialize(
             member,
