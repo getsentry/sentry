@@ -385,7 +385,7 @@ class AlertRule(Model):
     resolve_threshold = models.FloatField(null=True)
     threshold_period = models.IntegerField()
     # This represents a time delta, in seconds. If not null, this is used to determine which time
-    # window  to query to compare the result from the current time_window to.
+    # window to query to compare the result from the current time_window to.
     comparison_delta = models.IntegerField(null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
