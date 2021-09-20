@@ -64,10 +64,9 @@ def send_invite_request_notification_email(member_id):
             logger = get_logger(name="sentry.mail")
             logger.exception(e)
         analytics.record(
-            "admin_request.sent",
+            "invite_request.sent",
             organization_id=om.organization.id,
             user_id=member_id,
             target_user_id=recipient.id,
             providers="email",
-            ty="invite_request",
         )
