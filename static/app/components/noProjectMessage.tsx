@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 /* TODO: replace with I/O when finished */
@@ -12,100 +12,95 @@ import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {LightWeightOrganization, Organization, Project} from 'app/types';
 
-type Props = {
+type Props = React.PropsWithChildren<{
   organization: LightWeightOrganization | Organization;
   projects?: Project[];
   loadingProjects?: boolean;
   superuserNeedsToBeProjectMember?: boolean;
-};
+}>;
 
-export default class NoProjectMessage extends Component<Props> {
-  render() {
-    const {
-      children,
-      organization,
-      projects,
-      loadingProjects,
-      superuserNeedsToBeProjectMember,
-    } = this.props;
-    const orgId = organization.slug;
-    const canCreateProject = organization.access.includes('project:write');
-    const canJoinTeam = organization.access.includes('team:read');
+export default function NoProjectMessage({
+  children,
+  organization,
+  projects,
+  loadingProjects,
+  superuserNeedsToBeProjectMember,
+}: Props) {
+  const orgSlug = organization.slug;
+  const canCreateProject = organization.access.includes('project:write');
+  const canJoinTeam = organization.access.includes('team:read');
 
-    let orgHasProjects: boolean;
-    let hasProjectAccess: boolean;
+  let orgHasProjects = false;
+  let hasProjectAccess = false;
 
-    if ('projects' in organization) {
-      const {isSuperuser} = ConfigStore.get('user');
+  if ('projects' in organization) {
+    const {isSuperuser} = ConfigStore.get('user');
 
-      orgHasProjects = organization.projects.length > 0;
-      hasProjectAccess =
-        isSuperuser && !superuserNeedsToBeProjectMember
-          ? organization.projects.some(p => p.hasAccess)
-          : organization.projects.some(p => p.isMember && p.hasAccess);
-    } else {
-      hasProjectAccess = projects ? projects.length > 0 : false;
-      orgHasProjects = hasProjectAccess;
-    }
-
-    if (hasProjectAccess || loadingProjects) {
-      return children;
-    }
-
-    // If the organization has some projects, but the user doesn't have access to
-    // those projects, the primary action is to Join a Team. Otherwise the primary
-    // action is to create a project.
-
-    const joinTeamAction = (
-      <Button
-        title={canJoinTeam ? undefined : t('You do not have permission to join a team.')}
-        disabled={!canJoinTeam}
-        priority={orgHasProjects ? 'primary' : 'default'}
-        to={`/settings/${orgId}/teams/`}
-      >
-        {t('Join a Team')}
-      </Button>
-    );
-
-    const createProjectAction = (
-      <Button
-        title={
-          canCreateProject
-            ? undefined
-            : t('You do not have permission to create a project.')
-        }
-        disabled={!canCreateProject}
-        priority={orgHasProjects ? 'default' : 'primary'}
-        to={`/organizations/${orgId}/projects/new/`}
-      >
-        {t('Create project')}
-      </Button>
-    );
-
-    return (
-      <Wrapper>
-        <HeightWrapper>
-          <img src={img} height={350} alt="Nothing to see" />
-          <Content>
-            <StyledPageHeading>{t('Remain Calm')}</StyledPageHeading>
-            <HelpMessage>
-              {t('You need at least one project to use this view')}
-            </HelpMessage>
-            <Actions gap={1}>
-              {!orgHasProjects ? (
-                createProjectAction
-              ) : (
-                <Fragment>
-                  {joinTeamAction}
-                  {createProjectAction}
-                </Fragment>
-              )}
-            </Actions>
-          </Content>
-        </HeightWrapper>
-      </Wrapper>
-    );
+    orgHasProjects = organization.projects.length > 0;
+    hasProjectAccess =
+      isSuperuser && !superuserNeedsToBeProjectMember
+        ? organization.projects.some(p => p.hasAccess)
+        : organization.projects.some(p => p.isMember && p.hasAccess);
+  } else {
+    hasProjectAccess = projects ? projects.length > 0 : false;
+    orgHasProjects = hasProjectAccess;
   }
+
+  if (hasProjectAccess || loadingProjects) {
+    return <Fragment>{children}</Fragment>;
+  }
+
+  // If the organization has some projects, but the user doesn't have access to
+  // those projects, the primary action is to Join a Team. Otherwise the primary
+  // action is to create a project.
+
+  const joinTeamAction = (
+    <Button
+      title={canJoinTeam ? undefined : t('You do not have permission to join a team.')}
+      disabled={!canJoinTeam}
+      priority={orgHasProjects ? 'primary' : 'default'}
+      to={`/settings/${orgSlug}/teams/`}
+    >
+      {t('Join a Team')}
+    </Button>
+  );
+
+  const createProjectAction = (
+    <Button
+      title={
+        canCreateProject
+          ? undefined
+          : t('You do not have permission to create a project.')
+      }
+      disabled={!canCreateProject}
+      priority={orgHasProjects ? 'default' : 'primary'}
+      to={`/organizations/${orgSlug}/projects/new/`}
+    >
+      {t('Create project')}
+    </Button>
+  );
+
+  return (
+    <Wrapper>
+      <HeightWrapper>
+        <img src={img} height={350} alt={t('Nothing to see')} />
+        <Content>
+          <StyledPageHeading>{t('Remain Calm')}</StyledPageHeading>
+          <HelpMessage>{t('You need at least one project to use this view')}</HelpMessage>
+          <Actions gap={1}>
+            {!orgHasProjects ? (
+              createProjectAction
+            ) : (
+              <Fragment>
+                {joinTeamAction}
+                {createProjectAction}
+              </Fragment>
+            )}
+          </Actions>
+        </Content>
+      </HeightWrapper>
+    </Wrapper>
+  );
 }
 
 const StyledPageHeading = styled(PageHeading)`
