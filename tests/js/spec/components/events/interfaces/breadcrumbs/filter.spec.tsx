@@ -2,10 +2,9 @@ import * as React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Icon from 'app/components/events/interfaces/breadcrumbs/icon';
-import Level from 'app/components/events/interfaces/breadcrumbs/level';
+import Level from 'app/components/events/interfaces/breadcrumbs/breadcrumb/level';
+import Type from 'app/components/events/interfaces/breadcrumbs/breadcrumb/type';
 import SearchBarActionFilter from 'app/components/events/interfaces/searchBarAction/searchBarActionFilter';
-import {IconFire, IconFix, IconLocation, IconSpan, IconSwitch, IconUser} from 'app/icons';
 import {BreadcrumbLevelType, BreadcrumbType} from 'app/types/breadcrumbs';
 
 const options: React.ComponentProps<typeof SearchBarActionFilter>['options'] = {
@@ -13,37 +12,37 @@ const options: React.ComponentProps<typeof SearchBarActionFilter>['options'] = {
     {
       id: BreadcrumbType.HTTP,
       description: 'HTTP request',
-      symbol: <Icon color="green300" icon={IconSwitch} size="xs" />,
+      symbol: <Type color="green300" type={BreadcrumbType.HTTP} />,
       isChecked: true,
     },
     {
       id: BreadcrumbType.TRANSACTION,
       description: 'Transaction',
-      symbol: <Icon color="pink300" icon={IconSpan} size="xs" />,
+      symbol: <Type color="pink300" type={BreadcrumbType.TRANSACTION} />,
       isChecked: true,
     },
     {
       id: BreadcrumbType.UI,
       description: 'User Action',
-      symbol: <Icon color="purple300" icon={IconUser} size="xs" />,
+      symbol: <Type color="purple300" type={BreadcrumbType.UI} />,
       isChecked: true,
     },
     {
       id: BreadcrumbType.NAVIGATION,
       description: 'Navigation',
-      symbol: <Icon color="green300" icon={IconLocation} size="xs" />,
+      symbol: <Type color="green300" type={BreadcrumbType.NAVIGATION} />,
       isChecked: true,
     },
     {
       id: BreadcrumbType.DEBUG,
       description: 'Debug',
-      symbol: <Icon color="purple300" icon={IconFix} size="xs" />,
+      symbol: <Type color="purple300" type={BreadcrumbType.DEBUG} />,
       isChecked: true,
     },
     {
       id: BreadcrumbType.ERROR,
       description: 'Error',
-      symbol: <Icon color="red300" icon={IconFire} size="xs" />,
+      symbol: <Type color="red300" type={BreadcrumbType.ERROR} />,
       isChecked: true,
     },
   ],
@@ -82,7 +81,7 @@ describe('SearchBarActionFilter', () => {
     expect(headers.at(1).text()).toBe('Levels');
 
     // Lists
-    const lists = filterDropdownMenu.find('List');
+    const lists = filterDropdownMenu.find('StyledList');
     expect(lists).toHaveLength(2);
     expect(lists.at(0).find('StyledListItem')).toHaveLength(6);
     expect(lists.at(1).find('StyledListItem')).toHaveLength(2);
@@ -112,7 +111,7 @@ describe('SearchBarActionFilter', () => {
     expect(header.text()).toBe('Types');
 
     // List
-    const list = filterDropdownMenu.find('List');
+    const list = filterDropdownMenu.find('StyledList');
     expect(list).toHaveLength(1);
 
     // List Items
@@ -144,14 +143,14 @@ describe('SearchBarActionFilter', () => {
     expect(header.text()).toBe('Levels');
 
     // List
-    const list = filterDropdownMenu.find('List');
+    const list = filterDropdownMenu.find('StyledList');
     expect(list).toHaveLength(1);
 
     // List Items
     const listItems = list.find('StyledListItem');
     expect(listItems).toHaveLength(2);
     const firstItem = listItems.at(0);
-    expect(firstItem.text()).toBe(options.Levels[0].id);
+    expect(firstItem.text()).toBe('Info');
 
     // Check Item
     expect(

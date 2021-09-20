@@ -234,6 +234,7 @@ def query(
             auto_aggregations=auto_aggregations,
             use_aggregate_conditions=use_aggregate_conditions,
             limit=limit,
+            offset=offset,
         )
         snql_query = builder.get_snql_query()
 
@@ -587,7 +588,8 @@ def top_events_timeseries(
             user_query,
             params,
         )
-        other_conditions = snuba_filter.conditions[:]
+        original_conditions = snuba_filter.conditions[:]
+        other_conditions = []
 
         for field in selected_columns:
             # If we have a project field, we need to limit results by project so we don't hit the result limit
@@ -605,21 +607,38 @@ def top_events_timeseries(
                 }
             )
             if values:
-                # timestamp fields needs special handling, creating a big OR instead
                 if field == "timestamp" or field.startswith("timestamp.to_"):
+                    # timestamp fields needs special handling, creating a big OR instead
                     snuba_filter.conditions.append(
                         [[field, "=", value] for value in sorted(values)]
                     )
-                    other_conditions.append([[field, "!=", value] for value in sorted(values)])
+                    # Needs to be a big AND when negated
+                    other_condition = [field, "!=", values[0]]
+                    for value in sorted(values[1:]):
+                        other_condition = [
+                            [SNUBA_AND, [other_condition, [field, "!=", value]]],
+                            "=",
+                            1,
+                        ]
+                    other_conditions.append(other_condition)
                 elif None in values:
+                    # one of the values was null, but we can't do an in with null values, so split into two conditions
                     non_none_values = [value for value in values if value is not None]
                     condition = [[["isNull", [resolve_discover_column(field)]], "=", 1]]
-                    other_condition = [[["isNull", [resolve_discover_column(field)]], "!=", 1]]
+                    other_condition = [["isNull", [resolve_discover_column(field)]], "!=", 1]
                     if non_none_values:
                         condition.append([resolve_discover_column(field), "IN", non_none_values])
-                        other_condition.append(
-                            [resolve_discover_column(field), "NOT IN", non_none_values]
-                        )
+                        other_condition = [
+                            [
+                                SNUBA_AND,
+                                [
+                                    [resolve_discover_column(field), "NOT IN", non_none_values],
+                                    other_condition,
+                                ],
+                            ],
+                            "=",
+                            1,
+                        ]
                     snuba_filter.conditions.append(condition)
                     other_conditions.append(other_condition)
                 elif field in FIELD_ALIASES:
@@ -645,11 +664,19 @@ def top_events_timeseries(
             referrer=referrer,
         )
         if len(top_events["data"]) == limit and len(result.get("data", [])) and include_other:
-            # TODO(wmak): Conditions are incorrect in some cases, need to properly apply Demorgan's Law
             other_result = raw_query(
                 aggregations=snuba_filter.aggregations,
-                conditions=other_conditions,
+                conditions=[original_conditions, other_conditions],
                 filter_keys=snuba_filter.filter_keys,
+                # Hack cause equations on aggregates have to go in selected columns instead of aggregations
+                selected_columns=[
+                    column
+                    for column in snuba_filter.selected_columns
+                    # Check that the column is a list with 3 items, and the alias in the third item is an equation
+                    if isinstance(column, list)
+                    and len(column) == 3
+                    and column[-1].startswith("equation[")
+                ],
                 start=snuba_filter.start,
                 end=snuba_filter.end,
                 rollup=rollup,
@@ -701,7 +728,7 @@ def top_events_timeseries(
         translated_groupby.sort()
 
         results = (
-            {"Other": {"order": limit + 1, "data": other_result["data"]}}
+            {"Other": {"order": limit, "data": other_result["data"]}}
             if len(other_result.get("data", []))
             else {}
         )

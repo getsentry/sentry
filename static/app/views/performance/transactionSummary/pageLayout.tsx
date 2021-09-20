@@ -16,6 +16,7 @@ import {PageContent} from 'app/styles/organization';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
+import {PerformanceEventViewProvider} from 'app/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'app/utils/queryString';
 
 import {getTransactionName} from '../utils';
@@ -101,55 +102,57 @@ function PageLayout(props: Props) {
         organization={organization}
         renderDisabled={NoAccess}
       >
-        <GlobalSelectionHeader
-          lockedMessageSubject={t('transaction')}
-          shouldForceProject={defined(project)}
-          forceProject={project}
-          specificProjectSlugs={defined(project) ? [project.slug] : []}
-          disableMultipleProjectSelection
-          showProjectSettingsLink
-        >
-          <StyledPageContent>
-            <LightWeightNoProjectMessage organization={organization}>
-              <TransactionHeader
-                eventView={eventView}
-                location={location}
-                organization={organization}
-                projects={projects}
-                projectId={projectId}
-                transactionName={transactionName}
-                currentTab={tab}
-                hasWebVitals={tab === Tab.WebVitals ? 'yes' : 'maybe'}
-                handleIncompatibleQuery={handleIncompatibleQuery}
-                onChangeThreshold={(threshold, metric) => {
-                  setTransactionThreshold(threshold);
-                  setTransactionThresholdMetric(metric);
-                }}
-              />
-              <Layout.Body>
-                <StyledSdkUpdatesAlert />
-                {defined(error) && (
-                  <StyledAlert type="error" icon={<IconFlag size="md" />}>
-                    {error}
-                  </StyledAlert>
-                )}
-                {incompatibleAlertNotice && (
-                  <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
-                )}
-                <ChildComponent
+        <PerformanceEventViewProvider value={{eventView}}>
+          <GlobalSelectionHeader
+            lockedMessageSubject={t('transaction')}
+            shouldForceProject={defined(project)}
+            forceProject={project}
+            specificProjectSlugs={defined(project) ? [project.slug] : []}
+            disableMultipleProjectSelection
+            showProjectSettingsLink
+          >
+            <StyledPageContent>
+              <LightWeightNoProjectMessage organization={organization}>
+                <TransactionHeader
+                  eventView={eventView}
                   location={location}
                   organization={organization}
                   projects={projects}
-                  eventView={eventView}
+                  projectId={projectId}
                   transactionName={transactionName}
-                  setError={setError}
-                  transactionThreshold={transactionThreshold}
-                  transactionThresholdMetric={transactionThresholdMetric}
+                  currentTab={tab}
+                  hasWebVitals={tab === Tab.WebVitals ? 'yes' : 'maybe'}
+                  handleIncompatibleQuery={handleIncompatibleQuery}
+                  onChangeThreshold={(threshold, metric) => {
+                    setTransactionThreshold(threshold);
+                    setTransactionThresholdMetric(metric);
+                  }}
                 />
-              </Layout.Body>
-            </LightWeightNoProjectMessage>
-          </StyledPageContent>
-        </GlobalSelectionHeader>
+                <Layout.Body>
+                  <StyledSdkUpdatesAlert />
+                  {defined(error) && (
+                    <StyledAlert type="error" icon={<IconFlag size="md" />}>
+                      {error}
+                    </StyledAlert>
+                  )}
+                  {incompatibleAlertNotice && (
+                    <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
+                  )}
+                  <ChildComponent
+                    location={location}
+                    organization={organization}
+                    projects={projects}
+                    eventView={eventView}
+                    transactionName={transactionName}
+                    setError={setError}
+                    transactionThreshold={transactionThreshold}
+                    transactionThresholdMetric={transactionThresholdMetric}
+                  />
+                </Layout.Body>
+              </LightWeightNoProjectMessage>
+            </StyledPageContent>
+          </GlobalSelectionHeader>
+        </PerformanceEventViewProvider>
       </Feature>
     </SentryDocumentTitle>
   );

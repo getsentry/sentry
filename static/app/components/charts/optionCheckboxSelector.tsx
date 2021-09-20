@@ -152,6 +152,8 @@ const TruncatedLabel = styled('span')`
 const StyledTruncate = styled(Truncate)<{
   isActive: boolean;
 }>`
+  flex: auto;
+  padding-right: ${space(1)};
   & span {
     ${p =>
       p.isActive &&
