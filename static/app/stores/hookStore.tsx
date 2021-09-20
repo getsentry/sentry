@@ -22,6 +22,7 @@ const validHookNames = new Set<HookName>([
   'component:header-selector-items',
   'component:global-notifications',
   'component:member-list-header',
+  'component:codeowners-header',
   'component:dashboards-header',
   'feature-disabled:alerts-page',
   'feature-disabled:alert-wizard-performance',

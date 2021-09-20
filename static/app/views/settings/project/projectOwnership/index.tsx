@@ -1,12 +1,19 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
 import {openEditOwnershipRules, openModal} from 'app/actionCreators/modal';
 import Access from 'app/components/acl/access';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import HookOrDefault from 'app/components/hookOrDefault';
 import ExternalLink from 'app/components/links/externalLink';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
@@ -40,6 +47,11 @@ type State = {
   codeowners?: CodeOwner[];
   integrations: Integration[];
 } & AsyncView['state'];
+
+const CodeOwnersHeader = HookOrDefault({
+  hookName: 'component:codeowners-header',
+  defaultComponent: () => <Fragment />,
+});
 
 class ProjectOwnership extends AsyncView<Props, State> {
   getTitle() {
@@ -133,6 +145,25 @@ tags.sku_class:enterprise #enterprise`;
     this.setState({
       codeowners: [...codeowners.slice(0, index), data, ...codeowners.slice(index + 1)],
     });
+  };
+
+  handleAddCodeOwnerRequest = async () => {
+    const {organization, project} = this.props;
+    try {
+      addLoadingMessage(t('Requesting\u2026'));
+      await this.api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/codeowners-request/`,
+        {
+          method: 'POST',
+          data: {},
+        }
+      );
+
+      addSuccessMessage(t('Request Sent'));
+    } catch (err) {
+      addErrorMessage(t('Unable to send request'));
+      Sentry.captureException(err);
+    }
   };
 
   renderCodeOwnerErrors = () => {
@@ -273,9 +304,9 @@ tags.sku_class:enterprise #enterprise`;
                 {t('View Issues')}
               </Button>
               <Feature features={['integrations-codeowners']}>
-                <Access access={['project:write']}>
+                <Access access={['org:integrations']}>
                   {({hasAccess}) =>
-                    hasAccess && (
+                    hasAccess ? (
                       <CodeOwnerButton
                         onClick={this.handleAddCodeOwner}
                         size="small"
@@ -283,6 +314,15 @@ tags.sku_class:enterprise #enterprise`;
                         data-test-id="add-codeowner-button"
                       >
                         {t('Add CODEOWNERS File')}
+                      </CodeOwnerButton>
+                    ) : (
+                      <CodeOwnerButton
+                        onClick={this.handleAddCodeOwnerRequest}
+                        size="small"
+                        priority="primary"
+                        data-test-id="add-codeowner-request-button"
+                      >
+                        {t('Request to Add CODEOWNERS File')}
                       </CodeOwnerButton>
                     )
                   }
@@ -292,6 +332,11 @@ tags.sku_class:enterprise #enterprise`;
           }
         />
         <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
+        <CodeOwnersHeader
+          addCodeOwner={this.handleAddCodeOwner}
+          handleRequest={this.handleAddCodeOwnerRequest}
+        />
+
         <PermissionAlert />
         <FeedbackAlert />
         {this.renderCodeOwnerErrors()}
