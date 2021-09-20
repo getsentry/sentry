@@ -18,6 +18,7 @@ from sentry.incidents.events import (
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     DEFAULT_ALERT_RULE_RESOLUTION,
+    DEFAULT_CMP_ALERT_RULE_RESOLUTION,
     WARNING_TRIGGER_LABEL,
     WINDOWED_STATS_DATA_POINTS,
     AlertRuleNameAlreadyUsedError,
@@ -883,6 +884,23 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert alert_rule_2.owner.id == self.team.actor.id
 
+    def test_comparison_delta(self):
+        comparison_delta = 60
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "alert rule 1",
+            "level:error",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+            comparison_delta=comparison_delta,
+        )
+        assert alert_rule.snuba_query.subscriptions.get().project == self.project
+        assert alert_rule.comparison_delta == comparison_delta
+        assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
@@ -1132,6 +1150,23 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             name="not updating owner",
         )
         assert alert_rule.owner.id == self.user.actor.id
+
+    def test_comparison_delta(self):
+        comparison_delta = 60
+
+        update_alert_rule(self.alert_rule, comparison_delta=comparison_delta)
+        assert self.alert_rule.comparison_delta == comparison_delta
+        assert self.alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+
+        # Should be no change if we don't specify `comparison_delta` for update at all.
+        update_alert_rule(self.alert_rule)
+        assert self.alert_rule.comparison_delta == comparison_delta
+        assert self.alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+
+        # Should change if we explicitly set it to None.
+        update_alert_rule(self.alert_rule, comparison_delta=None)
+        assert self.alert_rule.comparison_delta is None
+        assert self.alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
