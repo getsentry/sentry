@@ -80,6 +80,15 @@ def dispatch_post_process_group_task(
         )
 
 
+def _get_task_kwargs_and_dispatch(message: Message):
+    task_kwargs = _get_task_kwargs(message)
+    if not task_kwargs:
+        return None
+
+    _record_metrics(message.partition(), task_kwargs)
+    dispatch_post_process_group_task(**task_kwargs)
+
+
 class PostProcessForwarderWorker(AbstractBatchWorker):
     """
     Implementation of the AbstractBatchWorker which would be used for post process forwarder.
@@ -99,12 +108,7 @@ class PostProcessForwarderWorker(AbstractBatchWorker):
         is stored in the batch of batching_kafka_consumer and provided as an argument to flush_batch. If None is
         returned, the batching_kafka_consumer will not add the return value to the batch.
         """
-        task_kwargs = _get_task_kwargs(message)
-        if not task_kwargs:
-            return None
-
-        _record_metrics(message.partition(), task_kwargs)
-        return self.__executor.submit(dispatch_post_process_group_task, **task_kwargs)
+        return self.__executor.submit(_get_task_kwargs_and_dispatch, message)
 
     def flush_batch(self, batch: Sequence[Future]) -> None:
         """
