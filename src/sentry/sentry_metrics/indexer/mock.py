@@ -29,15 +29,13 @@ class SimpleIndexer(StringIndexer):
     """Simple indexer with in-memory store. Do not use in production."""
 
     def __init__(self) -> None:
-        self._counter = itertools.count(start=len(_STRINGS))
+        self._counter = itertools.count()
         self._strings: DefaultDict[str, int] = defaultdict(self._counter.__next__)
         self._reverse: Dict[int, str] = {}
 
     def record(self, organization: Organization, use_case: UseCase, string: str) -> int:
         # NOTE: Ignores ``use_case`` for simplicity.
-        index = self._strings[string]
-        self._reverse[index] = string
-        return index
+        return self._record(string)
 
     def resolve(self, organization: Organization, use_case: UseCase, string: str) -> Optional[int]:
         # NOTE: Ignores ``use_case`` for simplicity.
@@ -49,6 +47,11 @@ class SimpleIndexer(StringIndexer):
         # NOTE: Ignores ``use_case`` for simplicity.
         return self._reverse.get(id)
 
+    def _record(self, string: str) -> int:
+        index = self._strings[string]
+        self._reverse[index] = string
+        return index
+
 
 class MockIndexer(SimpleIndexer):
     """
@@ -57,6 +60,5 @@ class MockIndexer(SimpleIndexer):
 
     def __init__(self) -> None:
         super().__init__()
-        for index, string in enumerate(_STRINGS):
-            self._strings[string] = index
-            self._reverse[index] = string
+        for string in _STRINGS:
+            self._record(string)
