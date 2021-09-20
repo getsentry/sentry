@@ -10,6 +10,7 @@ import {DropdownItem} from 'app/components/dropdownControl';
 import DropdownMenu from 'app/components/dropdownMenu';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
@@ -74,8 +75,11 @@ class OptionCheckboxSelector extends Component<Props, State> {
   render() {
     const {menuContainerWidth} = this.state;
     const {options, onChange, selected, title, menuWidth} = this.props;
-    const selectedOption =
-      options.find(opt => selected.includes(opt.value)) || options[0];
+    const selectedOptionLabel =
+      options
+        .filter(opt => selected.includes(opt.value))
+        .map(({label}) => label)
+        .join(', ') || 'None';
 
     return (
       <InlineContainer>
@@ -85,7 +89,7 @@ class OptionCheckboxSelector extends Component<Props, State> {
             {({isOpen, getMenuProps, getActorProps}) => (
               <Fragment>
                 <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
-                  <TruncatedLabel>{String(selectedOption.label)}</TruncatedLabel>
+                  <TruncatedLabel>{String(selectedOptionLabel)}</TruncatedLabel>
                 </StyledDropdownButton>
                 <StyledDropdownBubble
                   {...getMenuProps()}
@@ -96,26 +100,40 @@ class OptionCheckboxSelector extends Component<Props, State> {
                   blendWithActor={false}
                   blendCorner
                 >
-                  {options.map(opt => (
-                    <StyledDropdownItem
-                      key={opt.value}
-                      onSelect={eventKey => onChange(this.constructNewSelected(eventKey))}
-                      eventKey={opt.value}
-                      disabled={opt.disabled}
-                      data-test-id={`option-${opt.value}`}
-                      isChecked={selected.includes(opt.value)}
-                    >
-                      <StyledTooltip title={opt.tooltip}>
-                        <StyledTruncate
-                          isActive={false}
-                          value={String(opt.label)}
-                          maxLength={60}
-                          expandDirection="left"
-                        />
-                      </StyledTooltip>
-                      <CheckboxFancy isChecked={selected.includes(opt.value)} />
-                    </StyledDropdownItem>
-                  ))}
+                  {options.map(opt => {
+                    // Y-Axis is capped at 3 fields
+                    const disabled = selected.length > 2 && !selected.includes(opt.value);
+                    return (
+                      <StyledDropdownItem
+                        key={opt.value}
+                        onSelect={eventKey =>
+                          onChange(this.constructNewSelected(eventKey))
+                        }
+                        eventKey={opt.value}
+                        disabled={disabled}
+                        data-test-id={`option-${opt.value}`}
+                        isChecked={selected.includes(opt.value)}
+                      >
+                        <StyledTooltip
+                          title={
+                            disabled
+                              ? t(
+                                  'Only a maximum of 3 fields can be displayed on the Y-Axis at a time'
+                                )
+                              : undefined
+                          }
+                        >
+                          <StyledTruncate
+                            isActive={false}
+                            value={String(opt.label)}
+                            maxLength={60}
+                            expandDirection="left"
+                          />
+                        </StyledTooltip>
+                        <CheckboxFancy isChecked={selected.includes(opt.value)} />
+                      </StyledDropdownItem>
+                    );
+                  })}
                 </StyledDropdownBubble>
               </Fragment>
             )}

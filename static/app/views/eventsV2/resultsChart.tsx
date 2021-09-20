@@ -5,11 +5,12 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
+import AreaChart from 'app/components/charts/areaChart';
 import EventsChart from 'app/components/charts/eventsChart';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
+import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
@@ -27,6 +28,7 @@ type ResultsChartProps = {
   eventView: EventView;
   location: Location;
   confirmedQuery: boolean;
+  yAxisValue: string[];
 };
 
 class ResultsChart extends Component<ResultsChartProps> {
@@ -42,13 +44,15 @@ class ResultsChart extends Component<ResultsChartProps> {
   }
 
   render() {
-    const {api, eventView, location, organization, router, confirmedQuery} = this.props;
+    const {api, eventView, location, organization, router, confirmedQuery, yAxisValue} =
+      this.props;
 
     const hasPerformanceChartInterpolation = organization.features.includes(
       'performance-chart-interpolation'
     );
-
-    const yAxisValue = eventView.getYAxis();
+    const hasConnectDiscoverAndDashboards = organization.features.includes(
+      'connect-discover-and-dashboards'
+    );
 
     const globalSelection = eventView.getGlobalSelection();
     const start = globalSelection.datetime.start
@@ -94,6 +98,9 @@ class ResultsChart extends Component<ResultsChartProps> {
               utc={utc === 'true'}
               confirmedQuery={confirmedQuery}
               withoutZerofill={hasPerformanceChartInterpolation}
+              chartComponent={
+                hasConnectDiscoverAndDashboards && !isDaily ? AreaChart : undefined
+              }
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -148,46 +155,67 @@ class ResultsChartContainer extends Component<ContainerProps> {
     } = this.props;
 
     const hasQueryFeature = organization.features.includes('discover-query');
-    const displayOptions = eventView.getDisplayOptions().filter(opt => {
-      // top5 modes are only available with larger packages in saas.
-      // We remove instead of disable here as showing tooltips in dropdown
-      // menus is clunky.
-      if (
-        [DisplayModes.TOP5, DisplayModes.DAILYTOP5].includes(opt.value as DisplayModes) &&
-        !hasQueryFeature
-      ) {
-        return false;
-      }
-      return true;
-    });
+    const hasConnectDiscoverAndDashboards = organization.features.includes(
+      'connect-discover-and-dashboards'
+    );
+    const displayOptions = eventView
+      .getDisplayOptions()
+      .filter(opt => {
+        // top5 modes are only available with larger packages in saas.
+        // We remove instead of disable here as showing tooltips in dropdown
+        // menus is clunky.
+        if (
+          [DisplayModes.TOP5, DisplayModes.DAILYTOP5].includes(
+            opt.value as DisplayModes
+          ) &&
+          !hasQueryFeature
+        ) {
+          return false;
+        }
+        return true;
+      })
+      .map(opt => {
+        // Can only use default display or total daily with multi y axis
+        if (
+          yAxis.length > 1 &&
+          ![DisplayModes.DEFAULT, DisplayModes.DAILY].includes(opt.value as DisplayModes)
+        ) {
+          return {
+            ...opt,
+            disabled: true,
+            tooltip: t(
+              'Change the Y-Axis dropdown to display only 1 function to use this view.'
+            ),
+          };
+        }
+        return opt;
+      });
+
+    const yAxisValue = hasConnectDiscoverAndDashboards ? yAxis : [eventView.getYAxis()];
 
     return (
       <StyledPanel>
-        <ResultsChart
-          api={api}
-          eventView={eventView}
-          location={location}
+        {(yAxisValue.length > 0 && (
+          <ResultsChart
+            api={api}
+            eventView={eventView}
+            location={location}
+            organization={organization}
+            router={router}
+            confirmedQuery={confirmedQuery}
+            yAxisValue={yAxisValue}
+          />
+        )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
+        <ChartFooter
           organization={organization}
-          router={router}
-          confirmedQuery={confirmedQuery}
+          total={total}
+          yAxisValue={yAxisValue}
+          yAxisOptions={eventView.getYAxisOptions()}
+          onAxisChange={onAxisChange}
+          displayOptions={displayOptions}
+          displayMode={eventView.getDisplayMode()}
+          onDisplayChange={onDisplayChange}
         />
-        <Feature
-          organization={organization}
-          features={['connect-discover-and-dashboards']}
-        >
-          {({hasFeature}) => (
-            <ChartFooter
-              organization={organization}
-              total={total}
-              yAxisValue={hasFeature ? yAxis : [eventView.getYAxis()]}
-              yAxisOptions={eventView.getYAxisOptions()}
-              onAxisChange={onAxisChange}
-              displayOptions={displayOptions}
-              displayMode={eventView.getDisplayMode()}
-              onDisplayChange={onDisplayChange}
-            />
-          )}
-        </Feature>
       </StyledPanel>
     );
   }
@@ -199,4 +227,21 @@ const StyledPanel = styled(Panel)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     margin: 0;
   }
+`;
+
+const NoChartContainer = styled('div')<{height?: string}>`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  flex: 1;
+  flex-shrink: 0;
+  overflow: hidden;
+  height: ${p => p.height || '200px'};
+  position: relative;
+  border-color: transparent;
+  margin-bottom: 0;
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
