@@ -39,8 +39,11 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
         widget.displayType
       );
       const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
-      // Pull Y-Axis from the widget
-      discoverLocation.query.yAxis = query.fields;
+      // Pull a max of 3 valid Y-Axis from the widget
+      const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
+      discoverLocation.query.yAxis = query.fields
+        .filter(field => yAxisOptions.includes(field))
+        .slice(0, 3);
       return (
         <React.Fragment key={index}>
           <QueryContainer>
