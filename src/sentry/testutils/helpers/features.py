@@ -3,6 +3,7 @@ __all__ = ["Feature", "with_feature"]
 import collections
 from contextlib import contextmanager
 
+import sentry.features
 from sentry.utils.compat.mock import patch
 
 
@@ -34,8 +35,16 @@ def Feature(names):
     elif not isinstance(names, collections.Mapping):
         names = {k: True for k in names}
 
+    default_features = sentry.features.has
+
+    def features_override(name, *args, **kwargs):
+        if name in names:
+            return names[name]
+        else:
+            return default_features(name, *args, **kwargs)
+
     with patch("sentry.features.has") as features_has:
-        features_has.side_effect = lambda x, *a, **k: names.get(x, False)
+        features_has.side_effect = features_override
         yield
 
 
