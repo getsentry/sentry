@@ -1,7 +1,6 @@
 from enum import Enum
 from typing import Dict, List, Optional
 
-from sentry.models import Organization
 from sentry.utils.services import Service
 
 
@@ -22,7 +21,7 @@ class StringIndexer(Service):  # type: ignore
     def bulk_record(self, org_id: str, strings: List[str]) -> Dict[str, int]:
         raise NotImplementedError()
 
-    def record(self, organization: Organization, use_case: UseCase, string: str) -> int:
+    def record(self, org_id: str, string: str) -> int:
         """Store a string and return the integer ID generated for it
 
         With every call to this method, the lifetime of the entry will be
@@ -30,7 +29,7 @@ class StringIndexer(Service):  # type: ignore
         """
         raise NotImplementedError()
 
-    def resolve(self, organization: Organization, use_case: UseCase, string: str) -> Optional[int]:
+    def resolve(self, org_id: str, use_case: UseCase, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.
@@ -39,9 +38,7 @@ class StringIndexer(Service):  # type: ignore
         """
         raise NotImplementedError()
 
-    def reverse_resolve(
-        self, organization: Organization, use_case: UseCase, id: int
-    ) -> Optional[str]:
+    def reverse_resolve(self, org_id: str, use_case: UseCase, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.

@@ -1,12 +1,12 @@
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Sequence
 
 from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry.sentry_metrics import indexer
 from sentry.utils import json, kafka_config
-from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
+from sentry.utils.batching_kafka_consumer import AbstractBatchWorker, BatchingKafkaConsumer
 from sentry.utils.kafka import create_batching_kafka_consumer
 
 logger = logging.getLogger(__name__)
@@ -14,17 +14,17 @@ logger = logging.getLogger(__name__)
 snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
 
 
-def get_metrics_consumer(topic=None, **options) -> None:
-    return create_batching_kafka_consumer(
-        {"ingest-metrics"}, worker=MetricsIndexerWorker(), **options
-    )
+def get_metrics_consumer(
+    topic: Optional[str] = None, **options: Dict[str, str]
+) -> BatchingKafkaConsumer:
+    return create_batching_kafka_consumer({topic}, worker=MetricsIndexerWorker(), **options)
 
 
-class MetricsIndexerWorker(AbstractBatchWorker):
-    def process_message(self, message):
+class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
+    def process_message(self, message: Any) -> Any:
         parsed_message: Dict[str, Any] = json.loads(message.value(), use_rapid_json=True)
 
-        org_id = int(parsed_message["org_id"])
+        org_id = parsed_message["org_id"]
         metric_name = parsed_message["name"]
         tags = parsed_message["tags"]
 
@@ -32,7 +32,7 @@ class MetricsIndexerWorker(AbstractBatchWorker):
         strings.update(tags.keys())
         strings.update(tags.values())
 
-        mapping = indexer.bulk_record(org_id, list(strings))
+        mapping = indexer.bulk_record(org_id, list(strings))  # type: ignore
 
         new_tags = {}
         for tag_k, tag_v in tags.items():
@@ -45,7 +45,7 @@ class MetricsIndexerWorker(AbstractBatchWorker):
         parsed_message["retention_days"] = 90
         return parsed_message
 
-    def flush_batch(self, batch):
+    def flush_batch(self, batch: Sequence[Any]) -> None:
         # produce the translated message to snuba-metrics topic
         global snuba_metrics
         messages = 0
@@ -65,10 +65,10 @@ class MetricsIndexerWorker(AbstractBatchWorker):
         if messages < len(batch):
             raise Exception("didn't get all the callbacks")
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         # do any other processes need to be shutdown?
         return
 
-    def callback(self, error, message):
+    def callback(self, error: Any, message: Any) -> None:
         if error is not None:
             raise Exception(error.str())

@@ -2,8 +2,6 @@ import itertools
 from collections import defaultdict
 from typing import DefaultDict, Dict, Optional
 
-from sentry.models import Organization
-
 from .base import StringIndexer, UseCase
 
 _STRINGS = (
@@ -33,11 +31,11 @@ class SimpleIndexer(StringIndexer):
         self._strings: DefaultDict[str, int] = defaultdict(self._counter.__next__)
         self._reverse: Dict[int, str] = {}
 
-    def record(self, organization: Organization, use_case: UseCase, string: str) -> int:
+    def record(self, org_id: str, string: str) -> int:
         # NOTE: Ignores ``use_case`` for simplicity.
         return self._record(string)
 
-    def resolve(self, organization: Organization, use_case: UseCase, string: str) -> Optional[int]:
+    def resolve(self, org_id: str, use_case: UseCase, string: str) -> Optional[int]:
         # NOTE: Ignores ``use_case`` for simplicity.
         return self._strings.get(string)
 

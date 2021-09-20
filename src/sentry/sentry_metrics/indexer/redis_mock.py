@@ -1,5 +1,5 @@
 import hashlib
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from django.conf import settings
 
@@ -8,7 +8,7 @@ from sentry.utils.redis import redis_clusters
 from .base import StringIndexer, UseCase
 
 
-def get_client():
+def get_client() -> Any:
     return redis_clusters.get(settings.SENTRY_METRICS_INDEXER_REDIS_CLUSTER)
 
 
@@ -17,7 +17,7 @@ class RedisMockIndexer(StringIndexer):
     Temporary mock string indexer that uses Redis to store data.
     """
 
-    def _get_key(self, org_id, instance) -> str:
+    def _get_key(self, org_id: str, instance: Union[str, int]) -> str:
         if isinstance(instance, str):
             return f"temp-metrics-indexer:{org_id}:1:str:{instance}"
         elif isinstance(instance, int):
@@ -25,7 +25,7 @@ class RedisMockIndexer(StringIndexer):
         else:
             raise Exception("Invalid: must be string or int")
 
-    def _bulk_record(self, org_id: str, mapping: Dict[str, None]) -> Dict[str, int]:
+    def _bulk_record(self, org_id: str, unmapped: Dict[str, None]) -> Dict[str, int]:
         """
         Take a mapping of strings {"metric_id`": None} and populate the ints
         for the corresponding strings.
@@ -34,16 +34,17 @@ class RedisMockIndexer(StringIndexer):
             "temp-metrics-indexer:{org_id}:1:int:{instance}" -> string
         """
 
-        redis_key_values = {}
+        redis_key_values: Dict[str, Union[str, int]] = {}
+        mapped_ints: Dict[str, int] = {}
 
-        for string in mapping.keys():
+        for string in unmapped.keys():
             # use hashlib instead of hash() because the latter uses a random value (unless PYTHONHASHSEED
             # is set to an integer) to seed hashes of strs and bytes
             # https://docs.python.org/3/using/cmdline.html#envvar-PYTHONHASHSEED
-            int_value = int.from_bytes(hashlib.md5(string.encode("utf-8")).digest(), "big") % (
+            int_value: int = int.from_bytes(hashlib.md5(string.encode("utf-8")).digest(), "big") % (
                 10 ** 8
             )
-            mapping[string] = int_value
+            mapped_ints[string] = int_value
 
             int_key = self._get_key(org_id, int_value)
             string_key = self._get_key(org_id, string)
@@ -53,7 +54,7 @@ class RedisMockIndexer(StringIndexer):
 
         get_client().mset(redis_key_values)
 
-        return mapping
+        return mapped_ints
 
     def bulk_record(self, org_id: str, strings: List[str]) -> Dict[str, int]:
         """
@@ -94,8 +95,8 @@ class RedisMockIndexer(StringIndexer):
         string_keys = [self._get_key(org_id, s) for s in strings]
         results = client.mget(string_keys)
 
-        resolved = {}
-        unresolved = {}
+        resolved: Dict[str, int] = {}
+        unresolved: Dict[str, None] = {}
         for i, result in enumerate(results):
             if result:
                 resolved[strings[i]] = int(result)
@@ -117,9 +118,9 @@ class RedisMockIndexer(StringIndexer):
         client = get_client()
 
         string_key = f"temp-metrics-indexer:{org_id}:1:str:{string}"
-        value = client.get(string_key)
+        value: Any = client.get(string_key)
         if value is None:
-            value: int = abs(hash(string)) % (10 ** 8)
+            value = abs(hash(string)) % (10 ** 8)
             client.set(string_key, value)
 
             # reverse record (int to string)
@@ -129,23 +130,18 @@ class RedisMockIndexer(StringIndexer):
         return int(value)
 
     def resolve(self, org_id: str, use_case: UseCase, string: str) -> Optional[int]:
-        client = get_client()
-        key = f"temp-metrics-indexer:{org_id}:1:str:{string}"
-
         try:
-            return int(client.get(key))
+            return int(get_client().get(f"temp-metrics-indexer:{org_id}:1:str:{string}"))
         except TypeError:
             return None
 
     def reverse_resolve(self, org_id: str, use_case: UseCase, id: int) -> Optional[str]:
         # NOTE: Ignores ``use_case`` for simplicity.
 
-        client = get_client()
-        key = f"temp-metrics-indexer:{org_id}:1:int:{id}"
+        result: Optional[str] = get_client().get(f"temp-metrics-indexer:{org_id}:1:int:{id}")
+        return result
 
-        return client.get(key)
-
-    def delete_records(self):
+    def delete_records(self) -> None:
         """
         Easy way to delete all the data for the temporary indexer.
         """
