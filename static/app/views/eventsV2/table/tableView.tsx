@@ -33,6 +33,7 @@ import {
 } from 'app/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
+import {decodeList} from 'app/utils/queryString';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
 import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
@@ -193,6 +194,8 @@ class TableView extends React.Component<TableViewProps> {
 
       const nextEventView = eventView.sortOnField(field, tableMeta);
       const queryStringObject = nextEventView.generateQueryStringObject();
+      // Need to pull yAxis from location since eventView only stores 1 yAxis field at time
+      queryStringObject.yAxis = decodeList(location.query.yAxis);
 
       return {
         ...location,
@@ -427,7 +430,7 @@ class TableView extends React.Component<TableViewProps> {
   };
 
   handleUpdateColumns = (columns: Column[]): void => {
-    const {organization, eventView} = this.props;
+    const {organization, eventView, location} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -437,7 +440,13 @@ class TableView extends React.Component<TableViewProps> {
     });
 
     const nextView = eventView.withColumns(columns);
-    browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
+    const resultsViewUrlTarget = nextView.getResultsViewUrlTarget(organization.slug);
+    // Need to pull yAxis from location since eventView only stores 1 yAxis field at time
+    const previousYAxis = decodeList(location.query.yAxis);
+    resultsViewUrlTarget.query.yAxis = previousYAxis.filter(yAxis =>
+      nextView.getYAxisOptions().find(({value}) => value === yAxis)
+    );
+    browserHistory.push(resultsViewUrlTarget);
   };
 
   renderHeaderButtons = () => {

@@ -339,7 +339,7 @@ describe('EventsV2 > Results', function () {
     wrapper.update();
 
     const eventsRequest = wrapper.find('EventsChart');
-    expect(eventsRequest.props().yAxis).toEqual('count()');
+    expect(eventsRequest.props().yAxis).toEqual(['count()']);
     wrapper.unmount();
   });
 
@@ -352,7 +352,7 @@ describe('EventsV2 > Results', function () {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: {query: {...generateFields(), display: 'previoux'}},
+        location: {query: {...generateFields(), display: 'default', yAxis: 'count'}},
       },
     });
 
@@ -398,7 +398,7 @@ describe('EventsV2 > Results', function () {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: {query: {...generateFields(), display: 'previoux'}},
+        location: {query: {...generateFields(), display: 'previous'}},
       },
     });
 
@@ -706,7 +706,7 @@ describe('EventsV2 > Results', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           statsPeriod: '14d',
-          yAxis: 'count()',
+          yAxis: ['count()'],
         }),
       })
     );
@@ -728,7 +728,7 @@ describe('EventsV2 > Results', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           statsPeriod: '14d',
-          yAxis: 'count_unique(user)',
+          yAxis: ['count_unique(user)'],
         }),
       })
     );
@@ -744,7 +744,7 @@ describe('EventsV2 > Results', function () {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: {query: {...generateFields(), display: 'default'}},
+        location: {query: {...generateFields(), display: 'default', yAxis: 'count()'}},
       },
     });
 
@@ -769,7 +769,7 @@ describe('EventsV2 > Results', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           statsPeriod: '14d',
-          yAxis: 'count()',
+          yAxis: ['count()'],
         }),
       })
     );
@@ -777,7 +777,7 @@ describe('EventsV2 > Results', function () {
     // Update location simulating a browser back button action
     wrapper.setProps({
       location: {
-        query: {...generateFields(), display: 'previous'},
+        query: {...generateFields(), display: 'previous', yAxis: 'count()'},
       },
     });
     await tick();
@@ -791,7 +791,7 @@ describe('EventsV2 > Results', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           statsPeriod: '28d',
-          yAxis: 'count()',
+          yAxis: ['count()'],
         }),
       })
     );
@@ -832,7 +832,7 @@ describe('EventsV2 > Results', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           statsPeriod: '14d',
-          yAxis: 'count()',
+          yAxis: ['count()'],
         }),
       })
     );
@@ -854,7 +854,7 @@ describe('EventsV2 > Results', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           statsPeriod: '28d',
-          yAxis: 'count_unique(user)',
+          yAxis: ['count_unique(user)'],
         }),
       })
     );
