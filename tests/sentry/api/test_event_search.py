@@ -1,9 +1,9 @@
 import datetime
 import os
-import unittest
 from datetime import timedelta
 
 import pytest
+from django.test import SimpleTestCase
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -143,7 +143,7 @@ def result_transformer(result):
     return [token for token in map(node_visitor, result) if token is not None]
 
 
-class ParseSearchQueryTest(unittest.TestCase):
+class ParseSearchQueryTest(SimpleTestCase):
     """
     All test cases in this class are dynamically defined via the test fixtures
     which are shared with the frontend.
@@ -197,7 +197,7 @@ shared_tests_skipped = [
 register_fixture_tests(ParseSearchQueryTest, shared_tests_skipped)
 
 
-class ParseSearchQueryBackendTest(unittest.TestCase):
+class ParseSearchQueryBackendTest(SimpleTestCase):
     """
     These test cases cannot be represented by the test data used to drive the
     ParseSearchQueryTest.
@@ -384,7 +384,10 @@ class ParseSearchQueryBackendTest(unittest.TestCase):
         ]
 
     def test_invalid_aggregate_column_with_duration_filter(self):
-        with self.assertRaises(InvalidSearchQuery, regex="not a duration column"):
+        with self.assertRaisesMessage(
+            InvalidSearchQuery,
+            expected_message="avg(stack.colno): column argument invalid: stack.colno is not a numeric column",
+        ):
             parse_search_query("avg(stack.colno):>500s")
 
     def test_invalid_numeric_aggregate_filter(self):
