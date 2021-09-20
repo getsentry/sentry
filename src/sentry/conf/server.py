@@ -2251,14 +2251,6 @@ SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 600
 # Log warning when process_event is taking more than n seconds to process event
 SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120
 
-# Number of seconds to keep symbolicate_event rates per project.
-#
-# symbolicate_event tasks report the rates of events per project to redis
-# so that projects that exceed a reasonable rate can be sent to the low
-# priority queue. This setting determines how long we keep these rates
-# around.
-SYMBOLICATOR_PROCESS_EVENT_LOW_PRIORITY_COUNTER_TTL = 300
-
 # Block symbolicate_event for this many seconds to wait for a initial response
 # from symbolicator after the task submission.
 SYMBOLICATOR_POLL_TIMEOUT = 10
@@ -2304,10 +2296,27 @@ SENTRY_USE_UWSGI = True
 
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
 
-SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
-
-SENTRY_PROJECT_EVENT_METRICS_REDIS_CLUSTER = "default"
-
+# Which backend to use for MetricsCluster.
+#
+# Currently, only redis is supported.
+SENTRY_REAL_TIME_METRICS_BACKEND = (
+    "sentry.processing.real_time_metrics.redis.RedisRealTimeMetricsStore"
+)
+SENTRY_REAL_TIME_METRICS_OPTIONS = {
+    # The redis cluster used for the metrics cluster redis backend.
+    "cluster_name": "default",
+    # The bucket size of the counter.
+    #
+    # The size (in seconds) of the buckets that events are sorted into.
+    "counter_bucket_size": 10,
+    # Number of seconds to keep symbolicate_event rates per project.
+    #
+    # symbolicate_event tasks report the rates of events per project to redis
+    # so that projects that exceed a reasonable rate can be sent to the low
+    # priority queue. This setting determines how long we keep these rates
+    # around.
+    "counter_ttl": timedelta(seconds=300),
+}
 # Timeout for the project counter statement execution.
 # In case of contention on the project counter, prevent workers saturation with
 # save_event tasks from single project.

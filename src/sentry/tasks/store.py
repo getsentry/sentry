@@ -14,8 +14,8 @@ from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore.processing import event_processing_store
 from sentry.killswitches import killswitch_matches_context
-from sentry.lang.native.project_metrics import metrics_cluster
 from sentry.models import Activity, Organization, Project, ProjectOption
+from sentry.processing import real_time_metrics
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -245,7 +245,10 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     submission_ratio = options.get("symbolicate-event.low-priority.metrics.submission-rate")
     if not from_reprocessing and random.random() < submission_ratio:
-        metrics_cluster.increment_project_event_counter(project_id, symbolication_start_time)
+        with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics.counter"):
+            real_time_metrics.real_time_metrics_store.increment_project_event_counter(
+                project_id, symbolication_start_time
+            )
 
     with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
         span.set_data("symbolication_function", symbolication_function_name)
