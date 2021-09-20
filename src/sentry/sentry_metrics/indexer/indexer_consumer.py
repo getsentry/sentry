@@ -63,6 +63,14 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
             messages += snuba_metrics_producer.poll(0.5)
 
         if messages < len(batch):
+            # TODO(meredith): We are not currently keeping track of
+            # which callbacks failed. This means could potentially
+            # be duplicating messages since we don't commit offsets
+            # unless all the callbacks are successful.
+            #
+            # In the future if we know which callback failed, we can
+            # commmit only up to that point and retry on the remaining
+            # messages.
             raise Exception("didn't get all the callbacks")
 
     def shutdown(self) -> None:
