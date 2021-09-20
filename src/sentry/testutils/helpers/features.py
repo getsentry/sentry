@@ -1,10 +1,13 @@
 __all__ = ["Feature", "with_feature"]
 
 import collections
+import logging
 from contextlib import contextmanager
 
 import sentry.features
 from sentry.utils.compat.mock import patch
+
+logger = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -41,7 +44,10 @@ def Feature(names):
         if name in names:
             return names[name]
         else:
-            return default_features(name, *args, **kwargs)
+            default_value = default_features(name, *args, **kwargs)
+            if default_value:
+                logger.info("Flag %s defaulting to %s", repr(name), default_value)
+            return default_value
 
     with patch("sentry.features.has") as features_has:
         features_has.side_effect = features_override
