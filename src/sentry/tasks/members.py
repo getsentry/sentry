@@ -66,7 +66,7 @@ def send_invite_request_notification_email(member_id):
         analytics.record(
             "invite_request.sent",
             organization_id=om.organization.id,
-            user_id=om.inviter.id,
+            user_id=om.inviter.id if om.inviter else None,
             target_user_id=recipient.id,
             providers="email",
         )
