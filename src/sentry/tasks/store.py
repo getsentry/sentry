@@ -14,9 +14,9 @@ from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore.processing import event_processing_store
 from sentry.killswitches import killswitch_matches_context
+from sentry.lang.native.project_metrics import metrics_cluster
 from sentry.models import Activity, Organization, Project, ProjectOption
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
-from sentry.tasks import metrics_cluster
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
