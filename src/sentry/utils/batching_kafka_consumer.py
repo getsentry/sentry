@@ -57,6 +57,44 @@ def wait_for_topics(admin_client: AdminClient, topics: List[str], timeout: int =
                 )
 
 
+class KafkaConsumerFacade(metaclass=abc.ABCMeta):
+    """
+    Kafka consumer facade which defines the minimal set of methods to be implemented in order to be used as a consumer
+    with BatchingKafkaConsumer. Additional documentation of the API's defined in this class can be found at
+    https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#pythonclient-consumer
+    """
+
+    @abc.abstractmethod
+    def subscribe(self, topics, on_assign=None, on_revoke=None):
+        """
+        Set subscription to supplied list of topics. on_assign and on_revoke are callbacks which would be called when
+        topics are assigned or revoked.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def poll(self, timeout):
+        """
+        Consume a single message from the topic. timeout provides the about of time to wait for a message before
+        returning.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def commit(self, *args, **kwargs):
+        """
+        Commit list of offsets.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def close(self):
+        """
+        Close down and terminate the Kafka Consumer.
+        """
+        raise NotImplementedError
+
+
 class AbstractBatchWorker(metaclass=abc.ABCMeta):
     """The `BatchingKafkaConsumer` requires an instance of this class to
     handle user provided work such as processing raw messages and flushing
@@ -134,8 +172,9 @@ class BatchingKafkaConsumer:
         worker,
         max_batch_size,
         max_batch_time,
-        cluster_name,
-        group_id,
+        consumer=None,
+        cluster_name=None,
+        group_id=None,
         metrics=None,
         producer=None,
         dead_letter_topic=None,
@@ -177,18 +216,33 @@ class BatchingKafkaConsumer:
         if queued_max_messages_kbytes is None:
             queued_max_messages_kbytes = DEFAULT_QUEUED_MAX_MESSAGE_KBYTES
 
-        self.consumer = self.create_consumer(
-            topics,
-            cluster_name,
-            group_id,
-            auto_offset_reset,
-            queued_max_messages_kbytes,
-            queued_min_messages,
-        )
-
         self.producer = producer
         self.commit_log_topic = commit_log_topic
         self.dead_letter_topic = dead_letter_topic
+        if not consumer:
+            self.consumer = self.create_consumer(
+                topics,
+                cluster_name,
+                group_id,
+                auto_offset_reset,
+                queued_max_messages_kbytes,
+                queued_min_messages,
+            )
+        else:
+            assert isinstance(consumer, KafkaConsumerFacade)
+            self.consumer = consumer
+
+        def on_partitions_assigned(consumer, partitions):
+            logger.info("New partitions assigned: %r", partitions)
+
+        def on_partitions_revoked(consumer, partitions):
+            "Reset the current in-memory batch, letting the next consumer take over where we left off."
+            logger.info("Partitions revoked: %r", partitions)
+            self._flush(force=True)
+
+        self.consumer.subscribe(
+            topics, on_assign=on_partitions_assigned, on_revoke=on_partitions_revoked
+        )
 
     def __record_timing(self, metric, value, tags=None):
         if self.__metrics is None:
@@ -231,18 +285,6 @@ class BatchingKafkaConsumer:
             wait_for_topics(admin_client, topics)
 
         consumer = Consumer(consumer_config)
-
-        def on_partitions_assigned(consumer, partitions):
-            logger.info("New partitions assigned: %r", partitions)
-
-        def on_partitions_revoked(consumer, partitions):
-            "Reset the current in-memory batch, letting the next consumer take over where we left off."
-            logger.info("Partitions revoked: %r", partitions)
-            self._flush(force=True)
-
-        consumer.subscribe(
-            topics, on_assign=on_partitions_assigned, on_revoke=on_partitions_revoked
-        )
 
         return consumer
 
