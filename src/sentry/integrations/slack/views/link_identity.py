@@ -70,7 +70,7 @@ class SlackLinkIdentityView(BaseView):  # type: ignore
         send_slack_response(integration, SUCCESS_LINKED_MESSAGE, params, command="link")
 
         return render_to_response(
-            "sentry/integrations/slack-linked.html",
+            "sentry/integrations/slack/linked.html",
             request=request,
             context={"channel_id": params["channel_id"], "team_id": integration.external_id},
         )

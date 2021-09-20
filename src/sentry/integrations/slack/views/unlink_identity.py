@@ -57,7 +57,7 @@ class SlackUnlinkIdentityView(BaseView):  # type: ignore
         send_slack_response(integration, SUCCESS_UNLINKED_MESSAGE, params, command="unlink")
 
         return render_to_response(
-            "sentry/integrations/slack-unlinked.html",
+            "sentry/integrations/slack/unlinked.html",
             request=request,
             context={"channel_id": params["channel_id"], "team_id": integration.external_id},
         )

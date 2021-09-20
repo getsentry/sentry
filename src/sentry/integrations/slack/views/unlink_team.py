@@ -73,7 +73,7 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
         )
         if request.method != "POST":
             return render_to_response(
-                "sentry/integrations/slack-unlink-team.html",
+                "sentry/integrations/slack/unlink-team.html",
                 request=request,
                 context={
                     "team": teams[0],
@@ -101,6 +101,6 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
             channel_id,
             SUCCESS_UNLINKED_TITLE,
             SUCCESS_UNLINKED_MESSAGE.format(team=team.slug),
-            "sentry/integrations/slack-unlinked-team.html",
+            "sentry/integrations/slack/unlinked-team.html",
             request,
         )

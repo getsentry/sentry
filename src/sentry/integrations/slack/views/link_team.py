@@ -72,7 +72,7 @@ class SlackLinkTeamView(BaseView):  # type: ignore
 
         if request.method == "GET":
             return self.respond(
-                "sentry/integrations/slack-link-team.html",
+                "sentry/integrations/slack/link-team.html",
                 {
                     "form": form,
                     "teams": teams,
@@ -118,7 +118,7 @@ class SlackLinkTeamView(BaseView):  # type: ignore
                 channel_id,
                 ALREADY_LINKED_TITLE,
                 ALREADY_LINKED_MESSAGE.format(slug=team.slug),
-                "sentry/integrations/slack-post-linked-team.html",
+                "sentry/integrations/slack/post-linked-team.html",
                 request,
             )
 
@@ -134,6 +134,6 @@ class SlackLinkTeamView(BaseView):  # type: ignore
             channel_id,
             SUCCESS_LINKED_TITLE,
             SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name),
-            "sentry/integrations/slack-post-linked-team.html",
+            "sentry/integrations/slack/post-linked-team.html",
             request,
         )
