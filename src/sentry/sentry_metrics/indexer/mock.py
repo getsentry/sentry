@@ -2,7 +2,7 @@ import itertools
 from collections import defaultdict
 from typing import DefaultDict, Dict, Optional
 
-from .base import StringIndexer, UseCase
+from .base import StringIndexer
 
 _STRINGS = (
     "abnormal",
@@ -32,15 +32,12 @@ class SimpleIndexer(StringIndexer):
         self._reverse: Dict[int, str] = {}
 
     def record(self, org_id: str, string: str) -> int:
-        # NOTE: Ignores ``use_case`` for simplicity.
         return self._record(string)
 
-    def resolve(self, org_id: str, use_case: UseCase, string: str) -> Optional[int]:
-        # NOTE: Ignores ``use_case`` for simplicity.
+    def resolve(self, org_id: str, string: str) -> Optional[int]:
         return self._strings.get(string)
 
-    def reverse_resolve(self, org_id: str, use_case: UseCase, id: int) -> Optional[str]:
-        # NOTE: Ignores ``use_case`` for simplicity.
+    def reverse_resolve(self, org_id: str, id: int) -> Optional[str]:
         return self._reverse.get(id)
 
     def _record(self, string: str) -> int:

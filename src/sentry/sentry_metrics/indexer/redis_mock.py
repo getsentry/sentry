@@ -5,11 +5,15 @@ from django.conf import settings
 
 from sentry.utils.redis import redis_clusters
 
-from .base import StringIndexer, UseCase
+from .base import StringIndexer
 
 
 def get_client() -> Any:
     return redis_clusters.get(settings.SENTRY_METRICS_INDEXER_REDIS_CLUSTER)
+
+
+def get_int(string: str) -> int:
+    return int.from_bytes(hashlib.md5(string.encode("utf-8")).digest(), "big") % (10 ** 8)
 
 
 class RedisMockIndexer(StringIndexer):
@@ -41,9 +45,7 @@ class RedisMockIndexer(StringIndexer):
             # use hashlib instead of hash() because the latter uses a random value (unless PYTHONHASHSEED
             # is set to an integer) to seed hashes of strs and bytes
             # https://docs.python.org/3/using/cmdline.html#envvar-PYTHONHASHSEED
-            int_value: int = int.from_bytes(hashlib.md5(string.encode("utf-8")).digest(), "big") % (
-                10 ** 8
-            )
+            int_value = get_int(string)
             mapped_ints[string] = int_value
 
             int_key = self._get_key(org_id, int_value)
@@ -120,7 +122,7 @@ class RedisMockIndexer(StringIndexer):
         string_key = f"temp-metrics-indexer:{org_id}:1:str:{string}"
         value: Any = client.get(string_key)
         if value is None:
-            value = abs(hash(string)) % (10 ** 8)
+            value = get_int(string)
             client.set(string_key, value)
 
             # reverse record (int to string)
@@ -129,15 +131,13 @@ class RedisMockIndexer(StringIndexer):
 
         return int(value)
 
-    def resolve(self, org_id: str, use_case: UseCase, string: str) -> Optional[int]:
+    def resolve(self, org_id: str, string: str) -> Optional[int]:
         try:
             return int(get_client().get(f"temp-metrics-indexer:{org_id}:1:str:{string}"))
         except TypeError:
             return None
 
-    def reverse_resolve(self, org_id: str, use_case: UseCase, id: int) -> Optional[str]:
-        # NOTE: Ignores ``use_case`` for simplicity.
-
+    def reverse_resolve(self, org_id: str, id: int) -> Optional[str]:
         result: Optional[str] = get_client().get(f"temp-metrics-indexer:{org_id}:1:int:{id}")
         return result
 
