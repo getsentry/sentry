@@ -75,8 +75,7 @@ kombu==4.6.11
 # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
 # See https://github.com/grpc/grpc/issues/23796 and
 # https://github.com/grpc/grpc/blob/v1.35.x/doc/core/grpc-polling-engines.md#polling-engine-implementations-in-grpc
-grpcio==1.35.0; python_version == '3.6'
-grpcio==1.39.0; python_version > '3.6'
+grpcio==1.40.0
 
 # not directly used, but provides a speedup for redis
 hiredis==0.3.1

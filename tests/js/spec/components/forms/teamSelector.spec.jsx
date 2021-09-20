@@ -2,6 +2,7 @@ import {act, fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import {addTeamToProject} from 'app/actionCreators/projects';
 import {TeamSelector} from 'app/components/forms/teamSelector';
+import TeamStore from 'app/stores/teamStore';
 
 jest.mock('app/actionCreators/projects', () => ({
   addTeamToProject: jest.fn(),
@@ -26,16 +27,11 @@ const teamData = [
 ];
 const teams = teamData.map(data => TestStubs.Team(data));
 const project = TestStubs.Project({teams: [teams[0]]});
+const organization = TestStubs.Organization({access: ['project:write']});
 
 function createWrapper(props = {}) {
-  const organization = TestStubs.Organization({access: ['project:write']});
   return mountWithTheme(
-    <TeamSelector
-      teams={teams}
-      organization={organization}
-      name="teamSelector"
-      {...props}
-    />
+    <TeamSelector organization={organization} name="teamSelector" {...props} />
   );
 }
 
@@ -49,7 +45,9 @@ function openSelectMenu(wrapper) {
 }
 
 describe('Team Selector', function () {
-  beforeAll(function () {});
+  beforeEach(function () {
+    act(() => void TeamStore.loadInitialData(teams));
+  });
 
   it('renders options', function () {
     const wrapper = createWrapper();

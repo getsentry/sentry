@@ -1,3 +1,4 @@
+import {Organization} from 'app/types';
 import {Breadcrumb, BreadcrumbType} from 'app/types/breadcrumbs';
 import {Event} from 'app/types/event';
 
@@ -9,10 +10,10 @@ type Props = {
   searchTerm: string;
   breadcrumb: Breadcrumb;
   event: Event;
-  orgId: string | null;
+  orgSlug: Organization['slug'];
 };
 
-const Data = ({breadcrumb, event, orgId, searchTerm}: Props) => {
+const Data = ({breadcrumb, event, orgSlug, searchTerm}: Props) => {
   if (breadcrumb.type === BreadcrumbType.HTTP) {
     return <Http breadcrumb={breadcrumb} searchTerm={searchTerm} />;
   }
@@ -27,7 +28,7 @@ const Data = ({breadcrumb, event, orgId, searchTerm}: Props) => {
   return (
     <Default
       event={event}
-      orgId={orgId}
+      orgSlug={orgSlug}
       breadcrumb={breadcrumb}
       searchTerm={searchTerm}
     />
