@@ -64,11 +64,13 @@ babel.config.*      @getsentry/owners-js-build
 build-utils/        @getsentry/owners-js-build
 
 # Design
-/static/app/icons/                                              @getsentry/design
-/static/fonts/                                                  @getsentry/design
-/static/images/                                                 @getsentry/design
-/docs-ui/components/                                            @getsentry/design
+/static/app/icons/    @getsentry/design
+/static/fonts/        @getsentry/design
+/static/images/       @getsentry/design
+/docs-ui/components/  @getsentry/design @getsentry/core-ui
 
+# Frontend
+/static/app/components  @getsentry/core-ui
 
 # Owners by product feature
 
