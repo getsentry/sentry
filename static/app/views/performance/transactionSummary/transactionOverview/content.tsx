@@ -5,7 +5,6 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Feature from 'app/components/acl/feature';
-import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
 import SearchBar from 'app/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
@@ -42,9 +41,6 @@ import Filter, {
   filterToSearchConditions,
   SpanOperationBreakdownFilter,
 } from '../filter';
-import TransactionHeader from '../header';
-import Tab from '../tabs';
-import {TransactionThresholdMetric} from '../transactionThresholdModal';
 import {
   generateTraceLink,
   generateTransactionLink,
@@ -69,19 +65,10 @@ type Props = {
   totalValues: Record<string, number> | null;
   projects: Project[];
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
-  onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
 };
 
-type State = {
-  incompatibleAlertNotice: React.ReactNode;
-};
-
-class SummaryContent extends React.Component<Props, State> {
-  state: State = {
-    incompatibleAlertNotice: null,
-  };
-
+class SummaryContent extends React.Component<Props> {
   handleSearch = (query: string) => {
     const {location} = this.props;
 
@@ -107,15 +94,6 @@ class SummaryContent extends React.Component<Props, State> {
       ...location,
       query,
     };
-  };
-
-  handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertFromViewButton
-  >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, _errors) => {
-    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
-      this.setState({incompatibleAlertNotice: null})
-    );
-    this.setState({incompatibleAlertNotice});
   };
 
   handleCellAction = (column: TableColumn<React.ReactText>) => {
@@ -215,7 +193,6 @@ class SummaryContent extends React.Component<Props, State> {
       error,
       totalValues,
       onChangeFilter,
-      onChangeThreshold,
       spanOperationBreakdownFilter,
     } = this.props;
     const hasPerformanceEventsPage = organization.features.includes(
@@ -225,7 +202,6 @@ class SummaryContent extends React.Component<Props, State> {
       'performance-chart-interpolation'
     );
 
-    const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query, '');
     const totalCount = totalValues === null ? null : totalValues.count;
 
@@ -321,132 +297,114 @@ class SummaryContent extends React.Component<Props, State> {
 
     return (
       <React.Fragment>
-        <TransactionHeader
-          eventView={eventView}
-          location={location}
-          organization={organization}
-          projects={projects}
-          transactionName={transactionName}
-          currentTab={Tab.TransactionSummary}
-          hasWebVitals="maybe"
-          handleIncompatibleQuery={this.handleIncompatibleQuery}
-          onChangeThreshold={onChangeThreshold}
-        />
-        <Layout.Body>
-          <StyledSdkUpdatesAlert />
-          {incompatibleAlertNotice && (
-            <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
-          )}
-          <Layout.Main>
-            <Search>
-              <Filter
-                organization={organization}
-                currentFilter={spanOperationBreakdownFilter}
-                onChangeFilter={onChangeFilter}
-              />
-              <StyledSearchBar
-                searchSource="transaction_summary"
-                organization={organization}
-                projectIds={eventView.project}
-                query={query}
-                fields={eventView.fields}
-                onSearch={this.handleSearch}
-                maxQueryLength={MAX_QUERY_LENGTH}
-              />
-            </Search>
-            <TransactionSummaryCharts
+        <Layout.Main>
+          <Search>
+            <Filter
               organization={organization}
-              location={location}
-              eventView={eventView}
-              totalValues={totalCount}
               currentFilter={spanOperationBreakdownFilter}
-              withoutZerofill={hasPerformanceChartInterpolation}
+              onChangeFilter={onChangeFilter}
             />
-            <TransactionsList
-              location={location}
+            <StyledSearchBar
+              searchSource="transaction_summary"
               organization={organization}
-              eventView={transactionsListEventView}
-              {...(hasPerformanceEventsPage ? openAllEventsProps : openInDiscoverProps)}
-              showTransactions={
-                decodeScalar(
-                  location.query.showTransactions,
-                  TransactionFilterOptions.SLOW
-                ) as TransactionFilterOptions
-              }
-              breakdown={decodeFilterFromLocation(location)}
-              titles={transactionsListTitles}
-              handleDropdownChange={this.handleTransactionsListSortChange}
-              generateLink={{
-                id: generateTransactionLink(transactionName),
-                trace: generateTraceLink(eventView.normalizeDateSelection(location)),
-              }}
-              baseline={transactionName}
-              handleBaselineClick={this.handleViewDetailsClick}
-              handleCellAction={this.handleCellAction}
-              {...getTransactionsListSort(location, {
-                p95: totalValues?.p95 ?? 0,
-                spanOperationBreakdownFilter,
-              })}
-              forceLoading={isLoading}
+              projectIds={eventView.project}
+              query={query}
+              fields={eventView.fields}
+              onSearch={this.handleSearch}
+              maxQueryLength={MAX_QUERY_LENGTH}
             />
-            <Feature
-              requireAll={false}
-              features={['performance-tag-explorer', 'performance-tag-page']}
-            >
-              <TagExplorer
-                eventView={eventView}
-                organization={organization}
-                location={location}
-                projects={projects}
-                transactionName={transactionName}
-                currentFilter={spanOperationBreakdownFilter}
-              />
-            </Feature>
-            <RelatedIssues
+          </Search>
+          <TransactionSummaryCharts
+            organization={organization}
+            location={location}
+            eventView={eventView}
+            totalValues={totalCount}
+            currentFilter={spanOperationBreakdownFilter}
+            withoutZerofill={hasPerformanceChartInterpolation}
+          />
+          <TransactionsList
+            location={location}
+            organization={organization}
+            eventView={transactionsListEventView}
+            {...(hasPerformanceEventsPage ? openAllEventsProps : openInDiscoverProps)}
+            showTransactions={
+              decodeScalar(
+                location.query.showTransactions,
+                TransactionFilterOptions.SLOW
+              ) as TransactionFilterOptions
+            }
+            breakdown={decodeFilterFromLocation(location)}
+            titles={transactionsListTitles}
+            handleDropdownChange={this.handleTransactionsListSortChange}
+            generateLink={{
+              id: generateTransactionLink(transactionName),
+              trace: generateTraceLink(eventView.normalizeDateSelection(location)),
+            }}
+            baseline={transactionName}
+            handleBaselineClick={this.handleViewDetailsClick}
+            handleCellAction={this.handleCellAction}
+            {...getTransactionsListSort(location, {
+              p95: totalValues?.p95 ?? 0,
+              spanOperationBreakdownFilter,
+            })}
+            forceLoading={isLoading}
+          />
+          <Feature
+            requireAll={false}
+            features={['performance-tag-explorer', 'performance-tag-page']}
+          >
+            <TagExplorer
+              eventView={eventView}
               organization={organization}
               location={location}
-              transaction={transactionName}
-              start={eventView.start}
-              end={eventView.end}
-              statsPeriod={eventView.statsPeriod}
-            />
-          </Layout.Main>
-          <Layout.Side>
-            <UserStats
-              organization={organization}
-              location={location}
-              isLoading={isLoading}
-              hasWebVitals={hasWebVitals}
-              error={error}
-              totals={totalValues}
+              projects={projects}
               transactionName={transactionName}
-              eventView={eventView}
+              currentFilter={spanOperationBreakdownFilter}
             />
-            {!isFrontendView && (
-              <StatusBreakdown
-                eventView={eventView}
-                organization={organization}
-                location={location}
-              />
-            )}
-            <SidebarSpacer />
-            <SidebarCharts
-              organization={organization}
-              isLoading={isLoading}
-              error={error}
-              totals={totalValues}
-              eventView={eventView}
-            />
-            <SidebarSpacer />
-            <Tags
-              generateUrl={this.generateTagUrl}
-              totalValues={totalCount}
+          </Feature>
+          <RelatedIssues
+            organization={organization}
+            location={location}
+            transaction={transactionName}
+            start={eventView.start}
+            end={eventView.end}
+            statsPeriod={eventView.statsPeriod}
+          />
+        </Layout.Main>
+        <Layout.Side>
+          <UserStats
+            organization={organization}
+            location={location}
+            isLoading={isLoading}
+            hasWebVitals={hasWebVitals}
+            error={error}
+            totals={totalValues}
+            transactionName={transactionName}
+          />
+          {!isFrontendView && (
+            <StatusBreakdown
               eventView={eventView}
               organization={organization}
               location={location}
             />
-          </Layout.Side>
-        </Layout.Body>
+          )}
+          <SidebarSpacer />
+          <SidebarCharts
+            organization={organization}
+            isLoading={isLoading}
+            error={error}
+            totals={totalValues}
+            eventView={eventView}
+          />
+          <SidebarSpacer />
+          <Tags
+            generateUrl={this.generateTagUrl}
+            totalValues={totalCount}
+            eventView={eventView}
+            organization={organization}
+            location={location}
+          />
+        </Layout.Side>
       </React.Fragment>
     );
   }

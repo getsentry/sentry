@@ -12,6 +12,7 @@ from sentry.models import (
     AuditLogEntryEvent,
     DeletedProject,
     EnvironmentProject,
+    Integration,
     NotificationSetting,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
@@ -27,7 +28,7 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers import Feature, faux
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.compat import mock, zip
@@ -103,6 +104,34 @@ class ProjectDetailsTest(APITestCase):
             project.organization.slug, project.slug, qs_params={"include": "stats"}
         )
         assert response.data["stats"]["unresolved"] == 1
+
+    def test_has_alert_integration(self):
+        integration = Integration.objects.create(provider="msteams")
+        integration.add_organization(self.organization)
+
+        project = self.create_project()
+        self.create_group(project=project)
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            project.organization.slug,
+            project.slug,
+            qs_params={"expand": "hasAlertIntegration"},
+        )
+        assert response.data["hasAlertIntegrationInstalled"]
+
+    def test_no_alert_integration(self):
+        integration = Integration.objects.create(provider="jira")
+        integration.add_organization(self.organization)
+
+        project = self.create_project()
+        self.create_group(project=project)
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            project.organization.slug, project.slug, qs_params={"expand": "hasAlertIntegration"}
+        )
+        assert not response.data["hasAlertIntegrationInstalled"]
 
     def test_with_dynamic_sampling_rules(self):
         project = self.project  # force creation
@@ -752,11 +781,12 @@ class ProjectUpdateTest(APITestCase):
         expiry = response.data["secondaryGroupingExpiry"]
         assert (now + 3600 * 24 * 90) < expiry < (now + 3600 * 24 * 92)
 
-    def test_redacted_symbol_source_secrets(self):
+    @mock.patch("sentry.api.base.create_audit_entry")
+    def test_redacted_symbol_source_secrets(self, create_audit_entry):
         with Feature(
             {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
         ):
-            redacted_source = {
+            config = {
                 "id": "honk",
                 "name": "honk source",
                 "layout": {
@@ -769,12 +799,19 @@ class ProjectUpdateTest(APITestCase):
                 "password": "beepbeep",
             }
             self.get_valid_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
             )
-            assert self.project.get_option("sentry:symbol_sources") == json.dumps([redacted_source])
+            assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
 
             # redact password
+            redacted_source = config.copy()
             redacted_source["password"] = {"hidden-secret": True}
+
+            # check that audit entry was created with redacted password
+            assert create_audit_entry.called
+            call = faux.faux(create_audit_entry)
+            assert call.kwarg_equals("data", {"sentry:symbol_sources": [redacted_source]})
+
             self.get_valid_response(
                 self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
             )

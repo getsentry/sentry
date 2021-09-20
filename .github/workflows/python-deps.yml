@@ -2,8 +2,9 @@ name: python deps
 on:
   pull_request:
     paths:
-    - '.github/workflows/python-deps.yml'
-    - 'requirements*'
+      - '.github/actions/setup-python/action.yml'
+      - '.github/workflows/python-deps.yml'
+      - 'requirements-*.txt'
 
 jobs:
   # This workflow makes sure that Python dependencies install correctly for
@@ -14,8 +15,8 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        os: [ macos-11.0, ubuntu-20.04 ]
-        python-version: [ 3.6.13, 3.8.10 ]
+        os: [macos-11.0, ubuntu-20.04]
+        python-version: [3.6.13, 3.8.11]
       fail-fast: false
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
@@ -27,28 +28,22 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Install prerequisites
+        # brew can be finicky but it does not always means that the rest of the job will fail
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --no-upgrade
+          # Needed for xmlsec
+          brew install libxmlsec1 pkg-config
 
-      # Until GH composite actions can use `uses`, we need to setup python here
-      - uses: actions/setup-python@v2
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Setup pip
-        uses: ./.github/actions/setup-pip
-        id: pip
-
-      - name: Cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ${{ steps.pip.outputs.pip-cache-dir }}
-          key: |
-            python-deps-${{ matrix.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements-*.txt') }}
+          # Non-default value since install-py-dev installs all requirements files
+          # We also want to bust the cache if the action and workflow change
+          cache-files-hash: ${{ hashFiles('requirements-*.txt', '.github/actions/setup-python/action.yml', '.github/workflows/python-deps.yml') }}
 
       - name: Install dependencies
         run: |
           python -m venv .venv
           source .venv/bin/activate
           make install-py-dev
+          # This exercises the requirements-pre-commit.txt file
+          make setup-git

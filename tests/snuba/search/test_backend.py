@@ -20,7 +20,11 @@ from sentry.models import (
     Integration,
 )
 from sentry.models.groupowner import GroupOwner
-from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+from sentry.search.snuba.backend import (
+    CdcEventsDatasetSnubaSearchBackend,
+    EventsDatasetSnubaSearchBackend,
+)
+from sentry.search.snuba.executors import InvalidQueryForExecutor
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat import mock
@@ -641,27 +645,6 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         )
         assert list(results) == []
         assert results.hits == 2
-
-    def test_active_at_filter(self):
-        results = self.make_query(
-            search_filter_query="activeSince:>=%s" % date_to_query_format(self.group2.active_at)
-        )
-        assert set(results) == {self.group2}
-
-        results = self.make_query(
-            search_filter_query="activeSince:<=%s"
-            % date_to_query_format(self.group1.active_at + timedelta(minutes=1))
-        )
-        assert set(results) == {self.group1}
-
-        results = self.make_query(
-            search_filter_query="activeSince:>=%s activeSince:<=%s"
-            % (
-                date_to_query_format(self.group1.active_at),
-                date_to_query_format(self.group1.active_at + timedelta(minutes=1)),
-            )
-        )
-        assert set(results) == {self.group1}
 
     def test_age_filter(self):
         results = self.make_query(
@@ -1948,3 +1931,292 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 test_query(f"!{key}:{val}")
 
             test_query(f"{key}:{val}")
+
+
+class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
+    @property
+    def backend(self):
+        return CdcEventsDatasetSnubaSearchBackend()
+
+    def setUp(self):
+        super().setUp()
+        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+
+        self.event1 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "a" * 32,
+                "environment": "production",
+                "timestamp": iso_format(self.base_datetime - timedelta(days=21)),
+                "tags": {"sentry:user": "user1"},
+            },
+            project_id=self.project.id,
+        )
+        self.env1 = self.event1.get_environment()
+        self.group1 = self.event1.group
+        self.event3 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "environment": "staging",
+                "timestamp": iso_format(self.base_datetime),
+                "tags": {"sentry:user": "user2"},
+            },
+            project_id=self.project.id,
+        )
+
+        self.event2 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group2"],
+                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
+                "environment": "staging",
+                "tags": {"sentry:user": "user1"},
+            },
+            project_id=self.project.id,
+        )
+        self.group2 = self.event2.group
+        self.env2 = self.event2.get_environment()
+
+    def build_search_filter(self, query, projects=None, user=None, environments=None):
+        user = user if user is not None else self.user
+        projects = projects if projects is not None else [self.project]
+        return convert_query_values(parse_search_query(query), projects, user, environments)
+
+    def make_query(
+        self,
+        projects=None,
+        search_filter_query=None,
+        environments=None,
+        sort_by="date",
+        limit=None,
+        count_hits=False,
+        date_from=None,
+        date_to=None,
+        cursor=None,
+    ):
+        search_filters = []
+        projects = projects if projects is not None else [self.project]
+        if search_filter_query is not None:
+            search_filters = self.build_search_filter(
+                search_filter_query, projects, environments=environments
+            )
+
+        kwargs = {}
+        if limit is not None:
+            kwargs["limit"] = limit
+
+        return self.backend.query(
+            projects,
+            search_filters=search_filters,
+            environments=environments,
+            count_hits=count_hits,
+            sort_by=sort_by,
+            date_from=date_from,
+            date_to=date_to,
+            cursor=cursor,
+            **kwargs,
+        )
+
+    def run_test(
+        self,
+        search_filter_query,
+        expected_groups,
+        expected_hits,
+        projects=None,
+        environments=None,
+        sort_by="date",
+        limit=None,
+        count_hits=False,
+        date_from=None,
+        date_to=None,
+        cursor=None,
+    ):
+        results = self.make_query(
+            projects=projects,
+            search_filter_query=search_filter_query,
+            environments=environments,
+            sort_by=sort_by,
+            limit=limit,
+            count_hits=count_hits,
+            date_from=date_from,
+            date_to=date_to,
+            cursor=cursor,
+        )
+        assert list(results) == expected_groups
+        assert results.hits == expected_hits
+        return results
+
+    def test(self):
+        self.run_test("is:unresolved", [self.group1, self.group2], None)
+
+    def test_invalid(self):
+        with self.assertRaises(InvalidQueryForExecutor):
+            self.make_query(search_filter_query="is:unresolved abc:123")
+
+    def test_resolved_group(self):
+        self.group2.status = GroupStatus.RESOLVED
+        self.group2.save()
+        self.store_group(self.group2)
+        self.run_test("is:unresolved", [self.group1], None)
+        self.run_test("is:resolved", [self.group2], None)
+        self.run_test("is:unresolved is:resolved", [], None)
+
+    def test_environment(self):
+        self.run_test("is:unresolved", [self.group1], None, environments=[self.env1])
+        self.run_test("is:unresolved", [self.group1, self.group2], None, environments=[self.env2])
+
+    def test_sort_times_seen(self):
+        self.run_test(
+            "is:unresolved",
+            [self.group1, self.group2],
+            None,
+            sort_by="freq",
+            date_from=self.base_datetime - timedelta(days=30),
+        )
+
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group2"],
+                "timestamp": iso_format(self.base_datetime - timedelta(days=15)),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group2"],
+                "timestamp": iso_format(self.base_datetime - timedelta(days=10)),
+                "tags": {"sentry:user": "user2"},
+            },
+            project_id=self.project.id,
+        )
+
+        self.run_test(
+            "is:unresolved",
+            [self.group2, self.group1],
+            None,
+            sort_by="freq",
+            # Change the date range to bust the cache
+            date_from=self.base_datetime - timedelta(days=29),
+        )
+
+    def test_sort_first_seen(self):
+        self.run_test(
+            "is:unresolved",
+            [self.group2, self.group1],
+            None,
+            sort_by="new",
+            date_from=self.base_datetime - timedelta(days=30),
+        )
+
+        group3 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group3"],
+                "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
+            },
+            project_id=self.project.id,
+        ).group
+
+        self.run_test(
+            "is:unresolved",
+            [group3, self.group2, self.group1],
+            None,
+            sort_by="new",
+            # Change the date range to bust the cache
+            date_from=self.base_datetime - timedelta(days=29),
+        )
+
+    def test_sort_user(self):
+        self.run_test(
+            "is:unresolved",
+            [self.group1, self.group2],
+            None,
+            sort_by="user",
+            date_from=self.base_datetime - timedelta(days=30),
+        )
+
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group2"],
+                "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
+                "tags": {"sentry:user": "user2"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group2"],
+                "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
+                "tags": {"sentry:user": "user2"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
+                "tags": {"sentry:user": "user1"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
+                "tags": {"sentry:user": "user1"},
+            },
+            project_id=self.project.id,
+        )
+
+        self.run_test(
+            "is:unresolved",
+            [self.group2, self.group1],
+            None,
+            sort_by="user",
+            # Change the date range to bust the cache
+            date_from=self.base_datetime - timedelta(days=29),
+        )
+
+    def test_sort_priority(self):
+        self.run_test(
+            "is:unresolved",
+            [self.group1, self.group2],
+            None,
+            sort_by="priority",
+            date_from=self.base_datetime - timedelta(days=30),
+        )
+
+    def test_cursor(self):
+        group3 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group3"],
+                "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
+                "tags": {"sentry:user": "user2"},
+            },
+            project_id=self.project.id,
+        ).group
+        group4 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group7"],
+                "timestamp": iso_format(self.base_datetime + timedelta(days=2)),
+                "tags": {"sentry:user": "user2"},
+            },
+            project_id=self.project.id,
+        ).group
+
+        results = self.run_test("is:unresolved", [group4], 4, limit=1, count_hits=True)
+        results = self.run_test(
+            "is:unresolved", [group3], 4, limit=1, cursor=results.next, count_hits=True
+        )
+        results = self.run_test(
+            "is:unresolved", [group4], 4, limit=1, cursor=results.prev, count_hits=True
+        )
+        self.run_test(
+            "is:unresolved", [group3, self.group1], 4, limit=2, cursor=results.next, count_hits=True
+        )
+
+    def test_rechecking(self):
+        self.group2.status = GroupStatus.RESOLVED
+        self.group2.save()
+        # Explicitly avoid calling `store_group` here. This means that Clickhouse will still see
+        # this group as `UNRESOLVED` and it will be returned in the snuba results. This group
+        # should still be filtered out by our recheck.
+        self.run_test("is:unresolved", [self.group1], None)

@@ -35,6 +35,7 @@ function Repository({repository, onDelete, onEdit}: Props) {
       </TypeAndStatus>
       <CustomRepositoryActions
         repositoryName={name}
+        repositoryType={type}
         onDelete={() => onDelete(id)}
         onEdit={() => onEdit(id)}
         showDetails={repository.type === CustomRepoType.APP_STORE_CONNECT}

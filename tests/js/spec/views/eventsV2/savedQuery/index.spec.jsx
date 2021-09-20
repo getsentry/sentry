@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import EventView from 'app/utils/discover/eventView';
 import DiscoverBanner from 'app/views/eventsV2/banner';
@@ -34,7 +35,9 @@ function generateWrappedComponent(
 
 describe('EventsV2 > SaveQueryButtonGroup', function () {
   // Organization + Location does not affect state in this component
-  const organization = TestStubs.Organization({features: ['discover-query']});
+  const organization = TestStubs.Organization({
+    features: ['discover-query', 'connect-discover-and-dashboards', 'dashboards-edit'],
+  });
   const location = {
     pathname: '/organization/eventsv2/',
     query: {},
@@ -352,6 +355,24 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       const buttonCreateAlert = wrapper.find(SELECTOR_BUTTON_CREATE_ALERT);
 
       expect(buttonCreateAlert.exists()).toBe(false);
+    });
+  });
+  describe('add dashboard widget', () => {
+    it('opens widget modal when add to dashboard is clicked', async () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewModified,
+        savedQuery
+      );
+      wrapper.find('DiscoverQueryMenu').find('Button').first().simulate('click');
+      wrapper.find('MenuItem').first().simulate('click');
+      await tick();
+      await wrapper.update();
+      const modal = await mountGlobalModal();
+      expect(modal.find('AddDashboardWidgetModal').find('h4').children().html()).toEqual(
+        'Add Widget to Dashboard'
+      );
     });
   });
 });

@@ -377,6 +377,7 @@ class ReleaseOverview extends AsyncView<Props> {
           const yAxis = this.getYAxis(hasHealthData, hasPerformance);
           const eventType = this.getEventType(yAxis);
           const vitalType = this.getVitalType(yAxis);
+          const {environments} = selection;
 
           const {selectedSort, sortOptions} = getTransactionsListSort(location);
           const releaseEventView = this.getReleaseEventView(
@@ -550,6 +551,7 @@ class ReleaseOverview extends AsyncView<Props> {
                           errored={errored}
                           release={release}
                           project={project}
+                          environment={environments}
                         />
                       )}
                     </Feature>

@@ -29,7 +29,7 @@ function Row<T extends Item>({
 }: Props<T>) {
   const {index} = item;
 
-  if (item?.groupLabel) {
+  if (item.groupLabel) {
     return (
       <LabelWithBorder style={style}>
         {item.label && <GroupLabel>{item.label}</GroupLabel>}
@@ -40,6 +40,7 @@ function Row<T extends Item>({
   return (
     <AutoCompleteItem
       itemSize={itemSize}
+      disabled={item.disabled}
       isHighlighted={index === highlightedIndex}
       {...getItemProps({item, index, style})}
     >
@@ -83,6 +84,7 @@ const GroupLabel = styled('div')`
 
 const AutoCompleteItem = styled('div')<{
   isHighlighted: boolean;
+  disabled?: boolean;
   itemSize?: ItemSize;
 }>`
   /* needed for virtualized lists that do not fill parent height */
@@ -95,7 +97,7 @@ const AutoCompleteItem = styled('div')<{
   background-color: ${p => (p.isHighlighted ? p.theme.focus : 'transparent')};
   color: ${p => (p.isHighlighted ? p.theme.textColor : 'inherit')};
   padding: ${p => getItemPaddingForSize(p.itemSize)};
-  cursor: pointer;
+  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 
   :last-child {

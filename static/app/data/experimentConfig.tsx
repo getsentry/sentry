@@ -14,31 +14,19 @@ export const unassignedValue = -1;
  */
 export const experimentList = [
   {
-    key: 'DashboardUpsellSandboxExperiment',
-    type: ExperimentType.Organization,
-    parameter: 'exposed',
-    assignments: [0, 1],
-  },
-  {
-    key: 'TrialConfirmationExperiment',
-    type: ExperimentType.Organization,
-    parameter: 'exposed',
-    assignments: [0, 1],
-  },
-  {
     key: 'OverageNotificationExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],
   },
   {
-    key: 'CheckoutDefaultBusinessExperiment',
+    key: 'HighlightBusinessPlanExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],
   },
   {
-    key: 'HighlightBusinessPlanExperiment',
+    key: 'DefaultBusinessForFreeOrgsExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],

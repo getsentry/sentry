@@ -18,7 +18,7 @@ import App from 'app/views/app';
 import AuthLayout from 'app/views/auth/layout';
 import IssueListContainer from 'app/views/issueList/container';
 import IssueListOverview from 'app/views/issueList/overview';
-import OrganizationContext from 'app/views/organizationContext';
+import OrganizationContextContainer from 'app/views/organizationContext';
 import OrganizationDetails, {
   LightWeightOrganizationDetails,
 } from 'app/views/organizationDetails';
@@ -77,7 +77,7 @@ function routes() {
       <Route path="notifications/" name="Notifications">
         <IndexRoute
           componentPromise={() =>
-            import('app/views/settings/account/accountNotifications')
+            import('app/views/settings/account/notifications/notificationSettings')
           }
           component={SafeLazyLoad}
         />
@@ -802,7 +802,10 @@ function routes() {
           component={SafeLazyLoad}
         />
 
-        <Route path="/onboarding/:orgId/" component={errorHandler(OrganizationContext)}>
+        <Route
+          path="/onboarding/:orgId/"
+          component={errorHandler(OrganizationContextContainer)}
+        >
           <IndexRedirect to="welcome/" />
           <Route
             path=":step/"
@@ -875,6 +878,16 @@ function routes() {
             componentPromise={() => import('app/views/projectsDashboard')}
             component={SafeLazyLoad}
           />
+          <Route
+            path="/organizations/:orgId/teamInsights/"
+            componentPromise={() => import('app/views/teamInsights')}
+            component={SafeLazyLoad}
+          >
+            <IndexRoute
+              componentPromise={() => import('app/views/teamInsights/overview')}
+              component={SafeLazyLoad}
+            />
+          </Route>
           <Route
             path="/organizations/:orgId/dashboards/"
             componentPromise={() => import('app/views/dashboardsV2')}

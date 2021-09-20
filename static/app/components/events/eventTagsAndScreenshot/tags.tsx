@@ -26,6 +26,7 @@ function Tags({event, organization, projectSlug, location, hasContext}: Props) {
       description={t(
         'Tags help you quickly both access related events and view the tag distribution for a set of events'
       )}
+      data-test-id="event-tags"
     >
       {hasContext && <TagsHighlight event={event} />}
       <EventTags
@@ -41,6 +42,7 @@ function Tags({event, organization, projectSlug, location, hasContext}: Props) {
 export default Tags;
 
 const StyledDataSection = styled(DataSection)`
+  overflow: hidden;
   ${SectionContents} {
     overflow: hidden;
   }

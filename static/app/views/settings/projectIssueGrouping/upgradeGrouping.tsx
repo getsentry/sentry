@@ -38,7 +38,7 @@ function UpgradeGrouping({
   api,
   location,
 }: Props) {
-  const hasAccess = organization.access.includes('project:write');
+  const hasProjectWriteAccess = organization.access.includes('project:write');
   const {updateNotes, riskLevel, latestGroupingConfig} = getGroupingChanges(
     project,
     groupingConfigs
@@ -48,7 +48,12 @@ function UpgradeGrouping({
   const priority = riskLevel >= 2 ? 'danger' : 'primary';
 
   useEffect(() => {
-    if (location.hash !== `#${upgradeGroupingId}` || noUpdates || !groupingConfigs) {
+    if (
+      location.hash !== `#${upgradeGroupingId}` ||
+      noUpdates ||
+      !groupingConfigs ||
+      !hasProjectWriteAccess
+    ) {
       return;
     }
     handleOpenConfirmModal();
@@ -115,7 +120,7 @@ function UpgradeGrouping({
   }
 
   function getButtonTitle() {
-    if (!hasAccess) {
+    if (!hasProjectWriteAccess) {
       return t('You do not have sufficient permissions to do this');
     }
 
@@ -143,7 +148,7 @@ function UpgradeGrouping({
           <div>
             <Button
               onClick={handleOpenConfirmModal}
-              disabled={!hasAccess || noUpdates}
+              disabled={!hasProjectWriteAccess || noUpdates}
               title={getButtonTitle()}
               type="button"
               priority={priority}

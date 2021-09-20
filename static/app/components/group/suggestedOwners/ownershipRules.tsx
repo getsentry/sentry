@@ -56,7 +56,8 @@ const OwnershipRules = ({
   const codeOwnersCTA = (
     <Container dashedBorder>
       <HeaderContainer>
-        <Header>{t('Codeowners sync')}</Header> <FeatureBadge type="beta" noTooltip />
+        <Header>{t('Codeowners sync')}</Header>{' '}
+        <FeatureBadge style={{top: -3}} type="new" noTooltip />
         <DismissButton
           icon={<IconClose size="xs" />}
           priority="link"
@@ -165,16 +166,16 @@ const HeaderContainer = styled('div')`
   align-items: flex-start;
 `;
 
-const Header = styled('h4')`
+const Header = styled('h6')`
   margin-bottom: ${space(1)};
   text-transform: uppercase;
   font-weight: bold;
-  color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 
 const Content = styled('span')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.gray500};
   margin-bottom: ${space(2)};
 `;
 

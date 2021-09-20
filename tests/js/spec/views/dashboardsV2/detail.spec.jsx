@@ -6,6 +6,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 
+import {DashboardState} from 'app/views/dashboardsV2/types';
 import ViewEditDashboard from 'app/views/dashboardsV2/view';
 
 describe('Dashboards > Detail', function () {
@@ -234,6 +235,11 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/events-stats/',
         body: {data: []},
       });
+      MockApiClient.addMockResponse({
+        method: 'POST',
+        url: '/organizations/org-slug/dashboards/widgets/',
+        body: [],
+      });
     });
 
     afterEach(function () {
@@ -368,6 +374,51 @@ describe('Dashboards > Detail', function () {
       expect(breadcrumbs.exists()).toBe(true);
       expect(breadcrumbs.find('BreadcrumbLink').find('a').text()).toEqual('Dashboards');
       expect(breadcrumbs.find('BreadcrumbItem').last().text()).toEqual('Custom Errors');
+    });
+
+    it('enters edit mode when given a new widget in location query', async function () {
+      initialData.router.location = {
+        query: {
+          displayType: 'line',
+          interval: '5m',
+          queryConditions: ['title:test', 'event.type:test'],
+          queryFields: ['count()', 'failure_count()'],
+          queryNames: ['1', '2'],
+          queryOrderby: '',
+          title: 'Widget Title',
+        },
+      };
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+      expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
+        DashboardState.EDIT
+      );
+    });
+
+    it('enters view mode when not given a new widget in location query', async function () {
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+      expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
+        DashboardState.VIEW
+      );
     });
   });
 });

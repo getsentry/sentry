@@ -33,10 +33,18 @@ type Props = {
   groupId: Group['id'];
   orgSlug: Organization['slug'];
   projSlug: Project['slug'];
+  hasProjectWriteAccess: boolean;
   onRetry: () => void;
 };
 
-function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
+function ErrorMessage({
+  error,
+  groupId,
+  onRetry,
+  orgSlug,
+  projSlug,
+  hasProjectWriteAccess,
+}: Props) {
   function getErrorDetails(errorCode: ErrorCode) {
     switch (errorCode) {
       case 'merged_issues':
@@ -110,8 +118,14 @@ function ErrorMessage({error, groupId, onRetry, orgSlug, projSlug}: Props) {
               <Button
                 priority="primary"
                 to={`/settings/${orgSlug}/projects/${projSlug}/issue-grouping/#upgrade-grouping`}
+                disabled={!hasProjectWriteAccess}
+                title={
+                  !hasProjectWriteAccess
+                    ? t('You do not have permission to update this project')
+                    : undefined
+                }
               >
-                {t('Upgrade Grouping Config')}
+                {t('Upgrade Grouping Strategy')}
               </Button>
               <Button href="https://docs.sentry.io/product/data-management-settings/event-grouping/grouping-breakdown/">
                 {t('Read the docs')}

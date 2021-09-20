@@ -721,7 +721,6 @@ class SharedGroupSerializer(GroupSerializer):
 
 class GroupSerializerSnuba(GroupSerializerBase):
     skip_snuba_fields = {
-        "query",
         "status",
         "bookmarked_by",
         "assigned_to",
@@ -730,7 +729,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
         "unassigned",
         "linked",
         "subscribed_by",
-        "active_at",
         "first_release",
         "first_seen",
         "last_seen",

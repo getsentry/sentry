@@ -127,6 +127,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:discover-sidebar-item': FeatureDisabledHook;
   'feature-disabled:discover2-page': FeatureDisabledHook;
   'feature-disabled:discover2-sidebar-item': FeatureDisabledHook;
+  'feature-disabled:open-in-discover': FeatureDisabledHook;
   'feature-disabled:events-page': FeatureDisabledHook;
   'feature-disabled:events-sidebar-item': FeatureDisabledHook;
   'feature-disabled:grid-editable-actions': FeatureDisabledHook;
@@ -142,6 +143,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:project-performance-score-card': FeatureDisabledHook;
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
+  'feature-disabled:relay': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
   'feature-disabled:sso-rippling': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
@@ -375,14 +377,14 @@ type SettingsItemsHook = (organization?: Organization) => NavigationItem[];
  */
 type SidebarItemLabelHook = () => React.ComponentType<{
   /**
+   * The item label being wrapped
+   */
+  children: React.ReactNode;
+  /**
    * The key of the item label currently being rendered. If no id is provided
    * the hook will have no effect.
    */
   id?: string;
-  /**
-   * The item label being wrapped
-   */
-  children: React.ReactNode;
 }>;
 
 type SidebarItemOverrideHook = () => React.ComponentType<{

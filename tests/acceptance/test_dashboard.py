@@ -84,7 +84,7 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.wait_until_not(".loading-indicator")
         self.browser.click('[data-test-id="badge-display-name"]')
         self.browser.wait_until_not(".loading-indicator")
-        self.browser.click(".nav-tabs li:nth-child(3) a")
+        self.browser.click(".nav-tabs li:nth-child(4) a")
         self.browser.wait_until('input[name="slug"]')
         self.browser.element('input[name="slug"]').send_keys("-new-slug")
         self.browser.click('[aria-label="Save"]')

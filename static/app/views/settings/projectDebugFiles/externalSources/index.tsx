@@ -12,7 +12,7 @@ import CustomRepositories from './customRepositories';
 type Props = {
   api: Client;
   organization: Organization;
-  projectSlug: Project['slug'];
+  projSlug: Project['slug'];
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
   customRepositories: CustomRepo[];
   builtinSymbolSources: string[];
@@ -26,7 +26,7 @@ function ExternalSources({
   customRepositories,
   builtinSymbolSources,
   builtinSymbolSourceOptions,
-  projectSlug,
+  projSlug,
   location,
   router,
 }: Props) {
@@ -37,7 +37,7 @@ function ExternalSources({
         organization={organization}
         builtinSymbolSources={builtinSymbolSources}
         builtinSymbolSourceOptions={builtinSymbolSourceOptions}
-        projectSlug={projectSlug}
+        projSlug={projSlug}
       />
       <CustomRepositories
         api={api}
@@ -45,7 +45,7 @@ function ExternalSources({
         router={router}
         organization={organization}
         customRepositories={customRepositories}
-        projectSlug={projectSlug}
+        projSlug={projSlug}
       />
     </Fragment>
   );

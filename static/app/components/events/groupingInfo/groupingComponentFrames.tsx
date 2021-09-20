@@ -32,14 +32,14 @@ class GroupingComponentFrames extends React.Component<Props, State> {
   render() {
     const {items, maxVisibleItems} = this.props;
     const {collapsed} = this.state;
-    const isCollapsable = items.length > maxVisibleItems;
+    const isCollapsible = items.length > maxVisibleItems;
 
     return (
       <React.Fragment>
         {items.map((item, index) => {
           if (!collapsed || index < maxVisibleItems) {
             return (
-              <GroupingComponentListItem isCollapsable={isCollapsable} key={index}>
+              <GroupingComponentListItem isCollapsible={isCollapsible} key={index}>
                 {item}
               </GroupingComponentListItem>
             );

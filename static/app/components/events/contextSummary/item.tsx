@@ -11,7 +11,7 @@ type Props = {
 };
 
 const Item = ({children, icon, className}: Props) => (
-  <Wrapper className={classNames('context-item', className)}>
+  <Wrapper className={classNames('context-item', className)} data-test-id="context-item">
     {icon}
     {children && <Details>{children}</Details>}
   </Wrapper>
@@ -29,12 +29,15 @@ const Details = styled('div')`
 
 const Wrapper = styled('div')`
   border-top: 1px solid ${p => p.theme.innerBorder};
-  padding: 4px 0 4px 40px;
+  padding: ${space(0.5)} 0 ${space(0.5)} 40px;
   display: flex;
-  margin-right: ${space(3)};
   align-items: center;
   position: relative;
   min-width: 0;
+
+  :not(:last-child) {
+    margin-right: ${space(3)};
+  }
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     max-width: 25%;

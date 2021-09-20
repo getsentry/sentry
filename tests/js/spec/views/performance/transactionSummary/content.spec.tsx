@@ -133,7 +133,6 @@ describe('Transaction Summary Content', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('TransactionHeader')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
@@ -182,7 +181,6 @@ describe('Transaction Summary Content', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('TransactionHeader')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
