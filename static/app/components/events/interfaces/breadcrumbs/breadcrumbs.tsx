@@ -196,7 +196,7 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
   }
 
   @media (max-width: ${props => props.theme.breakpoints[0]}) {
-    grid-template-columns: 48px 1fr 75px 81px;
+    grid-template-columns: 48px 1fr 74px 82px;
     > * {
       :nth-child(-n + 6) {
         /* Type */

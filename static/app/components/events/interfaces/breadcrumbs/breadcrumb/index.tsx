@@ -75,7 +75,7 @@ const Wrapper = styled('div')<{error: boolean}>`
 
   @media (max-width: ${props => props.theme.breakpoints[0]}) {
     grid-template-rows: repeat(2, auto);
-    grid-template-columns: max-content 1fr 75px 81px;
+    grid-template-columns: max-content 1fr 74px 82px;
 
     > * {
       padding: ${space(1)};
