@@ -38,7 +38,7 @@ function TransactionVitals(props: Props) {
   );
 }
 
-function getDocumentTitle(transactionName): string {
+function getDocumentTitle(transactionName: string): string {
   const hasTransactionName =
     typeof transactionName === 'string' && String(transactionName).trim().length > 0;
 

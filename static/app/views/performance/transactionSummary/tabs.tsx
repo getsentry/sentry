@@ -3,6 +3,7 @@ enum Tab {
   WebVitals,
   Tags,
   Events,
+  Spans,
 }
 
 export default Tab;
