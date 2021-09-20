@@ -14,9 +14,11 @@ class GroupHistoryStatus:
     UNASSIGNED = 5
     REGRESSED = 6
     DELETED = 7
+    DELETED_AND_DISCADED = 8
+    REVIEWED = 9
 
 
-class GroupHistoryn(Model):
+class GroupHistory(Model):
     """
     This model is used to track certain status changes for groups,
     and is designed to power a few types of queries:
@@ -42,6 +44,8 @@ class GroupHistoryn(Model):
             (GroupHistoryStatus.ASSIGNED, _("Assigned")),
             (GroupHistoryStatus.UNASSIGNED, _("Unassigned")),
             (GroupHistoryStatus.DELETED, _("Deleted")),
+            (GroupHistoryStatus.DELETED_AND_DISCADED, _("Deleted and Discarded")),
+            (GroupHistoryStatus.REVIEWED, _("REVIEWED")),
         ),
         db_index=True,
     )
