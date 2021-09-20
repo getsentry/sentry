@@ -371,7 +371,7 @@ def is_valid_role(org_member: OrganizationMember) -> bool:
 
 def render_error_page(request: Request, body_text: str) -> HttpResponse:
     return render_to_response(
-        "sentry/integrations/slack-link-team-error.html",
+        "sentry/integrations/slack/link-team-error.html",
         request=request,
         context={"body_text": body_text},
     )

@@ -1,3 +1,4 @@
+from django.core.signing import BadSignature, SignatureExpired
 from django.http import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -49,7 +50,13 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
     @transaction_start("SlackUnlinkIdentityView")
     @never_cache
     def handle(self, request: Request, signed_params: str) -> Response:
-        params = unsign(signed_params)
+        try:
+            params = unsign(signed_params)
+        except (SignatureExpired, BadSignature):
+            return render_to_response(
+                "sentry/integrations/slack/expired-link.html",
+                request=request,
+            )
 
         organization, integration, idp = get_identity(
             request.user, params["organization_id"], params["integration_id"]
@@ -73,7 +80,7 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
         )
         if request.method != "POST":
             return render_to_response(
-                "sentry/integrations/slack-unlink-team.html",
+                "sentry/integrations/slack/unlink-team.html",
                 request=request,
                 context={
                     "team": teams[0],
@@ -101,6 +108,6 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
             channel_id,
             SUCCESS_UNLINKED_TITLE,
             SUCCESS_UNLINKED_MESSAGE.format(team=team.slug),
-            "sentry/integrations/slack-unlinked-team.html",
+            "sentry/integrations/slack/unlinked-team.html",
             request,
         )

@@ -77,13 +77,13 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
         resp = self.client.get(unlink_url)
 
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/integrations/msteams-unlink-identity.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/msteams/unlink-identity.html")
 
         # Unlink identity of user
         resp = self.client.post(unlink_url)
 
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/integrations/msteams-unlinked.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/msteams/unlinked.html")
 
         identity = Identity.objects.filter(external_id=teams_user_id, user=self.user1)
 
@@ -108,13 +108,13 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
         resp = self.client.get(unlink_url)
 
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/integrations/msteams-unlink-identity.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/msteams/unlink-identity.html")
 
         # Unlink identity of user
         resp = self.client.post(unlink_url)
 
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/integrations/msteams-no-identity.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/msteams/no-identity.html")
 
         identity = Identity.objects.filter(external_id=teams_user_id, user=self.user2)
 
