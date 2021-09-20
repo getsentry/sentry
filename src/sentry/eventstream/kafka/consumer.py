@@ -153,7 +153,7 @@ class SynchronizedConsumer(KafkaConsumerFacade):
     implementation here tries to pause consuming from the partition as soon as
     possible, but this makes no explicit guarantees about that behavior.)
 
-    This class is a subclass of KafkaConsumerFacade so that we can use this class with
+    This class implements the KafkaConsumerFacade so that it can be used with
     BatchingKafkaConsumer.
     """
 
