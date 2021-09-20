@@ -8,6 +8,7 @@ from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
 
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -40,7 +41,7 @@ from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.utils.compat import map
-from sentry.utils.compat.mock import Mock, call
+from sentry.utils.compat.mock import Mock, call, patch
 from sentry.utils.dates import to_timestamp
 
 EMPTY = object()
@@ -116,7 +117,7 @@ class ProcessUpdateTest(TestCase):
             dataset=QueryDatasets.SESSIONS,
             name="JustAValidRule",
             query="",
-            aggregate="percentage(sessions_crashed, sessions) AS crash_rate_alert_aggregate",
+            aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
             time_window=1,
             threshold_type=AlertRuleThresholdType.BELOW,
             threshold_period=1,
@@ -184,6 +185,44 @@ class ProcessUpdateTest(TestCase):
             ["organizations:incidents", "organizations:performance-view"]
         ), self.capture_on_commit_callbacks(execute=True):
             processor.process_update(message)
+        return processor
+
+    def send_crash_rate_alert_update(self, rule, value, subscription, time_delta=None, count=EMPTY):
+        self.email_action_handler.reset_mock()
+        if time_delta is None:
+            time_delta = timedelta()
+        processor = SubscriptionProcessor(subscription)
+
+        if time_delta is not None:
+            timestamp = timezone.now() + time_delta
+        else:
+            timestamp = timezone.now()
+        timestamp = timestamp.replace(tzinfo=pytz.utc, microsecond=0)
+
+        with self.feature(
+            ["organizations:incidents", "organizations:performance-view"]
+        ), self.capture_on_commit_callbacks(execute=True):
+            processor.process_update(
+                {
+                    "subscription_id": subscription.subscription_id
+                    if subscription
+                    else uuid4().hex,
+                    "values": {
+                        "data": [
+                            {
+                                CRASH_RATE_ALERT_AGGREGATE_ALIAS: value,
+                                CRASH_RATE_ALERT_SESSION_COUNT_ALIAS: randint(0, 100)
+                                if count is EMPTY
+                                else count,
+                            }
+                        ]
+                    },
+                    "timestamp": timestamp,
+                    "interval": 1,
+                    "partition": 1,
+                    "offset": 1,
+                }
+            )
         return processor
 
     def assert_slack_calls(self, trigger_labels):
@@ -1044,10 +1083,10 @@ class ProcessUpdateTest(TestCase):
 
         # Send Critical Update
         update_value = (1 - trigger.alert_threshold / 100) + 0.05
-        self.send_update(
-            rule,
-            update_value,
-            timedelta(minutes=-10),
+        self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            time_delta=timedelta(minutes=-10),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
         incident = self.assert_active_incident(rule)
@@ -1055,10 +1094,10 @@ class ProcessUpdateTest(TestCase):
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
         update_value = (1 - trigger.alert_threshold / 100) - 0.05
-        self.send_update(
-            rule,
-            update_value,
-            timedelta(minutes=-1),
+        self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            time_delta=timedelta(minutes=-1),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
         self.assert_no_active_incident(rule)
@@ -1075,10 +1114,10 @@ class ProcessUpdateTest(TestCase):
 
         # Send Warning Update
         update_value = (1 - trigger_warning.alert_threshold / 100) + 0.05
-        self.send_update(
-            rule,
-            update_value,
-            timedelta(minutes=-3),
+        self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            time_delta=timedelta(minutes=-3),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
 
@@ -1087,10 +1126,10 @@ class ProcessUpdateTest(TestCase):
         self.assert_trigger_exists_with_status(incident, trigger_warning, TriggerStatus.ACTIVE)
 
         update_value = (1 - trigger_warning.alert_threshold / 100) - 0.05
-        self.send_update(
-            rule,
-            update_value,
-            timedelta(minutes=-1),
+        self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            time_delta=timedelta(minutes=-1),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
         self.assert_no_active_incident(rule)
@@ -1110,10 +1149,10 @@ class ProcessUpdateTest(TestCase):
 
         # Send Critical Update
         update_value = (1 - trigger.alert_threshold / 100) + 0.05
-        self.send_update(
-            rule,
-            update_value,
-            timedelta(minutes=-10),
+        self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            time_delta=timedelta(minutes=-10),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
         incident = self.assert_active_incident(rule)
@@ -1122,10 +1161,10 @@ class ProcessUpdateTest(TestCase):
 
         # Send Warning Update
         update_value = (1 - trigger_warning.alert_threshold / 100) + 0.05
-        self.send_update(
-            rule,
-            update_value,
-            timedelta(minutes=-3),
+        self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            time_delta=timedelta(minutes=-3),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
 
@@ -1135,10 +1174,10 @@ class ProcessUpdateTest(TestCase):
 
         # Send update higher than warning threshold
         update_value = (1 - trigger_warning.alert_threshold / 100) - 0.05
-        self.send_update(
-            rule,
-            update_value,
-            timedelta(minutes=-1),
+        self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            time_delta=timedelta(minutes=-1),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
         self.assert_no_active_incident(rule)
@@ -1160,10 +1199,10 @@ class ProcessUpdateTest(TestCase):
 
         # Send Critical Update
         update_value = (1 - trigger.alert_threshold / 100) + 0.05
-        self.send_update(
-            rule,
-            update_value,
-            timedelta(minutes=-10),
+        self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            time_delta=timedelta(minutes=-10),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
         incident = self.assert_active_incident(rule)
@@ -1172,10 +1211,10 @@ class ProcessUpdateTest(TestCase):
 
         # Send Warning Update
         update_value = (1 - trigger_warning.alert_threshold / 100) + 0.05
-        self.send_update(
-            rule,
-            update_value,
-            timedelta(minutes=-3),
+        self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            time_delta=timedelta(minutes=-3),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
 
@@ -1185,10 +1224,10 @@ class ProcessUpdateTest(TestCase):
 
         # Send update higher than warning threshold but lower than resolve threshold
         update_value = (1 - trigger_warning.alert_threshold / 100) - 0.05
-        self.send_update(
-            rule,
-            update_value,
-            timedelta(minutes=-1),
+        self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            time_delta=timedelta(minutes=-1),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
         self.assert_active_incident(rule)
@@ -1199,14 +1238,52 @@ class ProcessUpdateTest(TestCase):
         """
         rule = self.crash_rate_alert_rule
 
-        self.send_update(
-            rule,
-            None,
+        self.send_crash_rate_alert_update(
+            rule=rule,
+            value=None,
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.ignore_update_no_session_data"
         )
+
+    @patch("sentry.incidents.subscription_processor.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    def test_crash_rate_alert_when_session_count_is_lower_than_minimum_threshold(self):
+        rule = self.crash_rate_alert_rule
+        trigger = self.crash_rate_alert_critical_trigger
+
+        # Send Critical Update
+        update_value = (1 - trigger.alert_threshold / 100) + 0.05
+        self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            count=10,
+            time_delta=timedelta(minutes=-10),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        self.assert_no_active_incident(rule)
+        self.metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.ignore_update_count_lower_than_min_threshold"
+        )
+
+    @patch("sentry.incidents.subscription_processor.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    def test_crash_rate_alert_when_session_count_is_higher_than_minimum_threshold(self):
+        rule = self.crash_rate_alert_rule
+        trigger = self.crash_rate_alert_critical_trigger
+        action_critical = self.crash_rate_alert_critical_action
+
+        # Send Critical Update
+        update_value = (1 - trigger.alert_threshold / 100) + 0.05
+        self.send_crash_rate_alert_update(
+            rule=rule,
+            value=update_value,
+            count=31,
+            time_delta=timedelta(minutes=-10),
+            subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+        )
+        incident = self.assert_active_incident(rule)
+        self.assert_actions_fired_for_incident(incident, [action_critical])
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
 
 class TestBuildAlertRuleStatKeys(unittest.TestCase):

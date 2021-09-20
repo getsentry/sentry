@@ -81,6 +81,7 @@ SEARCH_MAP = {
 }
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 SEARCH_MAP.update(**DATASETS[Dataset.Discover])
+SEARCH_MAP.update(**DATASETS[Dataset.Sessions])
 
 DEFAULT_PROJECT_THRESHOLD_METRIC = "duration"
 DEFAULT_PROJECT_THRESHOLD = 300
