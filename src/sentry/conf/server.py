@@ -885,8 +885,6 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
-    # Enable Apple app-store-connect dsym symbol file collection.
-    "organizations:app-store-connect": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
     # Enable explicit use of AND and OR in search.
@@ -1358,6 +1356,10 @@ SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefix
 # Metrics product
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
+
+# Release Health
+SENTRY_RELEASE_HEALTH = "sentry.releasehealth.sessions.SessionsReleaseHealthBackend"
+SENTRY_RELEASE_HEALTH_OPTIONS = {}
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
