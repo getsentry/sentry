@@ -735,7 +735,7 @@ class Release(Model):
             repos_by_name = {r.name: r for r in repos}
             invalid_repos = names - set(repos_by_name.keys())
             if invalid_repos:
-                raise InvalidRepository("Invalid repository names: %s" % ",".join(invalid_repos))
+                raise InvalidRepository(f"Invalid repository names: {','.join(invalid_repos)}")
 
             self.handle_commit_ranges(refs)
 
