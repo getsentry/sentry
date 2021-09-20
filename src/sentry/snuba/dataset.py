@@ -9,3 +9,4 @@ class Dataset(Enum):
     Outcomes = "outcomes"
     OutcomesRaw = "outcomes_raw"
     Sessions = "sessions"
+    Metrics = "metrics"

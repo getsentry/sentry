@@ -2,7 +2,6 @@ import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import Highlight from 'app/components/highlight';
-import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
 import {defined} from 'app/utils';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -16,7 +15,12 @@ type Props = {
   displayRelativeTime?: boolean;
 };
 
-const Time = memo(({timestamp, relativeTime, displayRelativeTime, searchTerm}: Props) => {
+const Time = memo(function Time({
+  timestamp,
+  relativeTime,
+  displayRelativeTime,
+  searchTerm,
+}: Props) {
   if (!(defined(timestamp) && defined(relativeTime))) {
     return null;
   }
@@ -39,12 +43,10 @@ const Time = memo(({timestamp, relativeTime, displayRelativeTime, searchTerm}: P
         containerDisplayMode="inline-flex"
         disableForVisualTest
       >
-        <TextOverflow>
-          {getDynamicText({
-            value: <Highlight text={searchTerm}>{displayTime}</Highlight>,
-            fixed: '00:00:00',
-          })}
-        </TextOverflow>
+        {getDynamicText({
+          value: <Highlight text={searchTerm}>{displayTime}</Highlight>,
+          fixed: '00:00:00',
+        })}
       </Tooltip>
     </Wrapper>
   );

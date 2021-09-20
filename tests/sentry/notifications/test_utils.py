@@ -93,7 +93,6 @@ class NotificationHelpersTest(TestCase):
             {},
             notification_providers(),
             NotificationSettingTypes.DEPLOY,
-            organization=self.organization,
         )
         assert values_by_provider == {
             ExternalProviders.EMAIL: NotificationSettingOptionValues.COMMITTED_ONLY,
@@ -113,7 +112,6 @@ class NotificationHelpersTest(TestCase):
             notification_settings_by_scope,
             notification_providers(),
             NotificationSettingTypes.DEPLOY,
-            organization=self.organization,
         )
         assert values_by_provider == {
             ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
