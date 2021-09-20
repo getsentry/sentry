@@ -184,23 +184,24 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         data = slack_request.data
 
+        # Actions list may be empty when receiving a dialog response
+        action_list = data.get("actions", [])
+
         # if a user is just clicking our auto response in the messages tab we just return a 200
-        if (
-            data.get("actions")
-            and data["actions"][0].get("value", "") == "sentry_docs_link_clicked"
-        ):
+        if action_list and action_list[0].get("value", "") == "sentry_docs_link_clicked":
             return self.respond()
 
         channel_id = slack_request.channel_id
         user_id = slack_request.user_id
         response_url = data.get("response_url")
 
-        if data.get("actions") and data["actions"][0].get("value", "") in ["link", "ignore"]:
+        if action_list and action_list[0].get("value", "") in ["link", "ignore"]:
             payload = {"delete_original": "true"}
             try:
                 post(response_url, json=payload)
             except ApiError as e:
                 logger.error("slack.action.response-error", extra={"error": str(e)})
+                return self.respond(status=403)
 
             return self.respond()
 
@@ -214,9 +215,6 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         # Determine the issue group action is being taken on
         group_id = slack_request.callback_data["issue"]
         logging_data["group_id"] = group_id
-
-        # Actions list may be empty when receiving a dialog response
-        action_list = data.get("actions", [])
 
         try:
             group = Group.objects.select_related("project__organization").get(
