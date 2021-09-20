@@ -59,11 +59,11 @@ type State = {
 };
 
 class CreateProject extends React.Component<Props, State> {
-  constructor(props, context) {
+  constructor(props: Props, context) {
     super(props, context);
 
-    const {query} = props.location;
-    const {teams} = props.organization;
+    const {teams, location} = props;
+    const {query} = location;
     const accessTeams = teams.filter((team: Team) => team.hasAccess);
 
     const team = query.team || (accessTeams.length && accessTeams[0].slug);

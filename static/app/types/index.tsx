@@ -239,7 +239,6 @@ export type LightWeightOrganization = OrganizationSummary & {
  */
 export type Organization = LightWeightOrganization & {
   projects: Project[];
-  teams: Team[];
 };
 
 /**

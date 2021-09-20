@@ -99,7 +99,6 @@ describe('OrganizationActionCreator', function () {
 
     expect(OrganizationStore.organization).toEqual({
       ...lightOrg,
-      teams: detailedOrg.teams,
       projects: detailedOrg.projects,
     });
   });
