@@ -16,7 +16,6 @@ const PanelContainer = styled('div')<PositionProps>`
   bottom: 0;
   display: flex;
   flex-direction: column;
-  z-index: ${p => p.theme.zIndex.sidebarPanel};
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
   border-right: 1px solid ${p => p.theme.border};
