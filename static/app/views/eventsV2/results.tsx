@@ -301,7 +301,9 @@ class Results extends React.Component<Props, State> {
       // If using Multi Y-axis and not in a supported display, change to the default display mode
       display:
         value.length > 1 && !isDisplayMultiYAxisSupported
-          ? DisplayModes.DEFAULT
+          ? location.query.display === DisplayModes.DAILYTOP5
+            ? DisplayModes.DAILY
+            : DisplayModes.DEFAULT
           : location.query.display,
     };
 
