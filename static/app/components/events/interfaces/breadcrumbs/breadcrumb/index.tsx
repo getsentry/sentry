@@ -86,6 +86,7 @@ const Wrapper = styled('div')<{error: boolean}>`
         padding-right: 0;
         padding-left: 0;
         margin-left: ${space(2)};
+        margin-right: ${space(1)};
       }
 
       /* Data */

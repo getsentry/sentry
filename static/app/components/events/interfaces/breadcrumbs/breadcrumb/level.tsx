@@ -15,40 +15,40 @@ const Level = memo(function Level({level, searchTerm = ''}: Props) {
   switch (level) {
     case BreadcrumbLevelType.FATAL:
       return (
-        <StyledTag type="error">
+        <LevelTag type="error">
           <Highlight text={searchTerm}>{t('Fatal')}</Highlight>
-        </StyledTag>
+        </LevelTag>
       );
     case BreadcrumbLevelType.ERROR:
       return (
-        <StyledTag type="error">
+        <LevelTag type="error">
           <Highlight text={searchTerm}>{t('Error')}</Highlight>
-        </StyledTag>
+        </LevelTag>
       );
     case BreadcrumbLevelType.INFO:
       return (
-        <StyledTag type="info">
+        <LevelTag type="info">
           <Highlight text={searchTerm}>{t('Info')}</Highlight>
-        </StyledTag>
+        </LevelTag>
       );
     case BreadcrumbLevelType.WARNING:
       return (
-        <StyledTag type="warning">
+        <LevelTag type="warning">
           <Highlight text={searchTerm}>{t('Warning')}</Highlight>
-        </StyledTag>
+        </LevelTag>
       );
     default:
       return (
-        <StyledTag>
+        <LevelTag>
           <Highlight text={searchTerm}>{level || t('Undefined')}</Highlight>
-        </StyledTag>
+        </LevelTag>
       );
   }
 });
 
 export default Level;
 
-const StyledTag = styled(Tag)`
+const LevelTag = styled(Tag)`
   height: 24px;
   display: flex;
   align-items: center;

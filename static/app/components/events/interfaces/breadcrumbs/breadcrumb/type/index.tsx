@@ -52,6 +52,5 @@ const IconWrapper = styled('div')<Pick<Props, 'color'>>`
   color: ${p => p.theme.white};
   background: ${p => p.theme[p.color] ?? p.color};
   box-shadow: ${p => p.theme.dropShadowLightest};
-  z-index: ${p => p.theme.zIndex.breadcrumbs.iconWrapper};
   position: relative;
 `;
