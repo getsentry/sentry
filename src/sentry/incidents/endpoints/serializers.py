@@ -473,10 +473,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                         "30min, 1h, 2h, 4h, 12h and 24h"
                     )
 
-                # Add Rollup/Granularity
-                rollup = 60 if time_window <= CRASH_RATE_ALERTS_RAW_CUTOFF_MIN else 3600
-                raw_query_dict.update({"rollup": rollup})
-
             try:
                 raw_query(**raw_query_dict)
             except Exception:

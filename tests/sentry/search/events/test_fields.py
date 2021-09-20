@@ -169,7 +169,6 @@ def test_get_json_meta_type(field_alias, snuba_type, function, expected):
             r'to_other(release,"asdf @ \"qwer: (3,2)")',
             ("to_other", ["release", r'"asdf @ \"qwer: (3,2)"'], None),
         ),
-        ("crash_free_percentage()", ("crash_free_percentage", [], None)),
     ],
 )
 def test_parse_function(function, expected):
@@ -1067,20 +1066,6 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
             ["minus", ["percentile_range_2", "percentile_range_1"], "trend_difference"],
         ]
-
-    def test_crash_free_percentage(self):
-        fields = ["crash_free_percentage()"]
-        result = resolve_field_list(fields, eventstore.Filter())
-
-        assert result["selected_columns"] == []
-        assert result["aggregations"] == [
-            [
-                "multiply(minus(1, divide(sessions_crashed, sessions)), 100)",
-                None,
-                "crash_free_percentage",
-            ],
-        ]
-        assert result["groupby"] == []
 
     def test_invalid_alias(self):
         bad_function_aliases = [

@@ -29,9 +29,6 @@ DATASET_CONDITIONS = {
     QueryDatasets.TRANSACTIONS: "event.type:transaction",
 }
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
-# Represents the time window (in seconds) after which we cut off from sessions dataset query
-# granularity of 1 min to 1 hour
-CRASH_RATE_ALERTS_RAW_CUTOFF_SEC = 3600
 
 
 def apply_dataset_query_conditions(dataset, query, event_types, discover=False):
@@ -174,18 +171,12 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         subscription.update(subscription_id=None)
 
 
-def build_snuba_filter(
-    dataset, query, aggregate, environment, event_types, params=None, time_window=None
-):
-    resolve_func, use_rollup = {
-        QueryDatasets.EVENTS: (resolve_column(Dataset.Events), False),
-        QueryDatasets.SESSIONS: (resolve_column(Dataset.Sessions), True),
-        QueryDatasets.TRANSACTIONS: (resolve_column(Dataset.Transactions), False),
+def build_snuba_filter(dataset, query, aggregate, environment, event_types, params=None):
+    resolve_func = {
+        QueryDatasets.EVENTS: resolve_column(Dataset.Events),
+        QueryDatasets.SESSIONS: resolve_column(Dataset.Sessions),
+        QueryDatasets.TRANSACTIONS: resolve_column(Dataset.Transactions),
     }[dataset]
-
-    rollup = None
-    if use_rollup and time_window:
-        rollup = 60 if time_window <= CRASH_RATE_ALERTS_RAW_CUTOFF_SEC else 3600
 
     query = apply_dataset_query_conditions(dataset, query, event_types)
     snuba_filter = get_filter(query, params=params)
@@ -195,8 +186,6 @@ def build_snuba_filter(
         snuba_filter.conditions.append(["group_id", "IN", list(map(int, snuba_filter.group_ids))])
     if environment:
         snuba_filter.conditions.append(["environment", "=", environment.name])
-    if rollup is not None:
-        snuba_filter.rollup = rollup
     return snuba_filter
 
 
@@ -208,7 +197,6 @@ def _create_in_snuba(subscription):
         snuba_query.aggregate,
         snuba_query.environment,
         snuba_query.event_types,
-        time_window=snuba_query.time_window,
     )
 
     body = {
@@ -224,7 +212,6 @@ def _create_in_snuba(subscription):
     if Dataset(snuba_query.dataset) == Dataset.Sessions:
         body.update(
             {
-                "granularity": snuba_filter.rollup,
                 "organization": subscription.project.organization_id,
             }
         )

@@ -116,7 +116,7 @@ class ProcessUpdateTest(TestCase):
             dataset=QueryDatasets.SESSIONS,
             name="JustAValidRule",
             query="",
-            aggregate="crash_free_percentage()",
+            aggregate="percentage(sessions_crashed, sessions) AS crash_rate_alert_aggregate",
             time_window=1,
             threshold_type=AlertRuleThresholdType.BELOW,
             threshold_period=1,
@@ -1043,9 +1043,10 @@ class ProcessUpdateTest(TestCase):
         action_critical = self.crash_rate_alert_critical_action
 
         # Send Critical Update
+        update_value = (1 - trigger.alert_threshold / 100) + 0.05
         self.send_update(
             rule,
-            trigger.alert_threshold - 1,
+            update_value,
             timedelta(minutes=-10),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
@@ -1053,9 +1054,10 @@ class ProcessUpdateTest(TestCase):
         self.assert_actions_fired_for_incident(incident, [action_critical])
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
+        update_value = (1 - trigger.alert_threshold / 100) - 0.05
         self.send_update(
             rule,
-            trigger.alert_threshold + 5,
+            update_value,
             timedelta(minutes=-1),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
@@ -1072,9 +1074,10 @@ class ProcessUpdateTest(TestCase):
         action_warning = self.crash_rate_alert_warning_action
 
         # Send Warning Update
+        update_value = (1 - trigger_warning.alert_threshold / 100) + 0.05
         self.send_update(
             rule,
-            trigger_warning.alert_threshold - 5,
+            update_value,
             timedelta(minutes=-3),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
@@ -1083,9 +1086,10 @@ class ProcessUpdateTest(TestCase):
         self.assert_actions_fired_for_incident(incident, [action_warning])
         self.assert_trigger_exists_with_status(incident, trigger_warning, TriggerStatus.ACTIVE)
 
+        update_value = (1 - trigger_warning.alert_threshold / 100) - 0.05
         self.send_update(
             rule,
-            trigger_warning.alert_threshold + 5,
+            update_value,
             timedelta(minutes=-1),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
@@ -1105,9 +1109,10 @@ class ProcessUpdateTest(TestCase):
         action_warning = self.crash_rate_alert_warning_action
 
         # Send Critical Update
+        update_value = (1 - trigger.alert_threshold / 100) + 0.05
         self.send_update(
             rule,
-            trigger.alert_threshold - 1,
+            update_value,
             timedelta(minutes=-10),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
@@ -1116,9 +1121,10 @@ class ProcessUpdateTest(TestCase):
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
         # Send Warning Update
+        update_value = (1 - trigger_warning.alert_threshold / 100) + 0.05
         self.send_update(
             rule,
-            trigger_warning.alert_threshold - 5,
+            update_value,
             timedelta(minutes=-3),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
@@ -1128,9 +1134,10 @@ class ProcessUpdateTest(TestCase):
         self.assert_trigger_exists_with_status(incident, trigger_warning, TriggerStatus.ACTIVE)
 
         # Send update higher than warning threshold
+        update_value = (1 - trigger_warning.alert_threshold / 100) - 0.05
         self.send_update(
             rule,
-            trigger_warning.alert_threshold + 1,
+            update_value,
             timedelta(minutes=-1),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
@@ -1152,9 +1159,10 @@ class ProcessUpdateTest(TestCase):
         action_warning = self.crash_rate_alert_warning_action
 
         # Send Critical Update
+        update_value = (1 - trigger.alert_threshold / 100) + 0.05
         self.send_update(
             rule,
-            trigger.alert_threshold - 1,
+            update_value,
             timedelta(minutes=-10),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
@@ -1163,9 +1171,10 @@ class ProcessUpdateTest(TestCase):
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
         # Send Warning Update
+        update_value = (1 - trigger_warning.alert_threshold / 100) + 0.05
         self.send_update(
             rule,
-            trigger_warning.alert_threshold - 5,
+            update_value,
             timedelta(minutes=-3),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
@@ -1175,9 +1184,10 @@ class ProcessUpdateTest(TestCase):
         self.assert_trigger_exists_with_status(incident, trigger_warning, TriggerStatus.ACTIVE)
 
         # Send update higher than warning threshold but lower than resolve threshold
+        update_value = (1 - trigger_warning.alert_threshold / 100) - 0.05
         self.send_update(
             rule,
-            trigger_warning.alert_threshold + 1,
+            update_value,
             timedelta(minutes=-1),
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
