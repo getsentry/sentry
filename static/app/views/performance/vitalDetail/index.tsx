@@ -13,6 +13,7 @@ import {PageContent} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
+import {PerformanceEventViewProvider} from 'app/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -33,7 +34,7 @@ type Props = RouteComponentProps<{}, {}> & {
 };
 
 type State = {
-  eventView: EventView | undefined;
+  eventView: EventView;
 };
 
 class VitalDetail extends Component<Props, State> {
@@ -105,19 +106,21 @@ class VitalDetail extends Component<Props, State> {
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
-        <GlobalSelectionHeader>
-          <StyledPageContent>
-            <LightWeightNoProjectMessage organization={organization}>
-              <VitalDetailContent
-                location={location}
-                organization={organization}
-                eventView={eventView}
-                router={router}
-                vitalName={vitalName || WebVital.LCP}
-              />
-            </LightWeightNoProjectMessage>
-          </StyledPageContent>
-        </GlobalSelectionHeader>
+        <PerformanceEventViewProvider value={{eventView: this.state.eventView}}>
+          <GlobalSelectionHeader>
+            <StyledPageContent>
+              <LightWeightNoProjectMessage organization={organization}>
+                <VitalDetailContent
+                  location={location}
+                  organization={organization}
+                  eventView={eventView}
+                  router={router}
+                  vitalName={vitalName || WebVital.LCP}
+                />
+              </LightWeightNoProjectMessage>
+            </StyledPageContent>
+          </GlobalSelectionHeader>
+        </PerformanceEventViewProvider>
       </SentryDocumentTitle>
     );
   }

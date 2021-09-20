@@ -184,7 +184,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
             ...opt,
             disabled: true,
             tooltip: t(
-              'Change the Y-Axis dropdown to display only 1 field to use this view.'
+              'Change the Y-Axis dropdown to display only 1 function to use this view.'
             ),
           };
         }

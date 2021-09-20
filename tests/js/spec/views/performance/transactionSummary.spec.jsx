@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
@@ -34,7 +35,10 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
     },
   });
   ProjectsStore.loadInitialData(initialData.organization.projects);
-  TeamStore.loadInitialData(teams);
+
+  act(() => {
+    TeamStore.loadInitialData(teams);
+  });
   return initialData;
 }
 
@@ -85,10 +89,6 @@ describe('Performance > TransactionSummary', function () {
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/is-key-transactions/',
-      body: [],
     });
 
     // Mock totals for the sidebar and other summary data
