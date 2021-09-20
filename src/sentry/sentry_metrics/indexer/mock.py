@@ -2,9 +2,7 @@ import itertools
 from collections import defaultdict
 from typing import DefaultDict, Dict, Optional
 
-from django.conf import settings
-
-from sentry.utils.redis import redis_clusters
+from sentry.models import Organization
 
 from .base import StringIndexer, UseCase
 

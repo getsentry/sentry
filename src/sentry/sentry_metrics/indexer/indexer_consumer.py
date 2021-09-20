@@ -22,12 +22,11 @@ def get_metrics_consumer(topic=None, **options) -> None:
 
 class MetricsIndexerWorker(AbstractBatchWorker):
     def process_message(self, message):
-        original: Dict[str, Any] = json.loads(message.value())
-        new_message = original.copy()
+        parsed_message: Dict[str, Any] = json.loads(message.value(), use_rapid_json=True)
 
-        org_id = int(new_message["org_id"])
-        metric_name = new_message["name"]
-        tags = new_message["tags"]
+        org_id = int(parsed_message["org_id"])
+        metric_name = parsed_message["name"]
+        tags = parsed_message["tags"]
 
         strings = {metric_name}
         strings.update(tags.keys())
@@ -41,10 +40,10 @@ class MetricsIndexerWorker(AbstractBatchWorker):
             new_v = mapping[tag_v]
             new_tags[new_k] = new_v
 
-        new_message["tags"] = new_tags
-        new_message["metric_id"] = mapping[metric_name]
-        new_message["retention_days"] = 90
-        return new_message
+        parsed_message["tags"] = new_tags
+        parsed_message["metric_id"] = mapping[metric_name]
+        parsed_message["retention_days"] = 90
+        return parsed_message
 
     def flush_batch(self, batch):
         # produce the translated message to snuba-metrics topic
