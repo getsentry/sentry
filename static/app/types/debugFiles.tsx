@@ -44,23 +44,26 @@ export enum CustomRepoType {
 export type AppStoreConnectValidationData = {
   id: string;
   appstoreCredentialsValid: boolean;
-  /** Indicates if the itunesSession is actually *needed* to complete any downloads that are pending. */
+  /**
+   * Indicates if the itunesSession is actually *needed* to complete any
+   * downloads that are pending.
+   */
   pendingDownloads: number;
   /**
-   * The build number of the latest build recognized by sentry. This does not imply the dSYMs for
-   * this build have been fetched. The contents of this string is just a number. This will be null
-   * if no builds can be found.
+   * The build number of the latest build recognized by sentry. This does not
+   * imply the dSYMs for this build have been fetched. The contents of this
+   * string is just a number. This will be null if no builds can be found.
    */
   latestBuildNumber: string | null;
   /**
-   * A human-readable string representing the latest build recognized by sentry. i.e. 3.4.0. This
-   * does not imply the dSYMs for this build have been fetched. This will be null if no builds can
-   * be found.
+   * A human-readable string representing the latest build recognized by
+   * sentry. i.e. 3.4.0. This does not imply the dSYMs for this build have been
+   * fetched. This will be null if no builds can be found.
    */
   latestBuildVersion: string | null;
   /**
-   * Whether the UI should show an alert indicating we need the user to refresh their iTunes
-   * session.
+   * Whether the UI should show an alert indicating we need the user to refresh
+   * their iTunes session.
    */
   promptItunesSession: boolean;
   lastCheckedBuilds: string | null;

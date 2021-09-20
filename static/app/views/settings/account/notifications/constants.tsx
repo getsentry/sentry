@@ -5,7 +5,9 @@ export const ALL_PROVIDERS = {
   slack: 'never',
 };
 
-/** These values are stolen from the DB. */
+/**
+ * These values are stolen from the DB.
+ */
 export const VALUE_MAPPING = {
   default: 0,
   never: 10,

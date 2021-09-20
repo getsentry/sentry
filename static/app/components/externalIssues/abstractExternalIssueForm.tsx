@@ -26,7 +26,9 @@ type State = {
    * `integrationDetails` when it loads. Null until set.
    */
   dynamicFieldValues: {[key: string]: FieldValue | null} | null;
-  /** Cache of options fetched for async fields. */
+  /**
+   * Cache of options fetched for async fields.
+   */
   fetchedFieldOptionsCache: Record<string, Choices>;
 } & AsyncComponent['state'];
 
@@ -129,7 +131,9 @@ export default class AbstractExternalIssueForm<
     }
   };
 
-  /** For fields with dynamic fields, cache the fetched choices. */
+  /**
+   * For fields with dynamic fields, cache the fetched choices.
+   */
   updateFetchedFieldOptionsCache = (
     field: IssueConfigField,
     result: {value: string; label: string}[]
@@ -196,7 +200,9 @@ export default class AbstractExternalIssueForm<
     return choices.map(([value, label]) => ({value, label}));
   };
 
-  /** If this field is an async select (field.url is not null), add async props. */
+  /**
+   * If this field is an async select (field.url is not null), add async props.
+   */
   getFieldProps = (field: IssueConfigField) =>
     field.url
       ? {
