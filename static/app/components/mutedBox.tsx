@@ -10,7 +10,7 @@ type Props = {
 };
 
 function MutedBox({statusDetails}: Props) {
-  const renderReason = () => {
+  function renderReason() {
     const {ignoreUntil, ignoreCount, ignoreWindow, ignoreUserCount, ignoreUserWindow} =
       statusDetails;
 
@@ -50,7 +50,7 @@ function MutedBox({statusDetails}: Props) {
     }
 
     return t('This issue has been ignored');
-  };
+  }
 
   return (
     <BannerContainer priority="default">

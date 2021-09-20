@@ -46,7 +46,7 @@ function OnboardingStatus({
     onShowPanel();
   };
 
-  if (!(org.features && org.features.includes('onboarding'))) {
+  if (!org.features?.includes('onboarding')) {
     return null;
   }
 

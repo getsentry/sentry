@@ -38,7 +38,7 @@ function GlobalSelectionHeaderContainer({
   showAbsolute,
   ...props
 }: Props) {
-  const getProjects = () => {
+  function getProjects() {
     const {isSuperuser} = ConfigStore.get('user');
     const isOrgAdmin = organization.access.includes('org:admin');
 
@@ -52,7 +52,7 @@ function GlobalSelectionHeaderContainer({
     }
 
     return [memberProjects, []];
-  };
+  }
 
   const enforceSingleProject = !organization.features.includes('global-views');
   const [memberProjects, nonMemberProjects] = getProjects();

@@ -26,12 +26,12 @@ export default function NoProjectMessage({
   loadingProjects,
   superuserNeedsToBeProjectMember,
 }: Props) {
-  const orgId = organization.slug;
+  const orgSlug = organization.slug;
   const canCreateProject = organization.access.includes('project:write');
   const canJoinTeam = organization.access.includes('team:read');
 
-  let orgHasProjects: boolean;
-  let hasProjectAccess: boolean;
+  let orgHasProjects = false;
+  let hasProjectAccess = false;
 
   if ('projects' in organization) {
     const {isSuperuser} = ConfigStore.get('user');
@@ -59,7 +59,7 @@ export default function NoProjectMessage({
       title={canJoinTeam ? undefined : t('You do not have permission to join a team.')}
       disabled={!canJoinTeam}
       priority={orgHasProjects ? 'primary' : 'default'}
-      to={`/settings/${orgId}/teams/`}
+      to={`/settings/${orgSlug}/teams/`}
     >
       {t('Join a Team')}
     </Button>
@@ -74,7 +74,7 @@ export default function NoProjectMessage({
       }
       disabled={!canCreateProject}
       priority={orgHasProjects ? 'default' : 'primary'}
-      to={`/organizations/${orgId}/projects/new/`}
+      to={`/organizations/${orgSlug}/projects/new/`}
     >
       {t('Create project')}
     </Button>
@@ -83,7 +83,7 @@ export default function NoProjectMessage({
   return (
     <Wrapper>
       <HeightWrapper>
-        <img src={img} height={350} alt="Nothing to see" />
+        <img src={img} height={350} alt={t('Nothing to see')} />
         <Content>
           <StyledPageHeading>{t('Remain Calm')}</StyledPageHeading>
           <HelpMessage>{t('You need at least one project to use this view')}</HelpMessage>
