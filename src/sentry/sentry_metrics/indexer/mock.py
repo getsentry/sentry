@@ -17,6 +17,7 @@ _STRINGS = {
     "session": 9,
     "staging": 10,
     "user": 11,
+    "init": 12,
 }
 _REVERSE = {v: k for k, v in _STRINGS.items()}
 

@@ -8,7 +8,7 @@ from django.db.models import prefetch_related_objects
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
-from sentry import features, options, projectoptions, roles
+from sentry import features, options, projectoptions, releasehealth, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles, get_team_memberships
@@ -41,7 +41,7 @@ from sentry.notifications.helpers import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba import discover
-from sentry.snuba.sessions import check_has_health_data, get_current_and_previous_crash_free_rates
+from sentry.snuba.sessions import check_has_health_data
 from sentry.utils import json
 from sentry.utils.compat import zip
 
@@ -308,7 +308,7 @@ class ProjectSerializer(Serializer):
         current_interval_start = now - (segments * interval)
         previous_interval_start = now - (2 * segments * interval)
 
-        project_health_data_dict = get_current_and_previous_crash_free_rates(
+        project_health_data_dict = releasehealth.get_current_and_previous_crash_free_rates(
             project_ids=project_ids,
             current_start=current_interval_start,
             current_end=now,

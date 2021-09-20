@@ -1359,6 +1359,10 @@ SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefix
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 
+# Release Health
+SENTRY_RELEASE_HEALTH = "sentry.releasehealth.sessions.SessionsReleaseHealthBackend"
+SENTRY_RELEASE_HEALTH_OPTIONS = {}
+
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
 SENTRY_CHART_RENDERER_OPTIONS = {}

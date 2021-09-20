@@ -78,6 +78,8 @@ from sentry.models import (
 )
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
+from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
@@ -92,7 +94,7 @@ from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
-from .skips import requires_snuba
+from .skips import requires_snuba, requires_snuba_metrics
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -927,6 +929,69 @@ class SnubaTestCase(BaseTestCase):
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/events/insert", data=json.dumps(events)
+            ).status_code
+            == 200
+        )
+
+
+@requires_snuba_metrics
+class SessionMetricsTestCase(SnubaTestCase):
+    """Store metrics instead of sessions"""
+
+    # NOTE: This endpoint does not exist yet, but we need something alike
+    # because /tests/<dataset>/insert always writes to the default entity
+    # (in the case of metrics, that's "metrics_sets")
+    snuba_endpoint = "/tests/entities/metrics_counters/insert"
+
+    def store_session(self, session):
+        """Mimic relays behavior of always emitting a metric for a started session,
+        and emitting an additional one if the session is fatal
+        https://github.com/getsentry/relay/blob/e3c064e213281c36bde5d2b6f3032c6d36e22520/relay-server/src/actors/envelopes.rs#L357
+        """
+
+        def metric_id(name):
+            res = indexer.resolve(session["org_id"], UseCase.METRIC, name)
+            assert res is not None, name
+            return res
+
+        def tag_key(name):
+            res = indexer.resolve(session["org_id"], UseCase.TAG_KEY, name)
+            assert res is not None, name
+            return res
+
+        def tag_value(name):
+            res = indexer.resolve(session["org_id"], UseCase.TAG_KEY, name)
+            assert res is not None, name
+            return res
+
+        msg = {
+            "org_id": session["org_id"],
+            "project_id": session["project_id"],
+            "metric_id": metric_id("session"),
+            "timestamp": session["started"],
+            "tags": {tag_key("session.status"): tag_value("init")},
+            "type": "c",
+            "value": 1.0,
+            "retention_days": 90,
+        }
+
+        self._send(msg)
+
+        status = session["status"]
+
+        if status in ("abnormal", "crashed"):
+            # Count as fatal
+            msg["tags"][tag_key("session.status")] = tag_value(status)
+            self._send(msg)
+
+        # TODO: emit metric "session.error" of type "set"
+
+    @classmethod
+    def _send(cls, msg):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + cls.snuba_endpoint,
+                data=json.dumps([msg]),
             ).status_code
             == 200
         )
