@@ -64,6 +64,8 @@ FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
 resolve_discover_column = resolve_column(Dataset.Discover)
 
+OTHER_KEY = "Other"
+
 
 def is_real_column(col):
     """
@@ -511,7 +513,7 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None, zer
         return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 
 
-def create_result_key(result_row, fields, issues):
+def create_result_key(result_row, fields, issues) -> str:
     values = []
     for field in fields:
         if field == "issue.id":
@@ -524,7 +526,12 @@ def create_result_key(result_row, fields, issues):
                 else:
                     value = ""
             values.append(str(value))
-    return ",".join(values)
+    result = ",".join(values)
+    # If the result would be identical to the other key, include the field name
+    # only need the first field since this would only happen with a single field
+    if result == OTHER_KEY:
+        result = f"{result} ({fields[0]})"
+    return result
 
 
 def top_events_timeseries(
@@ -728,7 +735,7 @@ def top_events_timeseries(
         translated_groupby.sort()
 
         results = (
-            {"Other": {"order": limit, "data": other_result["data"]}}
+            {OTHER_KEY: {"order": limit, "data": other_result["data"]}}
             if len(other_result.get("data", []))
             else {}
         )
