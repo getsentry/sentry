@@ -1,26 +1,27 @@
 import itertools
+from collections import defaultdict
 from typing import DefaultDict, Dict, Optional
 
 from sentry.models import Organization
 
 from .base import StringIndexer, UseCase
 
-_STRINGS = {
-    "abnormal": 0,
-    "crashed": 1,
-    "environment": 2,
-    "errored": 3,
-    "healthy": 4,
-    "production": 5,
-    "release": 6,
-    "session.duration": 7,
-    "session.status": 8,
-    "session": 9,
-    "staging": 10,
-    "user": 11,
-    "init": 12,
-    "session.error": 13,
-}
+_STRINGS = (
+    "abnormal",
+    "crashed",
+    "environment",
+    "errored",
+    "healthy",
+    "production",
+    "release",
+    "session.duration",
+    "session.status",
+    "session",
+    "staging",
+    "user",
+    "init",
+    "session.error",
+)
 
 
 class SimpleIndexer(StringIndexer):
@@ -29,7 +30,7 @@ class SimpleIndexer(StringIndexer):
 
     def __init__(self) -> None:
         self._counter = itertools.count(start=len(_STRINGS))
-        self._strings: Dict[str, int] = DefaultDict(self._counter.__next__)
+        self._strings: DefaultDict[str, int] = defaultdict(self._counter.__next__)
         self._reverse: Dict[int, str] = {}
 
     def record(self, organization: Organization, use_case: UseCase, string: str) -> int:
@@ -56,6 +57,6 @@ class MockIndexer(SimpleIndexer):
 
     def __init__(self) -> None:
         super().__init__()
-        for string, index in _STRINGS.items():
+        for index, string in enumerate(_STRINGS):
             self._strings[string] = index
             self._reverse[index] = string
