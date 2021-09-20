@@ -34,13 +34,6 @@ def get_revision():
     return None
 
 
-def get_short_revision(revision):
-    if not revision:
-        return ""
-
-    return revision[:12]
-
-
 def get_version():
     if __build__:
         return f"{__version__}.{__build__}"
