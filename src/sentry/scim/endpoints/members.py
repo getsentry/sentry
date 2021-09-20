@@ -201,6 +201,8 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             else AuditLogEntryEvent.MEMBER_ADD,
         )
 
+        # TODO(jferge):
+        # temporarily disabling while working through invite use cases
         # if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
         # member.send_invite_email()
         #     member_invited.send_robust(
