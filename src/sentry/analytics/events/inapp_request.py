@@ -1,7 +1,7 @@
 from sentry import analytics
 
 
-class InAppRequestSent(analytics.Event):
+class InAppRequestSentEvent(analytics.Event):
     attributes = (
         analytics.Attribute("organization_id"),
         analytics.Attribute("user_id"),
@@ -11,8 +11,8 @@ class InAppRequestSent(analytics.Event):
     )
 
 
-class InviteRequestSent(InAppRequestSent):
+class InviteRequestSentEvent(InAppRequestSentEvent):
     type = "invite_request.sent"
 
 
-analytics.register(InviteRequestSent)
+analytics.register(InviteRequestSentEvent)
