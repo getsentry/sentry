@@ -22,6 +22,7 @@ __all__ = (
     "SCIMAzureTestCase",
 )
 
+import hashlib
 import inspect
 import os
 import os.path
@@ -941,56 +942,85 @@ class SessionMetricsTestCase(SnubaTestCase):
     # NOTE: This endpoint does not exist yet, but we need something alike
     # because /tests/<dataset>/insert always writes to the default entity
     # (in the case of metrics, that's "metrics_sets")
-    snuba_endpoint = "/tests/entities/metrics_counters/insert"
+    snuba_endpoint = "/tests/entities/{entity}/insert"
 
     def store_session(self, session):
         """Mimic relays behavior of always emitting a metric for a started session,
         and emitting an additional one if the session is fatal
         https://github.com/getsentry/relay/blob/e3c064e213281c36bde5d2b6f3032c6d36e22520/relay-server/src/actors/envelopes.rs#L357
         """
+        user = session["distinct_id"]
 
-        def metric_id(name):
-            res = indexer.resolve(session["org_id"], UseCase.METRIC, name)
-            assert res is not None, name
-            return res
-
-        def tag_key(name):
-            res = indexer.resolve(session["org_id"], UseCase.TAG_KEY, name)
-            assert res is not None, name
-            return res
-
-        def tag_value(name):
-            res = indexer.resolve(session["org_id"], UseCase.TAG_KEY, name)
-            assert res is not None, name
-            return res
-
-        msg = {
-            "org_id": session["org_id"],
-            "project_id": session["project_id"],
-            "metric_id": metric_id("session"),
-            "timestamp": session["started"],
-            "tags": {tag_key("session.status"): tag_value("init")},
-            "type": "c",
-            "value": 1.0,
-            "retention_days": 90,
-        }
-
-        self._send(msg)
+        self._push_metric(session, "counter", "session", {"session.status": "init"}, +1)
+        self._push_metric(session, "set", "user", {"session.status": "init"}, user)
 
         status = session["status"]
 
         if status in ("abnormal", "crashed"):
-            # Count as fatal
-            msg["tags"][tag_key("session.status")] = tag_value(status)
-            self._send(msg)
 
-        # TODO: emit metric "session.error" of type "set"
+            self._push_metric(session, "counter", "session", {"session.status": status}, +1)
+            self._push_metric(session, "set", "user", {"session.status": status}, user)
+
+        # Mark the session as errored, which includes fatal sessions.
+        if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
+
+            self._push_metric(session, "set", "session.error", {}, session["session_id"])
+            self._push_metric(session, "set", "user", {"session.status": status}, user)
+
+        if status != "ok":  # terminal
+            self._push_metric(session, "distribution", "session.duration", {}, session["duration"])
 
     @classmethod
-    def _send(cls, msg):
+    def _push_metric(cls, session, type, name, tags, value):
+        def metric_id(name):
+            res = indexer.record(session["org_id"], UseCase.METRIC, name)
+            assert res is not None, name
+            return res
+
+        def tag_key(name):
+            res = indexer.record(session["org_id"], UseCase.TAG_KEY, name)
+            assert res is not None, name
+            return res
+
+        def tag_value(name):
+            res = indexer.record(session["org_id"], UseCase.TAG_KEY, name)
+            assert res is not None, name
+            return res
+
+        base_tags = {
+            tag_key(tag): tag_value(session[tag])
+            for tag in (
+                "release",
+                "environment",
+            )
+        }
+
+        extra_tags = {tag_key(k): tag_value(v) for k, v in tags.items()}
+
+        if type == "set":
+            # Relay uses a different hashing algorithm, but that's ok
+            value = [int.from_bytes(hashlib.md5(value.encode()).digest()[:8], "big")]
+        elif type == "distribution":
+            value = [value]
+
+        msg = {
+            "org_id": session["org_id"],
+            "project_id": session["project_id"],
+            "metric_id": metric_id(name),
+            "timestamp": session["started"],
+            "tags": {**base_tags, **extra_tags},
+            "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
+            "value": value,
+            "retention_days": 90,
+        }
+
+        cls._send(msg, entity=f"metrics_{type}s")
+
+    @classmethod
+    def _send(cls, msg, entity):
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + cls.snuba_endpoint,
+                settings.SENTRY_SNUBA + cls.snuba_endpoint.format(entity=entity),
                 data=json.dumps([msg]),
             ).status_code
             == 200
