@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from sentry.processing.real_time_metrics import base
+from sentry.processing.real_time_metrics import base  # type: ignore
 from sentry.utils import redis
 
 if TYPE_CHECKING:

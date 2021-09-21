@@ -1,6 +1,6 @@
 from typing import Dict
 
-from sentry.processing.real_time_metrics import base
+from sentry.processing.real_time_metrics import base  # type: ignore
 from sentry.utils import redis
 
 
