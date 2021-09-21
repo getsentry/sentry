@@ -167,6 +167,10 @@ function TeamSelector(props: Props) {
   }
 
   function createTeamOutsideProjectOption(team: Team): TeamOption {
+    // If the option/team is currently selected optimistically assume it is now a part of the project
+    if (value === (useId ? team.id : team.slug)) {
+      return createTeamOption(team);
+    }
     const canAddTeam = organization.access.includes('project:write');
 
     return {
