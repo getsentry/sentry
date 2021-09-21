@@ -2311,10 +2311,10 @@ SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
 # Which backend to use for MetricsCluster.
 #
 # Currently, only redis is supported.
-SENTRY_REAL_TIME_METRICS_BACKEND = (
-    "sentry.processing.real_time_metrics.redis.RedisRealTimeMetricsStore"
+SENTRY_REALTIME_METRICS_BACKEND = (
+    "sentry.processing.realtime_metrics.redis.RedisRealtimeMetricsStore"
 )
-SENTRY_REAL_TIME_METRICS_OPTIONS = {
+SENTRY_REALTIME_METRICS_OPTIONS = {
     # The redis cluster used for the metrics cluster redis backend.
     "cluster_name": "default",
     # The bucket size of the counter.

@@ -4,7 +4,7 @@ from typing import Any
 from sentry.utils import redis
 
 
-class RealTimeMetricsStore:
+class RealtimeMetricsStore:
     def __init__(
         self,
         cluster: redis._RedisCluster,

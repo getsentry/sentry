@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from sentry.processing.real_time_metrics import base  # type: ignore
+from sentry.processing.realtime_metrics import base  # type: ignore
 from sentry.utils import redis
 
 if TYPE_CHECKING:
@@ -26,13 +26,13 @@ def redis_cluster() -> redis._RedisCluster:
 
 
 @pytest.fixture
-def store(redis_cluster: redis._RedisCluster) -> base.RealTimeMetricsStore:
-    return base.RealTimeMetricsStore(
+def store(redis_cluster: redis._RedisCluster) -> base.RealtimeMetricsStore:
+    return base.RealtimeMetricsStore(
         redis_cluster, counter_bucket_size=10, counter_ttl=datetime.timedelta(milliseconds=400)
     )
 
 
-def test_increment_project_event_counter(store: base.RealTimeMetricsStore) -> None:
+def test_increment_project_event_counter(store: base.RealtimeMetricsStore) -> None:
     store.increment_project_event_counter(17, 1147)
     counter = store.get("symbolicate_event_low_priority:17:1140")
     assert counter == "1"
@@ -41,7 +41,7 @@ def test_increment_project_event_counter(store: base.RealTimeMetricsStore) -> No
     assert counter is None
 
 
-def test_increment_project_event_counter_twice(store: base.RealTimeMetricsStore) -> None:
+def test_increment_project_event_counter_twice(store: base.RealtimeMetricsStore) -> None:
     store.increment_project_event_counter(17, 1147)
     time.sleep(0.2)
     store.increment_project_event_counter(17, 1149)
@@ -53,7 +53,7 @@ def test_increment_project_event_counter_twice(store: base.RealTimeMetricsStore)
     assert counter is None
 
 
-def test_increment_project_event_counter_multiple(store: base.RealTimeMetricsStore) -> None:
+def test_increment_project_event_counter_multiple(store: base.RealtimeMetricsStore) -> None:
     store.increment_project_event_counter(17, 1147)
     store.increment_project_event_counter(17, 1152)
 
