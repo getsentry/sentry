@@ -114,10 +114,11 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
         }
         error_response = self.do_request(
             request,
-            feature_list=(
-                "organizations:discover-basic",
-                "organizations:global-views",
-            ),
+            {
+                "organizations:discover-basic": True,
+                "organizations:global-views": True,
+                "organizations:performance-tag-page": False,
+            },
         )
         assert error_response.status_code == 404
 
@@ -131,9 +132,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
             "per_page": 5,
         }
         # With feature access, no tag key
-        error_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        error_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         assert error_response.status_code == 400, error_response.content
         assert error_response.data == {
@@ -151,18 +150,14 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
             "query": "(color:red or color:blue)",
         }
         # With feature access, no tag key
-        error_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        error_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         assert error_response.status_code == 400, error_response.content
         assert error_response.data == {"detail": "'tagKey' must be provided when using histograms."}
 
         # With feature access and tag key
         request["tagKey"] = "color"
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         histogram_data = data_response.data["histogram"]["data"]
         assert len(histogram_data) == 2
@@ -193,9 +188,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
             "query": "(color:teal or color:oak)",
         }
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         histogram_data = data_response.data["histogram"]["data"]
         assert histogram_data == []
@@ -215,9 +208,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
             "query": "(color:red or color:blue or color:green)",
         }
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         histogram_data = data_response.data["histogram"]["data"]
         assert len(histogram_data) == 1
@@ -227,9 +218,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
         assert histogram_data[0]["tags_key"] == "color"
 
         request["per_page"] = 3
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         histogram_data = data_response.data["histogram"]["data"]
         assert len(histogram_data) == 3
@@ -261,17 +250,13 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
             "query": "(color:red or color:blue or color:green or color:orange)",
         }
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         assert data_response.data["tags"]["data"][2]["tags_value"] == "green"
 
         request["aggregateColumn"] = "measurements.lcp"
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         tags_data = data_response.data["tags"]["data"]
         assert len(tags_data) == 3
@@ -308,9 +293,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
             "query": "(user.id:555)",
         }
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         histogram_data = data_response.data["histogram"]["data"]
         assert histogram_data[0]["count"] == 1
@@ -330,18 +313,14 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
             "tagKey": "color",
         }
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         tag_data = data_response.data["tags"]["data"]
         assert len(tag_data) == 3
 
         request["cursor"] = Cursor(0, 3)
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         tag_data = data_response.data["tags"]["data"]
         assert len(tag_data) == 1
@@ -356,9 +335,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
             "tagKey": "color",
         }
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         tag_data = data_response.data["tags"]["data"]
         assert len(tag_data) == 1
@@ -367,9 +344,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
 
         request["sort"] = "-aggregate"
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         tag_data = data_response.data["tags"]["data"]
         assert len(tag_data) == 1
@@ -389,9 +364,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
             "tagKey": "fruit",
         }
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         histogram_data = data_response.data["histogram"]["data"]
         assert len(histogram_data) == 20
