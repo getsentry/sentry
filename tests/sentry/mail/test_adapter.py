@@ -12,7 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.mail import build_subject_prefix, mail_adapter, send_notification_as_email
+from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
     Activity,
     GroupRelease,
@@ -47,36 +47,16 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import mock
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
+from tests.sentry.mail import make_event_data, send_notification
 
 
-def send_notification(*args):
-    args_list = list(args)[1:]
-    send_notification_as_email(*args_list, {})
-
-
-class BaseMailAdapterTest:
+class BaseMailAdapterTest(TestCase):
     @fixture
     def adapter(self):
         return mail_adapter
 
-    def make_event_data(self, filename, url="http://example.com"):
-        mgr = EventManager(
-            {
-                "tags": [("level", "error")],
-                "stacktrace": {"frames": [{"lineno": 1, "filename": filename}]},
-                "request": {"url": url},
-            }
-        )
-        mgr.normalize()
-        data = mgr.get_data()
-        event_type = get_event_type(data)
-        data["type"] = event_type.key
-        data["metadata"] = event_type.get_metadata(data)
-        return data
 
-
-
-class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
+class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
     def test_get_sendable_user_objects(self):
         user = self.create_user(email="foo@example.com", is_active=True)
         user2 = self.create_user(email="baz@example.com", is_active=True)
@@ -142,7 +122,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
         assert user4 not in self.adapter.get_sendable_user_objects(project)
 
 
-class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest, TestCase):
+class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
     def test_default_prefix(self):
         assert build_subject_prefix(self.project) == "[Sentry] "
 
@@ -154,7 +134,7 @@ class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest, TestCase):
         assert build_subject_prefix(self.project) == prefix
 
 
-class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
+class MailAdapterNotifyTest(BaseMailAdapterTest):
     def test_simple_notification(self):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -391,7 +371,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
     def test_slack_link(self):
         project = self.project
         organization = project.organization
-        event = self.store_event(data=self.make_event_data("foo.jx"), project_id=project.id)
+        event = self.store_event(data=make_event_data("foo.jx"), project_id=project.id)
 
         with self.tasks():
             notification = Notification(event=event)
@@ -408,7 +388,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
     def test_slack_link_with_integration(self):
         project = self.project
         organization = project.organization
-        event = self.store_event(data=self.make_event_data("foo.jx"), project_id=project.id)
+        event = self.store_event(data=make_event_data("foo.jx"), project_id=project.id)
 
         integration = Integration.objects.create(provider="msteams")
         integration.add_organization(organization)
@@ -428,7 +408,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
     def test_slack_link_with_plugin(self):
         project = self.project
         organization = project.organization
-        event = self.store_event(data=self.make_event_data("foo.jx"), project_id=project.id)
+        event = self.store_event(data=make_event_data("foo.jx"), project_id=project.id)
 
         OpsGeniePlugin().enable(project)
 
@@ -490,17 +470,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
             fallthrough=True,
         )
 
-        event_all_users = self.store_event(
-            data=self.make_event_data("foo.cbl"), project_id=project.id
-        )
+        event_all_users = self.store_event(data=make_event_data("foo.cbl"), project_id=project.id)
         self.assert_notify(event_all_users, [user.email, user2.email])
 
-        event_team = self.store_event(data=self.make_event_data("foo.py"), project_id=project.id)
+        event_team = self.store_event(data=make_event_data("foo.py"), project_id=project.id)
         self.assert_notify(event_team, [user.email, user2.email])
 
-        event_single_user = self.store_event(
-            data=self.make_event_data("foo.jx"), project_id=project.id
-        )
+        event_single_user = self.store_event(data=make_event_data("foo.jx"), project_id=project.id)
         self.assert_notify(event_single_user, [user2.email])
 
         # Make sure that disabling mail alerts works as expected
@@ -511,9 +487,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
             user=user2,
             project=project,
         )
-        event_all_users = self.store_event(
-            data=self.make_event_data("foo.cbl"), project_id=project.id
-        )
+        event_all_users = self.store_event(data=make_event_data("foo.cbl"), project_id=project.id)
         self.assert_notify(event_all_users, [user.email])
 
     def test_notify_team_members(self):
@@ -523,17 +497,17 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         user2 = self.create_user(email="baz@example.com", is_active=True)
         team = self.create_team(organization=self.organization, members=[user, user2])
         project = self.create_project(teams=[team])
-        event = self.store_event(data=self.make_event_data("foo.py"), project_id=project.id)
+        event = self.store_event(data=make_event_data("foo.py"), project_id=project.id)
         self.assert_notify(event, [user.email, user2.email], ActionTargetType.TEAM, str(team.id))
 
     def test_notify_user(self):
         user = self.create_user(email="foo@example.com", is_active=True)
         self.create_team(organization=self.organization, members=[user])
-        event = self.store_event(data=self.make_event_data("foo.py"), project_id=self.project.id)
+        event = self.store_event(data=make_event_data("foo.py"), project_id=self.project.id)
         self.assert_notify(event, [user.email], ActionTargetType.MEMBER, str(user.id))
 
 
-class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest, TestCase):
+class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
     def test_get_digest_subject(self):
         assert (
             get_digest_subject(
@@ -545,7 +519,7 @@ class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest, TestCase):
         )
 
 
-class MailAdapterNotifyDigestTest(BaseMailAdapterTest, TestCase):
+class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest(self, notify):
         project = self.project
@@ -650,7 +624,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, TestCase):
         assert len(mail.outbox) == 0
 
 
-class MailAdapterRuleNotifyTest(BaseMailAdapterTest, TestCase):
+class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
     def test_normal(self):
         event = self.store_event(data={}, project_id=self.project.id)
         rule = Rule.objects.create(project=self.project, label="my rule")
@@ -671,7 +645,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest, TestCase):
         assert digests.add.call_count == 1
 
 
-class MailAdapterShouldNotifyTest(BaseMailAdapterTest, TestCase):
+class MailAdapterShouldNotifyTest(BaseMailAdapterTest):
     def test_should_notify(self):
         assert self.adapter.should_notify(ActionTargetType.ISSUE_OWNERS, self.group)
         assert self.adapter.should_notify(ActionTargetType.MEMBER, self.group)
@@ -697,7 +671,7 @@ class MailAdapterShouldNotifyTest(BaseMailAdapterTest, TestCase):
         assert self.adapter.should_notify(ActionTargetType.MEMBER, self.group)
 
 
-class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
+class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
     def test_assignment(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
@@ -779,7 +753,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
         assert msg.to == [self.user.email]
 
 
-class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
+class MailAdapterHandleSignalTest(BaseMailAdapterTest):
     def create_report(self):
         user_foo = self.create_user("foo@example.com")
         self.project.teams.first().organization.member_set.create(user=user_foo)
