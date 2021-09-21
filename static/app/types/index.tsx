@@ -239,7 +239,6 @@ export type LightWeightOrganization = OrganizationSummary & {
  */
 export type Organization = LightWeightOrganization & {
   projects: Project[];
-  teams: Team[];
 };
 
 /**
@@ -1062,7 +1061,7 @@ export type BaseGroupStatusReprocessing = {
     info: {
       dateCreated: string;
       totalEvents: number;
-    };
+    } | null;
   };
 };
 

@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
@@ -35,7 +36,7 @@ describe('TeamKeyTransactionButton', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
-    TeamStore.loadInitialData(teams);
+    act(() => void TeamStore.loadInitialData(teams));
   });
 
   it('fetches key transactions with project param', async function () {

@@ -7,10 +7,8 @@ from sentry.api.endpoints.project_transaction_threshold_override import (
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
-    IsKeyTransactionEndpoint,
     KeyTransactionEndpoint,
     KeyTransactionListEndpoint,
-    LegacyKeyTransactionCountEndpoint,
 )
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
@@ -88,6 +86,7 @@ from .endpoints.event_attachments import EventAttachmentsEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
+from .endpoints.event_reprocessable import EventReprocessableEndpoint
 from .endpoints.external_team import ExternalTeamEndpoint
 from .endpoints.external_team_details import ExternalTeamDetailsEndpoint
 from .endpoints.external_user import ExternalUserEndpoint
@@ -287,6 +286,7 @@ from .endpoints.project_app_store_connect_credentials import (
 from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_codeowners import ProjectCodeOwnersEndpoint
 from .endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
+from .endpoints.project_codeowners_request import ProjectCodeOwnersRequestEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
@@ -836,16 +836,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/key-transactions-list/$",
                     KeyTransactionListEndpoint.as_view(),
                     name="sentry-api-0-organization-key-transactions-list",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/legacy-key-transactions-count/$",
-                    LegacyKeyTransactionCountEndpoint.as_view(),
-                    name="sentry-api-0-organization-legacy-key-transactions-count",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/is-key-transactions/$",
-                    IsKeyTransactionEndpoint.as_view(),
-                    name="sentry-api-0-organization-is-key-transactions",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/related-issues/$",
@@ -1602,6 +1592,11 @@ urlpatterns = [
                     name="sentry-api-0-event-attachments",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/reprocessable/$",
+                    EventReprocessableEndpoint.as_view(),
+                    name="sentry-api-0-event-attachments",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/attachments/(?P<attachment_id>[\w-]+)/$",
                     EventAttachmentDetailsEndpoint.as_view(),
                     name="sentry-api-0-event-attachment-details",
@@ -1893,6 +1888,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners/(?P<codeowners_id>[^\/]+)/$",
                     ProjectCodeOwnersDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-codeowners-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners-request/$",
+                    ProjectCodeOwnersRequestEndpoint.as_view(),
+                    name="getsentry-api-0-project-codeowners-request",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/transaction-threshold/configure/$",

@@ -38,7 +38,7 @@ class MsTeamsLinkIdentityView(BaseView):
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature):
             return render_to_response(
-                "sentry/integrations/msteams-expired-link.html",
+                "sentry/integrations/msteams/expired-link.html",
                 request=request,
             )
 
@@ -74,7 +74,7 @@ class MsTeamsLinkIdentityView(BaseView):
         client.send_card(user_conversation_id, card)
 
         return render_to_response(
-            "sentry/integrations/msteams-linked.html",
+            "sentry/integrations/msteams/linked.html",
             request=request,
             context={"team_id": params["team_id"]},
         )

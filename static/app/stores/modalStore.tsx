@@ -47,8 +47,6 @@ const storeConfig: Reflux.StoreDefinition & ModalStoreInterface = {
   },
 };
 
-type ModalStore = Reflux.Store & ModalStoreInterface;
-
-const ModalStore = Reflux.createStore(storeConfig) as ModalStore;
+const ModalStore = Reflux.createStore(storeConfig) as Reflux.Store & ModalStoreInterface;
 
 export default ModalStore;
