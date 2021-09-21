@@ -217,18 +217,12 @@ reset-db() {
 }
 
 prerequisites() {
-    if [ -z "${CI+x}" ]; then
-        brew update -q && brew bundle -q
-        if query-apple-m1; then
-            # psycopg2-binary does not have an arm64 wheel, thus, we need to build it locally
-            # by installing postgresql
-            # See details: https://github.com/psycopg/psycopg2/issues/1286
-            brew install postgresql
-        fi
-    else
-        # These are packages for the CI
-        # Needed for xmlsec since there's no wheels for it
-        brew install libxmlsec1 pkg-config
+    brew update -q && brew bundle -q
+    if query-apple-m1; then
+        # psycopg2-binary does not have an arm64 wheel, thus, we need to build it locally
+        # by installing postgresql
+        # See details: https://github.com/psycopg/psycopg2/issues/1286
+        brew install postgresql
     fi
 }
 
