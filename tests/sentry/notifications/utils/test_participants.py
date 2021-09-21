@@ -143,7 +143,9 @@ class GetSendToOwnersTest(TestCase):
         self.user2 = self.create_user(email="baz@example.com", is_active=True)
         self.user3 = self.create_user(email="bar@example.com", is_active=True)
 
-        self.team2 = self.create_team(organization=self.organization, members=[self.user, self.user2])
+        self.team2 = self.create_team(
+            organization=self.organization, members=[self.user, self.user2]
+        )
         self.project.add_team(self.team2)
 
         ProjectOwnership.objects.create(
