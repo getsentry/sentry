@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -84,13 +85,14 @@ class TeamStability extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {start, end, period, utc} = this.props;
+    const {projects, start, end, period, utc} = this.props;
 
     if (
       prevProps.start !== start ||
       prevProps.end !== end ||
       prevProps.period !== period ||
-      prevProps.utc !== utc
+      prevProps.utc !== utc ||
+      !isEqual(prevProps.projects, projects)
     ) {
       this.remountComponent();
     }
