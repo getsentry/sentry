@@ -673,7 +673,7 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
     return stats, totals
 
 
-def get_release_sessions_time_bounds(project_id, release, org_id, environments=None):
+def _get_release_sessions_time_bounds(project_id, release, org_id, environments=None):
     """
     Get the sessions time bounds in terms of when the first session started and
     when the last session started according to a specific (project_id, org_id, release, environments)
