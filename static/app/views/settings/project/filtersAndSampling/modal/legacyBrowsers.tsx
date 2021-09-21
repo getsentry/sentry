@@ -47,7 +47,7 @@ function LegacyBrowsers({onChange, selectedLegacyBrowsers = []}: Props) {
             return (
               <Fragment key={legacyBrowser}>
                 <BrowserWrapper>
-                  <Icon className={`icon-${icon}`} />
+                  <Icon className={`icon-${icon}`} data-test-id={`icon-${icon}`} />
                   {title}
                 </BrowserWrapper>
                 <Switch

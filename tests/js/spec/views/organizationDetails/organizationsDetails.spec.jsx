@@ -147,6 +147,6 @@ describe('OrganizationDetails', function () {
     wrapper.update();
     expect(getTeamsMock).toHaveBeenCalled();
     expect(getProjectsMock).toHaveBeenCalled();
-    expect(wrapper.find('OrganizationContext').prop('detailed')).toBe(false);
+    expect(wrapper.find('OrganizationContextContainer').prop('detailed')).toBe(false);
   });
 });

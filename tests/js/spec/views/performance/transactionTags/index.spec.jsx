@@ -47,10 +47,6 @@ describe('Performance > Transaction Tags', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/is-key-transactions/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-facets-performance/',
       body: {
         meta: {
@@ -106,6 +102,14 @@ describe('Performance > Transaction Tags', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {},
     });
   });
 

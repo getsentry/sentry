@@ -239,7 +239,6 @@ export type LightWeightOrganization = OrganizationSummary & {
  */
 export type Organization = LightWeightOrganization & {
   projects: Project[];
-  teams: Team[];
 };
 
 /**
@@ -275,6 +274,7 @@ export type Project = {
   isInternal: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
+  hasSessions: boolean;
   firstEvent: 'string' | null;
   firstTransactionEvent: boolean;
   subjectTemplate: string;
@@ -380,6 +380,8 @@ export type TreeLabelPart =
       classbase?: string;
       filebase?: string;
       datapath?: (string | number)[];
+      // is_sentinel is no longer being used,
+      // but we will still assess whether we will use this property in the near future.
       is_sentinel?: boolean;
       is_prefix?: boolean;
     };
@@ -1060,7 +1062,7 @@ export type BaseGroupStatusReprocessing = {
     info: {
       dateCreated: string;
       totalEvents: number;
-    };
+    } | null;
   };
 };
 
@@ -1351,6 +1353,7 @@ export type Integration = {
   icon: string;
   domainName: string;
   accountType: string;
+  scopes?: string[];
   status: ObjectStatus;
   provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
   dynamicDisplayInformation?: {
@@ -1622,10 +1625,10 @@ export type SentryAppComponent = {
     slug:
       | 'calixa'
       | 'clickup'
-      | 'clubhouse'
       | 'komodor'
       | 'linear'
       | 'rookout'
+      | 'shortcut'
       | 'spikesh'
       | 'teamwork'
       | 'zepel';

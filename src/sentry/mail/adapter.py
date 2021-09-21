@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
 from sentry import digests
 from sentry.digests import get_option_key as get_digest_option_key
@@ -12,7 +12,6 @@ from sentry.notifications.notifications.user_report import UserReportNotificatio
 from sentry.notifications.types import ActionTargetType
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -85,9 +84,8 @@ class MailAdapter:
         Return a collection of USERS that are eligible to receive
         notifications for the provided project.
         """
-        return NotificationSetting.objects.get_notification_recipients(project)[
-            ExternalProviders.EMAIL
-        ]
+        recipients_by_provider = NotificationSetting.objects.get_notification_recipients(project)
+        return {user for users in recipients_by_provider.values() for user in users}
 
     def get_sendable_user_ids(self, project):
         users = self.get_sendable_user_objects(project)
@@ -136,11 +134,6 @@ class MailAdapter:
         email_cls(activity).send()
 
     @staticmethod
-    def handle_user_report(payload, project: Project, **kwargs):
+    def handle_user_report(report: Mapping[str, Any], project: Project):
         metrics.incr("mail_adapter.handle_user_report")
-        return UserReportNotification(project, payload["report"]).send()
-
-    def handle_signal(self, name, payload, **kwargs):
-        metrics.incr("mail_adapter.handle_signal")
-        if name == "user-reports.created":
-            self.handle_user_report(payload, **kwargs)
+        return UserReportNotification(project, report).send()

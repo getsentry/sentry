@@ -24,6 +24,7 @@ type Props = Omit<
   onTotalValuesChange: (value: number | null) => void;
   theme: Theme;
   help?: string;
+  yAxis: string;
 };
 
 class ProjectBaseEventsChart extends Component<Props> {

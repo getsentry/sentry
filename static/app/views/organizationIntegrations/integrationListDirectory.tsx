@@ -28,6 +28,7 @@ import {
 } from 'app/types';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {
+  getAlertText,
   getCategoriesForIntegration,
   getSentryAppInstallStatus,
   isDocumentIntegration,
@@ -375,6 +376,8 @@ export class IntegrationListDirectory extends AsyncComponent<
         publishStatus="published"
         configurations={integrations.length}
         categories={getCategoriesForIntegration(provider)}
+        alertText={getAlertText(integrations)}
+        resolveText={t('Update Now')}
       />
     );
   };

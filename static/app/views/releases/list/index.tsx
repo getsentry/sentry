@@ -7,7 +7,7 @@ import pick from 'lodash/pick';
 import {fetchTagValues} from 'app/actionCreators/tags';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
-import GuideAnchorWrapper, {GuideAnchor} from 'app/components/assistant/guideAnchor';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import ExternalLink from 'app/components/links/externalLink';
@@ -40,6 +40,7 @@ import Projects from 'app/utils/projects';
 import routeTitleGen from 'app/utils/routeTitle';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
+import withProjects from 'app/utils/withProjects';
 import AsyncView from 'app/views/asyncView';
 
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
@@ -89,6 +90,7 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
+  projects: Project[];
   selection: GlobalSelection;
 };
 
@@ -208,11 +210,11 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   getSelectedProject(): Project | undefined {
-    const {selection, organization} = this.props;
+    const {selection, projects} = this.props;
 
     const selectedProjectId =
       selection.projects && selection.projects.length === 1 && selection.projects[0];
-    return organization.projects?.find(p => p.id === `${selectedProjectId}`);
+    return projects?.find(p => p.id === `${selectedProjectId}`);
   }
 
   async fetchSessionsExistence() {
@@ -534,6 +536,7 @@ class ReleasesList extends AsyncView<Props, State> {
       .some(project => project?.platform && isProjectMobileForReleases(project.platform));
     const showReleaseAdoptionStages =
       hasReleaseStages && hasAnyMobileProject && selection.environments.length === 1;
+    const hasReleasesSetup = releases && releases.length > 0;
 
     return (
       <GlobalSelectionHeader
@@ -552,8 +555,12 @@ class ReleasesList extends AsyncView<Props, State> {
 
             <SortAndFilterWrapper>
               {hasSemver ? (
-                <GuideAnchor target="releases_search" position="bottom">
-                  <GuideAnchorWrapper
+                <GuideAnchor
+                  target="releases_search"
+                  position="bottom"
+                  disabled={!hasReleasesSetup}
+                >
+                  <GuideAnchor
                     target="release_stages"
                     position="bottom"
                     disabled={!showReleaseAdoptionStages}
@@ -568,7 +575,7 @@ class ReleasesList extends AsyncView<Props, State> {
                       onSearch={this.handleSearch}
                       onGetTagValues={this.getTagValues}
                     />
-                  </GuideAnchorWrapper>
+                  </GuideAnchor>
                 </GuideAnchor>
               ) : (
                 <SearchBar
@@ -688,5 +695,5 @@ const DropdownsWrapper = styled('div')`
   }
 `;
 
-export default withOrganization(withGlobalSelection(ReleasesList));
+export default withProjects(withOrganization(withGlobalSelection(ReleasesList)));
 export {ReleasesList};

@@ -1,8 +1,9 @@
 from base64 import b64encode
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import dateutil
 from django.core import mail
+from django.utils import timezone
 from pytz import UTC
 
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
@@ -18,12 +19,11 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
+    ScheduledDeletion,
 )
-from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.signals import project_created
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 # some relay keys
 _VALID_RELAY_KEYS = [
@@ -92,9 +92,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
 
         # TODO(mgaeta): Extra query while we're "dual reading" from UserOptions and NotificationSettings.
         expected_queries += 1
-
-        # TODO(mgaeta): Extra queries while we're checking a feature flag in the ProjectSerializer.
-        expected_queries += 4
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
@@ -296,86 +293,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
         assert "to {}".format(data["apdexThreshold"]) in log.data["apdexThreshold"]
-
-    def test_setting_apdex_creates_project_threshold(self):
-        org = Organization.objects.get(id=self.organization.id)
-        project1 = self.create_project(organization=org, teams=[self.team], name="Bengal")
-        project2 = self.create_project(organization=org, teams=[self.team], name="Tiger")
-
-        ProjectTransactionThreshold.objects.create(
-            project_id=project1.id,
-            organization_id=org.id,
-            threshold=200,
-            metric=TransactionMetric.DURATION.value,
-        )
-
-        AuditLogEntry.objects.filter(organization=self.organization).delete()
-
-        data = {
-            "apdexThreshold": 450,
-        }
-
-        self.get_success_response(self.organization.slug, **data)
-
-        org = Organization.objects.get(id=self.organization.id)
-        options = {o.key: o.value for o in OrganizationOption.objects.filter(organization=org)}
-
-        assert options.get("sentry:apdex_threshold") == 450
-
-        # log created
-        log = AuditLogEntry.objects.get(organization=org)
-        assert log.get_event_display() == "org.edit"
-        assert "to {}".format(data["apdexThreshold"]) in log.data["apdexThreshold"]
-
-        thresholds = ProjectTransactionThreshold.objects.filter(
-            organization_id=org.id, project_id__in=[project1.id, project2.id]
-        )
-
-        assert thresholds.count() == 2
-        assert thresholds[0].threshold == 450
-        assert thresholds[0].metric == TransactionMetric.DURATION.value
-        assert thresholds[1].threshold == 450
-        assert thresholds[1].metric == TransactionMetric.DURATION.value
-
-    def test_setting_apdex_does_not_create_project_threshold(self):
-        org = Organization.objects.get(id=self.organization.id)
-        project1 = self.create_project(organization=org, teams=[self.team], name="Bengal")
-        project2 = self.create_project(organization=org, teams=[self.team], name="Tiger")
-
-        ProjectTransactionThreshold.objects.create(
-            project_id=project1.id,
-            organization_id=org.id,
-            threshold=200,
-            metric=TransactionMetric.DURATION.value,
-        )
-
-        AuditLogEntry.objects.filter(organization=self.organization).delete()
-
-        data = {
-            "apdexThreshold": 450,
-        }
-
-        with self.feature("organizations:project-transaction-threshold"):
-            self.get_success_response(self.organization.slug, **data)
-
-        org = Organization.objects.get(id=self.organization.id)
-        options = {o.key: o.value for o in OrganizationOption.objects.filter(organization=org)}
-
-        assert options.get("sentry:apdex_threshold") == 450
-
-        # log created
-        log = AuditLogEntry.objects.get(organization=org)
-        assert log.get_event_display() == "org.edit"
-        assert "to {}".format(data["apdexThreshold"]) in log.data["apdexThreshold"]
-
-        thresholds = ProjectTransactionThreshold.objects.filter(
-            organization_id=org.id, project_id__in=[project1.id, project2.id]
-        )
-
-        assert thresholds.count() == 1
-        assert thresholds[0].project_id == project1.id
-        assert thresholds[0].threshold == 200
-        assert thresholds[0].metric == TransactionMetric.DURATION.value
 
     def test_setting_trusted_relays_forbidden(self):
         data = {
@@ -699,11 +616,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
 
-    @patch("sentry.api.endpoints.organization_details.uuid4")
-    @patch("sentry.api.endpoints.organization_details.delete_organization")
-    def test_can_remove_as_owner(self, mock_delete_organization, mock_uuid4):
-        mock_uuid4.return_value = self.get_mock_uuid()
-
+    def test_can_remove_as_owner(self):
         owners = self.organization.get_owners()
         assert len(owners) > 0
 
@@ -717,8 +630,9 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         deleted_org = DeletedOrganization.objects.get(slug=org.slug)
         self.assert_valid_deleted_log(deleted_org, org)
 
-        data = {"object_id": org.id, "transaction_id": "abc123", "actor_id": self.user.id}
-        mock_delete_organization.apply_async.assert_called_once_with(kwargs=data, countdown=86400)
+        schedule = ScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
+        # Delay is 24 hours but to avoid wobbling microseconds we compare with 23 hours.
+        assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 
         # Make sure we've emailed all owners
         assert len(mail.outbox) == len(owners)
@@ -745,6 +659,20 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
         with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
             self.get_error_response(org.slug, status_code=400)
+
+    def test_redo_deletion(self):
+        # Orgs can delete, undelete, delete within a day
+        org = self.create_organization(owner=self.user)
+        ScheduledDeletion.schedule(org, days=1)
+
+        self.get_success_response(org.slug)
+
+        org = Organization.objects.get(id=org.id)
+        assert org.status == OrganizationStatus.PENDING_DELETION
+
+        assert ScheduledDeletion.objects.filter(
+            object_id=org.id, model_name="Organization"
+        ).exists()
 
 
 class OrganizationSettings2FATest(TwoFactorAPITestCase):

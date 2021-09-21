@@ -78,23 +78,12 @@ describe('Performance GridEditable Table', function () {
     });
     // @ts-expect-error
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/is-key-transactions/',
-      body: [],
-    });
-    // @ts-expect-error
-    MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
     // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
-      body: [],
-    });
-    // @ts-expect-error
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/legacy-key-transactions-count/`,
       body: [],
     });
     data = [

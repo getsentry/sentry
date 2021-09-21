@@ -32,7 +32,7 @@ from sentry.utils.distutils import (
     BuildJsSdkRegistryCommand,
 )
 
-VERSION = "21.9.0.dev0"
+VERSION = "21.10.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 
@@ -122,7 +122,6 @@ setup(
             "auth_onelogin = sentry.auth.providers.saml2.onelogin",
             "auth_rippling = sentry.auth.providers.saml2.rippling",
             "auth_saml2 = sentry.auth.providers.saml2.generic",
-            "jira_ac = sentry_plugins.jira_ac",
             "jira = sentry_plugins.jira",
             "freight = sentry_plugins.freight",
             "opsgenie = sentry_plugins.opsgenie",
@@ -142,7 +141,6 @@ setup(
             "gitlab = sentry_plugins.gitlab.plugin:GitLabPlugin",
             "heroku = sentry_plugins.heroku.plugin:HerokuPlugin",
             "jira = sentry_plugins.jira.plugin:JiraPlugin",
-            "jira_ac = sentry_plugins.jira_ac.plugin:JiraACPlugin",
             "opsgenie = sentry_plugins.opsgenie.plugin:OpsGeniePlugin",
             "pagerduty = sentry_plugins.pagerduty.plugin:PagerDutyPlugin",
             "phabricator = sentry_plugins.phabricator.plugin:PhabricatorPlugin",

@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import * as modal from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import WidgetCard from 'app/views/dashboardsV2/widgetCard';
@@ -20,8 +21,16 @@ describe('Dashboards > WidgetCard', function () {
     interval: '5m',
     displayType: 'line',
     queries: [
-      {conditions: 'event.type:error', fields: ['count()'], name: 'errors'},
-      {conditions: 'event.type:default', fields: ['count()'], name: 'default'},
+      {
+        conditions: 'event.type:error',
+        fields: ['count()', 'failure_count()'],
+        name: 'errors',
+      },
+      {
+        conditions: 'event.type:default',
+        fields: ['count()', 'failure_count()'],
+        name: 'default',
+      },
     ],
   };
   const selection = {
@@ -54,7 +63,8 @@ describe('Dashboards > WidgetCard', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders with Open in Discover button and properly redirects with query and field', async function () {
+  it('renders with Open in Discover button and opens the Query Selector Modal when clicked', async function () {
+    const spy = jest.spyOn(modal, 'openDashboardWidgetQuerySelectorModal');
     const wrapper = mountWithTheme(
       <WidgetCard
         api={api}
@@ -80,21 +90,18 @@ describe('Dashboards > WidgetCard', function () {
     expect(menuOptions.length > 0).toBe(true);
     expect(menuOptions[0].props.children).toEqual(t('Open in Discover'));
     menuOptions[0].props.onClick(mockEvent);
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/discover/results/',
-      query: expect.objectContaining({
-        query: 'event.type:error',
-        field: ['count()'],
-      }),
+    expect(spy).toHaveBeenCalledWith({
+      organization: initialData.organization,
+      widget: multipleQueryWidget,
     });
   });
 
-  it('renders and redirects correctly for World Map widgets', async function () {
+  it('renders with Open in Discover button and opens in Discover when clicked', async function () {
     const wrapper = mountWithTheme(
       <WidgetCard
         api={api}
         organization={initialData.organization}
-        widget={{...multipleQueryWidget, displayType: 'world_map'}}
+        widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]]}}
         selection={selection}
         isEditing={false}
         onDelete={() => undefined}
@@ -115,12 +122,16 @@ describe('Dashboards > WidgetCard', function () {
     expect(menuOptions.length > 0).toBe(true);
     expect(menuOptions[0].props.children).toEqual(t('Open in Discover'));
     menuOptions[0].props.onClick(mockEvent);
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/discover/results/',
-      query: expect.objectContaining({
-        query: 'event.type:error has:geo.country_code',
-        field: ['geo.country_code', 'count()'],
-      }),
-    });
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/discover/results/',
+        query: expect.objectContaining({
+          field: ['count()', 'failure_count()'],
+          name: 'Errors',
+          query: 'event.type:error',
+          yAxis: ['count()', 'failure_count()'],
+        }),
+      })
+    );
   });
 });

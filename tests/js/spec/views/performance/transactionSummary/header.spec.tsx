@@ -5,13 +5,21 @@ import EventView from 'app/utils/discover/eventView';
 import TransactionHeader from 'app/views/performance/transactionSummary/header';
 import Tab from 'app/views/performance/transactionSummary/tabs';
 
-function initializeData(opts?: {platform?: string}) {
+type InitialOpts = {
+  features?: string[];
+  platform?: string;
+};
+
+function initializeData(opts?: InitialOpts) {
+  const {features, platform} = opts ?? {};
   // @ts-expect-error
-  const project = TestStubs.Project({platform: opts?.platform});
+  const project = TestStubs.Project({platform});
   // @ts-expect-error
   const organization = TestStubs.Organization({
     projects: [project],
+    features,
   });
+
   const initialData = initializeOrg({
     organization,
     router: {
@@ -58,6 +66,7 @@ describe('Performance > Transaction Summary Header', function () {
         location={router.location}
         organization={organization}
         projects={[project]}
+        projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
         hasWebVitals="yes"
@@ -81,6 +90,7 @@ describe('Performance > Transaction Summary Header', function () {
         location={router.location}
         organization={organization}
         projects={[project]}
+        projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
         hasWebVitals="no"
@@ -106,6 +116,7 @@ describe('Performance > Transaction Summary Header', function () {
         location={router.location}
         organization={organization}
         projects={[project]}
+        projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
         hasWebVitals="maybe"
@@ -135,6 +146,7 @@ describe('Performance > Transaction Summary Header', function () {
         location={router.location}
         organization={organization}
         projects={[project]}
+        projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
         hasWebVitals="maybe"
@@ -164,6 +176,7 @@ describe('Performance > Transaction Summary Header', function () {
         location={router.location}
         organization={organization}
         projects={[project]}
+        projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
         hasWebVitals="maybe"
@@ -176,5 +189,31 @@ describe('Performance > Transaction Summary Header', function () {
     wrapper.update();
 
     expect(wrapper.find('ListLink[data-test-id="web-vitals-tab"]').exists()).toBeFalsy();
+  });
+
+  it('should render spans tab with feature', async function () {
+    const {project, organization, router, eventView} = initializeData({
+      features: ['performance-suspect-spans-view'],
+    });
+
+    wrapper = mountWithTheme(
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TransactionSummary}
+        hasWebVitals="yes"
+        handleIncompatibleQuery={() => {}}
+      />
+    );
+
+    // @ts-expect-error
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('ListLink[data-test-id="spans-tab"]').exists()).toBeTruthy();
   });
 });

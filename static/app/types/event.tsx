@@ -176,7 +176,6 @@ type EventBase = {
   eventID: string;
   title: string;
   culprit: string;
-  dateCreated: string;
   dist: string | null;
   metadata: EventMetadata;
   contexts: EventContexts;
@@ -184,8 +183,6 @@ type EventBase = {
   message: string;
   entries: Entry[];
   errors: any[];
-  previousEventID?: string;
-  nextEventID?: string;
   projectSlug: string;
   projectID: string;
   tags: EventTag[];
@@ -198,12 +195,15 @@ type EventBase = {
     enhancements: string;
   };
   crashFile: IssueAttachment | null;
+  previousEventID?: string;
+  nextEventID?: string;
   groupID?: string;
   context?: Record<string, any>;
+  dateCreated?: string;
   device?: Record<string, any>;
   packages?: Record<string, string>;
   platform?: PlatformType;
-  dateReceived?: string;
+  dateReceived: string;
   endTimestamp?: number;
   userReport?: any;
   sdk?: {

@@ -481,12 +481,6 @@ const commonTheme = {
     // does not need to battle others for z-index priority
     initial: 1,
 
-    breadcrumbs: {
-      header: 2,
-      gridCellError: 1,
-      iconWrapper: 1,
-    },
-
     truncationFullValue: 10,
 
     traceView: {
@@ -721,6 +715,7 @@ type MyTheme = Theme;
  * Configure Emotion to use our theme
  */
 declare module '@emotion/react' {
+  // eslint-disable-next-line @typescript-eslint/no-shadow
   export interface Theme extends MyTheme {}
 }
 
