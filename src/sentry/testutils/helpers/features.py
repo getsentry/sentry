@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from contextlib import contextmanager
 
 import sentry.features
+from sentry.features.exceptions import FeatureNotRegistered
 from sentry.utils.compat.mock import patch
 
 logger = logging.getLogger(__name__)
@@ -44,7 +45,12 @@ def Feature(names):
         if name in names:
             return names[name]
         else:
-            default_value = default_features(name, *args, **kwargs)
+            try:
+                default_value = default_features(name, *args, **kwargs)
+            except FeatureNotRegistered:
+                logger.info("Unregistered flag defaulting to False: %s", repr(name))
+                return False
+
             if default_value:
                 logger.info("Flag defaulting to %s: %s", default_value, repr(name))
             return default_value
