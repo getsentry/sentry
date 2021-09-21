@@ -616,19 +616,21 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       thresholdType,
     };
     const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
-    const wizardBuilderChart = (
-      <TriggersChart
-        {...chartProps}
-        header={
-          <ChartHeader>
-            <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
-            <AlertInfo>
-              {aggregate} | event.type:{eventTypes?.join(',')}
-            </AlertInfo>
-          </ChartHeader>
-        }
-      />
-    );
+
+    const wizardBuilderChart =
+      dataset === Dataset.SESSIONS ? null : (
+        <TriggersChart
+          {...chartProps}
+          header={
+            <ChartHeader>
+              <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
+              <AlertInfo>
+                {aggregate} | event.type:{eventTypes?.join(',')}
+              </AlertInfo>
+            </ChartHeader>
+          }
+        />
+      );
 
     const ownerId = rule.owner?.split(':')[1];
     const canEdit =

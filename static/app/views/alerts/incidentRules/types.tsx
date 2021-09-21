@@ -8,12 +8,15 @@ export enum AlertRuleThresholdType {
 export enum Dataset {
   ERRORS = 'events',
   TRANSACTIONS = 'transactions',
+  SESSIONS = 'sessions',
 }
 
 export enum EventTypes {
   DEFAULT = 'default',
   ERROR = 'error',
   TRANSACTION = 'transaction',
+  USER = 'user',
+  SESSION = 'session',
 }
 
 export enum Datasource {
@@ -21,6 +24,16 @@ export enum Datasource {
   DEFAULT = 'default',
   ERROR = 'error',
   TRANSACTION = 'transaction',
+}
+
+/**
+ * This is not a real aggregate as crash-free sessions/users can be only calculated on frontend by comparing the count of sessions broken down by status
+ * It is here nevertheless to shoehorn sessions dataset into existing alerts codebase
+ * This will most likely be revised as we introduce the metrics dataset
+ */
+export enum SessionsAggregate {
+  CRASH_FREE_SESSIONS = 'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
+  CRASH_FREE_USERS = 'percentage(users_crashed, users) AS _crash_rate_alert_aggregate',
 }
 
 export type UnsavedTrigger = {

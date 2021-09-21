@@ -44,7 +44,7 @@ type Props = {
   organization: Organization;
   projectSlug: string;
   disabled: boolean;
-  thresholdChart: React.ReactElement;
+  thresholdChart: React.ReactNode;
   onFilterSearch: (query: string) => void;
   alertType: AlertType;
   allowChangeEventTypes?: boolean;
