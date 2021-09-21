@@ -1,7 +1,6 @@
-from uuid import uuid4
-
 from sentry import options
 from sentry.models import Organization, OrganizationMember, User
+from sentry.models.useremail import default_validation_hash
 from sentry.utils import redis
 from sentry.utils.email import MessageBuilder
 
@@ -43,13 +42,14 @@ def create_verification_key(user: User, org: Organization, email: str) -> None:
     cluster = redis.clusters.get("default").get_local_client_for_key(redis_key)
     member_id = OrganizationMember.objects.get(organization=org, user=user).id
 
-    verification_key = f"auth:one-time-key:{uuid4().hex}"
+    verification_code = default_validation_hash()
+    verification_key = f"auth:one-time-key:{verification_code}"
     verification_value = {"user_id": user.id, "email": email, "member_id": member_id}
 
     cluster.hmset(verification_key, verification_value)
     cluster.expire(verification_key, TTL)
 
-    send_confirm_email(user, email, verification_key)
+    send_confirm_email(user, email, verification_code)
 
 
 def verify_new_identity(user: User, org: Organization, key: str) -> bool:

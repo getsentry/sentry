@@ -16,8 +16,7 @@ class IDPMigrationTests(TestCase):
         idpmigration.create_verification_key(self.user, self.org, self.email)
         assert send_confirm_email.call_args.args[0] == self.user
         assert send_confirm_email.call_args.args[1] == self.email
-        assert send_confirm_email.call_args.args[2][0:18] == "auth:one-time-key:"
-        assert len(send_confirm_email.call_args.args[2]) == 50
+        assert len(send_confirm_email.call_args.args[2]) == 32
 
     # TODO
     # def test_verify_new_identity(self):
