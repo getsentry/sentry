@@ -25,13 +25,15 @@ class PluginDeprecationAlert extends Component<Props, State> {
     }
     const resource = plugin.altIsSentryApp ? 'sentry-apps' : 'integrations';
     const upgradeUrl = `/settings/${organization.slug}/${resource}/${plugin.firstPartyAlternative}/`;
-
+    const queryParams = `?${
+      plugin.altIsSentryApp ? '' : 'tab=configurations&'
+    }referrer=directory_upgrade_now`;
     return (
       <div>
         <Alert type="warning" icon={<IconWarning size="sm" />}>
           <span>{`This integration is being deprecated on ${plugin.deprecationDate}. Please upgrade to avoid any disruption.`}</span>
           <UpgradeNowButton
-            href={`${upgradeUrl}?tab=configurations&referrer=directory_upgrade_now`}
+            href={`${upgradeUrl}${queryParams}`}
             size="xsmall"
             onClick={() =>
               trackIntegrationAnalytics('integrations.resolve_now_clicked', {
