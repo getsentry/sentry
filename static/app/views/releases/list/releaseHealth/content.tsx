@@ -149,10 +149,6 @@ const Content = ({
             activeDisplay
           );
           const adoption = getHealthData.getAdoption(releaseVersion, id, activeDisplay);
-          // we currently don't support sub-hour session intervals, we rather hide the count histogram than to show only two bars
-          const hasCountHistogram =
-            timeSeries?.[0].data.length > 7 &&
-            timeSeries[0].data.some(item => item.value > 0);
 
           const adoptionStage =
             showReleaseAdoptionStages &&
@@ -198,17 +194,15 @@ const Content = ({
                 <AdoptionColumn>
                   {showPlaceholders ? (
                     <StyledPlaceholder width="100px" />
-                  ) : adoption && hasCountHistogram ? (
+                  ) : (
                     <AdoptionWrapper>
-                      <span>{Math.round(adoption)}%</span>
+                      <span>{adoption ? Math.round(adoption) : '0'}%</span>
                       <HealthStatsChart
                         data={timeSeries}
                         height={20}
                         activeDisplay={activeDisplay}
                       />
                     </AdoptionWrapper>
-                  ) : (
-                    <NotAvailable />
                   )}
                 </AdoptionColumn>
 
