@@ -29,8 +29,7 @@ class BaseOrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITest
         query["project"] = query["project"] if "project" in query else [self.project.id]
 
         feature_dict = {feature: True for feature in self.feature_list}
-        if features:
-            feature_dict.update(features)
+        feature_dict.update(features or {})
         with self.feature(feature_dict):
             return self.client.get(self.url, query, format="json")
 
