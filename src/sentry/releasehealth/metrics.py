@@ -193,21 +193,29 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ]
 
             if environments is not None:
+                environment_tag_values = []
+
+                for environment in environments:
+                    value = indexer.resolve(org_id, UseCase.TAG_VALUE, environment)
+                    if value is not None:
+                        environment_tag_values.append(value)
+
                 where_common.append(
-                    Condition(
-                        Column(tag_key(org_id, "environment")),
-                        Op.IN,
-                        list(tag_value(org_id, x) for x in environments),
-                    )
+                    Condition(Column(tag_key(org_id, "environment")), Op.IN, environment_tag_values)
                 )
 
             if not total:
+                release_tag_values = []
+
+                for _, release in project_releases:
+                    value = indexer.resolve(org_id, UseCase.TAG_VALUE, release)
+                    if value is not None:
+                        # We should not append the value if it hasn't been
+                        # observed before.
+                        release_tag_values.append(value)
+
                 where_common.append(
-                    Condition(
-                        Column(tag_key(org_id, "release")),
-                        Op.IN,
-                        list(tag_value(org_id, x) for _, x in project_releases),
-                    )
+                    Condition(Column(tag_key(org_id, "release")), Op.IN, release_tag_values)
                 )
 
             return where_common
@@ -216,13 +224,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             if total:
                 return [Column("project_id")]
             else:
-                return [Column("project_id"), Column("release")]
+                return [Column("project_id"), Column(tag_key(org_id, "release"))]
 
         def _convert_results(data, total):
             if total:
                 return {x["project_id"]: x["value"] for x in data}
             else:
-                return {(x["project_id"], x["release"]): x["value"] for x in data}
+                release_tag = tag_key(org_id, "release")
+                return {(x["project_id"], x[release_tag]): x["value"] for x in data}
 
         def _count_sessions(total, referrer) -> Dict[Any, int]:
             query = Query(
@@ -288,7 +297,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         # Count of sessions/users for given list of environments and timerange AND GIVEN RELEASES, per-project
         sessions_per_release: Dict[Tuple[int, str], int] = _count_sessions(
-            total=True, referrer="releasehealth.metrics.get_release_adoption.releases_sessions"
+            total=False, referrer="releasehealth.metrics.get_release_adoption.releases_sessions"
         )
         users_per_release: Dict[Tuple[int, str], int] = _count_users(
             total=False, referrer="releasehealth.metrics.get_release_adoption.releases_users"
@@ -297,11 +306,16 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rv = {}
 
         for project_id, release in project_releases:
-            release_users = users_per_release.get((project_id, release))
-            total_users = users_per_project.get(project_id)
-
             release_sessions = sessions_per_release.get((project_id, release))
+            if not release_sessions:
+                # Don't emit empty releases -- for exact compatibility with
+                # sessions table backend.
+                continue
+
+            release_users = users_per_release.get((project_id, release))
+
             total_sessions = sessions_per_project.get(project_id)
+            total_users = users_per_project.get(project_id)
 
             rv[project_id, release] = {
                 "adoption": float(release_users) / total_users * 100
@@ -315,5 +329,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 "project_users_24h": total_users,
                 "project_sessions_24h": total_sessions,
             }
+
+        if not rv:
+            import pdb
+
+            pdb.set_trace()
 
         return rv
