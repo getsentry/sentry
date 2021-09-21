@@ -40,6 +40,7 @@ DEFAULT_AUTHENTICATION = (TokenAuthentication, ApiKeyAuthentication, SessionAuth
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
+api_access_logger = logging.getLogger("sentry.access.api")
 
 
 def allow_cors_options(func):
@@ -160,6 +161,20 @@ class Endpoint(APIView):
         except json.JSONDecodeError:
             return
 
+    def _create_api_access_log(self):
+        """
+        Create a log entry to be used for api metrics gathering
+        """
+        token_type = getattr(self.request.auth, "__class__", None)
+        log_metrics = dict(
+            method=self.request.method,
+            view=str(self.request.parser_context["view"].__class__),
+            response=self.response.status_code,
+            user=str(self.request.user),
+            token_type=token_type,
+        )
+        api_access_logger.info(log_metrics)
+
     def initialize_request(self, request, *args, **kwargs):
         # XXX: Since DRF 3.x, when the request is passed into
         # `initialize_request` it's set as an internal variable on the returned
@@ -234,12 +249,6 @@ class Endpoint(APIView):
                     # setup default access
                     request.access = access.from_request(request)
 
-            if (
-                getattr(self.request.successful_authenticator, "token_name", None)
-                == TokenAuthentication.token_name
-            ):
-                request._metric_tags["backend_request"] = True
-
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
                 description=f"{type(self).__name__}.{handler.__name__}",
@@ -264,6 +273,8 @@ class Endpoint(APIView):
                 ) as span:
                     span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
+
+        self._create_api_access_log()
 
         return self.response
 
