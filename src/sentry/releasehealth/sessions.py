@@ -33,4 +33,4 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         )
 
     def check_has_health_data(self, projects_list: ProjectList) -> Set[ProjectRelease]:
-        return check_has_health_data(projects_list)
+        return check_has_health_data(projects_list)  # type: ignore
