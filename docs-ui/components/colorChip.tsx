@@ -20,6 +20,25 @@ type Props = {
   theme: Theme;
 };
 
+type OuterWrapProps = {
+  large: boolean;
+};
+
+type WrapperProps = {
+  large: boolean;
+  noText: boolean;
+};
+
+type ColorSwatchProps = {
+  large: boolean;
+  background: string;
+  border: boolean;
+};
+
+type TextProps = {
+  large: boolean;
+};
+
 const ColorChip = ({
   value,
   large = false,
@@ -50,7 +69,7 @@ const ColorChip = ({
 
 export default withTheme(ColorChip);
 
-const OuterWrap = styled('span')`
+const OuterWrap = styled('span')<OuterWrapProps>`
   align-items: center;
   ${p =>
     p.large
@@ -64,7 +83,7 @@ const OuterWrap = styled('span')`
     `}
 `;
 
-const Wrapper = styled('span')`
+const Wrapper = styled('span')<WrapperProps>`
   display: flex;
   align-items: center;
   border-radius: ${p => p.theme.borderRadius};
@@ -84,14 +103,14 @@ const Wrapper = styled('span')`
         `};
 `;
 
-const Text = styled('span')`
+const Text = styled('span')<TextProps>`
   margin-bottom: 0;
   line-height: 1.2;
   text-transform: capitalize;
   ${p => (p.large ? `margin-top: ${space(0.5)};` : `margin-left: ${space(0.5)};`)}
 `;
 
-const ColorSwatch = styled('span')`
+const ColorSwatch = styled('span')<ColorSwatchProps>`
   display: inline;
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => p.background};

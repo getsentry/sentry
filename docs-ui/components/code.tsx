@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import copy from 'copy-text-to-clipboard';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism.css';
-import {Component, createRef, Fragment, RefObject} from 'react';
+import {Component, createRef, RefObject, useEffect} from 'react';
 
 import {IconCode} from 'app/icons';
 import space from 'app/styles/space';
@@ -33,60 +33,48 @@ type Props = {
   label?: string;
 };
 
-type State = {};
+const Code = ({theme, children, className, label}: Props) => {
+  const codeRef: RefObject<HTMLElement> = createRef();
+  const copyButtonRef: RefObject<HTMLButtonElement> = createRef();
 
-class Code extends Component<Props, State> {
-  private codeRef: RefObject<HTMLElement>;
-  private copyButtonRef: RefObject<HTMLButtonElement>;
+  function copyCode() {
+    const copyButton = copyButtonRef?.current;
 
-  constructor(props: Props) {
-    super(props);
-    this.state = {};
-    this.codeRef = createRef();
-    this.copyButtonRef = createRef();
+    if (copyButton) {
+      /** Remove comments from code */
+      const copiableContent = children.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+
+      copy(copiableContent);
+
+      copyButton.innerText = 'Copied';
+      copyButton.disabled = true;
+
+      setTimeout(() => {
+        copyButton.innerText = 'Copy';
+        copyButton.disabled = false;
+      }, 500);
+    }
   }
 
-  componentDidMount() {
-    Prism.highlightElement(this.codeRef.current, true);
-  }
+  useEffect(() => {
+    Prism.highlightElement(codeRef.current, true);
+  });
 
-  copyCode() {
-    const {children} = this.props;
-    const copyButton = this.copyButtonRef.current;
-
-    /** Remove comments from code */
-    const copiableContent = children.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
-
-    copy(copiableContent);
-
-    copyButton.innerText = 'Copied';
-    copyButton.disabled = true;
-
-    setTimeout(() => {
-      this.copyButtonRef.current.innerText = 'Copy';
-      copyButton.disabled = false;
-    }, 500);
-  }
-
-  render() {
-    const {children, className, label, theme} = this.props;
-
-    return (
-      <Wrap className={className}>
-        <LabelWrap>
-          <IconCode theme={theme} color="gray300" />
-          {label && <Label>{label.replaceAll('_', ' ')}</Label>}
-        </LabelWrap>
-        <HighlightedCode className={className} ref={this.codeRef}>
-          {children}
-        </HighlightedCode>
-        <CopyButton ref={this.copyButtonRef} onClick={() => this.copyCode()}>
-          Copy
-        </CopyButton>
-      </Wrap>
-    );
-  }
-}
+  return (
+    <Wrap className={className}>
+      <LabelWrap>
+        <IconCode theme={theme} color="gray300" />
+        {label && <Label>{label.replaceAll('_', ' ')}</Label>}
+      </LabelWrap>
+      <HighlightedCode className={className} ref={codeRef}>
+        {children}
+      </HighlightedCode>
+      <CopyButton ref={copyButtonRef} onClick={() => copyCode()}>
+        Copy
+      </CopyButton>
+    </Wrap>
+  );
+};
 
 export default withTheme(Code);
 
