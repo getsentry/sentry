@@ -98,7 +98,7 @@ class TeamStability extends AsyncComponent<Props, State> {
 
   getScore(projectId: number, dataset: 'week' | 'period'): number | null {
     const {periodSessions, weekSessions} = this.state;
-    const sessions = dataset === 'week' ? periodSessions : weekSessions;
+    const sessions = dataset === 'week' ? weekSessions : periodSessions;
     const projectGroups = sessions?.groups.filter(
       group => group.by.project === projectId
     );
