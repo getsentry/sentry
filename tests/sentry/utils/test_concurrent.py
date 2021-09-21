@@ -1,4 +1,5 @@
 import _thread
+import sys
 from concurrent.futures import CancelledError, Future, InvalidStateError
 from contextlib import contextmanager
 from queue import Full
@@ -106,13 +107,23 @@ def test_timed_future_success():
         future.set_result(None)
         assert future.get_timing() == (1.0, 2.0)
 
-    with timestamp(3.0):
+
+@pytest.mark.skipif(sys.version_info[:2] < (3, 8), reason="doesn't apply to this python version")
+def test_time_is_not_overwritten_if_fail_to_set_result():
+    future = TimedFuture()
+
+    with timestamp(1.0):
+        future.set_running_or_notify_cancel()
+        future.set_result(1)
+        assert future.get_timing() == (1.0, 1.0)
+
+    with timestamp(2.0):
         try:
             future.set_result(1)
         except InvalidStateError:
             pass
         # If set_result fails, the time shouldn't be overwritten.
-        assert future.get_timing() == (1.0, 2.0)
+        assert future.get_timing() == (1.0, 1.0)
 
 
 def test_timed_future_error():
