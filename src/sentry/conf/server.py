@@ -607,6 +607,10 @@ CELERY_QUEUES = [
     Queue(
         "events.reprocessing.symbolicate_event", routing_key="events.reprocessing.symbolicate_event"
     ),
+    Queue(
+        "events.reprocessing.symbolicate_event_low_priority",
+        routing_key="events.reprocessing.symbolicate_event_low_priority",
+    ),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
     Queue(
@@ -881,8 +885,6 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
-    # Enable Apple app-store-connect dsym symbol file collection.
-    "organizations:app-store-connect": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
     # Enable explicit use of AND and OR in search.
@@ -1065,10 +1067,6 @@ SENTRY_FEATURES = {
     "organizations:release-archives": False,
     # Enable the new release details experience
     "organizations:release-comparison": False,
-    # Enable the project level transaction thresholds
-    "organizations:project-transaction-threshold": False,
-    # Enable the transaction level thresholds
-    "organizations:project-transaction-threshold-override": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
     # Enable team insights page
@@ -1358,6 +1356,10 @@ SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefix
 # Metrics product
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
+
+# Release Health
+SENTRY_RELEASE_HEALTH = "sentry.releasehealth.sessions.SessionsReleaseHealthBackend"
+SENTRY_RELEASE_HEALTH_OPTIONS = {}
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
@@ -1899,7 +1901,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 
 
 SENTRY_SDK_CONFIG = {
-    "release": sentry.__build__,
+    "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
     "in_app_include": ["sentry", "sentry_plugins"],
     "debug": True,

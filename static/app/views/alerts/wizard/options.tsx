@@ -14,7 +14,11 @@ import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-er
 
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
-import {Dataset, EventTypes} from 'app/views/alerts/incidentRules/types';
+import {
+  Dataset,
+  EventTypes,
+  SessionsAggregate,
+} from 'app/views/alerts/incidentRules/types';
 
 export type AlertType =
   | 'issues'
@@ -221,7 +225,7 @@ export type WizardRuleTemplate = {
 };
 
 export const AlertWizardRuleTemplates: Record<
-  Exclude<AlertType, 'issues' | 'crash_free_sessions' | 'crash_free_users'>,
+  Exclude<AlertType, 'issues'>,
   WizardRuleTemplate
 > = {
   num_errors: {
@@ -274,6 +278,16 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },
+  crash_free_sessions: {
+    aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
+    dataset: Dataset.SESSIONS,
+    eventTypes: EventTypes.SESSION,
+  },
+  crash_free_users: {
+    aggregate: SessionsAggregate.CRASH_FREE_USERS,
+    dataset: Dataset.SESSIONS,
+    eventTypes: EventTypes.USER,
+  },
 };
 
 export const hidePrimarySelectorSet = new Set<AlertType>([
@@ -282,6 +296,8 @@ export const hidePrimarySelectorSet = new Set<AlertType>([
   'throughput',
   'apdex',
   'failure_rate',
+  'crash_free_sessions',
+  'crash_free_users',
 ]);
 
 export const hideParameterSelectorSet = new Set<AlertType>([
