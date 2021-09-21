@@ -65,7 +65,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
     """
 
     def get_actor_identifier(self):
-        return "%s:%d" % (self.type.__name__.lower(), self.id)
+        return f"{self.type.__name__.lower()}:{self.id}"
 
     @classmethod
     def from_actor_identifier(cls, actor_identifier):
