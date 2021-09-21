@@ -6,6 +6,7 @@ import moment from 'moment-timezone';
 import DateTime from 'app/components/dateTime';
 import FileSize from 'app/components/fileSize';
 import GlobalAppStoreConnectUpdateAlert from 'app/components/globalAppStoreConnectUpdateAlert';
+import GlobalEventProcessingAlert from 'app/components/globalEventProcessingAlert';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import NavigationButtonGroup from 'app/components/navigationButtonGroup';
@@ -141,6 +142,9 @@ class GroupEventToolbar extends Component<Props> {
           />
           {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
         </Tooltip>
+        {project.eventProcessing.symbolicationDegraded && (
+          <StyledGlobalEventProcessingAlert />
+        )}
         <StyledGlobalAppStoreConnectUpdateAlert
           project={project}
           organization={organization}
@@ -196,6 +200,11 @@ const StyledDateTime = styled(DateTime)`
 `;
 
 const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
+  margin-top: ${space(0.5)};
+  margin-bottom: ${space(1)};
+`;
+
+const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
   margin-top: ${space(0.5)};
   margin-bottom: ${space(1)};
 `;
