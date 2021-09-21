@@ -1499,6 +1499,41 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             [{"count": 0}],
         ]
 
+    def test_top_events_with_user_display(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["message", "user.display", "count()"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 6
+
+        for index, event in enumerate(self.events[:5]):
+            message = event.message or event.transaction
+            user = self.event_data[index]["data"]["user"]
+            results = data[
+                ",".join([message, user.get("email", None) or user.get("ip_address", "None")])
+            ]
+            assert results["order"] == index
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for _, attrs in results["data"]
+            ]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
+
     @pytest.mark.skip(reason="A query with group_id will not return transactions")
     def test_top_events_none_filter(self):
         """When a field is None in one of the top events, make sure we filter by it
