@@ -1,7 +1,7 @@
 __all__ = ["Feature", "with_feature"]
 
-import collections
 import logging
+from collections.abc import Mapping
 from contextlib import contextmanager
 
 import sentry.features
@@ -35,7 +35,7 @@ def Feature(names):
     if isinstance(names, str):
         names = {names: True}
 
-    elif not isinstance(names, collections.Mapping):
+    elif not isinstance(names, Mapping):
         names = {k: True for k in names}
 
     default_features = sentry.features.has
