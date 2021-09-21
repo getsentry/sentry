@@ -1,7 +1,13 @@
 from datetime import datetime
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Tuple
 
-from sentry.releasehealth.base import ReleaseHealthBackend
+from sentry.releasehealth.base import (
+    EnvironmentName,
+    OrganizationId,
+    ProjectId,
+    ReleaseHealthBackend,
+    ReleaseName,
+)
 from sentry.snuba.sessions import get_current_and_previous_crash_free_rates, get_release_adoption
 
 
@@ -10,13 +16,13 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
 
     def get_current_and_previous_crash_free_rates(
         self,
-        project_ids: Sequence[int],
+        project_ids: Sequence[ProjectId],
         current_start: datetime,
         current_end: datetime,
         previous_start: datetime,
         previous_end: datetime,
         rollup: int,
-        org_id: Optional[int] = None,
+        org_id: Optional[OrganizationId] = None,
     ) -> ReleaseHealthBackend.CurrentAndPreviousCrashFreeRates:
         return get_current_and_previous_crash_free_rates(  # type: ignore
             project_ids=project_ids,
@@ -27,11 +33,13 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
             rollup=rollup,
         )
 
-    def get_release_adoption(self, project_releases, environments=None, now=None):
-        """
-        Get the adoption of the last 24 hours (or a difference reference timestamp).
-        """
-
-        return get_release_adoption(
+    def get_release_adoption(
+        self,
+        project_releases: Sequence[Tuple[ProjectId, ReleaseName]],
+        environments: Optional[Sequence[EnvironmentName]] = None,
+        now: Optional[datetime] = None,
+        org_id: Optional[OrganizationId] = None,
+    ) -> ReleaseHealthBackend.ReleasesAdoption:
+        return get_release_adoption(  # type: ignore
             project_releases=project_releases, environments=environments, now=now
         )

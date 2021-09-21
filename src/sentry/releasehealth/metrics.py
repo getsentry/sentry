@@ -7,7 +7,13 @@ from snuba_sdk.expressions import Granularity
 from snuba_sdk.query import SelectableExpression
 
 from sentry.models.project import Project
-from sentry.releasehealth.base import ReleaseHealthBackend
+from sentry.releasehealth.base import (
+    EnvironmentName,
+    OrganizationId,
+    ProjectId,
+    ReleaseHealthBackend,
+    ReleaseName,
+)
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.snuba.dataset import Dataset
@@ -155,11 +161,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     def get_release_adoption(
         self,
-        project_releases: Sequence[Tuple[int, str]],
-        environments: Optional[Sequence[str]] = None,
-        now=None,
-        org_id: Optional[int] = None,
-    ):
+        project_releases: Sequence[Tuple[ProjectId, ReleaseName]],
+        environments: Optional[Sequence[EnvironmentName]] = None,
+        now: Optional[datetime] = None,
+        org_id: Optional[OrganizationId] = None,
+    ) -> ReleaseHealthBackend.ReleasesAdoption:
         project_ids = list({x[0] for x in project_releases})
         if org_id is None:
             org_id = self._get_org_id(project_ids)
@@ -175,13 +181,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def _get_release_adoption_impl(
         now: datetime,
         org_id: int,
-        project_releases: Sequence[Tuple[int, str]],
-        project_ids: Sequence[int],
-        environments: Optional[Sequence[str]] = None,
-    ):
+        project_releases: Sequence[Tuple[ProjectId, ReleaseName]],
+        project_ids: Sequence[ProjectId],
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> ReleaseHealthBackend.ReleasesAdoption:
         start = now - timedelta(days=1)
 
-        def _get_common_where(total):
+        def _get_common_where(total: bool) -> List[Union[BooleanCondition, Condition]]:
             where_common: List[Union[BooleanCondition, Condition]] = [
                 Condition(Column("org_id"), Op.EQ, org_id),
                 Condition(Column("project_id"), Op.IN, project_ids),
@@ -196,7 +202,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 environment_tag_values = []
 
                 for environment in environments:
-                    value = indexer.resolve(org_id, UseCase.TAG_VALUE, environment)
+                    value = indexer.resolve(org_id, UseCase.TAG_VALUE, environment)  # type: ignore
                     if value is not None:
                         environment_tag_values.append(value)
 
@@ -208,7 +214,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 release_tag_values = []
 
                 for _, release in project_releases:
-                    value = indexer.resolve(org_id, UseCase.TAG_VALUE, release)
+                    value = indexer.resolve(org_id, UseCase.TAG_VALUE, release)  # type: ignore
                     if value is not None:
                         # We should not append the value if it hasn't been
                         # observed before.
@@ -220,20 +226,20 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
             return where_common
 
-        def _get_common_groupby(total) -> List[SelectableExpression]:
+        def _get_common_groupby(total: bool) -> List[SelectableExpression]:
             if total:
                 return [Column("project_id")]
             else:
                 return [Column("project_id"), Column(tag_key(org_id, "release"))]
 
-        def _convert_results(data, total):
+        def _convert_results(data: Any, total: bool) -> Dict[Any, int]:
             if total:
                 return {x["project_id"]: x["value"] for x in data}
             else:
                 release_tag = tag_key(org_id, "release")
                 return {(x["project_id"], x[release_tag]): x["value"] for x in data}
 
-        def _count_sessions(total, referrer) -> Dict[Any, int]:
+        def _count_sessions(total: bool, referrer: str) -> Dict[Any, int]:
             query = Query(
                 dataset=Dataset.Metrics.value,
                 match=Entity("metrics_counters"),
@@ -254,7 +260,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 total=total,
             )
 
-        def _count_users(total, referrer) -> Dict[Any, int]:
+        def _count_users(total: bool, referrer: str) -> Dict[Any, int]:
             query = Query(
                 dataset=Dataset.Metrics.value,
                 match=Entity("metrics_sets"),
@@ -306,7 +312,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rv = {}
 
         for project_id, release in project_releases:
-            release_tag_value = indexer.resolve(org_id, UseCase.TAG_VALUE, release)
+            release_tag_value = indexer.resolve(org_id, UseCase.TAG_VALUE, release)  # type: ignore
             if release_tag_value is None:
                 # Don't emit empty releases -- for exact compatibility with
                 # sessions table backend.
@@ -318,7 +324,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             total_sessions = sessions_per_project.get(project_id)
             total_users = users_per_project.get(project_id)
 
-            rv[project_id, release] = {
+            adoption: ReleaseHealthBackend.ReleaseAdoption = {
                 "adoption": float(release_users) / total_users * 100
                 if release_users and total_users
                 else None,
@@ -330,5 +336,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 "project_users_24h": total_users,
                 "project_sessions_24h": total_sessions,
             }
+
+            rv[project_id, release] = adoption
 
         return rv

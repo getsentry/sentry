@@ -1,9 +1,14 @@
 from datetime import datetime
-from typing import Dict, Optional, Sequence
+from typing import Mapping, Optional, Sequence, Tuple
 
 from typing_extensions import TypedDict
 
 from sentry.utils.services import Service
+
+ProjectId = int
+OrganizationId = int
+ReleaseName = str
+EnvironmentName = str
 
 
 class ReleaseHealthBackend(Service):  # type: ignore
@@ -15,17 +20,17 @@ class ReleaseHealthBackend(Service):  # type: ignore
         currentCrashFreeRate: Optional[float]
         previousCrashFreeRate: Optional[float]
 
-    CurrentAndPreviousCrashFreeRates = Dict[int, CurrentAndPreviousCrashFreeRate]
+    CurrentAndPreviousCrashFreeRates = Mapping[ProjectId, CurrentAndPreviousCrashFreeRate]
 
     def get_current_and_previous_crash_free_rates(
         self,
-        project_ids: Sequence[int],
+        project_ids: Sequence[ProjectId],
         current_start: datetime,
         current_end: datetime,
         previous_start: datetime,
         previous_end: datetime,
         rollup: int,
-        org_id: Optional[int] = None,
+        org_id: Optional[OrganizationId] = None,
     ) -> CurrentAndPreviousCrashFreeRates:
         """
         Function that returns `currentCrashFreeRate` and the `previousCrashFreeRate` of projects
@@ -56,9 +61,33 @@ class ReleaseHealthBackend(Service):  # type: ignore
         """
         raise NotImplementedError()
 
-    def get_release_adoption(project_releases, environments=None, now=None):
+    class ReleaseAdoption(TypedDict):
+        #: Adoption rate (based on usercount) for a project's release from 0..100
+        adoption: Optional[float]
+        #: Adoption rate (based on sessioncount) for a project's release from 0..100
+        sessions_adoption: Optional[float]
+        #: User count for a project's release (past 24h)
+        users_24h: Optional[int]
+        #: Sessions count for a project's release (past 24h)
+        sessions_24h: Optional[int]
+        #: Sessions count for the entire project (past 24h)
+        project_users_24h: Optional[int]
+        #: Sessions count for the entire project (past 24h)
+        project_sessions_24h: Optional[int]
+
+    ReleasesAdoption = Mapping[Tuple[ProjectId, ReleaseName], ReleaseAdoption]
+
+    def get_release_adoption(
+        self,
+        project_releases: Sequence[Tuple[ProjectId, ReleaseName]],
+        environments: Optional[Sequence[EnvironmentName]] = None,
+        now: Optional[datetime] = None,
+        org_id: Optional[OrganizationId] = None,
+    ) -> ReleasesAdoption:
         """
         Get the adoption of the last 24 hours (or a difference reference timestamp).
+
+        :param project_releases:
         """
 
         raise NotImplementedError()
