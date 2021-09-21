@@ -4,6 +4,7 @@ import {selectByValue} from 'sentry-test/select-new';
 
 import {Client} from 'app/api';
 import ModalStore from 'app/stores/modalStore';
+import ProjectsStore from 'app/stores/projectsStore';
 import IntegrationCodeMappings from 'app/views/organizationIntegrations/integrationCodeMappings';
 
 const mockResponse = mocks => {
@@ -24,11 +25,11 @@ describe('IntegrationCodeMappings', function () {
       name: 'Some Project',
     }),
   ];
-  const org = TestStubs.Organization({
-    projects,
-  });
+
+  ProjectsStore.loadInitialData(projects);
+
+  const org = TestStubs.Organization();
   const invalidOrg = TestStubs.Organization({
-    projects,
     access: [],
   });
   const integration = TestStubs.GitHubIntegration();
