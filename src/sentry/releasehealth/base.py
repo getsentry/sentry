@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Tuple
+from typing import Mapping, Optional, Sequence, Tuple, Union
 
 from typing_extensions import TypedDict
 
@@ -10,11 +10,17 @@ OrganizationId = int
 ReleaseName = str
 EnvironmentName = str
 
+FormattedIsoTime = str
+
 
 class ReleaseHealthBackend(Service):  # type: ignore
     """Abstraction layer for all release health related queries"""
 
-    __all__ = ("get_current_and_previous_crash_free_rates", "get_release_adoption")
+    __all__ = (
+        "get_current_and_previous_crash_free_rates",
+        "get_release_adoption",
+        "get_release_sessions_time_bounds",
+    )
 
     class CurrentAndPreviousCrashFreeRate(TypedDict):
         currentCrashFreeRate: Optional[float]
@@ -99,4 +105,24 @@ class ReleaseHealthBackend(Service):  # type: ignore
             that. Omit if you're not sure.
         """
 
+        raise NotImplementedError()
+
+    class TimeBounds(TypedDict):
+        sessions_lower_bound: FormattedIsoTime
+        sessions_upper_bound: FormattedIsoTime
+
+    class NoTimeBounds(TypedDict):
+        sessions_lower_bound: None
+        sessions_upper_bound: None
+
+    ReleaseSessionsTimeBounds = Union[TimeBounds, NoTimeBounds]
+
+    def get_release_sessions_time_bounds(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        org_id: OrganizationId,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ):
+        # TODO(markus): Docstring
         raise NotImplementedError()

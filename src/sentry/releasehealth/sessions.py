@@ -8,7 +8,11 @@ from sentry.releasehealth.base import (
     ReleaseHealthBackend,
     ReleaseName,
 )
-from sentry.snuba.sessions import _get_release_adoption, get_current_and_previous_crash_free_rates
+from sentry.snuba.sessions import (
+    get_current_and_previous_crash_free_rates,
+    _get_release_adoption,
+    get_release_sessions_time_bounds,
+)
 
 
 class SessionsReleaseHealthBackend(ReleaseHealthBackend):
@@ -42,4 +46,15 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
     ) -> ReleaseHealthBackend.ReleasesAdoption:
         return _get_release_adoption(  # type: ignore
             project_releases=project_releases, environments=environments, now=now
+        )
+
+    def get_release_sessions_time_bounds(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        org_id: OrganizationId,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ):
+        return get_release_sessions_time_bounds(
+            project_id=project_id, release=release, org_id=org_id, environments=environments
         )

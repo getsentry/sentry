@@ -16,7 +16,6 @@ from sentry.snuba.sessions import (
     get_project_releases_by_stability,
     get_project_releases_count,
     get_release_health_data_overview,
-    get_release_sessions_time_bounds,
 )
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase
@@ -527,7 +526,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         )
 
         # Test for self.session_release
-        data = get_release_sessions_time_bounds(
+        data = self.backend.get_release_sessions_time_bounds(
             project_id=self.project.id,
             release=self.session_release,
             org_id=self.organization.id,
@@ -539,7 +538,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         }
 
         # Test for self.session_crashed_release
-        data = get_release_sessions_time_bounds(
+        data = self.backend.get_release_sessions_time_bounds(
             project_id=self.project.id,
             release=self.session_crashed_release,
             org_id=self.organization.id,
@@ -555,7 +554,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         Test that ensures if no sessions are available for a specific release then the bounds
         should be returned as None
         """
-        data = get_release_sessions_time_bounds(
+        data = self.backend.get_release_sessions_time_bounds(
             project_id=self.project.id,
             release="different_release",
             org_id=self.organization.id,
