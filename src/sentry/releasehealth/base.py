@@ -9,7 +9,7 @@ from sentry.utils.services import Service
 class ReleaseHealthBackend(Service):  # type: ignore
     """Abstraction layer for all release health related queries"""
 
-    __all__ = ("get_current_and_previous_crash_free_rates",)
+    __all__ = ("get_current_and_previous_crash_free_rates", "get_release_adoption")
 
     class CurrentAndPreviousCrashFreeRate(TypedDict):
         currentCrashFreeRate: Optional[float]
@@ -54,4 +54,11 @@ class ReleaseHealthBackend(Service):  # type: ignore
                 ...
             }
         """
+        raise NotImplementedError()
+
+    def get_release_adoption(project_releases, environments=None, now=None):
+        """
+        Get the adoption of the last 24 hours (or a difference reference timestamp).
+        """
+
         raise NotImplementedError()

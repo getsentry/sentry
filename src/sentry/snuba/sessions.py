@@ -480,6 +480,8 @@ def get_release_health_data_overview(
                 }
 
     # Fill in release adoption
+    from sentry.releasehealth import get_release_adoption
+
     release_adoption = get_release_adoption(project_releases, environments)
     for key in rv:
         adoption_info = release_adoption.get(key) or {}

@@ -1,7 +1,8 @@
-from datetime import datetime
-from typing import Dict, Optional, Sequence, Set
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Sequence, Set, Tuple, Union
 
-from snuba_sdk import Column, Condition, Entity, Op, Query
+import pytz
+from snuba_sdk import BooleanCondition, Column, Condition, Entity, Op, Query
 from snuba_sdk.expressions import Granularity
 
 from sentry.models.project import Project
@@ -150,3 +151,87 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         crash_free_rate = 100 * max(0.0, crash_free_rate)
 
         return crash_free_rate
+
+    @staticmethod
+    def _get_conditions_and_filter_keys(
+        project_releases: Sequence[Tuple[int, str]], environments: Sequence[str]
+    ):
+        pass
+
+    def get_release_adoption(
+        self,
+        project_releases: Sequence[Tuple[int, str]],
+        environments: Optional[Sequence[str]] = None,
+        now=None,
+        org_id: Optional[int] = None,
+    ):
+        project_ids = list({x[0] for x in project_releases})
+        if org_id is None:
+            org_id = self._get_org_id(project_ids)
+
+        if now is None:
+            now = datetime.now(pytz.utc)
+        start = now - timedelta(days=1)
+
+        # Total user count and session count for our given list of
+        # environments, per-project.
+        total_where_common: List[Union[BooleanCondition, Condition]] = [
+            Condition(Column("org_id"), Op.EQ, org_id),
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, now),
+            Condition(Column(tag_key(org_id, "session.status")), Op.EQ, tag_value(org_id, "init")),
+        ]
+
+        # Count of all sessions for given list of environments and timerange, per-project
+        total_sessions_query = Query(
+            dataset=Dataset.Metrics.value,
+            match=Entity("metrics_counters"),
+            select=[Column("value")],
+            where=total_where_common
+            + [
+                Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+            ],
+            groupby=[
+                Column("project_id"),
+            ],
+        )
+
+        total_sessions = {
+            x["project_id"]: x["value"]
+            for x in raw_snql_query(
+                total_sessions_query,
+                referrer="releasehealth.metrics.get_release_adoption.total_sessions",
+                use_cache=False,
+            )["data"]
+        }
+
+        # Count of users for given list of environments and timerange, per-project
+        total_users_query = Query(
+            dataset=Dataset.Metrics.value,
+            match=Entity("metrics_sets"),
+            select=[Column("value")],
+            where=total_where_common
+            + [
+                Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")),
+            ],
+            groupby=[
+                Column("project_id"),
+            ],
+        )
+
+        total_users = {
+            x["project_id"]: x["value"]
+            for x in raw_snql_query(
+                total_sessions_query,
+                referrer="releasehealth.metrics.get_release_adoption.total_users",
+                use_cache=False,
+            )["data"]
+        }
+
+        import pdb
+
+        pdb.set_trace()
+        # TODO
+
+        return {}

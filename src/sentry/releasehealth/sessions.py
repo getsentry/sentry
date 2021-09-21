@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, Sequence
 
 from sentry.releasehealth.base import ReleaseHealthBackend
-from sentry.snuba.sessions import get_current_and_previous_crash_free_rates
+from sentry.snuba.sessions import get_current_and_previous_crash_free_rates, get_release_adoption
 
 
 class SessionsReleaseHealthBackend(ReleaseHealthBackend):
@@ -25,4 +25,13 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
             previous_start=previous_start,
             previous_end=previous_end,
             rollup=rollup,
+        )
+
+    def get_release_adoption(self, project_releases, environments=None, now=None):
+        """
+        Get the adoption of the last 24 hours (or a difference reference timestamp).
+        """
+
+        return get_release_adoption(
+            project_releases=project_releases, environments=environments, now=now
         )
