@@ -3,7 +3,8 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import pytz
 from snuba_sdk import BooleanCondition, Column, Condition, Entity, Op, Query
-from snuba_sdk.expressions import Granularity, SelectableExpression
+from snuba_sdk.expressions import Granularity
+from snuba_sdk.query import SelectableExpression
 
 from sentry.models.project import Project
 from sentry.releasehealth.base import ReleaseHealthBackend
