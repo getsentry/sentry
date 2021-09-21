@@ -44,7 +44,7 @@ type Props = {
   organization: Organization;
   projectSlug: string;
   disabled: boolean;
-  thresholdChart: React.ReactElement;
+  thresholdChart: React.ReactNode;
   onFilterSearch: (query: string) => void;
   alertType: AlertType;
   allowChangeEventTypes?: boolean;
@@ -54,7 +54,7 @@ type State = {
   environments: Environment[] | null;
 };
 
-class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
+class RuleConditionsForm extends React.PureComponent<Props, State> {
   state: State = {
     environments: null,
   };
@@ -316,7 +316,10 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
               minWidth: 130,
               maxWidth: 300,
             }}
-            choices={Object.entries(TIME_WINDOW_MAP)}
+            options={Object.entries(TIME_WINDOW_MAP).map(([value, label]) => ({
+              value,
+              label,
+            }))}
             required
             isDisabled={disabled}
             getValue={value => Number(value)}
@@ -374,4 +377,4 @@ const FormRowText = styled('div')`
   margin: ${space(1)};
 `;
 
-export default RuleConditionsFormForWizard;
+export default RuleConditionsForm;
