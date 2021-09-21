@@ -32,36 +32,30 @@ def store(redis_cluster: redis._RedisCluster) -> base.RealTimeMetricsStore:
     )
 
 
-def test_increment_project_event_counter(
-    store: base.RealTimeMetricsStore, redis_cluster: redis._RedisCluster
-) -> None:
+def test_increment_project_event_counter(store: base.RealTimeMetricsStore) -> None:
     store.increment_project_event_counter(17, 1147)
-    counter = redis_cluster.get("symbolicate_event_low_priority:17:1140")
+    counter = store.get("symbolicate_event_low_priority:17:1140")
     assert counter == "1"
     time.sleep(0.5)
-    counter = redis_cluster.get("symbolicate_event_low_priority:17:1140")
+    counter = store.get("symbolicate_event_low_priority:17:1140")
     assert counter is None
 
 
-def test_increment_project_event_counter_twice(
-    store: base.RealTimeMetricsStore, redis_cluster: redis._RedisCluster
-) -> None:
+def test_increment_project_event_counter_twice(store: base.RealTimeMetricsStore) -> None:
     store.increment_project_event_counter(17, 1147)
     time.sleep(0.2)
     store.increment_project_event_counter(17, 1149)
-    counter = redis_cluster.get("symbolicate_event_low_priority:17:1140")
+    counter = store.get("symbolicate_event_low_priority:17:1140")
     assert counter == "2"
     time.sleep(0.3)
     # it should have expired by now
-    counter = redis_cluster.get("symbolicate_event_low_priority:17:1140")
+    counter = store.get("symbolicate_event_low_priority:17:1140")
     assert counter is None
 
 
-def test_increment_project_event_counter_multiple(
-    store: base.RealTimeMetricsStore, redis_cluster: redis._RedisCluster
-) -> None:
+def test_increment_project_event_counter_multiple(store: base.RealTimeMetricsStore) -> None:
     store.increment_project_event_counter(17, 1147)
     store.increment_project_event_counter(17, 1152)
 
-    assert redis_cluster.get("symbolicate_event_low_priority:17:1140") == "1"
-    assert redis_cluster.get("symbolicate_event_low_priority:17:1150") == "1"
+    assert store.get("symbolicate_event_low_priority:17:1140") == "1"
+    assert store.get("symbolicate_event_low_priority:17:1150") == "1"
