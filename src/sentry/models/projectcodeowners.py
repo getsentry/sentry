@@ -133,7 +133,8 @@ class ProjectCodeOwners(DefaultFieldsModel):
     @classmethod
     def merge_code_owners_list(self, code_owners_list):
         """
-        Merge list of code_owners into a single code_owners object concating all the rules. We assume schema version is constant.
+        Merge list of code_owners into a single code_owners object concatenating
+        all the rules. We assume schema version is constant.
         """
         merged_code_owners = None
         for code_owners in code_owners_list:

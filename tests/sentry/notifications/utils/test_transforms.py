@@ -2,8 +2,8 @@ from unittest import TestCase
 
 from sentry.models import Group, NotificationSetting, Project, User
 from sentry.notifications.helpers import (
+    transform_to_notification_settings_by_recipient,
     transform_to_notification_settings_by_scope,
-    transform_to_notification_settings_by_user,
 )
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -39,17 +39,22 @@ class TransformTestCase(TestCase):
 
 
 class TransformToNotificationSettingsByUserTestCase(TransformTestCase):
-    def test_transform_to_notification_settings_by_user_empty(self):
-        assert transform_to_notification_settings_by_user(notification_settings=[], users=[]) == {}
-
+    def test_transform_to_notification_settings_by_recipient_empty(self):
         assert (
-            transform_to_notification_settings_by_user(notification_settings=[], users=[self.user])
+            transform_to_notification_settings_by_recipient(notification_settings=[], recipients=[])
             == {}
         )
 
-    def test_transform_to_notification_settings_by_user(self):
-        assert transform_to_notification_settings_by_user(
-            notification_settings=self.notification_settings, users=[self.user]
+        assert (
+            transform_to_notification_settings_by_recipient(
+                notification_settings=[], recipients=[self.user]
+            )
+            == {}
+        )
+
+    def test_transform_to_notification_settings_by_recipient(self):
+        assert transform_to_notification_settings_by_recipient(
+            notification_settings=self.notification_settings, recipients=[self.user]
         ) == {
             self.user: {
                 NotificationScopeType.USER: {

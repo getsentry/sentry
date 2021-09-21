@@ -424,7 +424,9 @@ def get_settings_url(notification: BaseNotification) -> str:
     return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
 
 
-def build_notification_footer(notification: BaseNotification, recipient: Union[Team, User]) -> str:
+def build_notification_footer(
+    notification: BaseNotification, recipient: Union["Team", "User"]
+) -> str:
     if isinstance(recipient, Team):
         team = Team.objects.get(id=recipient.id)
         url_str = f"/settings/{notification.organization.slug}/teams/{team.slug}/notifications/"

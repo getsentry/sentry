@@ -44,7 +44,7 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
         self,
         notification: BaseNotification,
         context: Mapping[str, Any],
-        recipient: Union[Team, User],
+        recipient: Union["Team", "User"],
     ) -> None:
         super().__init__()
         self.notification = notification
@@ -90,7 +90,7 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
 def build_notification_attachment(
     notification: BaseNotification,
     context: Mapping[str, Any],
-    recipient: Union[Team, User],
+    recipient: Union["Team", "User"],
 ) -> SlackBody:
     """@deprecated"""
     return SlackNotificationsMessageBuilder(notification, context, recipient).build()
