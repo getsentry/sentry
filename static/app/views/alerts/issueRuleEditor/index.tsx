@@ -50,27 +50,27 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 import RuleNodeList from './ruleNodeList';
 import SetupAlertIntegrationButton from './setupAlertIntegrationButton';
 
-const FREQUENCY_CHOICES = [
-  ['5', t('5 minutes')],
-  ['10', t('10 minutes')],
-  ['30', t('30 minutes')],
-  ['60', t('60 minutes')],
-  ['180', t('3 hours')],
-  ['720', t('12 hours')],
-  ['1440', t('24 hours')],
-  ['10080', t('one week')],
-  ['43200', t('30 days')],
+const FREQUENCY_OPTIONS = [
+  {value: '5', label: t('5 minutes')},
+  {value: '10', label: t('10 minutes')},
+  {value: '30', label: t('30 minutes')},
+  {value: '60', label: t('60 minutes')},
+  {value: '180', label: t('3 hours')},
+  {value: '720', label: t('12 hours')},
+  {value: '1440', label: t('24 hours')},
+  {value: '10080', label: t('1 week')},
+  {value: '43200', label: t('30 days')},
 ];
 
-const ACTION_MATCH_CHOICES: Array<[IssueAlertRule['actionMatch'], string]> = [
-  ['all', t('all')],
-  ['any', t('any')],
-  ['none', t('none')],
+const ACTION_MATCH_OPTIONS = [
+  {value: 'all', label: t('all')},
+  {value: 'any', label: t('any')},
+  {value: 'none', label: t('none')},
 ];
 
-const ACTION_MATCH_CHOICES_MIGRATED: Array<[IssueAlertRule['actionMatch'], string]> = [
-  ['all', t('all')],
-  ['any', t('any')],
+const ACTION_MATCH_OPTIONS_MIGRATED = [
+  {value: 'all', label: t('all')},
+  {value: 'any', label: t('any')},
 ];
 
 const defaultRule: UnsavedIssueAlertRule = {
@@ -517,9 +517,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   renderBody() {
     const {project, organization, teams} = this.props;
     const {environments} = this.state;
-    const environmentChoices = [
-      [ALL_ENVIRONMENTS_KEY, t('All Environments')],
-      ...(environments?.map(env => [env.name, getDisplayName(env)]) ?? []),
+    const environmentOptions = [
+      {
+        value: ALL_ENVIRONMENTS_KEY,
+        label: t('All Environments'),
+      },
+      ...(environments?.map(env => ({value: env.name, label: getDisplayName(env)})) ??
+        []),
     ];
 
     const {rule, detailedError} = this.state;
@@ -581,7 +585,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     placeholder={t('Select an Environment')}
                     clearable={false}
                     name="environment"
-                    choices={environmentChoices}
+                    options={environmentOptions}
                     onChange={val => this.handleEnvironmentChange(val)}
                     disabled={!hasAccess || !canEdit}
                   />
@@ -673,10 +677,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                         name="actionMatch"
                                         required
                                         flexibleControlStateSize
-                                        choices={
+                                        options={
                                           hasFeature
-                                            ? ACTION_MATCH_CHOICES_MIGRATED
-                                            : ACTION_MATCH_CHOICES
+                                            ? ACTION_MATCH_OPTIONS_MIGRATED
+                                            : ACTION_MATCH_OPTIONS
                                         }
                                         onChange={val =>
                                           this.handleChange('actionMatch', val)
@@ -759,7 +763,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                     name="filterMatch"
                                     required
                                     flexibleControlStateSize
-                                    choices={ACTION_MATCH_CHOICES}
+                                    options={ACTION_MATCH_OPTIONS}
                                     onChange={val =>
                                       this.handleChange('filterMatch', val)
                                     }
@@ -846,7 +850,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     className={this.hasError('frequency') ? ' error' : ''}
                     value={frequency}
                     required
-                    choices={FREQUENCY_CHOICES}
+                    options={FREQUENCY_OPTIONS}
                     onChange={val => this.handleChange('frequency', val)}
                     disabled={!hasAccess || !canEdit}
                   />
