@@ -235,7 +235,7 @@ const PulsingIndicator = styled('div')`
   margin-right: ${space(1)};
 `;
 
-const EventWaitingIndicator = styled(p => (
+const EventWaitingIndicator = styled((p: React.HTMLProps<HTMLDivElement>) => (
   <div {...p}>
     <PulsingIndicator />
     {t('Waiting for event')}
