@@ -8,7 +8,7 @@ from sentry.releasehealth.base import (
     ReleaseHealthBackend,
     ReleaseName,
 )
-from sentry.snuba.sessions import get_current_and_previous_crash_free_rates, get_release_adoption
+from sentry.snuba.sessions import _get_release_adoption, get_current_and_previous_crash_free_rates
 
 
 class SessionsReleaseHealthBackend(ReleaseHealthBackend):
@@ -40,6 +40,6 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         now: Optional[datetime] = None,
         org_id: Optional[OrganizationId] = None,
     ) -> ReleaseHealthBackend.ReleasesAdoption:
-        return get_release_adoption(  # type: ignore
+        return _get_release_adoption(  # type: ignore
             project_releases=project_releases, environments=environments, now=now
         )

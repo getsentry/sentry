@@ -9,6 +9,7 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
+from sentry import releasehealth
 from sentry.snuba.dataset import Dataset
 from sentry.utils import snuba
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -311,7 +312,7 @@ def get_rollup_starts_and_buckets(period):
     return seconds, start, buckets
 
 
-def get_release_adoption(project_releases, environments=None, now=None):
+def _get_release_adoption(project_releases, environments=None, now=None):
     """Get the adoption of the last 24 hours (or a difference reference timestamp)."""
     conditions, filter_keys = _get_conditions_and_filter_keys(project_releases, environments)
     if now is None:
@@ -479,10 +480,7 @@ def get_release_health_data_overview(
                     health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)
                 }
 
-    # Fill in release adoption
-    from sentry.releasehealth import get_release_adoption
-
-    release_adoption = get_release_adoption(project_releases, environments)
+    release_adoption = releasehealth.get_release_adoption(project_releases, environments)
     for key in rv:
         adoption_info = release_adoption.get(key) or {}
         rv[key]["adoption"] = adoption_info.get("adoption")
