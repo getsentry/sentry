@@ -80,8 +80,8 @@ error.mechanism:ANR invert-stacktrace=1
 error.mechanism:NSError invert-stacktrace=1
 
 # Dart/Flutter stacktraces that are not in-app
-family:javascript stack.abs_path:org-dartlang-sdk* -app -group
-family:javascript module:flutter/flutter/packages/flutter/* -app
+family:javascript stack.abs_path:org-dartlang-sdk:///** -app -group
+family:javascript module:**/packages/flutter/** -app
 
 # Categorization of frames
 family:native package:"/System/Library/Frameworks/**" category=system
