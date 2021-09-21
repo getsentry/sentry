@@ -11,7 +11,7 @@ from sentry.utils.email import MessageBuilder
 # from sentry.utils.http import absolute_uri
 
 
-def send_confirm_email(user, email, verification_key):
+def send_confirm_email(user: User, email: str, verification_key: str) -> None:
     context = {
         "user": user,
         # left incase we want to have a clickable verification link
