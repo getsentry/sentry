@@ -81,7 +81,7 @@ class RuleNode extends React.Component<Props> {
     //
     // However there are integrations that give the form field choices with the value as number, but
     // when the integration configuration gets saved, it gets saved and returned as a string
-    const choices = fieldConfig.choices.map(([key, value]) => [`${key}`, value]);
+    const options = fieldConfig.choices.map(([value, label]) => ({value, label}));
 
     const handleChange = ({value}) => {
       if (fieldConfig.resetsForm) {
@@ -104,7 +104,7 @@ class RuleNode extends React.Component<Props> {
           }),
         }}
         disabled={disabled}
-        choices={choices}
+        options={options}
         onChange={handleChange}
       />
     );
