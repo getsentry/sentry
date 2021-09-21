@@ -5,16 +5,11 @@ from sentry.models import Organization, OrganizationMember, User
 from sentry.utils import redis
 from sentry.utils.email import MessageBuilder
 
-# from django.urls.base import reverse
-
-
-# from sentry.utils.http import absolute_uri
-
 
 def send_confirm_email(user: User, email: str, verification_key: str) -> None:
     context = {
         "user": user,
-        # left incase we want to have a clickable verification link
+        # TODO left incase we want to have a clickable verification link for future
         # "url": absolute_uri(
         #     reverse("sentry-account-confirm-email", args=[user.id, verification_key])
         # ),
