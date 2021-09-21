@@ -153,7 +153,7 @@ def get_build_info(
 
             # Collect the related data sent in this page so we can look it up by (type, id).
             included_relations = {}
-            for relation in page["included"]:
+            for relation in page.get("included", []):
                 rel_type = relation["type"]
                 rel_id = relation["id"]
                 included_relations[(rel_type, rel_id)] = relation
