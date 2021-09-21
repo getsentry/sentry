@@ -24,6 +24,7 @@ import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
 } from 'app/utils/discover/genericDiscoverQuery';
+import {TOP_N} from 'app/utils/discover/types';
 
 import {Widget, WidgetQuery} from './types';
 import {eventViewFromWidget} from './utils';
@@ -300,7 +301,7 @@ class WidgetQueries extends React.Component<Props, State> {
           includePrevious: false,
           referrer: 'api.dashboards.top_5',
           partial: true,
-          topEvents: 5,
+          topEvents: TOP_N,
           field: query.fields,
         };
       } else {
