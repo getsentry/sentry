@@ -1,5 +1,4 @@
 import datetime
-from typing import Any
 
 from sentry.utils import redis
 
@@ -19,9 +18,6 @@ class RealtimeMetricsStore:
         self.inner = cluster
         self.counter_ttl: int = int(counter_ttl / datetime.timedelta(milliseconds=1))
         self.prefix = prefix
-
-    def get(self, key: str) -> Any:
-        return self.inner.get(key)
 
     def increment_project_event_counter(self, project_id: int, timestamp: float) -> None:
         """Increment the event counter for the given project_id.
