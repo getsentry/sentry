@@ -104,12 +104,12 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   get searchPlaceholder() {
     switch (this.props.dataset) {
       case Dataset.ERRORS:
-        return t('Filter events by level, message, or other properties...');
+        return t('Filter events by level, message, and other properties\u2026');
       case Dataset.SESSIONS:
-        return t('Filter sessions by release version...');
+        return t('Filter sessions by release version\u2026');
       case Dataset.TRANSACTIONS:
       default:
-        return t('Filter transactions by URL, tags, and other properties...');
+        return t('Filter transactions by URL, tags, and other properties\u2026');
     }
   }
 
