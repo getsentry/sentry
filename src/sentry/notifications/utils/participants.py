@@ -350,7 +350,7 @@ def get_recipients_by_provider(
     }
 
     # If there are any teams that didn't get added, fall back and add all users.
-    users |= get_users_from_team_fall_back(teams, teams_by_provider)
+    users = set(users).union(get_users_from_team_fall_back(teams, teams_by_provider))
 
     # Repeat for users.
     users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(project, users)
