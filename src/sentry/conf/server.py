@@ -947,7 +947,7 @@ SENTRY_FEATURES = {
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
     # Enable migrating auth identities between providers automatically
-    "organizations:idp-automatic-migration": True,
+    "organizations:idp-automatic-migration": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,

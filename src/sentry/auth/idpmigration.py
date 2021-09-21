@@ -69,4 +69,4 @@ def verify_new_identity(user: User, org: Organization, key: str) -> bool:
     :return: whether the key is valid
     """
     # user cluster.hgetall(key) to get from redis
-    # raise NotImplementedError  # TODO
+    raise NotImplementedError  # TODO
