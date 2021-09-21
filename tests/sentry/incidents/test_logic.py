@@ -898,7 +898,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             comparison_delta=comparison_delta,
         )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
-        assert alert_rule.comparison_delta == comparison_delta
+        assert alert_rule.comparison_delta == comparison_delta * 60
         assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
 
 
@@ -1155,12 +1155,12 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         comparison_delta = 60
 
         update_alert_rule(self.alert_rule, comparison_delta=comparison_delta)
-        assert self.alert_rule.comparison_delta == comparison_delta
+        assert self.alert_rule.comparison_delta == comparison_delta * 60
         assert self.alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
 
         # Should be no change if we don't specify `comparison_delta` for update at all.
         update_alert_rule(self.alert_rule)
-        assert self.alert_rule.comparison_delta == comparison_delta
+        assert self.alert_rule.comparison_delta == comparison_delta * 60
         assert self.alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
 
         # Should change if we explicitly set it to None.

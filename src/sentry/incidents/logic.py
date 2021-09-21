@@ -633,12 +633,11 @@ def create_alert_rule(
 
     :return: The created `AlertRule`
     """
-    # Since comparison alerts make twice as many queries, run the queries less frequently.
-    resolution = (
-        DEFAULT_ALERT_RULE_RESOLUTION
-        if comparison_delta is None
-        else DEFAULT_CMP_ALERT_RULE_RESOLUTION
-    )
+    resolution = DEFAULT_ALERT_RULE_RESOLUTION
+    if comparison_delta is not None:
+        # Since comparison alerts make twice as many queries, run the queries less frequently.
+        resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
+        comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
     validate_alert_rule_query(query)
     if AlertRule.objects.filter(organization=organization, name=name).exists():
         raise AlertRuleNameAlreadyUsedError()
@@ -807,11 +806,12 @@ def update_alert_rule(
     if owner is not None:
         updated_fields["owner"] = owner.resolve_to_actor()
     if comparison_delta is not NOT_SET:
-        resolution = (
-            DEFAULT_ALERT_RULE_RESOLUTION
-            if comparison_delta is None
-            else DEFAULT_CMP_ALERT_RULE_RESOLUTION
-        )
+        resolution = DEFAULT_ALERT_RULE_RESOLUTION
+        if comparison_delta is not None:
+            # Since comparison alerts make twice as many queries, run the queries less frequently.
+            resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
+            comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
+
         updated_query_fields["resolution"] = timedelta(minutes=resolution)
         updated_fields["comparison_delta"] = comparison_delta
 
