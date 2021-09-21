@@ -19,7 +19,9 @@ type TypeStyle = {
 
 type TypeDefinition = {
   name: string;
-  /** HTML tag (h1, h2, p) used to render type element */
+  /**
+   * HTML tag (h1, h2, p) used to render type element
+   */
   tag: keyof JSX.IntrinsicElements;
   style: TypeStyle;
 };
@@ -158,10 +160,11 @@ const scaleDefinitions: TypeDefinition[] = [
   },
 ];
 
-/** Generic component with variable HTML tag name,
+/**
+ * Generic component with variable HTML tag name,
  * to be used with @emotion's as prop.
  * See: https://emotion.sh/docs/styled#as-prop
- *   */
+ */
 const TypeComponent = styled('div')``;
 
 const generateTypeTable =

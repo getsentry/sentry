@@ -1,9 +1,10 @@
+import 'prismjs/themes/prism.css';
+
+import {createRef, RefObject, useEffect, useState} from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import copy from 'copy-text-to-clipboard';
 import Prism from 'prismjs';
-import 'prismjs/themes/prism.css';
-import {Component, createRef, RefObject, useEffect} from 'react';
 
 import {IconCode} from 'app/icons';
 import space from 'app/styles/space';
@@ -37,23 +38,25 @@ const Code = ({theme, children, className, label}: Props) => {
   const codeRef: RefObject<HTMLElement> = createRef();
   const copyButtonRef: RefObject<HTMLButtonElement> = createRef();
 
-  function copyCode() {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopyCode() {
     const copyButton = copyButtonRef?.current;
 
-    if (copyButton) {
-      /** Remove comments from code */
-      const copiableContent = children.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
-
-      copy(copiableContent);
-
-      copyButton.innerText = 'Copied';
-      copyButton.disabled = true;
-
-      setTimeout(() => {
-        copyButton.innerText = 'Copy';
-        copyButton.disabled = false;
-      }, 500);
+    if (!copyButton) {
+      return;
     }
+
+    /** Remove comments from code */
+    const copiableContent = children.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+
+    copy(copiableContent);
+
+    setCopied(true);
+
+    setTimeout(() => {
+      setCopied(false);
+    }, 500);
   }
 
   useEffect(() => {
@@ -67,10 +70,10 @@ const Code = ({theme, children, className, label}: Props) => {
         {label && <Label>{label.replaceAll('_', ' ')}</Label>}
       </LabelWrap>
       <HighlightedCode className={className} ref={codeRef}>
-        {children}
+        <span>{children}</span>
       </HighlightedCode>
-      <CopyButton ref={copyButtonRef} onClick={() => copyCode()}>
-        Copy
+      <CopyButton ref={copyButtonRef} onClick={handleCopyCode} disabled={copied}>
+        {copied ? 'Copied' : 'Copy'}
       </CopyButton>
     </Wrap>
   );

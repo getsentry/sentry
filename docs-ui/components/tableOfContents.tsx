@@ -1,5 +1,5 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
-import {Component} from 'react';
 import tocbot from 'tocbot';
 
 import space from 'app/styles/space';
@@ -57,8 +57,8 @@ const Heading = styled('p')`
   margin-bottom: ${space(1)};
 `;
 
-class TableOfContents extends Component {
-  componentDidMount() {
+const TableOfContents = () => {
+  useEffect(() => {
     /** Initialize Tocbot
      * https://tscanlin.github.io/tocbot/
      * */
@@ -78,18 +78,16 @@ class TableOfContents extends Component {
        *  */
       onClick: () => false,
     });
-  }
+  });
 
-  render() {
-    return (
-      <Container>
-        <Content>
-          <Heading>Contents</Heading>
-          <div className="toc-wrapper" />
-        </Content>
-      </Container>
-    );
-  }
-}
+  return (
+    <Container>
+      <Content>
+        <Heading>Contents</Heading>
+        <div className="toc-wrapper" />
+      </Content>
+    </Container>
+  );
+};
 
 export default TableOfContents;

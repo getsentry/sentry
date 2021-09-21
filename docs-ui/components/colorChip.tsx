@@ -5,13 +5,16 @@ import Color from 'color';
 import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
 
-type Props = {
+type SizeProp = {
+  size: 'md' | 'lg';
+};
+
+type Props = SizeProp & {
   /**
    * value is either a CSS color string (e.g. #000)
    * or a key in the theme object (e.g. 'blue300')
    */
   value: string | keyof Theme;
-  large?: boolean;
   noText?: boolean;
   /**
    * to replace the parsed color name with a custom name
@@ -20,32 +23,16 @@ type Props = {
   theme: Theme;
 };
 
-type OuterWrapProps = {
-  large: boolean;
-};
-
-type WrapperProps = {
-  large: boolean;
+type WrapperProps = SizeProp & {
   noText: boolean;
 };
 
-type ColorSwatchProps = {
-  large: boolean;
+type ColorSwatchProps = SizeProp & {
   background: string;
   border: boolean;
 };
 
-type TextProps = {
-  large: boolean;
-};
-
-const ColorChip = ({
-  value,
-  large = false,
-  noText = false,
-  textOverwrite,
-  theme,
-}: Props) => {
+const ColorChip = ({value, size = 'md', noText = false, textOverwrite, theme}: Props) => {
   const isThemeColor = value in theme;
 
   const color = Color(isThemeColor ? theme[value] : value);
@@ -54,14 +41,14 @@ const ColorChip = ({
     : color?.hex?.();
 
   return (
-    <OuterWrap large={large}>
-      <Wrapper large={large} noText={noText}>
+    <OuterWrap size={size}>
+      <Wrapper size={size} noText={noText}>
         <ColorSwatch
-          large={large}
+          size={size}
           background={color?.hex?.()}
           border={color?.luminosity?.() > 0.8}
         />
-        {!noText && <Text large={large}>{textOverwrite ?? colorString}</Text>}
+        {!noText && <Text size={size}>{textOverwrite ?? colorString}</Text>}
       </Wrapper>
     </OuterWrap>
   );
@@ -69,10 +56,10 @@ const ColorChip = ({
 
 export default withTheme(ColorChip);
 
-const OuterWrap = styled('span')<OuterWrapProps>`
+const OuterWrap = styled('span')<SizeProp>`
   align-items: center;
   ${p =>
-    p.large
+    p.size === 'lg'
       ? `
     display: flex;
     margin: ${space(2)} auto;
@@ -89,7 +76,7 @@ const Wrapper = styled('span')<WrapperProps>`
   border-radius: ${p => p.theme.borderRadius};
   ${p => !p.noText && `border: solid 1px ${p.theme.gray100};`}
   ${p =>
-    p.large
+    p.size === 'lg'
       ? `
           flex-direction: column;
           ${!p.noText && `padding: ${space(0.5)}`}
@@ -103,11 +90,11 @@ const Wrapper = styled('span')<WrapperProps>`
         `};
 `;
 
-const Text = styled('span')<TextProps>`
+const Text = styled('span')<SizeProp>`
   margin-bottom: 0;
   line-height: 1.2;
   text-transform: capitalize;
-  ${p => (p.large ? `margin-top: ${space(0.5)};` : `margin-left: ${space(0.5)};`)}
+  ${p => (p.size === 'lg' ? `margin-top: ${space(0.5)};` : `margin-left: ${space(0.5)};`)}
 `;
 
 const ColorSwatch = styled('span')<ColorSwatchProps>`
@@ -116,7 +103,7 @@ const ColorSwatch = styled('span')<ColorSwatchProps>`
   background-color: ${p => p.background};
   ${p => p.border && `border: solid 1px ${p.theme.gray100};`}
   ${p =>
-    p.large
+    p.size === 'lg'
       ? `
           width: 4.5em;
           height: 4.5em;
