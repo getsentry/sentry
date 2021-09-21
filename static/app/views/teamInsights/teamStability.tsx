@@ -160,7 +160,7 @@ class TeamStability extends AsyncComponent<Props, State> {
 
     return (
       <SubText color={trend >= 0 ? 'green300' : 'red300'}>
-        {`${round(trend, 3)}\u0025`}
+        {`${round(Math.abs(trend), 3)}\u0025`}
         <PaddedIconArrow direction={trend >= 0 ? 'up' : 'down'} size="xs" />
       </SubText>
     );
@@ -170,12 +170,12 @@ class TeamStability extends AsyncComponent<Props, State> {
     const {projects, period} = this.props;
 
     return (
-      <PanelTable
+      <StyledPanelTable
         headers={[
           t('Project'),
-          tct('Last [period]', {period}),
-          t('This Week'),
-          t('Difference'),
+          <RightAligned key="last">{tct('Last [period]', {period})}</RightAligned>,
+          <RightAligned key="curr">{t('This Week')}</RightAligned>,
+          <RightAligned key="diff">{t('Difference')}</RightAligned>,
         ]}
       >
         {projects.map(project => (
@@ -189,16 +189,29 @@ class TeamStability extends AsyncComponent<Props, State> {
             <ScoreWrapper>{this.renderTrend(project.id)}</ScoreWrapper>
           </Fragment>
         ))}
-      </PanelTable>
+      </StyledPanelTable>
     );
   }
 }
 
 export default TeamStability;
 
+const StyledPanelTable = styled(PanelTable)`
+  grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr;
+  white-space: nowrap;
+  margin-bottom: 0;
+  border: 0;
+`;
+
+const RightAligned = styled('span')`
+  text-align: right;
+`;
+
 const ScoreWrapper = styled('div')`
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  text-align: right;
 `;
 
 const PaddedIconArrow = styled(IconArrow)`
@@ -211,7 +224,7 @@ const SubText = styled('div')<{color: Color}>`
 `;
 
 const ProjectBadgeContainer = styled('div')`
-  width: 100%;
+  display: flex;
 `;
 
 const ProjectBadge = styled(IdBadge)`
