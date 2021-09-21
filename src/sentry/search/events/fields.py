@@ -6,6 +6,7 @@ from typing import Any, Callable, List, Mapping, Match, Optional, Sequence, Tupl
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
@@ -2756,6 +2757,15 @@ class QueryFields(QueryBase):
             for selected_column in self.columns:
                 if isinstance(selected_column, Column) and selected_column == resolved_orderby:
                     validated.append(OrderBy(selected_column, direction))
+                    continue
+
+                elif (
+                    isinstance(selected_column, AliasedExpression)
+                    and selected_column.alias == bare_orderby
+                ):
+                    # We cannot directly order by an `AliasedExpression`.
+                    # Instead, we order by the column inside.
+                    validated.append(OrderBy(selected_column.exp, direction))
                     continue
 
                 elif (
