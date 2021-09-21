@@ -46,7 +46,7 @@ def Feature(names):
         else:
             default_value = default_features(name, *args, **kwargs)
             if default_value:
-                logger.info("Flag %s defaulting to %s", repr(name), default_value)
+                logger.info("Flag defaulting to %s: %s", default_value, repr(name))
             return default_value
 
     with patch("sentry.features.has") as features_has:
