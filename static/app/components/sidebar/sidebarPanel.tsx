@@ -22,6 +22,7 @@ const PanelContainer = styled('div')<PositionProps>`
   box-shadow: 1px 0 2px rgba(0, 0, 0, 0.06);
   text-align: left;
   animation: 200ms ${slideInLeft};
+  z-index: ${p => p.theme.zIndex.sidebar};
 
   ${p =>
     p.orientation === 'top'
