@@ -87,7 +87,16 @@ class ReleaseHealthBackend(Service):  # type: ignore
         """
         Get the adoption of the last 24 hours (or a difference reference timestamp).
 
-        :param project_releases:
+        :param project_releases: A list of releases to get adoption for. Our
+            backends store session data per-project, so each release has to be
+            scoped down to a project too.
+
+        :param environments: Optional. A list of environments to filter by.
+        :param now: Release adoption information will be provided from 24h ago
+            until this timestamp.
+        :param org_id: An organization ID to filter by. Note that all projects
+            have to be within this organization, and this backend doesn't check for
+            that. Omit if you're not sure.
         """
 
         raise NotImplementedError()
