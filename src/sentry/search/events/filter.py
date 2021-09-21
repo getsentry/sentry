@@ -1534,7 +1534,7 @@ class QueryFilter(QueryFields):
         # Handle "has" queries
         if search_filter.value.raw_value == "":
             return Condition(
-                self.resolve_field_alias(search_filter.key.name),
+                self.resolve_field(search_filter.key.name),
                 Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
             )
         if search_filter.is_in_filter:
@@ -1544,7 +1544,7 @@ class QueryFilter(QueryFields):
         else:
             internal_value = translate_transaction_status(search_filter.value.raw_value)
         return Condition(
-            self.resolve_field_alias(search_filter.key.name),
+            self.resolve_field(search_filter.key.name),
             Op(search_filter.operator),
             internal_value,
         )

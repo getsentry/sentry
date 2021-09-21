@@ -25,7 +25,6 @@ from sentry.search.events.constants import (
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
     DURATION_PATTERN,
-    ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_ALIASES,
     FUNCTION_PATTERN,
@@ -46,7 +45,6 @@ from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
     TIMESTAMP_TO_DAY_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
-    TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
@@ -2219,10 +2217,8 @@ class QueryFields(QueryBase):
             TIMESTAMP_TO_HOUR_ALIAS: self._resolve_timestamp_to_hour_alias,
             TIMESTAMP_TO_DAY_ALIAS: self._resolve_timestamp_to_day_alias,
             USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
-            TRANSACTION_STATUS_ALIAS: self._resolve_transaction_status,
             PROJECT_THRESHOLD_CONFIG_ALIAS: self._resolve_project_threshold_config,
             ERROR_UNHANDLED_ALIAS: self._resolve_error_unhandled_alias,
-            ERROR_HANDLED_ALIAS: self._resolve_error_handled_alias,
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             MEASUREMENTS_FRAMES_SLOW_RATE: self._resolve_measurements_frames_slow_rate,
             MEASUREMENTS_FRAMES_FROZEN_RATE: self._resolve_measurements_frames_frozen_rate,
@@ -2883,12 +2879,6 @@ class QueryFields(QueryBase):
         columns = ["user.email", "user.username", "user.ip"]
         return Function("coalesce", [self.column(column) for column in columns], USER_DISPLAY_ALIAS)
 
-    def _resolve_transaction_status(self, _: str) -> SelectType:
-        # TODO: Remove the `toUInt8` once Column supports aliases
-        return Function(
-            "toUInt8", [self.column(TRANSACTION_STATUS_ALIAS)], TRANSACTION_STATUS_ALIAS
-        )
-
     def _resolve_project_threshold_config(self, _: str) -> SelectType:
         org_id = self.params.get("organization_id")
         project_ids = self.params.get("project_id")
@@ -3067,13 +3057,6 @@ class QueryFields(QueryBase):
 
     def _resolve_error_unhandled_alias(self, _: str) -> SelectType:
         return Function("notHandled", [], ERROR_UNHANDLED_ALIAS)
-
-    def _resolve_error_handled_alias(self, _: str) -> SelectType:
-        # Columns in snuba doesn't support aliasing right now like Function does.
-        # Adding a no-op here to get the alias.
-        return Function(
-            "cast", [self.column("error.handled"), "Array(Nullable(UInt8))"], ERROR_HANDLED_ALIAS
-        )
 
     def _project_threshold_multi_if_function(self) -> SelectType:
         """Accessed by `_resolve_apdex_function` and `_resolve_count_miserable_function`,
