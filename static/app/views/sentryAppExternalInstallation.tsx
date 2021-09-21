@@ -156,13 +156,15 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
   };
 
   getOptions() {
-    return this.state.organizations.map(org => [
-      org.slug,
-      <div key={org.slug}>
-        <OrganizationAvatar organization={org} />
-        <OrgNameHolder>{org.slug}</OrgNameHolder>
-      </div>,
-    ]);
+    return this.state.organizations.map(org => ({
+      value: org.slug,
+      label: (
+        <div key={org.slug}>
+          <OrganizationAvatar organization={org} />
+          <OrgNameHolder>{org.slug}</OrgNameHolder>
+        </div>
+      ),
+    }));
   }
 
   renderInternalAppError() {
@@ -245,7 +247,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
               onChange={({value}) => this.onSelectOrg(value)}
               value={selectedOrgSlug}
               placeholder={t('Select an organization')}
-              choices={this.getOptions()}
+              options={this.getOptions()}
             />
           )}
         </Field>
