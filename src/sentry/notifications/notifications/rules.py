@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Mapping, MutableMapping, Optional, Set, Union
+from typing import Any, Iterable, Mapping, MutableMapping, Optional, Union
 
 import pytz
 
@@ -43,7 +43,7 @@ class AlertRuleNotification(BaseNotification):
         self.target_identifier = target_identifier
         self.rules = notification.rules
 
-    def get_participants(self) -> Mapping[ExternalProviders, Set[User]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
         return get_send_to(
             project=self.project,
             target_type=self.target_type,

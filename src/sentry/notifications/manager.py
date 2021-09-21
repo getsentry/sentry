@@ -301,7 +301,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         self,
         project: "Project",
         recipients: Iterable[Union["Team", "User"]],
-    ) -> Mapping[ExternalProviders, Iterable["User"]]:
+    ) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
         """
         Filters a list of teams or users down to the recipients by provider who
         are subscribed to alerts. We check both the project level settings and
@@ -327,7 +327,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def get_notification_recipients(
         self, project: "Project"
-    ) -> Mapping[ExternalProviders, Iterable["User"]]:
+    ) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
         """
         Return a set of users that should receive Issue Alert emails for a given
         project. To start, we get the set of all users. Then we fetch all of
