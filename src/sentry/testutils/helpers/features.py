@@ -1,6 +1,6 @@
 __all__ = ["Feature", "with_feature"]
 
-import collections
+from collections.abc import Mapping
 from contextlib import contextmanager
 
 from sentry.utils.compat.mock import patch
@@ -31,7 +31,7 @@ def Feature(names):
     if isinstance(names, str):
         names = {names: True}
 
-    elif not isinstance(names, collections.Mapping):
+    elif not isinstance(names, Mapping):
         names = {k: True for k in names}
 
     with patch("sentry.features.has") as features_has:

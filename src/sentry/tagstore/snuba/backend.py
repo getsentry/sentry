@@ -1,6 +1,7 @@
 import functools
 import re
-from collections import Iterable, OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict
+from collections.abc import Iterable
 from typing import Optional, Sequence
 
 from dateutil.parser import parse as parse_datetime

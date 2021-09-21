@@ -3,7 +3,7 @@ from sentry.utils.compat import map
 __all__ = ("Attribute", "Event", "Map")
 
 from base64 import b64encode
-from collections import Mapping
+from collections.abc import Mapping
 from uuid import uuid1
 
 from django.utils import timezone

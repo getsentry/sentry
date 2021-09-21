@@ -1,4 +1,4 @@
-import collections
+from collections.abc import Mapping
 
 from sentry.utils.compat import map
 
@@ -144,7 +144,7 @@ class Meta:
             meta["err"] = []
 
         error = str(error)
-        if isinstance(data, collections.Mapping):
+        if isinstance(data, Mapping):
             error = [error, dict(data)]
         meta["err"].append(error)
 

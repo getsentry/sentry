@@ -1,4 +1,4 @@
-from collections import Mapping, Sequence, Set
+from collections.abc import Mapping, Sequence, Set
 
 from sentry.utils.compat import map
 
