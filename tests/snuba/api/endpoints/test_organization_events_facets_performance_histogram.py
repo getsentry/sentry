@@ -2,13 +2,17 @@ from datetime import timedelta
 
 from django.urls import reverse
 
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.cursors import Cursor
 from sentry.utils.samples import load_data
+from tests.snuba.api.endpoints.test_organization_events_facets_performance import (
+    BaseOrganizationEventsFacetsPerformanceEndpointTest,
+)
 
 
-class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, APITestCase):
+class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
+    BaseOrganizationEventsFacetsPerformanceEndpointTest
+):
     feature_list = (
         "organizations:discover-basic",
         "organizations:global-views",
@@ -17,13 +21,6 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
 
     def setUp(self):
         super().setUp()
-        self.min_ago = before_now(minutes=1).replace(microsecond=0)
-        self.two_mins_ago = before_now(minutes=2).replace(microsecond=0)
-        self.day_ago = before_now(days=1).replace(microsecond=0)
-
-        self.login_as(user=self.user)
-        self.project = self.create_project()
-        self.project2 = self.create_project()
 
         self._transaction_count = 0
 
@@ -89,12 +86,6 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
 
         self._transaction_count += 1
         self.store_event(data=event, project_id=project_id)
-
-    def do_request(self, query=None, feature_list=None):
-        query = query if query is not None else {"aggregateColumn": "transaction.duration"}
-        query["project"] = query["project"] if "project" in query else [self.project.id]
-        with self.feature(feature_list or self.feature_list):
-            return self.client.get(self.url, query, format="json")
 
     def test_multiple_projects_not_allowed(self):
         response = self.do_request(

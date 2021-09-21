@@ -7,7 +7,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 
 
-class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase):
+class BaseOrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase):
     feature_list = (
         "organizations:discover-basic",
         "organizations:global-views",
@@ -23,6 +23,19 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         self.login_as(user=self.user)
         self.project = self.create_project()
         self.project2 = self.create_project()
+
+    def do_request(self, query=None, feature_list=None):
+        query = query if query is not None else {"aggregateColumn": "transaction.duration"}
+        query["project"] = query["project"] if "project" in query else [self.project.id]
+        with self.feature(feature_list or self.feature_list):
+            return self.client.get(self.url, query, format="json")
+
+
+class OrganizationEventsFacetsPerformanceEndpointTest(
+    BaseOrganizationEventsFacetsPerformanceEndpointTest
+):
+    def setUp(self):
+        super().setUp()
 
         self._transaction_count = 0
 
@@ -67,12 +80,6 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
 
         self._transaction_count += 1
         self.store_event(data=event, project_id=project_id)
-
-    def do_request(self, query=None, feature_list=None):
-        query = query if query is not None else {"aggregateColumn": "transaction.duration"}
-        query["project"] = query["project"] if "project" in query else [self.project.id]
-        with self.feature(feature_list or self.feature_list):
-            return self.client.get(self.url, query, format="json")
 
     def test_basic_request(self):
         response = self.do_request()
