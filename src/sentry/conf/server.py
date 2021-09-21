@@ -2306,6 +2306,8 @@ SENTRY_USE_UWSGI = True
 
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
 
+SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
+
 # Which backend to use for MetricsCluster.
 #
 # Currently, only redis is supported.
