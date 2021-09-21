@@ -7,6 +7,7 @@ type Props = {
   className?: string;
 };
 
+// This alert makes the user aware that a project has been selected for the Low Priority Queue
 function GlobalEventProcessingAlert({className}: Props) {
   return (
     <Alert className={className} type="info" icon={<IconInfo size="sm" />}>
