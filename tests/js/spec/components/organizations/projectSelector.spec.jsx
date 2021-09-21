@@ -18,7 +18,6 @@ describe('ProjectSelector', function () {
   const mockOrg = TestStubs.Organization({
     id: 'org',
     slug: 'org',
-    projects: [testProject, anotherProject],
     features: ['new-teams'],
     access: [],
   });
@@ -34,7 +33,7 @@ describe('ProjectSelector', function () {
     organization: mockOrg,
     projectId: '',
     children: actorRenderer,
-    multiProjects: mockOrg.projects,
+    multiProjects: [testProject, anotherProject],
     selectedProjects: [],
     onSelect: () => {},
     menuFooter: () => {},
@@ -48,7 +47,6 @@ describe('ProjectSelector', function () {
         organization={{
           id: 'org',
           slug: 'org-slug',
-          projects: [],
           access: [],
         }}
       />,
@@ -69,7 +67,6 @@ describe('ProjectSelector', function () {
         organization={{
           id: 'org',
           slug: 'org-slug',
-          projects: [],
           access: ['project:write'],
         }}
       />,
