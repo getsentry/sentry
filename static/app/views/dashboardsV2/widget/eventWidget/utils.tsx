@@ -2,6 +2,7 @@ import isEqual from 'lodash/isEqual';
 
 import {
   aggregateOutputType,
+  getAggregateFields,
   isAggregateField,
   isLegalYAxisType,
 } from 'app/utils/discover/fields';
@@ -61,6 +62,32 @@ export function normalizeQueries(
   }
 
   if (displayType === DisplayType.TABLE) {
+    return queries;
+  }
+
+  if (displayType === DisplayType.TOP_N) {
+    queries = queries.slice(0, 1);
+    // For world map chart, cap fields of the queries to only one field.
+    const aggregateFields = getAggregateFields(queries[0].fields);
+
+    let otherFields = queries[0].fields.filter(
+      field => !!!aggregateFields.includes(field)
+    );
+
+    otherFields = otherFields.length ? otherFields : ['title'];
+
+    const fields: string[] = [
+      ...otherFields,
+      aggregateFields.length ? aggregateFields[0] : 'count()',
+    ];
+
+    queries = queries.map(query => {
+      return {
+        ...query,
+        fields,
+      };
+    });
+
     return queries;
   }
 

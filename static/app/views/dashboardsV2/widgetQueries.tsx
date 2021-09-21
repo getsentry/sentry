@@ -19,6 +19,7 @@ import {
 import {Series} from 'app/types/echarts';
 import {parsePeriodToHours} from 'app/utils/dates';
 import {TableData} from 'app/utils/discover/discoverQuery';
+import {getAggregateFields} from 'app/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
@@ -284,21 +285,41 @@ class WidgetQueries extends React.Component<Props, State> {
       period: statsPeriod,
     });
     const promises = widget.queries.map(query => {
-      const requestData = {
-        organization,
-        interval,
-        start,
-        end,
-        project: projects,
-        environment: environments,
-        period: statsPeriod,
-        query: query.conditions,
-        yAxis: query.fields,
-        orderby: query.orderby,
-        includePrevious: false,
-        referrer: 'api.dashboards.timeserieswidget',
-        partial: true,
-      };
+      let requestData;
+      if (widget.displayType === 'top_n') {
+        requestData = {
+          organization,
+          interval,
+          start,
+          end,
+          project: projects,
+          environment: environments,
+          period: statsPeriod,
+          query: query.conditions,
+          yAxis: getAggregateFields(query.fields)[0],
+          includePrevious: false,
+          referrer: 'api.dashboards.top_5',
+          partial: true,
+          topEvents: 5,
+          field: query.fields,
+        };
+      } else {
+        requestData = {
+          organization,
+          interval,
+          start,
+          end,
+          project: projects,
+          environment: environments,
+          period: statsPeriod,
+          query: query.conditions,
+          yAxis: query.fields,
+          orderby: query.orderby,
+          includePrevious: false,
+          referrer: 'api.dashboards.timeserieswidget',
+          partial: true,
+        };
+      }
       return doEventsRequest(api, requestData);
     });
 

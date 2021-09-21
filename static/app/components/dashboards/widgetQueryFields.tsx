@@ -78,7 +78,7 @@ function WidgetQueryFields({
     onChange(newFields);
   }
 
-  if (displayType === 'table') {
+  if (['top_n', 'table'].includes(displayType)) {
     return (
       <Field
         data-test-id="columns"
