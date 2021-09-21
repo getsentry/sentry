@@ -8,6 +8,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     Environment,
     ExternalIssue,
+    Group,
     Organization,
     OrganizationStatus,
     PullRequest,
@@ -137,3 +138,49 @@ class DeleteOrganizationTest(TransactionTestCase):
         assert not Organization.objects.filter(id=org.id).exists()
         assert not Commit.objects.filter(organization_id=org.id).exists()
         assert not CommitAuthor.objects.filter(organization_id=org.id).exists()
+
+    def test_group_first_release(self):
+        org = self.create_organization(name="test")
+        project = self.create_project(organization=org)
+        release = self.create_release(project=project, user=self.user, version="1.2.3")
+        group = Group.objects.create(project=project, first_release=release)
+
+        # Simulate the project being deleted but the deletion crashing.
+        project.delete()
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        deletion = ScheduledDeletion.schedule(org, days=0)
+        deletion.update(in_progress=True)
+
+        with self.tasks():
+            run_deletion(deletion.id)
+
+        assert not Group.objects.filter(id=group.id).exists()
+        assert not Organization.objects.filter(id=org.id).exists()
+
+    def test_orphan_commits(self):
+        # We have had a few orgs get into a state where they have commits
+        # but no repositories. Ensure that we can proceed.
+        org = self.create_organization(name="test")
+
+        repo = Repository.objects.create(organization_id=org.id, name=org.name, provider="dummy")
+        author = CommitAuthor.objects.create(
+            organization_id=org.id, name="foo", email="foo@example.com"
+        )
+        commit = Commit.objects.create(
+            repository_id=repo.id, organization_id=org.id, author=author, key="a" * 40
+        )
+
+        # Simulate the project being deleted but the deletion crashing.
+        repo.delete()
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        deletion = ScheduledDeletion.schedule(org, days=0)
+        deletion.update(in_progress=True)
+
+        with self.tasks():
+            run_deletion(deletion.id)
+
+        assert not Organization.objects.filter(id=org.id).exists()
+        assert not Commit.objects.filter(id=commit.id).exists()
+        assert not CommitAuthor.objects.filter(id=author.id).exists()

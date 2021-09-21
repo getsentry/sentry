@@ -5,12 +5,13 @@ from datetime import datetime, timedelta
 import pytz
 from django.utils import timezone
 
+from sentry.releasehealth.metrics import MetricsReleaseHealthBackend
+from sentry.releasehealth.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions import (
     _make_stats,
     check_has_health_data,
     check_releases_have_health_data,
     get_adjacent_releases_based_on_adoption,
-    get_current_and_previous_crash_free_rates,
     get_oldest_health_data_for_releases,
     get_project_releases_by_stability,
     get_project_releases_count,
@@ -19,6 +20,7 @@ from sentry.snuba.sessions import (
     get_release_sessions_time_bounds,
 )
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.utils.dates import to_timestamp
 
 
@@ -50,6 +52,10 @@ def generate_session_default_args(session_dict):
     }
     session_dict_default.update(session_dict)
     return session_dict_default
+
+
+class ReleaseHealthMetricsTestCase(SessionMetricsTestCase):
+    backend = MetricsReleaseHealthBackend()
 
 
 class SnubaSessionsTest(TestCase, SnubaTestCase):
@@ -1656,6 +1662,8 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         In the previous 24h (>24h & <48h) -> 4 Exited + 1 Crashed / 5 Total Sessions -> 80%
     """
 
+    backend = SessionsReleaseHealthBackend()
+
     def setUp(self):
         super().setUp()
         self.session_started = time.time() // 60 * 60
@@ -1738,7 +1746,8 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         last_24h_start = now - 24 * timedelta(hours=1)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
 
-        data = get_current_and_previous_crash_free_rates(
+        data = self.backend.get_current_and_previous_crash_free_rates(
+            org_id=self.organization.id,
             project_ids=[self.project.id, self.project2.id, self.project3.id],
             current_start=last_24h_start,
             current_end=now,
@@ -1762,7 +1771,8 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         last_72h_start = now - 3 * 24 * timedelta(hours=1)
         last_96h_start = now - 4 * 24 * timedelta(hours=1)
 
-        data = get_current_and_previous_crash_free_rates(
+        data = self.backend.get_current_and_previous_crash_free_rates(
+            org_id=self.organization.id,
             project_ids=[self.project.id],
             current_start=last_72h_start,
             current_end=last_48h_start,
@@ -1779,17 +1789,17 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         }
 
 
+class GetCrashFreeRateTestCaseMetrics(ReleaseHealthMetricsTestCase, GetCrashFreeRateTestCase):
+    """Repeat tests with metrics backend"""
+
+
 class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
     def test_empty(self):
         # Test no errors when no session data
         org = self.create_organization()
         proj = self.create_project(organization=org)
         assert (
-            get_project_releases_count(
-                org.id,
-                [proj.id],
-                "",
-            )
+            get_project_releases_count(org.id, [proj.id], "crash_free_users", stats_period="14d")
             == 0
         )
 

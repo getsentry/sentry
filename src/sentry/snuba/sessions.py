@@ -273,9 +273,10 @@ def get_project_releases_count(
         where=where,
         having=having,
     )
-    return snuba.raw_snql_query(query, referrer="snuba.sessions.check_releases_have_health_data")[
+    data = snuba.raw_snql_query(query, referrer="snuba.sessions.check_releases_have_health_data")[
         "data"
-    ][0]["count"]
+    ]
+    return data[0]["count"] if data else 0
 
 
 def _make_stats(start, rollup, buckets, default=0):

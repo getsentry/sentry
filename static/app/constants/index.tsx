@@ -215,7 +215,6 @@ export const MAX_AUTOCOMPLETE_RECENT_SEARCHES = 3;
 export const MAX_AUTOCOMPLETE_RELEASES = 5;
 
 export const DEFAULT_PER_PAGE = 50;
-export const TEAMS_PER_PAGE = 25;
 
 // Limit query length so paginated response headers don't
 // go over HTTP header size limits (4Kb)

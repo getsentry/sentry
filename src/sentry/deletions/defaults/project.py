@@ -39,6 +39,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.RepositoryProjectPathConfig,
             models.SavedSearchUserDefault,
             models.SavedSearch,
+            models.ServiceHookProject,
             models.ServiceHook,
             models.UserReport,
             models.ProjectTransactionThreshold,
@@ -63,7 +64,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             ]
         )
 
-        # in bulk
         # Release needs to handle deletes after Group is cleaned up as the foreign
         # key is protected
         model_list = (

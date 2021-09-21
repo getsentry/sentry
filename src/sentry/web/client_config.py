@@ -167,7 +167,7 @@ def get_client_config(request=None):
         "csrfCookieName": settings.CSRF_COOKIE_NAME,
         "sentryConfig": {
             "dsn": public_dsn,
-            "release": settings.SENTRY_SDK_CONFIG["release"],
+            "release": f"frontend@{settings.SENTRY_SDK_CONFIG['release']}",
             "environment": settings.SENTRY_SDK_CONFIG["environment"],
             # By default `ALLOWED_HOSTS` is [*], however the JS SDK does not support globbing
             "whitelistUrls": (
