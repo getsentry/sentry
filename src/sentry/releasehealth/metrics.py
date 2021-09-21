@@ -296,23 +296,24 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
 
         # Count of sessions/users for given list of environments and timerange AND GIVEN RELEASES, per-project
-        sessions_per_release: Dict[Tuple[int, str], int] = _count_sessions(
+        sessions_per_release: Dict[Tuple[int, int], int] = _count_sessions(
             total=False, referrer="releasehealth.metrics.get_release_adoption.releases_sessions"
         )
-        users_per_release: Dict[Tuple[int, str], int] = _count_users(
+        users_per_release: Dict[Tuple[int, int], int] = _count_users(
             total=False, referrer="releasehealth.metrics.get_release_adoption.releases_users"
         )
 
         rv = {}
 
         for project_id, release in project_releases:
-            release_sessions = sessions_per_release.get((project_id, release))
-            if not release_sessions:
+            release_tag_value = indexer.resolve(org_id, UseCase.TAG_VALUE, release)
+            if release_tag_value is None:
                 # Don't emit empty releases -- for exact compatibility with
                 # sessions table backend.
                 continue
 
-            release_users = users_per_release.get((project_id, release))
+            release_sessions = sessions_per_release.get((project_id, release_tag_value))
+            release_users = users_per_release.get((project_id, release_tag_value))
 
             total_sessions = sessions_per_project.get(project_id)
             total_users = users_per_project.get(project_id)
@@ -329,10 +330,5 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 "project_users_24h": total_users,
                 "project_sessions_24h": total_sessions,
             }
-
-        if not rv:
-            import pdb
-
-            pdb.set_trace()
 
         return rv
