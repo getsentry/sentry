@@ -5,7 +5,12 @@ from snuba_sdk import Column, Condition, Entity, Op, Query
 from snuba_sdk.expressions import Granularity
 
 from sentry.models.project import Project
-from sentry.releasehealth.base import ReleaseHealthBackend
+from sentry.releasehealth.base import (
+    CurrentAndPreviousCrashFreeRates,
+    ProjectList,
+    ProjectRelease,
+    ReleaseHealthBackend,
+)
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.snuba.dataset import Dataset
@@ -48,11 +53,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         previous_end: datetime,
         rollup: int,
         org_id: Optional[int] = None,
-    ) -> ReleaseHealthBackend.CurrentAndPreviousCrashFreeRates:
+    ) -> CurrentAndPreviousCrashFreeRates:
         if org_id is None:
             org_id = self._get_org_id(project_ids)
 
-        projects_crash_free_rate_dict: ReleaseHealthBackend.CurrentAndPreviousCrashFreeRates = {
+        projects_crash_free_rate_dict: CurrentAndPreviousCrashFreeRates = {
             prj: {"currentCrashFreeRate": None, "previousCrashFreeRate": None}
             for prj in project_ids
         }
@@ -150,3 +155,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         crash_free_rate = 100 * max(0.0, crash_free_rate)
 
         return crash_free_rate
+
+    def check_has_health_data(self, projects_list: ProjectList) -> Set[ProjectRelease]:
+
+        # TODO implement
+        raise NotImplementedError()

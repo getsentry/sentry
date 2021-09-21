@@ -1044,8 +1044,8 @@ class Release(Model):
         """Deletes a release if possible or raises a `UnsafeReleaseDeletion`
         exception.
         """
+        from sentry import releasehealth
         from sentry.models import Group, ReleaseFile
-        from sentry.snuba.sessions import check_has_health_data
 
         # we don't want to remove the first_release metadata on the Group, and
         # while people might want to kill a release (maybe to remove files),
@@ -1058,7 +1058,7 @@ class Release(Model):
         # We would need to be able to delete this data from snuba which we
         # can't do yet.
         project_ids = list(self.projects.values_list("id").all())
-        if check_has_health_data([(p[0], self.version) for p in project_ids]):
+        if releasehealth.check_has_health_data([(p[0], self.version) for p in project_ids]):
             raise UnsafeReleaseDeletion(ERR_RELEASE_HEALTH_DATA)
 
         # TODO(dcramer): this needs to happen in the queue as it could be a long

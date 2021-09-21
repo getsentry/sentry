@@ -1,8 +1,13 @@
 from datetime import datetime
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Set
 
-from sentry.releasehealth.base import ReleaseHealthBackend
-from sentry.snuba.sessions import get_current_and_previous_crash_free_rates
+from sentry.releasehealth.base import (
+    CurrentAndPreviousCrashFreeRates,
+    ProjectList,
+    ProjectRelease,
+    ReleaseHealthBackend,
+)
+from sentry.snuba.sessions import check_has_health_data, get_current_and_previous_crash_free_rates
 
 
 class SessionsReleaseHealthBackend(ReleaseHealthBackend):
@@ -17,7 +22,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         previous_end: datetime,
         rollup: int,
         org_id: Optional[int] = None,
-    ) -> ReleaseHealthBackend.CurrentAndPreviousCrashFreeRates:
+    ) -> CurrentAndPreviousCrashFreeRates:
         return get_current_and_previous_crash_free_rates(  # type: ignore
             project_ids=project_ids,
             current_start=current_start,
@@ -26,3 +31,6 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
             previous_end=previous_end,
             rollup=rollup,
         )
+
+    def check_has_health_data(self, projects_list: ProjectList) -> Set[ProjectRelease]:
+        return check_has_health_data(projects_list)
