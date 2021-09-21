@@ -638,6 +638,10 @@ CELERY_QUEUES = [
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
+    Queue(
+        "symbolicator.compute_low_priority_queue",
+        routing_key="symbolicator.compute_low_priority_queue",
+    ),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
 ]
@@ -777,6 +781,12 @@ CELERYBEAT_SCHEDULE = {
     "snuba-subscription-checker": {
         "task": "sentry.snuba.tasks.subscription_checker",
         "schedule": timedelta(minutes=20),
+        "options": {"expires": 20 * 60},
+    },
+    "check-symbolicator-lpq-project-eligibility": {
+        "task": "sentry.tasks.symbolicator.scan_for_suspect_projects",
+        # todo: make this configurable?
+        "schedule": timedelta(seconds=10),
         "options": {"expires": 20 * 60},
     },
 }
