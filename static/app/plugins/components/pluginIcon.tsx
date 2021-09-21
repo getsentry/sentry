@@ -102,6 +102,7 @@ export const ICON_PATHS = {
   rocketchat,
   rookout,
   segment,
+  shortcut: clubhouse,
   slack,
   spikesh,
   split,

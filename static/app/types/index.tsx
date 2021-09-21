@@ -1624,10 +1624,10 @@ export type SentryAppComponent = {
     slug:
       | 'calixa'
       | 'clickup'
-      | 'clubhouse'
       | 'komodor'
       | 'linear'
       | 'rookout'
+      | 'shortcut'
       | 'spikesh'
       | 'teamwork'
       | 'zepel';

@@ -1,11 +1,11 @@
 import {
   IconCalixa,
   IconClickup,
-  IconClubhouse,
   IconGeneric,
   IconKomodor,
   IconLinear,
   IconRookout,
+  IconShortcut,
   IconSpikesh,
   IconTeamwork,
   IconZepel,
@@ -22,14 +22,14 @@ const SentryAppIcon = ({slug}: Props) => {
       return <IconCalixa size="md" />;
     case 'clickup':
       return <IconClickup size="md" />;
-    case 'clubhouse':
-      return <IconClubhouse size="md" />;
     case 'komodor':
       return <IconKomodor size="md" />;
     case 'linear':
       return <IconLinear size="md" />;
     case 'rookout':
       return <IconRookout size="md" />;
+    case 'shortcut':
+      return <IconShortcut size="md" />;
     case 'spikesh':
       return <IconSpikesh size="md" />;
     case 'teamwork':
