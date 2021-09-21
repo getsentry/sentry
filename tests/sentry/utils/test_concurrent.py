@@ -1,6 +1,6 @@
 import _thread
 import sys
-from concurrent.futures import CancelledError, Future, InvalidStateError
+from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
 from queue import Full
 from threading import Event
@@ -116,6 +116,8 @@ def test_time_is_not_overwritten_if_fail_to_set_result():
         future.set_running_or_notify_cancel()
         future.set_result(1)
         assert future.get_timing() == (1.0, 1.0)
+
+    from concurrent.futures import InvalidStateError
 
     with timestamp(2.0):
         try:
