@@ -2308,14 +2308,14 @@ SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
 
 SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
 
-# Which backend to use for MetricsCluster.
+# Which backend to use for RealtimeMetricsStore.
 #
 # Currently, only redis is supported.
 SENTRY_REALTIME_METRICS_BACKEND = (
     "sentry.processing.realtime_metrics.redis.RedisRealtimeMetricsStore"
 )
 SENTRY_REALTIME_METRICS_OPTIONS = {
-    # The redis cluster used for the metrics cluster redis backend.
+    # The redis cluster used for the realtime store redis backend.
     "cluster_name": "default",
     # The bucket size of the counter.
     #
