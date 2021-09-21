@@ -117,6 +117,7 @@ class SemverFilter:
     operator: str
     version_parts: Sequence[Union[int, str]]
     package: Optional[str] = None
+    negate: bool = False
 
 
 class ReleaseQuerySet(models.QuerySet):
@@ -144,6 +145,7 @@ class ReleaseQuerySet(models.QuerySet):
         operator: str,
         build: str,
         project_ids: Optional[Sequence[int]] = None,
+        negate: bool = False,
     ) -> models.QuerySet:
         """
         Filters released by build. If the passed `build` is a numeric string, we'll filter on
@@ -161,12 +163,21 @@ class ReleaseQuerySet(models.QuerySet):
             )
 
         if build.isnumeric() and validate_bigint(int(build)):
-            qs = qs.filter(**{f"build_number__{operator}": int(build)})
+            if negate:
+                qs = qs.exclude(**{f"build_number__{operator}": int(build)})
+            else:
+                qs = qs.filter(**{f"build_number__{operator}": int(build)})
         else:
             if not build or build.endswith("*"):
-                qs = qs.filter(build_code__startswith=build[:-1])
+                if negate:
+                    qs = qs.exclude(build_code__startswith=build[:-1])
+                else:
+                    qs = qs.filter(build_code__startswith=build[:-1])
             else:
-                qs = qs.filter(build_code=build)
+                if negate:
+                    qs = qs.exclude(build_code=build)
+                else:
+                    qs = qs.filter(build_code=build)
 
         return qs
 
@@ -189,7 +200,10 @@ class ReleaseQuerySet(models.QuerySet):
         """
         qs = self.filter(organization_id=organization_id).annotate_prerelease_column()
         if semver_filter.package:
-            qs = qs.filter(package=semver_filter.package)
+            if semver_filter.negate:
+                qs = qs.exclude(package=semver_filter.package)
+            else:
+                qs = qs.filter(package=semver_filter.package)
         if project_ids:
             qs = qs.filter(
                 id__in=ReleaseProject.objects.filter(project_id__in=project_ids).values_list(
@@ -206,9 +220,18 @@ class ReleaseQuerySet(models.QuerySet):
                 function="ROW",
             )
             cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
-            qs = qs.annotate(
-                semver=Func(*(F(col) for col in cols), function="ROW", output_field=ArrayField())
-            ).filter(**{f"semver__{semver_filter.operator}": filter_func})
+            if semver_filter.negate:
+                qs = qs.annotate(
+                    semver=Func(
+                        *(F(col) for col in cols), function="ROW", output_field=ArrayField()
+                    )
+                ).exclude(**{f"semver__{semver_filter.operator}": filter_func})
+            else:
+                qs = qs.annotate(
+                    semver=Func(
+                        *(F(col) for col in cols), function="ROW", output_field=ArrayField()
+                    )
+                ).filter(**{f"semver__{semver_filter.operator}": filter_func})
         return qs
 
     def filter_by_stage(
@@ -277,6 +300,7 @@ class ReleaseModelManager(models.Manager):
         operator: str,
         build: str,
         project_ids: Optional[Sequence[int]] = None,
+        negate: bool = False,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_semver_build(
             organization_id, operator, build, project_ids
