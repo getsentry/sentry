@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -50,6 +50,7 @@ function Breadcrumbs({
   const [scrollbarSize, setScrollbarSize] = useState(0);
 
   let listRef: List | null = null;
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     updateGrid();
@@ -101,6 +102,11 @@ function Breadcrumbs({
             relativeTime={relativeTime}
             displayRelativeTime={displayRelativeTime}
             height={height ? String(height) : undefined}
+            scrollbarSize={
+              (contentRef?.current?.offsetHeight ?? 0) < PANEL_MAX_HEIGHT
+                ? scrollbarSize
+                : 0
+            }
           />
         )}
       </CellMeasurer>
@@ -132,7 +138,7 @@ function Breadcrumbs({
       isEmpty={!breadcrumbs.length}
       {...emptyMessage}
     >
-      <Content>
+      <Content ref={contentRef}>
         <AutoSizer disableHeight onResize={updateGrid}>
           {({width}) => (
             <StyledList
