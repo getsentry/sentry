@@ -57,7 +57,7 @@ def wait_for_topics(admin_client: AdminClient, topics: List[str], timeout: int =
                 )
 
 
-class KafkaConsumerFacade(metaclass=abc.ABCMeta):
+class KafkaConsumerFacade(abc.ABC):
     """
     Kafka consumer facade which defines the minimal set of methods to be implemented in order to be used as a consumer
     with BatchingKafkaConsumer. Additional documentation of the API's defined in this class can be found at
