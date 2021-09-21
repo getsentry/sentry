@@ -1,10 +1,11 @@
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {GlobalSelection, Organization} from 'app/types';
+import {GlobalSelection, Organization, Project} from 'app/types';
 import {analytics, metric} from 'app/utils/analytics';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization, {isLightweightOrganization} from 'app/utils/withOrganization';
+import withProjects from 'app/utils/withProjects';
 
 import GroupDetails from './groupDetails';
 
@@ -12,6 +13,7 @@ type Props = {
   selection: GlobalSelection;
   isGlobalSelectionReady: boolean;
   organization: Organization;
+  projects: Project[];
   children: React.ReactNode;
 } & RouteComponentProps<{orgId: string; groupId: string}, {}>;
 
@@ -53,4 +55,6 @@ class OrganizationGroupDetails extends React.Component<Props> {
   }
 }
 
-export default withOrganization(withGlobalSelection(OrganizationGroupDetails));
+export default withOrganization(
+  withProjects(withGlobalSelection(OrganizationGroupDetails))
+);

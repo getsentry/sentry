@@ -36,6 +36,7 @@ type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 type Props = {
   api: Client;
   organization: Organization;
+  projects: Project[];
   environments: string[];
   children: React.ReactNode;
   isGlobalSelectionReady: boolean;
@@ -438,8 +439,7 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   renderError() {
-    const {organization, location} = this.props;
-    const projects = organization.projects ?? [];
+    const {projects, location} = this.props;
     const projectId = location.query.project;
 
     const projectSlug = projects.find(proj => proj.id === projectId)?.slug;
