@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Sequence, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import pytz
 from snuba_sdk import BooleanCondition, Column, Condition, Entity, Op, Query
-from snuba_sdk.expressions import Granularity
+from snuba_sdk.expressions import Granularity, SelectableExpression
 
 from sentry.models.project import Project
 from sentry.releasehealth.base import ReleaseHealthBackend
@@ -152,12 +152,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         return crash_free_rate
 
-    @staticmethod
-    def _get_conditions_and_filter_keys(
-        project_releases: Sequence[Tuple[int, str]], environments: Sequence[str]
-    ):
-        pass
-
     def get_release_adoption(
         self,
         project_releases: Sequence[Tuple[int, str]],
@@ -171,67 +165,154 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         if now is None:
             now = datetime.now(pytz.utc)
+
+        return self._get_release_adoption_impl(
+            now, org_id, project_releases, project_ids, environments
+        )
+
+    @staticmethod
+    def _get_release_adoption_impl(
+        now: datetime,
+        org_id: int,
+        project_releases: Sequence[Tuple[int, str]],
+        project_ids: Sequence[int],
+        environments: Optional[Sequence[str]] = None,
+    ):
         start = now - timedelta(days=1)
 
-        # Total user count and session count for our given list of
-        # environments, per-project.
-        total_where_common: List[Union[BooleanCondition, Condition]] = [
-            Condition(Column("org_id"), Op.EQ, org_id),
-            Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("timestamp"), Op.GTE, start),
-            Condition(Column("timestamp"), Op.LT, now),
-            Condition(Column(tag_key(org_id, "session.status")), Op.EQ, tag_value(org_id, "init")),
-        ]
+        def _get_common_where(total):
+            where_common: List[Union[BooleanCondition, Condition]] = [
+                Condition(Column("org_id"), Op.EQ, org_id),
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("timestamp"), Op.LT, now),
+                Condition(
+                    Column(tag_key(org_id, "session.status")), Op.EQ, tag_value(org_id, "init")
+                ),
+            ]
 
-        # Count of all sessions for given list of environments and timerange, per-project
-        total_sessions_query = Query(
-            dataset=Dataset.Metrics.value,
-            match=Entity("metrics_counters"),
-            select=[Column("value")],
-            where=total_where_common
-            + [
-                Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
-            ],
-            groupby=[
-                Column("project_id"),
-            ],
+            if environments is not None:
+                where_common.append(
+                    Condition(
+                        Column(tag_key(org_id, "environment")),
+                        Op.IN,
+                        list(tag_value(org_id, x) for x in environments),
+                    )
+                )
+
+            if not total:
+                where_common.append(
+                    Condition(
+                        Column(tag_key(org_id, "release")),
+                        Op.IN,
+                        list(tag_value(org_id, x) for _, x in project_releases),
+                    )
+                )
+
+            return where_common
+
+        def _get_common_groupby(total) -> List[SelectableExpression]:
+            if total:
+                return [Column("project_id")]
+            else:
+                return [Column("project_id"), Column("release")]
+
+        def _convert_results(data, total):
+            if total:
+                return {x["project_id"]: x["value"] for x in data}
+            else:
+                return {(x["project_id"], x["release"]): x["value"] for x in data}
+
+        def _count_sessions(total, referrer) -> Dict[Any, int]:
+            query = Query(
+                dataset=Dataset.Metrics.value,
+                match=Entity("metrics_counters"),
+                select=[Column("value")],
+                where=_get_common_where(total)
+                + [
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+                ],
+                groupby=_get_common_groupby(total),
+            )
+
+            return _convert_results(
+                raw_snql_query(
+                    query,
+                    referrer=referrer,
+                    use_cache=False,
+                )["data"],
+                total=total,
+            )
+
+        def _count_users(total, referrer) -> Dict[Any, int]:
+            query = Query(
+                dataset=Dataset.Metrics.value,
+                match=Entity("metrics_sets"),
+                select=[Column("value")],
+                where=_get_common_where(total)
+                + [
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")),
+                ],
+                groupby=_get_common_groupby(total),
+            )
+
+            return _convert_results(
+                raw_snql_query(
+                    query,
+                    referrer=referrer,
+                    use_cache=False,
+                )["data"],
+                total=total,
+            )
+
+        # XXX(markus): Four queries are quite horrible for this... the old code
+        # sufficed with two. From what I understand, ClickHouse would have to
+        # gain a function uniqCombined64MergeIf, i.e. a conditional variant of
+        # what we already use.
+        #
+        # Alternatively we may want to use a threadpool here to send the
+        # queries in parallel.
+
+        # NOTE: referrers are spelled out as single static string literal so
+        # S&S folks can search for it more easily. No string formatting
+        # business please!
+
+        # Count of sessions/users for given list of environments and timerange, per-project
+        sessions_per_project: Dict[int, int] = _count_sessions(
+            total=True, referrer="releasehealth.metrics.get_release_adoption.total_sessions"
+        )
+        users_per_project: Dict[int, int] = _count_users(
+            total=True, referrer="releasehealth.metrics.get_release_adoption.total_users"
         )
 
-        total_sessions = {
-            x["project_id"]: x["value"]
-            for x in raw_snql_query(
-                total_sessions_query,
-                referrer="releasehealth.metrics.get_release_adoption.total_sessions",
-                use_cache=False,
-            )["data"]
-        }
-
-        # Count of users for given list of environments and timerange, per-project
-        total_users_query = Query(
-            dataset=Dataset.Metrics.value,
-            match=Entity("metrics_sets"),
-            select=[Column("value")],
-            where=total_where_common
-            + [
-                Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")),
-            ],
-            groupby=[
-                Column("project_id"),
-            ],
+        # Count of sessions/users for given list of environments and timerange AND GIVEN RELEASES, per-project
+        sessions_per_release: Dict[Tuple[int, str], int] = _count_sessions(
+            total=True, referrer="releasehealth.metrics.get_release_adoption.releases_sessions"
+        )
+        users_per_release: Dict[Tuple[int, str], int] = _count_users(
+            total=False, referrer="releasehealth.metrics.get_release_adoption.releases_users"
         )
 
-        total_users = {
-            x["project_id"]: x["value"]
-            for x in raw_snql_query(
-                total_sessions_query,
-                referrer="releasehealth.metrics.get_release_adoption.total_users",
-                use_cache=False,
-            )["data"]
-        }
+        rv = {}
 
-        import pdb
+        for project_id, release in project_releases:
+            release_users = users_per_release.get((project_id, release))
+            total_users = users_per_project.get(project_id)
 
-        pdb.set_trace()
-        # TODO
+            release_sessions = sessions_per_release.get((project_id, release))
+            total_sessions = sessions_per_project.get(project_id)
 
-        return {}
+            rv[project_id, release] = {
+                "adoption": float(release_users) / total_users * 100
+                if release_users and total_users
+                else None,
+                "sessions_adoption": float(release_sessions) / total_sessions * 100
+                if release_sessions and total_sessions
+                else None,
+                "users_24h": release_users,
+                "sessions_24h": release_sessions,
+                "project_users_24h": total_users,
+                "project_sessions_24h": total_sessions,
+            }
+
+        return rv
