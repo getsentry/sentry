@@ -239,7 +239,6 @@ export type LightWeightOrganization = OrganizationSummary & {
  */
 export type Organization = LightWeightOrganization & {
   projects: Project[];
-  teams: Team[];
 };
 
 /**
@@ -1625,10 +1624,10 @@ export type SentryAppComponent = {
     slug:
       | 'calixa'
       | 'clickup'
-      | 'clubhouse'
       | 'komodor'
       | 'linear'
       | 'rookout'
+      | 'shortcut'
       | 'spikesh'
       | 'teamwork'
       | 'zepel';
