@@ -14,10 +14,10 @@ class RealtimeMetricsStore:
         if counter_bucket_size <= 0:
             raise ValueError("bucket size must be at least 1")
 
-        self.counter_bucket_size = counter_bucket_size
+        self._counter_bucket_size = counter_bucket_size
         self.inner = cluster
-        self.counter_ttl: int = int(counter_ttl / datetime.timedelta(milliseconds=1))
-        self.prefix = prefix
+        self._counter_ttl: int = int(counter_ttl / datetime.timedelta(milliseconds=1))
+        self._prefix = prefix
 
     def increment_project_event_counter(self, project_id: int, timestamp: float) -> None:
         """Increment the event counter for the given project_id.
@@ -27,12 +27,12 @@ class RealtimeMetricsStore:
         in ttl seconds.
         """
         timestamp = int(timestamp)
-        if self.counter_bucket_size > 1:
-            timestamp -= timestamp % self.counter_bucket_size
+        if self._counter_bucket_size > 1:
+            timestamp -= timestamp % self._counter_bucket_size
 
-        key = f"{self.prefix}:{project_id}:{timestamp}"
+        key = f"{self._prefix}:{project_id}:{timestamp}"
 
         with self.inner.pipeline() as pipeline:
-            pipeline.set(key, 0, nx=True, px=self.counter_ttl)
+            pipeline.set(key, 0, nx=True, px=self._counter_ttl)
             pipeline.incr(key)
             pipeline.execute()
