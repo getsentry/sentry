@@ -2,11 +2,13 @@ import logging
 import operator
 from copy import deepcopy
 from datetime import timedelta
+from typing import Optional
 
 from django.conf import settings
 from django.db import transaction
 
 from sentry import features
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -39,6 +41,10 @@ ALERT_RULE_BASE_STAT_KEY = "%s:%s"
 ALERT_RULE_STAT_KEYS = ("last_update",)
 ALERT_RULE_BASE_TRIGGER_STAT_KEY = "%s:trigger:%s:%s"
 ALERT_RULE_TRIGGER_STAT_KEYS = ("alert_triggered", "resolve_triggered")
+# Stores a minimum threshold that represents a session count under which we don't evaluate crash
+# rate alert, and the update is just dropped. If it is set to None, then no minimum threshold
+# check is applied
+CRASH_RATE_ALERT_MINIMUM_THRESHOLD: Optional[int] = None
 
 
 class SubscriptionProcessor:
@@ -205,18 +211,41 @@ class SubscriptionProcessor:
                     "result": subscription_update,
                 },
             )
-        aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
 
         is_sessions_dataset = Dataset(self.subscription.snuba_query.dataset) == Dataset.Sessions
         if is_sessions_dataset:
+            aggregation_value = subscription_update["values"]["data"][0][
+                CRASH_RATE_ALERT_AGGREGATE_ALIAS
+            ]
             if aggregation_value is None:
                 metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
                 return
+
+            try:
+                total_count = subscription_update["values"]["data"][0][
+                    CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
+                ]
+                if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
+                    min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
+                    if total_count < min_threshold:
+                        metrics.incr(
+                            "incidents.alert_rules.ignore_update_count_lower_than_min_threshold"
+                        )
+                        return
+            except KeyError:
+                # If for whatever reason total session count was not sent in the update,
+                # ignore the minimum threshold comparison and continue along with processing the
+                # update. However, this should not happen.
+                logger.error(
+                    "Received an update for a crash rate alert subscription, but no total "
+                    "sessions count was sent"
+                )
             # The subscription aggregation for crash rate alerts uses the Discover percentage
             # function, which would technically return a ratio of sessions_crashed/sessions and
             # so we need to calculate the crash free percentage out of that returned value
             aggregation_value = (1 - aggregation_value) * 100
         else:
+            aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
             # In some cases Snuba can return a None value for an aggregation. This means
             # there were no rows present when we made the query, for certain types of
             # aggregations like avg. Defaulting this to 0 for now. It might turn out that

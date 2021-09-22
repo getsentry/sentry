@@ -85,6 +85,10 @@ TRANSACTIONS_SNUBA_MAP = {
     if col.value.transaction_name is not None
 }
 
+SESSIONS_FIELD_LIST = ["sessions", "sessions_crashed"]
+
+SESSIONS_SNUBA_MAP = {column: column for column in SESSIONS_FIELD_LIST}
+
 # This maps the public column aliases to the discover dataset column names.
 # Longer term we would like to not expose the transactions dataset directly
 # to end users and instead have all ad-hoc queries go through the discover
@@ -100,6 +104,7 @@ DATASETS = {
     Dataset.Events: SENTRY_SNUBA_MAP,
     Dataset.Transactions: TRANSACTIONS_SNUBA_MAP,
     Dataset.Discover: DISCOVER_COLUMN_MAP,
+    Dataset.Sessions: SESSIONS_SNUBA_MAP,
 }
 
 # Store the internal field names to save work later on.
@@ -109,6 +114,7 @@ DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()),
     Dataset.Transactions: list(TRANSACTIONS_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
+    Dataset.Sessions: SESSIONS_FIELD_LIST,
 }
 
 SNUBA_OR = "or"
@@ -963,8 +969,6 @@ def resolve_column(dataset):
         if dataset == Dataset.Discover:
             if isinstance(col, (list, tuple)) or col == "project_id":
                 return col
-        elif dataset == Dataset.Sessions:
-            return col
         else:
             if (
                 col in DATASET_FIELDS[dataset]
