@@ -1,6 +1,6 @@
 import html
 import re
-from typing import Any, List, Mapping
+from typing import Any, List, Mapping, Optional
 from urllib.parse import urlparse
 
 from django.http.request import HttpRequest, QueryDict
@@ -30,7 +30,10 @@ TOP_N = 5
 
 
 def unfurl_discover(
-    data: HttpRequest, integration: Integration, links: List[UnfurlableUrl]
+    data: HttpRequest,
+    integration: Integration,
+    links: List[UnfurlableUrl],
+    user: Optional["User"],
 ) -> UnfurledUrl:
     orgs_by_slug = {org.slug: org for org in integration.organizations.all()}
     unfurls = {}
@@ -47,13 +50,6 @@ def unfurl_discover(
 
         params = link.args["query"]
         query_id = params.get("id", None)
-
-        user_id = params.get("user", None)
-        user = (
-            User.objects.get(id=user_id, sentry_orgmember_set__organization=org)
-            if user_id
-            else None
-        )
 
         saved_query = {}
         if query_id:
