@@ -2992,6 +2992,36 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             assert data[0]["any_user_id"] is None
             assert data[0]["count"] == 1
 
+    def test_offsets(self):
+        self.store_event(
+            data={"message": "hello1", "timestamp": iso_format(self.one_min_ago)},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"message": "hello2", "timestamp": iso_format(self.one_min_ago)},
+            project_id=self.project.id,
+        )
+
+        for use_snql in [False, True]:
+            result = discover.query(
+                selected_columns=["message"],
+                query="",
+                params={
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="message",
+                use_snql=use_snql,
+                limit=1,
+                offset=1,
+            )
+
+            data = result["data"]
+            assert len(data) == 1, use_snql
+            # because we're ording by `message`, and offset by 1, the message should be `hello2`
+            assert data[0]["message"] == "hello2"
+
     def test_reflective_types(self):
         results = discover.query(
             selected_columns=[
@@ -6271,45 +6301,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             )
 
     def test_orderby_equation(self):
-        for i in range(1, 3):
-            event_data = load_data("transaction")
-            # Half of duration so we don't get weird rounding differences when comparing the results
-            event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300 * i
-            event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
-            event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
-            self.store_event(data=event_data, project_id=self.project.id)
-        query_params = {
-            "selected_columns": [
-                "spans.http",
-                "transaction.duration",
-            ],
-            "equations": [
-                "spans.http / transaction.duration",
-                "transaction.duration / spans.http",
-                "1500 + transaction.duration",
-            ],
-            "orderby": ["equation[0]"],
-            "query": self.query,
-            "params": self.params,
-        }
-        results = discover.query(**query_params)
-        assert len(results["data"]) == 3
-        assert [result["equation[0]"] for result in results["data"]] == [0.1, 0.2, 0.5]
-
-        query_params["orderby"] = ["equation[1]"]
-        results = discover.query(**query_params)
-        assert len(results["data"]) == 3
-        assert [result["equation[1]"] for result in results["data"]] == [2, 5, 10]
-
-        query_params["orderby"] = ["-equation[0]"]
-        results = discover.query(**query_params)
-        assert len(results["data"]) == 3
-        assert [result["equation[0]"] for result in results["data"]] == [0.5, 0.2, 0.1]
-
-    # TODO: remove this once we're fully converted, this duplicate test is to test a specific bug with ordering and the
-    # new syntax
-    @patch("sentry.utils.snuba.should_use_snql", return_value=1)
-    def test_orderby_equation_with_snql(self, mock_use_snql):
         for i in range(1, 3):
             event_data = load_data("transaction")
             # Half of duration so we don't get weird rounding differences when comparing the results

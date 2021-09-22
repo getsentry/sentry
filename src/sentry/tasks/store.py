@@ -82,12 +82,42 @@ def submit_process(
     )
 
 
+def should_demote_symbolication(project_id):
+    """
+    Determines whether a project's symbolication events should be pushed to the low priority queue.
+    """
+    always_lowpri = killswitch_matches_context(
+        "store.symbolicate-event-lpq-always",
+        {
+            "project_id": project_id,
+        },
+    )
+    never_lowpri = killswitch_matches_context(
+        "store.symbolicate-event-lpq-never",
+        {
+            "project_id": project_id,
+        },
+    )
+    return not never_lowpri and always_lowpri
+
+
 def submit_symbolicate(project, from_reprocessing, cache_key, event_id, start_time, data):
     task = symbolicate_event_from_reprocessing if from_reprocessing else symbolicate_event
     task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
 
 
-def submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, data):
+def submit_symbolicate_low_priority(
+    project, from_reprocessing, cache_key, event_id, start_time, data
+):
+    task = (
+        symbolicate_event_from_reprocessing_low_priority
+        if from_reprocessing
+        else symbolicate_event_low_priority
+    )
+    task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
+
+
+def submit_save_event(project_id, from_reprocessing, cache_key, event_id, start_time, data):
     if cache_key:
         data = None
 
@@ -98,7 +128,7 @@ def submit_save_event(project, from_reprocessing, cache_key, event_id, start_tim
         data=data,
         start_time=start_time,
         event_id=event_id,
-        project_id=project.id,
+        project_id=project_id,
     )
 
 
@@ -132,8 +162,16 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
 
     if should_process_with_symbolicator(data):
         reprocessing2.backup_unprocessed_event(project=project, data=original_data)
-        submit_symbolicate(
-            project, from_reprocessing, cache_key, event_id, start_time, original_data
+
+        is_low_priority = should_demote_symbolication(project_id)
+        task = submit_symbolicate_low_priority if is_low_priority else submit_symbolicate
+        task(
+            project,
+            from_reprocessing,
+            cache_key,
+            event_id,
+            start_time,
+            original_data,
         )
         return
 
@@ -148,7 +186,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
         )
         return
 
-    submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, original_data)
+    submit_save_event(project_id, from_reprocessing, cache_key, event_id, start_time, original_data)
 
 
 @instrumented_task(
@@ -209,6 +247,8 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     event_id = data["event_id"]
 
+    from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
+
     def _continue_to_process_event():
         process_task = process_event_from_reprocessing if from_reprocessing else process_event
         _do_process_event(
@@ -236,8 +276,6 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
         return _continue_to_process_event()
 
     has_changed = False
-
-    from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
 
     symbolication_start_time = time()
 
@@ -387,6 +425,24 @@ def symbolicate_event_from_reprocessing(cache_key, start_time=None, event_id=Non
 
 
 @instrumented_task(
+    name="sentry.tasks.store.symbolicate_event_from_reprocessing_low_priority",
+    queue="events.reprocessing.symbolicate_event_low_priority",
+    time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
+    soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
+    acks_late=True,
+)
+def symbolicate_event_from_reprocessing_low_priority(
+    cache_key, start_time=None, event_id=None, **kwargs
+):
+    return _do_symbolicate_event(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        symbolicate_task=symbolicate_event_from_reprocessing_low_priority,
+    )
+
+
+@instrumented_task(
     name="sentry.tasks.store.retry_process_event",
     queue="sleep",
     time_limit=(60 * 5) + 5,
@@ -424,10 +480,6 @@ def _do_process_event(
     if data is None:
         data = event_processing_store.get(cache_key)
 
-    def _continue_to_save_event():
-        from_reprocessing = process_task is process_event_from_reprocessing
-        submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, data)
-
     if data is None:
         metrics.incr(
             "events.failed", tags={"reason": "cache", "stage": "process"}, skip_internal=False
@@ -441,6 +493,10 @@ def _do_process_event(
     set_current_event_project(project_id)
 
     event_id = data["event_id"]
+
+    def _continue_to_save_event():
+        from_reprocessing = process_task is process_event_from_reprocessing
+        submit_save_event(project_id, from_reprocessing, cache_key, event_id, start_time, data)
 
     if killswitch_matches_context(
         "store.load-shed-process-event-projects",

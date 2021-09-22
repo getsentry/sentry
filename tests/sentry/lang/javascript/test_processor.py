@@ -65,6 +65,34 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         r = JavaScriptStacktraceProcessor({}, None, project)
         assert not r.allow_scraping
 
+    @patch(
+        "sentry.lang.javascript.processor.JavaScriptStacktraceProcessor.get_valid_frames",
+        return_value=[1],
+    )
+    @patch(
+        "sentry.lang.javascript.processor.JavaScriptStacktraceProcessor.populate_source_cache",
+    )
+    def test_missing_dist(self, _1, _2):
+        """preprocess will create a dist object on-demand"""
+        project = self.create_project()
+        release = self.create_release(project=project, version="12.31.12")
+
+        processor = JavaScriptStacktraceProcessor(
+            data={"release": release.version, "dist": "foo", "timestamp": 123.4},
+            stacktrace_infos=[],
+            project=project,
+        )
+
+        assert processor.release is None
+        assert processor.dist is None
+
+        processor.preprocess_step(None)
+
+        assert processor.release == release
+        assert processor.dist is not None
+        assert processor.dist.name == "foo"
+        assert processor.dist.date_added.timestamp() == processor.data["timestamp"]
+
 
 def test_build_fetch_retry_condition() -> None:
     e = OSError()

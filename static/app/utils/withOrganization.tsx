@@ -36,7 +36,7 @@ export function isLightweightOrganization(
   organization: Organization | LightWeightOrganization
 ): organization is LightWeightOrganization {
   const castedOrg = organization as Organization;
-  return !(castedOrg.projects && castedOrg.teams);
+  return !castedOrg.projects;
 }
 
 export default withOrganization;

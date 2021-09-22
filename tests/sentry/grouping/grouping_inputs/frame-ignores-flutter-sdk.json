@@ -1,0 +1,16 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "GestureBinding._flushPointerEventQueue",
+        "module": "opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding",
+        "filename": "/opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding.dart",
+        "abs_path": "https://getsentry.github.io/opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding.dart",
+        "lineno": 338,
+        "colno": 5,
+        "in_app": true
+      }
+    ]
+  },
+  "platform": "javascript"
+}

@@ -78,11 +78,6 @@ describe('Performance GridEditable Table', function () {
     });
     // @ts-expect-error
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/is-key-transactions/',
-      body: [],
-    });
-    // @ts-expect-error
-    MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
