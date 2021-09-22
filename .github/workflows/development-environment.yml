@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
-      # Make the environment more similar to what Mac defaults to
+      # Make the environment more similar to hat Mac defaults to
       SHELL: /bin/zsh
 
     steps:
