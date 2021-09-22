@@ -2316,7 +2316,7 @@ SENTRY_REALTIME_METRICS_BACKEND = (
 )
 SENTRY_REALTIME_METRICS_OPTIONS = {
     # The redis cluster used for the realtime store redis backend.
-    "cluster_name": "default",
+    "cluster": "default",
     # The bucket size of the counter.
     #
     # The size (in seconds) of the buckets that events are sorted into.

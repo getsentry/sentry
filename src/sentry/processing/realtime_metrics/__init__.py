@@ -1,9 +1,13 @@
 from django.conf import settings
 
-from sentry.utils.imports import import_string
+from sentry.utils.services import LazyServiceWrapper
 
-realtime_metrics_store = import_string(settings.SENTRY_REALTIME_METRICS_BACKEND)(
-    **settings.SENTRY_REALTIME_METRICS_OPTIONS
+from .base import RealtimeMetricsStore
+
+realtime_metrics_store = LazyServiceWrapper(
+    RealtimeMetricsStore,
+    settings.SENTRY_REALTIME_METRICS_BACKEND,
+    settings.SENTRY_REALTIME_METRICS_OPTIONS,
 )
 
-__all__ = ["realtime_metrics_store"]
+realtime_metrics_store.expose(locals())
