@@ -257,8 +257,9 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
         if (outcome !== Outcome.CLIENT_DISCARD) {
           count.total += group.totals['sum(quantity)'];
-          count[outcome] += group.totals['sum(quantity)'];
         }
+
+        count[outcome] += group.totals['sum(quantity)'];
 
         group.series['sum(quantity)'].forEach((stat, i) => {
           switch (outcome) {
