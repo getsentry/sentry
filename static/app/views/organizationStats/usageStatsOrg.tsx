@@ -261,15 +261,19 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         }
 
         group.series['sum(quantity)'].forEach((stat, i) => {
-          if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
-            usageStats[i][outcome] += stat;
-            return;
-          } else if (
-            outcome === Outcome.DROPPED ||
-            outcome === Outcome.INVALID ||
-            Outcome.RATE_LIMITED
-          ) {
-            usageStats[i].dropped.total += stat;
+          switch (outcome) {
+            case Outcome.ACCEPTED:
+            case Outcome.FILTERED:
+              usageStats[i][outcome] += stat;
+              return;
+            case Outcome.DROPPED:
+            case Outcome.RATE_LIMITED:
+            case Outcome.INVALID:
+              usageStats[i].dropped.total += stat;
+              // TODO: add client discards to dropped?
+              return;
+            default:
+              return;
           }
         });
       });
