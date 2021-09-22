@@ -833,7 +833,7 @@ def update_alert_rule(
                 "time_window", timedelta(seconds=snuba_query.time_window)
             )
             updated_query_fields.setdefault("event_types", None)
-            updated_query_fields.setdefault("resolution", timedelta(minutes=snuba_query.resolution))
+            updated_query_fields.setdefault("resolution", timedelta(seconds=snuba_query.resolution))
             update_snuba_query(
                 alert_rule.snuba_query,
                 environment=environment,
