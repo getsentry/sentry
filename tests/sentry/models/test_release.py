@@ -25,6 +25,7 @@ from sentry.models import (
     ReleaseHeadCommit,
     ReleaseProject,
     ReleaseProjectEnvironment,
+    ReleaseStatus,
     Repository,
     add_group_to_inbox,
     follows_semver_versioning_scheme,
@@ -828,6 +829,23 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_code is None
         assert release.build_number is None
         assert release.package is None
+
+    def test_parse_release_into_semver_cols_with_get_or_create(self):
+        """
+        Test that ensures get_or_create populates semver fields
+        """
+        version = "org.example.FooApp@1.0rc1+-2020"
+        release, _ = Release.objects.get_or_create(
+            organization=self.org, version=version, defaults={"status": ReleaseStatus.OPEN}
+        )
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "-2020"
+        assert release.build_number is None
+        assert release.package == "org.example.FooApp"
 
 
 class ReleaseFilterBySemverTest(TestCase):
