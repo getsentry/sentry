@@ -984,6 +984,7 @@ class SnubaTagStorage(TagStorage):
                 snuba_name = f"tags[{key}]"
 
             if query:
+                query = query.replace("\\", "\\\\")
                 conditions.append([snuba_name, "LIKE", f"%{query}%"])
             else:
                 conditions.append([snuba_name, "!=", ""])
