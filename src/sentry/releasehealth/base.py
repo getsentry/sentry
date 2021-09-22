@@ -3,6 +3,7 @@ from typing import Mapping, Optional, Sequence, Tuple
 
 from typing_extensions import Literal, TypedDict
 
+from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils.services import Service
 
 ProjectId = int
@@ -147,6 +148,6 @@ class ReleaseHealthBackend(Service):  # type: ignore
 
     def run_sessions_query(
         self,
-        query: SessionsQuery,
+        query: QueryDefinition,
     ) -> SessionsQueryResult:
         raise NotImplementedError()

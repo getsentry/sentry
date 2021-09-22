@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
 from sentry.releasehealth.base import (
     EnvironmentName,
@@ -9,6 +9,7 @@ from sentry.releasehealth.base import (
     ReleaseName,
 )
 from sentry.snuba.sessions import _get_release_adoption, get_current_and_previous_crash_free_rates
+from sentry.snuba.sessions_v2 import QueryDefinition, massage_sessions_result, run_sessions_query
 
 
 class SessionsReleaseHealthBackend(ReleaseHealthBackend):
@@ -46,6 +47,8 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
 
     def run_sessions_query(
         self,
-        query: ReleaseHealthBackend.SessionsQuery,
+        query: QueryDefinition,
     ) -> ReleaseHealthBackend.SessionsQueryResult:
-        raise NotImplementedError()
+        totals, series = run_sessions_query(query)
+
+        return massage_sessions_result(query, totals, series)  # type: ignore
