@@ -101,6 +101,31 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     }));
   }
 
+  get searchPlaceholder() {
+    switch (this.props.dataset) {
+      case Dataset.ERRORS:
+        return t('Filter events by level, message, and other properties\u2026');
+      case Dataset.SESSIONS:
+        return t('Filter sessions by release version\u2026');
+      case Dataset.TRANSACTIONS:
+      default:
+        return t('Filter transactions by URL, tags, and other properties\u2026');
+    }
+  }
+
+  get searchSupportedTags() {
+    if (this.props.dataset) {
+      return {
+        release: {
+          key: 'release',
+          name: 'release',
+        },
+      };
+    }
+
+    return undefined;
+  }
+
   render() {
     const {organization, disabled, onFilterSearch, allowChangeEventTypes, alertType} =
       this.props;
@@ -258,7 +283,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             }}
             flexibleControlStateSize
           >
-            {({onChange, onBlur, onKeyDown, initialData, model}) => (
+            {({onChange, onBlur, onKeyDown, initialData}) => (
               <SearchContainer>
                 <StyledSearchBar
                   searchSource="alert_builder"
@@ -267,11 +292,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                   disabled={disabled}
                   useFormWrapper={false}
                   organization={organization}
-                  placeholder={
-                    model.getValue('dataset') === 'events'
-                      ? t('Filter events by level, message, or other properties...')
-                      : t('Filter transactions by URL, tags, and other properties...')
-                  }
+                  placeholder={this.searchPlaceholder}
                   onChange={onChange}
                   onKeyDown={e => {
                     /**
@@ -293,6 +314,8 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                     onFilterSearch(query);
                     onChange(query, {});
                   }}
+                  supportedTags={this.searchSupportedTags}
+                  hasRecentSearches={false}
                 />
               </SearchContainer>
             )}
