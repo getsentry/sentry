@@ -1872,7 +1872,11 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
         transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=6))
         transaction_data["transaction"] = OTHER_KEY
-        self.store_event(transaction_data, project_id=self.project.id)
+        for i in range(5):
+            data = transaction_data.copy()
+            data["event_id"] = "ab" + f"{i}" * 30
+            data["contexts"]["trace"]["span_id"] = "ab" + f"{i}" * 14
+            self.store_event(data, project_id=self.project.id)
 
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -1883,7 +1887,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],
-                    "field": ["count()", "transaction"],
+                    "field": ["count()", "message"],
                     "topEvents": 5,
                 },
                 format="json",
@@ -1891,12 +1895,12 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         data = response.data
         assert response.status_code == 200, response.content
-        assert len(data) == 3
+        assert len(data) == 6
 
-        assert f"{OTHER_KEY} (transaction)" in data
-        results = data[f"{OTHER_KEY} (transaction)"]
-        assert [{"count": 1}] in [attrs for _, attrs in results["data"]]
+        assert f"{OTHER_KEY} (message)" in data
+        results = data[f"{OTHER_KEY} (message)"]
+        assert [{"count": 5}] in [attrs for _, attrs in results["data"]]
 
         other = data["Other"]
         assert other["order"] == 5
-        assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
+        assert [{"count": 4}] in [attrs for _, attrs in other["data"]]
