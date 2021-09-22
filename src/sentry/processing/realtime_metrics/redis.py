@@ -93,7 +93,11 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         """
         return set(
             filter(
-                None, {_to_int(project_id) for project_id in self.inner.smembers(LPQ_MEMBERS_KEY)}
+                None,
+                {
+                    _to_int(project_id_raw)
+                    for project_id_raw in self.inner.smembers(LPQ_MEMBERS_KEY)
+                },
             )
         )
 
