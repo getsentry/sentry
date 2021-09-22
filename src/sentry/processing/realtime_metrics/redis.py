@@ -147,7 +147,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         return was_removed
 
 
-def _to_int(value: str or int) -> Optional[int]:
+def _to_int(value: str) -> Optional[int]:
     try:
         return int(value) if value else None
     except ValueError:
