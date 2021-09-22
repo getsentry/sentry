@@ -36,18 +36,11 @@ type Props = {
 
 const Code = ({theme, children, className, label}: Props) => {
   const codeRef: RefObject<HTMLElement> = createRef();
-  const copyButtonRef: RefObject<HTMLButtonElement> = createRef();
 
   const [copied, setCopied] = useState(false);
 
   function handleCopyCode() {
-    const copyButton = copyButtonRef?.current;
-
-    if (!copyButton) {
-      return;
-    }
-
-    /** Remove comments from code */
+    // Remove comments from code
     const copiableContent = children.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
 
     copy(copiableContent);
@@ -72,7 +65,7 @@ const Code = ({theme, children, className, label}: Props) => {
       <HighlightedCode className={className} ref={codeRef}>
         <span>{children}</span>
       </HighlightedCode>
-      <CopyButton ref={copyButtonRef} onClick={handleCopyCode} disabled={copied}>
+      <CopyButton onClick={handleCopyCode} disabled={copied}>
         {copied ? 'Copied' : 'Copy'}
       </CopyButton>
     </Wrap>
