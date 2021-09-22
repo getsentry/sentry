@@ -2,7 +2,7 @@ from sentry.testutils import TestCase
 from sentry.utils.email.backend import get_mail_backend
 
 
-class MiscTestCase(TestCase):
+class GetMailBackendTest(TestCase):
     def test_get_mail_backend(self):
         with self.options({"mail.backend": "smtp"}):
             assert get_mail_backend() == "django.core.mail.backends.smtp.EmailBackend"

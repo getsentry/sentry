@@ -2,7 +2,7 @@ from sentry.testutils import TestCase
 from sentry.utils.email.address import get_from_email_domain, is_valid_email_address
 
 
-class MiscTestCase(TestCase):
+class GetFromEmailDomainTest(TestCase):
     def test_get_from_email_domain(self):
         with self.options({"mail.from": "matt@example.com"}):
             assert get_from_email_domain() == "example.com"
