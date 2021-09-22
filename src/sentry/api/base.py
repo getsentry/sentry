@@ -166,13 +166,15 @@ class Endpoint(APIView):
         Create a log entry to be used for api metrics gathering
         """
         try:
-            token_type = str(getattr(self.request.auth, "__class__", None))
+            token_class = getattr(self.request.auth, "__class__", None)
+            token_name = token_class.__name__
+            view_obj = self.request.parser_context["view"]
             log_metrics = dict(
                 method=self.request.method,
-                view=str(self.request.parser_context["view"].__class__),
+                view=f"{view_obj.__module__}.{view_obj.__class__.__name__}",
                 response=self.response.status_code,
                 user=str(self.request.user),
-                token_type=token_type,
+                token_type=token_name,
             )
             api_access_logger.info(log_metrics)
         except Exception as exc:
