@@ -300,9 +300,9 @@ def notify_sentry_app(event, futures):
             "additional_payload_key": None,
             "additional_payload": None,
         }
+        # If the future comes from a rule with a UI component form in the schema, append the issue alert payload
         settings = f.kwargs.get("schema_defined_settings")
         if settings:
-            # extra_kwargs["url"] = f.kwargs.get("schema_defined_uri")
             extra_kwargs["additional_payload_key"] = "issue_alert"
             extra_kwargs["additional_payload"] = {
                 "id": f.rule.id,
