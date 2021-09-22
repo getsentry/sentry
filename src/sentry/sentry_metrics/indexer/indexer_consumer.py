@@ -17,10 +17,21 @@ snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
 def get_metrics_consumer(
     topic: Optional[str] = None, **options: Dict[str, str]
 ) -> BatchingKafkaConsumer:
-    return create_batching_kafka_consumer({topic}, worker=MetricsIndexerWorker(), **options)
+    snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
+    snuba_metrics_producer = Producer(
+        kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
+    )
+    return create_batching_kafka_consumer(
+        {topic},
+        worker=MetricsIndexerWorker(producer=snuba_metrics_producer),
+        **options,
+    )
 
 
 class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
+    def __init__(self, producer: Producer) -> None:
+        self.__producer = producer
+
     def process_message(self, message: Any) -> Any:
         parsed_message: Dict[str, Any] = json.loads(message.value(), use_rapid_json=True)
 
@@ -28,17 +39,15 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
         metric_name = parsed_message["name"]
         tags = parsed_message["tags"]
 
-        strings = {metric_name}
-        strings.update(tags.keys())
-        strings.update(tags.values())
+        strings = {
+            metric_name,
+            *tags.keys(),
+            *tags.values(),
+        }
 
         mapping = indexer.bulk_record(org_id, list(strings))  # type: ignore
 
-        new_tags = {}
-        for tag_k, tag_v in tags.items():
-            new_k = mapping[tag_k]
-            new_v = mapping[tag_v]
-            new_tags[new_k] = new_v
+        new_tags = {mapping[k]: mapping[v] for k, v in tags.items()}
 
         parsed_message["tags"] = new_tags
         parsed_message["metric_id"] = mapping[metric_name]
@@ -47,22 +56,16 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
 
     def flush_batch(self, batch: Sequence[Any]) -> None:
         # produce the translated message to snuba-metrics topic
-        global snuba_metrics
-        messages = 0
-        cluster_name = snuba_metrics["cluster"]
-        snuba_metrics_producer = Producer(
-            kafka_config.get_kafka_producer_cluster_options(cluster_name),
-        )
         for message in batch:
-            snuba_metrics_producer.produce(
+            self.__producer.produce(
                 topic=snuba_metrics["topic"],
                 key=None,
                 value=json.dumps(message),
                 on_delivery=self.callback,
             )
-            messages += snuba_metrics_producer.poll(0.5)
 
-        if messages < len(batch):
+        messages_left = self.__producer.flush()
+        if messages_left != 0:
             # TODO(meredith): We are not currently keeping track of
             # which callbacks failed. This means could potentially
             # be duplicating messages since we don't commit offsets

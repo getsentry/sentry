@@ -21,7 +21,7 @@ class RedisMockIndexer(StringIndexer):
     Temporary mock string indexer that uses Redis to store data.
     """
 
-    def _get_key(self, org_id: str, instance: Union[str, int]) -> str:
+    def _get_key(self, org_id: int, instance: Union[str, int]) -> str:
         if isinstance(instance, str):
             return f"temp-metrics-indexer:{org_id}:1:str:{instance}"
         elif isinstance(instance, int):
@@ -29,7 +29,7 @@ class RedisMockIndexer(StringIndexer):
         else:
             raise Exception("Invalid: must be string or int")
 
-    def _bulk_record(self, org_id: str, unmapped: Dict[str, None]) -> Dict[str, int]:
+    def _bulk_record(self, org_id: int, unmapped: Dict[str, None]) -> Dict[str, int]:
         """
         Take a mapping of strings {"metric_id`": None} and populate the ints
         for the corresponding strings.
@@ -58,7 +58,7 @@ class RedisMockIndexer(StringIndexer):
 
         return mapped_ints
 
-    def bulk_record(self, org_id: str, strings: List[str]) -> Dict[str, int]:
+    def bulk_record(self, org_id: int, strings: List[str]) -> Dict[str, int]:
         """
         Takes a list of strings that could be a metric names, tag keys or values
         and returns a string -> int mapping.
@@ -112,7 +112,7 @@ class RedisMockIndexer(StringIndexer):
         resolved.update(newly_resolved)
         return resolved
 
-    def record(self, org_id: str, string: str) -> int:
+    def record(self, org_id: int, string: str) -> int:
         """
         If key already exists, grab that value, otherwise record both the
         string to int and int to string relationships.
@@ -131,7 +131,7 @@ class RedisMockIndexer(StringIndexer):
 
         return int(value)
 
-    def resolve(self, org_id: str, string: str) -> Optional[int]:
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
         try:
             return int(get_client().get(f"temp-metrics-indexer:{org_id}:1:str:{string}"))
         except TypeError:
