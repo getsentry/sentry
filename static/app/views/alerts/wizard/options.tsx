@@ -1,5 +1,7 @@
 import diagramApdex from 'sentry-images/spot/alerts-wizard-apdex.svg';
 import diagramCLS from 'sentry-images/spot/alerts-wizard-cls.svg';
+import diagramCrashFreeSessions from 'sentry-images/spot/alerts-wizard-crash-free-sessions.svg';
+import diagramCrashFreeUsers from 'sentry-images/spot/alerts-wizard-crash-free-users.svg';
 import diagramCustom from 'sentry-images/spot/alerts-wizard-custom.svg';
 import diagramErrors from 'sentry-images/spot/alerts-wizard-errors.svg';
 import diagramFailureRate from 'sentry-images/spot/alerts-wizard-failure-rate.svg';
@@ -11,7 +13,12 @@ import diagramTransactionDuration from 'sentry-images/spot/alerts-wizard-transac
 import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-errors.svg';
 
 import {t} from 'app/locale';
-import {Dataset, EventTypes} from 'app/views/alerts/incidentRules/types';
+import {Organization} from 'app/types';
+import {
+  Dataset,
+  EventTypes,
+  SessionsAggregate,
+} from 'app/views/alerts/incidentRules/types';
 
 export type AlertType =
   | 'issues'
@@ -24,7 +31,9 @@ export type AlertType =
   | 'lcp'
   | 'fid'
   | 'cls'
-  | 'custom';
+  | 'custom'
+  | 'crash_free_sessions'
+  | 'crash_free_users';
 
 export const WebVitalAlertTypes = new Set(['lcp', 'fid', 'cls', 'fcp']);
 
@@ -40,16 +49,24 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   fid: t('First Input Delay'),
   cls: t('Cumulative Layout Shift'),
   custom: t('Custom Metric'),
+  crash_free_sessions: t('Crash Free Session Rate'),
+  crash_free_users: t('Crash Free User Rate'),
 };
 
-export const AlertWizardOptions: {
-  categoryHeading: string;
-  options: AlertType[];
-}[] = [
+type AlertWizardCategory = {categoryHeading: string; options: AlertType[]};
+export const getAlertWizardCategories = (org: Organization): AlertWizardCategory[] => [
   {
     categoryHeading: t('Errors'),
     options: ['issues', 'num_errors', 'users_experiencing_errors'],
   },
+  ...(org.features.includes('crash-rate-alerts')
+    ? [
+        {
+          categoryHeading: t('Sessions'),
+          options: ['crash_free_sessions', 'crash_free_users'] as AlertType[],
+        },
+      ]
+    : []),
   {
     categoryHeading: t('Performance'),
     options: [
@@ -181,6 +198,24 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramCustom,
   },
+  crash_free_sessions: {
+    description: t(
+      'A session begins when a user starts the application and ends when it’s closed or sent to the background. A crash is when a session ends due to an error and this type of alert lets you monitor when those crashed sessions exceed a threshold. This lets you get a better picture of the health of your app.'
+    ),
+    examples: [
+      t('When the Crash Free Rate is below 98%, send a Slack notification to the team.'),
+    ],
+    illustration: diagramCrashFreeSessions,
+  },
+  crash_free_users: {
+    description: t(
+      'Crash Free Users is the percentage of distinct users that haven’t experienced a crash and so this type of alert tells you when the overall user experience dips below a certain unacceptable threshold.'
+    ),
+    examples: [
+      t('When the Crash Free Rate is below 97%, send an email notification to yourself.'),
+    ],
+    illustration: diagramCrashFreeUsers,
+  },
 };
 
 export type WizardRuleTemplate = {
@@ -243,6 +278,16 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },
+  crash_free_sessions: {
+    aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
+    dataset: Dataset.SESSIONS,
+    eventTypes: EventTypes.SESSION,
+  },
+  crash_free_users: {
+    aggregate: SessionsAggregate.CRASH_FREE_USERS,
+    dataset: Dataset.SESSIONS,
+    eventTypes: EventTypes.USER,
+  },
 };
 
 export const hidePrimarySelectorSet = new Set<AlertType>([
@@ -251,6 +296,8 @@ export const hidePrimarySelectorSet = new Set<AlertType>([
   'throughput',
   'apdex',
   'failure_rate',
+  'crash_free_sessions',
+  'crash_free_users',
 ]);
 
 export const hideParameterSelectorSet = new Set<AlertType>([

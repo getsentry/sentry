@@ -34,7 +34,7 @@ class MsTeamsUnlinkIdentityView(BaseView):
 
         if request.method != "POST":
             return render_to_response(
-                "sentry/integrations/msteams-unlink-identity.html",
+                "sentry/integrations/msteams/unlink-identity.html",
                 request=request,
                 context={},
             )
@@ -46,7 +46,7 @@ class MsTeamsUnlinkIdentityView(BaseView):
         # if no identities, tell the user that
         if not identity_list:
             return render_to_response(
-                "sentry/integrations/msteams-no-identity.html",
+                "sentry/integrations/msteams/no-identity.html",
                 request=request,
                 context={},
             )
@@ -58,7 +58,7 @@ class MsTeamsUnlinkIdentityView(BaseView):
         client.send_card(params["conversation_id"], card)
 
         return render_to_response(
-            "sentry/integrations/msteams-unlinked.html",
+            "sentry/integrations/msteams/unlinked.html",
             request=request,
             context={},
         )

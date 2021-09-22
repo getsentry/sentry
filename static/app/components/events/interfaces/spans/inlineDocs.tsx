@@ -54,6 +54,10 @@ class InlineDocs extends Component<Props, State> {
         tracingPlatform = 'node-tracing';
         break;
       }
+      case 'sentry.javascript.react-native': {
+        tracingPlatform = 'react-native-tracing';
+        break;
+      }
       default: {
         this.setState({loading: false});
         return;

@@ -96,7 +96,6 @@ class EventDataDeletionTask(BaseDeletionTask):
 
 class GroupDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
-
         relations = []
 
         relations.extend(

@@ -24,17 +24,20 @@ import space from 'app/styles/space';
 import {
   Integration,
   Organization,
+  Project,
   Repository,
   RepositoryProjectPathConfig,
 } from 'app/types';
 import {getIntegrationIcon, trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
+import withProjects from 'app/utils/withProjects';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
 type Props = AsyncComponent['props'] & {
   integration: Integration;
   organization: Organization;
+  projects: Project[];
 };
 
 type State = AsyncComponent['state'] & {
@@ -53,10 +56,6 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   get integrationId() {
     return this.props.integration.id;
-  }
-
-  get projects() {
-    return this.props.organization.projects;
   }
 
   get pathConfigs() {
@@ -87,7 +86,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   }
 
   getMatchingProject(pathConfig: RepositoryProjectPathConfig) {
-    return this.projects.find(project => project.id === pathConfig.projectId);
+    return this.props.projects.find(project => project.id === pathConfig.projectId);
   }
 
   componentDidMount() {
@@ -144,7 +143,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   };
 
   openModal = (pathConfig?: RepositoryProjectPathConfig) => {
-    const {organization, integration} = this.props;
+    const {organization, projects, integration} = this.props;
     trackIntegrationAnalytics('integrations.stacktrace_start_setup', {
       setup_type: 'manual',
       view: 'integration_configuration_detail',
@@ -159,7 +158,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
           <RepositoryProjectPathConfigForm
             organization={organization}
             integration={integration}
-            projects={this.projects}
+            projects={projects}
             repos={this.repos}
             onSubmitSuccess={config => {
               this.handleSubmitSuccess(config);
@@ -273,7 +272,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   }
 }
 
-export default withOrganization(IntegrationCodeMappings);
+export default withProjects(withOrganization(IntegrationCodeMappings));
 
 const AddButton = styled(Button)``;
 
