@@ -81,7 +81,12 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                         component=component, install=install, project=project
                     )
                     action_list.append(
-                        serialize(component, request.user, SentryAppAlertRuleActionSerializer())
+                        serialize(
+                            component,
+                            request.user,
+                            SentryAppAlertRuleActionSerializer(),
+                            install=install,
+                        )
                     )
 
                 except APIError:
