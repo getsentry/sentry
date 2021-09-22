@@ -54,7 +54,7 @@ class RealtimeMetricsStore(Service):  # type: ignore
         """
         pass
 
-    def remove_projects_from_lpq(self, project_ids: Set[int]) -> Set[int]:
+    def remove_projects_from_lpq(self, project_ids: Set[int]) -> None:
         """
         Removes projects from the low priority queue.
 
