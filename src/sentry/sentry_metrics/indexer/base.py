@@ -18,10 +18,10 @@ class StringIndexer(Service):  # type: ignore
 
     __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
-    def bulk_record(self, org_id: str, strings: List[str]) -> Dict[str, int]:
+    def bulk_record(self, org_id: int, strings: List[str]) -> Dict[str, int]:
         raise NotImplementedError()
 
-    def record(self, org_id: str, string: str) -> int:
+    def record(self, org_id: int, string: str) -> int:
         """Store a string and return the integer ID generated for it
 
         With every call to this method, the lifetime of the entry will be
@@ -29,7 +29,7 @@ class StringIndexer(Service):  # type: ignore
         """
         raise NotImplementedError()
 
-    def resolve(self, org_id: str, string: str) -> Optional[int]:
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.
@@ -38,7 +38,7 @@ class StringIndexer(Service):  # type: ignore
         """
         raise NotImplementedError()
 
-    def reverse_resolve(self, org_id: str, id: int) -> Optional[str]:
+    def reverse_resolve(self, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.
