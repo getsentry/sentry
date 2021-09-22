@@ -1,6 +1,5 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import {openModal} from 'app/actionCreators/modal';
 import Alert from 'app/components/alert';
@@ -422,8 +421,7 @@ class RuleNode extends React.Component<Props> {
                         config={node.formFields as SchemaFormConfig}
                         appName={node.prompt}
                         onSubmitSuccess={this.updateParentFromSentryAppRule}
-                        // Ignore the `id` field, as that is related to the Rule Node, not the Sentry App
-                        resetValues={omit(data, 'id')}
+                        resetValues={data}
                       />
                     ),
                     {allowClickClose: false}

@@ -36,7 +36,7 @@ const SentryAppRuleModal = ({
           onSubmitSuccess(...params);
           closeModal();
         }}
-        resetValues={resetValues}
+        resetValues={{settings: resetValues?.settings}}
       />
     </Body>
   </Fragment>

@@ -92,16 +92,14 @@ export class SentryAppExternalForm extends Component<Props, State> {
       required_fields: config.required_fields,
       optional_fields: config.optional_fields,
     });
-    this.model.setInitialData(
-      element === 'alert-rule-action'
-        ? {...extraFields}
-        : {
-            ...extraFields,
-            // we need to pass these fields in the API so just set them as values so we don't need hidden form fields
-            action,
-            uri: config.uri,
-          }
-    );
+    if (element !== 'alert-rule-action') {
+      this.model.setInitialData({
+        ...extraFields,
+        // we need to pass these fields in the API so just set them as values so we don't need hidden form fields
+        action,
+        uri: config.uri,
+      });
+    }
   }
 
   onSubmitError = () => {
@@ -257,6 +255,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
     // async only used for select components
     const isAsync = typeof field.async === 'undefined' ? true : !!field.async; // default to true
+    const defaultResetValues = (this.props.resetValues || {}).settings || {};
 
     if (fieldToPass.type === 'select') {
       // find the options from state to pass down
@@ -271,7 +270,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
       fieldToPass = {
         ...fieldToPass,
         options,
-        defaultValue: (this.props.resetValues || {})[field.name],
+        defaultValue: defaultResetValues[field.name],
         defaultOptions,
         filterOption,
         allowClear,
@@ -287,7 +286,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
         defaultValue = this.props.getFieldDefault(field);
       }
       // Override this default if a reset value is provided
-      defaultValue = (this.props.resetValues || {})[field.name] || defaultValue;
+      defaultValue = defaultResetValues[field.name] || defaultValue;
       fieldToPass = {
         ...fieldToPass,
         defaultValue,
@@ -328,8 +327,16 @@ export class SentryAppExternalForm extends Component<Props, State> {
   };
 
   handleAlertRuleSubmit = (formData, onSubmitSuccess) => {
+    const {config, sentryAppInstallationUuid} = this.props;
     if (this.model.validateForm()) {
-      onSubmitSuccess(formData);
+      onSubmitSuccess({
+        // The form data must be nested in 'settings' to ensure they don't overlap with any other field names.
+        settings: formData,
+        uri: config.uri,
+        sentryAppInstallationUuid,
+        // Used on the backend to explicitly associate with a different rule than those without a custom form.
+        hasSchemaFormConfig: true,
+      });
     }
   };
 
