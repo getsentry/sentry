@@ -8,12 +8,21 @@ from . import base
 
 
 class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
+    """An implementation of RealtimeMetricsStore based on a Redis backend."""
+
     def __init__(
         self,
         cluster: str,
         counter_bucket_size: int,
         counter_ttl: datetime.timedelta,
     ) -> None:
+        """Creates a RedisRealtimeMetricsStore.
+
+        "cluster" is the name of the Redis cluster to use. "counter_bucket_size" is the size
+        in second of the buckets that timestamps will be sorted into when a project's counter is incremented.
+        "counter_ttl" is the duration that counter entries will be kept around for.
+        """
+
         self.cluster = redis.redis_clusters.get(cluster)
         self._counter_bucket_size = counter_bucket_size
         self._counter_ttl = int(counter_ttl / datetime.timedelta(milliseconds=1))
@@ -28,10 +37,11 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
     ) -> None:
         """Increment the event counter for the given project_id.
 
-        The key is computed from a fixed prefix, the currently configured bucket size,
-        the project_id, and the timestamp of the symbolication request, rounded
-        down to a multiple of the bucket size.
+        The counter is used to track the rate of events for the project.
+        Calling this increments the counter of the current
+        time-window bucket with "timestamp" providing the time of the event.
         """
+
         timestamp = int(timestamp)
         if self._counter_bucket_size > 1:
             timestamp -= timestamp % self._counter_bucket_size
