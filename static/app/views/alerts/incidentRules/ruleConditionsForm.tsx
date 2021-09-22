@@ -1,5 +1,6 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
@@ -25,7 +26,7 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 
 import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
 import MetricField from './metricField';
-import {Datasource, TimeWindow} from './types';
+import {Dataset, Datasource, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute'),
@@ -47,6 +48,7 @@ type Props = {
   thresholdChart: React.ReactNode;
   onFilterSearch: (query: string) => void;
   alertType: AlertType;
+  dataset: Dataset;
   allowChangeEventTypes?: boolean;
 };
 
@@ -79,6 +81,49 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     } catch (_err) {
       addErrorMessage(t('Unable to fetch environments'));
     }
+  }
+
+  get timeWindowOptions() {
+    let options: Record<string, string> = TIME_WINDOW_MAP;
+
+    if (this.props.dataset === Dataset.SESSIONS) {
+      options = pick(TIME_WINDOW_MAP, [
+        TimeWindow.ONE_HOUR,
+        TimeWindow.TWO_HOURS,
+        TimeWindow.FOUR_HOURS,
+        TimeWindow.ONE_DAY,
+      ]);
+    }
+
+    return Object.entries(options).map(([value, label]) => ({
+      value,
+      label,
+    }));
+  }
+
+  get searchPlaceholder() {
+    switch (this.props.dataset) {
+      case Dataset.ERRORS:
+        return t('Filter events by level, message, and other properties\u2026');
+      case Dataset.SESSIONS:
+        return t('Filter sessions by release version\u2026');
+      case Dataset.TRANSACTIONS:
+      default:
+        return t('Filter transactions by URL, tags, and other properties\u2026');
+    }
+  }
+
+  get searchSupportedTags() {
+    if (this.props.dataset) {
+      return {
+        release: {
+          key: 'release',
+          name: 'release',
+        },
+      };
+    }
+
+    return undefined;
   }
 
   render() {
@@ -238,7 +283,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             }}
             flexibleControlStateSize
           >
-            {({onChange, onBlur, onKeyDown, initialData, model}) => (
+            {({onChange, onBlur, onKeyDown, initialData}) => (
               <SearchContainer>
                 <StyledSearchBar
                   searchSource="alert_builder"
@@ -247,11 +292,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                   disabled={disabled}
                   useFormWrapper={false}
                   organization={organization}
-                  placeholder={
-                    model.getValue('dataset') === 'events'
-                      ? t('Filter events by level, message, or other properties...')
-                      : t('Filter transactions by URL, tags, and other properties...')
-                  }
+                  placeholder={this.searchPlaceholder}
                   onChange={onChange}
                   onKeyDown={e => {
                     /**
@@ -273,6 +314,8 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                     onFilterSearch(query);
                     onChange(query, {});
                   }}
+                  supportedTags={this.searchSupportedTags}
+                  hasRecentSearches={false}
                 />
               </SearchContainer>
             )}
@@ -316,10 +359,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               minWidth: 130,
               maxWidth: 300,
             }}
-            options={Object.entries(TIME_WINDOW_MAP).map(([value, label]) => ({
-              value,
-              label,
-            }))}
+            options={this.timeWindowOptions}
             required
             isDisabled={disabled}
             getValue={value => Number(value)}
