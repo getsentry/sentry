@@ -951,20 +951,21 @@ class SessionMetricsTestCase(SnubaTestCase):
         """
         user = session["distinct_id"]
 
-        self._push_metric(session, "counter", "session", {"session.status": "init"}, +1)
-        self._push_metric(session, "set", "user", {"session.status": "init"}, user)
+        # seq=0 is equivalent to relay's session.init, init=True is transformed
+        # to seq=0 in Relay.
+        if session["seq"] == 0:  # init
+            self._push_metric(session, "counter", "session", {"session.status": "init"}, +1)
+            self._push_metric(session, "set", "user", {"session.status": "init"}, user)
 
         status = session["status"]
 
-        if status in ("abnormal", "crashed"):
-
-            self._push_metric(session, "counter", "session", {"session.status": status}, +1)
-            self._push_metric(session, "set", "user", {"session.status": status}, user)
-
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-
             self._push_metric(session, "set", "session.error", {}, session["session_id"])
+            self._push_metric(session, "set", "user", {"session.status": status}, user)
+
+        if status in ("abnormal", "crashed"):  # fatal
+            self._push_metric(session, "counter", "session", {"session.status": status}, +1)
             self._push_metric(session, "set", "user", {"session.status": status}, user)
 
         if status != "ok":  # terminal
