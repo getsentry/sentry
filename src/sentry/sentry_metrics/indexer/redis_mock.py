@@ -137,7 +137,7 @@ class RedisMockIndexer(StringIndexer):
         except TypeError:
             return None
 
-    def reverse_resolve(self, org_id: str, id: int) -> Optional[str]:
+    def reverse_resolve(self, org_id: int, id: int) -> Optional[str]:
         result: Optional[str] = get_client().get(f"temp-metrics-indexer:{org_id}:1:int:{id}")
         return result
 
