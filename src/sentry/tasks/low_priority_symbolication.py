@@ -11,6 +11,8 @@ This has three major tasks, executed in the following general order:
 import logging
 from typing import Iterable
 
+import sentry_sdk
+
 from sentry.processing.realtime_metrics import realtime_metrics_store
 from sentry.tasks.base import instrumented_task
 
@@ -31,8 +33,24 @@ def _scan_for_suspect_projects() -> None:
     current_lpq_projects = realtime_metrics_store.get_lpq_projects() or set([])
     deleted_projects = current_lpq_projects.difference(suspect_projects)
 
-    if len(deleted_projects) > 0:
-        realtime_metrics_store.remove_projects_from_lpq(deleted_projects)
+    if len(deleted_projects) == 0:
+        return
+
+    removed = realtime_metrics_store.remove_projects_from_lpq(deleted_projects)
+
+    # TODO: should this just be logger.warning(...)?
+    if len(removed) > 0:
+        sentry_sdk.capture_message(
+            f"Moved project(s) {removed} out of symbolicator's low priority queue.", level="info"
+        )
+
+    not_removed = deleted_projects.difference(removed)
+    if len(not_removed) > 0:
+        # TODO: should this just be logger.exception(...) or just raising an exception?
+        sentry_sdk.capture_message(
+            f"Failed to move project(s) {removed} out of symbolicator's low priority queue.",
+            level="error",
+        )
 
 
 @instrumented_task(name="sentry.tasks.symbolicator.calculate_lpq_eligibility", queue="symbolicator.compute_low_priority_queue", ignore_result=True)  # type: ignore
@@ -48,8 +66,11 @@ def _calculate_lpq_eligibility(project_id: int) -> None:
     if not is_eligible:
         return
 
-    # TODO: should this layer report to sentry or the store itself should report to sentry?
     realtime_metrics_store.add_project_to_lpq(project_id)
+    # TODO: should this just be logger.warning(...)?
+    sentry_sdk.capture_message(
+        f"Moved project {project_id} to symbolicator's low priority queue.", level="warning"
+    )
 
 
 def calculation_magic(timestamps: Iterable[(int, int)]) -> bool:
