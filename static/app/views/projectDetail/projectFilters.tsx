@@ -48,7 +48,7 @@ function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
       <SmartSearchBar
         searchSource="project_filters"
         query={query}
-        placeholder={t('Search by release version')}
+        placeholder={t('Search by release version, build, package, or stage')}
         maxSearchItems={5}
         hasRecentSearches={false}
         supportedTags={supportedTags}

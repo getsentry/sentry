@@ -25,10 +25,9 @@ class BroadcastDetailsEndpoint(Endpoint):
             queryset = Broadcast.objects.filter(
                 Q(date_expires__isnull=True) | Q(date_expires__gt=timezone.now()), is_active=True
             )
-
         try:
-            return queryset.get(id=broadcast_id)
-        except Broadcast.DoesNotExist:
+            return queryset.get(id=int(broadcast_id))
+        except (Broadcast.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 
     def _get_validator(self, request):
