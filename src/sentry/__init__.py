@@ -52,6 +52,11 @@ __version__ = VERSION
 __build__ = get_revision()
 __docformat__ = "restructuredtext en"
 
+# A semantic version that combines the CalVer in `__version__` (e.g.
+# 21.10.0.dev0) with a shortened commit SHA as the build. This is used for
+# example, in Sentry releases
+__semantic_version__ = __version__ if __build__ is None else f"{__version__}+{__build__}"
+
 # This triggers monkey patches that don't require django initialization.
 # There are other monkey patches in sentry's runner initializer.
 __import__("sentry.monkey")

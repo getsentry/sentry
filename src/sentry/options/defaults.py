@@ -212,8 +212,6 @@ register("snuba.search.max-chunk-size", default=2000)
 register("snuba.search.max-total-chunk-time-seconds", default=30.0)
 register("snuba.search.hits-sample-size", default=100)
 register("snuba.track-outcomes-sample-rate", default=0.0)
-register("snuba.snql.referrer-rate", default=0.0)
-register("snuba.snql.snql_only", default=1.0)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register("snuba.tagstore.cache-tagkeys-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)

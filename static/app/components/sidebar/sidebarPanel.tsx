@@ -16,13 +16,13 @@ const PanelContainer = styled('div')<PositionProps>`
   bottom: 0;
   display: flex;
   flex-direction: column;
-  z-index: ${p => p.theme.zIndex.sidebarPanel};
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
   border-right: 1px solid ${p => p.theme.border};
   box-shadow: 1px 0 2px rgba(0, 0, 0, 0.06);
   text-align: left;
   animation: 200ms ${slideInLeft};
+  z-index: ${p => p.theme.zIndex.sidebar};
 
   ${p =>
     p.orientation === 'top'

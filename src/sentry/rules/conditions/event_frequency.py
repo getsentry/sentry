@@ -21,6 +21,14 @@ standard_intervals = {
     "1w": ("one week", timedelta(days=7)),
     "30d": ("30 days", timedelta(days=30)),
 }
+comparison_intervals = {
+    "5m": ("5 minutes", timedelta(minutes=5)),
+    "1d": ("one day", timedelta(hours=24)),
+    "1w": ("one week", timedelta(days=7)),
+    "30d": ("30 days", timedelta(days=30)),
+}
+COMPARISON_TYPE_COUNT = "count"
+COMPARISON_TYPE_PERCENT = "percent"
 
 
 class EventFrequencyForm(forms.Form):
@@ -90,7 +98,24 @@ class BaseEventFrequencyCondition(EventCondition):
     def get_rate(self, event, interval, environment_id):
         _, duration = self.intervals[interval]
         end = timezone.now()
-        return self.query(event, end - duration, end, environment_id=environment_id)
+        result = self.query(event, end - duration, end, environment_id=environment_id)
+        comparison_type = self.get_option("comparisonType", COMPARISON_TYPE_COUNT)
+        if comparison_type == COMPARISON_TYPE_PERCENT:
+            comparison_interval = comparison_intervals[self.get_option("comparisonInterval")][1]
+            comparison_end = end - comparison_interval
+            # TODO: Figure out if there's a way we can do this less frequently. All queries are
+            # automatically cached for 10s. We could consider trying to cache this and the main
+            # query for 20s to reduce the load.
+            comparison_result = self.query(
+                event, comparison_end - duration, comparison_end, environment_id=environment_id
+            )
+            result = (
+                int(max(0, ((result / comparison_result) * 100) - 100))
+                if comparison_result > 0
+                else 0
+            )
+
+        return result
 
     @property
     def is_guessed_to_be_created_on_project_creation(self):
