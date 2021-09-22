@@ -60,7 +60,7 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
             self.__producer.produce(
                 topic=snuba_metrics["topic"],
                 key=None,
-                value=json.dumps(message),
+                value=json.dumps(message).encode(),
                 on_delivery=self.callback,
             )
 

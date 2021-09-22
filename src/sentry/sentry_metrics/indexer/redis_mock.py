@@ -7,6 +7,8 @@ from sentry.utils.redis import redis_clusters
 
 from .base import StringIndexer
 
+INDEXER_TTL = 3600
+
 
 def get_client() -> Any:
     return redis_clusters.get(settings.SENTRY_METRICS_INDEXER_REDIS_CLUSTER)
@@ -38,8 +40,8 @@ class RedisMockIndexer(StringIndexer):
             "temp-metrics-indexer:{org_id}:1:int:{instance}" -> string
         """
 
-        redis_key_values: Dict[str, Union[str, int]] = {}
         mapped_ints: Dict[str, int] = {}
+        client = get_client()
 
         for string in unmapped.keys():
             # use hashlib instead of hash() because the latter uses a random value (unless PYTHONHASHSEED
@@ -51,10 +53,8 @@ class RedisMockIndexer(StringIndexer):
             int_key = self._get_key(org_id, int_value)
             string_key = self._get_key(org_id, string)
 
-            redis_key_values[string_key] = int_value
-            redis_key_values[int_key] = string
-
-        get_client().mset(redis_key_values)
+            client.set(string_key, int_value, ex=INDEXER_TTL)
+            client.set(int_key, string, ex=INDEXER_TTL)
 
         return mapped_ints
 
