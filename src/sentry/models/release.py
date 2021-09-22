@@ -27,6 +27,7 @@ from sentry.db.models import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Activity,
+    BaseManager,
     CommitFileChange,
     GroupInbox,
     GroupInboxRemoveAction,
@@ -260,8 +261,74 @@ class ReleaseQuerySet(models.QuerySet):
     def order_by_recent(self):
         return self.order_by("-date_added", "-id")
 
+    @staticmethod
+    def _massage_semver_cols_into_release_object_data(kwargs):
+        """
+        Helper function that takes kwargs as an argument and massages into it the release semver
+        columns (if possible)
+        Inputs:
+            * kwargs: data of the release that is about to be created
+        """
+        if "version" in kwargs:
+            try:
+                version_info = parse_release(kwargs["version"])
+                package = version_info.get("package")
+                version_parsed = version_info.get("version_parsed")
 
-class ReleaseModelManager(models.Manager):
+                if version_parsed is not None and all(
+                    validate_bigint(version_parsed[field])
+                    for field in ("major", "minor", "patch", "revision")
+                ):
+                    build_code = version_parsed.get("build_code")
+                    build_number = ReleaseQuerySet._convert_build_code_to_build_number(build_code)
+
+                    kwargs.update(
+                        {
+                            "major": version_parsed.get("major"),
+                            "minor": version_parsed.get("minor"),
+                            "patch": version_parsed.get("patch"),
+                            "revision": version_parsed.get("revision"),
+                            "prerelease": version_parsed.get("pre") or "",
+                            "build_code": build_code,
+                            "build_number": build_number,
+                            "package": package,
+                        }
+                    )
+            except RelayError:
+                # This can happen on invalid legacy releases
+                pass
+
+    @staticmethod
+    def _convert_build_code_to_build_number(build_code):
+        """
+        Helper function that takes the build_code and checks if that build code can be parsed into
+        a 64 bit integer
+        Inputs:
+            * build_code: str
+        Returns:
+            * build_number
+        """
+        build_number = None
+        if build_code is not None:
+            try:
+                build_code_as_int = int(build_code)
+                if validate_bigint(build_code_as_int):
+                    build_number = build_code_as_int
+            except ValueError:
+                pass
+        return build_number
+
+    def create(self, *args, **kwargs):
+        """
+        Override create method to parse semver release if it follows semver format, and updates the
+        release object that is about to be created with semver columns i.e. major, minor, patch,
+        revision, prerelease, build_code, build_number and package
+        """
+        self._massage_semver_cols_into_release_object_data(kwargs)
+        return super().create(*args, **kwargs)
+
+
+class ReleaseModelManager(BaseManager):
     def get_queryset(self):
         return ReleaseQuerySet(self.model, using=self._db)
 
@@ -304,74 +371,6 @@ class ReleaseModelManager(models.Manager):
 
     def order_by_recent(self):
         return self.get_queryset().order_by_recent()
-
-    @staticmethod
-    def _convert_build_code_to_build_number(build_code):
-        """
-        Helper function that takes the build_code and checks if that build code can be parsed into
-        a 64 bit integer
-        Inputs:
-            * build_code: str
-        Returns:
-            * build_number
-        """
-        build_number = None
-        if build_code is not None:
-            try:
-                build_code_as_int = int(build_code)
-                if validate_bigint(build_code_as_int):
-                    build_number = build_code_as_int
-            except ValueError:
-                pass
-        return build_number
-
-    @staticmethod
-    def _massage_semver_cols_into_release_object_data(kwargs):
-        """
-        Helper function that takes kwargs as an argument and massages into it the release semver
-        columns (if possible)
-        Inputs:
-            * kwargs: data of the release that is about to be created
-        """
-        if "version" in kwargs:
-            try:
-                version_info = parse_release(kwargs["version"])
-                package = version_info.get("package")
-                version_parsed = version_info.get("version_parsed")
-
-                if version_parsed is not None and all(
-                    validate_bigint(version_parsed[field])
-                    for field in ("major", "minor", "patch", "revision")
-                ):
-                    build_code = version_parsed.get("build_code")
-                    build_number = ReleaseModelManager._convert_build_code_to_build_number(
-                        build_code
-                    )
-
-                    kwargs.update(
-                        {
-                            "major": version_parsed.get("major"),
-                            "minor": version_parsed.get("minor"),
-                            "patch": version_parsed.get("patch"),
-                            "revision": version_parsed.get("revision"),
-                            "prerelease": version_parsed.get("pre") or "",
-                            "build_code": build_code,
-                            "build_number": build_number,
-                            "package": package,
-                        }
-                    )
-            except RelayError:
-                # This can happen on invalid legacy releases
-                pass
-
-    def create(self, *args, **kwargs):
-        """
-        Override create method to parse semver release if it follows semver format, and updates the
-        release object that is about to be created with semver columns i.e. major, minor, patch,
-        revision, prerelease, build_code, build_number and package
-        """
-        self._massage_semver_cols_into_release_object_data(kwargs)
-        return super().create(*args, **kwargs)
 
 
 class Release(Model):

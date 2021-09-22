@@ -14,7 +14,6 @@ from sentry.snuba.sessions import (
     get_oldest_health_data_for_releases,
     get_project_releases_by_stability,
     get_project_releases_count,
-    get_release_adoption,
     get_release_health_data_overview,
     get_release_sessions_time_bounds,
 )
@@ -291,7 +290,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         ]
 
     def test_get_release_adoption(self):
-        data = get_release_adoption(
+        data = self.backend.get_release_adoption(
             [
                 (self.project.id, self.session_release),
                 (self.project.id, self.session_crashed_release),
@@ -337,7 +336,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             }
         )
 
-        data = get_release_adoption(
+        data = self.backend.get_release_adoption(
             [
                 (self.project.id, self.session_release),
                 (self.project.id, self.session_crashed_release),

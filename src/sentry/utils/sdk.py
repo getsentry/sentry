@@ -246,7 +246,6 @@ def configure_sdk():
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
-    sdk_options["send_client_reports"] = True
 
     if upstream_dsn:
         transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))

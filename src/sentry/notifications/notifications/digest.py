@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Tuple, Union
 
 from sentry.digests import Digest
 from sentry.digests.utilities import (
@@ -20,7 +20,7 @@ from sentry.notifications.utils.participants import get_send_to
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import Project, User
+    from sentry.models import Project, Team, User
 
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ class DigestNotification(BaseNotification):
         self.target_type = target_type
         self.target_identifier = target_identifier
 
-    def get_participants(self) -> Mapping[ExternalProviders, Set["User"]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
         return get_send_to(
             project=self.project,
             target_type=self.target_type,

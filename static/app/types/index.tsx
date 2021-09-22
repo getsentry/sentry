@@ -274,6 +274,7 @@ export type Project = {
   isInternal: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
+  hasSessions: boolean;
   firstEvent: 'string' | null;
   firstTransactionEvent: boolean;
   subjectTemplate: string;
@@ -1624,10 +1625,10 @@ export type SentryAppComponent = {
     slug:
       | 'calixa'
       | 'clickup'
-      | 'clubhouse'
       | 'komodor'
       | 'linear'
       | 'rookout'
+      | 'shortcut'
       | 'spikesh'
       | 'teamwork'
       | 'zepel';

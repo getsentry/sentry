@@ -1,9 +1,17 @@
 from datetime import datetime
-from typing import Dict, Optional, Sequence, Set, Tuple, Union
+from typing import Dict, Mapping, Optional, Sequence, Set, Tuple, Union
 
 from typing_extensions import TypedDict
 
 from sentry.utils.services import Service
+
+ProjectId = int
+OrganizationId = int
+ReleaseName = str
+EnvironmentName = str
+
+ProjectRelease = Tuple[ProjectId, ReleaseName]
+ProjectList = Sequence[Union[ProjectId, ProjectRelease]]
 
 
 class CurrentAndPreviousCrashFreeRate(TypedDict):
@@ -11,28 +19,27 @@ class CurrentAndPreviousCrashFreeRate(TypedDict):
     previousCrashFreeRate: Optional[float]
 
 
-CurrentAndPreviousCrashFreeRates = Dict[int, CurrentAndPreviousCrashFreeRate]
-
-ProjectId = int
-ReleaseName = str
-ProjectRelease = Tuple[ProjectId, ReleaseName]
-ProjectList = Sequence[Union[ProjectId, ProjectRelease]]
+CurrentAndPreviousCrashFreeRates = Mapping[ProjectId, CurrentAndPreviousCrashFreeRate]
 
 
 class ReleaseHealthBackend(Service):  # type: ignore
     """Abstraction layer for all release health related queries"""
 
-    __all__ = ("get_current_and_previous_crash_free_rates", "check_has_health_data")
+    __all__ = (
+        "get_current_and_previous_crash_free_rates",
+        "get_release_adoption",
+        "check_has_health_data",
+    )
 
     def get_current_and_previous_crash_free_rates(
         self,
-        project_ids: Sequence[int],
+        project_ids: Sequence[ProjectId],
         current_start: datetime,
         current_end: datetime,
         previous_start: datetime,
         previous_end: datetime,
         rollup: int,
-        org_id: Optional[int] = None,
+        org_id: Optional[OrganizationId] = None,
     ) -> CurrentAndPreviousCrashFreeRates:
         """
         Function that returns `currentCrashFreeRate` and the `previousCrashFreeRate` of projects
@@ -61,6 +68,46 @@ class ReleaseHealthBackend(Service):  # type: ignore
                 ...
             }
         """
+        raise NotImplementedError()
+
+    class ReleaseAdoption(TypedDict):
+        #: Adoption rate (based on usercount) for a project's release from 0..100
+        adoption: Optional[float]
+        #: Adoption rate (based on sessioncount) for a project's release from 0..100
+        sessions_adoption: Optional[float]
+        #: User count for a project's release (past 24h)
+        users_24h: Optional[int]
+        #: Sessions count for a project's release (past 24h)
+        sessions_24h: Optional[int]
+        #: Sessions count for the entire project (past 24h)
+        project_users_24h: Optional[int]
+        #: Sessions count for the entire project (past 24h)
+        project_sessions_24h: Optional[int]
+
+    ReleasesAdoption = Mapping[Tuple[ProjectId, ReleaseName], ReleaseAdoption]
+
+    def get_release_adoption(
+        self,
+        project_releases: Sequence[Tuple[ProjectId, ReleaseName]],
+        environments: Optional[Sequence[EnvironmentName]] = None,
+        now: Optional[datetime] = None,
+        org_id: Optional[OrganizationId] = None,
+    ) -> ReleasesAdoption:
+        """
+        Get the adoption of the last 24 hours (or a difference reference timestamp).
+
+        :param project_releases: A list of releases to get adoption for. Our
+            backends store session data per-project, so each release has to be
+            scoped down to a project too.
+
+        :param environments: Optional. A list of environments to filter by.
+        :param now: Release adoption information will be provided from 24h ago
+            until this timestamp.
+        :param org_id: An organization ID to filter by. Note that all projects
+            have to be within this organization, and this backend doesn't check for
+            that. Omit if you're not sure.
+        """
+
         raise NotImplementedError()
 
     def check_has_health_data(self, projects_list: ProjectList) -> Set[ProjectRelease]:
