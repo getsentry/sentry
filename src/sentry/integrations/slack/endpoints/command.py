@@ -15,7 +15,6 @@ from sentry.models import (
     ExternalActor,
     Identity,
     IdentityProvider,
-    Integration,
     Organization,
     OrganizationMember,
 )
@@ -57,9 +56,7 @@ def get_identity(slack_request: SlackRequest) -> Optional[Identity]:
     try:
         idp = IdentityProvider.objects.get(type="slack", external_id=slack_request.team_id)
     except IdentityProvider.DoesNotExist:
-        logger.error(
-            "slack.action.invalid-team-id", extra={"slack_team": slack_request.team_id}
-        )
+        logger.error("slack.action.invalid-team-id", extra={"slack_team": slack_request.team_id})
         return None
     try:
         identity = Identity.objects.select_related("user").get(
@@ -96,22 +93,26 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
         if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
             return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
 
-        identity = self.get_identity(slack_request)
+        identity = get_identity(slack_request)
         if not identity:
             return self.reply(slack_request, LINK_USER_FIRST_MESSAGE)
 
         integration = slack_request.integration
-        organization = integration.organizations.all()[0]
-        org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
+        organization_memberships = OrganizationMember.objects.get_for_integration(
+            integration, identity.user
+        )
+        if not organization_memberships:
+            return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
 
-        if self.is_team_linked_to_channel(organization, integration, slack_request):
+        organization = organization_memberships[0].organization
+        if is_team_linked_to_channel(organization, slack_request):
             return self.reply(slack_request, CHANNEL_ALREADY_LINKED_MESSAGE)
 
-        if not is_valid_role(org_member):
+        if not is_valid_role(organization_memberships[0]):
             return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
 
         associate_url = build_team_linking_url(
-            integration=slack_request.integration,
+            integration=integration,
             slack_id=slack_request.user_id,
             channel_id=slack_request.channel_id,
             channel_name=slack_request.channel_name,
@@ -120,29 +121,25 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
         return self.reply(slack_request, LINK_TEAM_MESSAGE.format(associate_url=associate_url))
 
     def unlink_team(self, slack_request: SlackCommandRequest) -> Response:
-
         if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
             return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
 
-        identity = self.get_identity(slack_request)
+        identity = get_identity(slack_request)
         if not identity:
             return self.reply(slack_request, LINK_USER_FIRST_MESSAGE)
 
         integration = slack_request.integration
-        organization = integration.organizations.all()[0]
+        organization_memberships = OrganizationMember.objects.get_for_integration(
+            integration, identity.user
+        )
+        if not organization_memberships:
+            return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
 
-        if not ExternalActor.objects.filter(
-            organization=organization,
-            integration=integration,
-            provider=ExternalProviders.SLACK.value,
-            external_name=slack_request.channel_name,
-            external_id=slack_request.channel_id,
-        ).exists():
+        organization = organization_memberships[0].organization
+        if not is_team_linked_to_channel(organization, slack_request):
             return self.reply(slack_request, TEAM_NOT_LINKED_MESSAGE)
 
-        org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
-
-        if not is_valid_role(org_member):
+        if not is_valid_role(organization_memberships[0]):
             return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
 
         associate_url = build_team_unlinking_url(
