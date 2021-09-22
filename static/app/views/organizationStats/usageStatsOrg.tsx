@@ -255,17 +255,22 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
           return;
         }
 
-        count.total += group.totals['sum(quantity)'];
-        count[outcome] += group.totals['sum(quantity)'];
+        if (outcome !== Outcome.CLIENT_DISCARD) {
+          count.total += group.totals['sum(quantity)'];
+          count[outcome] += group.totals['sum(quantity)'];
+        }
 
         group.series['sum(quantity)'].forEach((stat, i) => {
           if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
             usageStats[i][outcome] += stat;
             return;
+          } else if (
+            outcome === Outcome.DROPPED ||
+            outcome === Outcome.INVALID ||
+            Outcome.RATE_LIMITED
+          ) {
+            usageStats[i].dropped.total += stat;
           }
-
-          // Breaking down into reasons for dropped is not needed
-          usageStats[i].dropped.total += stat;
         });
       });
 
