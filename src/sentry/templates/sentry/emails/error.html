@@ -39,7 +39,7 @@
 {% endblock %}
 
 {% block content %}
-{% if group.project.flags.has_transactions %}
+{% if not group.project.flags.has_transactions %}
 <div class="banner">
   <div class="container banner-content">
     <img src="{% static 'sentry/images/logos/logo-lightning.svg' %}" class="banner-icon"/>
