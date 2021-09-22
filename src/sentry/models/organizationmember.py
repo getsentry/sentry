@@ -1,6 +1,7 @@
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
+from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -27,6 +28,10 @@ from sentry.db.models import (
 from sentry.db.models.manager import BaseManager
 from sentry.models.team import TeamStatus
 from sentry.utils.http import absolute_uri
+
+if TYPE_CHECKING:
+    from sentry.models import Integration, User
+
 
 INVITE_DAYS_VALID = 30
 
@@ -89,6 +94,13 @@ class OrganizationMemberManager(BaseManager):
             token_expires_at__lt=threshold,
             user_id__exact=None,
         ).exclude(email__exact=None).delete()
+
+    def get_for_integration(self, integration: "Integration", actor: "User") -> QuerySet:
+        """TODO(mgaeta): Use a Django join on sentry_organizationintegration."""
+        return self.filter(
+            user=actor,
+            organization__in=integration.organizations.all()
+        ).select_related("organization")
 
 
 class OrganizationMember(Model):

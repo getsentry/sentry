@@ -42,26 +42,38 @@ DIRECT_MESSAGE_CHANNEL_NAME = "directmessage"
 INSUFFICIENT_ROLE_MESSAGE = "You must be a Sentry admin, manager, or owner to link or unlink teams."
 
 
+def is_team_linked_to_channel(organization: Organization, slack_request: SlackRequest) -> bool:
+    """Check if a Slack channel already has a team linked to it"""
+    return ExternalActor.objects.filter(
+        organization=organization,
+        integration=slack_request.integration,
+        provider=ExternalProviders.SLACK.value,
+        external_name=slack_request.channel_name,
+        external_id=slack_request.channel_id,
+    ).exists()
+
+
+def get_identity(slack_request: SlackRequest) -> Optional[Identity]:
+    try:
+        idp = IdentityProvider.objects.get(type="slack", external_id=slack_request.team_id)
+    except IdentityProvider.DoesNotExist:
+        logger.error(
+            "slack.action.invalid-team-id", extra={"slack_team": slack_request.team_id}
+        )
+        return None
+    try:
+        identity = Identity.objects.select_related("user").get(
+            idp=idp, external_id=slack_request.user_id
+        )
+    except Identity.DoesNotExist:
+        return None
+
+    return identity
+
+
 class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
-
-    def get_identity(self, slack_request: SlackRequest) -> Optional[Identity]:
-        try:
-            idp = IdentityProvider.objects.get(type="slack", external_id=slack_request.team_id)
-        except IdentityProvider.DoesNotExist:
-            logger.error(
-                "slack.action.invalid-team-id", extra={"slack_team": slack_request.team_id}
-            )
-            return None
-        try:
-            identity = Identity.objects.select_related("user").get(
-                idp=idp, external_id=slack_request.user_id
-            )
-        except Identity.DoesNotExist:
-            return None
-
-        return identity
 
     def get_command_and_args(self, payload: SlackRequest) -> Tuple[str, Sequence[str]]:
         payload = payload.data
@@ -79,18 +91,6 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
                 "text": message,
             }
         )
-
-    def is_team_linked_to_channel(
-        self, organization: Organization, integration: Integration, slack_request: SlackRequest
-    ) -> bool:
-        """Check if a Slack channel already has a team linked to it"""
-        return ExternalActor.objects.filter(
-            organization=organization,
-            integration=integration,
-            provider=ExternalProviders.SLACK.value,
-            external_name=slack_request.channel_name,
-            external_id=slack_request.channel_id,
-        ).exists()
 
     def link_team(self, slack_request: SlackCommandRequest) -> Response:
         if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
