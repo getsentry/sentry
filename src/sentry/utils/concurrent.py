@@ -92,10 +92,10 @@ class TimedFuture(Future):
 
     def set_result(self, *args, **kwargs):
         with self._condition:
-            # This method always overwrites the result, so we always overwrite
-            # the timing, even if another timing was already recorded.
-            self.__timing[1] = time()
-            return super().set_result(*args, **kwargs)
+            _time = time()
+            result = super().set_result(*args, **kwargs)
+            self.__timing[1] = _time
+            return result
 
     def set_exception(self, *args, **kwargs):
         with self._condition:
