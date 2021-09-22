@@ -9,3 +9,7 @@ export function useOrganization() {
   }
   return organization;
 }
+
+export function useOrgSlug() {
+  return useOrganization().slug;
+}

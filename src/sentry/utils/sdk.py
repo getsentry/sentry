@@ -233,6 +233,7 @@ def configure_sdk():
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration
     from sentry_sdk.integrations.redis import RedisIntegration
+    from sentry_sdk.integrations.threading import ThreadingIntegration
 
     assert sentry_sdk.Hub.main.client is None
 
@@ -242,6 +243,9 @@ def configure_sdk():
     internal_project_key = get_project_key()
     upstream_dsn = sdk_options.pop("dsn", None)
     sdk_options["traces_sampler"] = traces_sampler
+    sdk_options["release"] = (
+        f"backend@{sdk_options['release']}" if "release" in sdk_options else None
+    )
 
     if upstream_dsn:
         transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
@@ -326,6 +330,7 @@ def configure_sdk():
             LoggingIntegration(event_level=None),
             RustInfoIntegration(),
             RedisIntegration(),
+            ThreadingIntegration(propagate_hub=True),
         ],
         **sdk_options,
     )

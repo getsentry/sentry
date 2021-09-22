@@ -24,8 +24,6 @@ const Provider = withApi(({api, children, project, organization}: ProviderProps)
     useState<AppStoreConnectContextProps>(undefined);
 
   const orgSlug = organization.slug;
-  const hasAppConnectStoreFeatureFlag =
-    !!organization.features?.includes('app-store-connect');
 
   useEffect(() => {
     fetchProjectDetails();
@@ -36,7 +34,7 @@ const Provider = withApi(({api, children, project, organization}: ProviderProps)
   }, [projectDetails]);
 
   async function fetchProjectDetails() {
-    if (!hasAppConnectStoreFeatureFlag || !project || projectDetails) {
+    if (!project || projectDetails) {
       return;
     }
 

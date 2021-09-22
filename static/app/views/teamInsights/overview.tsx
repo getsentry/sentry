@@ -24,6 +24,7 @@ import withTeamsForUser from 'app/utils/withTeamsForUser';
 import HeaderTabs from './headerTabs';
 import TeamKeyTransactions from './keyTransactions';
 import TeamDropdown from './teamDropdown';
+import TeamStability from './teamStability';
 
 type Props = {
   api: Client;
@@ -180,6 +181,16 @@ function TeamInsightsOverview({
                 relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
               />
             </ControlsWrapper>
+
+            <SectionTitle>{t('Stability')}</SectionTitle>
+            <TeamStability
+              projects={projects}
+              organization={organization}
+              period={period}
+              start={start}
+              end={end}
+              utc={utc}
+            />
 
             <SectionTitle>{t('Performance')}</SectionTitle>
             <TeamKeyTransactions
