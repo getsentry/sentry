@@ -4,7 +4,7 @@ import {Observer} from 'mobx-react';
 import Access from 'app/components/acl/access';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import {Choices, GlobalSelection, Project} from 'app/types';
+import {GlobalSelection, Project, SelectValue} from 'app/types';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withProjects from 'app/utils/withProjects';
 import Field from 'app/views/settings/components/forms/field';
@@ -17,20 +17,22 @@ import TextField from 'app/views/settings/components/forms/textField';
 import MonitorModel from './monitorModel';
 import {Monitor, MonitorConfig, MonitorTypes, ScheduleType} from './types';
 
-const SCHEDULE_TYPES: [ScheduleType, string][] = [
-  ['crontab', 'Crontab'],
-  ['interval', 'Interval'],
+const SCHEDULE_TYPES: SelectValue<ScheduleType>[] = [
+  {value: 'crontab', label: 'Crontab'},
+  {value: 'interval', label: 'Interval'},
 ];
 
-const MONITOR_TYPES: Choices = [['cron_job', 'Cron Job']];
+const MONITOR_TYPES: SelectValue<MonitorTypes>[] = [
+  {value: 'cron_job', label: 'Cron Job'},
+];
 
 const INTERVALS = [
-  ['minute', 'minute(s)'],
-  ['hour', 'hour(s)'],
-  ['day', 'day(s)'],
-  ['week', 'week(s)'],
-  ['month', 'month(s)'],
-  ['year', 'year(s)'],
+  {value: 'minute', label: 'minute(s)'},
+  {value: 'hour', label: 'hour(s)'},
+  {value: 'day', label: 'day(s)'},
+  {value: 'week', label: 'week(s)'},
+  {value: 'month', label: 'month(s)'},
+  {value: 'year', label: 'year(s)'},
 ];
 
 type Props = {
@@ -112,9 +114,9 @@ class MonitorForm extends Component<Props> {
                   name="project"
                   label={t('Project')}
                   disabled={!hasAccess}
-                  choices={this.props.projects
+                  options={this.props.projects
                     .filter(p => p.isMember)
-                    .map(p => [p.slug, p.slug])}
+                    .map(p => ({value: p.slug, label: p.slug}))}
                   required
                 />
                 <TextField
@@ -134,7 +136,7 @@ class MonitorForm extends Component<Props> {
                   name="type"
                   label={t('Type')}
                   disabled={!hasAccess}
-                  choices={MONITOR_TYPES}
+                  options={MONITOR_TYPES}
                   required
                 />
                 <Observer>
@@ -156,7 +158,7 @@ class MonitorForm extends Component<Props> {
                               name="config.schedule_type"
                               label={t('Schedule Type')}
                               disabled={!hasAccess}
-                              choices={SCHEDULE_TYPES}
+                              options={SCHEDULE_TYPES}
                               required
                             />
                           </Fragment>
@@ -210,7 +212,7 @@ class MonitorForm extends Component<Props> {
                               name="config.schedule.interval"
                               label={t('Interval')}
                               disabled={!hasAccess}
-                              choices={INTERVALS}
+                              options={INTERVALS}
                               required
                             />
                             <NumberField
