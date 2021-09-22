@@ -233,7 +233,9 @@ class DiscoverLinkSharedEvent(BaseEventTest):
 
     def test_share_discover_links_unlinked_user(self):
         IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
-        data = self.share_discover_links()
+        with self.feature("organizations:chart-unfurls"):
+            data = self.share_discover_links()
+
         blocks = json.loads(data["blocks"])
 
         assert blocks[0]["type"] == "section"
