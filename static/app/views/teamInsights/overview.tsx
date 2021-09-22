@@ -21,9 +21,11 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeamsForUser from 'app/utils/withTeamsForUser';
 
+import DescriptionCard from './descriptionCard';
 import HeaderTabs from './headerTabs';
 import TeamKeyTransactions from './keyTransactions';
 import TeamDropdown from './teamDropdown';
+import TeamStability from './teamStability';
 
 type Props = {
   api: Client;
@@ -160,7 +162,7 @@ function TeamInsightsOverview({
         <HeaderTabs organization={organization} activeTab="teamInsights" />
       </Layout.Header>
 
-      <Layout.Body>
+      <Body>
         {loadingTeams && <LoadingIndicator />}
         {!loadingTeams && (
           <Layout.Main fullWidth>
@@ -170,18 +172,34 @@ function TeamInsightsOverview({
                 selectedTeam={currentTeamId}
                 handleChangeTeam={handleChangeTeam}
               />
-              <PageTimeRangeSelector
+              <StyledPageTimeRangeSelector
                 organization={organization}
                 relative={period ?? ''}
                 start={start ?? null}
                 end={end ?? null}
                 utc={utc ?? null}
                 onUpdate={handleUpdateDatetime}
-                relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
+                relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h', '24h'])}
               />
             </ControlsWrapper>
 
-            <SectionTitle>{t('Performance')}</SectionTitle>
+            <SectionTitle>{t('Project Health')}</SectionTitle>
+            <DescriptionCard
+              title={t('Crash Free Sessions')}
+              description={t(
+                'The percentage of healthy, errored, and abnormal sessions that did not cause a crash.'
+              )}
+            >
+              <TeamStability
+                projects={projects}
+                organization={organization}
+                period={period}
+                start={start}
+                end={end}
+                utc={utc}
+              />
+            </DescriptionCard>
+
             <TeamKeyTransactions
               organization={organization}
               projects={projects}
@@ -192,13 +210,19 @@ function TeamInsightsOverview({
             />
           </Layout.Main>
         )}
-      </Layout.Body>
+      </Body>
     </Fragment>
   );
 }
 
 export {TeamInsightsOverview};
 export default withApi(withOrganization(withTeamsForUser(TeamInsightsOverview)));
+
+const Body = styled(Layout.Body)`
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: block;
+  }
+`;
 
 const BorderlessHeader = styled(Layout.Header)`
   border-bottom: 0;
@@ -217,6 +241,10 @@ const ControlsWrapper = styled('div')`
   align-items: center;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
+`;
+
+const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+  flex-grow: 1;
 `;
 
 const SectionTitle = styled(Layout.Title)`
