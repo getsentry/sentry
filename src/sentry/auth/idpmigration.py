@@ -1,8 +1,14 @@
+import string
+from datetime import timedelta
+
+from django.utils.crypto import get_random_string
+
 from sentry import options
 from sentry.models import Organization, OrganizationMember, User
-from sentry.models.useremail import default_validation_hash
 from sentry.utils import redis
 from sentry.utils.email import MessageBuilder
+
+_REDIS_KEY = "verificationKeyStorage"
 
 
 def send_confirm_email(user: User, email: str, verification_key: str) -> None:
@@ -37,17 +43,15 @@ def create_verification_key(user: User, org: Organization, email: str) -> None:
     :param org: the organization whose SSO provider is being used
     :param email: the email address associated with the SSO identity
     """
-    redis_key = "verificationKeyStorage"
-    TTL = 60 * 10
-    cluster = redis.clusters.get("default").get_local_client_for_key(redis_key)
+    TTL = timedelta(minutes=10)
+    cluster = redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
     member_id = OrganizationMember.objects.get(organization=org, user=user).id
 
-    verification_code = default_validation_hash()
+    verification_code = get_random_string(32, string.ascii_letters + string.digits)
     verification_key = f"auth:one-time-key:{verification_code}"
     verification_value = {"user_id": user.id, "email": email, "member_id": member_id}
-
     cluster.hmset(verification_key, verification_value)
-    cluster.expire(verification_key, TTL)
+    cluster.expire(verification_key, TTL.seconds)
 
     send_confirm_email(user, email, verification_code)
 
