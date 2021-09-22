@@ -186,16 +186,17 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         # Actions list may be empty when receiving a dialog response
         action_list = data.get("actions", [])
+        action_option = action_list and action_list[0].get("value", "")
 
         # if a user is just clicking our auto response in the messages tab we just return a 200
-        if action_list and action_list[0].get("value", "") == "sentry_docs_link_clicked":
+        if action_option == "sentry_docs_link_clicked":
             return self.respond()
 
         channel_id = slack_request.channel_id
         user_id = slack_request.user_id
         response_url = data.get("response_url")
 
-        if action_list and action_list[0].get("value", "") in ["link", "ignore"]:
+        if action_option in ["link", "ignore"]:
             payload = {"delete_original": "true"}
             try:
                 post(response_url, json=payload)

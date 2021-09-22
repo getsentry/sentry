@@ -189,9 +189,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         results: Dict[str, Any] = {}
         for link_type, unfurl_data in matches.items():
             results.update(
-                link_handlers[link_type].fn(
-                    request, integration, unfurl_data, slack_request.identity
-                )
+                link_handlers[link_type].fn(request, integration, unfurl_data, slack_request.user)
             )
 
         if not results:

@@ -40,7 +40,7 @@ class SlackEventRequest(SlackRequest):
 
     def __init__(self, request: Request) -> None:
         super().__init__(request)
-        self.identity: Optional[User] = None
+        self.user: Optional[User] = None
 
     @property
     def has_identity(self) -> bool:
@@ -48,7 +48,7 @@ class SlackEventRequest(SlackRequest):
 
     @property
     def identity_str(self) -> Optional[str]:
-        return self.identity.email if self.identity else None
+        return self.user.email if self.user else None
 
     def validate(self) -> None:
         if self.is_challenge():
@@ -82,7 +82,7 @@ class SlackEventRequest(SlackRequest):
     @property
     def links(self) -> List[str]:
         links = self.data.get("event", {}).get("links", [])
-        return [link.get("url", "") for link in links]
+        return [link["url"] for link in links if "url" in link]
 
     def _validate_event(self) -> None:
         if not self.data.get("event"):
@@ -96,11 +96,8 @@ class SlackEventRequest(SlackRequest):
     def _validate_integration(self) -> None:
         super()._validate_integration()
 
-        if any(
-            [
-                self.text and self.text in COMMANDS,
-                self.type == "link_shared" and has_discover_links(self.links),
-            ]
+        if (self.text and self.text in COMMANDS) or (
+            self.type == "link_shared" and has_discover_links(self.links)
         ):
             try:
                 idp = IdentityProvider.objects.get(type="slack", external_id=self.team_id)
@@ -109,7 +106,7 @@ class SlackEventRequest(SlackRequest):
                 raise SlackRequestError(status=status.HTTP_403_FORBIDDEN)
 
             identities = Identity.objects.filter(idp=idp, external_id=self.user_id)
-            self.identity = identities[0].user if identities else None
+            self.user = identities[0].user if identities else None
 
     def _log_request(self) -> None:
         self._info(f"slack.event.{self.type}")
