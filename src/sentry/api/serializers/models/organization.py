@@ -138,7 +138,7 @@ class OrganizationSerializer(Serializer):
 
         # Remaining features should not be checked via the entity handler
         for feature_name in org_features:
-            if features.has(feature_name, obj, skip_entity=True, actor=user):
+            if features.has(feature_name, obj, actor=user, skip_entity=True):
                 # Remove the organization scope prefix
                 feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
 
