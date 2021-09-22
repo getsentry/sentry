@@ -85,8 +85,6 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
             pipeline.pexpire(key, self._histogram_ttl)
             pipeline.execute()
 
-    # TODO: do these killswitch helpers belong here, or in a different class? LowPriorityQueueStore?
-    # This probably needs locking
     def get_lpq_projects(self) -> Set[int]:
         """
         Fetches the list of projects that are currently using the low priority queue.
