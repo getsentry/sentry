@@ -905,7 +905,10 @@ class GetSnubaQueryArgsTest(TestCase):
         test_cases = [
             (r"stack.filename:\k*", ["stack.filename", "LIKE", "\\\\k%"]),  # prefixed by \k
             (r"stack.filename:\\*", ["stack.filename", "LIKE", "\\\\\\\\%"]),  # prefixed by \\
-            (r"stack.filename:\**", ["stack.filename", "LIKE", "\\\\%%"]),  # prefixed by \%
+            (
+                r"stack.filename:\**",
+                ["stack.filename", "LIKE", "\\\\%%"],
+            ),  # prefixed by \% since the search filter replaces both * with %
             (r"stack.filename:\"k*", ["stack.filename", "LIKE", '"k%']),  # prefixed by "k
             (r'stack.filename:\\"k*', ["stack.filename", "LIKE", '\\\\"k%']),  # prefixed by \"k
         ]
