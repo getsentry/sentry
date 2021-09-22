@@ -666,7 +666,7 @@ def top_events_timeseries(
         if len(top_events["data"]) == limit and len(result.get("data", [])) and include_other:
             other_result = raw_query(
                 aggregations=snuba_filter.aggregations,
-                conditions=[original_conditions, other_conditions],
+                conditions=original_conditions + [other_conditions],
                 filter_keys=snuba_filter.filter_keys,
                 # Hack cause equations on aggregates have to go in selected columns instead of aggregations
                 selected_columns=[

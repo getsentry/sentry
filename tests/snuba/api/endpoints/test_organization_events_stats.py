@@ -1241,6 +1241,40 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             [{"count": 0}],
         ]
 
+    def test_top_events_with_negated_condition(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "query": f"!message:{self.events[0].message}",
+                    "field": ["message", "count()"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 6
+
+        for index, event in enumerate(self.events[1:5]):
+            message = event.message or event.transaction
+            results = data[message]
+            assert results["order"] == index
+            assert [{"count": self.event_data[index + 1]["count"]}] in [
+                attrs for _, attrs in results["data"]
+            ]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
+
     def test_top_events_with_epm(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
