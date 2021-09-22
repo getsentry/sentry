@@ -51,6 +51,11 @@ class BaseAlertRuleSerializerTest:
         else:
             assert result["owner"] is None
 
+        if alert_rule.comparison_delta:
+            assert result["comparisonDelta"] == alert_rule.comparison_delta / 60
+        else:
+            assert result["comparisonDelta"] is None
+
     def create_issue_alert_rule(self, data):
         """data format
         {
@@ -128,6 +133,11 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
         assert alert_rule.owner == self.team.actor
+
+    def test_comparison_delta(self):
+        alert_rule = self.create_alert_rule(comparison_delta=60)
+        result = serialize(alert_rule)
+        self.assert_alert_rule_serialized(alert_rule, result)
 
 
 class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):

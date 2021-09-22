@@ -311,7 +311,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     )
     threshold_period = serializers.IntegerField(default=1, min_value=1, max_value=20)
     comparison_delta = serializers.IntegerField(
-        required=False, min_value=1, max_value=int(timedelta(days=89).total_seconds() / 60)
+        required=False,
+        min_value=1,
+        max_value=int(timedelta(days=89).total_seconds() / 60),
+        allow_null=True,
     )
     aggregate = serializers.CharField(required=True, min_length=1)
     owner = serializers.CharField(
