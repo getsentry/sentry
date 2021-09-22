@@ -26,7 +26,7 @@ const MONITOR_TYPES: SelectValue<MonitorTypes>[] = [
   {value: 'cron_job', label: 'Cron Job'},
 ];
 
-const INTERVALS = [
+const INTERVALS: SelectValue<string>[] = [
   {value: 'minute', label: 'minute(s)'},
   {value: 'hour', label: 'hour(s)'},
   {value: 'day', label: 'day(s)'},
