@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.db import models, transaction
+from django.db.models import QuerySet
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -74,10 +75,8 @@ class OrganizationMemberTeam(BaseModel):
 
 
 class OrganizationMemberManager(BaseManager):
-    def get_contactable_members_for_org(self, organization_id):
-        """
-        Get a list of members we can contact for an organization through email
-        """
+    def get_contactable_members_for_org(self, organization_id: int) -> QuerySet:
+        """Get a list of members we can contact for an organization through email."""
         return self.select_related("user").filter(
             organization_id=organization_id,
             invite_status=InviteStatus.APPROVED.value,
@@ -86,9 +85,10 @@ class OrganizationMemberManager(BaseManager):
 
     def delete_expired(self, threshold: int) -> None:
         """Delete un-accepted member invitations that expired `threshold` days ago."""
-        self.filter(token_expires_at__lt=threshold, user_id__exact=None).exclude(
-            email__exact=None
-        ).delete()
+        self.filter(
+            token_expires_at__lt=threshold,
+            user_id__exact=None,
+        ).exclude(email__exact=None).delete()
 
 
 class OrganizationMember(Model):
