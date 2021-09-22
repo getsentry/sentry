@@ -18,6 +18,7 @@ export {IconCircle} from './iconCircle';
 export {IconClickup} from './iconClickup';
 export {IconClock} from './iconClock';
 export {IconClose} from './iconClose';
+export {IconCode} from './iconCode';
 export {IconCommit} from './iconCommit';
 export {IconCopy} from './iconCopy';
 export {IconDashboard} from './iconDashboard';

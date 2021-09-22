@@ -1,10 +1,12 @@
-import StylesVariantsComponets from '../../images/core-overview-styles-variants-components.png';
+import StylesVariantsComponets from '../../images/overview-styles-variants-components.svg';
 
 <Meta title="Core/Overview" />
 
 # Overview
 
-👋 Hello there! You've arrived at Sentry's UI System guidebook. Here, you will find a detailed account of our UI system, including interactive examples and recommended use cases. We want to have appropriate and consistent use of our components, so that's why this guidebook exists!
+👋 Hello there! You've arrived at Sentry's Design System guidebook. Here, you will find a detailed account of our UI system, including interactive examples and recommended use cases. We want to have appropriate and consistent use of our components, so that's why this guidebook exists!
+
+---
 
 ## Structure
 
@@ -14,6 +16,8 @@ import StylesVariantsComponets from '../../images/core-overview-styles-variants-
 - **`VIEWS`**: layouts and other UI groups that are composed of multiple components
 - **`UTILITIES`**: UI-related functions, like text formatters, truncators,…
 - **`DEPRECATED`**: legacy components that should no longer be used; they are here for documentation purposes only
+
+---
 
 ## Usage
 
@@ -27,6 +31,8 @@ Here's how to make the best use of this guide:
   - See what the component looks like for color-blind users
 - Ping Vu Luong or someone in the Product Design team if you're not sure about anything related to UI systems
 
+---
+
 ## Styles, variants, and components
 
 Sentry's UI system has three fundamental building blocks: styles, variants, and components. You will see these concepts mentioned throughout this guide, so it's good to understand what each of them means and how they are different from one another.
@@ -38,6 +44,6 @@ Sentry's UI system has three fundamental building blocks: styles, variants, and 
 **Components** are flexible, reusable UI elements such as buttons, dialogs, and badges. A component can adopt one of many variants, and one or more styles. For example, a button can adopt a `primary` or `secondary` variant. It can also use one or more additional styles if the variant definitions are not enough.
 
 <img
-	src={StylesVariantsComponets}
-	alt="Diagram with three columns: Styles, Variants, and Components"
+  src={StylesVariantsComponets}
+  alt="Diagram with three columns: Styles, Variants, and Components"
 />
