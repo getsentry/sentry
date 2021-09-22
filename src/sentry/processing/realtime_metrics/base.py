@@ -1,6 +1,9 @@
-from typing import Set
+from collections import namedtuple
+from typing import Iterable, Set, Union
 
 from sentry.utils.services import Service
+
+BucketedCount = namedtuple("BucketedCount", ["timestamp", "count"])
 
 
 class RealtimeMetricsStore(Service):  # type: ignore
@@ -35,6 +38,17 @@ class RealtimeMetricsStore(Service):  # type: ignore
         the time of the event in seconds since the UNIX epoch and "duration" the processing time in seconds.
         """
         pass
+
+    def get_lpq_candidates(self) -> Iterable[int]:
+        """
+        Returns IDs of all projects that should be considered for the low priority queue.
+        """
+
+    def get_bucketed_counts_for_project(self, project_id: int) -> Iterable[BucketedCount]:
+        """
+        Returns a sorted list of timestamps (bucket size unknown) and the count of symbolicator
+        requests made during that timestamp for some given project.
+        """
 
     def get_lpq_projects(self) -> Set[int]:
         """

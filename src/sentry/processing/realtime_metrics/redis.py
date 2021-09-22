@@ -1,5 +1,5 @@
 import datetime
-from typing import Set
+from typing import Iterable, Set
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
@@ -84,6 +84,50 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
             pipeline.hincrby(key, duration, 1)
             pipeline.pexpire(key, self._histogram_ttl)
             pipeline.execute()
+
+    def get_lpq_candidates(self) -> Iterable[int]:
+        """
+        Returns IDs of all projects that should be considered for the low priority queue.
+        """
+
+        already_seen = set()
+        for item in self.inner.scan_iter(
+            match=f"{self._prefix}:*",
+        ):
+            _prefix, project_id_raw, _else = item.split(":")
+            project_id = _to_int(project_id_raw)
+            if project_id is not None and project_id not in already_seen:
+                already_seen.add(project_id)
+                yield project_id
+
+    def get_bucketed_counts_for_project(self, project_id: int) -> Iterable[base.BucketedCount]:
+        """
+        Returns a sorted list of timestamps (bucket size unknown) and the count of symbolicator
+        requests made during that timestamp for some given project.
+        """
+
+        # TODO: Should all entries be normalized against the current bucket size?
+        keys = sorted(
+            (
+                key
+                for key in self.inner.scan_iter(
+                    match=f"{self._prefix}:{project_id}:*",
+                )
+            )
+        )
+        counts = self.inner.mget(keys)
+
+        for key, count_raw in zip(keys, counts):
+            _prefix, _project_id, timestamp_raw = key.split(":")
+
+            timestamp_bucket = int(timestamp_raw)
+            count = int(count_raw)
+
+            if timestamp_bucket is not None and count is not None:
+                yield base.BucketedCount(timestamp=timestamp_bucket, count=count)
+            else:
+                # TODO: log if this happens? remove the key?
+                pass
 
     def get_lpq_projects(self) -> Set[int]:
         """
