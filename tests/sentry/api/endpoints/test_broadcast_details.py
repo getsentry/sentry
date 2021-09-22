@@ -13,6 +13,12 @@ class BroadcastDetailsTest(APITestCase):
         assert response.status_code == 200
         assert response.data["id"] == str(broadcast1.id)
 
+    def test_invalid_id(self):
+        self.login_as(user=self.user)
+
+        response = self.client.get("/api/0/broadcasts/nope/")
+        assert response.status_code == 404
+
 
 class BroadcastUpdateTest(APITestCase):
     def test_regular_user(self):
