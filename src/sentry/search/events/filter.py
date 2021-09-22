@@ -559,8 +559,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
                 0 if prerelease else 1,
                 prerelease,
             ],
-            [],
-            negated,
+            negated=negated,
         )
         if parsed["package"] and parsed["package"] != SEMVER_FAKE_PACKAGE:
             semver_filter.package = parsed["package"]

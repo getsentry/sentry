@@ -212,10 +212,10 @@ class ReleaseQuerySet(models.QuerySet):
                 function="ROW",
             )
             cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
-            q = qs.annotate(
+            qs = qs.annotate(
                 semver=Func(*(F(col) for col in cols), function="ROW", output_field=ArrayField())
             )
-            qs = getattr(q, query_func)(**{f"semver__{semver_filter.operator}": filter_func})
+            qs = getattr(qs, query_func)(**{f"semver__{semver_filter.operator}": filter_func})
         return qs
 
     def filter_by_stage(
@@ -225,7 +225,6 @@ class ReleaseQuerySet(models.QuerySet):
         value,
         project_ids: Sequence[int] = None,
         environments: List[str] = None,
-        negated: bool = False,
     ) -> models.QuerySet:
         from sentry.models import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
