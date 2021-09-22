@@ -119,7 +119,7 @@ def submit_symbolicate_low_priority(
     task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
 
 
-def submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, data):
+def submit_save_event(project_id, from_reprocessing, cache_key, event_id, start_time, data):
     if cache_key:
         data = None
 
@@ -130,7 +130,7 @@ def submit_save_event(project, from_reprocessing, cache_key, event_id, start_tim
         data=data,
         start_time=start_time,
         event_id=event_id,
-        project_id=project.id,
+        project_id=project_id,
     )
 
 
@@ -188,7 +188,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
         )
         return
 
-    submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, original_data)
+    submit_save_event(project_id, from_reprocessing, cache_key, event_id, start_time, original_data)
 
 
 @instrumented_task(
@@ -249,6 +249,8 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     event_id = data["event_id"]
 
+    from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
+
     def _continue_to_process_event():
         process_task = process_event_from_reprocessing if from_reprocessing else process_event
         _do_process_event(
@@ -276,8 +278,6 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
         return _continue_to_process_event()
 
     has_changed = False
-
-    from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
 
     symbolication_start_time = time()
 
@@ -489,10 +489,6 @@ def _do_process_event(
     if data is None:
         data = event_processing_store.get(cache_key)
 
-    def _continue_to_save_event():
-        from_reprocessing = process_task is process_event_from_reprocessing
-        submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, data)
-
     if data is None:
         metrics.incr(
             "events.failed", tags={"reason": "cache", "stage": "process"}, skip_internal=False
@@ -506,6 +502,10 @@ def _do_process_event(
     set_current_event_project(project_id)
 
     event_id = data["event_id"]
+
+    def _continue_to_save_event():
+        from_reprocessing = process_task is process_event_from_reprocessing
+        submit_save_event(project_id, from_reprocessing, cache_key, event_id, start_time, data)
 
     if killswitch_matches_context(
         "store.load-shed-process-event-projects",

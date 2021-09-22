@@ -39,6 +39,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.RepositoryProjectPathConfig,
             models.SavedSearchUserDefault,
             models.SavedSearch,
+            models.ServiceHookProject,
             models.ServiceHook,
             models.UserReport,
             models.ProjectTransactionThreshold,

@@ -1,9 +1,9 @@
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Tuple, Union
 
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-    from sentry.models import Project, User
+    from sentry.models import Project, Team, User
 
 
 class BaseNotification:
@@ -42,8 +42,8 @@ class BaseNotification:
     def get_project_link(self) -> str:
         return str(absolute_uri(f"/{self.organization.slug}/{self.project.slug}/"))
 
-    def get_user_context(
-        self, user: "User", extra_context: Mapping[str, Any]
+    def get_recipient_context(
+        self, recipient: Union["Team", "User"], extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         # Basically a noop.
         return {**extra_context}

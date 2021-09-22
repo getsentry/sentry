@@ -1757,7 +1757,7 @@ SENTRY_DEVSERVICES = {
                 "KAFKA_MESSAGE_MAX_BYTES": "50000000",
                 "KAFKA_MAX_REQUEST_SIZE": "50000000",
             },
-            "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
+            "volumes": {"kafka": {"bind": "/var/lib/kafka/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
             or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS,
