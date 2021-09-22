@@ -76,6 +76,14 @@ function readShowTagsState() {
   return value === '1';
 }
 
+function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQuery) {
+  return location.query.yAxis
+    ? decodeList(location.query.yAxis)
+    : savedQuery?.yAxis && savedQuery.yAxis.length > 0
+    ? decodeList(savedQuery?.yAxis)
+    : [eventView.getYAxis()];
+}
+
 class Results extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     if (nextProps.savedQuery || !nextProps.loading) {
@@ -115,14 +123,26 @@ class Results extends React.Component<Props, State> {
 
   componentDidUpdate(prevProps: Props, prevState: State) {
     const {api, location, organization, selection} = this.props;
-    const {eventView, confirmedQuery} = this.state;
+    const {eventView, confirmedQuery, savedQuery} = this.state;
 
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
+    const yAxisArray = getYAxis(location, eventView, savedQuery);
+    const prevYAxisArray = getYAxis(
+      prevProps.location,
+      prevState.eventView,
+      prevState.savedQuery
+    );
+
     if (
       !isAPIPayloadSimilar(currentQuery, prevQuery) ||
-      this.hasChartParametersChanged(prevState.eventView, eventView)
+      this.hasChartParametersChanged(
+        prevState.eventView,
+        eventView,
+        prevYAxisArray,
+        yAxisArray
+      )
     ) {
       api.clear();
       this.canLoadEvents();
@@ -140,11 +160,13 @@ class Results extends React.Component<Props, State> {
 
   tagsApi: Client = new Client();
 
-  hasChartParametersChanged(prevEventView: EventView, eventView: EventView) {
-    const prevYAxisValue = prevEventView.getYAxis();
-    const yAxisValue = eventView.getYAxis();
-
-    if (prevYAxisValue !== yAxisValue) {
+  hasChartParametersChanged(
+    prevEventView: EventView,
+    eventView: EventView,
+    prevYAxisArray: string[],
+    yAxisArray: string[]
+  ) {
+    if (!isEqual(prevYAxisArray, yAxisArray)) {
       return true;
     }
 
@@ -435,11 +457,7 @@ class Results extends React.Component<Props, State> {
       : eventView.fields;
     const query = eventView.query;
     const title = this.getDocumentTitle();
-    const yAxisArray = location.query.yAxis
-      ? decodeList(location.query.yAxis)
-      : savedQuery?.yAxis && savedQuery.yAxis.length > 0
-      ? decodeList(savedQuery?.yAxis)
-      : [eventView.getYAxis()];
+    const yAxisArray = getYAxis(location, eventView, savedQuery);
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
