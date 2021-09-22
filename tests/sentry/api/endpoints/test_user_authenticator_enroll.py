@@ -2,6 +2,7 @@ import os
 from urllib.parse import parse_qsl
 
 from django.conf import settings
+from django.core import mail
 from django.db.models import F
 from django.urls import reverse
 
@@ -15,6 +16,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.utils.compat import mock
+from tests.sentry.api.endpoints.test_user_authenticator_details import assert_security_email_sent
 
 
 # TODO(joshuarli): move all fixtures to a standard path relative to gitroot,
@@ -31,14 +33,8 @@ class UserAuthenticatorEnrollTest(APITestCase):
         self.organization = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
 
-    def _assert_security_email_sent(self, email_type, email_log):
-        assert email_log.info.call_count == 1
-        assert "mail.queued" in email_log.info.call_args[0]
-        assert email_log.info.call_args[1]["extra"]["message_type"] == email_type
-
-    @mock.patch("sentry.utils.email.logger")
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True)
-    def test_totp_can_enroll(self, validate_otp, email_log):
+    def test_totp_can_enroll(self, validate_otp):
         # XXX: Pretend an unbound function exists.
         validate_otp.__func__ = None
 
@@ -88,9 +84,8 @@ class UserAuthenticatorEnrollTest(APITestCase):
         assert interface.secret == "secret56"
         assert interface.config == {"secret": "secret56"}
 
-    @mock.patch("sentry.utils.email.logger")
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=False)
-    def test_invalid_otp(self, validate_otp, email_log):
+    def test_invalid_otp(self, validate_otp):
         # XXX: Pretend an unbound function exists.
         validate_otp.__func__ = None
 
@@ -104,12 +99,12 @@ class UserAuthenticatorEnrollTest(APITestCase):
         assert validate_otp.call_count == 1
         assert validate_otp.call_args == mock.call("1234")
         assert resp.status_code == 400
-        assert email_log.call_count == 0
 
-    @mock.patch("sentry.utils.email.logger")
+        assert len(mail.outbox) == 0
+
     @mock.patch("sentry.auth.authenticators.SmsInterface.validate_otp", return_value=True)
     @mock.patch("sentry.auth.authenticators.SmsInterface.send_text", return_value=True)
-    def test_sms_can_enroll(self, send_text, validate_otp, email_log):
+    def test_sms_can_enroll(self, send_text, validate_otp):
         # XXX: Pretend an unbound function exists.
         validate_otp.__func__ = None
 
@@ -210,9 +205,8 @@ class UserAuthenticatorEnrollTest(APITestCase):
             assert resp.status_code == 429
             assert try_enroll.call_count == 0
 
-    @mock.patch("sentry.utils.email.logger")
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
-    def test_u2f_can_enroll(self, try_enroll, email_log):
+    def test_u2f_can_enroll(self, try_enroll):
         new_options = settings.SENTRY_OPTIONS.copy()
         new_options["system.url-prefix"] = "https://testserver"
         with self.settings(SENTRY_OPTIONS=new_options):

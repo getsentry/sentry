@@ -55,8 +55,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
         assert "form" not in resp.data
         assert "qrcode" not in resp.data
 
-    @mock.patch("sentry.utils.email.logger")
-    def test_get_recovery_codes(self, email_log):
+    def test_get_recovery_codes(self):
         interface = RecoveryCodeInterface()
         interface.enroll(self.user)
 
@@ -71,7 +70,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
         assert resp.data["authId"] == str(interface.authenticator.id)
         assert len(resp.data["codes"])
 
-        assert email_log.info.call_count == 0
+        assert len(mail.outbox) == 0
 
     def test_u2f_get_devices(self):
         auth = Authenticator.objects.create(
@@ -220,8 +219,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
         assert "totp_secret" not in resp.data
         assert "form" not in resp.data
 
-    @mock.patch("sentry.utils.email.logger")
-    def test_recovery_codes_regenerate(self, email_log):
+    def test_recovery_codes_regenerate(self):
         interface = RecoveryCodeInterface()
         interface.enroll(self.user)
 
@@ -276,8 +274,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
 
             self._assert_security_email_sent("mfa-removed", email_log)
 
-    @mock.patch("sentry.utils.email.logger")
-    def test_cannot_delete_without_superuser(self, email_log):
+    def test_cannot_delete_without_superuser(self):
         user = self.create_user(email="a@example.com", is_superuser=False)
         auth = Authenticator.objects.create(type=3, user=user)  # u2f
 
@@ -293,10 +290,9 @@ class UserAuthenticatorDetailsTest(APITestCase):
 
         assert Authenticator.objects.filter(id=auth.id).exists()
 
-        assert email_log.info.call_count == 0
+        assert len(mail.outbox) == 0
 
-    @mock.patch("sentry.utils.email.logger")
-    def test_require_2fa__cannot_delete_last_auth(self, email_log):
+    def test_require_2fa__cannot_delete_last_auth(self):
         self._require_2fa_for_organization()
 
         # enroll in one auth method
@@ -315,10 +311,9 @@ class UserAuthenticatorDetailsTest(APITestCase):
 
         assert Authenticator.objects.filter(id=auth.id).exists()
 
-        assert email_log.info.call_count == 0
+        assert len(mail.outbox) == 0
 
-    @mock.patch("sentry.utils.email.logger")
-    def test_require_2fa__delete_with_multiple_auth__ok(self, email_log):
+    def test_require_2fa__delete_with_multiple_auth__ok(self):
         self._require_2fa_for_organization()
 
         new_options = settings.SENTRY_OPTIONS.copy()
