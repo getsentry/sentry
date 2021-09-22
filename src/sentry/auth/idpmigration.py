@@ -9,6 +9,7 @@ from sentry.utils import redis
 from sentry.utils.email import MessageBuilder
 
 _REDIS_KEY = "verificationKeyStorage"
+_TTL = timedelta(minutes=10)
 
 
 def send_confirm_email(user: User, email: str, verification_key: str) -> None:
@@ -43,7 +44,6 @@ def create_verification_key(user: User, org: Organization, email: str) -> None:
     :param org: the organization whose SSO provider is being used
     :param email: the email address associated with the SSO identity
     """
-    TTL = timedelta(minutes=10)
     cluster = redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
     member_id = OrganizationMember.objects.get(organization=org, user=user).id
 
@@ -51,7 +51,7 @@ def create_verification_key(user: User, org: Organization, email: str) -> None:
     verification_key = f"auth:one-time-key:{verification_code}"
     verification_value = {"user_id": user.id, "email": email, "member_id": member_id}
     cluster.hmset(verification_key, verification_value)
-    cluster.expire(verification_key, TTL.seconds)
+    cluster.expire(verification_key, int(_TTL.total_seconds()))
 
     send_confirm_email(user, email, verification_code)
 
