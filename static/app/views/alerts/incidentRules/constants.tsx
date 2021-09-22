@@ -7,6 +7,7 @@ import {
   Datasource,
   EventTypes,
   SessionsAggregate,
+  TimeWindow,
   Trigger,
   UnsavedIncidentRule,
 } from 'app/views/alerts/incidentRules/types';
@@ -157,6 +158,7 @@ export function createRuleFromWizardTemplate(
     aggregate === SessionsAggregate.CRASH_FREE_USERS
   ) {
     defaultRuleOptions.thresholdType = AlertRuleThresholdType.BELOW;
+    defaultRuleOptions.timeWindow = TimeWindow.ONE_HOUR;
   }
 
   return {
