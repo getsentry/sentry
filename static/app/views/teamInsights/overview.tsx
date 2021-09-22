@@ -155,7 +155,7 @@ function TeamInsightsOverview({
     <Fragment>
       <BorderlessHeader>
         <StyledHeaderContent>
-          <StyledLayoutTitle>{t('Team Insights')}</StyledLayoutTitle>
+          <StyledLayoutTitle>{t('Projects')}</StyledLayoutTitle>
         </StyledHeaderContent>
       </BorderlessHeader>
       <Layout.Header>
