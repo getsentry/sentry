@@ -536,7 +536,7 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
         assert serializer.is_valid()
         alert_rule = serializer.save()
-        assert alert_rule.comparison_delta == 60
+        assert alert_rule.comparison_delta == 60 * 60
         assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
 
 
