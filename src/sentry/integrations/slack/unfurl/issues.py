@@ -21,7 +21,7 @@ def unfurl_issues(
     request: HttpRequest,
     integration: Integration,
     links: List[UnfurlableUrl],
-    identity: Optional["User"] = None,
+    user: Optional["User"] = None,
 ) -> UnfurledUrl:
     """
     Returns a map of the attachments used in the response we send to Slack

@@ -22,7 +22,7 @@ def unfurl_incidents(
     request: HttpRequest,
     integration: Integration,
     links: List[UnfurlableUrl],
-    identity: Optional["User"] = None,
+    user: Optional["User"] = None,
 ) -> UnfurledUrl:
     filter_query = Q()
     # Since we don't have real ids here, we use the org slug so that we can

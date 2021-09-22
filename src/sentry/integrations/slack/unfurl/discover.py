@@ -33,7 +33,7 @@ def unfurl_discover(
     data: HttpRequest,
     integration: Integration,
     links: List[UnfurlableUrl],
-    identity: Optional[User],
+    user: Optional["User"],
 ) -> UnfurledUrl:
     orgs_by_slug = {org.slug: org for org in integration.organizations.all()}
     unfurls = {}
@@ -101,7 +101,7 @@ def unfurl_discover(
         try:
             resp = client.get(
                 auth=ApiKey(organization=org, scope_list=["org:read"]),
-                user=identity,
+                user=user,
                 path=f"/organizations/{org_slug}/events-stats/",
                 params=params,
             )
