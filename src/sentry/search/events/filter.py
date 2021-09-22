@@ -613,7 +613,12 @@ def convert_search_filter_to_snuba_query(
     elif name in ARRAY_FIELDS and search_filter.value.is_wildcard():
         # Escape and convert meta characters for LIKE expressions.
         raw_value = search_filter.value.raw_value
+        # TODO: There are rare cases where this chaining don't
+        # work. For example, a wildcard like '\**' will incorrectly
+        # be replaced with '\%%'.
         like_value = (
+            # Slashes have to be double escaped so they are
+            # interpreted as a string literal.
             raw_value.replace("\\", "\\\\")
             .replace("%", "\\%")
             .replace("_", "\\_")
@@ -1325,9 +1330,14 @@ class QueryFilter(QueryFields):
 
         if name in ARRAY_FIELDS:
             if search_filter.value.is_wildcard():
+                # TODO: There are rare cases where this chaining don't
+                # work. For example, a wildcard like '\**' will incorrectly
+                # be replaced with '\%%'.
                 return Condition(
                     lhs,
                     Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
+                    # Slashes have to be double escaped so they are
+                    # interpreted as a string literal.
                     search_filter.value.raw_value.replace("\\", "\\\\")
                     .replace("%", "\\%")
                     .replace("_", "\\_")
