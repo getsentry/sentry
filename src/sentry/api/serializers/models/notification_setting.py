@@ -96,7 +96,6 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         """
         type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
         types_to_serialize = {type_option} if type_option else set(VALID_VALUES_FOR_KEY.keys())
-        user = obj if type(obj) == User else None
 
         project_ids = {_.id for _ in attrs["projects"]}
         organization_ids = {_.id for _ in attrs["organizations"]}
@@ -105,10 +104,10 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
             types_to_serialize,
             project_ids,
             organization_ids,
-            user,
+            recipient=obj,
             should_use_slack_automatic=any_organization_has_feature(
                 "organizations:notification-slack-automatic",
-                user.get_orgs(),
+                organizations=[obj.organization] if isinstance(obj, Team) else obj.get_orgs(),
                 actor=user,
             ),
         )
