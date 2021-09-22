@@ -33,7 +33,7 @@ def _scan_for_suspect_projects() -> None:
     suspect_projects = set([])
     for project_id in realtime_metrics_store.get_lpq_candidates():
         suspect_projects.add(project_id)
-        calculate_lpq_eligibility(project_id)
+        compute_lpq_eligibility(project_id)
 
     current_lpq_projects = realtime_metrics_store.get_lpq_projects() or set([])
     deleted_projects = current_lpq_projects.difference(suspect_projects)
@@ -59,16 +59,16 @@ def _scan_for_suspect_projects() -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.symbolicator.calculate_lpq_eligibility",
+    name="sentry.tasks.symbolicator.compute_lpq_eligibility",
     queue="symbolicator.compute_low_priority_queue",
     ignore_result=True,
     soft_time_limit=10,
 )  # type: ignore
-def calculate_lpq_eligibility(project_id: int) -> None:
-    _calculate_lpq_eligibility(project_id)
+def compute_lpq_eligibility(project_id: int) -> None:
+    _compute_lpq_eligibility(project_id)
 
 
-def _calculate_lpq_eligibility(project_id: int) -> None:
+def _compute_lpq_eligibility(project_id: int) -> None:
     bucketed_counts = realtime_metrics_store.get_bucketed_counts_for_project(project_id)
 
     is_eligible = calculation_magic(bucketed_counts)
