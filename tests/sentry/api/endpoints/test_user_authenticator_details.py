@@ -1,51 +1,106 @@
 import datetime
 
 from django.conf import settings
+from django.core import mail
 from django.db.models import F
-from django.urls import reverse
 from django.utils import timezone
 
 from sentry.auth.authenticators import RecoveryCodeInterface, SmsInterface, TotpInterface
-from sentry.models import Authenticator, Organization
+from sentry.models import Authenticator, Organization, User
 from sentry.testutils import APITestCase
 from sentry.utils.compat import mock
 
 
-class UserAuthenticatorDetailsTest(APITestCase):
+def get_auth(user: "User") -> Authenticator:
+    return Authenticator.objects.create(
+        type=3,  # u2f
+        user=user,
+        config={
+            "devices": [
+                {
+                    "binding": {
+                        "publicKey": "aowekroawker",
+                        "keyHandle": "devicekeyhandle",
+                        "appId": "https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
+                    },
+                    "name": "Amused Beetle",
+                    "ts": 1512505334,
+                },
+                {
+                    "binding": {
+                        "publicKey": "publickey",
+                        "keyHandle": "aowerkoweraowerkkro",
+                        "appId": "https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
+                    },
+                    "name": "Sentry",
+                    "ts": 1512505334,
+                },
+            ]
+        },
+    )
+
+
+def assert_security_email_sent(email_type: str) -> None:
+    """TODO(mgaeta): Move this function to a test helper directory."""
+    body_fragment = {
+        "mfa-added": "An authenticator has been added to your Sentry account",
+        "mfa-removed": "An authenticator has been removed from your Sentry account",
+        "recovery-codes-regenerated": "Recovery codes have been regenerated for your Sentry account",
+    }.get(email_type)
+    assert len(mail.outbox) == 1
+    assert body_fragment in mail.outbox[0].body
+
+
+class UserAuthenticatorDetailsTestBase(APITestCase):
     def setUp(self):
-        self.user = self.create_user(email="test@example.com", is_superuser=False)
         self.login_as(user=self.user)
 
-    def _assert_security_email_sent(self, email_type, email_log):
-        assert email_log.info.call_count == 1
-        assert "mail.queued" in email_log.info.call_args[0]
-        assert email_log.info.call_args[1]["extra"]["message_type"] == email_type
-
-    def _require_2fa_for_organization(self):
+    def _require_2fa_for_organization(self) -> None:
         organization = self.create_organization(name="test monkey", owner=self.user)
         organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
 
-    def test_wrong_auth_id(self):
-        url = reverse(
-            "sentry-api-0-user-authenticator-details",
-            kwargs={"user_id": self.user.id, "auth_id": "totp"},
-        )
 
-        resp = self.client.get(url)
-        assert resp.status_code == 404
+class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
+    endpoint = "sentry-api-0-user-authenticator-device-details"
+    method = "delete"
+
+    def test_u2f_remove_device(self):
+        auth = get_auth(self.user)
+
+        with self.tasks():
+            self.get_success_response(self.user.id, auth.id, "devicekeyhandle")
+
+        authenticator = Authenticator.objects.get(id=auth.id)
+        assert len(authenticator.interface.get_registered_devices()) == 1
+
+        assert_security_email_sent("mfa-removed")
+
+        # Can't remove last device.
+        # TODO(mgaeta): We should not allow the API to return a 500.
+        with self.tasks():
+            self.get_error_response(self.user.id, auth.id, "aowerkoweraowerkkro", status_code=500)
+
+        # Only one send.
+        assert_security_email_sent("mfa-removed")
+
+    def test_require_2fa__delete_device__ok(self):
+        self._require_2fa_for_organization()
+        self.test_u2f_remove_device()
+
+
+class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
+    endpoint = "sentry-api-0-user-authenticator-details"
+
+    def test_wrong_auth_id(self):
+        self.get_error_response(self.user.id, "totp", status_code=404)
 
     def test_get_authenticator_details(self):
         interface = TotpInterface()
         interface.enroll(self.user)
         auth = interface.authenticator
 
-        url = reverse(
-            "sentry-api-0-user-authenticator-details",
-            kwargs={"user_id": self.user.id, "auth_id": auth.id},
-        )
+        resp = self.get_success_response(self.user.id, auth.id)
 
-        resp = self.client.get(url)
-        assert resp.status_code == 200
         assert resp.data["isEnrolled"]
         assert resp.data["id"] == "totp"
         assert resp.data["authId"] == str(auth.id)
@@ -59,13 +114,9 @@ class UserAuthenticatorDetailsTest(APITestCase):
         interface = RecoveryCodeInterface()
         interface.enroll(self.user)
 
-        url = reverse(
-            "sentry-api-0-user-authenticator-details",
-            kwargs={"user_id": self.user.id, "auth_id": interface.authenticator.id},
-        )
+        with self.tasks():
+            resp = self.get_success_response(self.user.id, interface.authenticator.id)
 
-        resp = self.client.get(url)
-        assert resp.status_code == 200
         assert resp.data["id"] == "recovery"
         assert resp.data["authId"] == str(interface.authenticator.id)
         assert len(resp.data["codes"])
@@ -73,31 +124,9 @@ class UserAuthenticatorDetailsTest(APITestCase):
         assert len(mail.outbox) == 0
 
     def test_u2f_get_devices(self):
-        auth = Authenticator.objects.create(
-            type=3,  # u2f
-            user=self.user,
-            config={
-                "devices": [
-                    {
-                        "binding": {
-                            "publicKey": "aowekroawker",
-                            "keyHandle": "aowkeroakewrokaweokrwoer",
-                            "appId": "https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
-                        },
-                        "name": "Amused Beetle",
-                        "ts": 1512505334,
-                    }
-                ]
-            },
-        )
+        auth = get_auth(self.user)
 
-        url = reverse(
-            "sentry-api-0-user-authenticator-details",
-            kwargs={"user_id": self.user.id, "auth_id": auth.id},
-        )
-
-        resp = self.client.get(url)
-        assert resp.status_code == 200
+        resp = self.get_success_response(self.user.id, auth.id)
         assert resp.data["id"] == "u2f"
         assert resp.data["authId"] == str(auth.id)
         assert len(resp.data["devices"])
@@ -108,109 +137,17 @@ class UserAuthenticatorDetailsTest(APITestCase):
         assert "response" not in resp.data
 
     def test_get_device_name(self):
-        auth = Authenticator.objects.create(
-            type=3,  # u2f
-            user=self.user,
-            config={
-                "devices": [
-                    {
-                        "binding": {
-                            "publicKey": "aowekroawker",
-                            "keyHandle": "devicekeyhandle",
-                            "appId": "https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
-                        },
-                        "name": "Amused Beetle",
-                        "ts": 1512505334,
-                    },
-                    {
-                        "binding": {
-                            "publicKey": "publickey",
-                            "keyHandle": "aowerkoweraowerkkro",
-                            "appId": "https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
-                        },
-                        "name": "Sentry",
-                        "ts": 1512505334,
-                    },
-                ]
-            },
-        )
+        auth = get_auth(self.user)
 
         assert auth.interface.get_device_name("devicekeyhandle") == "Amused Beetle"
         assert auth.interface.get_device_name("aowerkoweraowerkkro") == "Sentry"
-
-    @mock.patch("sentry.utils.email.logger")
-    def test_u2f_remove_device(self, email_log):
-        auth = Authenticator.objects.create(
-            type=3,  # u2f
-            user=self.user,
-            config={
-                "devices": [
-                    {
-                        "binding": {
-                            "publicKey": "aowekroawker",
-                            "keyHandle": "devicekeyhandle",
-                            "appId": "https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
-                        },
-                        "name": "Amused Beetle",
-                        "ts": 1512505334,
-                    },
-                    {
-                        "binding": {
-                            "publicKey": "publickey",
-                            "keyHandle": "aowerkoweraowerkkro",
-                            "appId": "https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
-                        },
-                        "name": "Sentry",
-                        "ts": 1512505334,
-                    },
-                ]
-            },
-        )
-
-        url = reverse(
-            "sentry-api-0-user-authenticator-device-details",
-            kwargs={
-                "user_id": self.user.id,
-                "auth_id": auth.id,
-                "interface_device_id": "devicekeyhandle",
-            },
-        )
-
-        resp = self.client.delete(url)
-        assert resp.status_code == 204
-
-        authenticator = Authenticator.objects.get(id=auth.id)
-        assert len(authenticator.interface.get_registered_devices()) == 1
-
-        self._assert_security_email_sent("mfa-removed", email_log)
-
-        # Can't remove last device
-        url = reverse(
-            "sentry-api-0-user-authenticator-device-details",
-            kwargs={
-                "user_id": self.user.id,
-                "auth_id": auth.id,
-                "interface_device_id": "aowerkoweraowerkkro",
-            },
-        )
-        resp = self.client.delete(url)
-        assert resp.status_code == 500
-
-        # only one send
-        self._assert_security_email_sent("mfa-removed", email_log)
 
     def test_sms_get_phone(self):
         interface = SmsInterface()
         interface.phone_number = "5551231234"
         interface.enroll(self.user)
 
-        url = reverse(
-            "sentry-api-0-user-authenticator-details",
-            kwargs={"user_id": self.user.id, "auth_id": interface.authenticator.id},
-        )
-
-        resp = self.client.get(url)
-        assert resp.status_code == 200
+        resp = self.get_success_response(self.user.id, interface.authenticator.id)
         assert resp.data["id"] == "sms"
         assert resp.data["authId"] == str(interface.authenticator.id)
         assert resp.data["phone"] == "5551231234"
@@ -223,33 +160,26 @@ class UserAuthenticatorDetailsTest(APITestCase):
         interface = RecoveryCodeInterface()
         interface.enroll(self.user)
 
-        url = reverse(
-            "sentry-api-0-user-authenticator-details",
-            kwargs={"user_id": self.user.id, "auth_id": interface.authenticator.id},
-        )
-
-        resp = self.client.get(url)
-        assert resp.status_code == 200
+        resp = self.get_success_response(self.user.id, interface.authenticator.id)
         old_codes = resp.data["codes"]
         old_created_at = resp.data["createdAt"]
 
-        resp = self.client.get(url)
+        resp = self.get_success_response(self.user.id, interface.authenticator.id)
         assert old_codes == resp.data["codes"]
         assert old_created_at == resp.data["createdAt"]
 
         # regenerate codes
         tomorrow = timezone.now() + datetime.timedelta(days=1)
         with mock.patch.object(timezone, "now", return_value=tomorrow):
-            resp = self.client.put(url)
-
-            resp = self.client.get(url)
+            with self.tasks():
+                self.get_success_response(self.user.id, interface.authenticator.id, method="put")
+                resp = self.get_success_response(self.user.id, interface.authenticator.id)
             assert old_codes != resp.data["codes"]
             assert old_created_at != resp.data["createdAt"]
 
-        self._assert_security_email_sent("recovery-codes-regenerated", email_log)
+        assert_security_email_sent("recovery-codes-regenerated")
 
-    @mock.patch("sentry.utils.email.logger")
-    def test_delete(self, email_log):
+    def test_delete(self):
         new_options = settings.SENTRY_OPTIONS.copy()
         new_options["sms.twilio-account"] = "twilio-account"
         user = self.create_user(email="a@example.com", is_superuser=True)
@@ -263,16 +193,12 @@ class UserAuthenticatorDetailsTest(APITestCase):
             self.assertEqual(len(available_auths), 1)
             self.login_as(user=user, superuser=True)
 
-            url = reverse(
-                "sentry-api-0-user-authenticator-details",
-                kwargs={"user_id": user.id, "auth_id": auth.id},
-            )
-            resp = self.client.delete(url, format="json")
-            assert resp.status_code == 204, (resp.status_code, resp.content)
+            with self.tasks():
+                self.get_success_response(user.id, auth.id, method="delete")
 
             assert not Authenticator.objects.filter(id=auth.id).exists()
 
-            self._assert_security_email_sent("mfa-removed", email_log)
+            assert_security_email_sent("mfa-removed")
 
     def test_cannot_delete_without_superuser(self):
         user = self.create_user(email="a@example.com", is_superuser=False)
@@ -281,12 +207,8 @@ class UserAuthenticatorDetailsTest(APITestCase):
         actor = self.create_user(email="b@example.com", is_superuser=False)
         self.login_as(user=actor)
 
-        url = reverse(
-            "sentry-api-0-user-authenticator-details",
-            kwargs={"user_id": user.id, "auth_id": auth.id},
-        )
-        resp = self.client.delete(url, format="json")
-        assert resp.status_code == 403, (resp.status_code, resp.content)
+        with self.tasks():
+            self.get_error_response(self.user.id, auth.id, method="delete", status_code=403)
 
         assert Authenticator.objects.filter(id=auth.id).exists()
 
@@ -300,14 +222,9 @@ class UserAuthenticatorDetailsTest(APITestCase):
         interface.enroll(self.user)
         auth = interface.authenticator
 
-        url = reverse(
-            "sentry-api-0-user-authenticator-details",
-            kwargs={"user_id": self.user.id, "auth_id": auth.id},
-        )
-
-        resp = self.client.delete(url, format="json")
-        assert resp.status_code == 403, (resp.status_code, resp.content)
-        assert b"requires 2FA" in resp.content
+        with self.tasks():
+            resp = self.get_error_response(self.user.id, auth.id, method="delete", status_code=403)
+            assert b"requires 2FA" in resp.content
 
         assert Authenticator.objects.filter(id=auth.id).exists()
 
@@ -329,18 +246,8 @@ class UserAuthenticatorDetailsTest(APITestCase):
             interface.enroll(self.user)
             auth = interface.authenticator
 
-            url = reverse(
-                "sentry-api-0-user-authenticator-details",
-                kwargs={"user_id": self.user.id, "auth_id": auth.id},
-            )
-            resp = self.client.delete(url, format="json")
-            assert resp.status_code == 204, (resp.status_code, resp.content)
+            with self.tasks():
+                self.get_success_response(self.user.id, auth.id, method="delete")
 
             assert not Authenticator.objects.filter(id=auth.id).exists()
-
-            self._assert_security_email_sent("mfa-removed", email_log)
-
-    @mock.patch("sentry.utils.email.logger")
-    def test_require_2fa__delete_device__ok(self, email_log):
-        self._require_2fa_for_organization()
-        self.test_u2f_remove_device()
+            assert_security_email_sent("mfa-removed")
