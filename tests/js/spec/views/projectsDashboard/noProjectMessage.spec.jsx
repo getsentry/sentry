@@ -36,7 +36,8 @@ describe('NoProjectMessage', function () {
   it('has a "Join a Team" button when no projects but org has projects', function () {
     const wrapper = mountWithTheme(
       <NoProjectMessage
-        organization={{...org, projects: [TestStubs.Project({hasAccess: false})]}}
+        organization={org}
+        projects={[TestStubs.Project({hasAccess: false})]}
       />,
       TestStubs.routerContext()
     );
@@ -46,11 +47,8 @@ describe('NoProjectMessage', function () {
   it('has a disabled "Join a Team" button if no access to `team:read`', function () {
     const wrapper = mountWithTheme(
       <NoProjectMessage
-        organization={{
-          ...org,
-          projects: [TestStubs.Project({hasAccess: false})],
-          access: [],
-        }}
+        organization={{...org, access: []}}
+        projects={[TestStubs.Project({hasAccess: false})]}
       />,
       TestStubs.routerContext()
     );
@@ -92,10 +90,8 @@ describe('NoProjectMessage', function () {
     ConfigStore.config.user = {isSuperuser: true};
     const wrapper = mountWithTheme(
       <NoProjectMessage
-        organization={{
-          ...org,
-          projects: [TestStubs.Project({hasAccess: true, isMember: false})],
-        }}
+        organization={org}
+        projects={[TestStubs.Project({hasAccess: true, isMember: false})]}
         superuserNeedsToBeProjectMember
       >
         {null}
