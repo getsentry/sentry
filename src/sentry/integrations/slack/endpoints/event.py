@@ -97,14 +97,14 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         for item in data["links"]:
             try:
                 url = item["url"]
-                # We would like to track what types of links users are sharing,
-                # but it's a little difficult to do in sentry since we filter
-                # requests from Slack bots. Instead we just log to Kibana
                 slack_shared_link = parse_link(url)
             except Exception as e:
                 logger.error("slack.parse-link-error", extra={"error": str(e)})
                 continue
 
+            # We would like to track what types of links users are sharing, but
+            # it's a little difficult to do in Sentry because we filter requests
+            # from Slack bots. Instead we just log to Kibana.
             logger.info("slack.link-shared", extra={"slack_shared_link": slack_shared_link})
             link_type, args = match_link(url)
 
