@@ -282,11 +282,11 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     symbolication_start_time = time()
 
     submission_ratio = options.get("symbolicate-event.low-priority.metrics.submission-rate")
-    if not from_reprocessing and random.random() < submission_ratio:
+    submit_realtime_metrics = not from_reprocessing and random.random() < submission_ratio
+
+    if submit_realtime_metrics:
         with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics.counter"):
-            realtime_metrics.realtime_metrics_store.increment_project_event_counter(
-                project_id, symbolication_start_time
-            )
+            realtime_metrics.increment_project_event_counter(project_id, symbolication_start_time)
 
     with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
         span.set_data("symbolication_function", symbolication_function_name)
