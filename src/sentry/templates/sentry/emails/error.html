@@ -42,7 +42,7 @@
 {% if not group.project.flags.has_transactions %}
 <div class="banner">
   <div class="container banner-content">
-    <img src="{% static 'sentry/images/logos/logo-lightning.svg' %}" class="banner-icon"/>
+    <img src="{% absolute_asset_url 'sentry' 'images/logos/logo-lightning.svg' %}" class="banner-icon"/>
     <span>
       Want to measure latency for your app?
     </span>
