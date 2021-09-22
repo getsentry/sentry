@@ -23,8 +23,8 @@ import withTeamsForUser from 'app/utils/withTeamsForUser';
 
 import DescriptionCard from './descriptionCard';
 import HeaderTabs from './headerTabs';
-import TeamKeyTransactions from './keyTransactions';
 import TeamDropdown from './teamDropdown';
+import TeamMisery from './teamMisery';
 import TeamStability from './teamStability';
 
 type Props = {
@@ -200,14 +200,21 @@ function TeamInsightsOverview({
               />
             </DescriptionCard>
 
-            <TeamKeyTransactions
-              organization={organization}
-              projects={projects}
-              period={period}
-              start={start?.toString()}
-              end={end?.toString()}
-              location={location}
-            />
+            <DescriptionCard
+              title={t('User Misery')}
+              description={t(
+                'User Misery shows the number of unique users that experienced load times 4x the project’s configured threshold.'
+              )}
+            >
+              <TeamMisery
+                organization={organization}
+                projects={projects}
+                period={period}
+                start={start?.toString()}
+                end={end?.toString()}
+                location={location}
+              />
+            </DescriptionCard>
           </Layout.Main>
         )}
       </Body>
