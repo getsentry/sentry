@@ -548,7 +548,7 @@ class EventView {
       end: this.end,
       range: this.statsPeriod,
       environment: this.environment,
-      yAxis: this.yAxis,
+      yAxis: this.yAxis ? [this.yAxis] : undefined,
       display: this.display,
     };
 
