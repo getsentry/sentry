@@ -15,6 +15,9 @@
       .header-buttons .integration-link {
         display: none !important;
       }
+      .banner {
+        display: none !important;
+      }
     }
   </style>
 {% endblock %}
@@ -46,7 +49,9 @@
     <span>
       Want to measure latency for your app?
     </span>
-    <a href="{% absolute_uri '/organizations/{}/performance/' group.project.organization.slug %}?project={{ group.project.id }}&referrer=alert_email" class="banner-action">Set up Performance</a>
+    <a href="{% absolute_uri '/organizations/{}/performance/' group.project.organization.slug %}?project={{ group.project.id }}&referrer=alert_email" class="banner-action">
+      <b style="font-weight: bold;">Set up Performance</b>
+    </a>
   </div>
 </div>
 {% endif %}
