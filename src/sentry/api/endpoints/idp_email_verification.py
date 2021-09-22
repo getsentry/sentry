@@ -23,8 +23,8 @@ class IDPEmailVerificationPermission(OrganizationPermission):
 class IDPEmailVerificationEndpoint(OrganizationEndpoint):
     permission_classes = (IDPEmailVerificationPermission,)
 
-    def get(self, request: Request, organization: Organization) -> Response:
-        verification_key = verify_new_identity(request.query_params["one_time_key"])
+    def get(self, request: Request, organization: Organization, key: str) -> Response:
+        verification_key = verify_new_identity(key)
         if verification_key:
             request.session["verification_key"] = verification_key
             login = get_login_url()

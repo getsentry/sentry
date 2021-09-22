@@ -1,24 +1,29 @@
 import string
 from datetime import timedelta
 
+from django.urls import reverse
 from django.utils.crypto import get_random_string
 
 from sentry import options
 from sentry.models import Organization, OrganizationMember, User
 from sentry.utils import redis
 from sentry.utils.email import MessageBuilder
+from sentry.utils.http import absolute_uri
 
 _REDIS_KEY = "verificationKeyStorage"
 _TTL = timedelta(minutes=10)
 
 
-def send_confirm_email(user: User, email: str, verification_key: str) -> None:
+def send_confirm_email(user: User, email: str, verification_key: str, org: Organization) -> None:
     context = {
         "user": user,
         # TODO left incase we want to have a clickable verification link for future
-        # "url": absolute_uri(
-        #     reverse("sentry-account-confirm-email", args=[user.id, verification_key])
-        # ),
+        "url": absolute_uri(
+            reverse(
+                "sentry-api-0-organization-idp-email-verification",
+                args=[org.slug, verification_key],
+            )
+        ),
         "confirm_email": email,
         "verification_key": verification_key,
     }
@@ -53,7 +58,7 @@ def create_verification_key(user: User, org: Organization, email: str) -> None:
     cluster.hmset(verification_key, verification_value)
     cluster.expire(verification_key, int(_TTL.total_seconds()))
 
-    send_confirm_email(user, email, verification_code)
+    send_confirm_email(user, email, verification_code, org)
 
 
 def verify_new_identity(key: str) -> str:

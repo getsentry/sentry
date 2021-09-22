@@ -1308,6 +1308,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-idp-email-verification",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/user-confirm/(?P<key>[^/]+)/$",
+                    IDPEmailVerificationEndpoint.as_view(),
+                    name="sentry-api-0-organization-idp-email-verification",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/user-feedback/$",
                     OrganizationUserReportsEndpoint.as_view(),
                     name="sentry-api-0-organization-user-feedback",

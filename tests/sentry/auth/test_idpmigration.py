@@ -54,13 +54,25 @@ class IDPMigrationTests(TestCase):
     @mock.patch("sentry.auth.idpmigration.send_confirm_email")
     def test_verify_new_identity_get(self, send_confirm_email):
         idpmigration.create_verification_key(self.user, self.org, self.email)
-        url = f"/api/0/organizations/{self.org.slug}/user-confirm/?one_time_key={send_confirm_email.call_args.args[2]}"
-        response = self.client.get(url)
+        path = reverse(
+            "sentry-api-0-organization-idp-email-verification",
+            args=[self.organization.slug, send_confirm_email.call_args.args[2]],
+        )
+        response = self.client.get(path)
         assert response.status_code == 302
         assert response.url == "/auth/login/"
 
     def test_verify_new_identity_get_wrong_key(self):
+        print("_________________________")
         idpmigration.create_verification_key(self.user, self.org, self.email)
-        url = f"/api/0/organizations/{self.org.slug}/user-confirm/?one_time_key={get_random_string(32, string.ascii_letters + string.digits)}"
-        response = self.client.get(url)
+        path = reverse(
+            "sentry-api-0-organization-idp-email-verification",
+            args=[
+                self.organization.slug,
+                get_random_string(32, string.ascii_letters + string.digits),
+            ],
+        )
+        print("_________________________")
+        print(path)
+        response = self.client.get(path)
         assert response.status_code == 401
