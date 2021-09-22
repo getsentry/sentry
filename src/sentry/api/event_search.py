@@ -458,7 +458,7 @@ class SearchVisitor(NodeVisitor):
         return lookup
 
     def is_numeric_key(self, key):
-        return key in self.config.numeric_keys or is_measurement(key)
+        return key in self.config.numeric_keys or is_measurement(key) or is_span_op_breakdown(key)
 
     def is_duration_key(self, key):
         return (
