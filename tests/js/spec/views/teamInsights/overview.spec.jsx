@@ -33,10 +33,6 @@ describe('TeamInsightsOverview', () => {
           transaction: 'string',
           project: 'string',
           tpm: 'number',
-          p50: 'number',
-          p95: 'number',
-          failure_rate: 'number',
-          apdex: 'number',
           count_unique_user: 'number',
           count_miserable_user: 'number',
           user_misery: 'number',
@@ -46,12 +42,7 @@ describe('TeamInsightsOverview', () => {
             key_transaction: 1,
             transaction: '/apple/cart',
             project: project1.slug,
-            user: 'uhoh@example.com',
             tpm: 30,
-            p50: 100,
-            p95: 500,
-            failure_rate: 0.1,
-            apdex: 0.6,
             count_unique_user: 1000,
             count_miserable_user: 122,
             user_misery: 0.114,
@@ -95,8 +86,7 @@ describe('TeamInsightsOverview', () => {
     });
 
     expect(wrapper.getByText('Team: frontend')).toBeInTheDocument();
-    expect(wrapper.getByText('p95')).toBeInTheDocument();
-    expect(wrapper.getByText('500')).toBeInTheDocument();
+    expect(wrapper.getByText('Key transaction')).toBeInTheDocument();
   });
 
   it('allows team switching', async () => {
