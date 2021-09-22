@@ -44,7 +44,7 @@ class RealtimeMetricsStore(Service):  # type: ignore
         """
         pass
 
-    def add_project_to_lpq(self, project_id: int):
+    def add_project_to_lpq(self, project_id: int) -> None:
         """
         Moves projects to the low priority queue.
 
@@ -68,3 +68,4 @@ class RealtimeMetricsStore(Service):  # type: ignore
 
         Returns all projects that have been successfully removed from the low priority queue.
         """
+        pass

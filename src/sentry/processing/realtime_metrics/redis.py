@@ -93,14 +93,13 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         Returns a list of project IDs.
         """
-        # TODO: there's got to be a better way to do this instead of invoking _to_int twice
-        return {
-            _to_int(project_id)
-            for project_id in self.inner.smembers(LPQ_MEMBERS_KEY)
-            if _to_int(project_id) is not None
-        }
+        return set(
+            filter(
+                None, {_to_int(project_id) for project_id in self.inner.smembers(LPQ_MEMBERS_KEY)}
+            )
+        )
 
-    def add_project_to_lpq(self, project_id: int):
+    def add_project_to_lpq(self, project_id: int) -> None:
         """
         Moves projects to the low priority queue.
 
