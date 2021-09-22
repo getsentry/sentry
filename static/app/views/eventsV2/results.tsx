@@ -67,6 +67,7 @@ type State = {
   needConfirmation: boolean;
   confirmedQuery: boolean;
   incompatibleAlertNotice: React.ReactNode;
+  savedQuery?: SavedQuery;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
@@ -82,7 +83,7 @@ class Results extends React.Component<Props, State> {
         nextProps.savedQuery,
         nextProps.location
       );
-      return {...prevState, eventView};
+      return {...prevState, eventView, savedQuery: nextProps.savedQuery};
     }
     return prevState;
   }
@@ -418,7 +419,7 @@ class Results extends React.Component<Props, State> {
   };
 
   render() {
-    const {organization, location, router, savedQuery} = this.props;
+    const {organization, location, router} = this.props;
     const {
       eventView,
       error,
@@ -427,6 +428,7 @@ class Results extends React.Component<Props, State> {
       showTags,
       incompatibleAlertNotice,
       confirmedQuery,
+      savedQuery,
     } = this.state;
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
