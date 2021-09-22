@@ -15,7 +15,7 @@ __all__ = (
 )
 
 """
-This is the Email Module. It contains a hodgepodge of helpers for thinks like
+This is the Email Module. It contains a hodgepodge of helpers for things like
 parsing email address strings, building and sending messages, and looking up
 user emails in the database.
 """
