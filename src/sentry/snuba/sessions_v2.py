@@ -260,6 +260,8 @@ class QueryDefinition:
         self.start = start
         self.end = end
 
+        self.params = params
+
         query_columns = set()
         for field in self.fields.values():
             query_columns.update(field.get_snuba_columns(raw_groupby))

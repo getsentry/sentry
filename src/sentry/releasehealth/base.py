@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Mapping, Optional, Sequence, Tuple
 
-from typing_extensions import TypedDict
+from typing_extensions import Literal, TypedDict
 
 from sentry.utils.services import Service
 
@@ -10,11 +10,51 @@ OrganizationId = int
 ReleaseName = str
 EnvironmentName = str
 
+SelectField = Literal[
+    "sum(session)",
+    "count_unique(user)",
+    "avg(session.duration)",
+    "p50(session.duration)",
+    "p75(session.duration)",
+    "p90(session.duration)",
+    "p95(session.duration)",
+    "p99(session.duration)",
+    "max(session.duration)",
+]
+
+GroupByField = Literal[
+    "project",
+    "release",
+    "environment",
+    "session.status",
+]
+FilterField = Literal["project", "release", "environment"]
+
+
+class SessionsQuery(TypedDict):
+    org_id: OrganizationId
+    project_ids: Sequence[ProjectId]
+    select_fields: Sequence[SelectField]
+    filter_query: Mapping[FilterField, str]
+    start: datetime
+    end: datetime
+    rollup: int  # seconds
+
+
+class SessionsQueryGroup(TypedDict):
+    by: Mapping[GroupByField, str]
+    series: Mapping[SelectField, Sequence[float]]
+    totals: Mapping[SelectField, float]
+
 
 class ReleaseHealthBackend(Service):  # type: ignore
     """Abstraction layer for all release health related queries"""
 
-    __all__ = ("get_current_and_previous_crash_free_rates", "get_release_adoption")
+    __all__ = (
+        "get_current_and_previous_crash_free_rates",
+        "get_release_adoption",
+        "run_sessions_query",
+    )
 
     class CurrentAndPreviousCrashFreeRate(TypedDict):
         currentCrashFreeRate: Optional[float]
@@ -99,4 +139,14 @@ class ReleaseHealthBackend(Service):  # type: ignore
             that. Omit if you're not sure.
         """
 
+        raise NotImplementedError()
+
+    class SessionsQueryResult(TypedDict):
+        intervals: Sequence[datetime]
+        groups: Sequence[SessionsQueryGroup]
+
+    def run_sessions_query(
+        self,
+        query: SessionsQuery,
+    ) -> SessionsQueryResult:
         raise NotImplementedError()

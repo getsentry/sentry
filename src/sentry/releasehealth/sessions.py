@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Sequence, Tuple
+from typing import Mapping, Optional, Sequence, Tuple
 
 from sentry.releasehealth.base import (
     EnvironmentName,
@@ -43,3 +43,9 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         return _get_release_adoption(  # type: ignore
             project_releases=project_releases, environments=environments, now=now
         )
+
+    def run_sessions_query(
+        self,
+        query: ReleaseHealthBackend.SessionsQuery,
+    ) -> ReleaseHealthBackend.SessionsQueryResult:
+        raise NotImplementedError()
