@@ -18,30 +18,23 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 type Props = {
   api: Client;
   organization: Organization;
-  projectSlug?: string;
+  project?: Project | null;
 };
 
 type State = {
   loading: boolean;
   error: boolean;
   team: string | null;
-  project?: Project;
+  project?: Project | null;
 };
 
 class MissingProjectMembership extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-
-    const {organization, projectSlug} = this.props;
-    const project = organization.projects?.find(p => p.slug === projectSlug);
-
-    this.state = {
-      loading: false,
-      error: false,
-      project,
-      team: '',
-    };
-  }
+  state: State = {
+    loading: false,
+    error: false,
+    project: this.props.project,
+    team: '',
+  };
 
   joinTeam(teamSlug: string) {
     this.setState({
@@ -212,7 +205,5 @@ const DisabledLabel = styled('div')`
   opacity: 0.5;
   overflow: hidden;
 `;
-
-export {MissingProjectMembership};
 
 export default withApi(MissingProjectMembership);

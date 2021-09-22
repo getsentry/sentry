@@ -188,10 +188,7 @@ class ProjectDetail extends AsyncView<Props, State> {
 
     return (
       <PageContent>
-        <MissingProjectMembership
-          organization={organization}
-          projectSlug={project.slug}
-        />
+        <MissingProjectMembership organization={organization} project={project} />
       </PageContent>
     );
   }
