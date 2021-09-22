@@ -109,20 +109,16 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         the low priority queue, unless the project is manually excluded from the low priority queue
         via the `store.symbolicate-event-lpq-never` kill switch.
 
-        Raises ``LowPriorityQueueMembershipError`` if this fails to add the specified project to the
-        low priority queue.
+        This may throw an exception if there is some sort of issue registering the project with the
+        queue.
         """
 
-        added = self.inner.sadd(LPQ_MEMBERS_KEY, project_id)
+        # This returns 0 if project_id was already in the set, 1 if it was added, and throws an
+        # exception if there's a problem so it's fine if we just ignore the return value of this as
+        # the project is always added if this successfully completes.
+        self.inner.sadd(LPQ_MEMBERS_KEY, project_id)
 
-        # Looks like this might already be in the LPQ, or redis failed to add it. This is only a
-        # problem if redis failed to add it.
-        if added == 0 and not self.inner.sismember(LPQ_MEMBERS_KEY, project_id):
-            raise LowPriorityQueueMembershipError(
-                f"Failed to move project ID {project_id} to the low priority queue"
-            )
-
-    def remove_projects_from_lpq(self, project_ids: Set[int]) -> Set[int]:
+    def remove_projects_from_lpq(self, project_ids: Set[int]) -> None:
         """
         Removes projects from the low priority queue.
 
@@ -130,21 +126,13 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         manually forced into the low priority queue via the `store.symbolicate-event-lpq-always`
         kill switch.
 
-        Returns all projects that have been successfully removed from the low priority queue.
+        This may throw an exception if there is some sort of issue deregistering the projects from
+        the queue.
         """
         if len(project_ids) == 0:
-            return set()
+            return
 
-        removed = self.inner.srem(LPQ_MEMBERS_KEY, *project_ids)
-
-        if removed == len(project_ids):
-            return project_ids
-
-        # Looks like only a subset of the project IDs were removed from the LPQ list.
-        in_lpq = self.inner.smembers(LPQ_MEMBERS_KEY)
-        was_removed = project_ids.intersection(in_lpq)
-
-        return was_removed
+        self.inner.srem(LPQ_MEMBERS_KEY, *project_ids)
 
 
 def _to_int(value: str) -> Optional[int]:
@@ -152,11 +140,3 @@ def _to_int(value: str) -> Optional[int]:
         return int(value) if value else None
     except ValueError:
         return None
-
-
-class LowPriorityQueueMembershipError(Exception):
-    """
-    Something went wrong while updating the list of projects designated for the low priority queue.
-    """
-
-    pass
