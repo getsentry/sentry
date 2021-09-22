@@ -3,15 +3,15 @@ import {Fragment} from 'react';
 import {closeModal, ModalRenderProps} from 'app/actionCreators/modal';
 import {tct} from 'app/locale';
 import SentryAppExternalForm, {
-  Config,
+  SchemaFormConfig,
 } from 'app/views/organizationIntegrations/sentryAppExternalForm';
 
 type Props = ModalRenderProps & {
   sentryAppInstallationUuid: string;
   appName: string;
-  config: Config;
+  config: SchemaFormConfig;
   resetValues: {[key: string]: any};
-  onSubmitSuccess: Function;
+  onSubmitSuccess: React.ComponentProps<typeof SentryAppExternalForm>['onSubmitSuccess'];
 };
 
 const SentryAppRuleModal = ({
@@ -33,8 +33,8 @@ const SentryAppRuleModal = ({
         element="alert-rule-action"
         action="create"
         onSubmitSuccess={(...params) => {
-          closeModal();
           onSubmitSuccess(...params);
+          closeModal();
         }}
         resetValues={resetValues}
       />

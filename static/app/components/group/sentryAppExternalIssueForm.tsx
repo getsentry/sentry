@@ -7,15 +7,15 @@ import {Event} from 'app/types/event';
 import getStacktraceBody from 'app/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import SentryAppExternalForm, {
-  Config,
   FieldFromSchema,
+  SchemaFormConfig,
 } from 'app/views/organizationIntegrations/sentryAppExternalForm';
 
 type Props = {
   group: Group;
   sentryAppInstallation: SentryAppInstallation;
   appName: string;
-  config: Config;
+  config: SchemaFormConfig;
   action: 'create' | 'link';
   event: Event;
   onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;

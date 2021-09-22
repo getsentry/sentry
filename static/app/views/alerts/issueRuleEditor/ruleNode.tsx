@@ -24,7 +24,7 @@ import {
 import MemberTeamFields from 'app/views/alerts/issueRuleEditor/memberTeamFields';
 import SentryAppRuleModal from 'app/views/alerts/issueRuleEditor/sentryAppRuleModal';
 import TicketRuleModal from 'app/views/alerts/issueRuleEditor/ticketRuleModal';
-import {Config} from 'app/views/organizationIntegrations/sentryAppExternalForm';
+import {SchemaFormConfig} from 'app/views/organizationIntegrations/sentryAppExternalForm';
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'app/views/projectInstall/issueAlertOptions';
 import Input from 'app/views/settings/components/forms/controls/input';
 
@@ -368,9 +368,8 @@ class RuleNode extends React.Component<Props> {
 
   isSchemaConfig(
     formFields: IssueAlertRuleActionTemplate['formFields']
-  ): formFields is Config {
-    if (!formFields) return false;
-    return (formFields as Config).uri !== undefined;
+  ): formFields is SchemaFormConfig {
+    return !formFields ? false : (formFields as SchemaFormConfig).uri !== undefined;
   }
 
   render() {
@@ -420,7 +419,7 @@ class RuleNode extends React.Component<Props> {
                       <SentryAppRuleModal
                         {...deps}
                         sentryAppInstallationUuid={sentryAppInstallationUuid}
-                        config={node.formFields as Config}
+                        config={node.formFields as SchemaFormConfig}
                         appName={node.prompt}
                         onSubmitSuccess={this.updateParentFromSentryAppRule}
                         // Ignore the `id` field, as that is related to the Rule Node, not the Sentry App

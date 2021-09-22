@@ -24,14 +24,14 @@ export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
   async?: boolean;
 };
 
-export type Config = {
+export type SchemaFormConfig = {
   uri: string;
   required_fields?: FieldFromSchema[];
   optional_fields?: FieldFromSchema[];
 };
 
 // only need required_fields and optional_fields
-type State = Omit<Config, 'uri'> & {
+type State = Omit<SchemaFormConfig, 'uri'> & {
   optionsByField: Map<string, Array<{label: string; value: any}>>;
 };
 
@@ -39,16 +39,24 @@ type Props = {
   api: Client;
   sentryAppInstallationUuid: string;
   appName: string;
-  config: Config;
+  config: SchemaFormConfig;
   action: 'create' | 'link';
   element: 'issue-link' | 'alert-rule-action';
-  /** Addtional form data to submit with the request */
+  /**
+   * Addtional form data to submit with the request
+   */
   extraFields?: {[key: string]: any};
-  /** Addtional body parameters to submit with the request */
+  /**
+   * Addtional body parameters to submit with the request
+   */
   extraRequestBody?: {[key: string]: any};
-  /** Object containing reset values for fields if previously entered, in case this   form is unmounted */
+  /**
+   * Object containing reset values for fields if previously entered, in case this form is unmounted
+   */
   resetValues?: {[key: string]: any};
-  /** Function to provide fields with pre-written data if a default is specified */
+  /**
+   * Function to provide fields with pre-written data if a default is specified
+   */
   getFieldDefault?: (field: FieldFromSchema) => string;
   onSubmitSuccess: Function;
 };
@@ -107,15 +115,12 @@ export class SentryAppExternalForm extends Component<Props, State> {
     });
 
   getSubmitEndpoint() {
-    const {sentryAppInstallationUuid} = this.props;
-    switch (this.props.element) {
-      case 'alert-rule-action':
-        // TODO(leander): Send request to the correct endpoint
-        return '/404/';
-      case 'issue-link':
-      default:
-        return `/sentry-app-installations/${sentryAppInstallationUuid}/external-issue-actions/`;
+    const {sentryAppInstallationUuid, element} = this.props;
+    if (element === 'alert-rule-action') {
+      // TODO(leander): Send request to the correct endpoint
+      return '/404/';
     }
+    return `/sentry-app-installations/${sentryAppInstallationUuid}/external-issue-actions/`;
   }
 
   getElementText = () => {
