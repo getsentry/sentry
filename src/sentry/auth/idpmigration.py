@@ -4,6 +4,8 @@ from sentry.models.useremail import default_validation_hash
 from sentry.utils import redis
 from sentry.utils.email import MessageBuilder
 
+REDIS_KEY = "verificationKeyStorage"
+
 
 def send_confirm_email(user: User, email: str, verification_key: str) -> None:
     context = {
@@ -37,9 +39,8 @@ def create_verification_key(user: User, org: Organization, email: str) -> None:
     :param org: the organization whose SSO provider is being used
     :param email: the email address associated with the SSO identity
     """
-    redis_key = "verificationKeyStorage"
     TTL = 60 * 10
-    cluster = redis.clusters.get("default").get_local_client_for_key(redis_key)
+    cluster = redis.clusters.get("default").get_local_client_for_key(REDIS_KEY)
     member_id = OrganizationMember.objects.get(organization=org, user=user).id
 
     verification_code = default_validation_hash()
@@ -52,7 +53,7 @@ def create_verification_key(user: User, org: Organization, email: str) -> None:
     send_confirm_email(user, email, verification_code)
 
 
-def verify_new_identity(user: User, org: Organization, key: str) -> bool:
+def verify_new_identity(key: str) -> str:
     """Verify a key to migrate a user to a new IdP.
 
     If the provided one-time key is valid, create a new auth identity
@@ -63,5 +64,12 @@ def verify_new_identity(user: User, org: Organization, key: str) -> bool:
     :param key: the one-time verification key
     :return: whether the key is valid
     """
-    # user cluster.hgetall(key) to get from redis
-    raise NotImplementedError  # TODO
+    cluster = redis.clusters.get("default").get_local_client_for_key(REDIS_KEY)
+
+    verification_key = f"auth:one-time-key:{key}"
+    verification_value_byte = cluster.hgetall(verification_key)
+
+    if not verification_value_byte:
+        return ""
+
+    return verification_key

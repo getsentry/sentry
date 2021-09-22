@@ -1,5 +1,6 @@
 from django.conf.urls import include, url
 
+from sentry.api.endpoints.idp_email_verification import IDPEmailVerificationEndpoint
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
@@ -1300,6 +1301,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/previous-with-commits/$",
                     OrganizationReleasePreviousCommitsEndpoint.as_view(),
                     name="sentry-api-0-organization-release-previous-with-commits",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/user-confirm/$",
+                    IDPEmailVerificationEndpoint.as_view(),
+                    name="sentry-api-0-organization-idp-email-verification",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/user-feedback/$",
