@@ -26,10 +26,10 @@ function MetricSelectField({metricMetas, metricMeta, aggregation, onChange}: Pro
     <Wrapper>
       <StyledSelectField
         name="metric"
-        choices={metricMetas.map(metricMetaChoice => [
-          metricMetaChoice.name,
-          metricMetaChoice.name,
-        ])}
+        options={metricMetas.map(metricMetaChoice => ({
+          value: metricMetaChoice.name,
+          label: metricMetaChoice.name,
+        }))}
         placeholder={t('Select metric')}
         onChange={value => {
           const newMetric = metricMetas.find(
