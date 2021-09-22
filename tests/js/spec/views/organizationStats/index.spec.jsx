@@ -450,6 +450,18 @@ function getMockResponse() {
             'sum(quantity)': [2, 2, 2, 2, 2, 2, 3],
           },
         },
+        {
+          by: {
+            category: 'error',
+            outcome: 'client_discard',
+          },
+          totals: {
+            'sum(quantity)': 15,
+          },
+          series: {
+            'sum(quantity)': [2, 2, 2, 2, 2, 2, 3],
+          },
+        },
       ],
     },
   };
