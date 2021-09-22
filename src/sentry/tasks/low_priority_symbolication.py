@@ -19,7 +19,12 @@ from sentry.tasks.base import instrumented_task
 logger = logging.getLogger(__name__)
 
 
-@instrumented_task(name="sentry.tasks.symbolicator.scan_for_suspect_projects", queue="symbolicator.compute_low_priority_queue", ignore_result=True)  # type: ignore
+@instrumented_task(
+    name="sentry.tasks.symbolicator.scan_for_suspect_projects",
+    queue="symbolicator.compute_low_priority_queue",
+    ignore_result=True,
+    soft_time_limit=10,
+)  # type: ignore
 def scan_for_suspect_projects() -> None:
     _scan_for_suspect_projects()
 
@@ -53,7 +58,12 @@ def _scan_for_suspect_projects() -> None:
         )
 
 
-@instrumented_task(name="sentry.tasks.symbolicator.calculate_lpq_eligibility", queue="symbolicator.compute_low_priority_queue", ignore_result=True)  # type: ignore
+@instrumented_task(
+    name="sentry.tasks.symbolicator.calculate_lpq_eligibility",
+    queue="symbolicator.compute_low_priority_queue",
+    ignore_result=True,
+    soft_time_limit=10,
+)  # type: ignore
 def calculate_lpq_eligibility(project_id: int) -> None:
     _calculate_lpq_eligibility(project_id)
 
