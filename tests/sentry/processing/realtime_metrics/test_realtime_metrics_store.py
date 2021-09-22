@@ -8,13 +8,9 @@ from sentry.processing.realtime_metrics.redis import RedisRealtimeMetricsStore  
 from sentry.utils import redis
 
 if TYPE_CHECKING:
-    from typing import Callable, TypeVar
+    from typing import Callable
 
-    # Declare fixture decorator to swallow the function, this isn't the actual type returned
-    # but the type is unusable as a function which is what matters.
-    F = TypeVar("F", bound=Callable[..., None])
-
-    def _fixture(func: F) -> F:
+    def _fixture(func: Callable[..., Any]) -> Callable[..., None]:
         ...
 
     pytest.fixture = _fixture

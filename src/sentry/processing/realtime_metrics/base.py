@@ -1,7 +1,7 @@
 from sentry.utils.services import Service
 
 
-class RealtimeMetricsStore(Service):
+class RealtimeMetricsStore(Service):  # type: ignore
     __all__ = ("increment_project_event_counter", "validate")
 
     def increment_project_event_counter(self, project_id: int, timestamp: float) -> None:
