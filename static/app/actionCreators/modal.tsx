@@ -228,13 +228,6 @@ export async function openInviteMembersModal({
   openModal(deps => <Modal {...deps} {...args} />, {modalCss, onClose});
 }
 
-export async function openAddDashboardWidgetModal(options: DashboardWidgetModalOptions) {
-  const mod = await import('app/components/modals/addDashboardWidgetModal');
-  const {default: Modal, modalCss} = mod;
-
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
-}
-
 export async function openReprocessEventModal({
   onClose,
   ...options

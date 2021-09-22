@@ -17,10 +17,12 @@ type Props = {
   goBackLocation: React.ComponentProps<typeof Link>['to'];
   dashboardTitle: DashboardDetails['title'];
   onChangeTitle: (title: string) => void;
+
   onSave?: (event: React.MouseEvent) => void;
   onDelete?: () => void;
   disabled?: boolean;
   isEditing?: boolean;
+  isDisabled?: boolean;
 };
 
 function Header({
@@ -32,6 +34,7 @@ function Header({
   onSave,
   onDelete,
   isEditing,
+  isDisabled,
 }: Props) {
   return (
     <Layout.Header>
@@ -55,6 +58,7 @@ function Header({
             onChange={onChangeTitle}
             errorMessage={t('Please set a title for this widget')}
             successMessage={t('Widget title updated successfully')}
+            isDisabled={isDisabled}
           />
         </Layout.Title>
       </Layout.HeaderContent>
@@ -69,12 +73,15 @@ function Header({
           >
             {t('Give Feedback')}
           </Button>
-          <Button to={goBackLocation}>{t('Cancel')}</Button>
+          <Button disabled={isDisabled} to={goBackLocation}>
+            {t('Cancel')}
+          </Button>
           {isEditing && onDelete && (
             <Confirm
               priority="danger"
               message={t('Are you sure you want to delete this widget?')}
               onConfirm={onDelete}
+              disabled={isDisabled}
             >
               <Button priority="danger">{t('Delete')}</Button>
             </Confirm>
@@ -82,7 +89,7 @@ function Header({
           <Button
             priority="primary"
             onClick={onSave}
-            disabled={!onSave}
+            disabled={!onSave || isDisabled}
             title={!onSave ? t('This feature is not yet available') : undefined}
           >
             {isEditing ? t('Update Widget') : t('Add Widget')}

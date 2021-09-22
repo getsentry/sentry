@@ -7,7 +7,6 @@ import {Location} from 'history';
 
 import {validateWidget} from 'app/actionCreators/dashboards';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
 import space from 'app/styles/space';
@@ -71,17 +70,8 @@ class Dashboard extends Component<Props> {
   }
 
   handleStartAdd = () => {
-    const {organization, dashboard, selection} = this.props;
-    openAddDashboardWidgetModal({
-      organization,
-      dashboard,
-      selection,
-      onAddWidget: this.handleAddComplete,
-    });
-  };
-
-  handleOpenWidgetBuilder = () => {
     const {router, paramDashboardId, organization, location} = this.props;
+
     if (paramDashboardId) {
       router.push({
         pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
@@ -92,6 +82,7 @@ class Dashboard extends Component<Props> {
       });
       return;
     }
+
     router.push({
       pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
       query: {
@@ -118,45 +109,27 @@ class Dashboard extends Component<Props> {
   };
 
   handleEditWidget = (widget: Widget, index: number) => () => {
-    const {
-      organization,
-      dashboard,
-      selection,
-      router,
-      location,
-      paramDashboardId,
-      onSetWidgetToBeUpdated,
-    } = this.props;
+    const {organization, router, location, paramDashboardId, onSetWidgetToBeUpdated} =
+      this.props;
 
-    if (organization.features.includes('metrics')) {
-      onSetWidgetToBeUpdated(widget);
+    onSetWidgetToBeUpdated(widget);
 
-      if (paramDashboardId) {
-        router.push({
-          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
-          query: {
-            ...location.query,
-            dataSet: DataSet.EVENTS,
-          },
-        });
-        return;
-      }
+    if (paramDashboardId) {
       router.push({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
+        pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
         query: {
           ...location.query,
           dataSet: DataSet.EVENTS,
         },
       });
+      return;
     }
-
-    openAddDashboardWidgetModal({
-      organization,
-      dashboard,
-      widget,
-      selection,
-      onAddWidget: this.handleAddComplete,
-      onUpdateWidget: this.handleUpdateComplete(index),
+    router.push({
+      pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
+      query: {
+        ...location.query,
+        dataSet: DataSet.EVENTS,
+      },
     });
   };
 
@@ -192,7 +165,6 @@ class Dashboard extends Component<Props> {
       isEditing,
       onUpdate,
       dashboard: {widgets},
-      organization,
     } = this.props;
 
     const items = this.getWidgetIds();
@@ -217,13 +189,7 @@ class Dashboard extends Component<Props> {
         <WidgetContainer>
           <SortableContext items={items} strategy={rectSortingStrategy}>
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
-            {isEditing && (
-              <AddWidget
-                orgFeatures={organization.features}
-                onAddWidget={this.handleStartAdd}
-                onOpenWidgetBuilder={this.handleOpenWidgetBuilder}
-              />
-            )}
+            {isEditing && <AddWidget onClick={this.handleStartAdd} />}
           </SortableContext>
         </WidgetContainer>
       </DndContext>

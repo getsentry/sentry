@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import {IconAdd} from 'app/icons';
-import {Organization} from 'app/types';
 
 import {DisplayType} from './types';
 import WidgetWrapper from './widgetWrapper';
@@ -18,14 +17,10 @@ const initialStyles = {
 };
 
 type Props = {
-  onOpenWidgetBuilder: () => void;
-  onAddWidget: () => void;
-  orgFeatures: Organization['features'];
+  onClick: () => void;
 };
 
-function AddWidget({onAddWidget, onOpenWidgetBuilder, orgFeatures}: Props) {
-  const onClick = orgFeatures.includes('metrics') ? onOpenWidgetBuilder : onAddWidget;
-
+function AddWidget({onClick}: Props) {
   const {setNodeRef, transform} = useSortable({
     disabled: true,
     id: ADD_WIDGET_BUTTON_DRAG_ID,

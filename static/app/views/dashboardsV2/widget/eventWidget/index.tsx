@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
@@ -10,6 +10,7 @@ import {addSuccessMessage} from 'app/actionCreators/indicator';
 import WidgetQueryFields from 'app/components/dashboards/widgetQueryFields';
 import SelectControl from 'app/components/forms/selectControl';
 import * as Layout from 'app/components/layouts/thirds';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {PanelAlert} from 'app/components/panels';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
@@ -17,10 +18,9 @@ import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
 import {defined} from 'app/utils';
 import Measurements from 'app/utils/measurements/measurements';
+import useApi from 'app/utils/useApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
 import withTags from 'app/utils/withTags';
-import AsyncView from 'app/views/asyncView';
 import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 
@@ -41,13 +41,14 @@ const newQuery = {
   orderby: '',
 };
 
-type Props = AsyncView['props'] & {
+type Props = {
   organization: Organization;
   selection: GlobalSelection;
   dashboardTitle: DashboardDetails['title'];
   tags: TagCollection;
   isEditing: boolean;
   goBackLocation: LocationDescriptor;
+  hasMetricsFeatureFlag: boolean;
   onChangeDataSet: (dataSet: DataSet) => void;
   onAdd: (widget: Widget) => void;
   onUpdate: (nextWidget: Widget) => void;
@@ -55,41 +56,62 @@ type Props = AsyncView['props'] & {
   widget?: Widget;
 };
 
-type State = AsyncView['state'] & {
+type State = {
   title: string;
   displayType: DisplayType;
   interval: string;
   queries: Widget['queries'];
+  isSaving: boolean;
   widgetErrors?: Record<string, any>;
 };
 
-class EventWidget extends AsyncView<Props, State> {
-  getDefaultState() {
-    const {widget} = this.props;
+function EventWidget({
+  organization,
+  onChangeDataSet,
+  selection,
+  tags,
+  isEditing,
+  goBackLocation,
+  dashboardTitle,
+  onDelete,
+  hasMetricsFeatureFlag,
+  widget,
+  onAdd,
+  onUpdate,
+}: Props) {
+  const [state, setState] = useState<State>(getInitialState());
+  const api = useApi();
 
+  const {title, displayType, queries, interval, widgetErrors, isSaving} = state;
+
+  useEffect(() => {
+    if (isSaving) {
+      submitWidget();
+    }
+  }, [isSaving]);
+
+  function getInitialState() {
     if (!widget) {
       return {
-        ...super.getDefaultState(),
         title: t('Custom %s Widget', displayTypes[DisplayType.AREA]),
         displayType: DisplayType.AREA,
         interval: '5m',
         queries: [{...newQuery}],
+        isSaving: false,
       };
     }
 
     return {
-      ...super.getDefaultState(),
       title: widget.title,
       displayType: widget.displayType,
       interval: widget.interval,
       queries: normalizeQueries(widget.displayType, widget.queries),
       widgetErrors: undefined,
+      isSaving: false,
     };
   }
 
-  getFirstQueryError(field: string) {
-    const {widgetErrors} = this.state;
-
+  function getFirstQueryError(field: string) {
     if (!widgetErrors) {
       return undefined;
     }
@@ -106,70 +128,61 @@ class EventWidget extends AsyncView<Props, State> {
     return undefined;
   }
 
-  handleFieldChange = <F extends keyof State>(field: F, value: State[F]) => {
-    this.setState(state => {
-      const newState = cloneDeep(state);
+  function handleFieldChange<F extends keyof State>(field: F, value: State[F]) {
+    const newState = cloneDeep(state);
 
-      if (field === 'displayType') {
-        set(newState, 'queries', normalizeQueries(value as DisplayType, state.queries));
-        if (
-          state.title === t('Custom %s Widget', state.displayType) ||
-          state.title === t('Custom %s Widget', DisplayType.AREA)
-        ) {
-          return {
-            ...newState,
-            title: t('Custom %s Widget', displayTypes[value]),
-            widgetErrors: undefined,
-          };
-        }
-
-        set(newState, field, value);
+    if (field === 'displayType') {
+      set(newState, 'queries', normalizeQueries(value as DisplayType, state.queries));
+      if (
+        state.title === t('Custom %s Widget', state.displayType) ||
+        state.title === t('Custom %s Widget', DisplayType.AREA)
+      ) {
+        setState({
+          ...newState,
+          title: t('Custom %s Widget', displayTypes[value as DisplayType]),
+          widgetErrors: undefined,
+        });
       }
 
-      return {...newState, widgetErrors: undefined};
-    });
-  };
+      set(newState, field, value);
+    }
 
-  handleRemoveQuery = (index: number) => {
-    this.setState(state => {
-      const newState = cloneDeep(state);
-      newState.queries.splice(index, 1);
-      return {...newState, widgetErrors: undefined};
-    });
-  };
+    return setState({...newState, widgetErrors: undefined});
+  }
 
-  handleAddQuery = () => {
-    this.setState(state => {
-      const newState = cloneDeep(state);
-      newState.queries.push(cloneDeep(newQuery));
-      return newState;
-    });
-  };
+  function handleRemoveQuery(index: number) {
+    const newState = cloneDeep(state);
+    newState.queries.splice(index, 1);
+    setState({...newState, widgetErrors: undefined});
+  }
 
-  handleChangeQuery = (index: number, query: WidgetQuery) => {
-    this.setState(state => {
-      const newState = cloneDeep(state);
-      set(newState, `queries.${index}`, query);
-      return {...newState, widgetErrors: undefined};
-    });
-  };
+  function handleAddQuery() {
+    const newState = cloneDeep(state);
+    newState.queries.push(cloneDeep(newQuery));
+    setState(newState);
+  }
 
-  handleSave = async (event: React.FormEvent) => {
+  function handleChangeQuery(index: number, query: WidgetQuery) {
+    const newState = cloneDeep(state);
+    set(newState, `queries.${index}`, query);
+    setState({...state, widgetErrors: undefined});
+  }
+
+  function handleSave(event: React.FormEvent) {
     event.preventDefault();
+    setState({...state, isSaving: true});
+  }
 
-    this.setState({loading: true});
-
-    const {organization, onAdd, isEditing, onUpdate, widget} = this.props;
-
+  async function submitWidget() {
     try {
-      const widgetData: Widget = pick(this.state, [
+      const widgetData: Widget = pick(state, [
         'title',
         'displayType',
         'interval',
         'queries',
       ]);
 
-      await validateWidget(this.api, organization.slug, widgetData);
+      await validateWidget(api, organization.slug, widgetData);
 
       if (isEditing) {
         (onUpdate as (nextWidget: Widget) => void)({
@@ -183,48 +196,41 @@ class EventWidget extends AsyncView<Props, State> {
       onAdd(widgetData);
       addSuccessMessage(t('Added widget'));
     } catch (err) {
-      const widgetErrors = mapErrors(err?.responseJSON ?? {}, {});
-      this.setState({widgetErrors});
-    } finally {
-      this.setState({loading: false});
-    }
-  };
-
-  renderBody() {
-    const {
-      organization,
-      onChangeDataSet,
-      selection,
-      tags,
-      isEditing,
-      goBackLocation,
-      dashboardTitle,
-      onDelete,
-    } = this.props;
-    const {title, displayType, queries, interval, widgetErrors} = this.state;
-    const orgSlug = organization.slug;
-
-    function fieldOptions(measurementKeys: string[]) {
-      return generateFieldOptions({
-        organization,
-        tagKeys: Object.values(tags).map(({key}) => key),
-        measurementKeys,
+      setState({
+        ...state,
+        widgetErrors: mapErrors(err?.responseJSON ?? {}, {}),
+        isSaving: false,
       });
     }
+  }
 
-    return (
-      <StyledPageContent>
-        <Header
-          dashboardTitle={dashboardTitle}
-          orgSlug={orgSlug}
-          title={title}
-          isEditing={isEditing}
-          onChangeTitle={newTitle => this.handleFieldChange('title', newTitle)}
-          onSave={this.handleSave}
-          onDelete={onDelete}
-          goBackLocation={goBackLocation}
-        />
-        <Layout.Body>
+  const orgSlug = organization.slug;
+
+  function fieldOptions(measurementKeys: string[]) {
+    return generateFieldOptions({
+      organization,
+      tagKeys: Object.values(tags).map(({key}) => key),
+      measurementKeys,
+    });
+  }
+
+  return (
+    <StyledPageContent>
+      <Header
+        dashboardTitle={dashboardTitle}
+        orgSlug={orgSlug}
+        title={title}
+        isDisabled={isSaving}
+        isEditing={isEditing}
+        onChangeTitle={newTitle => handleFieldChange('title', newTitle)}
+        onSave={handleSave}
+        onDelete={onDelete}
+        goBackLocation={goBackLocation}
+      />
+      <Layout.Body>
+        {isSaving ? (
+          <LoadingIndicator />
+        ) : (
           <BuildSteps>
             <BuildStep
               title={t('Choose your visualization')}
@@ -241,12 +247,12 @@ class EventWidget extends AsyncView<Props, State> {
                   }))}
                   value={displayType}
                   onChange={(option: {label: string; value: DisplayType}) => {
-                    this.handleFieldChange('displayType', option.value);
+                    handleFieldChange('displayType', option.value);
                   }}
                   error={widgetErrors?.displayType}
                 />
                 <WidgetCard
-                  api={this.api}
+                  api={api}
                   organization={organization}
                   selection={selection}
                   widget={{title, queries, displayType, interval}}
@@ -263,7 +269,9 @@ class EventWidget extends AsyncView<Props, State> {
                 />
               </VisualizationWrapper>
             </BuildStep>
-            <ChooseDataSetStep value={DataSet.EVENTS} onChange={onChangeDataSet} />
+            {hasMetricsFeatureFlag && (
+              <ChooseDataSetStep value={DataSet.EVENTS} onChange={onChangeDataSet} />
+            )}
             <BuildStep
               title={t('Begin your search')}
               description={t('Add another query to compare projects, tags, etc.')}
@@ -273,9 +281,9 @@ class EventWidget extends AsyncView<Props, State> {
                 selectedProjectIds={selection.projects}
                 organization={organization}
                 displayType={displayType}
-                onRemoveQuery={this.handleRemoveQuery}
-                onAddQuery={this.handleAddQuery}
-                onChangeQuery={this.handleChangeQuery}
+                onRemoveQuery={handleRemoveQuery}
+                onAddQuery={handleAddQuery}
+                onChangeQuery={handleChangeQuery}
                 errors={widgetErrors?.queries}
               />
             </BuildStep>
@@ -286,7 +294,7 @@ class EventWidget extends AsyncView<Props, State> {
                 const buildStepContent = (
                   <WidgetQueryFields
                     style={{padding: 0}}
-                    errors={this.getFirstQueryError('fields')}
+                    errors={getFirstQueryError('fields')}
                     displayType={displayType}
                     fieldOptions={amendedFieldOptions}
                     fields={queries[0].fields}
@@ -295,7 +303,7 @@ class EventWidget extends AsyncView<Props, State> {
                       queries.forEach((query, queryIndex) => {
                         const clonedQuery = cloneDeep(query);
                         clonedQuery.fields = fields;
-                        this.handleChangeQuery(queryIndex, clonedQuery);
+                        handleChangeQuery(queryIndex, clonedQuery);
                       });
                     }}
                   />
@@ -317,13 +325,13 @@ class EventWidget extends AsyncView<Props, State> {
               }}
             </Measurements>
           </BuildSteps>
-        </Layout.Body>
-      </StyledPageContent>
-    );
-  }
+        )}
+      </Layout.Body>
+    </StyledPageContent>
+  );
 }
 
-export default withOrganization(withGlobalSelection(withTags(EventWidget)));
+export default withGlobalSelection(withTags(EventWidget));
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;

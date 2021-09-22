@@ -359,6 +359,7 @@ class DashboardDetail extends Component<Props, State> {
     if (modifiedDashboard === null) {
       return;
     }
+
     this.setState(
       (state: State) => ({
         ...state,

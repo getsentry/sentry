@@ -7,7 +7,6 @@ import {Location, Query} from 'history';
 import moment from 'moment';
 
 import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
-import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import DropdownMenu from 'app/components/dropdownMenu';
@@ -89,17 +88,16 @@ class QueryList extends React.Component<Props> {
     (eventView: EventView, savedQuery?: SavedQuery) =>
     (event: React.MouseEvent<Element>) => {
       const {organization} = this.props;
-      event.preventDefault();
       event.stopPropagation();
-      openAddDashboardWidgetModal({
-        organization,
-        defaultQuery: eventView.query,
-        start: eventView.start,
-        end: eventView.end,
-        statsPeriod: eventView.statsPeriod,
-        fromDiscover: true,
-        defaultTitle: savedQuery?.name ?? eventView.name,
-      });
+      // openAddDashboardWidgetModal({
+      //   organization,
+      //   defaultQuery: eventView.query,
+      //   start: eventView.start,
+      //   end: eventView.end,
+      //   statsPeriod: eventView.statsPeriod,
+      //   fromDiscover: true,
+      //   defaultTitle: savedQuery?.name ?? eventView.name,
+      // });
     };
 
   renderQueries() {

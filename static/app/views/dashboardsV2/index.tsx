@@ -26,6 +26,7 @@ class DashboardsV2Container extends React.Component<Props> {
     if (organization.features.includes('dashboards-edit')) {
       return children;
     }
+
     return (
       <DashboardBasicFeature organization={organization}>
         <OrgDashboards

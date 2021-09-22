@@ -132,12 +132,8 @@ export function validateWidget(
   orgId: string,
   widget: Widget
 ): Promise<undefined> {
-  const promise: Promise<undefined> = api.requestPromise(
-    `/organizations/${orgId}/dashboards/widgets/`,
-    {
-      method: 'POST',
-      data: widget,
-    }
-  );
-  return promise;
+  return api.requestPromise(`/organizations/${orgId}/dashboards/widgets/`, {
+    method: 'POST',
+    data: widget,
+  });
 }

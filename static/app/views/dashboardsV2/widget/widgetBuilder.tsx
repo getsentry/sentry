@@ -4,6 +4,7 @@ import {RouteComponentProps} from 'react-router';
 import Alert from 'app/components/alert';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';
 
@@ -37,6 +38,9 @@ function WidgetBuilder({
 }: Props) {
   const [dataSet, setDataSet] = useState<DataSet | undefined>(DataSet.EVENTS);
   const isEditing = !!widget;
+  const {query} = location;
+  const queryDataSet = query?.dataSet;
+  const hasMetricsFeatureFlag = organization.features.includes('metrics');
 
   const {widgetId, orgId, dashboardId} = params;
 
@@ -49,12 +53,9 @@ function WidgetBuilder({
 
   useEffect(() => {
     checkDataSet();
-  });
+  }, []);
 
   function checkDataSet() {
-    const {query} = location;
-    const queryDataSet = query?.dataSet;
-
     if (!queryDataSet) {
       router.replace({
         pathname: location.pathname,
@@ -93,11 +94,21 @@ function WidgetBuilder({
     });
   }
 
+  if (!hasMetricsFeatureFlag && queryDataSet === DataSet.METRICS) {
+    return (
+      <PageContent>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </PageContent>
+    );
+  }
+
   if (!dataSet) {
     return (
-      <Alert type="error" icon={<IconWarning />}>
-        {t('Data set not found.')}
-      </Alert>
+      <PageContent>
+        <Alert type="error" icon={<IconWarning />}>
+          {t('Invalid dataset')}
+        </Alert>
+      </PageContent>
     );
   }
 
@@ -110,9 +121,11 @@ function WidgetBuilder({
     (isEditing && defined(widgetId) && !dashboard.widgets[widgetId])
   ) {
     return (
-      <Alert type="error" icon={<IconWarning />}>
-        {t('Widget not found.')}
-      </Alert>
+      <PageContent>
+        <Alert type="error" icon={<IconWarning />}>
+          {t('Widget not found')}
+        </Alert>
+      </PageContent>
     );
   }
 
@@ -146,6 +159,8 @@ function WidgetBuilder({
         onChangeDataSet={handleDataSetChange}
         goBackLocation={goBackLocation}
         isEditing={isEditing}
+        organization={organization}
+        hasMetricsFeatureFlag={hasMetricsFeatureFlag}
       />
     );
   }
