@@ -2147,6 +2147,12 @@ FUNCTIONS = {
                 ],
             ],
         ),
+        DiscoverFunction(
+            "identity",
+            required_args=[ColumnArg("column")],
+            aggregate=["identity", ArgValue("column"), None],
+            private=True,
+        ),
     ]
 }
 

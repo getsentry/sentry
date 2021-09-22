@@ -551,7 +551,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
     def setUp(self):
         super().setUp()
         self.valid_alert_rule = {
-            "aggregate": "percentage(sessions_crashed, sessions) AS crash_rate_alert_aggregate",
+            "aggregate": "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
             "query": "",
             "timeWindow": "60",
             "resolveThreshold": 90,

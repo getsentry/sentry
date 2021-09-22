@@ -5,6 +5,7 @@ import sentry_sdk
 from django.utils import timezone
 from snuba_sdk.legacy import json_to_snql
 
+from sentry.constants import CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
 from sentry.snuba.models import QueryDatasets, QuerySubscription
@@ -178,9 +179,22 @@ def build_snuba_filter(dataset, query, aggregate, environment, event_types, para
         QueryDatasets.TRANSACTIONS: resolve_column(Dataset.Transactions),
     }[dataset]
 
+    functions_acl = None
+
+    aggregations = [aggregate]
+    if dataset == QueryDatasets.SESSIONS:
+        # This aggregation is added to return the total number of sessions in crash
+        # rate alerts that is used to identify if we are below a general minimum alert threshold
+        aggregations += [f"identity(sessions) AS {CRASH_RATE_ALERT_SESSION_COUNT_ALIAS}"]
+        functions_acl = ["identity"]
+
     query = apply_dataset_query_conditions(dataset, query, event_types)
     snuba_filter = get_filter(query, params=params)
-    snuba_filter.update_with(resolve_field_list([aggregate], snuba_filter, auto_fields=False))
+    snuba_filter.update_with(
+        resolve_field_list(
+            aggregations, snuba_filter, auto_fields=False, functions_acl=functions_acl
+        )
+    )
     snuba_filter = resolve_snuba_aliases(snuba_filter, resolve_func)[0]
     if snuba_filter.group_ids:
         snuba_filter.conditions.append(["group_id", "IN", list(map(int, snuba_filter.group_ids))])
