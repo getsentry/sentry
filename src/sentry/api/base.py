@@ -177,10 +177,8 @@ class Endpoint(APIView):
                 token_type=token_name,
             )
             api_access_logger.info(log_metrics)
-        except Exception as exc:
-            api_access_logger.error(
-                f"Unexpected exception when attempting to log api access: {exc}"
-            )
+        except Exception:
+            api_access_logger.exception("Unexpected exception when attempting to log api access")
 
     def initialize_request(self, request, *args, **kwargs):
         # XXX: Since DRF 3.x, when the request is passed into
