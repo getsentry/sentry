@@ -381,8 +381,7 @@ def parse_code_owners(data: str) -> Tuple[List[str], List[str], List[str]]:
         if rule.startswith("#") or not len(rule):
             continue
 
-        _, *assignees = rule.strip().split()
-
+        assignees = rule.strip().split()[1:]
         for assignee in assignees:
             if "/" not in assignee:
                 if re.match(r"[^@]+@[^@]+\.[^@]+", assignee):
