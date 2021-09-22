@@ -8,6 +8,7 @@ import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
+import ExternalLink from 'app/components/links/externalLink';
 import {RowRectangle} from 'app/components/performance/waterfall/rowBar';
 import {pickBarColor, toPercent} from 'app/components/performance/waterfall/utils';
 import Tooltip from 'app/components/tooltip';
@@ -15,7 +16,7 @@ import UserMisery from 'app/components/userMisery';
 import Version from 'app/components/version';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
-import {defined} from 'app/utils';
+import {defined, isUrl} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {EventData, MetaType} from 'app/utils/discover/eventView';
 import {
@@ -164,6 +165,15 @@ const FIELD_FORMATTERS: FieldFormatters = {
         : defined(data[field])
         ? data[field]
         : emptyValue;
+      if (isUrl(value)) {
+        return (
+          <Container>
+            <ExternalLink href={value} data-test-id="group-tag-url">
+              {value}
+            </ExternalLink>
+          </Container>
+        );
+      }
       return <Container>{value}</Container>;
     },
   },
