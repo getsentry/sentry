@@ -1,14 +1,11 @@
-import re
 from email.utils import parseaddr
 
+from django.conf import settings
 from django.utils.encoding import force_bytes
 
 from sentry import options
 
 from .signer import _CaseInsensitiveSigner
-
-# Pull email from the string: u'lauryn <lauryn@sentry.io>'
-EMAIL_PARSER = re.compile(r"<(.*)>")
 
 # cache the domain_from_email calculation
 # This is just a tuple of (email, email-domain)
@@ -53,3 +50,7 @@ def domain_from_email(email):
     except IndexError:
         # The email address is likely malformed or something
         return email
+
+
+def is_valid_email_address(value: str) -> bool:
+    return not settings.INVALID_EMAIL_ADDRESS_PATTERN.search(value)

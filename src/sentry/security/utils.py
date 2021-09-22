@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Mapping, Optional
 
-from django.conf import settings
 from django.utils import timezone
 
 from .emails import generate_security_email
@@ -43,7 +42,3 @@ def capture_security_activity(
             current_datetime=current_datetime,
         )
         msg.send_async([account.email])
-
-
-def is_valid_email_address(value):
-    return not settings.INVALID_EMAIL_ADDRESS_PATTERN.search(value)
