@@ -46,7 +46,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         if self._counter_bucket_size > 1:
             timestamp -= timestamp % self._counter_bucket_size
 
-        key = f"{self._prefix}:{self._counter_bucket_size}:{project_id}:{timestamp}"
+        key = f"{self._prefix}:counter:{self._counter_bucket_size}:{project_id}:{timestamp}"
 
         with self.cluster.pipeline() as pipeline:
             pipeline.set(key, 0, nx=True, px=self._counter_ttl)
