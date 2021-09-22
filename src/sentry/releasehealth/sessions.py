@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Optional, Sequence, Tuple
 
+import sentry_sdk
+
 from sentry.releasehealth.base import (
     EnvironmentName,
     OrganizationId,
@@ -48,7 +50,10 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
     def run_sessions_query(
         self,
         query: QueryDefinition,
+        span_op: str,
     ) -> ReleaseHealthBackend.SessionsQueryResult:
-        totals, series = run_sessions_query(query)
+        with sentry_sdk.start_span(op=span_op, description="run_sessions_query"):
+            totals, series = run_sessions_query(query)
 
-        return massage_sessions_result(query, totals, series)  # type: ignore
+        with sentry_sdk.start_span(op=span_op, description="massage_sessions_results"):
+            return massage_sessions_result(query, totals, series)  # type: ignore

@@ -17,6 +17,7 @@ from sentry.releasehealth.base import (
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -340,3 +341,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             rv[project_id, release] = adoption
 
         return rv
+
+    def run_sessions_query(
+        self,
+        query: QueryDefinition,
+        span_op: str,
+    ) -> ReleaseHealthBackend.SessionsQueryResult:
+        raise NotImplementedError()

@@ -149,5 +149,6 @@ class ReleaseHealthBackend(Service):  # type: ignore
     def run_sessions_query(
         self,
         query: QueryDefinition,
+        span_op: str,
     ) -> SessionsQueryResult:
         raise NotImplementedError()

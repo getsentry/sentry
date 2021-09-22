@@ -6,13 +6,7 @@ from rest_framework.response import Response
 
 from sentry import features, releasehealth
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.snuba.sessions_v2 import (
-    InvalidField,
-    InvalidParams,
-    QueryDefinition,
-    massage_sessions_result,
-    run_sessions_query,
-)
+from sentry.snuba.sessions_v2 import InvalidField, InvalidParams, QueryDefinition
 
 
 # NOTE: this currently extends `OrganizationEventsEndpointBase` for `handle_query_errors` only, which should ideally be decoupled from the base class.
@@ -22,10 +16,7 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
             with sentry_sdk.start_span(op="sessions.endpoint", description="build_sessions_query"):
                 query = self.build_sessions_query(request, organization)
 
-            with sentry_sdk.start_span(op="sessions.endpoint", description="run_sessions_query"):
-                result = releasehealth.run_sessions_query(query)
-
-            # NOTE: second span had to go
+            result = releasehealth.run_sessions_query(query, span_op="sessions.endpoint")
 
             return Response(result, status=200)
 

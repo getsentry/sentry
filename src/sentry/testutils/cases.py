@@ -969,7 +969,10 @@ class SessionMetricsTestCase(SnubaTestCase):
             self._push_metric(session, "set", "user", {"session.status": status}, user)
 
         if status != "ok":  # terminal
-            self._push_metric(session, "distribution", "session.duration", {}, session["duration"])
+            if session["duration"] is not None:
+                self._push_metric(
+                    session, "distribution", "session.duration", {}, session["duration"]
+                )
 
     @classmethod
     def _push_metric(cls, session, type, name, tags, value):

@@ -1,11 +1,14 @@
 import datetime
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytz
 from django.urls import reverse
 from freezegun import freeze_time
 
+from sentry.releasehealth.metrics import MetricsReleaseHealthBackend
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.utils.dates import to_timestamp
 
 
@@ -583,3 +586,10 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 "totals": {"count_unique(user)": 0},
             },
         ]
+
+
+@patch("sentry.api.endpoints.organization_sessions.releasehealth", MetricsReleaseHealthBackend())
+class OrganizationSessionsEndpointMetricsTest(
+    SessionMetricsTestCase, OrganizationSessionsEndpointTest
+):
+    """Repeat with metrics backend"""
