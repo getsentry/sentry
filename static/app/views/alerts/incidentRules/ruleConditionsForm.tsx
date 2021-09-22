@@ -1,5 +1,6 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
@@ -25,7 +26,7 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 
 import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
 import MetricField from './metricField';
-import {Datasource, TimeWindow} from './types';
+import {Dataset, Datasource, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute'),
@@ -47,6 +48,7 @@ type Props = {
   thresholdChart: React.ReactNode;
   onFilterSearch: (query: string) => void;
   alertType: AlertType;
+  dataset: Dataset;
   allowChangeEventTypes?: boolean;
 };
 
@@ -79,6 +81,24 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     } catch (_err) {
       addErrorMessage(t('Unable to fetch environments'));
     }
+  }
+
+  get timeWindowOptions() {
+    let options: Record<string, string> = TIME_WINDOW_MAP;
+
+    if (this.props.dataset === Dataset.SESSIONS) {
+      options = pick(TIME_WINDOW_MAP, [
+        TimeWindow.ONE_HOUR,
+        TimeWindow.TWO_HOURS,
+        TimeWindow.FOUR_HOURS,
+        TimeWindow.ONE_DAY,
+      ]);
+    }
+
+    return Object.entries(options).map(([value, label]) => ({
+      value,
+      label,
+    }));
   }
 
   render() {
@@ -316,10 +336,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               minWidth: 130,
               maxWidth: 300,
             }}
-            options={Object.entries(TIME_WINDOW_MAP).map(([value, label]) => ({
-              value,
-              label,
-            }))}
+            options={this.timeWindowOptions}
             required
             isDisabled={disabled}
             getValue={value => Number(value)}
