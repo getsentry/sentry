@@ -28,12 +28,22 @@ const Wrapper = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   display: flex;
   margin-bottom: ${space(3)};
+  flex-direction: column;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    flex-direction: row;
+  }
 `;
 
 const LeftPanel = styled('div')`
-  max-width: 250px;
-  border-right: 1px solid ${p => p.theme.border};
   padding: ${space(2)} ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    max-width: 250px;
+    border-right: 1px solid ${p => p.theme.border};
+    border-bottom: 0;
+  }
 `;
 
 const Title = styled('div')`
