@@ -17,12 +17,14 @@ jest.mock('app/actionCreators/modal', () => ({
 
 describe('OrganizationContext', function () {
   let wrapper;
-  const org = TestStubs.Organization({
-    teams: [TestStubs.Team()],
-    projects: [TestStubs.Project()],
-  });
+  const org = TestStubs.Organization();
+  const teams = [TestStubs.Team()];
+  const projects = [TestStubs.Project()];
+
   const api = new MockApiClient();
   let getOrgMock;
+  let getProjectsMock;
+  let getTeamsMock;
 
   const createWrapper = props => {
     wrapper = mountWithTheme(
@@ -45,6 +47,15 @@ describe('OrganizationContext', function () {
       url: '/organizations/org-slug/',
       body: org,
     });
+    getProjectsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: projects,
+    });
+    getTeamsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: teams,
+    });
+
     jest.spyOn(TeamStore, 'loadInitialData');
     jest.spyOn(ProjectsStore, 'loadInitialData');
     jest.spyOn(OrganizationActionCreator, 'fetchOrganizationDetails');

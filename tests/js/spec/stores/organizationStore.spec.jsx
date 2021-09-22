@@ -69,21 +69,4 @@ describe('OrganizationStore', function () {
       dirty: false,
     });
   });
-
-  it('loads in sorted projects', async function () {
-    const organization = TestStubs.Organization();
-    OrganizationActions.update(organization);
-    // wait for action to get dispatched to store
-    await tick();
-
-    const projectA = TestStubs.Project({slug: 'a'});
-    const projectB = TestStubs.Project({slug: 'b'});
-    const projects = [projectB, projectA];
-    ProjectActions.loadProjects(projects);
-    // wait for action to get dispatched to store
-    await tick();
-
-    // verify existence and sorted order of loaded projects
-    expect(OrganizationStore.get().organization.projects).toEqual([projectA, projectB]);
-  });
 });
