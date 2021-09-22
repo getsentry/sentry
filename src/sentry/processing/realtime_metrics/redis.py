@@ -96,7 +96,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
                 None,
                 {
                     _to_int(project_id_raw)
-                    for project_id_raw in self.inner.smembers(LPQ_MEMBERS_KEY)
+                    for project_id_raw in self.cluster.smembers(LPQ_MEMBERS_KEY)
                 },
             )
         )
@@ -116,7 +116,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         # This returns 0 if project_id was already in the set, 1 if it was added, and throws an
         # exception if there's a problem so it's fine if we just ignore the return value of this as
         # the project is always added if this successfully completes.
-        self.inner.sadd(LPQ_MEMBERS_KEY, project_id)
+        self.cluster.sadd(LPQ_MEMBERS_KEY, project_id)
 
     def remove_projects_from_lpq(self, project_ids: Set[int]) -> None:
         """
@@ -132,7 +132,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         if len(project_ids) == 0:
             return
 
-        self.inner.srem(LPQ_MEMBERS_KEY, *project_ids)
+        self.cluster.srem(LPQ_MEMBERS_KEY, *project_ids)
 
 
 def _to_int(value: str) -> Optional[int]:
