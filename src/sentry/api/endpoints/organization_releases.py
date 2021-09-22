@@ -38,7 +38,7 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
-from sentry.search.events.filter import parse_semver
+from sentry.search.events.filter import handle_negation, parse_semver
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
     STATS_PERIODS,
@@ -99,35 +99,22 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
                 elif raw_value.startswith("*"):
                     query_q = Q(version__endswith=raw_value[1:])
             elif search_filter.operator == "!=":
-                query_q = Q(version=search_filter.value.value, _negated=True)
+                query_q = ~Q(version=search_filter.value.value)
             else:
                 query_q = Q(version=search_filter.value.value)
 
             queryset = queryset.filter(query_q)
 
         if search_filter.key.name == SEMVER_ALIAS:
-            if search_filter.operator == "!=":
-                negate = True
-                queryset = queryset.filter_by_semver(
-                    organization.id,
-                    SemverFilter(
-                        "exact",
-                        parse_semver(search_filter.value.raw_value, "=").version_parts,
-                        [],
-                        negate,
-                    ),
-                )
-            else:
-                queryset = queryset.filter_by_semver(
-                    organization.id,
-                    parse_semver(search_filter.value.raw_value, search_filter.operator),
-                )
+            queryset = queryset.filter_by_semver(
+                organization.id, parse_semver(search_filter.value.raw_value, search_filter.operator)
+            )
 
         if search_filter.key.name == SEMVER_PACKAGE_ALIAS:
-            negate = True if search_filter.operator == "!=" else False
+            negated = True if search_filter.operator == "!=" else False
             queryset = queryset.filter_by_semver(
                 organization.id,
-                SemverFilter("exact", [], search_filter.value.raw_value, negate),
+                SemverFilter("exact", [], search_filter.value.raw_value, negated),
             )
 
         if search_filter.key.name == RELEASE_STAGE_ALIAS:
@@ -140,16 +127,13 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
             )
 
         if search_filter.key.name == SEMVER_BUILD_ALIAS:
-            if search_filter.operator == "!=":
-                queryset = queryset.filter_by_semver_build(
-                    organization.id, "exact", search_filter.value.raw_value, negate=True
-                )
-            else:
-                queryset = queryset.filter_by_semver_build(
-                    organization.id,
-                    OPERATOR_TO_DJANGO[search_filter.operator],
-                    search_filter.value.raw_value,
-                )
+            (operator, negated) = handle_negation(search_filter.operator)
+            queryset = queryset.filter_by_semver_build(
+                organization.id,
+                OPERATOR_TO_DJANGO[operator],
+                search_filter.value.raw_value,
+                negated=negated,
+            )
 
     return queryset
 

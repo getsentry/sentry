@@ -117,7 +117,7 @@ class SemverFilter:
     operator: str
     version_parts: Sequence[Union[int, str]]
     package: Optional[str] = None
-    negate: bool = False
+    negated: bool = False
 
 
 class ReleaseQuerySet(models.QuerySet):
@@ -145,7 +145,7 @@ class ReleaseQuerySet(models.QuerySet):
         operator: str,
         build: str,
         project_ids: Optional[Sequence[int]] = None,
-        negate: bool = False,
+        negated: bool = False,
     ) -> models.QuerySet:
         """
         Filters released by build. If the passed `build` is a numeric string, we'll filter on
@@ -154,6 +154,7 @@ class ReleaseQuerySet(models.QuerySet):
         wildcard only at the end of this string, so that we can filter efficiently via the index.
         """
         qs = self.filter(organization_id=organization_id)
+        query_func = "exclude" if negated else "filter"
 
         if project_ids:
             qs = qs.filter(
@@ -163,21 +164,12 @@ class ReleaseQuerySet(models.QuerySet):
             )
 
         if build.isnumeric() and validate_bigint(int(build)):
-            if negate:
-                qs = qs.exclude(**{f"build_number__{operator}": int(build)})
-            else:
-                qs = qs.filter(**{f"build_number__{operator}": int(build)})
+            qs = getattr(qs, query_func)(**{f"build_number__{operator}": int(build)})
         else:
             if not build or build.endswith("*"):
-                if negate:
-                    qs = qs.exclude(build_code__startswith=build[:-1])
-                else:
-                    qs = qs.filter(build_code__startswith=build[:-1])
+                qs = getattr(qs, query_func)(build_code__startswith=build[:-1])
             else:
-                if negate:
-                    qs = qs.exclude(build_code=build)
-                else:
-                    qs = qs.filter(build_code=build)
+                qs = getattr(qs, query_func)(build_code=build)
 
         return qs
 
@@ -199,11 +191,10 @@ class ReleaseQuerySet(models.QuerySet):
         Typically we build a `SemverFilter` via `sentry.search.events.filter.parse_semver`
         """
         qs = self.filter(organization_id=organization_id).annotate_prerelease_column()
+        query_func = "exclude" if semver_filter.negated else "filter"
+
         if semver_filter.package:
-            if semver_filter.negate:
-                qs = qs.exclude(package=semver_filter.package)
-            else:
-                qs = qs.filter(package=semver_filter.package)
+            qs = getattr(qs, query_func)(package=semver_filter.package)
         if project_ids:
             qs = qs.filter(
                 id__in=ReleaseProject.objects.filter(project_id__in=project_ids).values_list(
@@ -220,18 +211,10 @@ class ReleaseQuerySet(models.QuerySet):
                 function="ROW",
             )
             cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
-            if semver_filter.negate:
-                qs = qs.annotate(
-                    semver=Func(
-                        *(F(col) for col in cols), function="ROW", output_field=ArrayField()
-                    )
-                ).exclude(**{f"semver__{semver_filter.operator}": filter_func})
-            else:
-                qs = qs.annotate(
-                    semver=Func(
-                        *(F(col) for col in cols), function="ROW", output_field=ArrayField()
-                    )
-                ).filter(**{f"semver__{semver_filter.operator}": filter_func})
+            q = qs.annotate(
+                semver=Func(*(F(col) for col in cols), function="ROW", output_field=ArrayField())
+            )
+            qs = getattr(q, query_func)(**{f"semver__{semver_filter.operator}": filter_func})
         return qs
 
     def filter_by_stage(
@@ -241,6 +224,7 @@ class ReleaseQuerySet(models.QuerySet):
         value,
         project_ids: Sequence[int] = None,
         environments: List[str] = None,
+        negated: bool = False,
     ) -> models.QuerySet:
         from sentry.models import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
@@ -300,10 +284,10 @@ class ReleaseModelManager(models.Manager):
         operator: str,
         build: str,
         project_ids: Optional[Sequence[int]] = None,
-        negate: bool = False,
+        negated: bool = False,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_semver_build(
-            organization_id, operator, build, project_ids
+            organization_id, operator, build, project_ids, negated
         )
 
     def filter_by_semver(

@@ -854,6 +854,7 @@ class ReleaseFilterBySemverTest(TestCase):
         self.run_test(">=", "1.2.4", [release_2])
         self.run_test("<", "1.2.4", [release])
         self.run_test("<=", "1.2.3", [release])
+        self.run_test("!=", "1.2.3", [release_2])
 
     def test_prerelease(self):
         # Prerelease has weird sorting rules, where an empty string is higher priority
