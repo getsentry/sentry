@@ -14,6 +14,7 @@ from typing import Iterable
 import sentry_sdk
 
 from sentry.processing.realtime_metrics import realtime_metrics_store
+from sentry.processing.realtime_metrics.base import BucketedCount
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger(__name__)
@@ -83,5 +84,5 @@ def _compute_lpq_eligibility(project_id: int) -> None:
     )
 
 
-def calculation_magic(timestamps: Iterable[(int, int)]) -> bool:
+def calculation_magic(timestamps: BucketedCount) -> bool:
     return False
