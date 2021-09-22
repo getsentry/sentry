@@ -23,6 +23,8 @@ def config() -> Dict[str, Any]:
         "cluster": "default",
         "counter_bucket_size": 10,
         "counter_ttl": datetime.timedelta(milliseconds=400),
+        "histogram_bucket_size": 10,
+        "histogram_ttl": datetime.timedelta(milliseconds=400),
     }
 
 
@@ -75,3 +77,47 @@ def test_increment_project_event_counter_multiple(
 
     assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140") == "1"
     assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1150") == "1"
+
+
+def test_increment_project_duration_counter(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+) -> None:
+    store.increment_project_duration_counter(17, 1147, 15)
+    assert (
+        redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1140", "10..20") == "1"
+    )
+    time.sleep(0.5)
+    assert redis_cluster.get("symbolicate_event_low_priority:histogram:10:17:1140") is None
+
+
+def test_increment_project_duration_counter_twice(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+) -> None:
+    store.increment_project_duration_counter(17, 1147, 15)
+    time.sleep(0.2)
+    store.increment_project_duration_counter(17, 1149, 19)
+    assert (
+        redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1140", "10..20") == "2"
+    )
+    time.sleep(0.3)
+    # the second insert should have refreshed the ttl
+    assert (
+        redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1140", "10..20") == "2"
+    )
+    time.sleep(0.2)
+    # it should have expired by now
+    assert redis_cluster.get("symbolicate_event_low_priority:histogram:10:17:1140") is None
+
+
+def test_increment_project_duration_counter_multiple(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+) -> None:
+    store.increment_project_duration_counter(17, 1147, 23)
+    store.increment_project_duration_counter(17, 1152, 42)
+
+    assert (
+        redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1140", "20..30") == "1"
+    )
+    assert (
+        redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1150", "40..50") == "1"
+    )

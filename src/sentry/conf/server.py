@@ -2329,6 +2329,8 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # around.
     # Note that the time is counted after the last time a counter is incremented.
     "counter_ttl": timedelta(seconds=300),
+    "histogram_bucket_size": 10,
+    "histogram_ttl": timedelta(seconds=900),
 }
 # Timeout for the project counter statement execution.
 # In case of contention on the project counter, prevent workers saturation with

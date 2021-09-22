@@ -18,3 +18,14 @@ class RealtimeMetricsStore(Service):  # type: ignore
         time-window bucket with "timestamp" providing the time of the event.
         """
         pass
+
+    def increment_project_duration_counter(
+        self, project_id: int, timestamp: Union[int, float], duration: Union[int, float]
+    ) -> None:
+        """Increments the duration counter for the given project_id and duration.
+
+        The counter is used to track the processing time of events for the project.
+        Calling this increments the counter of the current time-window bucket with "timestamp" providing
+        the time of the event and "duration" the processing time.
+        """
+        pass
