@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
 from sentry.api.serializers import Serializer
+from sentry.features.helpers import any_organization_has_feature
 from sentry.models import NotificationSetting, Team, User
 from sentry.notifications.helpers import get_fallback_settings
 from sentry.notifications.types import VALID_VALUES_FOR_KEY, NotificationSettingTypes
@@ -100,7 +101,17 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         project_ids = {_.id for _ in attrs["projects"]}
         organization_ids = {_.id for _ in attrs["organizations"]}
 
-        data = get_fallback_settings(types_to_serialize, project_ids, organization_ids, user)
+        data = get_fallback_settings(
+            types_to_serialize,
+            project_ids,
+            organization_ids,
+            user,
+            should_use_slack_automatic=any_organization_has_feature(
+                "organizations:notification-slack-automatic",
+                user.get_orgs(),
+                actor=user,
+            ),
+        )
 
         # Forgive the variable name, I wanted the following lines to be legible.
         for n in attrs["settings"]:
