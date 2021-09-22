@@ -9,7 +9,6 @@ This has three major tasks, executed in the following general order:
 """
 
 import logging
-from typing import Iterable
 
 import sentry_sdk
 

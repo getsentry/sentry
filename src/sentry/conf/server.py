@@ -787,7 +787,7 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.symbolicator.scan_for_suspect_projects",
         # todo: make this configurable?
         "schedule": timedelta(seconds=10),
-        "options": {"expires": 20 * 60},
+        "options": {"expires": 10},
     },
 }
 
