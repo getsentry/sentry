@@ -11,7 +11,11 @@ from sentry.incidents.endpoints.serializers import (
     string_to_action_target_type,
     string_to_action_type,
 )
-from sentry.incidents.logic import ChannelLookupTimeoutError, create_alert_rule_trigger
+from sentry.incidents.logic import (
+    DEFAULT_CMP_ALERT_RULE_RESOLUTION,
+    ChannelLookupTimeoutError,
+    create_alert_rule_trigger,
+)
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.models import ACTOR_TYPES, Environment, Integration
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
@@ -525,6 +529,15 @@ class TestAlertRuleSerializer(TestCase):
         alert_rule = serializer.save()
         assert alert_rule.owner == self.user.actor
         assert alert_rule.owner.type == ACTOR_TYPES["user"]
+
+    def test_comparison_delta(self):
+        params = self.valid_params.copy()
+        params["comparison_delta"] = 60
+        serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+        assert serializer.is_valid()
+        alert_rule = serializer.save()
+        assert alert_rule.comparison_delta == 60 * 60
+        assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
 
 
 class TestAlertRuleTriggerSerializer(TestCase):
