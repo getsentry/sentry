@@ -1,16 +1,28 @@
 import logging
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Mapping, Optional
 
 from django.conf import settings
 from django.utils import timezone
 
 from .emails import generate_security_email
 
+if TYPE_CHECKING:
+    from sentry.models import User
+
+
 logger = logging.getLogger("sentry.security")
 
 
 def capture_security_activity(
-    account, type, actor, ip_address, context=None, send_email=True, current_datetime=None
-):
+    account: "User",
+    type: str,
+    actor: "User",
+    ip_address: str,
+    context: Optional[Mapping[str, Any]] = None,
+    send_email: bool = True,
+    current_datetime: Optional[datetime] = None,
+) -> None:
     if current_datetime is None:
         current_datetime = timezone.now()
 
