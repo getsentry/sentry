@@ -92,6 +92,8 @@ export class SentryAppExternalForm extends Component<Props, State> {
       required_fields: config.required_fields,
       optional_fields: config.optional_fields,
     });
+    // For alert-rule-actions, the forms are entirely custom, extra fields are
+    // passed in on submission, not as part of the form. See handleAlertRuleSubmit().
     if (element !== 'alert-rule-action') {
       this.model.setInitialData({
         ...extraFields,
