@@ -165,15 +165,20 @@ class Endpoint(APIView):
         """
         Create a log entry to be used for api metrics gathering
         """
-        token_type = getattr(self.request.auth, "__class__", None)
-        log_metrics = dict(
-            method=self.request.method,
-            view=str(self.request.parser_context["view"].__class__),
-            response=self.response.status_code,
-            user=str(self.request.user),
-            token_type=token_type,
-        )
-        api_access_logger.info(log_metrics)
+        try:
+            token_type = str(getattr(self.request.auth, "__class__", None))
+            log_metrics = dict(
+                method=self.request.method,
+                view=str(self.request.parser_context["view"].__class__),
+                response=self.response.status_code,
+                user=str(self.request.user),
+                token_type=token_type,
+            )
+            api_access_logger.info(log_metrics)
+        except Exception as exc:
+            api_access_logger.error(
+                f"Unexpected exception when attempting to log api access: {exc}"
+            )
 
     def initialize_request(self, request, *args, **kwargs):
         # XXX: Since DRF 3.x, when the request is passed into
