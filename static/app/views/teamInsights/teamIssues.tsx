@@ -13,6 +13,7 @@ import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {getDuration} from 'app/utils/formatters';
 
 import DescriptionCard from './descriptionCard';
 
@@ -68,7 +69,7 @@ class TeamIssues extends AsyncComponent<Props, State> {
                       .fill(0)
                       .map((_, i) => {
                         return {
-                          value: random(1, 5, true),
+                          value: random(1, 5),
                           name: moment().startOf('day').subtract(i, 'd').toISOString(),
                         };
                       }),
@@ -79,7 +80,7 @@ class TeamIssues extends AsyncComponent<Props, State> {
                       .fill(0)
                       .map((_, i) => {
                         return {
-                          value: random(1, 5, true),
+                          value: random(1, 5),
                           name: moment().startOf('day').subtract(i, 'd').toISOString(),
                         };
                       }),
@@ -113,12 +114,30 @@ class TeamIssues extends AsyncComponent<Props, State> {
           )}
         >
           <ChartWrapper>
-            {isLoading && <StyledLoadingIndicator />}
+            {isLoading && <LoadingIndicator />}
             {!isLoading && (
               <BarChart
                 style={{height: 200}}
                 isGroupedByDate
                 legend={{right: 0, top: 0}}
+                tooltip={{
+                  valueFormatter: (value: number) => {
+                    return getDuration(value, 1);
+                  },
+                }}
+                yAxis={{
+                  // Each yAxis marker will increase by 1 day
+                  minInterval: 86400,
+                  axisLabel: {
+                    formatter: (value: number) => {
+                      if (value === 0) {
+                        return '';
+                      }
+
+                      return getDuration(value, 0, true, true);
+                    },
+                  },
+                }}
                 series={[
                   {
                     seriesName: t('Manually Resolved'),
@@ -126,7 +145,7 @@ class TeamIssues extends AsyncComponent<Props, State> {
                       .fill(0)
                       .map((_, i) => {
                         return {
-                          value: random(1, 5, true),
+                          value: random(86400, 86400 * 10, true),
                           name: moment().startOf('day').subtract(i, 'd').toISOString(),
                         };
                       }),
@@ -164,8 +183,4 @@ const ProjectBadgeContainer = styled('div')`
 
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
-`;
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  margin: ${space(5)};
 `;
