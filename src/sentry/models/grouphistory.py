@@ -8,14 +8,15 @@ from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Mo
 class GroupHistoryStatus:
     UNRESOLVED = 0
     RESOLVED = 1
-    IGNORED = 2
-    UNIGNORED = 3
-    ASSIGNED = 4
-    UNASSIGNED = 5
-    REGRESSED = 6
-    DELETED = 7
-    DELETED_AND_DISCADED = 8
-    REVIEWED = 9
+    AUTO_RESOLVED = 2
+    IGNORED = 3
+    UNIGNORED = 4
+    ASSIGNED = 5
+    UNASSIGNED = 6
+    REGRESSED = 7
+    DELETED = 8
+    DELETED_AND_DISCADED = 9
+    REVIEWED = 10
 
 
 class GroupHistory(Model):
@@ -32,12 +33,14 @@ class GroupHistory(Model):
     group = FlexibleForeignKey("sentry.Group")
     project = FlexibleForeignKey("sentry.Project")
     release = FlexibleForeignKey("sentry.Release", null=True)
+    owner = FlexibleForeignKey("sentry.Actor", null=True)
 
     status = BoundedPositiveIntegerField(
         default=0,
         choices=(
             (GroupHistoryStatus.UNRESOLVED, _("Unresolved")),
             (GroupHistoryStatus.RESOLVED, _("Resolved")),
+            (GroupHistoryStatus.AUTO_RESOLVED, _("Automatically Resolved")),
             (GroupHistoryStatus.IGNORED, _("Ignored")),
             (GroupHistoryStatus.UNIGNORED, _("Unignored")),
             (GroupHistoryStatus.REGRESSED, _("Regressed")),
@@ -45,15 +48,20 @@ class GroupHistory(Model):
             (GroupHistoryStatus.UNASSIGNED, _("Unassigned")),
             (GroupHistoryStatus.DELETED, _("Deleted")),
             (GroupHistoryStatus.DELETED_AND_DISCADED, _("Deleted and Discarded")),
-            (GroupHistoryStatus.REVIEWED, _("REVIEWED")),
+            (GroupHistoryStatus.REVIEWED, _("Reviewed")),
         ),
         db_index=True,
     )
+    prev_history_id = FlexibleForeignKey(
+        "sentry.GroupHistory"
+    )  # This field has no immediate use, but might be useful.
+    prev_history_date = models.DateTimeField(
+        null=True
+    )  # This field is used to simplify query calculations.
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = "sentry_grouphistory"
         app_label = "sentry"
-        unique_together = (("group", "release"),)
 
     __repr__ = sane_repr("group_id", "release_id")
