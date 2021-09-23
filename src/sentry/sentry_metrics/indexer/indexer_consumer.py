@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, MutableMapping, Optional, Sequence
 
 from confluent_kafka import Producer
 from django.conf import settings
@@ -32,8 +32,8 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
     def __init__(self, producer: Producer) -> None:
         self.__producer = producer
 
-    def process_message(self, message: Any) -> Any:
-        parsed_message: Dict[str, Any] = json.loads(message.value(), use_rapid_json=True)
+    def process_message(self, message: Any) -> MutableMapping[str, Any]:
+        parsed_message: MutableMapping[str, Any] = json.loads(message.value(), use_rapid_json=True)
 
         org_id = parsed_message["org_id"]
         metric_name = parsed_message["name"]
@@ -54,7 +54,7 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
         parsed_message["retention_days"] = 90
         return parsed_message
 
-    def flush_batch(self, batch: Sequence[Any]) -> None:
+    def flush_batch(self, batch: Sequence[MutableMapping[str, Any]]) -> None:
         # produce the translated message to snuba-metrics topic
         for message in batch:
             self.__producer.produce(
@@ -77,7 +77,6 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
             raise Exception("didn't get all the callbacks")
 
     def shutdown(self) -> None:
-        # do any other processes need to be shutdown?
         return
 
     def callback(self, error: Any, message: Any) -> None:

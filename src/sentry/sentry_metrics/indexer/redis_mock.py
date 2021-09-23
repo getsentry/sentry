@@ -15,7 +15,7 @@ def get_client() -> Any:
 
 
 def get_int(string: str) -> int:
-    return int.from_bytes(hashlib.md5(string.encode("utf-8")).digest(), "big") % (10 ** 8)
+    return int.from_bytes(hashlib.md5(string.encode("utf-8")).digest()[:8], "big")
 
 
 class RedisMockIndexer(StringIndexer):
