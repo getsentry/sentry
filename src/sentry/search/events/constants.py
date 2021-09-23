@@ -88,11 +88,13 @@ MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 500
 
 OPERATOR_NEGATION_MAP = {
     "=": "!=",
+    "!=": "=",
     "<": ">=",
     "<=": ">",
     ">": "<=",
     ">=": "<",
     "IN": "NOT IN",
+    "NOT IN": "IN",
 }
 OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exact"}
 
