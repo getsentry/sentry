@@ -20,7 +20,6 @@ from sentry.models import (
 )
 from sentry.types.integrations import ExternalProviders
 
-from ..utils import is_valid_role
 from .base import SlackDMEndpoint
 
 logger = logging.getLogger("sentry.integrations.slack")
@@ -39,6 +38,11 @@ UNLINK_TEAM_MESSAGE = "<{associate_url}|Click here to unlink your team from this
 TEAM_NOT_LINKED_MESSAGE = "No team is linked to this channel."
 DIRECT_MESSAGE_CHANNEL_NAME = "directmessage"
 INSUFFICIENT_ROLE_MESSAGE = "You must be a Sentry admin, manager, or owner to link or unlink teams."
+ALLOWED_ROLES = ["admin", "manager", "owner"]
+
+
+def is_valid_role(org_member: OrganizationMember) -> bool:
+    return org_member.role in ALLOWED_ROLES
 
 
 def is_team_linked_to_channel(organization: Organization, slack_request: SlackRequest) -> bool:

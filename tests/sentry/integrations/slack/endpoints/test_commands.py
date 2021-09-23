@@ -17,7 +17,7 @@ from sentry.integrations.slack.endpoints.command import (
 )
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.disconnected import DISCONNECTED_MESSAGE
-from sentry.integrations.slack.util.auth import set_signing_secret
+from sentry.integrations.slack.utils import set_signing_secret
 from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE, build_linking_url
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_identity import (

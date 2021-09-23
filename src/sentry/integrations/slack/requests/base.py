@@ -4,10 +4,9 @@ from rest_framework import status as status_
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.integrations.slack.util.auth import check_signing_secret
 from sentry.models import Integration
 
-from ..utils import logger
+from ..utils import check_signing_secret, logger
 
 
 class SlackRequestError(Exception):
