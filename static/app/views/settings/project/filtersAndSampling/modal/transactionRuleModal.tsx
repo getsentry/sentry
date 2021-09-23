@@ -53,10 +53,6 @@ function TransactionRuleModal({
     !!rule?.condition.inner.length
   );
 
-  if (rule) {
-    const x = rule.condition;
-  }
-
   function handleChange({
     conditions,
   }: Parameters<NonNullable<RuleModalProps['onChange']>>[0]) {
