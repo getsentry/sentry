@@ -28,7 +28,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             return self.client.get(url, query, format="json")
 
     def test_without_feature(self):
-        response = self.do_request({}, features={})
+        response = self.do_request({}, features={"organizations:discover-basic": False})
         assert response.status_code == 404, response.content
 
     def test_no_projects(self):
