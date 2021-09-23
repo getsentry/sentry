@@ -1099,6 +1099,7 @@ class IssueListOverview extends React.Component<Props, State> {
           onSavedSearchSelect={this.onSavedSearchSelect}
           onSavedSearchDelete={this.onSavedSearchDelete}
           displayReprocessingTab={showReprocessingTab}
+          selectedProjectIds={selection.projects}
         />
 
         <StyledPageContent>

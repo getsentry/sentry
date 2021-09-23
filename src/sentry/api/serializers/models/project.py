@@ -561,6 +561,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             "hasAccess": attrs["has_access"],
             "dateCreated": obj.date_added,
             "environments": attrs["environments"],
+            "eventProcessing": {
+                "symbolicationDegraded": False,
+            },
             "features": attrs["features"],
             "firstEvent": obj.first_event,
             "firstTransactionEvent": True if obj.flags.has_transactions else False,

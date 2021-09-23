@@ -9,6 +9,9 @@ export function Project(params) {
     teams: [],
     environments: [],
     features: [],
+    eventProcessing: {
+      symbolicationDegraded: false,
+    },
     ...params,
   };
 }

@@ -7,6 +7,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import StreamGroup from 'app/components/stream/group';
 import GroupStore from 'app/stores/groupStore';
+import ProjectsStore from 'app/stores/projectsStore';
 import TagStore from 'app/stores/tagStore';
 import * as parseLinkHeader from 'app/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
@@ -1809,6 +1810,80 @@ describe('IssueList', function () {
       };
       wrapper = mountWithTheme(<IssueListOverview {...props} />);
       expect(wrapper.instance().getGroupStatsPeriod()).toBe('auto');
+    });
+  });
+
+  describe('project low priority queue alert', function () {
+    const {routerContext} = initializeOrg();
+
+    beforeEach(function () {
+      ProjectsStore.reset();
+    });
+
+    it('does not render alert', function () {
+      ProjectsStore.loadInitialData([project]);
+
+      wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
+
+      const eventProcessingAlert = wrapper.find('StyledGlobalEventProcessingAlert');
+      expect(eventProcessingAlert.exists()).toBe(true);
+      expect(eventProcessingAlert.isEmptyRender()).toBe(true);
+    });
+
+    describe('renders alert', function () {
+      it('for one project', function () {
+        ProjectsStore.loadInitialData([
+          {...project, eventProcessing: {symbolicationDegraded: true}},
+        ]);
+
+        wrapper = mountWithTheme(<IssueListOverview {...props} />, routerContext);
+
+        const eventProcessingAlert = wrapper.find('StyledGlobalEventProcessingAlert');
+        expect(eventProcessingAlert.exists()).toBe(true);
+        expect(eventProcessingAlert.isEmptyRender()).toBe(false);
+        expect(eventProcessingAlert.text()).toBe(
+          'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the Status page for a potential outage.'
+        );
+      });
+
+      it('for multiple projects', function () {
+        const projectBar = TestStubs.ProjectDetails({
+          id: '3560',
+          name: 'Bar Project',
+          slug: 'project-slug-bar',
+        });
+
+        ProjectsStore.loadInitialData([
+          {
+            ...project,
+            slug: 'project-slug',
+            eventProcessing: {symbolicationDegraded: true},
+          },
+          {
+            ...projectBar,
+            slug: 'project-slug-bar',
+            eventProcessing: {symbolicationDegraded: true},
+          },
+        ]);
+
+        wrapper = mountWithTheme(
+          <IssueListOverview
+            {...props}
+            selection={{
+              ...props.selection,
+              projects: [Number(project.id), Number(projectBar.id)],
+            }}
+          />,
+          routerContext
+        );
+
+        const eventProcessingAlert = wrapper.find('StyledGlobalEventProcessingAlert');
+        expect(eventProcessingAlert.exists()).toBe(true);
+        expect(eventProcessingAlert.isEmptyRender()).toBe(false);
+        expect(eventProcessingAlert.text()).toBe(
+          `Event Processing for the ${project.slug}, ${projectBar.slug} projects is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the Status page for a potential outage.`
+        );
+      });
     });
   });
 });
