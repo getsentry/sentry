@@ -64,6 +64,8 @@ FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
 resolve_discover_column = resolve_column(Dataset.Discover)
 
+OTHER_KEY = "Other"
+
 
 def is_real_column(col):
     """
@@ -234,6 +236,7 @@ def query(
             auto_aggregations=auto_aggregations,
             use_aggregate_conditions=use_aggregate_conditions,
             limit=limit,
+            offset=offset,
         )
         snql_query = builder.get_snql_query()
 
@@ -510,7 +513,7 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None, zer
         return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 
 
-def create_result_key(result_row, fields, issues):
+def create_result_key(result_row, fields, issues) -> str:
     values = []
     for field in fields:
         if field == "issue.id":
@@ -523,7 +526,12 @@ def create_result_key(result_row, fields, issues):
                 else:
                     value = ""
             values.append(str(value))
-    return ",".join(values)
+    result = ",".join(values)
+    # If the result would be identical to the other key, include the field name
+    # only need the first field since this would only happen with a single field
+    if result == OTHER_KEY:
+        result = f"{result} ({fields[0]})"
+    return result
 
 
 def top_events_timeseries(
@@ -587,47 +595,77 @@ def top_events_timeseries(
             user_query,
             params,
         )
-        other_conditions = snuba_filter.conditions[:]
+        original_conditions = snuba_filter.conditions[:]
+        other_conditions = []
 
         for field in selected_columns:
             # If we have a project field, we need to limit results by project so we don't hit the result limit
             if field in ["project", "project.id"] and top_events["data"]:
                 snuba_filter.project_ids = [event["project.id"] for event in top_events["data"]]
                 continue
+
             if field in FIELD_ALIASES:
-                field = FIELD_ALIASES[field].alias
+                alias = FIELD_ALIASES[field].alias
+            else:
+                alias = field
             # Note that because orderby shouldn't be an array field its not included in the values
             values = list(
                 {
-                    event.get(field)
+                    event.get(alias)
                     for event in top_events["data"]
                     if field in event and not isinstance(event.get(field), list)
                 }
             )
             if values:
-                # timestamp fields needs special handling, creating a big OR instead
+                if field in FIELD_ALIASES:
+                    # Fallback to the alias if for whatever reason we can't find it
+                    resolved_field = alias
+                    # Search selected columns for the resolved version of the alias
+                    for column in snuba_filter.selected_columns:
+                        if isinstance(column, list) and column[-1] == field:
+                            resolved_field = column
+                            break
+                else:
+                    resolved_field = resolve_discover_column(field)
+
                 if field == "timestamp" or field.startswith("timestamp.to_"):
+                    # timestamp fields needs special handling, creating a big OR instead
                     snuba_filter.conditions.append(
-                        [[field, "=", value] for value in sorted(values)]
+                        [[resolved_field, "=", value] for value in sorted(values)]
                     )
-                    other_conditions.append([[field, "!=", value] for value in sorted(values)])
+
+                    # Needs to be a big AND when negated
+                    other_condition = [resolved_field, "!=", values[0]]
+                    for value in sorted(values[1:]):
+                        other_condition = [
+                            [SNUBA_AND, [other_condition, [resolved_field, "!=", value]]],
+                            "=",
+                            1,
+                        ]
+                    other_conditions.append(other_condition)
                 elif None in values:
+                    # one of the values was null, but we can't do an in with null values, so split into two conditions
                     non_none_values = [value for value in values if value is not None]
-                    condition = [[["isNull", [resolve_discover_column(field)]], "=", 1]]
-                    other_condition = [[["isNull", [resolve_discover_column(field)]], "!=", 1]]
+                    condition = [[["isNull", [resolved_field]], "=", 1]]
+                    other_condition = [["isNull", [resolved_field]], "!=", 1]
                     if non_none_values:
-                        condition.append([resolve_discover_column(field), "IN", non_none_values])
-                        other_condition.append(
-                            [resolve_discover_column(field), "NOT IN", non_none_values]
-                        )
+                        condition.append([resolved_field, "IN", non_none_values])
+                        other_condition = [
+                            [
+                                SNUBA_AND,
+                                [
+                                    [resolved_field, "NOT IN", non_none_values],
+                                    other_condition,
+                                ],
+                            ],
+                            "=",
+                            1,
+                        ]
                     snuba_filter.conditions.append(condition)
                     other_conditions.append(other_condition)
-                elif field in FIELD_ALIASES:
-                    snuba_filter.conditions.append([field, "IN", values])
-                    other_conditions.append([field, "NOT IN", values])
                 else:
-                    snuba_filter.conditions.append([resolve_discover_column(field), "IN", values])
-                    other_conditions.append([resolve_discover_column(field), "NOT IN", values])
+                    snuba_filter.conditions.append([resolved_field, "IN", values])
+                    other_conditions.append([resolved_field, "NOT IN", values])
 
     with sentry_sdk.start_span(op="discover.discover", description="top_events.snuba_query"):
         result = raw_query(
@@ -645,11 +683,19 @@ def top_events_timeseries(
             referrer=referrer,
         )
         if len(top_events["data"]) == limit and len(result.get("data", [])) and include_other:
-            # TODO(wmak): Conditions are incorrect in some cases, need to properly apply Demorgan's Law
             other_result = raw_query(
                 aggregations=snuba_filter.aggregations,
-                conditions=other_conditions,
+                conditions=original_conditions + [other_conditions],
                 filter_keys=snuba_filter.filter_keys,
+                # Hack cause equations on aggregates have to go in selected columns instead of aggregations
+                selected_columns=[
+                    column
+                    for column in snuba_filter.selected_columns
+                    # Check that the column is a list with 3 items, and the alias in the third item is an equation
+                    if isinstance(column, list)
+                    and len(column) == 3
+                    and column[-1].startswith("equation[")
+                ],
                 start=snuba_filter.start,
                 end=snuba_filter.end,
                 rollup=rollup,
@@ -701,7 +747,7 @@ def top_events_timeseries(
         translated_groupby.sort()
 
         results = (
-            {"Other": {"order": limit + 1, "data": other_result["data"]}}
+            {OTHER_KEY: {"order": limit, "data": other_result["data"]}}
             if len(other_result.get("data", []))
             else {}
         )

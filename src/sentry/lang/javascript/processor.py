@@ -5,6 +5,7 @@ import re
 import sys
 import time
 import zlib
+from datetime import datetime
 from io import BytesIO
 from os.path import splitext
 from typing import IO, Optional, Tuple
@@ -12,6 +13,7 @@ from urllib.parse import urlsplit
 
 import sentry_sdk
 from django.conf import settings
+from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from requests.utils import get_encoding_from_headers
 from symbolic import SourceMapView
@@ -435,7 +437,8 @@ def fetch_release_archive_for_url(release, dist, url) -> Optional[IO]:
 
     If return value is not empty, the caller is responsible for closing the stream.
     """
-    info = get_index_entry(release, dist, url)
+    with sentry_sdk.start_span(op="fetch_release_archive_for_url.get_index_entry"):
+        info = get_index_entry(release, dist, url)
     if info is None:
         # Cannot write negative cache entry here because ID of release archive
         # is not yet known
@@ -455,11 +458,12 @@ def fetch_release_archive_for_url(release, dist, url) -> Optional[IO]:
     elif result:
         return BytesIO(result)
     else:
-        qs = ReleaseFile.objects.filter(
-            release_id=release.id, dist_id=dist.id if dist else dist, ident=archive_ident
-        ).select_related("file")
         try:
-            releasefile = qs[0]
+            with sentry_sdk.start_span(op="fetch_release_archive_for_url.get_releasefile_db_entry"):
+                qs = ReleaseFile.objects.filter(
+                    release_id=release.id, dist_id=dist.id if dist else dist, ident=archive_ident
+                ).select_related("file")
+                releasefile = qs[0]
         except IndexError:
             # This should not happen when there is an archive_ident in the manifest
             logger.error("sourcemaps.missing_archive", exc_info=sys.exc_info())
@@ -468,14 +472,21 @@ def fetch_release_archive_for_url(release, dist, url) -> Optional[IO]:
             return None
         else:
             try:
-                file_ = fetch_retry_policy(lambda: ReleaseFile.cache.getfile(releasefile))
+                with sentry_sdk.start_span(op="fetch_release_archive_for_url.fetch_releasefile"):
+                    file_ = fetch_retry_policy(lambda: ReleaseFile.cache.getfile(releasefile))
             except Exception:
                 logger.error("sourcemaps.read_archive_failed", exc_info=sys.exc_info())
 
                 return None
 
-            # This will implicitly skip too large payloads.
-            cache.set(cache_key, file_.read(), 3600)
+            with sentry_sdk.start_span(op="fetch_release_archive_for_url.read_for_caching") as span:
+                span.set_data("file_size", file_.size)
+                contents = file_.read()
+            with sentry_sdk.start_span(op="fetch_release_archive_for_url.write_to_cache") as span:
+                span.set_data("file_size", len(contents))
+                # This will implicitly skip too large payloads.
+                cache.set(cache_key, contents, 3600)
+
             file_.seek(0)
 
             return file_
@@ -493,7 +504,6 @@ def fetch_release_artifact(url, release, dist):
 
     If a release archive was saved, the individual file will be extracted
     from the archive.
-
     """
     cache_key, cache_key_meta = get_cache_keys(url, release, dist)
 
@@ -826,7 +836,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         with sentry_sdk.start_span(op="JavaScriptStacktraceProcessor.preprocess_step.get_release"):
             self.release = self.get_release(create=True)
             if self.data.get("dist") and self.release:
-                self.dist = self.release.get_dist(self.data["dist"])
+                timestamp = self.data.get("timestamp")
+                date = timestamp and datetime.fromtimestamp(timestamp).replace(tzinfo=timezone.utc)
+                self.dist = self.release.add_dist(self.data["dist"], date)
 
         with sentry_sdk.start_span(
             op="JavaScriptStacktraceProcessor.preprocess_step.populate_source_cache"

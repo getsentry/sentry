@@ -1,6 +1,9 @@
 import {fireEvent, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import localStorage from 'app/utils/localStorage';
 import {TeamInsightsOverview} from 'app/views/teamInsights/overview';
+
+jest.mock('app/utils/localStorage');
 
 describe('TeamInsightsOverview', () => {
   const project1 = TestStubs.Project({id: '2', name: 'js', slug: 'js'});
@@ -33,10 +36,6 @@ describe('TeamInsightsOverview', () => {
           transaction: 'string',
           project: 'string',
           tpm: 'number',
-          p50: 'number',
-          p95: 'number',
-          failure_rate: 'number',
-          apdex: 'number',
           count_unique_user: 'number',
           count_miserable_user: 'number',
           user_misery: 'number',
@@ -46,12 +45,7 @@ describe('TeamInsightsOverview', () => {
             key_transaction: 1,
             transaction: '/apple/cart',
             project: project1.slug,
-            user: 'uhoh@example.com',
             tpm: 30,
-            p50: 100,
-            p95: 500,
-            failure_rate: 0.1,
-            apdex: 0.6,
             count_unique_user: 1000,
             count_miserable_user: 122,
             user_misery: 0.114,
@@ -95,8 +89,7 @@ describe('TeamInsightsOverview', () => {
     });
 
     expect(wrapper.getByText('Team: frontend')).toBeInTheDocument();
-    expect(wrapper.getByText('p95')).toBeInTheDocument();
-    expect(wrapper.getByText('500')).toBeInTheDocument();
+    expect(wrapper.getByText('Key transaction')).toBeInTheDocument();
   });
 
   it('allows team switching', async () => {
@@ -108,6 +101,10 @@ describe('TeamInsightsOverview', () => {
     fireEvent.click(wrapper.getByText('Team: frontend'));
     expect(wrapper.getByText('backend')).toBeInTheDocument();
     fireEvent.click(wrapper.getByText('backend'));
-    expect(mockRouter.push).toHaveBeenCalledWith({query: {team: '3'}});
+    expect(mockRouter.push).toHaveBeenCalledWith({query: {team: team2.id}});
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      'teamInsightsSelectedTeamId:org-slug',
+      team2.id
+    );
   });
 });

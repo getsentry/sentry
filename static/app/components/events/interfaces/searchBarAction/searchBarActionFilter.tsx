@@ -69,7 +69,7 @@ function SearchBarActionFilter({options, onChange}: Props) {
             {Object.keys(options).map(category => (
               <Fragment key={category}>
                 <Header>{category}</Header>
-                <List>
+                <StyledList>
                   {options[category].map(groupedOption => {
                     const {symbol, isChecked, id, description} = groupedOption;
                     return (
@@ -88,7 +88,7 @@ function SearchBarActionFilter({options, onChange}: Props) {
                       </StyledListItem>
                     );
                   })}
-                </List>
+                </StyledList>
               </Fragment>
             ))}
           </StyledContent>
@@ -108,8 +108,10 @@ const Wrapper = styled('div')`
 const StyledContent = styled(Content)`
   top: calc(100% + ${space(0.5)} - 1px);
   border-radius: ${p => p.theme.borderRadius};
-  > * :last-child {
-    margin-bottom: -1px;
+  > ul:last-child {
+    > li:last-child {
+      border-bottom: none;
+    }
   }
 `;
 
@@ -125,15 +127,19 @@ const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
+const StyledList = styled(List)`
+  grid-gap: 0;
+`;
+
 const StyledListItem = styled(ListItem)<{isChecked: boolean; hasDescription: boolean}>`
   display: grid;
   grid-template-columns: ${p =>
     p.hasDescription ? 'max-content 1fr max-content' : '1fr max-content'};
   grid-column-gap: ${space(1)};
   padding: ${space(1)} ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
   align-items: center;
   cursor: pointer;
-  border-bottom: 1px solid ${p => p.theme.border};
   ${CheckboxFancy} {
     opacity: ${p => (p.isChecked ? 1 : 0.3)};
   }

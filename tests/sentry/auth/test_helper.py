@@ -321,9 +321,21 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
     @mock.patch("sentry.auth.helper.create_verification_key")
     def test_automatic_migration(self, mock_create_key, mock_render):
         existing_user = self.create_user(email=self.email)
+        existing_user.update(password="")
+
         with self.feature("organizations:idp-automatic-migration"):
             context = self._test_simple(mock_render, "sentry/auth-confirm-account.html")
         mock_create_key.assert_called_with(existing_user, self.organization, self.email)
+        assert context["existing_user"] == existing_user
+        assert "login_form" in context
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    @mock.patch("sentry.auth.helper.create_verification_key")
+    def test_does_not_migrate_user_with_password(self, mock_create_key, mock_render):
+        existing_user = self.create_user(email=self.email)
+        with self.feature("organizations:idp-automatic-migration"):
+            context = self._test_simple(mock_render, "sentry/auth-confirm-identity.html")
+        assert not mock_create_key.called
         assert context["existing_user"] == existing_user
         assert "login_form" in context
 

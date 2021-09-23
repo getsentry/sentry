@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Tuple
 from uuid import uuid4
 
 from django.conf import settings
@@ -467,20 +467,7 @@ class AuthIdentityHandler:
             op = None
 
         if not op:
-            if self.user.is_authenticated:
-                template = "auth-confirm-link"
-                existing_user = self.user
-            else:
-                existing_user = acting_user or self._get_user(identity)
-                if existing_user and features.has(
-                    "organizations:idp-automatic-migration", self.organization
-                ):
-                    create_verification_key(existing_user, self.organization, identity["email"])
-                    template = "auth-confirm-account"
-                else:
-                    self.request.session.set_test_cookie()
-                    template = "auth-confirm-identity"
-                    existing_user = acting_user
+            existing_user, template = self._dispatch_to_confirmation(identity)
 
             # A blank character is needed to prevent the HTML span from collapsing
             provider_name = self.auth_provider.get_provider().name if self.auth_provider else " "
@@ -490,7 +477,7 @@ class AuthIdentityHandler:
                 "provider": provider_name,
                 "identity_display_name": identity.get("name") or identity.get("email"),
                 "identity_identifier": identity.get("email") or identity.get("id"),
-                "existing_user": existing_user,  # nullable
+                "existing_user": existing_user or acting_user,
             }
             if login_form:
                 context["login_form"] = login_form
@@ -511,6 +498,19 @@ class AuthIdentityHandler:
             # set activeorg to ensure correct redirect upon logging in
             self.request.session["activeorg"] = self.organization.slug
         return self._post_login_redirect()
+
+    def _dispatch_to_confirmation(self, identity: Identity) -> Tuple[Optional[User], str]:
+        if self.user.is_authenticated:
+            return self.user, "auth-confirm-link"
+
+        if features.has("organizations:idp-automatic-migration", self.organization):
+            existing_user = self._get_user(identity)
+            if existing_user and not existing_user.has_usable_password():
+                create_verification_key(existing_user, self.organization, identity["email"])
+                return existing_user, "auth-confirm-account"
+
+        self.request.session.set_test_cookie()
+        return None, "auth-confirm-identity"
 
     def handle_new_user(self, identity: Identity) -> AuthIdentity:
         user = User.objects.create(

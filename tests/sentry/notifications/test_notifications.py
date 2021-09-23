@@ -239,7 +239,7 @@ class ActivityNotificationTest(APITestCase):
 
         assert (
             text
-            == f"Release {release.version[:12]} was deployed to {self.environment.name} for this project"
+            == f"Release {release.version} was deployed to {self.environment.name} for this project"
         )
         assert (
             attachment["actions"][0]["url"]
