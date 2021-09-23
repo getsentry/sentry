@@ -205,7 +205,12 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 `;
 
 const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
-  margin-bottom: 0;
   grid-column: 1/-1;
-  margin-top: ${space(2)};
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-top: ${space(2)};
+    margin-bottom: 0;
+  }
 `;
