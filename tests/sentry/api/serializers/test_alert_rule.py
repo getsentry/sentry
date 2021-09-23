@@ -9,9 +9,13 @@ from sentry.models import Rule
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils import APITestCase, TestCase
 
+NOT_SET = object()
+
 
 class BaseAlertRuleSerializerTest:
-    def assert_alert_rule_serialized(self, alert_rule, result, skip_dates=False):
+    def assert_alert_rule_serialized(
+        self, alert_rule, result, skip_dates=False, resolve_threshold=NOT_SET
+    ):
         alert_rule_projects = sorted(
             AlertRule.objects.filter(id=alert_rule.id).values_list(
                 "snuba_query__subscriptions__project__slug", flat=True
@@ -24,7 +28,9 @@ class BaseAlertRuleSerializerTest:
         assert result["query"] == alert_rule.snuba_query.query
         assert result["aggregate"] == alert_rule.snuba_query.aggregate
         assert result["thresholdType"] == alert_rule.threshold_type
-        assert result["resolveThreshold"] == alert_rule.resolve_threshold
+        assert result["resolveThreshold"] == (
+            alert_rule.resolve_threshold if resolve_threshold is NOT_SET else resolve_threshold
+        )
         assert result["timeWindow"] == alert_rule.snuba_query.time_window / 60
         assert result["resolution"] == alert_rule.snuba_query.resolution / 60
         assert result["thresholdPeriod"] == alert_rule.threshold_period
@@ -134,10 +140,17 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         self.assert_alert_rule_serialized(alert_rule, result)
         assert alert_rule.owner == self.team.actor
 
-    def test_comparison_delta(self):
-        alert_rule = self.create_alert_rule(comparison_delta=60)
+    def test_comparison_delta_above(self):
+        alert_rule = self.create_alert_rule(comparison_delta=60, resolve_threshold=110)
         result = serialize(alert_rule)
-        self.assert_alert_rule_serialized(alert_rule, result)
+        self.assert_alert_rule_serialized(alert_rule, result, resolve_threshold=10)
+
+    def test_comparison_delta_below(self):
+        alert_rule = self.create_alert_rule(
+            comparison_delta=60, resolve_threshold=90, threshold_type=AlertRuleThresholdType.BELOW
+        )
+        result = serialize(alert_rule)
+        self.assert_alert_rule_serialized(alert_rule, result, resolve_threshold=10)
 
 
 class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):

@@ -3,6 +3,7 @@ from collections import defaultdict
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.incidents.endpoints.utils import translate_threshold
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.incidents.models import (
     AlertRule,
@@ -98,7 +99,7 @@ class AlertRuleSerializer(Serializer):
             "query": obj.snuba_query.query,
             "aggregate": aggregate,
             "thresholdType": obj.threshold_type,
-            "resolveThreshold": obj.resolve_threshold,
+            "resolveThreshold": translate_threshold(obj, obj.resolve_threshold),
             # TODO: Start having the frontend expect seconds
             "timeWindow": obj.snuba_query.time_window / 60,
             "environment": env.name if env else None,
