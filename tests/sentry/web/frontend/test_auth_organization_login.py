@@ -577,6 +577,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # setup a 'previous' identity, such as when we migrated Google from
         # the old idents to the new
         user = self.create_user("bar@example.com", is_managed=False, password="")
+        assert not user.has_usable_password()
         UserEmail.objects.filter(user=user, email="bar@example.com").update(is_verified=False)
         self.create_member(organization=self.organization, user=user)
 
