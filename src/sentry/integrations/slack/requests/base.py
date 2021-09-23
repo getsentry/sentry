@@ -4,7 +4,7 @@ from rest_framework import status as status_
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.models import Integration
+from sentry.models import Identity, IdentityProvider, Integration
 
 from ..utils import check_signing_secret, logger
 
@@ -110,6 +110,18 @@ class SlackRequest:
             data["integration_id"] = self.integration.id
 
         return {k: v for k, v in data.items() if v}
+
+    def get_identity(self) -> Optional[Identity]:
+        try:
+            idp = IdentityProvider.objects.get(type="slack", external_id=self.team_id)
+        except IdentityProvider.DoesNotExist as e:
+            logger.error("slack.action.invalid-team-id", extra={"slack_team": self.team_id})
+            raise e
+
+        try:
+            return Identity.objects.select_related("user").get(idp=idp, external_id=self.user_id)
+        except Identity.DoesNotExist:
+            return None
 
     def _validate_data(self) -> None:
         try:

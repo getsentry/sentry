@@ -1,5 +1,5 @@
 __all__ = (
-    "get_identity",
+    "get_identity_or_404",
     "get_slack_data_by_user",
     "get_users",
     "set_signing_secret",
@@ -29,7 +29,6 @@ from .channel import (
     strip_channel_name,
     validate_channel_id,
 )
-from .identities import get_identities_by_user, get_identity
 from .notifications import (
     build_notification_footer,
     send_confirmation,

@@ -5,9 +5,7 @@ from rest_framework import status
 from rest_framework.request import Request
 
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
-from sentry.models import Identity, IdentityProvider
-
-from ..utils import logger
+from sentry.models import IdentityProvider
 
 
 class SlackCommandRequest(SlackRequest):
@@ -46,10 +44,8 @@ class SlackCommandRequest(SlackRequest):
     def _validate_integration(self) -> None:
         super()._validate_integration()
         try:
-            idp = IdentityProvider.objects.get(type="slack", external_id=self.team_id)
+            identity = self.get_identity()
         except IdentityProvider.DoesNotExist:
-            logger.error("slack.action.invalid-team-id", extra={"slack_team": self.team_id})
             raise SlackRequestError(status=status.HTTP_403_FORBIDDEN)
 
-        identities = Identity.objects.filter(idp=idp, external_id=self.user_id)
-        self.identity_str = identities[0].user.email if identities else None
+        self.identity_str = identity.user.email if identity else None
