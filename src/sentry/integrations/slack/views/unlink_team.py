@@ -1,24 +1,16 @@
 from django.core.signing import BadSignature, SignatureExpired
-from django.http import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.utils import get_identity_or_404
-from sentry.models import (
-    ExternalActor,
-    Identity,
-    IdentityProvider,
-    Integration,
-    NotificationSetting,
-    Team,
-)
+from sentry.models import ExternalActor, Identity, Integration, NotificationSetting, Team
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from ..utils import logger, render_error_page, send_confirmation
+from ..utils import render_error_page, send_confirmation
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
 
@@ -76,8 +68,9 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
             external_id=channel_id,
         )
         if len(external_teams) == 0:
-            logger.error("slack.team.unlink.no_external_teams")
-            raise Http404
+            return render_error_page(request, body_text="HTTP 404: Team not found")
+
+        team = external_teams[0].actor.resolve()
 
         teams = Team.objects.filter(
             actor__in=[external_team.actor for external_team in external_teams]
@@ -92,14 +85,6 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
                     "provider": integration.get_provider(),
                 },
             )
-
-        try:
-            idp = IdentityProvider.objects.get(type="slack", external_id=integration.external_id)
-        except IdentityProvider.DoesNotExist:
-            logger.error(
-                "slack.action.invalid-team-id", extra={"slack_id": integration.external_id}
-            )
-            return render_error_page(request, body_text="HTTP 403: Invalid team ID")
 
         if not Identity.objects.filter(idp=idp, external_id=params["slack_id"]).exists():
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
