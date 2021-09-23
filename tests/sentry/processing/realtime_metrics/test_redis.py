@@ -83,9 +83,7 @@ def test_increment_project_duration_counter(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     store.increment_project_duration_counter(17, 1147, 15)
-    assert (
-        redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1140", "10..20") == "1"
-    )
+    assert redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1140", "10") == "1"
     time.sleep(0.5)
     assert redis_cluster.get("symbolicate_event_low_priority:histogram:10:17:1140") is None
 
@@ -96,14 +94,10 @@ def test_increment_project_duration_counter_twice(
     store.increment_project_duration_counter(17, 1147, 15)
     time.sleep(0.2)
     store.increment_project_duration_counter(17, 1149, 19)
-    assert (
-        redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1140", "10..20") == "2"
-    )
+    assert redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1140", "10") == "2"
     time.sleep(0.3)
     # the second insert should have refreshed the ttl
-    assert (
-        redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1140", "10..20") == "2"
-    )
+    assert redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1140", "10") == "2"
     time.sleep(0.2)
     # it should have expired by now
     assert redis_cluster.get("symbolicate_event_low_priority:histogram:10:17:1140") is None
@@ -115,9 +109,5 @@ def test_increment_project_duration_counter_multiple(
     store.increment_project_duration_counter(17, 1147, 23)
     store.increment_project_duration_counter(17, 1152, 42)
 
-    assert (
-        redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1140", "20..30") == "1"
-    )
-    assert (
-        redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1150", "40..50") == "1"
-    )
+    assert redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1140", "20") == "1"
+    assert redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1150", "40") == "1"

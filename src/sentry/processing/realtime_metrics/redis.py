@@ -78,6 +78,6 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         duration -= duration % 10
 
         with self.cluster.pipeline() as pipeline:
-            pipeline.hincrby(key, f"{duration}..{duration+10}", 1)
+            pipeline.hincrby(key, duration, 1)
             pipeline.pexpire(key, self._histogram_ttl)
             pipeline.execute()
