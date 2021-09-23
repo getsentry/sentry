@@ -479,9 +479,11 @@ def fetch_release_archive_for_url(release, dist, url) -> Optional[IO]:
 
                 return None
 
-            with sentry_sdk.start_span(op="fetch_release_archive_for_url.read_for_caching"):
+            with sentry_sdk.start_span(op="fetch_release_archive_for_url.read_for_caching") as span:
+                span.set_data("file_size", file_.size)
                 contents = file_.read()
-            with sentry_sdk.start_span(op="fetch_release_archive_for_url.write_to_cache"):
+            with sentry_sdk.start_span(op="fetch_release_archive_for_url.write_to_cache") as span:
+                span.set_data("file_size", len(contents))
                 # This will implicitly skip too large payloads.
                 cache.set(cache_key, contents, 3600)
 
