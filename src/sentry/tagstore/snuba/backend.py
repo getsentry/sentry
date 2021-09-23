@@ -1,6 +1,7 @@
 import functools
 import re
-from collections import Iterable, OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict
+from collections.abc import Iterable
 from typing import Optional, Sequence
 
 from dateutil.parser import parse as parse_datetime
@@ -22,11 +23,10 @@ from sentry.search.events.constants import (
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
-    SEMVER_WILDCARDS,
     USER_DISPLAY_ALIAS,
 )
 from sentry.search.events.fields import FIELD_ALIASES
-from sentry.search.events.filter import _flip_field_sort, parse_semver
+from sentry.search.events.filter import _flip_field_sort
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagStorage
@@ -727,17 +727,17 @@ class SnubaTagStorage(TagStorage):
             versions = self._get_semver_versions_for_package(projects, organization_id, query)
         else:
             include_package = "@" in query
-            if not query:
-                query = "*"
-            elif query[-1] not in SEMVER_WILDCARDS | {"@"}:
-                if query[-1] != ".":
-                    query += "."
-                query += "*"
+            query = query.replace("*", "")
+            if "@" in query:
+                versions = Release.objects.filter(version__startswith=query)
+            else:
+                versions = Release.objects.filter(version__contains="@" + query)
 
-            versions = Release.objects.filter_by_semver(
-                organization_id,
-                parse_semver(query, "="),
-                project_ids=projects,
+        if projects:
+            versions = versions.filter(
+                id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
+                    "release_id", flat=True
+                )
             )
         if environments:
             versions = versions.filter(
@@ -748,7 +748,10 @@ class SnubaTagStorage(TagStorage):
 
         order_by = map(_flip_field_sort, Release.SEMVER_COLS + ["package"])
         versions = (
-            versions.filter_to_semver().order_by(*order_by).values_list("version", flat=True)[:1000]
+            versions.filter_to_semver()
+            .annotate_prerelease_column()
+            .order_by(*order_by)
+            .values_list("version", flat=True)[:1000]
         )
 
         seen = set()
@@ -981,6 +984,7 @@ class SnubaTagStorage(TagStorage):
                 snuba_name = f"tags[{key}]"
 
             if query:
+                query = query.replace("\\", "\\\\")
                 conditions.append([snuba_name, "LIKE", f"%{query}%"])
             else:
                 conditions.append([snuba_name, "!=", ""])

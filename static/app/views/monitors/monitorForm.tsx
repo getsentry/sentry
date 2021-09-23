@@ -4,9 +4,9 @@ import {Observer} from 'mobx-react';
 import Access from 'app/components/acl/access';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import {Choices, GlobalSelection, Organization} from 'app/types';
+import {Choices, GlobalSelection, Project} from 'app/types';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
+import withProjects from 'app/utils/withProjects';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import NumberField from 'app/views/settings/components/forms/numberField';
@@ -35,7 +35,7 @@ const INTERVALS = [
 
 type Props = {
   monitor?: Monitor;
-  organization: Organization;
+  projects: Project[];
   selection: GlobalSelection;
   apiEndpoint: string;
   apiMethod: Form['props']['apiMethod'];
@@ -72,7 +72,7 @@ class MonitorForm extends Component<Props> {
     const {monitor} = this.props;
     const selectedProjectId = this.props.selection.projects[0];
     const selectedProject = selectedProjectId
-      ? this.props.organization.projects.find(p => p.id === selectedProjectId + '')
+      ? this.props.projects.find(p => p.id === selectedProjectId + '')
       : null;
     return (
       <Access access={['project:write']}>
@@ -112,7 +112,7 @@ class MonitorForm extends Component<Props> {
                   name="project"
                   label={t('Project')}
                   disabled={!hasAccess}
-                  choices={this.props.organization.projects
+                  choices={this.props.projects
                     .filter(p => p.isMember)
                     .map(p => [p.slug, p.slug])}
                   required
@@ -238,4 +238,4 @@ class MonitorForm extends Component<Props> {
   }
 }
 
-export default withGlobalSelection(withOrganization(MonitorForm));
+export default withGlobalSelection(withProjects(MonitorForm));

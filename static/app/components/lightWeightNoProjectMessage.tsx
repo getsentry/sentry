@@ -1,5 +1,3 @@
-import {Component} from 'react';
-
 import NoProjectMessage from 'app/components/noProjectMessage';
 import {LightWeightOrganization, Organization, Project} from 'app/types';
 import withProjects from 'app/utils/withProjects';
@@ -10,17 +8,20 @@ type Props = {
   loadingProjects: boolean;
 };
 
-class LightWeightNoProjectMessage extends Component<Props> {
-  render() {
-    const {organization, projects, loadingProjects} = this.props;
-    return (
-      <NoProjectMessage
-        {...this.props}
-        projects={projects}
-        loadingProjects={!('projects' in organization) && loadingProjects}
-      />
-    );
-  }
+function LightWeightNoProjectMessage({
+  organization,
+  projects,
+  loadingProjects,
+  ...props
+}: Props) {
+  return (
+    <NoProjectMessage
+      {...props}
+      organization={organization}
+      projects={projects}
+      loadingProjects={!('projects' in organization) && loadingProjects}
+    />
+  );
 }
 
 export default withProjects(LightWeightNoProjectMessage);

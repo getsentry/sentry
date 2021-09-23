@@ -11,7 +11,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.utils import InvalidParams
 from sentry.discover.endpoints import serializers
-from sentry.discover.models import KeyTransaction, TeamKeyTransaction
+from sentry.discover.models import TeamKeyTransaction
 from sentry.models import ProjectTeam, Team
 
 
@@ -22,56 +22,6 @@ class KeyTransactionPermission(OrganizationPermission):
         "PUT": ["org:read"],
         "DELETE": ["org:read"],
     }
-
-
-class LegacyKeyTransactionCountEndpoint(KeyTransactionBase):
-    permission_classes = (KeyTransactionPermission,)
-
-    def get(self, request, organization):
-        """
-        Check how many legacy Key Transactions a user has
-
-        This is used to show the guide to users who previously had key
-        transactions to update their team key transactions
-        """
-        if not self.has_feature(request, organization):
-            return Response(status=404)
-
-        projects = self.get_projects(request, organization)
-
-        try:
-            count = KeyTransaction.objects.filter(
-                organization=organization,
-                owner=request.user,
-                project__in=projects,
-            ).count()
-            return Response({"keyed": count}, status=200)
-        except KeyTransaction.DoesNotExist:
-            return Response({"keyed": 0}, status=200)
-
-
-class IsKeyTransactionEndpoint(KeyTransactionBase):
-    permission_classes = (KeyTransactionPermission,)
-
-    def get(self, request, organization):
-        """Get the Key Transactions for a user"""
-        if not self.has_feature(request, organization):
-            return Response(status=404)
-
-        project = self.get_project(request, organization)
-
-        transaction = request.GET.get("transaction")
-
-        try:
-            KeyTransaction.objects.get(
-                organization=organization,
-                owner=request.user,
-                project=project,
-                transaction=transaction,
-            )
-            return Response({"isKey": True}, status=200)
-        except KeyTransaction.DoesNotExist:
-            return Response({"isKey": False}, status=200)
 
 
 class KeyTransactionEndpoint(KeyTransactionBase):

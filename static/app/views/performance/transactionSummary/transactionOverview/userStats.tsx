@@ -10,7 +10,6 @@ import UserMisery from 'app/components/userMisery';
 import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
@@ -19,7 +18,6 @@ import {SidebarSpacer} from 'app/views/performance/transactionSummary/utils';
 import VitalInfo from 'app/views/performance/vitalDetail/vitalInfo';
 
 type Props = {
-  eventView: EventView;
   isLoading: boolean;
   hasWebVitals: boolean;
   error: string | null;
@@ -30,7 +28,6 @@ type Props = {
 };
 
 function UserStats({
-  eventView,
   isLoading,
   hasWebVitals,
   error,
@@ -85,8 +82,6 @@ function UserStats({
             </Link>
           </VitalsHeading>
           <VitalInfo
-            eventView={eventView}
-            organization={organization}
             location={location}
             vital={[WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS]}
             hideVitalPercentNames

@@ -1,5 +1,5 @@
-import collections
 from collections import OrderedDict
+from collections.abc import Callable
 from datetime import timedelta
 from enum import Enum
 
@@ -269,7 +269,7 @@ class BaseTSDB(Service):
         return rollups
 
     def make_series(self, default, start, end=None, rollup=None):
-        f = default if isinstance(default, collections.Callable) else lambda timestamp: default
+        f = default if isinstance(default, Callable) else lambda timestamp: default
         return [
             (timestamp, f(timestamp))
             for timestamp in self.get_optimal_rollup_series(start, end, rollup)[1]
