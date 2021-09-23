@@ -1,3 +1,5 @@
+from collections import defaultdict
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 
@@ -345,13 +347,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     def run_sessions_query(
         self,
+        org_id: int,
         query: QueryDefinition,
         span_op: str,
     ) -> ReleaseHealthBackend.SessionsQueryResult:
-        org_id = query.filter_keys["organization_id"]
         conditions = [
             Condition(Column("org_id"), Op.EQ, org_id),
-            Condition(Column("project_id"), Op.EQ, query.filter_keys["project_id"]),
+            Condition(Column("project_id"), Op.IN, query.filter_keys["project_id"]),
             # Condition(
             #     Column("metric_id"),
             #     Op.IN,
@@ -376,6 +378,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         data = {}
 
+        session_status_tag_key = indexer.resolve(org_id, UseCase.TAG_KEY, "session.status")
+
         if "count_unique(user)" in query.raw_fields:
             metric_id = indexer.resolve(org_id, UseCase.METRIC, "user")
             if metric_id is not None:
@@ -386,6 +390,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     groupby=list(groupby.values()),
                     where=conditions + [Condition(Column("metric_id"), Op.EQ, metric_id)],
                 )
+                print(snuba_query)
                 data["user"] = raw_snql_query(
                     snuba_query, referrer="releasehealth.metrics.sessions_v2.user"
                 )["data"]
@@ -443,9 +448,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
                 else:
                     # Simply count the number of started sessions:
-                    tag_key = indexer.resolve(org_id, UseCase.TAG_KEY, "session.status")
                     tag_value = indexer.resolve(org_id, UseCase.TAG_VALUE, "init")
-                    if tag_key is not None and tag_value is not None:
+                    if session_status_tag_key is not None and tag_value is not None:
                         snuba_query = Query(
                             dataset=Dataset.Metrics.value,
                             match=Entity("metrics_counters"),
@@ -454,14 +458,56 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                             where=conditions
                             + [
                                 Condition(Column("metric_id"), Op.EQ, metric_id),
-                                Condition(Column(f"tags[{tag_key}]"), Op.EQ, tag_value),
+                                Condition(
+                                    Column(f"tags[{session_status_tag_key}]"), Op.EQ, tag_value
+                                ),
                             ],
                         )
                         data["session"] = raw_snql_query(
                             snuba_query, referrer="releasehealth.metrics.sessions_v2.session"
                         )["data"]
 
-        return {
-            "intervals": [],
-            "groups": [],
-        }
+        @dataclass(frozen=True)
+        class FlatKey:
+            metric_name: str
+            raw_session_status: Optional[str] = None
+            release: Optional[str] = None
+            environment: Optional[str] = None
+            timestamp: Optional[datetime] = None
+
+        flat_data: Dict[FlatKey, Union[None, float, Sequence[float]]] = {}
+        for metric_name, metric_data in data.items():
+            for row in metric_data:
+                value_key = "percentiles" if metric_name == "session.duration" else "value"
+                value = row.pop(value_key)
+                raw_session_status = row.pop(f"tags[{session_status_tag_key}]", None)
+                flat_key = FlatKey(
+                    metric_name=metric_name, raw_session_status=raw_session_status, **row
+                )
+                flat_data[flat_key] = value
+
+        groups = defaultdict(dict)
+        for key, value in flat_data.items():
+            by = {}
+            if key.release is not None:
+                by["release"] = key.release
+            if key.environment is not None:
+                by["environment"] = key.environment
+            # TODO: handle session status
+
+            group = groups[tuple(sorted(by.items()))]
+            if key.timestamp is None:
+                # TODO: handle percentiles
+                group.setdefault("totals", {})[metric_name] = value
+
+            # TODO: handle series
+
+        groups = [
+            {
+                "by": dict(by),
+                **group,
+            }
+            for by, group in groups.items()
+        ]
+
+        return {"intervals": [], "groups": []}

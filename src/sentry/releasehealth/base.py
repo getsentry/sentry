@@ -148,6 +148,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
 
     def run_sessions_query(
         self,
+        org_id: int,
         query: QueryDefinition,
         span_op: str,
     ) -> SessionsQueryResult:

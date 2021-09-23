@@ -49,6 +49,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
 
     def run_sessions_query(
         self,
+        org_id: int,
         query: QueryDefinition,
         span_op: str,
     ) -> ReleaseHealthBackend.SessionsQueryResult:
