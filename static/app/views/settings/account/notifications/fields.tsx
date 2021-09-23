@@ -18,8 +18,8 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     ),
     type: 'select',
     options: [
-      {value: '-1', label: t('Default wowowow')},
-      {value: '1', label: t('On wowowow')},
+      {value: '-1', label: t('Default')},
+      {value: '1', label: t('On')},
       {value: '0', label: t('Off')},
     ],
     defaultValue: '-1',
