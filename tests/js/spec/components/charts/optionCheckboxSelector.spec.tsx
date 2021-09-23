@@ -61,15 +61,15 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
   });
 
   it('calls onChange prop with new checkbox option state', function () {
-    dropdownItem.at(0).find('span').first().simulate('click');
+    dropdownItem.at(0).find('div').first().simulate('click');
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
-    dropdownItem.at(0).find('span').first().simulate('click');
+    dropdownItem.at(0).find('div').first().simulate('click');
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()', 'count()']);
-    dropdownItem.at(1).find('span').first().simulate('click');
+    dropdownItem.at(1).find('div').first().simulate('click');
     expect(onChangeStub).toHaveBeenCalledWith(['count()']);
-    dropdownItem.at(1).find('span').first().simulate('click');
+    dropdownItem.at(1).find('div').first().simulate('click');
     expect(onChangeStub).toHaveBeenCalledWith(['count()', 'failure_count()']);
-    dropdownItem.at(2).find('span').first().simulate('click');
+    dropdownItem.at(2).find('div').first().simulate('click');
     expect(onChangeStub).toHaveBeenCalledWith([
       'count()',
       'failure_count()',
@@ -78,33 +78,42 @@ describe('EventsV2 > OptionCheckboxSelector', function () {
   });
 
   it('does not uncheck options when clicked if only one option is currently selected', function () {
-    dropdownItem.at(0).find('span').first().simulate('click');
+    dropdownItem.at(0).find('div').first().simulate('click');
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
-    dropdownItem.at(1).find('span').first().simulate('click');
+    dropdownItem.at(1).find('div').first().simulate('click');
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
   });
 
   it('only allows up to 3 options to be checked at one time', function () {
-    dropdownItem.at(2).find('span').first().simulate('click');
+    dropdownItem.at(2).find('div').first().simulate('click');
     expect(onChangeStub).toHaveBeenCalledWith([
       'count()',
       'failure_count()',
       'count_unique(user)',
     ]);
-    dropdownItem.at(3).find('span').first().simulate('click');
+    dropdownItem.at(3).find('div').first().simulate('click');
     expect(onChangeStub).not.toHaveBeenCalledWith([
       'count()',
       'failure_count()',
       'count_unique(user)',
       'avg(transaction.duration)',
     ]);
-    dropdownItem.at(2).find('span').first().simulate('click');
+    dropdownItem.at(2).find('div').first().simulate('click');
     expect(onChangeStub).toHaveBeenCalledWith(['count()', 'failure_count()']);
-    dropdownItem.at(3).find('span').first().simulate('click');
+    dropdownItem.at(3).find('div').first().simulate('click');
     expect(onChangeStub).toHaveBeenCalledWith([
       'count()',
       'failure_count()',
       'avg(transaction.duration)',
     ]);
+  });
+
+  it('calls onChange prop with a single selected value when clicking on the row instead of the checkbox', function () {
+    dropdownItem.at(0).find('span').first().simulate('click');
+    expect(onChangeStub).toHaveBeenCalledWith(['count()']);
+    dropdownItem.at(1).find('span').first().simulate('click');
+    expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
+    dropdownItem.at(2).find('span').first().simulate('click');
+    expect(onChangeStub).toHaveBeenCalledWith(['count_unique(user)']);
   });
 });

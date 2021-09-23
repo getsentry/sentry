@@ -57,6 +57,10 @@ class OptionCheckboxSelector extends Component<Props, State> {
   }
 
   constructNewSelected(value: string) {
+    return [value];
+  }
+
+  selectCheckbox(value: string) {
     const {selected} = this.props;
     // Cannot have no option selected
     if (selected.length === 1 && selected[0] === value) {
@@ -130,7 +134,16 @@ class OptionCheckboxSelector extends Component<Props, State> {
                             expandDirection="left"
                           />
                         </StyledTooltip>
-                        <CheckboxFancy isChecked={selected.includes(opt.value)} />
+                        <CheckboxFancy
+                          isChecked={selected.includes(opt.value)}
+                          isDisabled={disabled}
+                          onClick={event => {
+                            event.stopPropagation();
+                            if (!disabled) {
+                              onChange(this.selectCheckbox(opt.value));
+                            }
+                          }}
+                        />
                       </StyledDropdownItem>
                     );
                   })}
