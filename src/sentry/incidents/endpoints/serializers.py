@@ -349,6 +349,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "resolve_threshold": {"required": False},
         }
 
+    threshold_translators = {
+        AlertRuleThresholdType.ABOVE: lambda threshold: threshold + 100,
+        AlertRuleThresholdType.BELOW: lambda threshold: 100 - threshold,
+    }
+
     def validate_owner(self, owner):
         # owner should be team:id or user:id
         if owner is None:
@@ -492,8 +497,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 raise serializers.ValidationError(
                     f'Trigger {i + 1} must be labeled "{expected_label}"'
                 )
-        critical = triggers[0]
         threshold_type = data["threshold_type"]
+        self._translate_thresholds(threshold_type, data.get("comparison_delta"), triggers, data)
+
+        critical = triggers[0]
 
         self._validate_trigger_thresholds(threshold_type, critical, data.get("resolve_threshold"))
 
@@ -505,6 +512,24 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             self._validate_critical_warning_triggers(threshold_type, critical, warning)
 
         return data
+
+    def _translate_thresholds(self, threshold_type, comparison_delta, triggers, data):
+        """
+        Performs transformations on the thresholds used in the alert. Currently this is used to
+        translate thresholds for comparison alerts. The frontend will pass in the delta percent
+        change. So a 30% increase, 40% decrease, etc. We want to change this to the total percentage
+        we expect when comparing values. So 130% for a 30% increase, 60% for a 40% decrease, etc.
+        This makes these threshold operate in the same way as our other thresholds.
+        """
+        if comparison_delta is None:
+            return
+
+        translator = self.threshold_translators[threshold_type]
+        resolve_threshold = data.get("resolve_threshold")
+        if resolve_threshold:
+            data["resolve_threshold"] = translator(resolve_threshold)
+        for trigger in triggers:
+            trigger["alert_threshold"] = translator(trigger["alert_threshold"])
 
     def _validate_trigger_thresholds(self, threshold_type, trigger, resolve_threshold):
         if resolve_threshold is None:

@@ -14,7 +14,7 @@ type Props = {
   location: Location;
 };
 
-export default function QuickTrace({event, group, organization, location}: Props) {
+function QuickTrace({event, group, organization, location}: Props) {
   const hasPerformanceView = organization.features.includes('performance-view');
   const hasTraceContext = Boolean(event.contexts?.trace?.trace_id);
 
@@ -33,3 +33,5 @@ export default function QuickTrace({event, group, organization, location}: Props
     </Fragment>
   );
 }
+
+export default QuickTrace;

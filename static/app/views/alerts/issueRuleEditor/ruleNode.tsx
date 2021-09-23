@@ -71,7 +71,9 @@ class RuleNode extends React.Component<Props> {
           initialVal = fieldConfig.choices[0][0];
         }
       } else {
-        initialVal = data[name];
+        initialVal = isNaN(parseInt(data[name] as string, 10))
+          ? data[name]
+          : parseInt(data[name] as string, 10);
       }
     }
 
@@ -90,7 +92,6 @@ class RuleNode extends React.Component<Props> {
         onPropertyChange(index, name, value);
       }
     };
-
     return (
       <InlineSelectControl
         isClearable={false}
