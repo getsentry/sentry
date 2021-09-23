@@ -504,7 +504,6 @@ def fetch_release_artifact(url, release, dist):
 
     If a release archive was saved, the individual file will be extracted
     from the archive.
-
     """
     cache_key, cache_key_meta = get_cache_keys(url, release, dist)
 
