@@ -216,6 +216,16 @@ reset-db() {
     apply-migrations
 }
 
+prerequisites() {
+    brew update -q && brew bundle -q
+    if query-apple-m1; then
+        # psycopg2-binary does not have an arm64 wheel, thus, we need to build it locally
+        # by installing postgresql
+        # See details: https://github.com/psycopg/psycopg2/issues/1286
+        brew install postgresql
+    fi
+}
+
 direnv-help() {
     cat >&2 <<EOF
 If you're a Sentry employee and you're stuck or have questions, ask in #discuss-dev-tooling.

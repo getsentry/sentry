@@ -30,8 +30,7 @@ jobs:
       - name: Install prerequisites
         # brew can be finicky but it does not always means that the rest of the job will fail
         run: |
-          # Needed for xmlsec
-          brew install libxmlsec1 pkg-config
+          make prerequisites
 
       - name: Setup Python
         uses: ./.github/actions/setup-python

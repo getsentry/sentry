@@ -47,9 +47,9 @@ jobs:
       - name: Install prerequisites
         # brew can be finicky but it does not always means that the rest of the job will fail
         # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
-        # Sometimes, brew needs to be updated before brew bundle would work
+        continue-on-error: true
         run: |
-          brew update -q && brew bundle -q || exit 0
+          make prerequisites
 
       - name: Setup Python
         uses: ./.github/actions/setup-python
