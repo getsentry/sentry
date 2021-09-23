@@ -6,7 +6,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.utils import timezone
 
-from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
@@ -151,58 +150,3 @@ def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwa
         # all groups have been deleted
         if eventstream_state:
             eventstream.end_delete_groups(eventstream_state)
-
-
-@instrumented_task(
-    name="sentry.tasks.deletion.delete_organization_integration",
-    queue="cleanup",
-    default_retry_delay=60 * 5,
-    max_retries=MAX_RETRIES,
-    acks_late=True,
-)
-@retry(exclude=(DeleteAborted,))
-def delete_organization_integration(object_id, transaction_id=None, actor_id=None, **kwargs):
-    from sentry import deletions
-    from sentry.models import Identity, OrganizationIntegration, Repository
-
-    try:
-        instance = OrganizationIntegration.objects.get(id=object_id)
-    except OrganizationIntegration.DoesNotExist:
-        return
-
-    if instance.status == ObjectStatus.VISIBLE:
-        raise DeleteAborted
-
-    # dissociate repos from that integration
-    Repository.objects.filter(
-        organization_id=instance.organization_id, integration_id=instance.integration_id
-    ).update(integration_id=None)
-
-    # delete the identity attached through the default_auth_id
-    if instance.default_auth_id:
-        log_info = {
-            "integration_id": instance.integration_id,
-            "identity_id": instance.default_auth_id,
-        }
-        try:
-            identity = Identity.objects.get(id=instance.default_auth_id)
-        except Identity.DoesNotExist:
-            # the identity may not exist for a variety of reasons but for debugging purposes
-            # we should keep track
-            logger.info("delete_organization_integration.identity_does_not_exist", extra=log_info)
-        else:
-            identity.delete()
-            logger.info("delete_organization_integration.identity_deleted", extra=log_info)
-
-    task = deletions.get(
-        model=OrganizationIntegration,
-        actor_id=actor_id,
-        query={"id": object_id},
-        transaction_id=transaction_id or uuid4().hex,
-    )
-    has_more = task.chunk()
-    if has_more:
-        delete_organization_integration.apply_async(
-            kwargs={"object_id": object_id, "transaction_id": transaction_id, "actor_id": actor_id},
-            countdown=15,
-        )
