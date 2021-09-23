@@ -48,8 +48,14 @@ function TransactionRuleModal({
   theme,
   ...props
 }: Props) {
-  const [tracing, setTracing] = useState(true);
-  const [isTracingDisabled, setIsTracingDisabled] = useState(false);
+  const [tracing, setTracing] = useState(rule?.type === DynamicSamplingRuleType.TRACE);
+  const [isTracingDisabled, setIsTracingDisabled] = useState(
+    !!rule?.condition.inner.length
+  );
+
+  if (rule) {
+    const x = rule.condition;
+  }
 
   function handleChange({
     conditions,
@@ -138,7 +144,6 @@ function TransactionRuleModal({
       extraFields={
         <Field
           label={t('Tracing')}
-          // help={t('this is a description')} // TODO(Priscila): Add correct descriptions
           inline={false}
           flexibleControlStateSize
           stacked
