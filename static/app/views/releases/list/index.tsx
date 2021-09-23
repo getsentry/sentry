@@ -80,9 +80,7 @@ const supportedTags = {
 };
 
 export const isProjectMobileForReleases = (projectPlatform: PlatformKey) =>
-  (
-    [...mobile, ...desktop, 'java-android', 'cocoa-objc', 'cocoa-swift'] as string[]
-  ).includes(projectPlatform);
+  ([...mobile, ...desktop] as string[]).includes(projectPlatform);
 
 type RouteParams = {
   orgId: string;

@@ -111,7 +111,8 @@ export default class SelectField<
               // Support 'confirming' selections. This only works with
               // `val` objects that use the new-style options format
               const previousValue = props.value?.toString();
-              const newValue = val.value?.toString();
+              // `val` may be null if clearing the select for an optional field
+              const newValue = val?.value?.toString();
 
               // Value not marked for confirmation, or hasn't changed
               if (!confirm[newValue] || previousValue === newValue) {

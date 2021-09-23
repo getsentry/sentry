@@ -1,10 +1,13 @@
+from typing import Any, Mapping, Optional, Sequence, Tuple, Union
+
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
 from sentry.db.models import Model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
-from sentry.ownership.grammar import load_schema, resolve_actors
+from sentry.models import ActorTuple
+from sentry.ownership.grammar import Rule, load_schema, resolve_actors
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
@@ -75,7 +78,9 @@ class ProjectOwnership(Model):
         return ownership or None
 
     @classmethod
-    def get_owners(cls, project_id, data):
+    def get_owners(
+        cls, project_id: int, data: Mapping[str, Any]
+    ) -> Tuple[Union["Everyone", Sequence["ActorTuple"]], Optional[Sequence[Rule]]]:
         """
         For a given project_id, and event data blob.
         We combine the schemas from IssueOwners and CodeOwners.
@@ -180,7 +185,9 @@ class ProjectOwnership(Model):
             )
 
     @classmethod
-    def _matching_ownership_rules(cls, ownership, project_id, data):
+    def _matching_ownership_rules(
+        cls, ownership: "ProjectOwnership", project_id: int, data: Mapping[str, Any]
+    ) -> Sequence["Rule"]:
         rules = []
         if ownership.schema is not None:
             for rule in load_schema(ownership.schema):
