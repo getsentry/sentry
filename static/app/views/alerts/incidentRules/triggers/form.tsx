@@ -142,7 +142,6 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
     }
 
     if (
-      aggregate.includes('failure_rate') ||
       aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
       aggregate === SessionsAggregate.CRASH_FREE_USERS
     ) {
