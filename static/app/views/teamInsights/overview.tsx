@@ -58,11 +58,13 @@ function TeamInsightsOverview({
 }: Props) {
   const query = location?.query ?? {};
   const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
-  let localTeamId = localStorage.getItem(localStorageKey);
+
+  let localTeamId: string | null | undefined =
+    query.team ?? localStorage.getItem(localStorageKey);
   if (localTeamId && !teams.find(team => team.id === localTeamId)) {
     localTeamId = null;
   }
-  const currentTeamId = query.team ?? localTeamId ?? teams[0]?.id;
+  const currentTeamId = localTeamId ?? teams[0]?.id;
   const currentTeam = teams.find(team => team.id === currentTeamId);
   const projects = currentTeam?.projects ?? [];
 
