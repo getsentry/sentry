@@ -2457,6 +2457,18 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             params={"project_id": [self.project.id], "organization_id": self.organization.id},
         )
         assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2}
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"!{SEMVER_ALIAS}:1.2.3",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            self.event.event_id,
+            release_2_e_1,
+            release_2_e_2,
+            release_3_e_1,
+            release_3_e_2,
+        }
 
     def test_release_stage_condition(self):
         replaced_release = self.create_release(

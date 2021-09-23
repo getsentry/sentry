@@ -521,6 +521,14 @@ def _semver_build_filter_converter(
     return ["release", "IN", versions]
 
 
+def handle_negation(operator):
+    negated = False
+    if operator == "!=":
+        negated = True
+        operator = "="
+    return operator, negated
+
+
 def parse_semver(version, operator) -> Optional[SemverFilter]:
     """
     Attempts to parse a release version using our semver syntax. version should be in
@@ -533,6 +541,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
      - 1.2.3.4-alpha
      - 1.*
     """
+    (operator, negated) = handle_negation(operator)
     operator = OPERATOR_TO_DJANGO[operator]
     version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
     parsed = parse_release_relay(version)
@@ -550,6 +559,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
                 0 if prerelease else 1,
                 prerelease,
             ],
+            negated=negated,
         )
         if parsed["package"] and parsed["package"] != SEMVER_FAKE_PACKAGE:
             semver_filter.package = parsed["package"]
@@ -570,7 +580,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
                     raise InvalidSearchQuery(INVALID_SEMVER_MESSAGE)
 
         package = package if package and package != SEMVER_FAKE_PACKAGE else None
-        return SemverFilter("exact", version_parts, package)
+        return SemverFilter("exact", version_parts, package, negated)
 
 
 key_conversion_map: Mapping[

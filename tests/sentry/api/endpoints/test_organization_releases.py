@@ -333,6 +333,10 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(self.organization.slug, query=f"{RELEASE_ALIAS}:baz")
         self.assert_expected_versions(response, [])
 
+        # NOT release
+        response = self.get_valid_response(self.organization.slug, query=f"!{RELEASE_ALIAS}:foobar")
+        self.assert_expected_versions(response, [release2])
+
     def test_query_filter_suffix(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
@@ -374,7 +378,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         release_1 = self.create_release(version="test@1.2.4+124")
         release_2 = self.create_release(version="test@1.2.3+123")
         release_3 = self.create_release(version="test2@1.2.5+125")
-        self.create_release(version="some.release")
+        release_4 = self.create_release(version="some.release")
 
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>1.2.3")
         self.assert_expected_versions(response, [release_3, release_1])
@@ -384,6 +388,10 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
 
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:1.2.*")
         self.assert_expected_versions(response, [release_3, release_2, release_1])
+
+        # NOT semver version
+        response = self.get_valid_response(self.organization.slug, query=f"!{SEMVER_ALIAS}:1.2.3")
+        self.assert_expected_versions(response, [release_4, release_3, release_1])
 
         response = self.get_valid_response(
             self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3", sort="semver"
@@ -403,6 +411,12 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         )
         self.assert_expected_versions(response, [release_2, release_1])
 
+        # NOT semver package
+        response = self.get_valid_response(
+            self.organization.slug, query=f"!{SEMVER_PACKAGE_ALIAS}:test2"
+        )
+        self.assert_expected_versions(response, [release_4, release_2, release_1])
+
         response = self.get_valid_response(
             self.organization.slug, query=f"{SEMVER_BUILD_ALIAS}:>124"
         )
@@ -412,6 +426,12 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
             self.organization.slug, query=f"{SEMVER_BUILD_ALIAS}:<125"
         )
         self.assert_expected_versions(response, [release_2, release_1])
+
+        # NOT semver build
+        response = self.get_valid_response(
+            self.organization.slug, query=f"!{SEMVER_BUILD_ALIAS}:125"
+        )
+        self.assert_expected_versions(response, [release_4, release_2, release_1])
 
     def test_release_stage_filter(self):
         self.login_as(user=self.user)
@@ -465,6 +485,14 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
             environment=self.environment.name,
         )
         self.assert_expected_versions(response, [replaced_release])
+
+        # NOT release stage
+        response = self.get_valid_response(
+            self.organization.slug,
+            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED}",
+            environment=self.environment.name,
+        )
+        self.assert_expected_versions(response, [not_adopted_release, adopted_release])
 
         response = self.get_valid_response(
             self.organization.slug,
