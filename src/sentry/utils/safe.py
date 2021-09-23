@@ -1,5 +1,5 @@
-import collections
 import logging
+from collections.abc import Mapping
 
 from django.conf import settings
 from django.db import transaction
@@ -136,7 +136,7 @@ def get_path(data, *path, **kwargs):
         raise TypeError("get_path() got an undefined keyword argument '%s'" % k)
 
     for p in path:
-        if isinstance(data, collections.Mapping) and p in data:
+        if isinstance(data, Mapping) and p in data:
             data = data[p]
         elif isinstance(data, (list, tuple)) and isinstance(p, int) and -len(data) <= p < len(data):
             data = data[p]
@@ -172,13 +172,13 @@ def set_path(data, *path, **kwargs):
         raise TypeError("set_path() got an undefined keyword argument '%s'" % k)
 
     for p in path[:-1]:
-        if not isinstance(data, collections.Mapping):
+        if not isinstance(data, Mapping):
             return False
         if data.get(p) is None:
             data[p] = {}
         data = data[p]
 
-    if not isinstance(data, collections.Mapping):
+    if not isinstance(data, Mapping):
         return False
 
     p = path[-1]

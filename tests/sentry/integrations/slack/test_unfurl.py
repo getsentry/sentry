@@ -130,7 +130,7 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"
@@ -167,7 +167,7 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"
@@ -205,7 +205,7 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"
@@ -253,7 +253,7 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"
@@ -303,7 +303,7 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"
@@ -343,7 +343,7 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"

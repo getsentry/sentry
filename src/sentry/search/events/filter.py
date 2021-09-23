@@ -613,7 +613,17 @@ def convert_search_filter_to_snuba_query(
     elif name in ARRAY_FIELDS and search_filter.value.is_wildcard():
         # Escape and convert meta characters for LIKE expressions.
         raw_value = search_filter.value.raw_value
-        like_value = raw_value.replace("%", "\\%").replace("_", "\\_").replace("*", "%")
+        # TODO: There are rare cases where this chaining don't
+        # work. For example, a wildcard like '\**' will incorrectly
+        # be replaced with '\%%'.
+        like_value = (
+            # Slashes have to be double escaped so they are
+            # interpreted as a string literal.
+            raw_value.replace("\\", "\\\\")
+            .replace("%", "\\%")
+            .replace("_", "\\_")
+            .replace("*", "%")
+        )
         operator = "LIKE" if search_filter.operator == "=" else "NOT LIKE"
         return [name, operator, like_value]
     elif name in ARRAY_FIELDS and search_filter.is_in_filter:
@@ -1320,10 +1330,16 @@ class QueryFilter(QueryFields):
 
         if name in ARRAY_FIELDS:
             if search_filter.value.is_wildcard():
+                # TODO: There are rare cases where this chaining don't
+                # work. For example, a wildcard like '\**' will incorrectly
+                # be replaced with '\%%'.
                 return Condition(
                     lhs,
                     Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
-                    search_filter.value.raw_value.replace("%", "\\%")
+                    # Slashes have to be double escaped so they are
+                    # interpreted as a string literal.
+                    search_filter.value.raw_value.replace("\\", "\\\\")
+                    .replace("%", "\\%")
                     .replace("_", "\\_")
                     .replace("*", "%"),
                 )
@@ -1534,7 +1550,7 @@ class QueryFilter(QueryFields):
         # Handle "has" queries
         if search_filter.value.raw_value == "":
             return Condition(
-                self.resolve_field_alias(search_filter.key.name),
+                self.resolve_field(search_filter.key.name),
                 Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
             )
         if search_filter.is_in_filter:
@@ -1544,7 +1560,7 @@ class QueryFilter(QueryFields):
         else:
             internal_value = translate_transaction_status(search_filter.value.raw_value)
         return Condition(
-            self.resolve_field_alias(search_filter.key.name),
+            self.resolve_field(search_filter.key.name),
             Op(search_filter.operator),
             internal_value,
         )

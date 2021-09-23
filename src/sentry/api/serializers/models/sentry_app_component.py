@@ -18,13 +18,14 @@ class SentryAppComponentSerializer(Serializer):
 
 
 class SentryAppAlertRuleActionSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, install, **kwargs):
         return {
             "id": f"sentry.sentryapp.{obj.sentry_app.slug}",
             "uuid": str(obj.uuid),
+            "sentryAppInstallationUuid": f"{install.uuid}",
             "actionType": "sentryapp",
             "prompt": f"{obj.sentry_app.name}",
             "enabled": True,
             "label": f"{obj.schema.get('title', obj.sentry_app.name)} with these ",
-            "formfields": obj.schema.get("settings", {}),
+            "formFields": obj.schema.get("settings", {}),
         }

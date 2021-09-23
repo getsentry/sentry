@@ -274,12 +274,16 @@ export type Project = {
   isInternal: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
+  hasSessions: boolean;
   firstEvent: 'string' | null;
   firstTransactionEvent: boolean;
   subjectTemplate: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;
   environments: string[];
+  eventProcessing: {
+    symbolicationDegraded: boolean;
+  };
 
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {

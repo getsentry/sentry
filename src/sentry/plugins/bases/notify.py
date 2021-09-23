@@ -139,7 +139,7 @@ class NotificationPlugin(Plugin):
                 ExternalProviders.EMAIL
             ]
 
-        return self.get_notification_recipients(project, "%s:alert" % self.get_conf_key())
+        return self.get_notification_recipients(project, f"{self.get_conf_key()}:alert")
 
     def __is_rate_limited(self, group, event):
         return ratelimits.is_limited(project=group.project, key=self.get_conf_key(), limit=10)
