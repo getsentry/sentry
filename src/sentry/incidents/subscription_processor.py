@@ -236,7 +236,7 @@ class SubscriptionProcessor:
                 # If for whatever reason total session count was not sent in the update,
                 # ignore the minimum threshold comparison and continue along with processing the
                 # update. However, this should not happen.
-                logger.error(
+                logger.exception(
                     "Received an update for a crash rate alert subscription, but no total "
                     "sessions count was sent"
                 )
