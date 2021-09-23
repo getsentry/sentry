@@ -22,11 +22,11 @@ from ..utils import logger
 from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
 
-# XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will
-# need refactored
-
 
 class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
+    """
+    XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will need refactoring
+    """
 
     authentication_classes = ()
     permission_classes = ()
