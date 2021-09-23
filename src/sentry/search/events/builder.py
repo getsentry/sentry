@@ -1,6 +1,5 @@
 from typing import List, Optional, Tuple
 
-from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Limit, Offset
@@ -62,8 +61,6 @@ class QueryBuilder(QueryFilter):
 
         if isinstance(resolved, Column):
             return LimitBy(resolved, count)
-        elif isinstance(resolved, AliasedExpression):
-            return LimitBy(resolved.exp, count)
 
         # TODO: Limit By can only operate on a `Column`. This has the implication
         # that non aggregate transforms are not allowed in the order by clause.
