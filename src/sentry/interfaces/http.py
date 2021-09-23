@@ -148,7 +148,7 @@ class Http(Interface):
         url = self.url
         if url:
             if self.query_string:
-                url = url + "?" + safe_urlencode(get_path(self.query_string, filter=True) or "")
+                url = url + "?" + safe_urlencode(get_path(self.query_string, filter=True))
             if self.fragment:
                 url = url + "#" + self.fragment
         return url
@@ -161,7 +161,7 @@ class Http(Interface):
                 "url": self.full_url,
                 "short_url": self.url,
                 "method": self.method,
-                "query_string": safe_urlencode(get_path(self.query_string, filter=True) or ""),
+                "query_string": safe_urlencode(get_path(self.query_string, filter=True)),
                 "fragment": self.fragment,
             },
         )
