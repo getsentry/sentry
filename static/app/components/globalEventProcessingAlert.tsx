@@ -6,6 +6,8 @@ import {IconInfo} from 'app/icons';
 import {tct} from 'app/locale';
 import {Project} from 'app/types';
 
+const sentryStatusPageLink = 'https://status.sentry.io/';
+
 type Props = {
   projects: Project[];
   className?: string;
@@ -27,7 +29,7 @@ function GlobalEventProcessingAlert({className, projects}: Props) {
         {tct(
           'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the [link:Status] page for a potential outage.',
           {
-            link: <ExternalLink href="https://status.sentry.io/" />,
+            link: <ExternalLink href={sentryStatusPageLink} />,
           }
         )}
       </Alert>
@@ -45,7 +47,7 @@ function GlobalEventProcessingAlert({className, projects}: Props) {
               {index !== projectsInTheLowPriorityQueue.length - 1 && ', '}
             </Fragment>
           )),
-          link: <ExternalLink href="https://status.sentry.io/" />,
+          link: <ExternalLink href={sentryStatusPageLink} />,
         }
       )}
     </Alert>
