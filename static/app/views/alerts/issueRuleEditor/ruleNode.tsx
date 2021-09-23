@@ -72,8 +72,8 @@ class RuleNode extends React.Component<Props> {
         }
       } else {
         initialVal = isNaN(parseInt(data[name] as string, 10))
-          ? parseInt(data[name] as string, 10)
-          : data[name];
+          ? data[name]
+          : parseInt(data[name] as string, 10);
       }
     }
 
