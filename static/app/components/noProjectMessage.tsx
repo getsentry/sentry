@@ -30,21 +30,13 @@ export default function NoProjectMessage({
   const canCreateProject = organization.access.includes('project:write');
   const canJoinTeam = organization.access.includes('team:read');
 
-  let orgHasProjects = false;
-  let hasProjectAccess = false;
+  const {isSuperuser} = ConfigStore.get('user');
 
-  if ('projects' in organization) {
-    const {isSuperuser} = ConfigStore.get('user');
-
-    orgHasProjects = organization.projects.length > 0;
-    hasProjectAccess =
-      isSuperuser && !superuserNeedsToBeProjectMember
-        ? organization.projects.some(p => p.hasAccess)
-        : organization.projects.some(p => p.isMember && p.hasAccess);
-  } else {
-    hasProjectAccess = projects ? projects.length > 0 : false;
-    orgHasProjects = hasProjectAccess;
-  }
+  const orgHasProjects = !!projects?.length;
+  const hasProjectAccess =
+    isSuperuser && !superuserNeedsToBeProjectMember
+      ? !!projects?.some(p => p.hasAccess)
+      : !!projects?.some(p => p.isMember && p.hasAccess);
 
   if (hasProjectAccess || loadingProjects) {
     return <Fragment>{children}</Fragment>;
