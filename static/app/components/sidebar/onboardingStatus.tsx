@@ -11,14 +11,16 @@ import ProgressRing, {
 } from 'app/components/progressRing';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {OnboardingTaskStatus, Organization} from 'app/types';
+import {OnboardingTaskStatus, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import theme, {Theme} from 'app/utils/theme';
+import withProjects from 'app/utils/withProjects';
 
 import {CommonSidebarProps, SidebarPanelKey} from './types';
 
 type Props = CommonSidebarProps & {
   org: Organization;
+  projects: Project[];
 };
 
 const isDone = (task: OnboardingTaskStatus) =>
@@ -32,6 +34,7 @@ const progressTextCss = () => css`
 function OnboardingStatus({
   collapsed,
   org,
+  projects,
   currentPanel,
   orientation,
   hidePanel,
@@ -50,7 +53,7 @@ function OnboardingStatus({
     return null;
   }
 
-  const tasks = getMergedTasks(org);
+  const tasks = getMergedTasks({organization: org, projects});
 
   const allDisplayedTasks = tasks.filter(task => task.display);
   const doneTasks = allDisplayedTasks.filter(isDone);
@@ -164,4 +167,4 @@ const Container = styled('div')<{isActive: boolean}>`
   }
 `;
 
-export default OnboardingStatus;
+export default withProjects(OnboardingStatus);
