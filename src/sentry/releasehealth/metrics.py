@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 import pytz
 from snuba_sdk import BooleanCondition, Column, Condition, Entity, Op, Query
@@ -12,7 +12,6 @@ from sentry.releasehealth.base import (
     EnvironmentName,
     OrganizationId,
     ProjectId,
-    ProjectList,
     ProjectRelease,
     ReleaseHealthBackend,
     ReleaseName,
@@ -39,6 +38,10 @@ def tag_value(org_id: int, name: str) -> int:
     index = indexer.resolve(org_id, UseCase.TAG_VALUE, name)  # type: ignore
     assert index is not None
     return index  # type: ignore
+
+
+def try_get_tag_value(org_id: int, name: str) -> Optional[int]:
+    return indexer.resolve(org_id, UseCase.TAG_VALUE, name)  # type: ignore
 
 
 def reverse_tag_value(org_id: int, index: int) -> str:
@@ -344,7 +347,71 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         return rv
 
-    def check_has_health_data(self, projects_list: ProjectList) -> Set[ProjectRelease]:
+    def check_has_health_data(
+        self, projects_list: Sequence[Union[ProjectId, ProjectRelease]]
+    ) -> Set[Union[ProjectId, ProjectRelease]]:
+        now = datetime.now(pytz.utc)
+        start = now - timedelta(days=3)
 
-        # TODO implement
-        raise NotImplementedError()
+        projects_list = list(projects_list)
+
+        if len(projects_list) == 0:
+            return set()
+
+        includes_releases = type(projects_list[0]) == tuple
+
+        if includes_releases:
+            project_ids = [x[0] for x in projects_list]  # type: ignore
+        else:
+            project_ids = [x for x in projects_list]
+
+        org_id = self._get_org_id(project_ids)
+
+        where_clause = [
+            Condition(Column("org_id"), Op.EQ, org_id),
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, now),
+        ]
+
+        if includes_releases:
+            releases = [x[1] for x in projects_list]  # type: ignore
+            release_column_name = tag_key(org_id, "release")
+            releases_ids = [
+                release_id
+                for release_id in [try_get_tag_value(org_id, release) for release in releases]
+                if release_id is not None
+            ]
+            where_clause.append(Condition(Column(release_column_name), Op.IN, releases_ids))
+            column_names = ["project_id", release_column_name]
+
+            def extract_raw_info(
+                row: Mapping[str, Union[int, str]]
+            ) -> Union[ProjectId, ProjectRelease]:
+                return row.get("project_id"), reverse_tag_value(org_id, row.get(release_column_name))  # type: ignore
+
+        else:
+            column_names = ["project_id"]
+
+            def extract_raw_info(
+                row: Mapping[str, Union[int, str]]
+            ) -> Union[ProjectId, ProjectRelease]:
+                return row.get("project_id")  # type: ignore
+
+        query_cols = [Column(column_name) for column_name in column_names]
+        group_by_clause = query_cols
+
+        query = Query(
+            dataset=Dataset.Metrics.value,
+            match=Entity("metrics_counters"),
+            select=query_cols,
+            where=where_clause,
+            groupby=group_by_clause,
+        )
+
+        result = raw_snql_query(
+            query, referrer="releasehealth.metrics.check_has_health_data", use_cache=False
+        )
+
+        return {extract_raw_info(raw) for raw in result["data"]}

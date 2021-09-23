@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import Mapping, Optional, Sequence, Set, Tuple, Union
 
 from typing_extensions import TypedDict
 
@@ -11,7 +11,6 @@ ReleaseName = str
 EnvironmentName = str
 
 ProjectRelease = Tuple[ProjectId, ReleaseName]
-ProjectList = Sequence[Union[ProjectId, ProjectRelease]]
 
 
 class CurrentAndPreviousCrashFreeRate(TypedDict):
@@ -110,7 +109,9 @@ class ReleaseHealthBackend(Service):  # type: ignore
 
         raise NotImplementedError()
 
-    def check_has_health_data(self, projects_list: ProjectList) -> Set[ProjectRelease]:
+    def check_has_health_data(
+        self, projects_list: Sequence[Union[ProjectId, ProjectRelease]]
+    ) -> Set[Union[ProjectId, ProjectRelease]]:
         """
         Function that returns a set of all project_ids or (project, release) if they have health data
         within the last 90 days based on a list of projects or a list of project, release combinations
