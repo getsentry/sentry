@@ -577,6 +577,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # setup a 'previous' identity, such as when we migrated Google from
         # the old idents to the new
         user = self.create_user("bar@example.com", is_managed=False, password="")
+        assert not user.has_usable_password()
         UserEmail.objects.filter(user=user, email="bar@example.com").update(is_verified=False)
         self.create_member(organization=self.organization, user=user)
 
@@ -590,7 +591,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"email": "bar@example.com"})
         self.assertTemplateUsed(resp, "sentry/auth-confirm-identity.html")
         assert resp.status_code == 200
-        assert resp.context["existing_user"] == user
+        assert resp.context["existing_user"] is None
 
     def test_flow_managed_duplicate_users_without_membership(self):
         """

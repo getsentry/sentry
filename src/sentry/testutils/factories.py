@@ -553,7 +553,7 @@ class Factories:
         kwargs.setdefault("is_superuser", False)
 
         user = User(email=email, **kwargs)
-        if not kwargs.get("password"):
+        if kwargs.get("password") is None:
             user.set_password("admin")
         user.save()
 
