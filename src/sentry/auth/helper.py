@@ -36,7 +36,7 @@ from sentry.models import (
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
-from sentry.utils import auth, json, metrics
+from sentry.utils import auth, json, metrics, redis
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
@@ -61,6 +61,8 @@ ERR_UID_MISMATCH = _("There was an error encountered during authentication.")
 ERR_NOT_AUTHED = _("You must be authenticated to link accounts.")
 
 ERR_INVALID_IDENTITY = _("The provider did not return a valid user identity.")
+
+_REDIS_KEY = "verificationKeyStorage"
 
 
 class AuthHelperSessionStore(PipelineSessionStore):
@@ -410,7 +412,6 @@ class AuthIdentityHandler:
         else:
             acting_user = self.user
             login_form = None
-
         # If they already have an SSO account and the identity provider says
         # the email matches we go ahead and let them merge it. This is the
         # only way to prevent them having duplicate accounts, and because
@@ -465,6 +466,39 @@ class AuthIdentityHandler:
                 auth.log_auth_failure(self.request, self.request.POST.get("username"))
         else:
             op = None
+
+        if self.request.session.get("verification_key"):
+            cluster = redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
+            verification_key = self.request.session["verification_key"]
+            verification_value_byte = cluster.hgetall(verification_key)
+            if verification_value_byte:
+                op = "verify"
+                verification_value = {
+                    y.decode("ascii"): verification_value_byte.get(y).decode("ascii")
+                    for y in verification_value_byte.keys()
+                }
+
+                user = User.objects.get(id=verification_value["user_id"])
+                auth_identity = AuthIdentity.objects.create(
+                    auth_provider=self.auth_provider,
+                    user=user,
+                    ident=identity["id"],
+                    data=identity.get("data", {}),
+                )
+
+                member = OrganizationMember.objects.get(id=verification_value["member_id"])
+                self._set_linked_flag(member)
+
+                AuditLogEntry.objects.create(
+                    organization=self.organization,
+                    actor=user,
+                    ip_address=self.request.META["REMOTE_ADDR"],
+                    target_object=auth_identity.id,
+                    event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
+                    data=auth_identity.get_audit_log_data(),
+                )
+
+                messages.add_message(self.request, messages.SUCCESS, OK_LINK_IDENTITY)
 
         if not op:
             existing_user, template = self._dispatch_to_confirmation(identity)
