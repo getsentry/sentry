@@ -8,8 +8,6 @@ from sentry.integrations.slack.unfurl import LinkType, match_link
 from sentry.models import IdentityProvider
 from sentry.models.user import User
 
-from ..utils import get_identity
-
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
 
 
@@ -99,7 +97,7 @@ class SlackEventRequest(SlackRequest):
             self.type == "link_shared" and has_discover_links(self.links)
         ):
             try:
-                identity = get_identity(self.team_id, self.user_id)
+                identity = self.get_identity()
             except IdentityProvider.DoesNotExist:
                 raise SlackRequestError(status=status.HTTP_403_FORBIDDEN)
 

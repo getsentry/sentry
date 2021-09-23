@@ -14,6 +14,7 @@ from sentry.incidents.logic import (
     get_slack_channel_ids,
 )
 from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
+from sentry.integrations.utils import get_identities_by_user
 from sentry.mediators import project_rules
 from sentry.models import (
     Identity,
@@ -37,7 +38,6 @@ from sentry.utils.redis import redis_clusters
 from .utils import (
     SLACK_RATE_LIMITED_MESSAGE,
     get_channel_id_with_timeout,
-    get_identities_by_user,
     get_slack_data_by_user,
     strip_channel_name,
 )

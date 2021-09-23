@@ -1,5 +1,4 @@
 __all__ = (
-    "get_identity_or_404",
     "get_slack_data_by_user",
     "get_users",
     "set_signing_secret",
@@ -7,7 +6,6 @@ __all__ = (
     "check_signing_secret",
     "get_channel_id",
     "get_channel_id_with_timeout",
-    "get_identities_by_user",
     "logger",
     "send_confirmation",
     "send_incident_alert_notification",

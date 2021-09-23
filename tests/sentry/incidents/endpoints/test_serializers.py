@@ -405,7 +405,7 @@ class TestAlertRuleSerializer(TestCase):
         self.run_fail_validation_test({"thresholdType": 50}, {"thresholdType": invalid_values})
 
     @patch(
-        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
     def test_channel_timeout(self, mock_get_channel_id):
@@ -435,7 +435,7 @@ class TestAlertRuleSerializer(TestCase):
         )
 
     @patch(
-        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
     def test_invalid_team_with_channel_timeout(self, mock_get_channel_id):
