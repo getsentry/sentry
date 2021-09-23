@@ -33,7 +33,7 @@ class GroupHistory(Model):
     group = FlexibleForeignKey("sentry.Group")
     project = FlexibleForeignKey("sentry.Project")
     release = FlexibleForeignKey("sentry.Release", null=True)
-    owner = FlexibleForeignKey("sentry.Actor", null=True)
+    actor = FlexibleForeignKey("sentry.Actor", null=True)
 
     status = BoundedPositiveIntegerField(
         default=0,
