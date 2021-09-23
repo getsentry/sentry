@@ -20,7 +20,8 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         "cluster" is the name of the Redis cluster to use. "counter_bucket_size" is the size
         in second of the buckets that timestamps will be sorted into when a project's counter is incremented.
-        "counter_ttl" is the duration that counter entries will be kept around for.
+        "counter_ttl" is the duration that counter entries will be kept around for *after
+        the last increment call*.
         """
 
         self.cluster = redis.redis_clusters.get(cluster)
@@ -49,6 +50,6 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         key = f"{self._prefix}:counter:{self._counter_bucket_size}:{project_id}:{timestamp}"
 
         with self.cluster.pipeline() as pipeline:
-            pipeline.set(key, 0, nx=True, px=self._counter_ttl)
             pipeline.incr(key)
+            pipeline.pexpire(key, self._counter_ttl)
             pipeline.execute()

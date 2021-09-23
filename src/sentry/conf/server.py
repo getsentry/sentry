@@ -2327,6 +2327,7 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # so that projects that exceed a reasonable rate can be sent to the low
     # priority queue. This setting determines how long we keep these rates
     # around.
+    # Note that the time is counted after the last time a counter is incremented.
     "counter_ttl": timedelta(seconds=300),
 }
 # Timeout for the project counter statement execution.

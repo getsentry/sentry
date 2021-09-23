@@ -47,11 +47,9 @@ def test_increment_project_event_counter(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     store.increment_project_event_counter(17, 1147)
-    counter = redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140")
-    assert counter == "1"
+    assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140") == "1"
     time.sleep(0.5)
-    counter = redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140")
-    assert counter is None
+    assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140") is None
 
 
 def test_increment_project_event_counter_twice(
@@ -60,12 +58,13 @@ def test_increment_project_event_counter_twice(
     store.increment_project_event_counter(17, 1147)
     time.sleep(0.2)
     store.increment_project_event_counter(17, 1149)
-    counter = redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140")
-    assert counter == "2"
+    assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140") == "2"
     time.sleep(0.3)
+    # the second insert should have refreshed the ttl
+    assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140") == "2"
+    time.sleep(0.2)
     # it should have expired by now
-    counter = redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140")
-    assert counter is None
+    assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140") is None
 
 
 def test_increment_project_event_counter_multiple(
