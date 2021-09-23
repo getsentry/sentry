@@ -173,7 +173,7 @@ class Endpoint(APIView):
                 method=self.request.method,
                 view=f"{view_obj.__module__}.{view_obj.__class__.__name__}",
                 response=self.response.status_code,
-                user=str(self.request.user),
+                user=str(self.request.user.id),
                 token_type=token_name,
             )
             api_access_logger.info("api.access", extra=log_metrics)
