@@ -7,7 +7,7 @@
     "**/*.pyc": true,
     "build": true,
     "htmlcov": true,
-    "node_modules": false,
+    "node_modules": true,
     "src/sentry/locale": true,
     "src/sentry/static/sentry/dist/": true
   },
