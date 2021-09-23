@@ -942,6 +942,7 @@ class Factories:
         resolve_threshold=None,
         user=None,
         event_types=None,
+        comparison_delta=None,
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
@@ -963,6 +964,7 @@ class Factories:
             excluded_projects=excluded_projects,
             user=user,
             event_types=event_types,
+            comparison_delta=comparison_delta,
         )
 
         if date_added is not None:
