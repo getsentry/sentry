@@ -17,7 +17,6 @@ _TTL = timedelta(minutes=10)
 def send_confirm_email(user: User, email: str, verification_key: str) -> None:
     context = {
         "user": user,
-        # TODO left incase we want to have a clickable verification link for future
         "url": absolute_uri(
             reverse(
                 "sentry-idp-email-verification",
