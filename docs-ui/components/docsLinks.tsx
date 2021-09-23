@@ -12,6 +12,7 @@ type Link = {
     alt: string;
   };
   title: string;
+  desc?: string;
   /**
    * props to pass to LinkTo:
    *
@@ -40,7 +41,7 @@ type Props = {
  * kind defaults to 'Core/Overview', so an empty link will just
  * lead back to the home page
  */
-const DocsLink = ({img, title, kind, story, theme}: LinkProps) => (
+const DocsLink = ({img, title, desc, kind, story, theme}: LinkProps) => (
   <LinkWrap kind={kind} story={story}>
     {img && (
       <ImgWrap>
@@ -50,9 +51,10 @@ const DocsLink = ({img, title, kind, story, theme}: LinkProps) => (
     <TitleWrap>
       <Title>{title}</Title>
       <IconWrap>
-        <IconArrow theme={theme} color="gray500" direction="right" />
+        <IconArrow theme={theme} color="gray500" direction="right" size="sm" />
       </IconWrap>
     </TitleWrap>
+    {desc && <Desc>{desc}</Desc>}
   </LinkWrap>
 );
 
@@ -111,10 +113,11 @@ const Img = styled('img')`
 const TitleWrap = styled('div')`
   display: flex;
   align-items: center;
-  margin-top: ${space(1)};
+  margin-top: ${space(2)};
 `;
 
-const Title = styled('h5')`
+const Title = styled('p')`
+  font-weight: 600;
   line-height: 1;
   margin-bottom: 0;
   margin-right: ${space(1)};
@@ -128,4 +131,10 @@ const IconWrap = styled('div')`
   ${/* sc-selector */ LinkWrap}:hover & {
     transform: translateX(${space(0.5)});
   }
+`;
+
+const Desc = styled('p')`
+  margin-top: ${space(0.5)};
+  font-size: 0.875rem;
+  color: ${p => p.theme.gray300};
 `;
