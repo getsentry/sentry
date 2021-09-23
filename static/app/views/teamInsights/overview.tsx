@@ -156,7 +156,7 @@ function TeamInsightsOverview({
     <Fragment>
       <BorderlessHeader>
         <StyledHeaderContent>
-          <StyledLayoutTitle>{t('Team Insights')}</StyledLayoutTitle>
+          <StyledLayoutTitle>{t('Projects')}</StyledLayoutTitle>
         </StyledHeaderContent>
       </BorderlessHeader>
       <Layout.Header>
@@ -238,6 +238,8 @@ export {TeamInsightsOverview};
 export default withApi(withOrganization(withTeamsForUser(TeamInsightsOverview)));
 
 const Body = styled(Layout.Body)`
+  margin-bottom: -20px;
+
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: block;
   }
