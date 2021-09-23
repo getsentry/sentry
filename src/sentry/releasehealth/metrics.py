@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 import pytz
 from snuba_sdk import BooleanCondition, Column, Condition, Entity, Op, Query
@@ -386,14 +386,27 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             where_clause.append(Condition(Column(release_column_name), Op.IN, releases_ids))
             column_names = ["project_id", release_column_name]
 
-            def extract_raw_info(row: Mapping[str, Union[int, str]]) -> ProjectOrRelease:
-                return row["project_id"], reverse_tag_value(org_id, row.get(release_column_name))  # type: ignore
+            # def extract_raw_info(row: Mapping[str, Union[int, str]]) -> ProjectOrRelease:
+            #     return row["project_id"], reverse_tag_value(org_id, row.get(release_column_name))  # type: ignore
 
         else:
             column_names = ["project_id"]
 
-            def extract_raw_info(row: Mapping[str, Union[int, str]]) -> ProjectOrRelease:
-                return row["project_id"]  # type: ignore
+            # def extract_raw_info(row: Mapping[str, Union[int, str]]) -> ProjectOrRelease:
+            #     return row["project_id"]  # type: ignore
+
+        def extract_raw_info_func(
+            include_releases: bool,
+        ) -> Callable[[Mapping[str, Union[int, str]]], ProjectOrRelease]:
+            def f(row: Mapping[str, Union[int, str]]) -> ProjectOrRelease:
+                if include_releases:
+                    return row["project_id"], reverse_tag_value(org_id, row.get(release_column_name))  # type: ignore
+                else:
+                    return row["project_id"]  # type: ignore
+
+            return f
+
+        extract_raw_info = extract_raw_info_func(includes_releases)
 
         query_cols = [Column(column_name) for column_name in column_names]
         group_by_clause = query_cols
