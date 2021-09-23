@@ -1279,6 +1279,15 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == []
 
+        response = self.get_response(sort_by="date", limit=10, query=f"!{SEMVER_ALIAS}:1.2.4")
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.json()] == [
+            release_1_g_1,
+            release_1_g_2,
+            release_3_g_1,
+            release_3_g_2,
+        ]
+
     def test_release_stage(self):
         replaced_release = self.create_release(
             version="replaced_release", environments=[self.environment]

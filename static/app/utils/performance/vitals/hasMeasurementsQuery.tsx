@@ -1,7 +1,6 @@
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
-import {Client} from 'app/api';
 import {escapeDoubleQuotes} from 'app/utils';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
@@ -41,16 +40,11 @@ function getHasMeasurementsRequestPayload(props: RequestProps) {
   return Object.assign(baseApiPayload, additionalApiPayload);
 }
 
-function beforeFetch(api: Client) {
-  api.clear();
-}
-
 function HasMeasurementsQuery(props: Props) {
   return (
     <GenericDiscoverQuery<HasMeasurements, HasMeasurementsProps>
       route="events-has-measurements"
       getRequestPayload={getHasMeasurementsRequestPayload}
-      beforeFetch={beforeFetch}
       {...omit(props, 'children')}
     >
       {({tableData, ...rest}) => {
