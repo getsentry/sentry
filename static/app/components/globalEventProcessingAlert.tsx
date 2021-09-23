@@ -33,9 +33,9 @@ function GlobalEventProcessingAlert({className, projects}: Props) {
             }
           )
         : tct(
-            'Event Processing for the [project-slugs] projects is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the [link:Status] page for a potential outage.',
+            'Event Processing for the [projectSlugs] projects is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the [link:Status] page for a potential outage.',
             {
-              'project-slugs': projectsInTheLowPriorityQueue.map(({slug}, index) => (
+              projectSlugs: projectsInTheLowPriorityQueue.map(({slug}, index) => (
                 <Fragment key={slug}>
                   <strong>{slug}</strong>
                   {index !== projectsInTheLowPriorityQueue.length - 1 && ', '}
