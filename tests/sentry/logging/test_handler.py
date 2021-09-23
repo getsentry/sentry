@@ -42,7 +42,7 @@ def make_logrecord(**extra):
 def test_emit(record, out, handler, logger):
     record = make_logrecord(**record)
     handler.emit(record, logger=logger)
-    expected = dict(level=logging.INFO, event="msg", name="name")
+    expected = dict(level=logging.INFO, event="msg", name="name", severity="INFO")
     expected.update(out)
     logger.log.assert_called_once_with(**expected)
 
