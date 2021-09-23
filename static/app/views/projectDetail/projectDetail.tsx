@@ -11,6 +11,7 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import CreateAlertButton from 'app/components/createAlertButton';
 import GlobalAppStoreConnectUpdateAlert from 'app/components/globalAppStoreConnectUpdateAlert';
+import GlobalEventProcessingAlert from 'app/components/globalEventProcessingAlert';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import IdBadge from 'app/components/idBadge';
 import * as Layout from 'app/components/layouts/thirds';
@@ -188,10 +189,7 @@ class ProjectDetail extends AsyncView<Props, State> {
 
     return (
       <PageContent>
-        <MissingProjectMembership
-          organization={organization}
-          projectSlug={project.slug}
-        />
+        <MissingProjectMembership organization={organization} project={project} />
       </PageContent>
     );
   }
@@ -288,6 +286,7 @@ class ProjectDetail extends AsyncView<Props, State> {
             </Layout.Header>
 
             <Layout.Body>
+              {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
               <StyledSdkUpdatesAlert />
               <StyledGlobalAppStoreConnectUpdateAlert
                 project={project}
@@ -380,6 +379,12 @@ const ProjectFiltersWrapper = styled('div')`
 `;
 
 const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-bottom: 0;
+  }
+`;
+
+const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     margin-bottom: 0;
   }

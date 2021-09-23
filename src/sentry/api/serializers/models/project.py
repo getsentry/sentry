@@ -240,7 +240,7 @@ class ProjectSerializer(Serializer):
             for project, serialized in result.items():
                 value = get_most_specific_notification_setting_value(
                     notification_settings_by_scope,
-                    user=user,
+                    recipient=user,
                     parent_id=project.id,
                     type=NotificationSettingTypes.ISSUE_ALERTS,
                     should_use_slack_automatic=should_use_slack_automatic_by_organization_id[
@@ -561,6 +561,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             "hasAccess": attrs["has_access"],
             "dateCreated": obj.date_added,
             "environments": attrs["environments"],
+            "eventProcessing": {
+                "symbolicationDegraded": False,
+            },
             "features": attrs["features"],
             "firstEvent": obj.first_event,
             "firstTransactionEvent": True if obj.flags.has_transactions else False,

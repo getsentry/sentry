@@ -110,6 +110,7 @@ class AlertRuleSerializer(Serializer):
             "includeAllProjects": obj.include_all_projects,
             "owner": attrs.get("owner", None),
             "originalAlertRuleId": attrs.get("originalAlertRuleId", None),
+            "comparisonDelta": obj.comparison_delta / 60 if obj.comparison_delta else None,
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),

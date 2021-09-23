@@ -634,6 +634,7 @@ CELERY_QUEUES = [
     Queue("reports.deliver", routing_key="reports.deliver"),
     Queue("reports.prepare", routing_key="reports.prepare"),
     Queue("search", routing_key="search"),
+    Queue("similarity.index", routing_key="similarity.index"),
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
@@ -1757,7 +1758,7 @@ SENTRY_DEVSERVICES = {
                 "KAFKA_MESSAGE_MAX_BYTES": "50000000",
                 "KAFKA_MAX_REQUEST_SIZE": "50000000",
             },
-            "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
+            "volumes": {"kafka": {"bind": "/var/lib/kafka/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
             or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS,
