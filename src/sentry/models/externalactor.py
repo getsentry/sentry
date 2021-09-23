@@ -37,6 +37,16 @@ class ExternalActor(DefaultFieldsModel):
         db_table = "sentry_externalactor"
         unique_together = (("organization", "provider", "external_name", "actor"),)
 
+    def delete(self, **kwargs):
+        from sentry.models import NotificationSetting
+
+        # There is no foreign key relationship so we have to manually cascade.
+        NotificationSetting.objects._filter(
+            target_ids=[self.actor_id], provider=ExternalProviders(self.provider)
+        ).delete()
+
+        return super().delete(**kwargs)
+
 
 post_save.connect(
     lambda instance, **kwargs: update_code_owners_schema.apply_async(
