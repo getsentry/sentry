@@ -65,7 +65,7 @@ class RuleNode extends React.Component<Props> {
     let initialVal;
     if (data) {
       if (data[name] === undefined && !!fieldConfig.choices.length) {
-        if (fieldConfig.initial) {
+        if (fieldConfig.initial !== undefined) {
           initialVal = fieldConfig.initial;
         } else {
           initialVal = fieldConfig.choices[0][0];

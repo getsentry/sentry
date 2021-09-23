@@ -5,7 +5,7 @@ type IssueAlertRuleFormField =
   | {
       type: 'choice';
       choices?: [string, string][];
-      initial?: string;
+      initial?: string | null;
       placeholder?: string;
     }
   | {
