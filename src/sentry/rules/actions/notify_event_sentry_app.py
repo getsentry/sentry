@@ -16,6 +16,10 @@ class NotifyEventSentryAppAction(EventAction):
     # Required field for EventAction, value is ignored
     label = ""
 
+    # TODO(Leander): As there is no form_cls (e.g. NotifyEventSentryAppActionForm) the form data will
+    # not be validated on the backend. This is tricky to do since the schema form is dynamic, and will
+    # be implemented on it's own in the future. Frontend validation is still in place in the mean time.
+
     def get_custom_actions(self, project):
         action_list = []
         for install in SentryAppInstallation.get_installed_for_org(project.organization_id):

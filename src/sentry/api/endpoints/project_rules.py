@@ -106,7 +106,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             )
             for action in kwargs.get("actions"):
                 # Only call creator for Sentry Apps with UI Components for alert rules
-                if not action.get("hasSentryAppUIComponents"):
+                if not action.get("hasSchemaFormConfig"):
                     continue
                 sentry_app_kwargs = {
                     "install": SentryAppInstallation.objects.get(
