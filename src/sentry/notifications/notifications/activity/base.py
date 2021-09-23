@@ -1,12 +1,11 @@
 import re
 from abc import ABC
-from typing import Any, Mapping, MutableMapping, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Tuple, Union
 from urllib.parse import urlparse, urlunparse
 
 from django.utils.html import escape
 from django.utils.safestring import SafeString, mark_safe
 
-from sentry.models import Activity, User
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils import send_activity_notification
@@ -14,11 +13,14 @@ from sentry.notifications.utils.avatar import avatar_as_html
 from sentry.notifications.utils.participants import get_participants_for_group
 from sentry.types.integrations import ExternalProviders
 
+if TYPE_CHECKING:
+    from sentry.models import Activity, Team, User
+
 
 class ActivityNotification(BaseNotification, ABC):
     fine_tuning_key = "workflow"
 
-    def __init__(self, activity: Activity) -> None:
+    def __init__(self, activity: "Activity") -> None:
         super().__init__(activity.project)
         self.activity = activity
 
@@ -38,8 +40,8 @@ class ActivityNotification(BaseNotification, ABC):
             "project_link": self.get_project_link(),
         }
 
-    def get_user_context(
-        self, user: User, extra_context: Mapping[str, Any]
+    def get_recipient_context(
+        self, recipient: Union["Team", "User"], extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         return get_reason_context(extra_context)
 
@@ -54,7 +56,7 @@ class ActivityNotification(BaseNotification, ABC):
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
+    ) -> Mapping[ExternalProviders, Mapping["User", int]]:
         raise NotImplementedError
 
     def send(self) -> None:
@@ -64,7 +66,7 @@ class ActivityNotification(BaseNotification, ABC):
 class GroupActivityNotification(ActivityNotification, ABC):
     is_message_issue_unfurl = True
 
-    def __init__(self, activity: Activity) -> None:
+    def __init__(self, activity: "Activity") -> None:
         super().__init__(activity)
         self.group = activity.group
 
@@ -83,7 +85,7 @@ class GroupActivityNotification(ActivityNotification, ABC):
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[User, int]]:
+    ) -> Mapping[ExternalProviders, Mapping["User", int]]:
         """This is overridden by the activity subclasses."""
         return get_participants_for_group(self.group, self.activity.user)
 
