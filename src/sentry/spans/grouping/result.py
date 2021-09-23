@@ -35,6 +35,7 @@ class SpanGroupingResults:
             # If not, return None to indicate that the grouping
             # results could not be constructed from the event.
             return None
+        results[span_id] = span_hash
 
         return cls(grouping_config["id"], results)
 
@@ -47,6 +48,8 @@ class SpanGroupingResults:
 
         # write the hash of the transaction root spans
         trace_context = event_data["contexts"]["trace"]
-        trace_context["hash"] = self.results.get(trace_context["span_id"])
+        span_hash = self.results.get(trace_context["span_id"])
+        if span_hash is not None:
+            trace_context["hash"] = span_hash
 
         event_data["span_grouping_config"] = {"id": self.id}

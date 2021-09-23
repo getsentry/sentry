@@ -222,6 +222,7 @@ def test_reuse_existing_grouping_results() -> None:
         },
     }
     assert config.execute_strategy(event).results == {
+        "a" * 16: "a" * 16,
         "b" * 16: "b" * 16,
     }
 
