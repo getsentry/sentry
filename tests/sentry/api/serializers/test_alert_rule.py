@@ -28,10 +28,8 @@ class BaseAlertRuleSerializerTest:
         assert result["query"] == alert_rule.snuba_query.query
         assert result["aggregate"] == alert_rule.snuba_query.aggregate
         assert result["thresholdType"] == alert_rule.threshold_type
-        assert (
-            result["resolveThreshold"] == alert_rule.resolve_threshold
-            if resolve_threshold is NOT_SET
-            else resolve_threshold
+        assert result["resolveThreshold"] == (
+            alert_rule.resolve_threshold if resolve_threshold is NOT_SET else resolve_threshold
         )
         assert result["timeWindow"] == alert_rule.snuba_query.time_window / 60
         assert result["resolution"] == alert_rule.snuba_query.resolution / 60

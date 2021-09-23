@@ -1,6 +1,7 @@
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule_trigger import DetailedAlertRuleTriggerSerializer
 from sentry.incidents.logic import create_alert_rule_trigger
+from sentry.incidents.models import AlertRuleThresholdType
 from sentry.testutils import TestCase
 
 NOT_SET = object()
@@ -12,10 +13,8 @@ class BaseAlertRuleTriggerSerializerTest:
         assert result["alertRuleId"] == str(trigger.alert_rule_id)
         assert result["label"] == trigger.label
         assert result["thresholdType"] == trigger.alert_rule.threshold_type
-        assert (
-            result["alertThreshold"] == trigger.alert_threshold
-            if alert_threshold is NOT_SET
-            else alert_threshold
+        assert result["alertThreshold"] == (
+            trigger.alert_threshold if alert_threshold is NOT_SET else alert_threshold
         )
         assert result["resolveThreshold"] == trigger.alert_rule.resolve_threshold
         assert result["dateCreated"] == trigger.date_added
@@ -36,12 +35,14 @@ class AlertRuleTriggerSerializerTest(BaseAlertRuleTriggerSerializerTest, TestCas
 
     def test_comparison_above(self):
         alert_rule = self.create_alert_rule(comparison_delta=60)
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 80)
+        trigger = create_alert_rule_trigger(alert_rule, "hi", 180)
         result = serialize(trigger)
-        self.assert_alert_rule_trigger_serialized(trigger, result, 180)
+        self.assert_alert_rule_trigger_serialized(trigger, result, 80)
 
     def test_comparison_below(self):
-        alert_rule = self.create_alert_rule(comparison_delta=60)
+        alert_rule = self.create_alert_rule(
+            comparison_delta=60, threshold_type=AlertRuleThresholdType.BELOW
+        )
         trigger = create_alert_rule_trigger(alert_rule, "hi", 80)
         result = serialize(trigger)
         self.assert_alert_rule_trigger_serialized(trigger, result, 20)
