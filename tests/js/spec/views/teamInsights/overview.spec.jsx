@@ -1,6 +1,9 @@
 import {fireEvent, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import localStorage from 'app/utils/localStorage';
 import {TeamInsightsOverview} from 'app/views/teamInsights/overview';
+
+jest.mock('app/utils/localStorage');
 
 describe('TeamInsightsOverview', () => {
   const project1 = TestStubs.Project({id: '2', name: 'js', slug: 'js'});
@@ -98,6 +101,10 @@ describe('TeamInsightsOverview', () => {
     fireEvent.click(wrapper.getByText('Team: frontend'));
     expect(wrapper.getByText('backend')).toBeInTheDocument();
     fireEvent.click(wrapper.getByText('backend'));
-    expect(mockRouter.push).toHaveBeenCalledWith({query: {team: '3'}});
+    expect(mockRouter.push).toHaveBeenCalledWith({query: {team: team2.id}});
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      'teamInsightsSelectedTeamId:org-slug',
+      team2.id
+    );
   });
 });
