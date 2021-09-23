@@ -194,9 +194,16 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         channel_id = slack_request.channel_id
         user_id = slack_request.user_id
+        integration = slack_request.integration
         response_url = data.get("response_url")
 
         if action_option in ["link", "ignore"]:
+            if action_option == "link":
+                analytics.record(
+                    "integrations.slack.link_identity",
+                    organization_id=integration.organizations.all()[0].id,
+                    method="chart_unfurl",
+                )
             payload = {"delete_original": "true"}
             try:
                 post(response_url, json=payload)
@@ -209,8 +216,6 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         logging_data["channel_id"] = channel_id
         logging_data["slack_user_id"] = user_id
         logging_data["response_url"] = response_url
-
-        integration = slack_request.integration
         logging_data["integration_id"] = integration.id
 
         # Determine the issue group action is being taken on

@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 from django.http.request import HttpRequest, QueryDict
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api import client
 from sentry.charts import generate_chart
 from sentry.charts.types import ChartType
@@ -131,6 +131,13 @@ def unfurl_discover(
             title=link.args["query"].get("name", "Dashboards query"),
             chart_url=url,
         )
+
+    analytics.record(
+        "integrations.slack.chart_unfurl",
+        organization_id=integration.organizations.all()[0].id,
+        user_id=user.id if user else None,
+        has_unfurl=1 if unfurls else 0,
+    )
 
     return unfurls
 
