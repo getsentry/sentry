@@ -665,6 +665,46 @@ class FetchFileTest(TestCase):
         cache_get.reset_mock()
         cache_set.reset_mock()
 
+    @patch("sentry.lang.javascript.processor.CACHE_MAX_VALUE_SIZE", 9)
+    @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
+    def test_archive_too_large_for_cache(self, cache_set):
+        """cache.set is never called if the archive is too large"""
+
+        def relevant_calls(mock, prefix):
+            return [
+                call
+                for call in mock.mock_calls
+                if (
+                    call.args and call.args[0] or call.kwargs and call.kwargs["key"] or ""
+                ).startswith(prefix)
+            ]
+
+        release = Release.objects.create(version="1", organization_id=self.project.organization_id)
+        pseudo_archive = File.objects.create(name="", type="release.bundle")
+        pseudo_archive.putfile(BytesIO(b"0123456789"))
+        releasefile = ReleaseFile.objects.create(
+            name=pseudo_archive.name,
+            release_id=release.id,
+            organization_id=self.organization.id,
+            dist_id=None,
+            file=pseudo_archive,
+        )
+        file = File.objects.create(name=ARTIFACT_INDEX_FILENAME, type="release.artifact-index")
+        file.putfile(
+            BytesIO(json.dumps({"files": {"foo": {"archive_ident": releasefile.ident}}}).encode())
+        )
+        ReleaseFile.objects.create(
+            name=ARTIFACT_INDEX_FILENAME,
+            release_id=release.id,
+            organization_id=self.project.organization_id,
+            file=file,
+        )
+
+        # No we have one, call set again
+        result = fetch_release_archive_for_url(release, dist=None, url="foo")
+        assert result is not None
+        assert len(relevant_calls(cache_set, "releasefile")) == 0
+
     @responses.activate
     def test_unicode_body(self):
         responses.add(

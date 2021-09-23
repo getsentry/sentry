@@ -479,12 +479,17 @@ def fetch_release_archive_for_url(release, dist, url) -> Optional[IO]:
 
                 return None
 
+            # `cache.set` will only keep values up to a certain size,
+            # so we should not read the entire file if it's too large for caching
+            if CACHE_MAX_VALUE_SIZE is not None and file_.size > CACHE_MAX_VALUE_SIZE:
+
+                return file_
+
             with sentry_sdk.start_span(op="fetch_release_archive_for_url.read_for_caching") as span:
                 span.set_data("file_size", file_.size)
                 contents = file_.read()
             with sentry_sdk.start_span(op="fetch_release_archive_for_url.write_to_cache") as span:
                 span.set_data("file_size", len(contents))
-                # This will implicitly skip too large payloads.
                 cache.set(cache_key, contents, 3600)
 
             file_.seek(0)
