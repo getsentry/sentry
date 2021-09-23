@@ -24,6 +24,7 @@ import withTeamsForUser from 'app/utils/withTeamsForUser';
 import DescriptionCard from './descriptionCard';
 import HeaderTabs from './headerTabs';
 import TeamDropdown from './teamDropdown';
+import TeamIssues from './teamIssues';
 import TeamMisery from './teamMisery';
 import TeamStability from './teamStability';
 
@@ -215,6 +216,17 @@ function TeamInsightsOverview({
                 location={location}
               />
             </DescriptionCard>
+
+            <SectionTitle>{t('Team Activity')}</SectionTitle>
+            {/* Contains time to resolution and issues reviewed as they share data */}
+            <TeamIssues
+              organization={organization}
+              projects={projects}
+              period={period}
+              start={start}
+              end={end}
+              utc={utc}
+            />
           </Layout.Main>
         )}
       </Body>
