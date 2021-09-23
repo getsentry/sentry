@@ -14,14 +14,14 @@ _REDIS_KEY = "verificationKeyStorage"
 _TTL = timedelta(minutes=10)
 
 
-def send_confirm_email(user: User, email: str, verification_key: str, org: Organization) -> None:
+def send_confirm_email(user: User, email: str, verification_key: str) -> None:
     context = {
         "user": user,
         # TODO left incase we want to have a clickable verification link for future
         "url": absolute_uri(
             reverse(
-                "sentry-api-0-organization-idp-email-verification",
-                args=[org.slug, verification_key],
+                "sentry-idp-email-verification",
+                args=[verification_key],
             )
         ),
         "confirm_email": email,
@@ -58,7 +58,7 @@ def create_verification_key(user: User, org: Organization, email: str) -> None:
     cluster.hmset(verification_key, verification_value)
     cluster.expire(verification_key, int(_TTL.total_seconds()))
 
-    send_confirm_email(user, email, verification_code, org)
+    send_confirm_email(user, email, verification_code)
 
 
 def verify_new_identity(key: str) -> str:
@@ -76,7 +76,6 @@ def verify_new_identity(key: str) -> str:
 
     verification_key = f"auth:one-time-key:{key}"
     verification_value_byte = cluster.hgetall(verification_key)
-
     if not verification_value_byte:
         return ""
 

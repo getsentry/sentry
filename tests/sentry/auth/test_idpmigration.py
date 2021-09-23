@@ -26,53 +26,25 @@ class IDPMigrationTests(TestCase):
         assert len(send_confirm_email.call_args.args[2]) == 32
 
     @mock.patch("sentry.auth.idpmigration.send_confirm_email")
-    def test_verify_new_identity_post(self, send_confirm_email):
+    def test_verify_new_identity(self, send_confirm_email):
         idpmigration.create_verification_key(self.user, self.org, self.email)
-        data = {"one_time_key": send_confirm_email.call_args.args[2]}
         path = reverse(
-            "sentry-api-0-organization-idp-email-verification", args=[self.organization.slug]
+            "sentry-idp-email-verification",
+            args=[send_confirm_email.call_args.args[2]],
         )
-        response = self.client.post(
-            path,
-            data,
+        response = self.client.get(path)
+        assert (
+            self.client.session["verification_key"]
+            == f"auth:one-time-key:{send_confirm_email.call_args.args[2]}"
         )
         assert response.status_code == 302
         assert response.url == "/auth/login/"
 
-    def test_verify_new_identity_post_wrong_key(self):
-        idpmigration.create_verification_key(self.user, self.org, self.email)
-        data = {"one_time_key": get_random_string(32, string.ascii_letters + string.digits)}
-        path = reverse(
-            "sentry-api-0-organization-idp-email-verification", args=[self.organization.slug]
-        )
-        response = self.client.post(
-            path,
-            data,
-        )
-        assert response.status_code == 401
-
-    @mock.patch("sentry.auth.idpmigration.send_confirm_email")
-    def test_verify_new_identity_get(self, send_confirm_email):
+    def test_verify_new_identity_wrong_key(self):
         idpmigration.create_verification_key(self.user, self.org, self.email)
         path = reverse(
-            "sentry-api-0-organization-idp-email-verification",
-            args=[self.organization.slug, send_confirm_email.call_args.args[2]],
+            "sentry-idp-email-verification",
+            args=[get_random_string(32, string.ascii_letters + string.digits)],
         )
         response = self.client.get(path)
-        assert response.status_code == 302
-        assert response.url == "/auth/login/"
-
-    def test_verify_new_identity_get_wrong_key(self):
-        print("_________________________")
-        idpmigration.create_verification_key(self.user, self.org, self.email)
-        path = reverse(
-            "sentry-api-0-organization-idp-email-verification",
-            args=[
-                self.organization.slug,
-                get_random_string(32, string.ascii_letters + string.digits),
-            ],
-        )
-        print("_________________________")
-        print(path)
-        response = self.client.get(path)
-        assert response.status_code == 401
+        assert response.status_code == 404
