@@ -91,8 +91,8 @@ function IssueListHeader({
     }
   }
 
-  const selectedProjects = projects.filter(p =>
-    selectedProjectIds.includes(Number(p.id))
+  const selectedProjects = projects.filter(({id}) =>
+    selectedProjectIds.includes(Number(id))
   );
 
   return (
