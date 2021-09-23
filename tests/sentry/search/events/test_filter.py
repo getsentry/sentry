@@ -901,6 +901,25 @@ class GetSnubaQueryArgsTest(TestCase):
         ]
         assert _filter.filter_keys == {}
 
+    def test_wildcard_array_field_with_backslash(self):
+        test_cases = [
+            (r"stack.filename:\k*", ["stack.filename", "LIKE", "\\\\k%"]),  # prefixed by \k
+            (r"stack.filename:\\*", ["stack.filename", "LIKE", "\\\\\\\\%"]),  # prefixed by \\
+            (
+                r"stack.filename:\**",
+                ["stack.filename", "LIKE", "\\\\%%"],
+            ),  # prefixed by \% since the search filter replaces both * with %
+            (r"stack.filename:\"k*", ["stack.filename", "LIKE", '"k%']),  # prefixed by "k
+            (r'stack.filename:\\"k*', ["stack.filename", "LIKE", '\\\\"k%']),  # prefixed by \"k
+        ]
+
+        for filter, conditions in test_cases:
+            _filter = get_filter(filter)
+            assert _filter.conditions == [
+                conditions,
+            ]
+            assert _filter.filter_keys == {}
+
     def test_existence_array_field(self):
         _filter = get_filter('has:stack.filename !has:stack.lineno error.value:""')
         assert _filter.conditions == [

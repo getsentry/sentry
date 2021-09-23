@@ -20,7 +20,7 @@ const config: StorybookConfig = {
       options: {},
     },
     '@storybook/addon-a11y',
-    '@storybook/addon-links'
+    '@storybook/addon-links',
   ],
 
   // For whatever reason the `babel` config override is not present in

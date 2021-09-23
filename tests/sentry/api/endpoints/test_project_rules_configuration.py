@@ -161,7 +161,7 @@ class ProjectRuleConfigurationTest(APITestCase):
             schema={"elements": [self.create_alert_rule_action_schema()]},
             is_alertable=True,
         )
-        self.create_sentry_app_installation(
+        install = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization, user=self.user
         )
         component = SentryAppComponent.objects.get(
@@ -177,11 +177,12 @@ class ProjectRuleConfigurationTest(APITestCase):
             "prompt": sentry_app.name,
             "enabled": True,
             "label": "Create Task with App with these ",
-            "formfields": {
+            "formFields": {
                 "type": "alert-rule-settings",
                 "uri": "/sentry/alert-rule",
                 "required_fields": [{"type": "text", "name": "channel", "label": "Channel"}],
             },
+            "sentryAppInstallationUuid": str(install.uuid),
         } in response.data["actions"]
         assert len(response.data["conditions"]) == 6
         assert len(response.data["filters"]) == 7
