@@ -591,7 +591,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"email": "bar@example.com"})
         self.assertTemplateUsed(resp, "sentry/auth-confirm-identity.html")
         assert resp.status_code == 200
-        assert resp.context["existing_user"] == user
+        assert resp.context["existing_user"] is None
 
     def test_flow_managed_duplicate_users_without_membership(self):
         """
