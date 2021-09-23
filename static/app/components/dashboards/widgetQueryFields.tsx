@@ -221,50 +221,48 @@ function WidgetQueryFields({
       fields.length === 3);
 
   return (
-    <React.Fragment>
-      <Field
-        data-test-id="y-axis"
-        label={t('Y-Axis')}
-        inline={false}
-        style={{padding: `${space(2)} 0 24px 0`, ...(style ?? {})}}
-        flexibleControlStateSize
-        error={errors?.fields}
-        required
-        stacked
-      >
-        {fields.map((field, i) => {
-          const fieldValue = explodeField({field});
-          return (
-            <QueryFieldWrapper key={`${field}:${i}`}>
-              <QueryField
-                fieldValue={fieldValue}
-                fieldOptions={fieldOptions}
-                onChange={value => handleChangeField(value, i)}
-                filterPrimaryOptions={filterPrimaryOptions}
-                filterAggregateParameters={filterAggregateParameters(fieldValue)}
+    <Field
+      data-test-id="y-axis"
+      label={t('Y-Axis')}
+      inline={false}
+      style={{padding: `${space(2)} 0 24px 0`, ...(style ?? {})}}
+      flexibleControlStateSize
+      error={errors?.fields}
+      required
+      stacked
+    >
+      {fields.map((field, i) => {
+        const fieldValue = explodeField({field});
+        return (
+          <QueryFieldWrapper key={`${field}:${i}`}>
+            <QueryField
+              fieldValue={fieldValue}
+              fieldOptions={fieldOptions}
+              onChange={value => handleChangeField(value, i)}
+              filterPrimaryOptions={filterPrimaryOptions}
+              filterAggregateParameters={filterAggregateParameters(fieldValue)}
+            />
+            {fields.length > 1 && (
+              <Button
+                size="zero"
+                borderless
+                onClick={event => handleRemove(event, i)}
+                icon={<IconDelete />}
+                title={t('Remove this Y-Axis')}
+                label={t('Remove this Y-Axis')}
               />
-              {fields.length > 1 && (
-                <Button
-                  size="zero"
-                  borderless
-                  onClick={event => handleRemove(event, i)}
-                  icon={<IconDelete />}
-                  title={t('Remove this Y-Axis')}
-                  label={t('Remove this Y-Axis')}
-                />
-              )}
-            </QueryFieldWrapper>
-          );
-        })}
-        {!hideAddYAxisButton && (
-          <div>
-            <Button size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
-              {t('Add Overlay')}
-            </Button>
-          </div>
-        )}
-      </Field>
-    </React.Fragment>
+            )}
+          </QueryFieldWrapper>
+        );
+      })}
+      {!hideAddYAxisButton && (
+        <div>
+          <Button size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
+            {t('Add Overlay')}
+          </Button>
+        </div>
+      )}
+    </Field>
   );
 }
 
