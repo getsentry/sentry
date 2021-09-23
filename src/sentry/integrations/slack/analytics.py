@@ -29,7 +29,7 @@ class SlackIntegrationNotificationSent(analytics.Event):  # type: ignore
 
 
 class IntegrationSlackChartUnfurl(analytics.Event):
-    type = "integrations.slack_chart_unfurl"
+    type = "integrations.slack.chart_unfurl"
 
     attributes = (
         analytics.Attribute("user_id", required=False),
