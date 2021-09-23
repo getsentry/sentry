@@ -67,9 +67,7 @@ class HumanRenderer:
 class StructLogHandler(logging.StreamHandler):
     def get_log_kwargs(self, record, logger):
         kwargs = {k: v for k, v in vars(record).items() if k not in throwaways and v is not None}
-        kwargs.update(
-            {"level": record.levelno, "event": record.msg, "severity": record.levelname.upper()}
-        )
+        kwargs.update({"level": record.levelno, "event": record.msg, "severity": record.levelname})
 
         if record.args:
             # record.args inside of LogRecord.__init__ gets unrolled
