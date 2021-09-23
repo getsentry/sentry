@@ -2,13 +2,17 @@ from datetime import timedelta
 
 from django.urls import reverse
 
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.cursors import Cursor
 from sentry.utils.samples import load_data
+from tests.snuba.api.endpoints.test_organization_events_facets_performance import (
+    BaseOrganizationEventsFacetsPerformanceEndpointTest,
+)
 
 
-class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, APITestCase):
+class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
+    BaseOrganizationEventsFacetsPerformanceEndpointTest
+):
     feature_list = (
         "organizations:discover-basic",
         "organizations:global-views",
@@ -17,13 +21,6 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
 
     def setUp(self):
         super().setUp()
-        self.min_ago = before_now(minutes=1).replace(microsecond=0)
-        self.two_mins_ago = before_now(minutes=2).replace(microsecond=0)
-        self.day_ago = before_now(days=1).replace(microsecond=0)
-
-        self.login_as(user=self.user)
-        self.project = self.create_project()
-        self.project2 = self.create_project()
 
         self._transaction_count = 0
 
@@ -90,12 +87,6 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         self._transaction_count += 1
         self.store_event(data=event, project_id=project_id)
 
-    def do_request(self, query=None, feature_list=None):
-        query = query if query is not None else {"aggregateColumn": "transaction.duration"}
-        query["project"] = query["project"] if "project" in query else [self.project.id]
-        with self.feature(feature_list or self.feature_list):
-            return self.client.get(self.url, query, format="json")
-
     def test_multiple_projects_not_allowed(self):
         response = self.do_request(
             {
@@ -123,10 +114,11 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         }
         error_response = self.do_request(
             request,
-            feature_list=(
-                "organizations:discover-basic",
-                "organizations:global-views",
-            ),
+            {
+                "organizations:discover-basic": True,
+                "organizations:global-views": True,
+                "organizations:performance-tag-page": False,
+            },
         )
         assert error_response.status_code == 404
 
@@ -140,9 +132,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
             "per_page": 5,
         }
         # With feature access, no tag key
-        error_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        error_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         assert error_response.status_code == 400, error_response.content
         assert error_response.data == {
@@ -160,18 +150,14 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
             "query": "(color:red or color:blue)",
         }
         # With feature access, no tag key
-        error_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        error_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         assert error_response.status_code == 400, error_response.content
         assert error_response.data == {"detail": "'tagKey' must be provided when using histograms."}
 
         # With feature access and tag key
         request["tagKey"] = "color"
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         histogram_data = data_response.data["histogram"]["data"]
         assert len(histogram_data) == 2
@@ -202,9 +188,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
             "query": "(color:teal or color:oak)",
         }
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         histogram_data = data_response.data["histogram"]["data"]
         assert histogram_data == []
@@ -224,9 +208,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
             "query": "(color:red or color:blue or color:green)",
         }
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         histogram_data = data_response.data["histogram"]["data"]
         assert len(histogram_data) == 1
@@ -236,9 +218,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         assert histogram_data[0]["tags_key"] == "color"
 
         request["per_page"] = 3
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         histogram_data = data_response.data["histogram"]["data"]
         assert len(histogram_data) == 3
@@ -270,17 +250,13 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
             "query": "(color:red or color:blue or color:green or color:orange)",
         }
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         assert data_response.data["tags"]["data"][2]["tags_value"] == "green"
 
         request["aggregateColumn"] = "measurements.lcp"
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         tags_data = data_response.data["tags"]["data"]
         assert len(tags_data) == 3
@@ -317,9 +293,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
             "query": "(user.id:555)",
         }
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         histogram_data = data_response.data["histogram"]["data"]
         assert histogram_data[0]["count"] == 1
@@ -339,18 +313,14 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
             "tagKey": "color",
         }
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         tag_data = data_response.data["tags"]["data"]
         assert len(tag_data) == 3
 
         request["cursor"] = Cursor(0, 3)
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         tag_data = data_response.data["tags"]["data"]
         assert len(tag_data) == 1
@@ -365,9 +335,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
             "tagKey": "color",
         }
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         tag_data = data_response.data["tags"]["data"]
         assert len(tag_data) == 1
@@ -376,9 +344,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
 
         request["sort"] = "-aggregate"
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         tag_data = data_response.data["tags"]["data"]
         assert len(tag_data) == 1
@@ -398,9 +364,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
             "tagKey": "fruit",
         }
 
-        data_response = self.do_request(
-            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
-        )
+        data_response = self.do_request(request, {"organizations:performance-tag-page": True})
 
         histogram_data = data_response.data["histogram"]["data"]
         assert len(histogram_data) == 20

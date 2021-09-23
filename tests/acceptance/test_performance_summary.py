@@ -10,7 +10,11 @@ from sentry.utils.samples import load_data
 
 from .page_objects.transaction_summary import TransactionSummaryPage
 
-FEATURE_NAMES = ("organizations:performance-view",)
+FEATURES = {
+    "organizations:performance-view": True,
+    "organizations:performance-tag-explorer": False,
+    "organizations:performance-tag-page": False,
+}
 
 
 def make_event(event_data):
@@ -58,7 +62,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        with self.feature(FEATURE_NAMES):
+        with self.feature(FEATURES):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
             # This test is flakey in that we sometimes load this page before the event is processed
@@ -81,7 +85,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         )
         self.store_event(data=event, project_id=self.project.id)
 
-        with self.feature(FEATURE_NAMES):
+        with self.feature(FEATURES):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
 
@@ -105,7 +109,9 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         event = make_event(event_data)
         self.store_event(data=event, project_id=self.project.id)
 
-        with self.feature(FEATURE_NAMES + ("organizations:performance-tag-page",)):
+        features = dict(FEATURES)
+        features["organizations:performance-tag-page"] = True
+        with self.feature(features):
             self.browser.get(tags_path)
             self.page.wait_until_loaded()
             self.browser.snapshot("transaction summary tags page")
@@ -127,7 +133,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         event = make_event(event_data)
         self.store_event(data=event, project_id=self.project.id)
 
-        with self.feature(FEATURE_NAMES):
+        with self.feature(FEATURES):
             self.browser.get(vitals_path)
             self.page.wait_until_loaded()
 
@@ -185,7 +191,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         event_data["measurements"]["cls"]["value"] = 3000000000
         self.store_event(data=event_data, project_id=self.project.id)
 
-        with self.feature(FEATURE_NAMES):
+        with self.feature(FEATURES):
             self.browser.get(vitals_path)
             self.page.wait_until_loaded()
 
@@ -215,7 +221,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        with self.feature(FEATURE_NAMES):
+        with self.feature(FEATURES):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
             # This test is flakey in that we sometimes load this page before the event is processed

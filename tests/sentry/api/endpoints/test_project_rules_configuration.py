@@ -98,7 +98,13 @@ class ProjectRuleConfigurationTest(APITestCase):
             assert JIRA_ACTION not in action_ids
 
     def test_percent_condition_flag(self):
-        with self.feature({"organizations:issue-percent-filters": False}):
+        with self.feature(
+            {
+                "projects:alert-filters": False,
+                "organizations:integrations-ticket-rules": False,
+                "organizations:issue-percent-filters": False,
+            }
+        ):
             # We should not get back the condition.
             response = self.get_valid_response(self.organization.slug, self.project.slug)
             assert len(response.data["conditions"]) == 9
@@ -108,7 +114,13 @@ class ProjectRuleConfigurationTest(APITestCase):
                     != "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition"
                 )
 
-        with self.feature({"organizations:issue-percent-filters": True}):
+        with self.feature(
+            {
+                "projects:alert-filters": False,
+                "organizations:integrations-ticket-rules": False,
+                "organizations:issue-percent-filters": True,
+            }
+        ):
             # We should get back the condition.
             response = self.get_valid_response(self.organization.slug, self.project.slug)
             assert len(response.data["conditions"]) == 10

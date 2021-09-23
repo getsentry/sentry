@@ -168,7 +168,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 201
 
     def test_post_features_required(self):
-        with self.feature({"organizations:dashboards-basic": False}):
+        with self.feature(
+            {"organizations:dashboards-basic": False, "organizations:dashboards-edit": False}
+        ):
             response = self.do_request(
                 "post",
                 self.url,
