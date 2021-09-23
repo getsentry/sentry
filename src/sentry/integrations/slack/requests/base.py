@@ -140,7 +140,9 @@ class SlackRequest:
         if not (signature and timestamp):
             return False
 
-        return check_signing_secret(signing_secret, self.request.body, timestamp, signature)
+        # Explicitly typing to satisfy mypy.
+        valid: bool = check_signing_secret(signing_secret, self.request.body, timestamp, signature)
+        return valid
 
     def _check_verification_token(self, verification_token: str) -> bool:
         return self.data.get("token") == verification_token
