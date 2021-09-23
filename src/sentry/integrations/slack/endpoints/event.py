@@ -15,9 +15,10 @@ from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
+from sentry.utils.urls import parse_link
 from sentry.web.decorators import transaction_start
 
-from ..utils import logger, parse_link
+from ..utils import logger
 from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
 
