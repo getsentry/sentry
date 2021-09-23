@@ -5,6 +5,7 @@ import NarrowLayout from 'app/components/narrowLayout';
 import {t, tct} from 'app/locale';
 import {ApiForm, InputField} from 'app/views/settings/components/forms';
 import RadioBoolean from 'app/views/settings/components/forms/controls/radioBoolean';
+import FieldWrapper from 'app/views/settings/components/forms/field/fieldWrapper';
 
 type Props = {
   onSubmitSuccess?: () => void;
@@ -29,9 +30,9 @@ export default class NewsletterConsent extends Component<Props> {
           onSubmitSuccess={() => this.props.onSubmitSuccess?.()}
           submitLabel={t('Continue')}
         >
-          <p>
+          <FieldWrapper stacked={false} hasControlState={false}>
             {t('Pardon the interruption, we just need to get a quick answer from you.')}
-          </p>
+          </FieldWrapper>
           <InputField
             name="subscribed"
             key="subscribed"
