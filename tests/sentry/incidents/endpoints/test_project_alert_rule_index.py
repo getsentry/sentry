@@ -110,6 +110,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "projects": [self.project.slug],
             "owner": self.user.id,
             "name": "JustAValidTestRule",
+            "comparisonDelta": 60,
         }
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_valid_response(

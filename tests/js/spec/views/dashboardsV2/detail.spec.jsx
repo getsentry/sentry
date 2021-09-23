@@ -6,20 +6,22 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 
+import ProjectsStore from 'app/stores/projectsStore';
 import {DashboardState} from 'app/views/dashboardsV2/types';
 import ViewEditDashboard from 'app/views/dashboardsV2/view';
 
 describe('Dashboards > Detail', function () {
   const organization = TestStubs.Organization({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
-    projects: [TestStubs.Project()],
   });
+  const projects = [TestStubs.Project()];
 
   describe('prebuilt dashboards', function () {
     let wrapper;
     let initialData, mockVisit;
 
     beforeEach(function () {
+      ProjectsStore.loadInitialData(projects);
       initialData = initializeOrg({organization});
 
       MockApiClient.addMockResponse({
