@@ -286,9 +286,7 @@ class ProjectDetail extends AsyncView<Props, State> {
             </Layout.Header>
 
             <Layout.Body>
-              {project?.eventProcessing.symbolicationDegraded && (
-                <StyledGlobalEventProcessingAlert />
-              )}
+              {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
               <StyledSdkUpdatesAlert />
               <StyledGlobalAppStoreConnectUpdateAlert
                 project={project}

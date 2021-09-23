@@ -4,7 +4,6 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GroupEventDetails from 'app/views/organizationGroupDetails/groupEventDetails/groupEventDetails';
-import {ReprocessingStatus} from 'app/views/organizationGroupDetails/utils';
 
 describe('groupEventDetails', () => {
   let org;
@@ -248,66 +247,6 @@ describe('groupEventDetails', () => {
     await tick();
 
     expect(wrapper.text()).toContain('events for this issue could not be found');
-  });
-
-  describe('project low priority queue alert', function () {
-    it('does not render alert', function () {
-      const proj = TestStubs.Project({
-        eventProcessing: {
-          symbolicationDegraded: false,
-        },
-      });
-
-      const wrapper = mountWithTheme(
-        <GroupEventDetails
-          api={new MockApiClient()}
-          group={group}
-          project={proj}
-          organization={org}
-          event={event}
-          environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
-          groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
-          loadingEvent={false}
-          eventError={false}
-          onRetry={jest.fn()}
-          location={{query: {environment: 'dev'}}}
-        />,
-        routerContext
-      );
-
-      expect(wrapper.find('StyledGlobalEventProcessingAlert').exists()).toBe(false);
-    });
-
-    it('renders alert', function () {
-      const proj = TestStubs.Project({
-        eventProcessing: {
-          symbolicationDegraded: true,
-        },
-      });
-
-      const wrapper = mountWithTheme(
-        <GroupEventDetails
-          api={new MockApiClient()}
-          group={group}
-          project={proj}
-          organization={org}
-          environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
-          event={event}
-          groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
-          loadingEvent={false}
-          eventError={false}
-          onRetry={jest.fn()}
-          location={{query: {environment: 'dev'}}}
-        />,
-        routerContext
-      );
-
-      const eventProcessingAlert = wrapper.find('StyledGlobalEventProcessingAlert');
-      expect(eventProcessingAlert.exists()).toBe(true);
-      expect(eventProcessingAlert.text()).toBe(
-        'Event Processing for this project is currently degraded. Events may appear with larger delays than usual or get dropped. Please check the Status page for a potential outage.'
-      );
-    });
   });
 
   describe('EventCauseEmpty', () => {
