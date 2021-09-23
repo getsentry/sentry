@@ -53,6 +53,10 @@ export const mobile = [
   'dart-flutter',
   'unity',
   'dotnet-xamarin',
+  // Old platforms
+  'java-android',
+  'cocoa-objc',
+  'cocoa-swift',
 ] as const;
 
 export const backend = [
