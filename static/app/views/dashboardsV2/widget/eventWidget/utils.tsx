@@ -67,7 +67,6 @@ export function normalizeQueries(
 
   if (displayType === DisplayType.TOP_N) {
     queries = queries.slice(0, 1);
-    // For world map chart, cap fields of the queries to only one field.
     const aggregateFields = getAggregateFields(queries[0].fields);
 
     let otherFields = queries[0].fields.filter(
@@ -81,12 +80,7 @@ export function normalizeQueries(
       aggregateFields.length ? aggregateFields[0] : 'count()',
     ];
 
-    queries = queries.map(query => {
-      return {
-        ...query,
-        fields,
-      };
-    });
+    queries = queries.map(query => ({...query, fields}));
 
     return queries;
   }

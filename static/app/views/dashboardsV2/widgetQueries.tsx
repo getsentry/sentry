@@ -304,6 +304,9 @@ class WidgetQueries extends React.Component<Props, State> {
           topEvents: TOP_N,
           field: query.fields,
         };
+        if (query.orderby) {
+          requestData.orderby = query.orderby;
+        }
       } else {
         requestData = {
           organization,
