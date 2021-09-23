@@ -1,5 +1,6 @@
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+/* eslint-disable-next-line import/default */
 import LinkTo from '@storybook/addon-links/react';
 
 import {IconArrow} from 'app/icons';
