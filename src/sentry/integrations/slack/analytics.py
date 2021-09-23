@@ -39,11 +39,11 @@ class IntegrationSlackChartUnfurl(analytics.Event):
 
 
 class IntegrationSlackLinkIdentity(analytics.Event):
-    type = "integrations.slack.link_identity"
+    type = "integrations.slack.chart_unfurl_action"
 
     attributes = (
         analytics.Attribute("organization_id"),
-        analytics.Attribute("method"),
+        analytics.Attribute("action"),
     )
 
 

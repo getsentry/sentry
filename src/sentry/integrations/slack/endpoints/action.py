@@ -198,12 +198,11 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         response_url = data.get("response_url")
 
         if action_option in ["link", "ignore"]:
-            if action_option == "link":
-                analytics.record(
-                    "integrations.slack.link_identity",
-                    organization_id=integration.organizations.all()[0].id,
-                    method="chart_unfurl",
-                )
+            analytics.record(
+                "integrations.slack.chart_unfurl_action",
+                organization_id=integration.organizations.all()[0].id,
+                action=action_option,
+            )
             payload = {"delete_original": "true"}
             try:
                 post(response_url, json=payload)
