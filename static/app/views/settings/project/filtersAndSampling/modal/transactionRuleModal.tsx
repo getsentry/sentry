@@ -48,7 +48,10 @@ function TransactionRuleModal({
   theme,
   ...props
 }: Props) {
-  const [tracing, setTracing] = useState(rule?.type === DynamicSamplingRuleType.TRACE);
+  const [tracing, setTracing] = useState(
+    rule ? rule.type === DynamicSamplingRuleType.TRACE : true
+  );
+
   const [isTracingDisabled, setIsTracingDisabled] = useState(
     !!rule?.condition.inner.length
   );
