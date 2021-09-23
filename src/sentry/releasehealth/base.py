@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import List, Mapping, Optional, Sequence, Set, Tuple, TypeVar
 
 from typing_extensions import TypedDict
 
@@ -11,6 +11,8 @@ ReleaseName = str
 EnvironmentName = str
 
 ProjectRelease = Tuple[ProjectId, ReleaseName]
+
+ProjectOrRelease = TypeVar("ProjectOrRelease", ProjectId, ProjectRelease)
 
 
 class CurrentAndPreviousCrashFreeRate(TypedDict):
@@ -28,6 +30,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "get_current_and_previous_crash_free_rates",
         "get_release_adoption",
         "check_has_health_data",
+        "check_releases_have_health_data",
     )
 
     def get_current_and_previous_crash_free_rates(
@@ -110,8 +113,8 @@ class ReleaseHealthBackend(Service):  # type: ignore
         raise NotImplementedError()
 
     def check_has_health_data(
-        self, projects_list: Sequence[Union[ProjectId, ProjectRelease]]
-    ) -> Set[Union[ProjectId, ProjectRelease]]:
+        self, projects_list: Sequence[ProjectOrRelease]
+    ) -> Set[ProjectOrRelease]:
         """
         Function that returns a set of all project_ids or (project, release) if they have health data
         within the last 90 days based on a list of projects or a list of project, release combinations
@@ -119,5 +122,19 @@ class ReleaseHealthBackend(Service):  # type: ignore
         Inputs:
             * projects_list: Contains either a list of project ids or a list of tuple (project_id,
             release)
+        """
+        raise NotImplementedError()
+
+    def check_releases_have_health_data(
+        self,
+        organization_id: int,
+        project_ids: List[int],
+        release_versions: List[str],
+        start: datetime,
+        end: datetime,
+    ) -> Set[str]:
+
+        """
+        Returns a set of all release versions that have health data within a given period of time.
         """
         raise NotImplementedError()

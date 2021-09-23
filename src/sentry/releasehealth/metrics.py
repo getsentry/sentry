@@ -12,7 +12,7 @@ from sentry.releasehealth.base import (
     EnvironmentName,
     OrganizationId,
     ProjectId,
-    ProjectRelease,
+    ProjectOrRelease,
     ReleaseHealthBackend,
     ReleaseName,
 )
@@ -348,8 +348,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         return rv
 
     def check_has_health_data(
-        self, projects_list: Sequence[Union[ProjectId, ProjectRelease]]
-    ) -> Set[Union[ProjectId, ProjectRelease]]:
+        self, projects_list: Sequence[ProjectOrRelease]
+    ) -> Set[ProjectOrRelease]:
         now = datetime.now(pytz.utc)
         start = now - timedelta(days=3)
 
@@ -358,12 +358,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         if len(projects_list) == 0:
             return set()
 
-        includes_releases = type(projects_list[0]) == tuple
+        includes_releases = isinstance(projects_list[0], tuple)
 
         if includes_releases:
-            project_ids = [x[0] for x in projects_list]  # type: ignore
+            project_ids: List[ProjectId] = [x[0] for x in projects_list]  # type: ignore
         else:
-            project_ids = [x for x in projects_list]
+            project_ids = projects_list  # type: ignore
 
         org_id = self._get_org_id(project_ids)
 
@@ -386,18 +386,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             where_clause.append(Condition(Column(release_column_name), Op.IN, releases_ids))
             column_names = ["project_id", release_column_name]
 
-            def extract_raw_info(
-                row: Mapping[str, Union[int, str]]
-            ) -> Union[ProjectId, ProjectRelease]:
-                return row.get("project_id"), reverse_tag_value(org_id, row.get(release_column_name))  # type: ignore
+            def extract_raw_info(row: Mapping[str, Union[int, str]]) -> ProjectOrRelease:
+                return row["project_id"], reverse_tag_value(org_id, row.get(release_column_name))  # type: ignore
 
         else:
             column_names = ["project_id"]
 
-            def extract_raw_info(
-                row: Mapping[str, Union[int, str]]
-            ) -> Union[ProjectId, ProjectRelease]:
-                return row.get("project_id")  # type: ignore
+            def extract_raw_info(row: Mapping[str, Union[int, str]]) -> ProjectOrRelease:
+                return row["project_id"]  # type: ignore
 
         query_cols = [Column(column_name) for column_name in column_names]
         group_by_clause = query_cols
