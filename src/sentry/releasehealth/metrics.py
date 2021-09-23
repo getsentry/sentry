@@ -17,6 +17,7 @@ from sentry.releasehealth.base import (
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics import TS_COL_QUERY
 from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils.snuba import raw_snql_query
 
@@ -347,4 +348,120 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         query: QueryDefinition,
         span_op: str,
     ) -> ReleaseHealthBackend.SessionsQueryResult:
-        raise NotImplementedError()
+        org_id = query.filter_keys["organization_id"]
+        conditions = [
+            Condition(Column("org_id"), Op.EQ, org_id),
+            Condition(Column("project_id"), Op.EQ, query.filter_keys["project_id"]),
+            # Condition(
+            #     Column("metric_id"),
+            #     Op.IN,
+            #     [
+            #         indexer.resolve(self._project.id, UseCase.METRIC, name)
+            #         for _, name in query_definition.fields.values()
+            #     ],
+            # ),
+            Condition(Column(TS_COL_QUERY), Op.GTE, query.start),
+            Condition(Column(TS_COL_QUERY), Op.LT, query.end),
+        ]
+        # FIXME: add filter conditions
+
+        tag_keys = {
+            field: indexer.resolve(org_id, UseCase.TAG_KEY, field) for field in query.raw_groupby
+        }
+        groupby = {
+            field: Column(f"tags[{tag_id}]")
+            for field, tag_id in tag_keys.items()
+            if tag_id is not None  # exclude unresolved keys from groupby
+        }
+
+        data = {}
+
+        if "count_unique(user)" in query.raw_fields:
+            metric_id = indexer.resolve(org_id, UseCase.METRIC, "user")
+            if metric_id is not None:
+                snuba_query = Query(
+                    dataset=Dataset.Metrics.value,
+                    match=Entity("metrics_sets"),
+                    select=[Column("value")],
+                    groupby=list(groupby.values()),
+                    where=conditions + [Condition(Column("metric_id"), Op.EQ, metric_id)],
+                )
+                data["user"] = raw_snql_query(
+                    snuba_query, referrer="releasehealth.metrics.sessions_v2.user"
+                )["data"]
+
+        if any("session.duration" in field for field in query.raw_fields):
+            metric_id = indexer.resolve(org_id, UseCase.METRIC, "session.duration")
+            if metric_id is not None:
+                snuba_query = Query(
+                    dataset=Dataset.Metrics.value,
+                    match=Entity("metrics_distrubutions"),
+                    select=[Column("percentiles")],
+                    groupby=list(groupby.values()),
+                    where=conditions + [Condition(Column("metric_id"), Op.EQ, metric_id)],
+                )
+                data["session.duration"] = raw_snql_query(
+                    snuba_query, referrer="releasehealth.metrics.sessions_v2.session.duration"
+                )["data"]
+
+        if "sum(sessions)" in query.fields:
+            metric_id = indexer.resolve(org_id, UseCase.METRIC, "session")
+            if metric_id is not None:
+                if "session.status" in groupby:
+                    # We need session counters grouped by status, as well as the number of errored sessions
+
+                    # 1 session counters
+                    snuba_query = Query(
+                        dataset=Dataset.Metrics.value,
+                        match=Entity("metrics_counters"),
+                        select=[Column("value")],
+                        groupby=list(groupby.values()),
+                        where=conditions
+                        + [
+                            Condition(Column("metric_id"), Op.EQ, metric_id),
+                        ],
+                    )
+                    data["session"] = raw_snql_query(
+                        snuba_query, referrer="releasehealth.metrics.sessions_v2.session_groupby"
+                    )["data"]
+
+                    # 2: session.error
+                    error_metric_id = indexer.resolve(org_id, UseCase.METRIC, "session.error")
+                    if error_metric_id is not None:
+                        groupby.pop("session.status")
+                        snuba_query = Query(
+                            dataset=Dataset.Metrics.value,
+                            match=Entity("metrics_sets"),
+                            select=[Column("value")],
+                            groupby=list(groupby.values()),
+                            where=conditions
+                            + [Condition(Column("metric_id"), Op.EQ, error_metric_id)],
+                        )
+                        data["session.error"] = raw_snql_query(
+                            snuba_query, referrer="releasehealth.metrics.sessions_v2.session.error"
+                        )["data"]
+
+                else:
+                    # Simply count the number of started sessions:
+                    tag_key = indexer.resolve(org_id, UseCase.TAG_KEY, "session.status")
+                    tag_value = indexer.resolve(org_id, UseCase.TAG_VALUE, "init")
+                    if tag_key is not None and tag_value is not None:
+                        snuba_query = Query(
+                            dataset=Dataset.Metrics.value,
+                            match=Entity("metrics_counters"),
+                            select=[Column("value")],
+                            groupby=list(groupby.values()),
+                            where=conditions
+                            + [
+                                Condition(Column("metric_id"), Op.EQ, metric_id),
+                                Condition(Column(f"tags[{tag_key}]"), Op.EQ, tag_value),
+                            ],
+                        )
+                        data["session"] = raw_snql_query(
+                            snuba_query, referrer="releasehealth.metrics.sessions_v2.session"
+                        )["data"]
+
+        return {
+            "intervals": [],
+            "groups": [],
+        }

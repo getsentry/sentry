@@ -237,8 +237,8 @@ class QueryDefinition:
 
     def __init__(self, query, params, allow_minute_resolution=False):
         self.query = query.get("query", "")
-        raw_fields = query.getlist("field", [])
-        raw_groupby = query.getlist("groupBy", [])
+        self.raw_fields = raw_fields = query.getlist("field", [])
+        self.raw_groupby = raw_groupby = query.getlist("groupBy", [])
 
         if len(raw_fields) == 0:
             raise InvalidField('Request is missing a "field"')
@@ -453,7 +453,7 @@ def massage_sessions_result(
     }
     ```
     """
-    timestamps = _get_timestamps(query)
+    timestamps = get_timestamps(query)
 
     total_groups = _split_rows_groupby(result_totals, query.groupby)
     timeseries_groups = _split_rows_groupby(result_timeseries, query.groupby)
@@ -516,7 +516,7 @@ def _isoformat_z(date):
     return datetime.utcfromtimestamp(int(to_timestamp(date))).isoformat() + "Z"
 
 
-def _get_timestamps(query):
+def get_timestamps(query):
     """
     Generates a list of timestamps according to `query`.
     The timestamps are returned as ISO strings for now.
