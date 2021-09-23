@@ -34,7 +34,7 @@ class IntegrationSlackChartUnfurl(analytics.Event):
     attributes = (
         analytics.Attribute("user_id", required=False),
         analytics.Attribute("organization_id"),
-        analytics.Attribute("has_unfurl", type=int),
+        analytics.Attribute("has_unfurl"),
     )
 
 
