@@ -808,12 +808,18 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData,
       onAddWidget: data => (widget = data),
     });
-    // No delete button as there is only one field.
-    expect(wrapper.find('IconDelete')).toHaveLength(0);
-
     // Select Top n display
     selectByLabel(wrapper, 'Top Events', {name: 'displayType', at: 0, control: true});
     expect(getDisplayType(wrapper).props().value).toEqual('top_n');
+
+    // No delete button as there is only one field.
+    expect(wrapper.find('IconDelete')).toHaveLength(0);
+
+    // Restricting to a single query
+    expect(wrapper.find('button[aria-label="Add Query"]')).toHaveLength(0);
+
+    // Restricting to a single y-axis
+    expect(wrapper.find('button[aria-label="Add Overlay"]')).toHaveLength(0);
 
     const titleColumn = wrapper.find('input[name="field"]').at(0);
     expect(titleColumn.props().value).toEqual({
@@ -825,6 +831,13 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       kind: 'function',
       meta: {parameters: [], name: 'count'},
     });
+    expect(wrapper.find('WidgetQueriesForm Field[data-test-id="y-axis"]')).toHaveLength(
+      1
+    );
+    expect(wrapper.find('WidgetQueriesForm SelectControl[name="orderby"]')).toHaveLength(
+      1
+    );
+
     wrapper.unmount();
   });
 });
