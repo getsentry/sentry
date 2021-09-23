@@ -384,7 +384,10 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     def test_invalid_aggregate_column_with_duration_filter(self):
-        with self.assertRaisesMessage(InvalidSearchQuery, "stack.colno is not a numeric column"):
+        with self.assertRaisesMessage(
+            InvalidSearchQuery,
+            expected_message="avg(stack.colno): column argument invalid: stack.colno is not a numeric column",
+        ):
             parse_search_query("avg(stack.colno):>500s")
 
     def test_invalid_numeric_aggregate_filter(self):

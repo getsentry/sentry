@@ -140,7 +140,7 @@ class ProjectContext extends Component<Props, State> {
   );
 
   unsubscribeMembers = MemberListStore.listen(
-    (memberList: MemberListStore['state']) => this.setState({memberList}),
+    (memberList: typeof MemberListStore['state']) => this.setState({memberList}),
     undefined
   );
 
@@ -239,7 +239,9 @@ class ProjectContext extends Component<Props, State> {
   }
 
   renderBody() {
+    const {children, organization} = this.props;
     const {error, errorType, loading, project} = this.state;
+
     if (loading) {
       return (
         <div className="loading-full-layout">
@@ -249,8 +251,6 @@ class ProjectContext extends Component<Props, State> {
     }
 
     if (!error && project) {
-      const {children} = this.props;
-
       return typeof children === 'function' ? children({project}) : children;
     }
 
@@ -269,10 +269,7 @@ class ProjectContext extends Component<Props, State> {
         // out into a reusable missing access error component
         return (
           <ErrorWrapper>
-            <MissingProjectMembership
-              organization={this.props.organization}
-              projectSlug={project?.slug}
-            />
+            <MissingProjectMembership organization={organization} project={project} />
           </ErrorWrapper>
         );
       default:

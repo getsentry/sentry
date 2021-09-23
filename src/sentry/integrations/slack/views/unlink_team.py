@@ -1,4 +1,4 @@
-from django.db import IntegrityError
+from django.core.signing import BadSignature, SignatureExpired
 from django.http import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -50,7 +50,13 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
     @transaction_start("SlackUnlinkIdentityView")
     @never_cache
     def handle(self, request: Request, signed_params: str) -> Response:
-        params = unsign(signed_params)
+        try:
+            params = unsign(signed_params)
+        except (SignatureExpired, BadSignature):
+            return render_to_response(
+                "sentry/integrations/slack/expired-link.html",
+                request=request,
+            )
 
         organization, integration, idp = get_identity(
             request.user, params["organization_id"], params["integration_id"]
@@ -58,25 +64,26 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
         channel_name = params["channel_name"]
         channel_id = params["channel_id"]
 
-        try:
-            external_team = ExternalActor.objects.get(
-                organization=organization,
-                integration=integration,
-                provider=ExternalProviders.SLACK.value,
-                external_name=channel_name,
-                external_id=channel_id,
-            )
-        except IntegrityError as e:
-            logger.error("slack.team.unlink.integrity-error", extra=e)
+        external_teams = ExternalActor.objects.filter(
+            organization=organization,
+            integration=integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name=channel_name,
+            external_id=channel_id,
+        )
+        if len(external_teams) == 0:
+            logger.error("slack.team.unlink.no_external_teams")
             raise Http404
 
-        team = Team.objects.get(actor=external_team.actor)
+        teams = Team.objects.filter(
+            actor__in=[external_team.actor for external_team in external_teams]
+        )
         if request.method != "POST":
             return render_to_response(
-                "sentry/integrations/slack-unlink-team.html",
+                "sentry/integrations/slack/unlink-team.html",
                 request=request,
                 context={
-                    "team": team,
+                    "team": teams[0],
                     "channel_name": channel_name,
                     "provider": integration.get_provider(),
                 },
@@ -92,15 +99,15 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
 
         if not Identity.objects.filter(idp=idp, external_id=params["slack_id"]).exists():
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
-
-        external_team.delete()
-        NotificationSetting.objects.remove_for_team(team, ExternalProviders.SLACK)
-
+        for external_team in external_teams:
+            external_team.delete()
+        for team in teams:
+            NotificationSetting.objects.remove_for_team(team, ExternalProviders.SLACK)
         return send_confirmation(
             integration,
             channel_id,
             SUCCESS_UNLINKED_TITLE,
             SUCCESS_UNLINKED_MESSAGE.format(team=team.slug),
-            "sentry/integrations/slack-unlinked-team.html",
+            "sentry/integrations/slack/unlinked-team.html",
             request,
         )

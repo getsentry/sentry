@@ -1,6 +1,7 @@
 from typing import Any, Sequence
 
 from django import forms
+from django.core.signing import BadSignature, SignatureExpired
 from django.http import HttpResponse
 from rest_framework.request import Request
 
@@ -17,6 +18,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
+from sentry.web.helpers import render_to_response
 
 from ..utils import logger, render_error_page, send_confirmation
 from . import build_linking_url as base_build_linking_url
@@ -62,7 +64,14 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         if request.method not in ALLOWED_METHODS:
             return render_error_page(request, body_text="HTTP 405: Method not allowed")
 
-        params = unsign(signed_params)
+        try:
+            params = unsign(signed_params)
+        except (SignatureExpired, BadSignature):
+            return render_to_response(
+                "sentry/integrations/slack/expired-link.html",
+                request=request,
+            )
+
         integration = Integration.objects.get(id=params["integration_id"])
         organization = integration.organizations.all()[0]
         teams = Team.objects.get_for_user(organization, request.user)
@@ -72,7 +81,7 @@ class SlackLinkTeamView(BaseView):  # type: ignore
 
         if request.method == "GET":
             return self.respond(
-                "sentry/integrations/slack-link-team.html",
+                "sentry/integrations/slack/link-team.html",
                 {
                     "form": form,
                     "teams": teams,
@@ -118,7 +127,7 @@ class SlackLinkTeamView(BaseView):  # type: ignore
                 channel_id,
                 ALREADY_LINKED_TITLE,
                 ALREADY_LINKED_MESSAGE.format(slug=team.slug),
-                "sentry/integrations/slack-post-linked-team.html",
+                "sentry/integrations/slack/post-linked-team.html",
                 request,
             )
 
@@ -134,6 +143,6 @@ class SlackLinkTeamView(BaseView):  # type: ignore
             channel_id,
             SUCCESS_LINKED_TITLE,
             SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name),
-            "sentry/integrations/slack-post-linked-team.html",
+            "sentry/integrations/slack/post-linked-team.html",
             request,
         )

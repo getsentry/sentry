@@ -156,7 +156,7 @@ class OrganizationContextContainer extends React.Component<Props, State> {
       !dirty &&
       organization &&
       !OrganizationContextContainer.isOrgChanging(props) &&
-      (!detailed || (detailed && organization.projects && organization.teams))
+      (!detailed || (detailed && organization.projects))
     );
   }
 
@@ -231,12 +231,7 @@ class OrganizationContextContainer extends React.Component<Props, State> {
     // the whole organization object to come in or just the teams and projects.
     const {loading, error, organization} = this.state;
     const {detailed} = this.props;
-    return (
-      loading ||
-      (!error &&
-        detailed &&
-        (!organization || !organization.projects || !organization.teams))
-    );
+    return loading || (!error && detailed && (!organization || !organization.projects));
   }
 
   fetchData(isInitialFetch = false) {

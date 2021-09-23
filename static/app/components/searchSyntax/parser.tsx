@@ -320,7 +320,10 @@ export class TokenConverter {
    * Validates various types of keys
    */
   keyValidation = {
-    isNumeric: (key: string) => this.config.numericKeys.has(key) || isMeasurement(key),
+    isNumeric: (key: string) =>
+      this.config.numericKeys.has(key) ||
+      isMeasurement(key) ||
+      isSpanOperationBreakdownField(key),
     isBoolean: (key: string) => this.config.booleanKeys.has(key),
     isPercentage: (key: string) => this.config.percentageKeys.has(key),
     isDate: (key: string) => this.config.dateKeys.has(key),
@@ -586,6 +589,10 @@ export class TokenConverter {
         key as TextFilter['key'],
         value as TextFilter['value']
       );
+    }
+
+    if (filter === FilterType.Is || filter === FilterType.Has) {
+      return this.checkInvalidTextValue(value as TextFilter['value']);
     }
 
     if ([FilterType.TextIn, FilterType.NumericIn].includes(filter)) {

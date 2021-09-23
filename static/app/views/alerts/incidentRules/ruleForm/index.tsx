@@ -34,7 +34,7 @@ import FormModel from 'app/views/settings/components/forms/model';
 
 import {addOrUpdateRule} from '../actions';
 import {createDefaultTrigger} from '../constants';
-import RuleConditionsFormForWizard from '../ruleConditionsFormForWizard';
+import RuleConditionsForm from '../ruleConditionsForm';
 import {
   AlertRuleThresholdType,
   Dataset,
@@ -616,19 +616,21 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       thresholdType,
     };
     const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
-    const wizardBuilderChart = (
-      <TriggersChart
-        {...chartProps}
-        header={
-          <ChartHeader>
-            <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
-            <AlertInfo>
-              {aggregate} | event.type:{eventTypes?.join(',')}
-            </AlertInfo>
-          </ChartHeader>
-        }
-      />
-    );
+
+    const wizardBuilderChart =
+      dataset === Dataset.SESSIONS ? null : (
+        <TriggersChart
+          {...chartProps}
+          header={
+            <ChartHeader>
+              <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
+              <AlertInfo>
+                {aggregate} | event.type:{eventTypes?.join(',')}
+              </AlertInfo>
+            </ChartHeader>
+          }
+        />
+      );
 
     const ownerId = rule.owner?.split(':')[1];
     const canEdit =
@@ -654,12 +656,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     );
 
     const ruleNameOwnerForm = (hasAccess: boolean) => (
-      <RuleNameOwnerForm
-        disabled={!hasAccess || !canEdit}
-        organization={organization}
-        project={project}
-        userTeamIds={userTeamIds}
-      />
+      <RuleNameOwnerForm disabled={!hasAccess || !canEdit} project={project} />
     );
 
     return (
@@ -705,7 +702,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             submitLabel={t('Save Rule')}
           >
             <List symbol="colored-numeric">
-              <RuleConditionsFormForWizard
+              <RuleConditionsForm
                 api={this.api}
                 projectSlug={params.projectId}
                 organization={organization}
@@ -714,6 +711,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 onFilterSearch={this.handleFilterUpdate}
                 allowChangeEventTypes={isCustomMetric || dataset === Dataset.ERRORS}
                 alertType={isCustomMetric ? 'custom' : alertType}
+                dataset={dataset}
               />
               <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
               {triggerForm(hasAccess)}

@@ -206,6 +206,56 @@ describe('utils.projects', function () {
         })
       );
     });
+
+    it('responds to updated projects from the project store', async function () {
+      const wrapper = createWrapper({slugs: ['foo', 'bar']});
+      await tick();
+      wrapper.update();
+
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: null,
+          hasMore: null,
+          projects: [
+            expect.objectContaining({
+              id: '1',
+              slug: 'foo',
+            }),
+            expect.objectContaining({
+              id: '2',
+              slug: 'bar',
+            }),
+          ],
+        })
+      );
+
+      const newTeam = TestStubs.Team();
+      ProjectActions.addTeamSuccess(newTeam, 'foo');
+
+      await tick();
+      wrapper.update();
+
+      // Expect new team information to be available
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: null,
+          hasMore: null,
+          projects: [
+            expect.objectContaining({
+              id: '1',
+              slug: 'foo',
+              teams: [newTeam],
+            }),
+            expect.objectContaining({
+              id: '2',
+              slug: 'bar',
+            }),
+          ],
+        })
+      );
+    });
   });
 
   describe('with no pre-defined projects', function () {
@@ -526,6 +576,51 @@ describe('utils.projects', function () {
       );
       expect(request).not.toHaveBeenCalled();
       expect(loadProjects).not.toHaveBeenCalled();
+    });
+
+    it('responds to updated projects from the project store', async function () {
+      ProjectsStore.loadInitialData(mockProjects);
+      const wrapper = createWrapper({allProjects: true});
+      wrapper.update();
+
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: null,
+          hasMore: false,
+          projects: mockProjects,
+        })
+      );
+
+      const newTeam = TestStubs.Team();
+      ProjectActions.addTeamSuccess(newTeam, 'a');
+
+      await tick();
+      wrapper.update();
+
+      // Expect new team information to be available
+      expect(renderer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetching: false,
+          isIncomplete: null,
+          hasMore: false,
+          projects: [
+            expect.objectContaining({
+              id: '100',
+              slug: 'a',
+              teams: [newTeam],
+            }),
+            expect.objectContaining({
+              id: '101',
+              slug: 'b',
+            }),
+            expect.objectContaining({
+              id: '102',
+              slug: 'c',
+            }),
+          ],
+        })
+      );
     });
   });
 });

@@ -879,6 +879,16 @@ function routes() {
             component={SafeLazyLoad}
           />
           <Route
+            path="/organizations/:orgId/teamInsights/"
+            componentPromise={() => import('app/views/teamInsights')}
+            component={SafeLazyLoad}
+          >
+            <IndexRoute
+              componentPromise={() => import('app/views/teamInsights/overview')}
+              component={SafeLazyLoad}
+            />
+          </Route>
+          <Route
             path="/organizations/:orgId/dashboards/"
             componentPromise={() => import('app/views/dashboardsV2')}
             component={SafeLazyLoad}
@@ -1392,6 +1402,13 @@ function routes() {
               path="/organizations/:orgId/performance/summary/events/"
               componentPromise={() =>
                 import('app/views/performance/transactionSummary/transactionEvents')
+              }
+              component={SafeLazyLoad}
+            />
+            <Route
+              path="/organizations/:orgId/performance/summary/spans/"
+              componentPromise={() =>
+                import('app/views/performance/transactionSummary/transactionSpans')
               }
               component={SafeLazyLoad}
             />

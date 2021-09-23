@@ -4,14 +4,12 @@ import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
 import {GuideAnchor} from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import FeatureBadge from 'app/components/featureBadge';
 import * as Layout from 'app/components/layouts/thirds';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import {IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -23,6 +21,7 @@ import Breadcrumb from 'app/views/performance/breadcrumb';
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
 
 import {eventsRouteWithQuery} from './transactionEvents/utils';
+import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import Tab from './tabs';
@@ -48,6 +47,10 @@ const TAB_ANALYTICS: Partial<Record<Tab, AnalyticInfo>> = {
   [Tab.Events]: {
     eventKey: 'performance_views.events.events_tab_clicked',
     eventName: 'Performance Views: Events tab clicked',
+  },
+  [Tab.Spans]: {
+    eventKey: 'performance_views.spans.spans_tab_clicked',
+    eventName: 'Performance Views: Spans tab clicked',
   },
 };
 
@@ -133,32 +136,14 @@ class TransactionHeader extends React.Component<Props> {
     const {organization, transactionName, eventView, onChangeThreshold} = this.props;
 
     return (
-      <Feature
-        organization={organization}
-        features={['project-transaction-threshold-override']}
-      >
-        {({hasFeature}) =>
-          hasFeature ? (
-            <GuideAnchor
-              target="project_transaction_threshold_override"
-              position="bottom"
-            >
-              <TransactionThresholdButton
-                organization={organization}
-                transactionName={transactionName}
-                eventView={eventView}
-                onChangeThreshold={onChangeThreshold}
-              />
-            </GuideAnchor>
-          ) : (
-            <Button
-              href={`/settings/${organization.slug}/performance/`}
-              icon={<IconSettings />}
-              aria-label={t('Settings')}
-            />
-          )
-        }
-      </Feature>
+      <GuideAnchor target="project_transaction_threshold_override" position="bottom">
+        <TransactionThresholdButton
+          organization={organization}
+          transactionName={transactionName}
+          eventView={eventView}
+          onChangeThreshold={onChangeThreshold}
+        />
+      </GuideAnchor>
     );
   }
 
@@ -239,6 +224,7 @@ class TransactionHeader extends React.Component<Props> {
     const summaryTarget = transactionSummaryRouteWithQuery(routeQuery);
     const tagsTarget = tagsRouteWithQuery(routeQuery);
     const eventsTarget = eventsRouteWithQuery(routeQuery);
+    const spansTarget = spansRouteWithQuery(routeQuery);
 
     return (
       <Layout.Header>
@@ -289,6 +275,19 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackTabClick(Tab.Events)}
               >
                 {t('All Events')}
+              </ListLink>
+            </Feature>
+            <Feature
+              organization={organization}
+              features={['organizations:performance-suspect-spans-view']}
+            >
+              <ListLink
+                data-test-id="spans-tab"
+                to={spansTarget}
+                isActive={() => currentTab === Tab.Spans}
+                onClick={this.trackTabClick(Tab.Spans)}
+              >
+                {t('Spans')}
               </ListLink>
             </Feature>
           </StyledNavTabs>

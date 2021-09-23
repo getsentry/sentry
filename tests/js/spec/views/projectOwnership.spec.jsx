@@ -60,7 +60,7 @@ describe('Project Ownership', function () {
     it('renders button', function () {
       org = TestStubs.Organization({
         features: ['integrations-codeowners'],
-        access: ['project:write'],
+        access: ['org:integrations'],
       });
 
       const wrapper = mountWithTheme(
@@ -76,6 +76,10 @@ describe('Project Ownership', function () {
     });
 
     it('clicking button opens modal', async function () {
+      org = TestStubs.Organization({
+        features: ['integrations-codeowners'],
+        access: ['org:integrations'],
+      });
       const wrapper = mountWithTheme(
         <ProjectOwnership
           params={{orgId: org.slug, projectId: project.slug}}
@@ -88,7 +92,7 @@ describe('Project Ownership', function () {
       expect(openModal).toHaveBeenCalled();
     });
 
-    it('does not render without permissions', function () {
+    it('render request to add if no permissions', function () {
       org = TestStubs.Organization({features: ['integrations-codeowners'], access: []});
 
       const wrapper = mountWithTheme(
@@ -99,8 +103,9 @@ describe('Project Ownership', function () {
         />,
         TestStubs.routerContext([{organization: org}])
       );
-
-      expect(wrapper.find('CodeOwnerButton').exists()).toBe(false);
+      expect(
+        wrapper.find('[data-test-id="add-codeowner-request-button"] button').exists()
+      ).toBe(true);
     });
   });
 });
