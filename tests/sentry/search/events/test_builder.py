@@ -2,6 +2,7 @@ import datetime
 import re
 
 from django.utils import timezone
+from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op, Or
 from snuba_sdk.function import Function
@@ -49,7 +50,7 @@ class QueryBuilderTest(TestCase):
         self.assertCountEqual(
             query.select,
             [
-                Function("toString", [Column("email")], "user.email"),
+                AliasedExpression(Column("email"), "user.email"),
                 Column("release"),
             ],
         )
@@ -66,7 +67,7 @@ class QueryBuilderTest(TestCase):
         self.assertCountEqual(query.where, self.default_conditions)
         self.assertCountEqual(
             query.orderby,
-            [OrderBy(Function("toString", [Column("email")], "user.email"), Direction.ASC)],
+            [OrderBy(Column("email"), Direction.ASC)],
         )
         query.get_snql_query().validate()
 
@@ -80,7 +81,7 @@ class QueryBuilderTest(TestCase):
         self.assertCountEqual(query.where, self.default_conditions)
         self.assertCountEqual(
             query.orderby,
-            [OrderBy(Function("toString", [Column("email")], "user.email"), Direction.DESC)],
+            [OrderBy(Column("email"), Direction.DESC)],
         )
         query.get_snql_query().validate()
 
