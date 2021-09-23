@@ -1,4 +1,3 @@
-import logging
 from typing import Optional
 from urllib.parse import parse_qs
 
@@ -8,7 +7,7 @@ from rest_framework.request import Request
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.models import Identity, IdentityProvider
 
-logger = logging.getLogger("sentry.integrations.slack")
+from ..utils import logger
 
 
 class SlackCommandRequest(SlackRequest):

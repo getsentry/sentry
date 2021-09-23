@@ -17,7 +17,7 @@ from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
-from ..utils import logger
+from . import logger
 
 
 def send_incident_alert_notification(

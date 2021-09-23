@@ -1,4 +1,3 @@
-import logging
 from typing import Optional, Sequence, Tuple
 
 from django.http import HttpResponse
@@ -20,9 +19,8 @@ from sentry.models import (
 )
 from sentry.types.integrations import ExternalProviders
 
+from ..utils import logger
 from .base import SlackDMEndpoint
-
-logger = logging.getLogger("sentry.integrations.slack")
 
 LINK_TEAM_MESSAGE = (
     "Link your Sentry team to this Slack channel! <{associate_url}|Link your team now> to receive "

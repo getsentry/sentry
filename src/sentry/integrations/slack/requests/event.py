@@ -1,4 +1,3 @@
-import logging
 from typing import Any, List, Optional
 
 from rest_framework import status
@@ -9,7 +8,7 @@ from sentry.integrations.slack.unfurl import LinkType, match_link
 from sentry.models import Identity, IdentityProvider
 from sentry.models.user import User
 
-logger = logging.getLogger("sentry.integrations.slack")
+from ..utils import logger
 
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
 

@@ -17,7 +17,10 @@ __all__ = (
     "SLACK_RATE_LIMITED_MESSAGE",
 )
 
+# This needs to be created before the other imports.
 import logging
+
+logger = logging.getLogger("sentry.integrations.slack")
 
 from .auth import check_signing_secret, set_signing_secret
 from .channel import (
@@ -35,5 +38,4 @@ from .notifications import (
 )
 from .users import get_slack_data_by_user, get_users
 
-logger = logging.getLogger("sentry.integrations.slack")
 SLACK_RATE_LIMITED_MESSAGE = "Requests to Slack exceeded the rate limit. Please try again later."

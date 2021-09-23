@@ -13,7 +13,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
 )
 
-from ..utils import logger
+from . import logger
 
 SLACK_DEFAULT_TIMEOUT = 10
 MEMBER_PREFIX = "@"
