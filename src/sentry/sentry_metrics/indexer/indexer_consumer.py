@@ -65,7 +65,7 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
                 on_delivery=self.callback,
             )
 
-        messages_left = self.__producer.flush()
+        messages_left = self.__producer.flush(5.0)
         if messages_left != 0:
             # TODO(meredith): We are not currently keeping track of
             # which callbacks failed. This means could potentially
@@ -75,9 +75,10 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
             # In the future if we know which callback failed, we can
             # commmit only up to that point and retry on the remaining
             # messages.
-            raise Exception("didn't get all the callbacks")
+            raise Exception(f"didn't get all the callbacks: {messages_left} left")
 
     def shutdown(self) -> None:
+        self.__producer.close()
         return
 
     def callback(self, error: Any, message: Any) -> None:

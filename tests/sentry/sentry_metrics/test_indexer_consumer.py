@@ -56,7 +56,7 @@ def test_metrics_indexer_worker(producer, metrics_payload, flush_return_value, w
     assert parsed["metric_id"] == get_int(metrics_payload["name"])
 
     if with_exception:
-        with pytest.raises(Exception, match="didn't get all the callback"):
+        with pytest.raises(Exception, match="didn't get all the callbacks: 1 left"):
             metrics_worker.flush_batch([parsed])
     else:
         metrics_worker.flush_batch([parsed])
