@@ -28,6 +28,27 @@ class SlackIntegrationNotificationSent(analytics.Event):  # type: ignore
     )
 
 
+class IntegrationSlackChartUnfurl(analytics.Event):  # type: ignore
+    type = "integrations.slack.chart_unfurl"
+
+    attributes = (
+        analytics.Attribute("user_id", required=False),
+        analytics.Attribute("organization_id"),
+        analytics.Attribute("unfurls_count", type=int),
+    )
+
+
+class IntegrationSlackLinkIdentity(analytics.Event):  # type: ignore
+    type = "integrations.slack.chart_unfurl_action"
+
+    attributes = (
+        analytics.Attribute("organization_id"),
+        analytics.Attribute("action"),
+    )
+
+
 analytics.register(SlackIntegrationAssign)
 analytics.register(SlackIntegrationNotificationSent)
 analytics.register(SlackIntegrationStatus)
+analytics.register(IntegrationSlackChartUnfurl)
+analytics.register(IntegrationSlackLinkIdentity)
