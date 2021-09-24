@@ -11,8 +11,8 @@ from sentry.releasehealth.base import (
     ReleaseName,
 )
 from sentry.snuba.sessions import (
+    _check_has_health_data,
     _get_release_adoption,
-    check_has_health_data,
     get_current_and_previous_crash_free_rates,
 )
 
@@ -53,4 +53,4 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
     def check_has_health_data(
         self, projects_list: Sequence[ProjectOrRelease]
     ) -> Set[ProjectOrRelease]:
-        return check_has_health_data(projects_list)  # type: ignore
+        return _check_has_health_data(projects_list)  # type: ignore
