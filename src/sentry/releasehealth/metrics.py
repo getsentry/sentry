@@ -386,16 +386,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             where_clause.append(Condition(Column(release_column_name), Op.IN, releases_ids))
             column_names = ["project_id", release_column_name]
 
-            # def extract_raw_info(row: Mapping[str, Union[int, str]]) -> ProjectOrRelease:
-            #     return row["project_id"], reverse_tag_value(org_id, row.get(release_column_name))  # type: ignore
-
         else:
             column_names = ["project_id"]
 
-            # def extract_raw_info(row: Mapping[str, Union[int, str]]) -> ProjectOrRelease:
-            #     return row["project_id"]  # type: ignore
-
-        def extract_raw_info_func(
+        def extract_row_info_func(
             include_releases: bool,
         ) -> Callable[[Mapping[str, Union[int, str]]], ProjectOrRelease]:
             def f(row: Mapping[str, Union[int, str]]) -> ProjectOrRelease:
@@ -406,7 +400,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
             return f
 
-        extract_raw_info = extract_raw_info_func(includes_releases)
+        extract_row_info = extract_row_info_func(includes_releases)
 
         query_cols = [Column(column_name) for column_name in column_names]
         group_by_clause = query_cols
@@ -423,4 +417,45 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             query, referrer="releasehealth.metrics.check_has_health_data", use_cache=False
         )
 
-        return {extract_raw_info(raw) for raw in result["data"]}
+        return {extract_row_info(row) for row in result["data"]}
+
+    def check_releases_have_health_data(
+        self,
+        organization_id: OrganizationId,
+        project_ids: List[ProjectId],
+        release_versions: List[ReleaseName],
+        start: datetime,
+        end: datetime,
+    ) -> Set[ReleaseName]:
+
+        release_column_name = tag_key(organization_id, "release")
+        releases_ids = [
+            release_id
+            for release_id in [
+                try_get_tag_value(organization_id, release) for release in release_versions
+            ]
+            if release_id is not None
+        ]
+        query = Query(
+            dataset=Dataset.Metrics.value,
+            match=Entity("metrics_counters"),
+            select=[Column(release_column_name)],
+            where=[
+                Condition(Column("org_id"), Op.EQ, organization_id),
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("metric_id"), Op.EQ, metric_id(organization_id, "session")),
+                Condition(Column(release_column_name), Op.IN, releases_ids),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("timestamp"), Op.LT, end),
+            ],
+            groupby=[Column(release_column_name)],
+        )
+
+        result = raw_snql_query(
+            query, referrer="releasehealth.metrics.check_releases_have_health_data", use_cache=False
+        )
+
+        def extract_row_info(row):
+            return reverse_tag_value(organization_id, row.get(release_column_name))
+
+        return {extract_row_info(row) for row in result["data"]}

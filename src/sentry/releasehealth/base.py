@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Set, Tuple, TypeVar
+from typing import List, Mapping, Optional, Sequence, Set, Tuple, TypeVar
 
 from typing_extensions import TypedDict
 
@@ -30,6 +30,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "get_current_and_previous_crash_free_rates",
         "get_release_adoption",
         "check_has_health_data",
+        "check_releases_have_health_data",
     )
 
     def get_current_and_previous_crash_free_rates(
@@ -121,5 +122,19 @@ class ReleaseHealthBackend(Service):  # type: ignore
         Inputs:
             * projects_list: Contains either a list of project ids or a list of tuple (project_id,
             release)
+        """
+        raise NotImplementedError()
+
+    def check_releases_have_health_data(
+        self,
+        organization_id: OrganizationId,
+        project_ids: List[ProjectId],
+        release_versions: List[ReleaseName],
+        start: datetime,
+        end: datetime,
+    ) -> Set[ReleaseName]:
+
+        """
+        Returns a set of all release versions that have health data within a given period of time.
         """
         raise NotImplementedError()
