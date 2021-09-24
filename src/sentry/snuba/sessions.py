@@ -176,7 +176,7 @@ def _check_releases_have_health_data(
             Condition(Column("release"), Op.IN, release_versions),
         ],
     )
-    data = snuba.raw_snql_query(query, referrer="snuba.sessions._check_releases_have_health_data")[
+    data = snuba.raw_snql_query(query, referrer="snuba.sessions.check_releases_have_health_data")[
         "data"
     ]
     return {row["release"] for row in data}
