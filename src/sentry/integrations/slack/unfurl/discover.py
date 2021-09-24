@@ -136,7 +136,7 @@ def unfurl_discover(
         "integrations.slack.chart_unfurl",
         organization_id=integration.organizations.all()[0].id,
         user_id=user.id if user else None,
-        has_unfurl=True if unfurls else False,
+        unfurls_count=len(unfurls),
     )
 
     return unfurls

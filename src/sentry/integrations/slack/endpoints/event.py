@@ -175,7 +175,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
                 analytics.record(
                     "integrations.slack.chart_unfurl",
                     organization_id=integration.organizations.all()[0].id,
-                    has_unfurl=False,
+                    unfurls_count=0,
                 )
                 self.prompt_link(data, slack_request, integration)
                 return self.respond()
