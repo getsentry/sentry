@@ -1631,7 +1631,7 @@ SENTRY_WATCHERS = (
 # If Relay is used a reverse proxy server will be run at the 8000 (the port formally used by Sentry) that
 # will split the requests between Relay and Sentry (all store requests will be passed to Relay, and the
 # rest will be forwarded to Sentry)
-SENTRY_USE_RELAY = True
+SENTRY_USE_RELAY = bool(os.environ.get("SENTRY_USE_RELAY", "1") == "1")
 SENTRY_RELAY_PORT = 7899
 
 # Controls whether we'll run the snuba subscription processor. If enabled, we'll run
