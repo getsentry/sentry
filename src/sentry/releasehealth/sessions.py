@@ -7,6 +7,7 @@ from sentry.releasehealth.base import (
     ProjectId,
     ReleaseHealthBackend,
     ReleaseName,
+    ReleaseSessionsTimeBounds,
 )
 from sentry.snuba.sessions import (
     _get_release_adoption,
@@ -54,7 +55,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         release: ReleaseName,
         org_id: OrganizationId,
         environments: Optional[Sequence[EnvironmentName]] = None,
-    ):
-        return _get_release_sessions_time_bounds(
+    ) -> ReleaseSessionsTimeBounds:
+        return _get_release_sessions_time_bounds(  # type: ignore
             project_id=project_id, release=release, org_id=org_id, environments=environments
         )

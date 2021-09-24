@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import pytz
-from snuba_sdk import BooleanCondition, Column, Condition, Entity, Op, Query
+from snuba_sdk import BooleanCondition, Column, Condition, Entity, Function, Op, Query
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.query import SelectableExpression
 
@@ -13,6 +13,7 @@ from sentry.releasehealth.base import (
     ProjectId,
     ReleaseHealthBackend,
     ReleaseName,
+    ReleaseSessionsTimeBounds,
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.base import UseCase
@@ -20,26 +21,40 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import raw_snql_query
 
 
+class MetricIndexNotFound(Exception):
+    pass
+
+
 def metric_id(org_id: int, name: str) -> int:
     index = indexer.resolve(org_id, UseCase.TAG_KEY, name)  # type: ignore
-    assert index is not None  # TODO: assert too strong?
+    if index is None:
+        raise MetricIndexNotFound(name)
     return index  # type: ignore
 
 
 def tag_key(org_id: int, name: str) -> str:
     index = indexer.resolve(org_id, UseCase.TAG_KEY, name)  # type: ignore
-    assert index is not None
+    if index is None:
+        raise MetricIndexNotFound(name)
     return f"tags[{index}]"
 
 
 def tag_value(org_id: int, name: str) -> int:
     index = indexer.resolve(org_id, UseCase.TAG_VALUE, name)  # type: ignore
-    assert index is not None
+    if index is None:
+        raise MetricIndexNotFound(name)
     return index  # type: ignore
+
+
+def try_get_tag_value(org_id: int, name: str) -> Optional[int]:
+    return indexer.resolve(org_id, UseCase.TAG_VALUE, name)  # type: ignore
 
 
 def reverse_tag_value(org_id: int, index: int) -> str:
     str_value = indexer.reverse_resolve(org_id, UseCase.TAG_VALUE, index)  # type: ignore
+    # If the value can't be reversed it's very likely a real programming bug
+    # instead of something to be caught down: We probably got back a value from
+    # Snuba that's not in the indexer => partial data loss
     assert str_value is not None
     return str_value  # type: ignore
 
@@ -340,3 +355,126 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             rv[project_id, release] = adoption
 
         return rv
+
+    def get_release_sessions_time_bounds(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        org_id: OrganizationId,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> ReleaseSessionsTimeBounds:
+        select: List[SelectableExpression] = [
+            Function("min", [Column("timestamp")], "min"),
+            Function("max", [Column("timestamp")], "max"),
+        ]
+
+        try:
+            where: List[Union[BooleanCondition, Condition]] = [
+                Condition(Column("org_id"), Op.EQ, org_id),
+                Condition(Column("project_id"), Op.EQ, project_id),
+                Condition(Column(tag_key(org_id, "release")), Op.EQ, tag_value(org_id, release)),
+                Condition(Column("timestamp"), Op.GTE, datetime.min),
+                Condition(Column("timestamp"), Op.LT, datetime.now(pytz.utc)),
+            ]
+
+            if environments is not None:
+                env_filter = [
+                    x
+                    for x in [
+                        try_get_tag_value(org_id, environment) for environment in environments
+                    ]
+                    if x is not None
+                ]
+                if not env_filter:
+                    raise MetricIndexNotFound()
+
+                where.append(Condition(Column(tag_key(org_id, "environment")), Op.IN, env_filter))
+        except MetricIndexNotFound:
+            # Some filter condition can't be constructed and therefore can't be
+            # satisfied.
+            return {"sessions_lower_bound": None, "sessions_upper_bound": None}
+
+        # XXX(markus): We know that this combination of queries is not fully
+        # equivalent to the sessions-table based backend. Example:
+        #
+        # 1. Session sid=x is started with timestamp started=n
+        # 2. Same sid=x is updated with new payload with timestamp started=n - 1
+        #
+        # Old sessions backend would return [n - 1 ; n - 1] as range.
+        # New metrics backend would return [n ; n - 1] as range.
+        #
+        # We don't yet know if this case is relevant. Session's started
+        # timestamp shouldn't really change as session status is updated
+        # though.
+
+        try:
+            init_sessions_query = Query(
+                dataset=Dataset.Metrics.value,
+                match=Entity("metrics_counters"),
+                select=select,
+                where=where
+                + [
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+                    Condition(
+                        Column(tag_key(org_id, "session.status")), Op.EQ, tag_value(org_id, "init")
+                    ),
+                ],
+            )
+
+            rows = raw_snql_query(
+                init_sessions_query,
+                referrer="releasehealth.metrics.get_release_sessions_time_bounds.init_sessions",
+                use_cache=False,
+            )["data"]
+        except MetricIndexNotFound:
+            rows = []
+
+        try:
+            terminal_sessions_query = Query(
+                dataset=Dataset.Metrics.value,
+                match=Entity("metrics_distributions"),
+                select=select,
+                where=where
+                + [
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.duration")),
+                ],
+            )
+            rows.extend(
+                raw_snql_query(
+                    terminal_sessions_query,
+                    referrer="releasehealth.metrics.get_release_sessions_time_bounds.terminal_sessions_query",
+                    use_cache=False,
+                )["data"]
+            )
+        except MetricIndexNotFound:
+            pass
+
+        # This check is added because if there are no sessions found, then the
+        # aggregations query return both the sessions_lower_bound and the
+        # sessions_upper_bound as `0` timestamp and we do not want that behaviour
+        # by default
+        # P.S. To avoid confusion the `0` timestamp which is '1970-01-01 00:00:00'
+        # is rendered as '0000-00-00 00:00:00' in clickhouse shell
+        formatted_unix_start_time = datetime.utcfromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+
+        lower_bound = None
+        upper_bound = None
+
+        for row in rows:
+            if set(row.values()) == {formatted_unix_start_time}:
+                continue
+            if lower_bound is None or row["min"] < lower_bound:
+                lower_bound = row["min"]
+            if upper_bound is None or row["max"] > upper_bound:
+                upper_bound = row["max"]
+
+        if lower_bound is None or upper_bound is None:
+            return {"sessions_lower_bound": None, "sessions_upper_bound": None}
+
+        def iso_format_snuba_datetime(date):
+            return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S+00:00").isoformat()[:19] + "Z"
+
+        return {
+            "sessions_lower_bound": iso_format_snuba_datetime(lower_bound),
+            "sessions_upper_bound": iso_format_snuba_datetime(upper_bound),
+        }
