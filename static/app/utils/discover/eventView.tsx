@@ -13,7 +13,6 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
 import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'app/types';
 import {
   aggregateOutputType,
@@ -617,7 +616,6 @@ class EventView {
   }
 
   generateQueryStringObject(): Query {
-    const user = ConfigStore.get('user');
     const output = {
       id: this.id,
       name: this.name,
@@ -630,7 +628,6 @@ class EventView {
       yAxis: this.yAxis || this.getYAxis(),
       display: this.display,
       interval: this.interval,
-      user: user.id,
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
@@ -1125,8 +1122,7 @@ class EventView {
   }
 
   getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
-    const user = ConfigStore.get('user');
-    const output = {id: this.id, user: user.id};
+    const output = {id: this.id};
     for (const field of [...Object.values(URL_PARAM), 'cursor']) {
       if (this[field] && this[field].length) {
         output[field] = this[field];
