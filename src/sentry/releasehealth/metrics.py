@@ -380,6 +380,31 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         session_status_tag_key = indexer.resolve(org_id, UseCase.TAG_KEY, "session.status")
 
+        class Field:
+            def __init__(self, name: str) -> None:
+                self.name = name
+
+            def get_value(self, flat_data, key):
+                return flat_data[key]
+
+        class IntegerField(Field):
+            def get_value(self, flat_data, key):
+                return int(flat_data[key])
+
+        class GroupedSessionField(Field):
+            def get_value(self, flat_data, key):
+                # This assumes the correct queries were made
+                error_key = key.copy()
+                error_key.metric_name = "session.error"
+                # TODO: magic
+                return int(flat_data[key])
+
+        class DistributionField(Field):
+            def get_value(self, flat_data, key):
+                return -1  # FIXME
+
+        metric_to_fields = {}
+
         if "count_unique(user)" in query.raw_fields:
             metric_id = indexer.resolve(org_id, UseCase.METRIC, "user")
             if metric_id is not None:
@@ -393,8 +418,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 data["user"] = raw_snql_query(
                     snuba_query, referrer="releasehealth.metrics.sessions_v2.user"
                 )["data"]
+                metric_to_fields["user"] = [IntegerField("count_unique(user")]
 
-        if any("session.duration" in field for field in query.raw_fields):
+        duration_fields = [field for field in query.raw_fields if "session.duration" in field]
+        if duration_fields:
             metric_id = indexer.resolve(org_id, UseCase.METRIC, "session.duration")
             if metric_id is not None:
                 snuba_query = Query(
@@ -407,8 +434,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 data["session.duration"] = raw_snql_query(
                     snuba_query, referrer="releasehealth.metrics.sessions_v2.session.duration"
                 )["data"]
+                metric_to_fields["session.duration"] = [
+                    DistributionField(field) for field in duration_fields
+                ]
 
-        if "sum(sessions)" in query.fields:
+        if "sum(session)" in query.fields:
             metric_id = indexer.resolve(org_id, UseCase.METRIC, "session")
             if metric_id is not None:
                 if "session.status" in groupby:
@@ -445,6 +475,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                             snuba_query, referrer="releasehealth.metrics.sessions_v2.session.error"
                         )["data"]
 
+                    metric_to_fields["session"] = [GroupedSessionField("sum(session)")]
+
                 else:
                     # Simply count the number of started sessions:
                     tag_value = indexer.resolve(org_id, UseCase.TAG_VALUE, "init")
@@ -465,6 +497,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                         data["session"] = raw_snql_query(
                             snuba_query, referrer="releasehealth.metrics.sessions_v2.session"
                         )["data"]
+
+                    metric_to_fields["session"] = [IntegerField("sum(session)")]
 
         @dataclass(frozen=True)
         class FlatKey:
@@ -500,11 +534,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             }
         )
 
-        metric_to_fields = {"user": "count_unique(user)"}
-
-        for key, value in flat_data.items():
-            field = metric_to_fields.get(key.metric_name)
-            if field is None:
+        for key in flat_data.keys():
+            try:
+                fields = metric_to_fields[key.metric_name]
+            except KeyError:
                 continue  # secondary metric, like session.error
 
             by = {}
@@ -515,12 +548,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             # TODO: handle session status
 
             group = groups[tuple(sorted(by.items()))]
-            if key.timestamp is None:
-                # TODO: handle percentiles
-                group["totals"][field] = value
-            else:
-                index = timestamp_index[key.timestamp]
-                group["series"][index] = value
+            for field in fields:
+                value = field.get_value(flat_data, key)
+                if key.timestamp is None:
+                    # TODO: handle percentiles
+                    group["totals"][field.name] = value
+                else:
+                    index = timestamp_index[key.timestamp]
+                    group["series"][field.name][index] = value
 
         groups = [
             {
@@ -530,4 +565,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             for by, group in groups.items()
         ]
 
-        return {"intervals": [], "groups": groups}
+        def format_datetime(dt: datetime) -> str:
+            return dt.isoformat().replace("+00:00", "Z")
+
+        return {
+            "start": format_datetime(query.start),
+            "end": format_datetime(query.end),
+            "query": query.query,
+            "intervals": [format_datetime(dt) for dt in intervals],
+            "groups": groups,
+        }

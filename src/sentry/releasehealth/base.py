@@ -10,6 +10,8 @@ ProjectId = int
 OrganizationId = int
 ReleaseName = str
 EnvironmentName = str
+DateString = str
+
 
 SelectField = Literal[
     "sum(session)",
@@ -143,7 +145,9 @@ class ReleaseHealthBackend(Service):  # type: ignore
         raise NotImplementedError()
 
     class SessionsQueryResult(TypedDict):
-        intervals: Sequence[datetime]
+        start: DateString
+        end: DateString
+        intervals: Sequence[DateString]
         groups: Sequence[SessionsQueryGroup]
 
     def run_sessions_query(
