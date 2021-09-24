@@ -20,9 +20,9 @@ function RulesPanel({
   onAddRule,
   onEditRule,
   onDeleteRule,
-  disabled,
   onUpdateRules,
   isErrorPanel,
+  disabled,
 }: Props) {
   const panelType = isErrorPanel ? t('error') : t('transaction');
   return (
@@ -40,7 +40,7 @@ function RulesPanel({
           <Button href={DYNAMIC_SAMPLING_DOC_LINK} external>
             {t('Read the docs')}
           </Button>
-          <Button
+          <AddRuleButton
             priority="primary"
             onClick={onAddRule}
             disabled={disabled}
@@ -51,7 +51,7 @@ function RulesPanel({
             }
           >
             {t('Add %s rule', panelType)}
-          </Button>
+          </AddRuleButton>
         </StyledButtonBar>
       </StyledPanelFooter>
     </Panel>
@@ -73,5 +73,11 @@ const StyledButtonBar = styled(ButtonBar)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};
+  }
+`;
+
+const AddRuleButton = styled(Button)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: 100%;
   }
 `;
