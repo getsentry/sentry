@@ -11,8 +11,6 @@ from sentry.utils.kafka import create_batching_kafka_consumer
 
 logger = logging.getLogger(__name__)
 
-snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
-
 
 def get_metrics_consumer(
     topic: Optional[str] = None, **options: Dict[str, str]
@@ -31,6 +29,9 @@ def get_metrics_consumer(
 class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
     def __init__(self, producer: Producer) -> None:
         self.__producer = producer
+        self.__producer_topic = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS].get(
+            "topic", "snuba-metrics"
+        )
 
     def process_message(self, message: Any) -> MutableMapping[str, Any]:
         parsed_message: MutableMapping[str, Any] = json.loads(message.value(), use_rapid_json=True)
@@ -58,7 +59,7 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
         # produce the translated message to snuba-metrics topic
         for message in batch:
             self.__producer.produce(
-                topic=snuba_metrics["topic"],
+                topic=self.__producer_topic,
                 key=None,
                 value=json.dumps(message).encode(),
                 on_delivery=self.callback,
