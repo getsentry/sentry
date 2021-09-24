@@ -147,6 +147,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       case 'bar':
         return <BarChart {...chartProps} />;
       case 'area':
+      case 'top_n':
         return <AreaChart stacked {...chartProps} />;
       case 'world_map':
         return <WorldMapChart {...chartProps} />;
