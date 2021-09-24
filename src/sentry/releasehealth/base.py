@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Mapping, Optional, Sequence, Set, Tuple, TypeVar
+from typing import Mapping, Optional, Sequence, Set, Tuple, TypeVar
 
 from typing_extensions import TypedDict
 
