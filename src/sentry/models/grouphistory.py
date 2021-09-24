@@ -24,15 +24,15 @@ class GroupHistory(Model):
     This model is used to track certain status changes for groups,
     and is designed to power a few types of queries:
     - `resolved_in:release` syntax - we can query for entries with status=REGRESSION and matching release
-    - Time to Resolution and Age of Unresolved Issues- style queries
+    - Time to Resolution and Age of Unresolved Issues-style queries
     - Issue Actvity/Status over time breakdown (i.e. for each of the last 14 days, how many new, resolved, regressed, unignored, etc. issues were there?)
     """
 
     __include_in_export__ = False
 
-    group = FlexibleForeignKey("sentry.Group")
-    project = FlexibleForeignKey("sentry.Project")
-    release = FlexibleForeignKey("sentry.Release", null=True)
+    group = FlexibleForeignKey("sentry.Group", db_constraint=False)
+    project = FlexibleForeignKey("sentry.Project", db_constraint=False)
+    release = FlexibleForeignKey("sentry.Release", null=True, db_constraint=False)
     actor = FlexibleForeignKey("sentry.Actor", null=True)
 
     status = BoundedPositiveIntegerField(
@@ -50,7 +50,6 @@ class GroupHistory(Model):
             (GroupHistoryStatus.DELETED_AND_DISCADED, _("Deleted and Discarded")),
             (GroupHistoryStatus.REVIEWED, _("Reviewed")),
         ),
-        db_index=True,
     )
     prev_history_id = FlexibleForeignKey(
         "sentry.GroupHistory"
