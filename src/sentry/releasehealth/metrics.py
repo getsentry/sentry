@@ -19,7 +19,7 @@ from sentry.releasehealth.base import (
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics import TS_COL_QUERY
+from sentry.snuba.metrics import TS_COL_QUERY, get_intervals
 from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils.snuba import raw_snql_query
 
@@ -390,7 +390,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     groupby=list(groupby.values()),
                     where=conditions + [Condition(Column("metric_id"), Op.EQ, metric_id)],
                 )
-                print(snuba_query)
                 data["user"] = raw_snql_query(
                     snuba_query, referrer="releasehealth.metrics.sessions_v2.user"
                 )["data"]
@@ -486,8 +485,28 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 )
                 flat_data[flat_key] = value
 
-        groups = defaultdict(dict)
+        intervals = list(get_intervals(query))
+        timestamp_index = {timestamp: index for index, timestamp in enumerate(intervals)}
+
+        def default_for(field):
+            return 0 if field in ("sum(session)", "count_unique(user)") else None
+
+        groups = defaultdict(
+            lambda: {
+                "totals": {field: default_for(field) for field in query.raw_fields},
+                "series": {
+                    field: len(intervals) * [default_for(field)] for field in query.raw_fields
+                },
+            }
+        )
+
+        metric_to_fields = {"user": "count_unique(user)"}
+
         for key, value in flat_data.items():
+            field = metric_to_fields.get(key.metric_name)
+            if field is None:
+                continue  # secondary metric, like session.error
+
             by = {}
             if key.release is not None:
                 by["release"] = key.release
@@ -498,9 +517,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             group = groups[tuple(sorted(by.items()))]
             if key.timestamp is None:
                 # TODO: handle percentiles
-                group.setdefault("totals", {})[metric_name] = value
-
-            # TODO: handle series
+                group["totals"][field] = value
+            else:
+                index = timestamp_index[key.timestamp]
+                group["series"][index] = value
 
         groups = [
             {
@@ -510,4 +530,4 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             for by, group in groups.items()
         ]
 
-        return {"intervals": [], "groups": []}
+        return {"intervals": [], "groups": groups}
