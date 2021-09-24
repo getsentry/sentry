@@ -71,7 +71,11 @@ class RuleNode extends React.Component<Props> {
           initialVal = fieldConfig.choices[0][0];
         }
       } else {
-        initialVal = data[name];
+        initialVal =
+          /\d+[smhdwy]$/i.test(data[name] as string) ||
+          isNaN(parseInt(data[name] as string, 10))
+            ? data[name]
+            : parseInt(data[name] as string, 10);
       }
     }
 
