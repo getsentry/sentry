@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Tuple
+from typing import Mapping, Optional, Sequence, Set, Tuple, TypeVar
 
 from typing_extensions import TypedDict
 
@@ -10,17 +10,27 @@ OrganizationId = int
 ReleaseName = str
 EnvironmentName = str
 
+ProjectRelease = Tuple[ProjectId, ReleaseName]
+
+ProjectOrRelease = TypeVar("ProjectOrRelease", ProjectId, ProjectRelease)
+
+
+class CurrentAndPreviousCrashFreeRate(TypedDict):
+    currentCrashFreeRate: Optional[float]
+    previousCrashFreeRate: Optional[float]
+
+
+CurrentAndPreviousCrashFreeRates = Mapping[ProjectId, CurrentAndPreviousCrashFreeRate]
+
 
 class ReleaseHealthBackend(Service):  # type: ignore
     """Abstraction layer for all release health related queries"""
 
-    __all__ = ("get_current_and_previous_crash_free_rates", "get_release_adoption")
-
-    class CurrentAndPreviousCrashFreeRate(TypedDict):
-        currentCrashFreeRate: Optional[float]
-        previousCrashFreeRate: Optional[float]
-
-    CurrentAndPreviousCrashFreeRates = Mapping[ProjectId, CurrentAndPreviousCrashFreeRate]
+    __all__ = (
+        "get_current_and_previous_crash_free_rates",
+        "get_release_adoption",
+        "check_has_health_data",
+    )
 
     def get_current_and_previous_crash_free_rates(
         self,
@@ -99,4 +109,17 @@ class ReleaseHealthBackend(Service):  # type: ignore
             that. Omit if you're not sure.
         """
 
+        raise NotImplementedError()
+
+    def check_has_health_data(
+        self, projects_list: Sequence[ProjectOrRelease]
+    ) -> Set[ProjectOrRelease]:
+        """
+        Function that returns a set of all project_ids or (project, release) if they have health data
+        within the last 90 days based on a list of projects or a list of project, release combinations
+        provided as an arg.
+        Inputs:
+            * projects_list: Contains either a list of project ids or a list of tuple (project_id,
+            release)
+        """
         raise NotImplementedError()
