@@ -10,6 +10,7 @@ import {
   aggregateFunctionOutputType,
   explodeField,
   generateFieldAsString,
+  getAggregateFields,
   isLegalYAxisType,
   QueryFieldValue,
 } from 'app/utils/discover/fields';
@@ -73,6 +74,21 @@ function WidgetQueryFields({
     onChange(newFields);
   }
 
+  function handleTopNChangeField(value: QueryFieldValue, fieldIndex: number) {
+    const aggregateFields = getAggregateFields(fields);
+    const otherFields = fields.filter(field => !!!aggregateFields.includes(field));
+    aggregateFields[fieldIndex] = generateFieldAsString(value);
+    const newFields = [...otherFields, ...aggregateFields];
+    onChange(newFields);
+  }
+
+  function handleTopNColumnChange(columns: QueryFieldValue[]) {
+    const aggregateFields = getAggregateFields(fields);
+    const otherFields = columns.map(generateFieldAsString);
+    const newFields = [...otherFields, ...aggregateFields];
+    onChange(newFields);
+  }
+
   function handleColumnChange(columns: QueryFieldValue[]) {
     const newFields = columns.map(generateFieldAsString);
     onChange(newFields);
@@ -100,16 +116,109 @@ function WidgetQueryFields({
     );
   }
 
-  const hideAddYAxisButton =
-    (['world_map', 'big_number'].includes(displayType) && fields.length === 1) ||
-    (['line', 'area', 'stacked_area', 'bar'].includes(displayType) &&
-      fields.length === 3);
-
   // Any function/field choice for Big Number widgets is legal since the
   // data source is from an endpoint that is not timeseries-based.
   // The function/field choice for World Map widget will need to be numeric-like.
   // Column builder for Table widget is already handled above.
   const doNotValidateYAxis = displayType === 'big_number';
+
+  const filterPrimaryOptions = option => {
+    // Only validate function names for timeseries widgets and
+    // world map widgets.
+    if (!doNotValidateYAxis && option.value.kind === FieldValueKind.FUNCTION) {
+      const primaryOutput = aggregateFunctionOutputType(
+        option.value.meta.name,
+        undefined
+      );
+      if (primaryOutput) {
+        // If a function returns a specific type, then validate it.
+        return isLegalYAxisType(primaryOutput);
+      }
+    }
+
+    return option.value.kind === FieldValueKind.FUNCTION;
+  };
+
+  const filterAggregateParameters = fieldValue => option => {
+    // Only validate function parameters for timeseries widgets and
+    // world map widgets.
+    if (doNotValidateYAxis) {
+      return true;
+    }
+
+    if (fieldValue.kind !== 'function') {
+      return true;
+    }
+
+    const functionName = fieldValue.function[0];
+    const primaryOutput = aggregateFunctionOutputType(
+      functionName as string,
+      option.value.meta.name
+    );
+    if (primaryOutput) {
+      return isLegalYAxisType(primaryOutput);
+    }
+
+    if (option.value.kind === FieldValueKind.FUNCTION) {
+      // Functions are not legal options as an aggregate/function parameter.
+      return false;
+    }
+
+    return isLegalYAxisType(option.value.meta.dataType);
+  };
+
+  if (displayType === 'top_n') {
+    const aggregateFields = getAggregateFields(fields);
+    const otherFields = fields.filter(field => !!!aggregateFields.includes(field));
+    const fieldValue = explodeField({field: aggregateFields[0]});
+
+    return (
+      <React.Fragment>
+        <Field
+          data-test-id="columns"
+          label={t('Columns')}
+          inline={false}
+          style={{padding: `${space(1)} 0`, ...(style ?? {})}}
+          error={errors?.fields}
+          flexibleControlStateSize
+          stacked
+          required
+        >
+          <StyledColumnEditCollection
+            columns={otherFields.map(field => explodeField({field}))}
+            onChange={handleTopNColumnChange}
+            fieldOptions={fieldOptions}
+            organization={organization}
+          />
+        </Field>
+        <Field
+          data-test-id="y-axis"
+          label={t('Y-Axis')}
+          inline={false}
+          style={{padding: `${space(2)} 0 24px 0`, ...(style ?? {})}}
+          flexibleControlStateSize
+          error={errors?.fields}
+          required
+          stacked
+        >
+          <QueryFieldWrapper key={`${aggregateFields[0]}:0`}>
+            <QueryField
+              fieldValue={fieldValue}
+              fieldOptions={generateFieldOptions({organization})}
+              onChange={value => handleTopNChangeField(value, 0)}
+              filterPrimaryOptions={filterPrimaryOptions}
+              filterAggregateParameters={filterAggregateParameters(fieldValue)}
+            />
+          </QueryFieldWrapper>
+        </Field>
+      </React.Fragment>
+    );
+  }
+
+  const hideAddYAxisButton =
+    (['world_map', 'big_number'].includes(displayType) && fields.length === 1) ||
+    (['line', 'area', 'stacked_area', 'bar'].includes(displayType) &&
+      fields.length === 3);
 
   return (
     <Field
@@ -130,52 +239,8 @@ function WidgetQueryFields({
               fieldValue={fieldValue}
               fieldOptions={fieldOptions}
               onChange={value => handleChangeField(value, i)}
-              filterPrimaryOptions={option => {
-                // Only validate function names for timeseries widgets and
-                // world map widgets.
-                if (
-                  !doNotValidateYAxis &&
-                  option.value.kind === FieldValueKind.FUNCTION
-                ) {
-                  const primaryOutput = aggregateFunctionOutputType(
-                    option.value.meta.name,
-                    undefined
-                  );
-                  if (primaryOutput) {
-                    // If a function returns a specific type, then validate it.
-                    return isLegalYAxisType(primaryOutput);
-                  }
-                }
-
-                return option.value.kind === FieldValueKind.FUNCTION;
-              }}
-              filterAggregateParameters={option => {
-                // Only validate function parameters for timeseries widgets and
-                // world map widgets.
-                if (doNotValidateYAxis) {
-                  return true;
-                }
-
-                if (fieldValue.kind !== 'function') {
-                  return true;
-                }
-
-                const functionName = fieldValue.function[0];
-                const primaryOutput = aggregateFunctionOutputType(
-                  functionName as string,
-                  option.value.meta.name
-                );
-                if (primaryOutput) {
-                  return isLegalYAxisType(primaryOutput);
-                }
-
-                if (option.value.kind === FieldValueKind.FUNCTION) {
-                  // Functions are not legal options as an aggregate/function parameter.
-                  return false;
-                }
-
-                return isLegalYAxisType(option.value.meta.dataType);
-              }}
+              filterPrimaryOptions={filterPrimaryOptions}
+              filterAggregateParameters={filterAggregateParameters(fieldValue)}
             />
             {fields.length > 1 && (
               <Button

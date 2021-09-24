@@ -42,6 +42,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
     TABLE = 4
     WORLD_MAP = 5
     BIG_NUMBER = 6
+    TOP_N = 7
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
@@ -50,6 +51,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (TABLE, "table"),
         (WORLD_MAP, "world_map"),
         (BIG_NUMBER, "big_number"),
+        (TOP_N, "top_n"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 

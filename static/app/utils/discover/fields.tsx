@@ -968,6 +968,10 @@ export function isAggregateField(field: string): boolean {
   return parseFunction(field) !== null;
 }
 
+export function getAggregateFields(fields: string[]): string[] {
+  return fields.filter(field => isAggregateField(field) || isAggregateEquation(field));
+}
+
 /**
  * Convert a function string into type it will output.
  * This is useful when you need to format values in tooltips,

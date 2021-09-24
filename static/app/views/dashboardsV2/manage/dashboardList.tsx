@@ -55,6 +55,7 @@ function DashboardList({
       case DisplayType.BAR:
         return WidgetBar;
       case DisplayType.AREA:
+      case DisplayType.TOP_N:
         return WidgetArea;
       case DisplayType.BIG_NUMBER:
         return WidgetBigNumber;

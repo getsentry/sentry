@@ -163,7 +163,7 @@ class WidgetQueriesForm extends React.Component<Props> {
             });
           }}
         />
-        {displayType === 'table' && (
+        {['table', 'top_n'].includes(displayType) && (
           <Field
             label={t('Sort by')}
             inline={false}
