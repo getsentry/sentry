@@ -1,7 +1,6 @@
-from datetime import datetime
+from django.utils import timezone
 
-from sentry.incidents.models import AlertRuleThresholdType, IncidentTrigger, TriggerStatus
-from sentry.models import ActorTuple, Release
+from sentry.models import Release
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -23,40 +22,48 @@ class TeamReleaseCountTest(APITestCase):
         project2 = self.create_project(teams=[team2], organization=org2)
         project3 = self.create_project(teams=[team1], organization=org)
 
-        print("project1:", project1.id)
-        print("project2:", project2.id)
-        print("project3:", project3.id)
         self.create_member(teams=[team1], user=user, organization=org)
-
         self.login_as(user=user)
-
         release1 = Release.objects.create(
-            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+            organization_id=org.id, version="1", date_added=before_now(days=15)
         )
         release1.add_project(project1)
 
         release2 = Release.objects.create(
-            organization_id=org2.id, version="2", date_added=datetime(2013, 8, 14, 3, 8, 24, 880386)
+            organization_id=org2.id, version="2", date_added=before_now(days=12)
         )  # This release isn't returned, its in another org
         release2.add_project(project2)
 
         release3 = Release.objects.create(
             organization_id=org.id,
             version="3",
-            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
-            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
+            date_added=before_now(days=10),
+            date_released=before_now(days=10),
         )
-        release3.add_project(project3)
+        release3.add_project(project1)
 
         release4 = Release.objects.create(
-            organization_id=org.id, version="4", date_added=datetime(2013, 8, 14, 3, 8, 24, 880386)
+            organization_id=org.id, version="4", date_added=before_now(days=5)
         )
         release4.add_project(project3)
         release5 = Release.objects.create(
-            organization_id=org.id, version="4", date_added=datetime(2013, 8, 14, 3, 8, 24, 880386)
+            organization_id=org.id, version="5", date_added=before_now(days=5)
         )
         release5.add_project(project3)
-
         response = self.get_valid_response(org.slug, team1.slug)
 
-        print("response:", response)
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert project2.id not in response.data
+        assert response.data[project3.id][0]["count"] == 2
+        assert response.data[project3.id][0]["bucket"] == before_now(days=5).replace(
+            hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+        )
+        assert response.data[project1.id][0]["count"] == 1
+        assert response.data[project1.id][0]["bucket"] == before_now(days=15).replace(
+            hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+        )
+        assert response.data[project1.id][1]["count"] == 1
+        assert response.data[project1.id][1]["bucket"] == before_now(days=10).replace(
+            hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+        )
