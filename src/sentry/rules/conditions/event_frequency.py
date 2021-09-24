@@ -22,7 +22,10 @@ standard_intervals = {
     "30d": ("30 days", timedelta(days=30)),
 }
 comparison_intervals = {
+    "1m": ("one minute", timedelta(minutes=1)),
     "5m": ("5 minutes", timedelta(minutes=5)),
+    "15m": ("15 minutes", timedelta(minutes=15)),
+    "1h": ("one hour", timedelta(hours=1)),
     "1d": ("one day", timedelta(hours=24)),
     "1w": ("one week", timedelta(days=7)),
     "30d": ("30 days", timedelta(days=30)),
