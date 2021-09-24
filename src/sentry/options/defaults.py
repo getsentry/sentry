@@ -51,6 +51,13 @@ register(
     flags=FLAG_PRIORITIZE_DISK,
 )
 register("releasefile.cache-limit", type=Int, default=10 * 1024 * 1024, flags=FLAG_PRIORITIZE_DISK)
+register(
+    "releasefile.cache-max-archive-size",
+    type=Int,
+    default=1024 * 1024 * 1024,
+    flags=FLAG_PRIORITIZE_DISK,
+)
+
 
 # Mail
 register("mail.backend", default="smtp", flags=FLAG_NOSTORE)
