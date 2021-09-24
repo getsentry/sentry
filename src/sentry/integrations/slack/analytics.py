@@ -28,7 +28,7 @@ class SlackIntegrationNotificationSent(analytics.Event):  # type: ignore
     )
 
 
-class IntegrationSlackChartUnfurl(analytics.Event):
+class IntegrationSlackChartUnfurl(analytics.Event):  # type: ignore
     type = "integrations.slack.chart_unfurl"
 
     attributes = (
@@ -38,7 +38,7 @@ class IntegrationSlackChartUnfurl(analytics.Event):
     )
 
 
-class IntegrationSlackLinkIdentity(analytics.Event):
+class IntegrationSlackLinkIdentity(analytics.Event):  # type: ignore
     type = "integrations.slack.chart_unfurl_action"
 
     attributes = (
