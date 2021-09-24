@@ -85,7 +85,7 @@ TRANSACTIONS_SNUBA_MAP = {
     if col.value.transaction_name is not None
 }
 
-SESSIONS_FIELD_LIST = ["sessions", "sessions_crashed"]
+SESSIONS_FIELD_LIST = ["sessions", "sessions_crashed", "release"]
 
 SESSIONS_SNUBA_MAP = {column: column for column in SESSIONS_FIELD_LIST}
 
