@@ -641,19 +641,37 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "event": Entity("events", alias="e"),
         "group": Entity("groupedmessage", alias="g"),
     }
-    times_seen_aggregation = Function("count", [Column("group_id", entities["event"])])
+    times_seen_aggregation = Function(
+        "ifNull", [Function("count", [Column("group_id", entities["event"])]), 0]
+    )
     first_seen_aggregation = Function(
-        "multiply",
+        "ifNull",
         [
-            Function("toUInt64", [Function("min", [Column("timestamp", entities["event"])])]),
-            1000,
+            Function(
+                "multiply",
+                [
+                    Function(
+                        "toUInt64", [Function("min", [Column("timestamp", entities["event"])])]
+                    ),
+                    1000,
+                ],
+            ),
+            0,
         ],
     )
     last_seen_aggregation = Function(
-        "multiply",
+        "ifNull",
         [
-            Function("toUInt64", [Function("max", [Column("timestamp", entities["event"])])]),
-            1000,
+            Function(
+                "multiply",
+                [
+                    Function(
+                        "toUInt64", [Function("max", [Column("timestamp", entities["event"])])]
+                    ),
+                    1000,
+                ],
+            ),
+            0,
         ],
     )
 
@@ -683,7 +701,9 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 )
             ],
         ),
-        "user_count": Function("uniq", [Column("tags[sentry:user]", entities["event"])]),
+        "user_count": Function(
+            "ifNull", [Function("uniq", [Column("tags[sentry:user]", entities["event"])]), 0]
+        ),
     }
 
     def calculate_start_end(
@@ -806,7 +826,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             ][0]["count"]
 
         paginator_results = SequencePaginator(
-            [(row["score"] if row["score"] is not None else 0, row["g.id"]) for row in data],
+            [(row["score"], row["g.id"]) for row in data],
             reverse=True,
             **paginator_options,
         ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
