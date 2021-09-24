@@ -41,7 +41,6 @@ from sentry.notifications.helpers import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba import discover
-from sentry.snuba.sessions import check_has_health_data
 from sentry.utils import json
 from sentry.utils.compat import zip
 
@@ -336,7 +335,9 @@ class ProjectSerializer(Serializer):
         # call -> check_has_data with those ids and then update our `project_health_data_dict`
         # accordingly
         if check_has_health_data_ids:
-            projects_with_health_data = check_has_health_data(check_has_health_data_ids)
+            projects_with_health_data = releasehealth.check_has_health_data(
+                check_has_health_data_ids
+            )
             for project_id in projects_with_health_data:
                 project_health_data_dict[project_id]["hasHealthData"] = True
 
