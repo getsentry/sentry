@@ -406,13 +406,19 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             )
 
     def validate_event_types(self, event_types):
-        try:
-            return [SnubaQueryEventType.EventType[event_type.upper()] for event_type in event_types]
-        except KeyError:
-            raise serializers.ValidationError(
-                "Invalid event_type, valid values are %s"
-                % [item.name.lower() for item in SnubaQueryEventType.EventType]
-            )
+        dataset: Dataset = Dataset(self.initial_data["dataset"])
+        if dataset == Dataset.Sessions:
+            self._validate_crash_rate_alerts_event_types(event_types=event_types)
+        else:
+            try:
+                return [
+                    SnubaQueryEventType.EventType[event_type.upper()] for event_type in event_types
+                ]
+            except KeyError:
+                raise serializers.ValidationError(
+                    "Invalid event_type, valid values are %s"
+                    % [item.name.lower() for item in SnubaQueryEventType.EventType]
+                )
 
     def validate_threshold_type(self, threshold_type):
         try:
@@ -550,6 +556,21 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     "Invalid Time Window: Allowed time windows for crash rate alerts are: "
                     "30min, 1h, 2h, 4h, 12h and 24h"
                 )
+
+    @staticmethod
+    def _validate_crash_rate_alerts_event_types(event_types):
+        if not len(event_types) == 1:
+            raise serializers.ValidationError(
+                "Crash rate alerts are expected to have only 1 event type"
+            )
+        if event_types[0] not in [
+            SnubaQueryEventType.EventType.SESSION,
+            SnubaQueryEventType.EventType.USER,
+        ]:
+            raise serializers.ValidationError(
+                "Crash rate alerts event types are expected "
+                "to be either of type `session` or type `user`"
+            )
 
     def _validate_trigger_thresholds(self, threshold_type, trigger, resolve_threshold):
         if resolve_threshold is None:

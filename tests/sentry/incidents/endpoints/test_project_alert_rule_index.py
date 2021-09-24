@@ -622,6 +622,39 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
 
+    def test_simple_crash_rate_alerts_for_users_incorrect_event_type(self):
+        self.valid_alert_rule.update(
+            {
+                "eventTypes": ["user-3"],
+                "aggregate": "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+            }
+        )
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_valid_response(
+                self.organization.slug, self.project.slug, status_code=400, **self.valid_alert_rule
+            )
+        assert resp.data == {
+            "eventTypes": [
+                "Crash rate alerts event types are expected to be"
+                " either of type `session` or type `user`"
+            ]
+        }
+
+    def test_simple_crash_rate_alerts_for_users_multiple_event_type(self):
+        self.valid_alert_rule.update(
+            {
+                "eventTypes": ["user", "session"],
+                "aggregate": "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+            }
+        )
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_valid_response(
+                self.organization.slug, self.project.slug, status_code=400, **self.valid_alert_rule
+            )
+        assert resp.data == {
+            "eventTypes": ["Crash rate alerts are expected to have only 1 event type"]
+        }
+
     def test_simple_crash_rate_alerts_for_sessions_with_invalid_time_window(self):
         self.valid_alert_rule["timeWindow"] = "90"
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
