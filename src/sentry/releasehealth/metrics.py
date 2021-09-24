@@ -422,8 +422,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def check_releases_have_health_data(
         self,
         organization_id: OrganizationId,
-        project_ids: List[ProjectId],
-        release_versions: List[ReleaseName],
+        project_ids: Sequence[ProjectId],
+        release_versions: Sequence[ReleaseName],
         start: datetime,
         end: datetime,
     ) -> Set[ReleaseName]:
@@ -455,7 +455,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             query, referrer="releasehealth.metrics.check_releases_have_health_data", use_cache=False
         )
 
-        def extract_row_info(row):
-            return reverse_tag_value(organization_id, row.get(release_column_name))
+        def extract_row_info(row: Mapping[str, Union[OrganizationId, str]]) -> ReleaseName:
+            return reverse_tag_value(organization_id, row.get(release_column_name))  # type: ignore
 
         return {extract_row_info(row) for row in result["data"]}

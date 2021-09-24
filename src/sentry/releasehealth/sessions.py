@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional, Sequence, Set, Tuple
+from typing import Optional, Sequence, Set, Tuple
 
 from sentry.releasehealth.base import (
     CurrentAndPreviousCrashFreeRates,
@@ -59,12 +59,12 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
     def check_releases_have_health_data(
         self,
         organization_id: OrganizationId,
-        project_ids: List[ProjectId],
-        release_versions: List[ReleaseName],
+        project_ids: Sequence[ProjectId],
+        release_versions: Sequence[ReleaseName],
         start: datetime,
         end: datetime,
     ) -> Set[ReleaseName]:
-        return _check_releases_have_health_data(
+        return _check_releases_have_health_data(  # type: ignore
             organization_id,
             project_ids,
             release_versions,
