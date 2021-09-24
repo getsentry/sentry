@@ -384,11 +384,27 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             def __init__(self, name: str) -> None:
                 self.name = name
 
+            def get_session_status(self, raw_session_status: Optional[str]) -> Optional[str]:
+                return None
+
             def get_value(self, flat_data, key):
                 return flat_data[key]
 
-        class IntegerField(Field):
+        class UserField(Field):
+            def get_session_status(self, raw_session_status: Optional[str]):
+                # Not every init session is healthy, but that is taken care of in get_value
+                return "healthy" if raw_session_status == "init" else raw_session_status
+
             def get_value(self, flat_data, key):
+
+                if key.raw_session_status == "init":
+                    # Transform init to healthy:
+                    errored_key = key.replace(raw_session_status="errored")
+                    started = int(flat_data[key])
+                    errored = int(flat_data[errored_key])
+
+                    return started - errored
+
                 return int(flat_data[key])
 
         class GroupedSessionField(Field):
@@ -418,7 +434,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 data["user"] = raw_snql_query(
                     snuba_query, referrer="releasehealth.metrics.sessions_v2.user"
                 )["data"]
-                metric_to_fields["user"] = [IntegerField("count_unique(user")]
+                metric_to_fields["user"] = [UserField("count_unique(user")]
 
         duration_fields = [field for field in query.raw_fields if "session.duration" in field]
         if duration_fields:
@@ -498,7 +514,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                             snuba_query, referrer="releasehealth.metrics.sessions_v2.session"
                         )["data"]
 
-                    metric_to_fields["session"] = [IntegerField("sum(session)")]
+                    metric_to_fields["session"] = [UserField("sum(session)")]
 
         @dataclass(frozen=True)
         class FlatKey:
@@ -545,9 +561,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 by["release"] = key.release
             if key.environment is not None:
                 by["environment"] = key.environment
-            # TODO: handle session status
 
             group = groups[tuple(sorted(by.items()))]
+            assert fields
+            session_status = fields[0].get_session_status(key.raw_session_status)
+            if session_status is not None:
+                by["session.status"] = session_status
+
             for field in fields:
                 value = field.get_value(flat_data, key)
                 if key.timestamp is None:
