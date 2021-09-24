@@ -408,6 +408,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         # though.
 
         try:
+            # Take care of initial values for session.started by querying the
+            # init counter. This should take care of most cases on its own.
             init_sessions_query = Query(
                 dataset=Dataset.Metrics.value,
                 match=Entity("metrics_counters"),
@@ -430,6 +432,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             rows = []
 
         try:
+            # Take care of potential timestamp updates by looking at the metric
+            # for session duration, which is emitted once a session is closed.
+            #
+            # There is a testcase checked in that tests specifically for a
+            # session update that lowers session.started. We don't know if that
+            # testcase matters particularly.
             terminal_sessions_query = Query(
                 dataset=Dataset.Metrics.value,
                 match=Entity("metrics_distributions"),
