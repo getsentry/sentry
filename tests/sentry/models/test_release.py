@@ -1166,3 +1166,60 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
             )
             is False
         )
+
+
+class ClearCommitsTestCase(TestCase):
+    def test_simple(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project)
+
+        repo = Repository.objects.create(organization_id=org.id, name="test/repo")
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            message="fixes %s" % (group.qualified_short_id),
+            key="alksdflskdfjsldkfajsflkslk",
+        )
+        commit2 = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            message="i fixed something",
+            key="lskfslknsdkcsnlkdflksfdkls",
+        )
+
+        release = Release.objects.create(version="abcdabc", organization=org)
+        release.add_project(project)
+        release.set_commits(
+            [
+                {"id": commit.key, "repository": repo.name},
+                {"id": commit2.key, "repository": repo.name},
+            ]
+        )
+        # Confirm setup works
+        assert ReleaseCommit.objects.filter(commit=commit, release=release).exists()
+        assert ReleaseCommit.objects.filter(commit=commit2, release=release).exists()
+
+        assert release.commit_count == 2
+        assert release.authors == []
+        assert release.last_commit_id == commit.id
+
+        assert ReleaseHeadCommit.objects.filter(
+            release_id=release.id, commit_id=commit.id, repository_id=repo.id
+        ).exists()
+
+        # Now clear the release;
+        release.clear_commits()
+        assert not ReleaseCommit.objects.filter(commit=commit, release=release).exists()
+        assert not ReleaseCommit.objects.filter(commit=commit2, release=release).exists()
+        assert not ReleaseHeadCommit.objects.filter(
+            release_id=release.id, commit_id=commit.id, repository_id=repo.id
+        ).exists()
+
+        # Commits should still exist
+        assert Commit.objects.filter(
+            id=commit.id, organization_id=org.id, repository_id=repo.id
+        ).exists()
+        assert Commit.objects.filter(
+            id=commit2.id, organization_id=org.id, repository_id=repo.id
+        ).exists()
