@@ -6,6 +6,7 @@ import {IconDelete} from 'app/icons/iconDelete';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {DynamicSamplingInnerName, LegacyBrowser} from 'app/types/dynamicSampling';
+import FieldRequiredBadge from 'app/views/settings/components/forms/field/fieldRequiredBadge';
 import TextareaField from 'app/views/settings/components/forms/textareaField';
 
 import {getInnerNameLabel} from '../utils';
@@ -44,7 +45,12 @@ function Conditions({conditions, onDelete, onChange}: Props) {
 
         return (
           <ConditionWrapper key={index}>
-            <LeftCell>{getInnerNameLabel(category)}</LeftCell>
+            <LeftCell>
+              <span>
+                {getInnerNameLabel(category)}
+                <FieldRequiredBadge />
+              </span>
+            </LeftCell>
             <CenterCell>
               {!isABooleanField && (
                 <StyledTextareaField
@@ -108,6 +114,7 @@ const Cell = styled('div')`
 
 const LeftCell = styled(Cell)`
   padding-right: ${space(2)};
+  line-height: 16px;
 `;
 
 const CenterCell = styled(Cell)`

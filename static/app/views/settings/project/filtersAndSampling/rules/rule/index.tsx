@@ -121,6 +121,7 @@ const Column = styled('div')`
   align-items: center;
   padding: ${space(2)};
   cursor: default;
+  white-space: pre-wrap;
 `;
 
 const GrabColumn = styled(Column)`

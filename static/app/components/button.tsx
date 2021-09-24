@@ -129,7 +129,7 @@ class BaseButton extends React.Component<ButtonProps, {}> {
     // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
     if (title) {
       return (
-        <Tooltip skipWrapper {...tooltipProps} title={title}>
+        <Tooltip skipWrapper={!disabled} {...tooltipProps} title={title}>
           {button}
         </Tooltip>
       );
