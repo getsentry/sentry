@@ -14,6 +14,7 @@ import Field from 'app/views/settings/components/forms/field';
 
 import {
   AlertRuleThresholdType,
+  SessionsAggregate,
   ThresholdControlValue,
   Trigger,
   UnsavedIncidentRule,
@@ -135,6 +136,36 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
     onResolveThresholdChange(trigger.alertThreshold);
   };
 
+  getThresholdUnits(aggregate: string) {
+    if (aggregate.includes('duration') || aggregate.includes('measurements')) {
+      return 'ms';
+    }
+
+    if (
+      aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
+      aggregate === SessionsAggregate.CRASH_FREE_USERS
+    ) {
+      return '%';
+    }
+
+    return '';
+  }
+
+  getCriticalThresholdPlaceholder(aggregate: string) {
+    if (aggregate.includes('failure_rate')) {
+      return '0.05';
+    }
+
+    if (
+      aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
+      aggregate === SessionsAggregate.CRASH_FREE_USERS
+    ) {
+      return '97';
+    }
+
+    return '300';
+  }
+
   render() {
     const {
       api,
@@ -156,12 +187,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       actions: [],
     };
 
-    const thresholdUnits =
-      aggregate.includes('duration') || aggregate.includes('measurements')
-        ? 'ms'
-        : aggregate.includes('failure_rate')
-        ? '%'
-        : '';
+    const thresholdUnits = this.getThresholdUnits(aggregate);
 
     return (
       <React.Fragment>
@@ -197,7 +223,11 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
                   {isCritical ? t('Critical') : t('Warning')}
                 </React.Fragment>
               }
-              placeholder={isCritical ? `300${thresholdUnits}` : t('None')}
+              placeholder={
+                isCritical
+                  ? `${this.getCriticalThresholdPlaceholder(aggregate)}${thresholdUnits}`
+                  : t('None')
+              }
               onChange={this.handleChangeTrigger(index)}
               onThresholdTypeChange={onThresholdTypeChange}
             />

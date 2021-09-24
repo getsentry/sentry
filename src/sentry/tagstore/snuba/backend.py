@@ -1,6 +1,7 @@
 import functools
 import re
-from collections import Iterable, OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict
+from collections.abc import Iterable
 from typing import Optional, Sequence
 
 from dateutil.parser import parse as parse_datetime
@@ -983,6 +984,7 @@ class SnubaTagStorage(TagStorage):
                 snuba_name = f"tags[{key}]"
 
             if query:
+                query = query.replace("\\", "\\\\")
                 conditions.append([snuba_name, "LIKE", f"%{query}%"])
             else:
                 conditions.append([snuba_name, "!=", ""])

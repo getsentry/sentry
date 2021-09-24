@@ -371,7 +371,7 @@ def is_valid_role(org_member: OrganizationMember) -> bool:
 
 def render_error_page(request: Request, body_text: str) -> HttpResponse:
     return render_to_response(
-        "sentry/integrations/slack-link-team-error.html",
+        "sentry/integrations/slack/link-team-error.html",
         request=request,
         context={"body_text": body_text},
     )
@@ -424,7 +424,9 @@ def get_settings_url(notification: BaseNotification) -> str:
     return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
 
 
-def build_notification_footer(notification: BaseNotification, recipient: Union[Team, User]) -> str:
+def build_notification_footer(
+    notification: BaseNotification, recipient: Union["Team", "User"]
+) -> str:
     if isinstance(recipient, Team):
         team = Team.objects.get(id=recipient.id)
         url_str = f"/settings/{notification.organization.slug}/teams/{team.slug}/notifications/"

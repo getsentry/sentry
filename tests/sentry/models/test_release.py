@@ -25,6 +25,7 @@ from sentry.models import (
     ReleaseHeadCommit,
     ReleaseProject,
     ReleaseProjectEnvironment,
+    ReleaseStatus,
     Repository,
     add_group_to_inbox,
     follows_semver_versioning_scheme,
@@ -829,6 +830,23 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_number is None
         assert release.package is None
 
+    def test_parse_release_into_semver_cols_with_get_or_create(self):
+        """
+        Test that ensures get_or_create populates semver fields
+        """
+        version = "org.example.FooApp@1.0rc1+-2020"
+        release, _ = Release.objects.get_or_create(
+            organization=self.org, version=version, defaults={"status": ReleaseStatus.OPEN}
+        )
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "-2020"
+        assert release.build_number is None
+        assert release.package == "org.example.FooApp"
+
 
 class ReleaseFilterBySemverTest(TestCase):
     def test_invalid_query(self):
@@ -854,6 +872,7 @@ class ReleaseFilterBySemverTest(TestCase):
         self.run_test(">=", "1.2.4", [release_2])
         self.run_test("<", "1.2.4", [release])
         self.run_test("<=", "1.2.3", [release])
+        self.run_test("!=", "1.2.3", [release_2])
 
     def test_prerelease(self):
         # Prerelease has weird sorting rules, where an empty string is higher priority
@@ -1019,8 +1038,8 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
     def test_follows_semver_user_accidentally_stopped_using_semver_a_few_times(self):
         """
         Test that ensures that when a user accidentally stops using semver versioning for a few
-        times but there exists atleast one semver compliant release in the last 3 releases and
-        atleast 3 releases that are semver compliant in the last 10 then we still consider
+        times but there exists at least one semver compliant release in the last 3 releases and
+        at least 3 releases that are semver compliant in the last 10 then we still consider
         project to be following semantic versioning
         """
         proj = self.create_project(organization=self.org)
@@ -1043,7 +1062,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
         """
         Test that ensures that if a user stops using semver and so the last 3 releases in the last
         10 releases are all non-semver releases, then the project does not follow semver anymore
-        since 1st condition of atleast one semver release in the last 3 has to be a semver
+        since 1st condition of at least one semver release in the last 3 has to be a semver
         release is not satisfied
         """
         proj = self.create_project(organization=self.org)
@@ -1083,7 +1102,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
 
     def test_follows_semver_user_starts_using_semver(self):
         """
-        Test that ensures if a user starts using semver by having atleast the last 3 releases
+        Test that ensures if a user starts using semver by having at least the last 3 releases
         using semver then we consider the project to be using semver
         """
         proj = self.create_project(organization=self.org)
@@ -1103,7 +1122,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
 
     def test_follows_semver_user_starts_using_semver_with_less_than_10_recent_releases(self):
         """
-        Test that ensures that a project with only 5 (<10) releases and atleast one semver
+        Test that ensures that a project with only 5 (<10) releases and at least one semver
         release in the most recent releases is considered to be following semver
         """
         proj = self.create_project(organization=self.org)

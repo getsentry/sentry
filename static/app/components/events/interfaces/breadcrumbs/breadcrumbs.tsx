@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -50,6 +50,7 @@ function Breadcrumbs({
   const [scrollbarSize, setScrollbarSize] = useState(0);
 
   let listRef: List | null = null;
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     updateGrid();
@@ -101,6 +102,11 @@ function Breadcrumbs({
             relativeTime={relativeTime}
             displayRelativeTime={displayRelativeTime}
             height={height ? String(height) : undefined}
+            scrollbarSize={
+              (contentRef?.current?.offsetHeight ?? 0) < PANEL_MAX_HEIGHT
+                ? scrollbarSize
+                : 0
+            }
           />
         )}
       </CellMeasurer>
@@ -132,7 +138,7 @@ function Breadcrumbs({
       isEmpty={!breadcrumbs.length}
       {...emptyMessage}
     >
-      <Content>
+      <Content ref={contentRef}>
         <AutoSizer disableHeight onResize={updateGrid}>
           {({width}) => (
             <StyledList
@@ -168,6 +174,8 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
     :nth-child(-n + 6) {
       border-bottom: 1px solid ${p => p.theme.border};
       border-radius: 0;
+      /* This is to fix a small issue with the border not being fully visible on smaller devices */
+      margin-bottom: 1px;
 
       /* Type */
       :nth-child(6n-5) {
@@ -187,14 +195,9 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
   }
 
   @media (max-width: ${props => props.theme.breakpoints[0]}) {
-    grid-template-columns: 48px 1fr 74px 82px;
+    grid-template-columns: 48px 1fr 74px 82px ${p => `${p.scrollbarSize}px`};
     > * {
       :nth-child(-n + 6) {
-        /* Type */
-        :nth-child(6n-5) {
-          padding-right: 0;
-        }
-
         /* Type, Category & Level */
         :nth-child(6n-5),
         :nth-child(6n-4),
@@ -203,8 +206,7 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
         }
 
         /* Description & Scrollbar */
-        :nth-child(6n-3),
-        :nth-child(6n) {
+        :nth-child(6n-3) {
           display: none;
         }
       }

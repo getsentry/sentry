@@ -1,6 +1,6 @@
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Set
+from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Set, Union
 
-from sentry.models import Activity, CommitFileChange, Project, User
+from sentry.models import Activity, CommitFileChange, Project, Team, User
 from sentry.notifications.utils import (
     get_commits_for_release,
     get_deploy,
@@ -76,16 +76,19 @@ class ReleaseActivityNotification(ActivityNotification):
             "text_description": f"Version {self.version} was deployed to {self.environment}",
         }
 
-    def get_projects(self, user: User) -> Set[Project]:
-        if user.is_superuser or self.organization.flags.allow_joinleave:
-            return self.projects
-        team_ids = self.get_users_by_teams()[user.id]
+    def get_projects(self, recipient: Union["Team", "User"]) -> Set[Project]:
+        if isinstance(recipient, User):
+            if recipient.is_superuser or self.organization.flags.allow_joinleave:
+                return self.projects
+            team_ids = self.get_users_by_teams()[recipient.id]
+        else:
+            team_ids = [recipient.id]
         return get_projects(self.projects, team_ids)
 
-    def get_user_context(
-        self, user: User, extra_context: Mapping[str, Any]
+    def get_recipient_context(
+        self, recipient: Union["Team", "User"], extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        projects = self.get_projects(user)
+        projects = self.get_projects(recipient)
         release_links = [
             absolute_uri(
                 f"/organizations/{self.organization.slug}/releases/{self.version}/?project={p.id}"
@@ -95,7 +98,7 @@ class ReleaseActivityNotification(ActivityNotification):
 
         resolved_issue_counts = [self.group_counts_by_project.get(p.id, 0) for p in projects]
         return {
-            **super().get_user_context(user, extra_context),
+            **super().get_recipient_context(recipient, extra_context),
             "projects": zip(projects, release_links, resolved_issue_counts),
             "project_count": len(projects),
         }
@@ -107,10 +110,12 @@ class ReleaseActivityNotification(ActivityNotification):
         return self.get_subject()
 
     def get_notification_title(self) -> str:
-        text = "this project"
-        if len(self.projects) > 1:
-            text = "these projects"
-        return f"Release {self.version[:12]} was deployed to {self.environment} for {text}"
+        projects_text = ""
+        if len(self.projects) == 1:
+            projects_text = " for this project"
+        elif len(self.projects) > 1:
+            projects_text = " for these projects"
+        return f"Release {self.version} was deployed to {self.environment}{projects_text}"
 
     def get_filename(self) -> str:
         return "activity/release"

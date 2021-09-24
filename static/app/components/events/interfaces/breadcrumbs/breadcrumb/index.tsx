@@ -23,6 +23,7 @@ type Props = {
   style: React.CSSProperties;
   onLoad: () => void;
   ['data-test-id']: string;
+  scrollbarSize: number;
   height?: string;
 };
 
@@ -34,6 +35,7 @@ const Breadcrumb = memo(function Breadcrumb({
   displayRelativeTime,
   searchTerm,
   onLoad,
+  scrollbarSize,
   style,
   ['data-test-id']: dataTestId,
 }: Props) {
@@ -41,7 +43,13 @@ const Breadcrumb = memo(function Breadcrumb({
   const error = breadcrumb.type === BreadcrumbType.ERROR;
 
   return (
-    <Wrapper style={style} error={error} onLoad={onLoad} data-test-id={dataTestId}>
+    <Wrapper
+      style={style}
+      error={error}
+      onLoad={onLoad}
+      data-test-id={dataTestId}
+      scrollbarSize={scrollbarSize}
+    >
       <Type type={type} color={color} description={description} error={error} />
       <Category category={category} searchTerm={searchTerm} />
       <Data
@@ -65,9 +73,9 @@ const Breadcrumb = memo(function Breadcrumb({
 
 export default Breadcrumb;
 
-const Wrapper = styled('div')<{error: boolean}>`
+const Wrapper = styled('div')<{error: boolean; scrollbarSize: number}>`
   display: grid;
-  grid-template-columns: 64px 140px 1fr 106px 100px;
+  grid-template-columns: 64px 140px 1fr 106px 100px ${p => p.scrollbarSize}px;
 
   > * {
     padding: ${space(1)} ${space(2)};
@@ -75,7 +83,7 @@ const Wrapper = styled('div')<{error: boolean}>`
 
   @media (max-width: ${props => props.theme.breakpoints[0]}) {
     grid-template-rows: repeat(2, auto);
-    grid-template-columns: max-content 1fr 74px 82px;
+    grid-template-columns: max-content 1fr 74px 82px ${p => p.scrollbarSize}px;
 
     > * {
       padding: ${space(1)};
@@ -86,6 +94,7 @@ const Wrapper = styled('div')<{error: boolean}>`
         padding-right: 0;
         padding-left: 0;
         margin-left: ${space(2)};
+        margin-right: ${space(1)};
       }
 
       /* Data */

@@ -50,18 +50,20 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
     return [['projects', '/projects/']];
   }
 
+  /**
+   * Check the notification settings for how many projects there are.
+   */
   getProjectCount = (): number => {
-    /** Check the notification settings for how many projects there are. */
     const {notificationType, notificationSettings} = this.props;
 
     return Object.values(notificationSettings[notificationType]?.project || {}).length;
   };
 
+  /**
+   * The UI expects projects to be grouped by organization but can also use
+   * this function to make a single group with all organizations.
+   */
   getGroupedProjects = (): {[key: string]: Project[]} => {
-    /**
-     * The UI expects projects to be grouped by organization but can also use
-     * this function to make a single group with all organizations.
-     */
     const {projects: stateProjects} = this.state;
 
     return Object.fromEntries(
@@ -78,10 +80,10 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
     const canSearch = this.getProjectCount() >= MIN_PROJECTS_FOR_SEARCH;
     const shouldPaginate = projects.length >= MIN_PROJECTS_FOR_PAGINATION;
 
-    // eslint-disable-next-line react/prop-types
     const renderSearch: RenderSearch = ({defaultSearchBar}) => (
       <StyledSearchWrapper>{defaultSearchBar}</StyledSearchWrapper>
     );
+
     return (
       <React.Fragment>
         {canSearch &&

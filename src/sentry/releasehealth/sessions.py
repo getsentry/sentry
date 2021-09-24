@@ -1,8 +1,20 @@
 from datetime import datetime
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Set, Tuple
 
-from sentry.releasehealth.base import ReleaseHealthBackend
-from sentry.snuba.sessions import get_current_and_previous_crash_free_rates
+from sentry.releasehealth.base import (
+    CurrentAndPreviousCrashFreeRates,
+    EnvironmentName,
+    OrganizationId,
+    ProjectId,
+    ProjectOrRelease,
+    ReleaseHealthBackend,
+    ReleaseName,
+)
+from sentry.snuba.sessions import (
+    _check_has_health_data,
+    _get_release_adoption,
+    get_current_and_previous_crash_free_rates,
+)
 
 
 class SessionsReleaseHealthBackend(ReleaseHealthBackend):
@@ -10,14 +22,14 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
 
     def get_current_and_previous_crash_free_rates(
         self,
-        project_ids: Sequence[int],
+        project_ids: Sequence[ProjectId],
         current_start: datetime,
         current_end: datetime,
         previous_start: datetime,
         previous_end: datetime,
         rollup: int,
-        org_id: Optional[int] = None,
-    ) -> ReleaseHealthBackend.CurrentAndPreviousCrashFreeRates:
+        org_id: Optional[OrganizationId] = None,
+    ) -> CurrentAndPreviousCrashFreeRates:
         return get_current_and_previous_crash_free_rates(  # type: ignore
             project_ids=project_ids,
             current_start=current_start,
@@ -26,3 +38,19 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
             previous_end=previous_end,
             rollup=rollup,
         )
+
+    def get_release_adoption(
+        self,
+        project_releases: Sequence[Tuple[ProjectId, ReleaseName]],
+        environments: Optional[Sequence[EnvironmentName]] = None,
+        now: Optional[datetime] = None,
+        org_id: Optional[OrganizationId] = None,
+    ) -> ReleaseHealthBackend.ReleasesAdoption:
+        return _get_release_adoption(  # type: ignore
+            project_releases=project_releases, environments=environments, now=now
+        )
+
+    def check_has_health_data(
+        self, projects_list: Sequence[ProjectOrRelease]
+    ) -> Set[ProjectOrRelease]:
+        return _check_has_health_data(projects_list)  # type: ignore

@@ -9,13 +9,11 @@ from sentry.releasehealth.metrics import MetricsReleaseHealthBackend
 from sentry.releasehealth.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions import (
     _make_stats,
-    check_has_health_data,
     check_releases_have_health_data,
     get_adjacent_releases_based_on_adoption,
     get_oldest_health_data_for_releases,
     get_project_releases_by_stability,
     get_project_releases_count,
-    get_release_adoption,
     get_release_health_data_overview,
     get_release_sessions_time_bounds,
 )
@@ -59,6 +57,8 @@ class ReleaseHealthMetricsTestCase(SessionMetricsTestCase):
 
 
 class SnubaSessionsTest(TestCase, SnubaTestCase):
+    backend = SessionsReleaseHealthBackend()
+
     def setUp(self):
         super().setUp()
         self.received = time.time()
@@ -146,7 +146,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         }
 
     def test_check_has_health_data(self):
-        data = check_has_health_data(
+        data = self.backend.check_has_health_data(
             [(self.project.id, self.session_release), (self.project.id, "dummy-release")]
         )
         assert data == {(self.project.id, self.session_release)}
@@ -179,7 +179,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 }
             )
         )
-        data = check_has_health_data([self.project.id, project2.id])
+        data = self.backend.check_has_health_data([self.project.id, project2.id])
         assert data == {self.project.id}
 
     def test_check_has_health_data_without_releases_should_include_sessions_lte_90_days(self):
@@ -200,11 +200,11 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 {"project_id": project2.id, "org_id": project2.organization_id, "status": "exited"}
             )
         )
-        data = check_has_health_data([self.project.id, project2.id])
+        data = self.backend.check_has_health_data([self.project.id, project2.id])
         assert data == {self.project.id, project2.id}
 
     def test_check_has_health_data_does_not_crash_when_sending_projects_list_as_set(self):
-        data = check_has_health_data({self.project.id})
+        data = self.backend.check_has_health_data({self.project.id})
         assert data == {self.project.id}
 
     def test_get_project_releases_by_stability(self):
@@ -290,7 +290,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         ]
 
     def test_get_release_adoption(self):
-        data = get_release_adoption(
+        data = self.backend.get_release_adoption(
             [
                 (self.project.id, self.session_release),
                 (self.project.id, self.session_crashed_release),
@@ -336,7 +336,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             }
         )
 
-        data = get_release_adoption(
+        data = self.backend.get_release_adoption(
             [
                 (self.project.id, self.session_release),
                 (self.project.id, self.session_crashed_release),
@@ -564,6 +564,14 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             "sessions_lower_bound": None,
             "sessions_upper_bound": None,
         }
+
+
+class SnubaSessionsTestMetrics(ReleaseHealthMetricsTestCase, SnubaSessionsTest):
+    """
+    Same tests as in SnunbaSessionsTest but using the Metrics backendx
+    """
+
+    pass
 
 
 class SnubaReleaseDetailPaginationBaseTestClass:
@@ -1799,11 +1807,7 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
         org = self.create_organization()
         proj = self.create_project(organization=org)
         assert (
-            get_project_releases_count(
-                org.id,
-                [proj.id],
-                "",
-            )
+            get_project_releases_count(org.id, [proj.id], "crash_free_users", stats_period="14d")
             == 0
         )
 
