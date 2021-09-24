@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useRef} from 'react';
 import {StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -113,8 +113,6 @@ function TeamSelector(props: Props) {
   const api = useApi();
   const {teams, fetching, onSearch} = useTeams();
 
-  const [options, setOptions] = useState<TeamOption[]>([]);
-
   // TODO(ts) This type could be improved when react-select types are better.
   const selectRef = useRef<any>(null);
 
@@ -160,18 +158,6 @@ function TeamSelector(props: Props) {
 
     try {
       await addTeamToProject(api, organization.slug, project.slug, team);
-
-      // Remove add to project button without changing order
-      const newOptions = options.map(option => {
-        if (option.actor?.id === team.id) {
-          option.disabled = false;
-          option.label = <IdBadge team={team} />;
-        }
-
-        return option;
-      });
-
-      setOptions(newOptions);
     } catch (err) {
       // Unable to add team to project, revert select menu value
       onChange?.(oldValue);
@@ -181,6 +167,10 @@ function TeamSelector(props: Props) {
   }
 
   function createTeamOutsideProjectOption(team: Team): TeamOption {
+    // If the option/team is currently selected, optimistically assume it is now a part of the project
+    if (value === (useId ? team.id : team.slug)) {
+      return createTeamOption(team);
+    }
     const canAddTeam = organization.access.includes('project:write');
 
     return {
@@ -217,7 +207,7 @@ function TeamSelector(props: Props) {
     };
   }
 
-  function getInitialOptions() {
+  function getOptions() {
     const filteredTeams = teamFilter ? teams.filter(teamFilter) : teams;
 
     if (project) {
@@ -242,15 +232,10 @@ function TeamSelector(props: Props) {
     ];
   }
 
-  useEffect(
-    () => void setOptions(getInitialOptions()),
-    [teams, teamFilter, project, includeUnassigned]
-  );
-
   return (
     <SelectControl
       ref={selectRef}
-      options={options}
+      options={getOptions()}
       onInputChange={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
       isOptionDisabled={option => !!option.disabled}
       styles={{
