@@ -54,6 +54,7 @@ class SnubaQueryEventType(Model):
         DEFAULT = 1
         TRANSACTION = 2
         SESSION = 3
+        USER = 4
 
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery")
     type = models.SmallIntegerField()
