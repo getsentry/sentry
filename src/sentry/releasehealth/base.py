@@ -129,7 +129,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         self,
         organization_id: OrganizationId,
         project_ids: List[ProjectId],
-        release_versions: List[ReleaseName],
+        release_versions: Sequence[ReleaseName],
         start: datetime,
         end: datetime,
     ) -> Set[ReleaseName]:
