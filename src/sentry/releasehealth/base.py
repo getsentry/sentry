@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Tuple, Union
+from typing import Mapping, Optional, Sequence, Set, Tuple, TypeVar, Union
 
 from typing_extensions import TypedDict
 
@@ -9,8 +9,18 @@ ProjectId = int
 OrganizationId = int
 ReleaseName = str
 EnvironmentName = str
-
 FormattedIsoTime = str
+
+ProjectRelease = Tuple[ProjectId, ReleaseName]
+ProjectOrRelease = TypeVar("ProjectOrRelease", ProjectId, ProjectRelease)
+
+
+class CurrentAndPreviousCrashFreeRate(TypedDict):
+    currentCrashFreeRate: Optional[float]
+    previousCrashFreeRate: Optional[float]
+
+
+CurrentAndPreviousCrashFreeRates = Mapping[ProjectId, CurrentAndPreviousCrashFreeRate]
 
 
 class _TimeBounds(TypedDict):
@@ -32,14 +42,9 @@ class ReleaseHealthBackend(Service):  # type: ignore
     __all__ = (
         "get_current_and_previous_crash_free_rates",
         "get_release_adoption",
+        "check_has_health_data",
         "get_release_sessions_time_bounds",
     )
-
-    class CurrentAndPreviousCrashFreeRate(TypedDict):
-        currentCrashFreeRate: Optional[float]
-        previousCrashFreeRate: Optional[float]
-
-    CurrentAndPreviousCrashFreeRates = Mapping[ProjectId, CurrentAndPreviousCrashFreeRate]
 
     def get_current_and_previous_crash_free_rates(
         self,
@@ -139,5 +144,18 @@ class ReleaseHealthBackend(Service):  # type: ignore
         Return:
             Dictionary with two keys "sessions_lower_bound" and "sessions_upper_bound" that
         correspond to when the first session occurred and when the last session occurred respectively
+        """
+        raise NotImplementedError()
+
+    def check_has_health_data(
+        self, projects_list: Sequence[ProjectOrRelease]
+    ) -> Set[ProjectOrRelease]:
+        """
+        Function that returns a set of all project_ids or (project, release) if they have health data
+        within the last 90 days based on a list of projects or a list of project, release combinations
+        provided as an arg.
+        Inputs:
+            * projects_list: Contains either a list of project ids or a list of tuple (project_id,
+            release)
         """
         raise NotImplementedError()
