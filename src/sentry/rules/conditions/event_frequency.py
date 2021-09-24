@@ -30,8 +30,8 @@ comparison_intervals = {
 COMPARISON_TYPE_COUNT = "count"
 COMPARISON_TYPE_PERCENT = "percent"
 comparison_types = {
-    COMPARISON_TYPE_COUNT: "Absolute increase",
-    COMPARISON_TYPE_PERCENT: "Percent increase",
+    COMPARISON_TYPE_COUNT: COMPARISON_TYPE_COUNT,
+    COMPARISON_TYPE_PERCENT: COMPARISON_TYPE_PERCENT,
 }
 
 
@@ -90,20 +90,6 @@ class BaseEventFrequencyCondition(EventCondition):
                     for key, (label, duration) in sorted(
                         self.intervals.items(),
                         key=lambda key____label__duration: key____label__duration[1][1],
-                    )
-                ],
-            },
-            "comparisonType": {
-                "type": "choice",
-                "choices": list(sorted(comparison_types.items(), key=lambda item: item[1])),
-            },
-            "comparisonInterval": {
-                "type": "choice",
-                "choices": [
-                    (key, label)
-                    for key, (label, duration) in sorted(
-                        comparison_intervals.items(),
-                        key=lambda item: item[1][1],
                     )
                 ],
             },
