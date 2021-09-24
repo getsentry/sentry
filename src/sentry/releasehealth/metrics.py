@@ -433,7 +433,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         try:
             # Take care of potential timestamp updates by looking at the metric
-            # for session duration, which is emitted once a session is closed.
+            # for session duration, which is emitted once a session is closed ("terminal state")
             #
             # There is a testcase checked in that tests specifically for a
             # session update that lowers session.started. We don't know if that
@@ -450,7 +450,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             rows.extend(
                 raw_snql_query(
                     terminal_sessions_query,
-                    referrer="releasehealth.metrics.get_release_sessions_time_bounds.terminal_sessions_query",
+                    referrer="releasehealth.metrics.get_release_sessions_time_bounds.terminal_sessions",
                     use_cache=False,
                 )["data"]
             )
