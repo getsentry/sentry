@@ -785,7 +785,6 @@ CELERYBEAT_SCHEDULE = {
     },
     "check-symbolicator-lpq-project-eligibility": {
         "task": "sentry.tasks.symbolicator.scan_for_suspect_projects",
-        # todo: make this configurable?
         "schedule": timedelta(seconds=10),
         "options": {"expires": 10},
     },
