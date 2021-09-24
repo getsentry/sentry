@@ -128,7 +128,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
     def check_releases_have_health_data(
         self,
         organization_id: OrganizationId,
-        project_ids: List[ProjectId],
+        project_ids: Sequence[ProjectId],
         release_versions: Sequence[ReleaseName],
         start: datetime,
         end: datetime,
