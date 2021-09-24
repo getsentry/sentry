@@ -2,10 +2,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {openSudo} from 'app/actionCreators/modal';
 import * as OrganizationActionCreator from 'app/actionCreators/organization';
+import ProjectActions from 'app/actions/projectActions';
+import TeamActions from 'app/actions/teamActions';
 import ConfigStore from 'app/stores/configStore';
 import OrganizationStore from 'app/stores/organizationStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
 import {OrganizationLegacyContext} from 'app/views/organizationContext';
 
 jest.mock('app/stores/configStore', () => ({
@@ -17,12 +17,14 @@ jest.mock('app/actionCreators/modal', () => ({
 
 describe('OrganizationContext', function () {
   let wrapper;
-  const org = TestStubs.Organization({
-    teams: [TestStubs.Team()],
-    projects: [TestStubs.Project()],
-  });
+  const org = TestStubs.Organization();
+  const teams = [TestStubs.Team()];
+  const projects = [TestStubs.Project()];
+
   const api = new MockApiClient();
   let getOrgMock;
+  let getProjectsMock;
+  let getTeamsMock;
 
   const createWrapper = props => {
     wrapper = mountWithTheme(
@@ -45,8 +47,17 @@ describe('OrganizationContext', function () {
       url: '/organizations/org-slug/',
       body: org,
     });
-    jest.spyOn(TeamStore, 'loadInitialData');
-    jest.spyOn(ProjectsStore, 'loadInitialData');
+    getProjectsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: projects,
+    });
+    getTeamsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: teams,
+    });
+
+    jest.spyOn(TeamActions, 'loadTeams');
+    jest.spyOn(ProjectActions, 'loadProjects');
     jest.spyOn(OrganizationActionCreator, 'fetchOrganizationDetails');
   });
 
@@ -62,44 +73,38 @@ describe('OrganizationContext', function () {
     await tick();
     await tick();
 
-    TeamStore.loadInitialData.mockRestore();
-    ProjectsStore.loadInitialData.mockRestore();
+    TeamActions.loadTeams.mockRestore();
+    ProjectActions.loadProjects.mockRestore();
     ConfigStore.get.mockRestore();
     OrganizationActionCreator.fetchOrganizationDetails.mockRestore();
   });
 
-  it('renders and fetches org', async function () {
+  it('renders and fetches org, projects, and teams', async function () {
     wrapper = createWrapper();
     // await dispatching the action to org store
     await tick();
     // await resolving the api promise from action creator and updating component
     await tick();
-    expect(getOrgMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/',
-      expect.anything()
-    );
+    expect(getOrgMock).toHaveBeenCalled();
+    expect(getProjectsMock).toHaveBeenCalled();
+    expect(getTeamsMock).toHaveBeenCalled();
 
     expect(wrapper.state('loading')).toBe(false);
     expect(wrapper.state('error')).toBe(null);
     expect(wrapper.state('organization')).toEqual(org);
 
-    expect(TeamStore.loadInitialData).toHaveBeenCalledWith(org.teams);
-    expect(ProjectsStore.loadInitialData).toHaveBeenCalledWith(org.projects);
+    expect(TeamActions.loadTeams).toHaveBeenCalledWith(teams);
+    expect(ProjectActions.loadProjects).toHaveBeenCalledWith(projects);
     expect(OrganizationActionCreator.fetchOrganizationDetails).toHaveBeenCalledWith(
       api,
       'org-slug',
-      true,
       true,
       true
     );
   });
 
   it('fetches new org when router params change', async function () {
-    const newOrg = TestStubs.Organization({
-      teams: [TestStubs.Team()],
-      projects: [TestStubs.Project()],
-      slug: 'new-slug',
-    });
+    const newOrg = TestStubs.Organization({slug: 'new-slug'});
 
     wrapper = createWrapper();
     const instance = wrapper.instance();
@@ -115,6 +120,14 @@ describe('OrganizationContext', function () {
       url: '/organizations/new-slug/',
       body: newOrg,
     });
+    const projectsMock = MockApiClient.addMockResponse({
+      url: '/organizations/new-slug/projects/',
+      body: projects,
+    });
+    const teamsMock = MockApiClient.addMockResponse({
+      url: '/organizations/new-slug/teams/',
+      body: teams,
+    });
 
     wrapper.setProps({params: {orgId: newOrg.slug}}, () => {
       // state should be reset based on props
@@ -128,6 +141,8 @@ describe('OrganizationContext', function () {
     wrapper.update();
 
     expect(mock).toHaveBeenLastCalledWith('/organizations/new-slug/', expect.anything());
+    expect(projectsMock).toHaveBeenCalled();
+    expect(teamsMock).toHaveBeenCalled();
 
     expect(wrapper.state('loading')).toBe(false);
     expect(wrapper.state('error')).toBe(null);
@@ -173,18 +188,27 @@ describe('OrganizationContext', function () {
 
   it('uses last organization from ConfigStore', async function () {
     getOrgMock = MockApiClient.addMockResponse({
-      url: '/organizations/lastOrganization/',
+      url: '/organizations/last-org/',
       body: org,
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/last-org/projects/',
+      body: projects,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/last-org/teams/',
+      body: teams,
+    });
+
     // mocking `.get('lastOrganization')`
-    ConfigStore.get.mockImplementation(() => 'lastOrganization');
+    ConfigStore.get.mockImplementation(() => 'last-org');
     wrapper = createWrapper({useLastOrganization: true, params: {}});
     // await dispatching action
     await tick();
     // await dispatching the action to org store
     await tick();
     expect(getOrgMock).toHaveBeenLastCalledWith(
-      '/organizations/lastOrganization/',
+      '/organizations/last-org/',
       expect.anything()
     );
   });
@@ -198,6 +222,15 @@ describe('OrganizationContext', function () {
       url: '/organizations/foo/',
       body: org,
     });
+    getProjectsMock = MockApiClient.addMockResponse({
+      url: '/organizations/foo/projects/',
+      body: projects,
+    });
+    getTeamsMock = MockApiClient.addMockResponse({
+      url: '/organizations/foo/teams/',
+      body: teams,
+    });
+
     ConfigStore.get.mockImplementation(() => '');
 
     wrapper = createWrapper({
@@ -222,7 +255,9 @@ describe('OrganizationContext', function () {
     wrapper.update();
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
 
-    expect(getOrgMock).toHaveBeenLastCalledWith('/organizations/foo/', expect.anything());
+    expect(getOrgMock).toHaveBeenCalled();
+    expect(getProjectsMock).toHaveBeenCalled();
+    expect(getTeamsMock).toHaveBeenCalled();
   });
 
   it('uses last organization when no orgId in URL - and fetches org details once', async function () {
@@ -230,6 +265,14 @@ describe('OrganizationContext', function () {
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/my-last-org/',
       body: TestStubs.Organization({slug: 'my-last-org'}),
+    });
+    getProjectsMock = MockApiClient.addMockResponse({
+      url: '/organizations/my-last-org/projects/',
+      body: projects,
+    });
+    getTeamsMock = MockApiClient.addMockResponse({
+      url: '/organizations/my-last-org/teams/',
+      body: teams,
     });
 
     wrapper = createWrapper({
@@ -256,6 +299,8 @@ describe('OrganizationContext', function () {
     });
 
     expect(getOrgMock).toHaveBeenCalledTimes(1);
+    expect(getProjectsMock).toHaveBeenCalledTimes(1);
+    expect(getTeamsMock).toHaveBeenCalledTimes(1);
   });
 
   it('fetches org details only once if organizations loading store changes', async function () {
@@ -283,5 +328,7 @@ describe('OrganizationContext', function () {
     });
 
     expect(getOrgMock).toHaveBeenCalledTimes(1);
+    expect(getProjectsMock).toHaveBeenCalledTimes(1);
+    expect(getTeamsMock).toHaveBeenCalledTimes(1);
   });
 });
