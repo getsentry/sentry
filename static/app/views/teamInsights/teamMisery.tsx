@@ -23,8 +23,9 @@ type TeamMiseryProps = {
   location: Location;
   projects: Project[];
   periodTableData: TableData | null;
-  weekTableData: TableData | null;
+  comparisonTableData: TableData | null;
   isLoading: boolean;
+  comparisonPeriod: string;
   period?: string;
 };
 
@@ -33,8 +34,9 @@ function TeamMisery({
   location,
   projects,
   periodTableData,
-  weekTableData,
+  comparisonTableData,
   isLoading,
+  comparisonPeriod,
   period,
 }: TeamMiseryProps) {
   const miseryRenderer =
@@ -62,7 +64,7 @@ function TeamMisery({
         t('Key transaction'),
         t('Project'),
         tct('Last [period]', {period}),
-        t('This Week'),
+        comparisonPeriod === '1d' ? t('Last 24h') : t('Last Week'),
         <RightAligned key="diff">{t('Difference')}</RightAligned>,
       ]}
       isLoading={isLoading}
@@ -70,12 +72,13 @@ function TeamMisery({
       {periodTableData?.data.map((dataRow, idx) => {
         const project = projects.find(({slug}) => dataRow.project === slug);
 
-        const weekRow = weekTableData?.data.find(
+        const comparisonRow = comparisonTableData?.data.find(
           row =>
             row.project === dataRow.project && row.transaction === dataRow.transaction
         );
         const periodMisery = miseryRenderer?.(dataRow, {organization, location});
-        const weekMisery = weekRow && miseryRenderer?.(weekRow, {organization, location});
+        const comparisonMisery =
+          comparisonRow && miseryRenderer?.(comparisonRow, {organization, location});
 
         return (
           <Fragment key={idx}>
@@ -95,11 +98,11 @@ function TeamMisery({
               {project && <ProjectBadge avatarSize={18} project={project} />}
             </ProjectBadgeContainer>
             <div>{periodMisery}</div>
-            <div>{weekMisery ?? '\u2014'}</div>
+            <div>{comparisonMisery ?? '\u2014'}</div>
             <ScoreWrapper>
               {renderTrend(
                 dataRow.user_misery as number,
-                weekRow?.user_misery as undefined | number
+                comparisonRow?.user_misery as undefined | number
               )}
             </ScoreWrapper>
           </Fragment>
@@ -113,6 +116,7 @@ type Props = AsyncComponent['props'] & {
   organization: Organization;
   projects: Project[];
   location: Location;
+  comparisonPeriod: string;
   period?: string;
   start?: string;
   end?: string;
@@ -122,6 +126,7 @@ function TeamMiseryWrapper({
   organization,
   projects,
   location,
+  comparisonPeriod,
   period,
   start,
   end,
@@ -149,10 +154,10 @@ function TeamMiseryWrapper({
     end,
   });
 
-  const weekEventView = EventView.fromSavedQuery({
+  const comparisonEventView = EventView.fromSavedQuery({
     ...commonEventView,
-    name: 'weekMisery',
-    range: '7d',
+    name: 'comparisonMisery',
+    range: comparisonPeriod,
   });
 
   return (
@@ -163,19 +168,20 @@ function TeamMiseryWrapper({
     >
       {({isLoading, tableData: periodTableData}) => (
         <DiscoverQuery
-          eventView={weekEventView}
+          eventView={comparisonEventView}
           orgSlug={organization.slug}
           location={location}
         >
-          {({isLoading: isWeekLoading, tableData: weekTableData}) => (
+          {({isLoading: isComparisonLoading, tableData: comparisonTableData}) => (
             <TeamMisery
-              isLoading={isLoading || isWeekLoading}
+              isLoading={isLoading || isComparisonLoading}
               organization={organization}
               location={location}
               projects={projects}
               period={period}
+              comparisonPeriod={comparisonPeriod}
               periodTableData={periodTableData}
-              weekTableData={weekTableData}
+              comparisonTableData={comparisonTableData}
             />
           )}
         </DiscoverQuery>

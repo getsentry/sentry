@@ -2,18 +2,16 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
-import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
 import {Client} from 'app/api';
-import {DateTimeObject} from 'app/components/charts/utils';
+import {DateTimeObject, getDiffInMinutes} from 'app/components/charts/utils';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {ChangeData} from 'app/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
-import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {DateString, Organization, RelativePeriod, TeamWithProjects} from 'app/types';
@@ -27,6 +25,8 @@ import HeaderTabs from './headerTabs';
 import TeamDropdown from './teamDropdown';
 import TeamMisery from './teamMisery';
 import TeamStability from './teamStability';
+
+const INSIGHTS_DEFAULT_STATS_PERIOD = '8w';
 
 type Props = {
   api: Client;
@@ -100,9 +100,7 @@ function TeamInsightsOverview({
     pageStart?: DateString;
     pageEnd?: DateString;
     pageUtc?: boolean | null;
-    sort?: string;
     query?: string;
-    cursor?: string;
     team?: string;
   }): LocationDescriptorObject {
     const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
@@ -133,7 +131,7 @@ function TeamInsightsOverview({
     });
 
     if (!statsPeriod && !start && !end) {
-      return {period: DEFAULT_STATS_PERIOD};
+      return {period: INSIGHTS_DEFAULT_STATS_PERIOD};
     }
 
     // Following getParams, statsPeriod will take priority over start/end
@@ -156,9 +154,11 @@ function TeamInsightsOverview({
           };
     }
 
-    return {period: DEFAULT_STATS_PERIOD};
+    return {period: INSIGHTS_DEFAULT_STATS_PERIOD};
   }
   const {period, start, end, utc} = dataDatetime();
+  const comparisonPeriod =
+    getDiffInMinutes({period, start, end, utc}) > 1440 * 7 ? '7d' : '1d';
 
   return (
     <Fragment>
@@ -188,7 +188,13 @@ function TeamInsightsOverview({
                 end={end ?? null}
                 utc={utc ?? null}
                 onUpdate={handleUpdateDatetime}
-                relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h', '24h'])}
+                relativeOptions={{
+                  '7d': t('Last 7 days'),
+                  '14d': t('Last 14 days'),
+                  '30d': t('Last 30 days'),
+                  [INSIGHTS_DEFAULT_STATS_PERIOD]: t('Last 8 weeks'),
+                  '90d': t('Last 90 days'),
+                }}
               />
             </ControlsWrapper>
 
@@ -203,6 +209,7 @@ function TeamInsightsOverview({
                 projects={projects}
                 organization={organization}
                 period={period}
+                comparisonPeriod={comparisonPeriod}
                 start={start}
                 end={end}
                 utc={utc}
@@ -219,6 +226,7 @@ function TeamInsightsOverview({
                 organization={organization}
                 projects={projects}
                 period={period}
+                comparisonPeriod={comparisonPeriod}
                 start={start?.toString()}
                 end={end?.toString()}
                 location={location}

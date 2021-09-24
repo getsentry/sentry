@@ -14,19 +14,20 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, SessionApiResponse, SessionField} from 'app/types';
 import {getCrashFreeRate} from 'app/utils/sessions';
-import {Color} from 'app/utils/theme';
+import type {Color} from 'app/utils/theme';
 import {displayCrashFreePercent} from 'app/views/releases/utils';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   projects: Project[];
+  comparisonPeriod: string;
 } & DateTimeObject;
 
 type State = AsyncComponent['state'] & {
-  /** weekly selected date range */
+  /** Currently selected date range */
   periodSessions: SessionApiResponse | null;
-  /** Locked to last 7 days */
-  weekSessions: SessionApiResponse | null;
+  /** Last 7d or last 1d */
+  recentSessions: SessionApiResponse | null;
 };
 
 class TeamStability extends AsyncComponent<Props, State> {
@@ -35,13 +36,14 @@ class TeamStability extends AsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
-      weekSessions: null,
       periodSessions: null,
+      recentSessions: null,
     };
   }
 
   getEndpoints() {
-    const {organization, start, end, period, utc, projects} = this.props;
+    const {organization, comparisonPeriod, start, end, period, utc, projects} =
+      this.props;
 
     const projectsWithSessions = projects.filter(project => project.hasSessions);
 
@@ -70,12 +72,12 @@ class TeamStability extends AsyncComponent<Props, State> {
         },
       ],
       [
-        'weekSessions',
+        'recentSessions',
         `/organizations/${organization.slug}/sessions/`,
         {
           query: {
             ...commonQuery,
-            statsPeriod: '7d',
+            statsPeriod: comparisonPeriod,
           },
         },
       ],
@@ -98,9 +100,9 @@ class TeamStability extends AsyncComponent<Props, State> {
     }
   }
 
-  getScore(projectId: number, dataset: 'week' | 'period'): number | null {
-    const {periodSessions, weekSessions} = this.state;
-    const sessions = dataset === 'week' ? weekSessions : periodSessions;
+  getScore(projectId: number, dataset: 'recent' | 'period'): number | null {
+    const {periodSessions, recentSessions} = this.state;
+    const sessions = dataset === 'recent' ? recentSessions : periodSessions;
     const projectGroups = sessions?.groups.filter(
       group => group.by.project === projectId
     );
@@ -110,7 +112,7 @@ class TeamStability extends AsyncComponent<Props, State> {
 
   getTrend(projectId: number): number | null {
     const periodScore = this.getScore(projectId, 'period');
-    const weekScore = this.getScore(projectId, 'week');
+    const weekScore = this.getScore(projectId, 'recent');
 
     if (periodScore === null || weekScore === null) {
       return null;
@@ -123,7 +125,7 @@ class TeamStability extends AsyncComponent<Props, State> {
     return this.renderBody();
   }
 
-  renderScore(projectId: string, dataset: 'week' | 'period') {
+  renderScore(projectId: string, dataset: 'recent' | 'period') {
     const {loading} = this.state;
 
     if (loading) {
@@ -169,14 +171,16 @@ class TeamStability extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {projects, period} = this.props;
+    const {projects, period, comparisonPeriod} = this.props;
 
     return (
       <StyledPanelTable
         headers={[
           t('Project'),
           <RightAligned key="last">{tct('Last [period]', {period})}</RightAligned>,
-          <RightAligned key="curr">{t('This Week')}</RightAligned>,
+          <RightAligned key="curr">
+            {comparisonPeriod === '1d' ? t('Last 24h') : t('Last Week')}
+          </RightAligned>,
           <RightAligned key="diff">{t('Difference')}</RightAligned>,
         ]}
       >
@@ -187,7 +191,7 @@ class TeamStability extends AsyncComponent<Props, State> {
             </ProjectBadgeContainer>
 
             <ScoreWrapper>{this.renderScore(project.id, 'period')}</ScoreWrapper>
-            <ScoreWrapper>{this.renderScore(project.id, 'week')}</ScoreWrapper>
+            <ScoreWrapper>{this.renderScore(project.id, 'recent')}</ScoreWrapper>
             <ScoreWrapper>{this.renderTrend(project.id)}</ScoreWrapper>
           </Fragment>
         ))}
