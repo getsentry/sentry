@@ -110,5 +110,59 @@ describe('Performance > Landing > Index', function () {
     expect(wrapper.find('div[data-test-id="frontend-pageload-view"]').exists()).toBe(
       true
     );
+
+    expect(wrapper.find('Table').exists()).toBe(true);
+  });
+
+  it('renders frontend other view', async function () {
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
+    });
+
+    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    // @ts-expect-error
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Table').exists()).toBe(true);
+  });
+
+  it('renders backend view', async function () {
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.BACKEND},
+    });
+
+    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    // @ts-expect-error
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Table').exists()).toBe(true);
+  });
+
+  it('renders mobile view', async function () {
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.MOBILE},
+    });
+
+    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    // @ts-expect-error
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Table').exists()).toBe(true);
+  });
+
+  it('renders all transactions view', async function () {
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.ALL},
+    });
+
+    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    // @ts-expect-error
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Table').exists()).toBe(true);
   });
 });

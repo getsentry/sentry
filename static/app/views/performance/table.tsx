@@ -54,7 +54,7 @@ type Props = {
   organization: Organization;
   location: Location;
   setError: (msg: string | undefined) => void;
-  summaryConditions: string;
+  summaryConditions?: string;
 
   projects: Project[];
   columnTitles?: string[];
@@ -66,7 +66,7 @@ type State = {
   transactionThreshold: number | undefined;
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
 };
-class Table extends React.Component<Props, State> {
+class _Table extends React.Component<Props, State> {
   state: State = {
     widths: [],
     transaction: undefined,
@@ -443,6 +443,13 @@ class Table extends React.Component<Props, State> {
       </div>
     );
   }
+}
+
+function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: string}) {
+  const summaryConditions =
+    props.summaryConditions ?? props.eventView.getQueryWithAdditionalConditions();
+
+  return <_Table {...props} summaryConditions={summaryConditions} />;
 }
 
 export default Table;
