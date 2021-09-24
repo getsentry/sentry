@@ -18,11 +18,21 @@ import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {SeriesDataUnit} from 'app/types/echarts';
+import {Organization, Project, SessionApiResponse, SessionField} from 'app/types';
+import {Series, SeriesDataUnit} from 'app/types/echarts';
+import {getCount, getCrashFreeRateSeries} from 'app/utils/sessions';
 import withApi from 'app/utils/withApi';
+import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 
-import {IncidentRule, TimePeriod, TimeWindow, Trigger} from '../../types';
+import {
+  Dataset,
+  IncidentRule,
+  SessionsAggregate,
+  TimePeriod,
+  TimeWindow,
+  Trigger,
+} from '../../types';
 
 import ThresholdsChart from './thresholdsChart';
 
@@ -103,6 +113,18 @@ const AGGREGATE_FUNCTIONS = {
     Math.min(...seriesChunk.map(series => series.value)),
 };
 
+const SESSION_AGGREGATE_TO_FIELD = {
+  [SessionsAggregate.CRASH_FREE_SESSIONS]: SessionField.SESSIONS,
+  [SessionsAggregate.CRASH_FREE_USERS]: SessionField.USERS,
+};
+
+const TIME_WINDOW_TO_SESSION_INTERVAL = {
+  [TimeWindow.ONE_HOUR]: '1h',
+  [TimeWindow.TWO_HOURS]: '2h',
+  [TimeWindow.FOUR_HOURS]: '4h',
+  [TimeWindow.ONE_DAY]: '1d',
+};
+
 /**
  * Determines the number of datapoints to roll up
  */
@@ -120,7 +142,10 @@ const getBucketSize = (timeWindow: TimeWindow, dataPoints: number): number => {
 
 type State = {
   statsPeriod: TimePeriod;
-  totalEvents: number | null;
+  totalCount: number | null;
+  sessionTimeSeries: Series[] | null;
+  sessionsLoading: boolean;
+  sessionsReloading: boolean;
 };
 
 /**
@@ -130,11 +155,18 @@ type State = {
 class TriggersChart extends React.PureComponent<Props, State> {
   state: State = {
     statsPeriod: TimePeriod.ONE_DAY,
-    totalEvents: null,
+    totalCount: null,
+    sessionTimeSeries: null,
+    sessionsLoading: false,
+    sessionsReloading: false,
   };
 
   componentDidMount() {
-    this.fetchTotalCount();
+    if (this.isSessionAggregate) {
+      this.fetchSessionTimeSeries();
+    } else {
+      this.fetchTotalCount();
+    }
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -146,7 +178,11 @@ class TriggersChart extends React.PureComponent<Props, State> {
       prevProps.timeWindow !== timeWindow ||
       prevState.statsPeriod !== statsPeriod
     ) {
-      this.fetchTotalCount();
+      if (this.isSessionAggregate) {
+        this.fetchSessionTimeSeries();
+      } else {
+        this.fetchTotalCount();
+      }
     }
   }
 
@@ -164,43 +200,147 @@ class TriggersChart extends React.PureComponent<Props, State> {
     return period;
   };
 
+  get isSessionAggregate() {
+    const {aggregate} = this.props;
+    return (
+      aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
+      aggregate === SessionsAggregate.CRASH_FREE_USERS
+    );
+  }
+
   async fetchTotalCount() {
     const {api, organization, environment, projects, query} = this.props;
     const statsPeriod = this.getStatsPeriod();
     try {
-      const totalEvents = await fetchTotalCount(api, organization.slug, {
+      const totalCount = await fetchTotalCount(api, organization.slug, {
         field: [],
         project: projects.map(({id}) => id),
         query,
         statsPeriod,
         environment: environment ? [environment] : [],
       });
-      this.setState({totalEvents});
+      this.setState({totalCount});
     } catch (e) {
-      this.setState({totalEvents: null});
+      this.setState({totalCount: null});
     }
   }
 
-  render() {
-    const {
-      api,
-      organization,
-      projects,
-      timeWindow,
-      query,
-      aggregate,
-      triggers,
-      resolveThreshold,
-      thresholdType,
-      environment,
-      header,
-    } = this.props;
-    const {statsPeriod, totalEvents} = this.state;
+  async fetchSessionTimeSeries() {
+    const {api, organization, environment, projects, query, timeWindow, aggregate} =
+      this.props;
+    try {
+      this.setState(state => ({
+        sessionsLoading: state.sessionTimeSeries === null,
+        sessionsReloading: state.sessionTimeSeries !== null,
+      }));
+      const {groups, intervals}: SessionApiResponse = await api.requestPromise(
+        `/organizations/${organization.slug}/sessions/`,
+        {
+          query: {
+            project: projects.map(({id}) => id),
+            environment: environment ? [environment] : [],
+            statsPeriod: this.getStatsPeriod(),
+            field: SESSION_AGGREGATE_TO_FIELD[aggregate],
+            interval: TIME_WINDOW_TO_SESSION_INTERVAL[timeWindow],
+            groupBy: ['session.status'],
+            query,
+          },
+        }
+      );
+      const totalCount = getCount(groups, SESSION_AGGREGATE_TO_FIELD[aggregate]);
+      const sessionTimeSeries = [
+        {
+          seriesName:
+            AlertWizardAlertNames[
+              getAlertTypeFromAggregateDataset({aggregate, dataset: Dataset.SESSIONS})
+            ],
+          data: getCrashFreeRateSeries(
+            groups,
+            intervals,
+            SESSION_AGGREGATE_TO_FIELD[aggregate]
+          ),
+        },
+      ];
+      this.setState({
+        sessionTimeSeries,
+        totalCount,
+        sessionsLoading: false,
+        sessionsReloading: false,
+      });
+    } catch (e) {
+      this.setState({
+        sessionTimeSeries: null,
+        totalCount: null,
+        sessionsLoading: false,
+        sessionsReloading: false,
+      });
+    }
+  }
 
+  renderChart(
+    data: Series[] = [],
+    isLoading: boolean,
+    isReloading: boolean,
+    maxValue?: number
+  ) {
+    const {triggers, resolveThreshold, thresholdType, header, timeWindow} = this.props;
+    const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = AVAILABLE_TIME_PERIODS[timeWindow];
     const period = this.getStatsPeriod();
-
     return (
+      <React.Fragment>
+        {header}
+        <TransparentLoadingMask visible={isReloading} />
+        {isLoading ? (
+          <ChartPlaceholder />
+        ) : (
+          <ThresholdsChart
+            period={statsPeriod}
+            maxValue={maxValue}
+            data={data}
+            triggers={triggers}
+            resolveThreshold={resolveThreshold}
+            thresholdType={thresholdType}
+          />
+        )}
+        <ChartControls>
+          <InlineContainer>
+            <React.Fragment>
+              <SectionHeading>{t('Total Events')}</SectionHeading>
+              {totalCount !== null ? (
+                <SectionValue>{totalCount.toLocaleString()}</SectionValue>
+              ) : (
+                <SectionValue>&mdash;</SectionValue>
+              )}
+            </React.Fragment>
+          </InlineContainer>
+          <InlineContainer>
+            <OptionSelector
+              options={statsPeriodOptions.map(timePeriod => ({
+                label: TIME_PERIOD_MAP[timePeriod],
+                value: timePeriod,
+                disabled: isLoading || isReloading,
+              }))}
+              selected={period}
+              onChange={this.handleStatsPeriodChange}
+              title={t('Display')}
+            />
+          </InlineContainer>
+        </ChartControls>
+      </React.Fragment>
+    );
+  }
+
+  render() {
+    const {api, organization, projects, timeWindow, query, aggregate, environment} =
+      this.props;
+    const {sessionTimeSeries, sessionsLoading, sessionsReloading} = this.state;
+
+    const period = this.getStatsPeriod();
+
+    return this.isSessionAggregate ? (
+      this.renderChart(sessionTimeSeries ?? undefined, sessionsLoading, sessionsReloading)
+    ) : (
       <Feature features={['metric-alert-builder-aggregate']} organization={organization}>
         {({hasFeature}) => {
           return (
@@ -254,50 +394,12 @@ class TriggersChart extends React.PureComponent<Props, State> {
                   }
                 }
 
-                const chart = (
-                  <React.Fragment>
-                    {header}
-                    <TransparentLoadingMask visible={reloading} />
-                    {loading || reloading ? (
-                      <ChartPlaceholder />
-                    ) : (
-                      <ThresholdsChart
-                        period={statsPeriod}
-                        maxValue={maxValue ? maxValue.value : maxValue}
-                        data={timeseriesData}
-                        triggers={triggers}
-                        resolveThreshold={resolveThreshold}
-                        thresholdType={thresholdType}
-                      />
-                    )}
-                    <ChartControls>
-                      <InlineContainer>
-                        <React.Fragment>
-                          <SectionHeading>{t('Total Events')}</SectionHeading>
-                          {totalEvents !== null ? (
-                            <SectionValue>{totalEvents.toLocaleString()}</SectionValue>
-                          ) : (
-                            <SectionValue>&mdash;</SectionValue>
-                          )}
-                        </React.Fragment>
-                      </InlineContainer>
-                      <InlineContainer>
-                        <OptionSelector
-                          options={statsPeriodOptions.map(timePeriod => ({
-                            label: TIME_PERIOD_MAP[timePeriod],
-                            value: timePeriod,
-                            disabled: loading || reloading,
-                          }))}
-                          selected={period}
-                          onChange={this.handleStatsPeriodChange}
-                          title={t('Display')}
-                        />
-                      </InlineContainer>
-                    </ChartControls>
-                  </React.Fragment>
+                return this.renderChart(
+                  timeseriesData,
+                  loading,
+                  reloading,
+                  maxValue?.value
                 );
-
-                return chart;
               }}
             </EventsRequest>
           );
