@@ -5,8 +5,8 @@ from datetime import datetime, timedelta
 import pytz
 from django.utils import timezone
 
-from sentry.releasehealth.metrics import MetricsReleaseHealthBackend
-from sentry.releasehealth.sessions import SessionsReleaseHealthBackend
+from sentry.release_health.metrics import MetricsReleaseHealthBackend
+from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions import (
     _make_stats,
     check_releases_have_health_data,

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, Sequence, Set, Tuple
 
-from sentry.releasehealth.base import (
+from sentry.release_health.base import (
     CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
     OrganizationId,
