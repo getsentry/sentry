@@ -2165,10 +2165,18 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
+        # Test group with no users, which can return a null count
+        group3 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group3"],
+                "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
+            },
+            project_id=self.project.id,
+        ).group
 
         self.run_test(
             "is:unresolved",
-            [self.group2, self.group1],
+            [self.group2, self.group1, group3],
             None,
             sort_by="user",
             # Change the date range to bust the cache
