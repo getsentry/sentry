@@ -35,7 +35,9 @@ Pillow==8.2.0; python_version == '3.6'
 Pillow==8.3.1; python_version > '3.6'
 progressbar2==3.32.0
 python-rapidjson==1.4
-psycopg2-binary==2.8.6
+psycopg2-binary==2.8.6; python_version == '3.6'
+# For development only: This version removes needing to setting flags for Apple's M1 chipset
+psycopg2-binary==2.9.1; python_version > '3.6'
 PyJWT==2.1.0
 python-dateutil==2.8.1
 python-memcached==1.59
@@ -67,7 +69,9 @@ zstandard==0.14.1
 
 msgpack==1.0.0
 # for encrypting stored user credentials
-cryptography==3.3.2
+cryptography==3.3.2; python_version == '3.6'
+# Development only: It has an arm64 wheel for Apple M1 chipsets
+cryptography==3.4.8; python_version > '3.6'
 # celery
 billiard==3.6.3
 kombu==4.6.11

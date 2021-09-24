@@ -2457,6 +2457,18 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             params={"project_id": [self.project.id], "organization_id": self.organization.id},
         )
         assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2}
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"!{SEMVER_ALIAS}:1.2.3",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            self.event.event_id,
+            release_2_e_1,
+            release_2_e_2,
+            release_3_e_1,
+            release_3_e_2,
+        }
 
     def test_release_stage_condition(self):
         replaced_release = self.create_release(
@@ -5941,6 +5953,8 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
             limit=10000,
             organization=self.organization,
         )
+        to_hour = ["toStartOfHour", ["timestamp"], "timestamp.to_hour"]
+        to_day = ["toStartOfDay", ["timestamp"], "timestamp.to_day"]
         mock_query.assert_called_with(
             aggregations=[["count", None, "count"]],
             conditions=[
@@ -5952,26 +5966,26 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
                 ],
                 [
                     [
-                        "timestamp.to_day",
+                        to_day,
                         "=",
                         iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
                     ],
                     [
-                        "timestamp.to_day",
+                        to_day,
                         "=",
                         iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
                     ],
                 ],
                 [
-                    ["timestamp.to_hour", "=", iso_format(timestamp1.replace(minute=0, second=0))],
-                    ["timestamp.to_hour", "=", iso_format(timestamp2.replace(minute=0, second=0))],
+                    [to_hour, "=", iso_format(timestamp1.replace(minute=0, second=0))],
+                    [to_hour, "=", iso_format(timestamp2.replace(minute=0, second=0))],
                 ],
             ],
             filter_keys={"project_id": [self.project.id]},
             selected_columns=[
                 "timestamp",
-                ["toStartOfDay", ["timestamp"], "timestamp.to_day"],
-                ["toStartOfHour", ["timestamp"], "timestamp.to_hour"],
+                to_day,
+                to_hour,
             ],
             start=start,
             end=end,
