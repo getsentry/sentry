@@ -18,7 +18,7 @@ from django.utils.encoding import force_bytes, force_text
 from requests.utils import get_encoding_from_headers
 from symbolic import SourceMapView
 
-from sentry import http
+from sentry import http, options
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Organization, ReleaseFile
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
@@ -473,18 +473,31 @@ def fetch_release_archive_for_url(release, dist, url) -> Optional[IO]:
         else:
             try:
                 with sentry_sdk.start_span(op="fetch_release_archive_for_url.fetch_releasefile"):
-                    file_ = fetch_retry_policy(lambda: ReleaseFile.cache.getfile(releasefile))
+                    if releasefile.file.size <= options.get("releasefile.cache-max-archive-size"):
+                        getfile = lambda: ReleaseFile.cache.getfile(releasefile)
+                    else:
+                        # For very large ZIP archives, pulling the entire file into cache takes too long.
+                        # Only the blobs required to extract the current artifact (central directory and the file entry itself)
+                        # should be loaded in this case.
+                        getfile = releasefile.file.getfile
+
+                    file_ = fetch_retry_policy(getfile)
             except Exception:
                 logger.error("sourcemaps.read_archive_failed", exc_info=sys.exc_info())
 
                 return None
+
+            # `cache.set` will only keep values up to a certain size,
+            # so we should not read the entire file if it's too large for caching
+            if CACHE_MAX_VALUE_SIZE is not None and file_.size > CACHE_MAX_VALUE_SIZE:
+
+                return file_
 
             with sentry_sdk.start_span(op="fetch_release_archive_for_url.read_for_caching") as span:
                 span.set_data("file_size", file_.size)
                 contents = file_.read()
             with sentry_sdk.start_span(op="fetch_release_archive_for_url.write_to_cache") as span:
                 span.set_data("file_size", len(contents))
-                # This will implicitly skip too large payloads.
                 cache.set(cache_key, contents, 3600)
 
             file_.seek(0)
