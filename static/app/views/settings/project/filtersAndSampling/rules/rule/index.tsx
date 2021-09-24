@@ -122,6 +122,7 @@ const Column = styled('div')`
   padding: ${space(2)};
   cursor: default;
   white-space: pre-wrap;
+  word-break: break-all;
 `;
 
 const GrabColumn = styled(Column)`
