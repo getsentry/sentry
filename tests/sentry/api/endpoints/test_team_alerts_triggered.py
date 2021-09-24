@@ -47,6 +47,14 @@ class TeamAlertsTriggeredTest(APITestCase):
         for i in response.data:
             assert i["count"] == 2
 
+        url = f"/api/0/teams/{self.team.organization.slug}/{self.team.slug}/alerts-triggered/?statsPeriod=14d"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert len(response.data) == 13
+        for i in response.data:
+            assert i["count"] == 2
+
     def test_not_as_simple(self):
         team_with_user = self.create_team(
             organization=self.organization, name="Lonely Team", members=[self.user]
