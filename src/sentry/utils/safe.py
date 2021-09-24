@@ -209,13 +209,13 @@ def safe_urlencode(query, **kwargs):
     of None with empty string so that urlencode doesn't raise TypeError
     "Cannot encode None in a query string".
     """
-    if isinstance(query, dict):
-        safe_query = {k: "" if v is None else v for k, v in query.items()}
-        return urlencode(safe_query, **kwargs)
-
     # sequence of 2-element tuples
     if isinstance(query, (list, tuple)):
         safe_query = ((pair[0], "" if pair[1] is None else pair[1]) for pair in query)
+        return urlencode(safe_query, **kwargs)
+
+    if isinstance(query, dict):
+        safe_query = {k: "" if v is None else v for k, v in query.items()}
         return urlencode(safe_query, **kwargs)
 
     return urlencode(query, **kwargs)
