@@ -10,27 +10,17 @@ from sentry.integrations.slack.tasks import (
     find_channel_id_for_rule,
 )
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
-from sentry.models import Integration, Rule
+from sentry.models import Rule
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.compat.mock import patch
+from tests.sentry.integrations.slack import install_slack
 
 
 class SlackTasksTest(TestCase):
     def setUp(self):
-        self.org = self.create_organization(name="foo", owner=self.user)
-        self.project1 = self.create_project(organization=self.org)
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
+        self.integration = install_slack(self.organization)
         self.uuid = uuid4().hex
-        self.integration.add_organization(self.org, self.user)
 
         channels = {"ok": "true", "channels": [{"name": "my-channel", "id": "chan-id"}]}
 

@@ -4,16 +4,11 @@ from urllib.parse import parse_qsl
 import responses
 
 from sentry.integrations.slack.unfurl import Handler, LinkType, make_type_coercer
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    OrganizationIntegration,
-)
+from sentry.models import Identity, IdentityProvider, IdentityStatus
 from sentry.testutils import APITestCase
 from sentry.utils import json
 from sentry.utils.compat.mock import Mock, patch
+from tests.sentry.integrations.slack import install_slack
 
 UNSET = object()
 
@@ -83,14 +78,7 @@ MESSAGE_IM_BOT_EVENT = """{
 class BaseEventTest(APITestCase):
     def setUp(self):
         super().setUp()
-        self.user = self.create_user(is_superuser=False)
-        self.org = self.create_organization(owner=None)
-        self.integration = Integration.objects.create(
-            provider="slack",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
+        self.integration = install_slack(self.organization)
 
     @patch(
         "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True

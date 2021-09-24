@@ -30,13 +30,13 @@ from sentry.models import (
     Identity,
     IdentityProvider,
     IdentityStatus,
-    Integration,
     NotificationSetting,
 )
 from sentry.notifications.types import NotificationScopeType
 from sentry.testutils import APITestCase, TestCase
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+from tests.sentry.integrations.slack import install_slack
 
 
 def get_response_text(data: SlackBody) -> str:
@@ -123,16 +123,7 @@ class SlackCommandsTest(APITestCase, TestCase):
     def setUp(self):
         super().setUp()
         self.external_id = "slack:1"
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Slack",
-            external_id=self.external_id,
-            metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-        self.integration.add_organization(self.organization, self.user)
+        self.integration = install_slack(self.organization, self.external_id)
         self.idp = IdentityProvider.objects.create(type="slack", external_id="slack:1", config={})
         self.login_as(self.user)
 
@@ -307,7 +298,10 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         assert len(team_settings) == 1
 
     def test_link_another_team_to_channel(self):
-        """Test that we block a user who tries to link a second team to a channel that already has a team linked to it."""
+        """
+        Test that we block a user who tries to link a second team to a
+        channel that already has a team linked to it.
+        """
         ExternalActor.objects.create(
             actor_id=self.team.actor_id,
             organization=self.organization,
@@ -330,7 +324,10 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         assert CHANNEL_ALREADY_LINKED_MESSAGE in data["text"]
 
     def test_link_team_from_dm(self):
-        """Test that if a user types /sentry link team from a DM instead of a channel, we reply with an error message."""
+        """
+        Test that if a user types `/sentry link team` from a DM instead of a
+        channel, we reply with an error message.
+        """
         response = self.get_slack_response(
             {
                 "text": "link team",
@@ -354,8 +351,10 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
 
     @responses.activate
     def test_link_team_insufficient_role(self):
-        """Test that when a user whose role is insufficient attempts to link a team, we reject
-        them and reply with the INSUFFICIENT_ROLE_MESSAGE"""
+        """
+        Test that when a user whose role is insufficient attempts to link a
+        team, we reject them and reply with the INSUFFICIENT_ROLE_MESSAGE.
+        """
         user2 = self.create_user()
         self.create_member(
             teams=[self.team], user=user2, role="member", organization=self.organization
@@ -491,7 +490,10 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsTest):
         assert len(team_settings) == 0
 
     def test_unlink_no_team(self):
-        """Test for when a user attempts to remove a link between a Slack channel and a Sentry team that does not exist"""
+        """
+        Test for when a user attempts to remove a link between a Slack channel
+        and a Sentry team that does not exist.
+        """
         data = self.send_slack_message(
             "unlink team",
             channel_name="specific",
@@ -501,8 +503,12 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsTest):
 
     @responses.activate
     def test_unlink_multiple_teams(self):
-        """Test that if you have linked multiple teams to a single channel, when you type /sentry unlink team,
-        we unlink all teams from that channel. This should only apply to one org who did this before we blocked users from doing so."""
+        """
+        Test that if you have linked multiple teams to a single channel, when
+        you type `/sentry unlink team`, we unlink all teams from that channel.
+        This should only apply to the one organization who did this before we
+        blocked users from doing so.
+        """
         team2 = self.create_team(organization=self.organization, name="Team Hellboy")
         ExternalActor.objects.create(
             actor_id=team2.actor_id,

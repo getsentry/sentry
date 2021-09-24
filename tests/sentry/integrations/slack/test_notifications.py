@@ -50,6 +50,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.compat import mock
 from sentry.utils.compat.mock import patch
+from tests.sentry.integrations.slack import install_slack
 from tests.sentry.mail.activity import ActivityTestCase
 
 
@@ -94,16 +95,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
             user=self.user,
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-        self.integration.add_organization(self.organization, self.user)
+        self.integration = install_slack(self.organization)
         self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
         self.identity = Identity.objects.create(
             external_id="UXXXXXXX1",
