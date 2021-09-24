@@ -62,5 +62,6 @@ class GroupHistory(Model):
     class Meta:
         db_table = "sentry_grouphistory"
         app_label = "sentry"
+        index_together = (("project", "status", "release"),)
 
     __repr__ = sane_repr("group_id", "release_id")
