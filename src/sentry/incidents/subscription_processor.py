@@ -27,9 +27,13 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.models import Project
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QueryDatasets
+from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils import metrics, redis
 from sentry.utils.compat import zip
 from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.snuba import raw_query
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -158,6 +162,64 @@ class SubscriptionProcessor:
                 active_warning_it = self.trigger_alert_threshold(current_trigger, aggregation_value)
         return active_warning_it
 
+    def get_comparison_aggregation_value(self, subscription_update, aggregation_value):
+        # For comparison alerts run a query over the comparison period and use it to calculate the
+        # % change.
+        delta = timedelta(seconds=self.alert_rule.comparison_delta)
+        end = subscription_update["timestamp"] - delta
+        snuba_query = self.subscription.snuba_query
+        start = end - timedelta(seconds=snuba_query.time_window)
+
+        try:
+            snuba_filter = build_snuba_filter(
+                QueryDatasets(snuba_query.dataset),
+                snuba_query.query,
+                snuba_query.aggregate,
+                snuba_query.environment,
+                snuba_query.event_types,
+                params={
+                    "project_id": [self.subscription.project_id],
+                    "start": start,
+                    "end": end,
+                },
+            )
+            results = raw_query(
+                aggregations=snuba_filter.aggregations,
+                start=snuba_filter.start,
+                end=snuba_filter.end,
+                conditions=snuba_filter.conditions,
+                filter_keys=snuba_filter.filter_keys,
+                having=snuba_filter.having,
+                dataset=Dataset(snuba_query.dataset),
+                limit=1,
+                referrer="subscription_processor.comparison_query",
+            )
+            comparison_aggregate = results["data"][0]["count"]
+        except Exception:
+            logger.exception("Failed to run comparison query")
+            return
+
+        if not comparison_aggregate:
+            metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
+            return
+
+        return (aggregation_value / comparison_aggregate) * 100
+
+    def get_aggregation_value(self, subscription_update):
+        aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
+        # In some cases Snuba can return a None value for an aggregation. This means
+        # there were no rows present when we made the query for certain types of aggregations like
+        # avg. Defaulting this to 0 for now. It might turn out that we'd prefer to skip the update
+        # in the future.
+        if aggregation_value is None:
+            aggregation_value = 0
+
+        if self.alert_rule.comparison_delta:
+            aggregation_value = self.get_comparison_aggregation_value(
+                subscription_update, aggregation_value
+            )
+        return aggregation_value
+
     def process_update(self, subscription_update):
         dataset = self.subscription.snuba_query.dataset
         try:
@@ -204,13 +266,12 @@ class SubscriptionProcessor:
                     "result": subscription_update,
                 },
             )
-        aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
-        # In some cases Snuba can return a None value for an aggregation. This means
-        # there were no rows present when we made the query, for certain types of
-        # aggregations like avg. Defaulting this to 0 for now. It might turn out that
-        # we'd prefer to skip the update in the future.
+
+        aggregation_value = self.get_aggregation_value(subscription_update)
         if aggregation_value is None:
-            aggregation_value = 0
+            metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
+            return
+
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]
