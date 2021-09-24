@@ -13,6 +13,7 @@ from sentry.release_health.base import (
     OrganizationId,
     ProjectId,
     ProjectOrRelease,
+    ReleaseAdoption,
     ReleaseHealthBackend,
     ReleaseName,
 )
@@ -330,7 +331,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             total_sessions = sessions_per_project.get(project_id)
             total_users = users_per_project.get(project_id)
 
-            adoption: ReleaseHealthBackend.ReleaseAdoption = {
+            adoption: ReleaseAdoption = {
                 "adoption": float(release_users) / total_users * 100
                 if release_users and total_users
                 else None,
