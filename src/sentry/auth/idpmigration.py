@@ -59,8 +59,14 @@ def create_verification_key(user: User, org: Organization, email: str) -> None:
 
     send_confirm_email(user, email, verification_code)
 
+    return verification_code
 
-def verify_new_identity(key: str) -> str:
+
+def get_redis_key(verification_key: str) -> str:
+    return f"auth:one-time-key:{verification_key}"
+
+
+def verify_new_identity(key: str) -> bool:
     """Verify a key to migrate a user to a new IdP.
 
     If the provided one-time key is valid, create a new auth identity
@@ -73,9 +79,9 @@ def verify_new_identity(key: str) -> str:
     """
     cluster = redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
 
-    verification_key = f"auth:one-time-key:{key}"
+    verification_key = get_redis_key(key)
     verification_value_byte = cluster.hgetall(verification_key)
     if not verification_value_byte:
-        return ""
+        return False
 
-    return verification_key
+    return True

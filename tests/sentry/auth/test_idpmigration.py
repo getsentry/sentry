@@ -25,18 +25,14 @@ class IDPMigrationTests(TestCase):
         assert send_confirm_email.call_args.args[1] == self.email
         assert len(send_confirm_email.call_args.args[2]) == 32
 
-    @mock.patch("sentry.auth.idpmigration.send_confirm_email")
-    def test_verify_new_identity(self, send_confirm_email):
-        idpmigration.create_verification_key(self.user, self.org, self.email)
+    def test_verify_new_identity(self):
+        verification_key = idpmigration.create_verification_key(self.user, self.org, self.email)
         path = reverse(
             "sentry-idp-email-verification",
-            args=[send_confirm_email.call_args.args[2]],
+            args=[verification_key],
         )
         response = self.client.get(path)
-        assert (
-            self.client.session["verification_key"]
-            == f"auth:one-time-key:{send_confirm_email.call_args.args[2]}"
-        )
+        assert self.client.session["verification_key"] == f"auth:one-time-key:{verification_key}"
         assert response.status_code == 302
         assert response.url == "/auth/login/"
 
