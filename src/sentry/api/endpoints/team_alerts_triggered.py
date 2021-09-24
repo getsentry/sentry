@@ -13,7 +13,7 @@ class TeamAlertsTriggeredEndpoint(TeamEndpoint, EnvironmentMixin):
         """
         Return a time-bucketed (by day) count of triggered alerts owned by a given team.
         """
-        # TODO: Accept time range. Default to 8 weeks, max 12 weeks.
+        # TODO: Accept time range. Default to 8 weeks, max 12 weeks. Not sure how yet. start/end? statsPeriod?
         project_list = Project.objects.get_for_team_ids([team.id])
         owner_ids = [team.actor_id] + [om.user.actor_id for om in team.member_set]
         # TODO: wanted to understand better why this wasnt working
