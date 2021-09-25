@@ -148,6 +148,7 @@ class VitalsChart extends Component<Props> {
               yAxis={YAXIS_VALUES}
               partial
               withoutZerofill={withoutZerofill}
+              referrer="api.performance.transaction-summary.vitals-chart"
             >
               {({results, errored, loading, reloading, timeframe}) => {
                 if (errored) {

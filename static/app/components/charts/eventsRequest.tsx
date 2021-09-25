@@ -163,6 +163,10 @@ type EventsRequestPartialProps = {
    * Whether or not to zerofill results
    */
   withoutZerofill?: boolean;
+  /**
+   * A unique name for what's triggering this request, see organization_events_stats for an allowlist
+   */
+  referrer?: string;
 };
 
 type TimeAggregationProps =
