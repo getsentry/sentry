@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import random from 'lodash/random';
 import moment from 'moment';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -10,7 +9,8 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import {getDuration} from 'app/utils/formatters';
+
+type AlertsTriggered = Array<{bucket: string; count: number}>;
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -18,7 +18,7 @@ type Props = AsyncComponent['props'] & {
 } & DateTimeObject;
 
 type State = AsyncComponent['state'] & {
-  alertsTriggered: any | null;
+  alertsTriggered: AlertsTriggered | null;
 };
 
 class TeamIssues extends AsyncComponent<Props, State> {
@@ -34,6 +34,7 @@ class TeamIssues extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, start, end, period, utc, teamSlug} = this.props;
     const datetime = {start, end, period, utc};
+
     return [
       [
         'alertsTriggered',
@@ -52,45 +53,33 @@ class TeamIssues extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {isLoading} = this.state;
+    const {isLoading, alertsTriggered} = this.state;
 
     return (
       <ChartWrapper>
         {isLoading && <LoadingIndicator />}
-        {!isLoading && (
+        {!isLoading && alertsTriggered && (
           <BarChart
             style={{height: 200}}
             isGroupedByDate
             legend={{right: 0, top: 0}}
-            tooltip={{
-              valueFormatter: (value: number) => {
-                return getDuration(value, 1);
+            yAxis={{minInterval: 1}}
+            xAxis={{
+              type: 'time',
+              axisTick: {
+                alignWithLabel: true,
               },
-            }}
-            yAxis={{
-              // Each yAxis marker will increase by 1 day
-              minInterval: 86400,
               axisLabel: {
-                formatter: (value: number) => {
-                  if (value === 0) {
-                    return '';
-                  }
-
-                  return getDuration(value, 0, true, true);
-                },
+                formatter: (value: number) => moment(new Date(value)).format('MMM D'),
               },
             }}
             series={[
               {
-                seriesName: t('Manually Resolved'),
-                data: Array(12)
-                  .fill(0)
-                  .map((_, i) => {
-                    return {
-                      value: random(86400, 86400 * 10, true),
-                      name: moment().startOf('day').subtract(i, 'd').toISOString(),
-                    };
-                  }),
+                seriesName: t('Alerts Triggered'),
+                data: alertsTriggered.map(({bucket, count}) => ({
+                  value: count,
+                  name: bucket,
+                })),
               },
             ].reverse()}
           />
