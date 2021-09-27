@@ -601,6 +601,8 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.USER_DISPLAY]: 'string',
 };
 
+export const DEPRECATED_FIELDS: string[] = [FieldKey.CULPRIT];
+
 export type FieldTag = {
   key: FieldKey;
   name: FieldKey;
