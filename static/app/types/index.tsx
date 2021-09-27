@@ -196,10 +196,8 @@ export type RelaysByPublickey = {
 
 /**
  * Detailed organization (e.g. when requesting details for a single org)
- *
- * Lightweight in this case means it does not contain `projects` or `teams`
  */
-export type LightWeightOrganization = OrganizationSummary & {
+export type Organization = OrganizationSummary & {
   relayPiiConfig: string;
   scrubIPAddresses: boolean;
   attachmentsRole: string;
@@ -235,11 +233,11 @@ export type LightWeightOrganization = OrganizationSummary & {
 };
 
 /**
- * Full organization details
+ * @deprecated This was used before we removed projects and teams as
+ *             normalized data on the organization object. This will be
+ *             removed very soon.
  */
-export type Organization = LightWeightOrganization & {
-  projects: Project[];
-};
+export type LightWeightOrganization = Organization;
 
 /**
  * Minimal organization shape used on shared issue views.
@@ -281,6 +279,9 @@ export type Project = {
   digestsMaxDelay: number;
   digestsMinDelay: number;
   environments: string[];
+  eventProcessing: {
+    symbolicationDegraded: boolean;
+  };
 
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {

@@ -11,7 +11,12 @@ from sentry.incidents.endpoints.serializers import (
     string_to_action_target_type,
     string_to_action_type,
 )
-from sentry.incidents.logic import ChannelLookupTimeoutError, create_alert_rule_trigger
+from sentry.incidents.logic import (
+    DEFAULT_ALERT_RULE_RESOLUTION,
+    DEFAULT_CMP_ALERT_RULE_RESOLUTION,
+    ChannelLookupTimeoutError,
+    create_alert_rule_trigger,
+)
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.models import ACTOR_TYPES, Environment, Integration
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
@@ -525,6 +530,51 @@ class TestAlertRuleSerializer(TestCase):
         alert_rule = serializer.save()
         assert alert_rule.owner == self.user.actor
         assert alert_rule.owner.type == ACTOR_TYPES["user"]
+
+    def test_comparison_delta_above(self):
+        params = self.valid_params.copy()
+        params["comparison_delta"] = 60
+        params["resolveThreshold"] = 10
+        params["triggers"][0]["alertThreshold"] = 50
+        params["triggers"][1]["alertThreshold"] = 40
+        serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        assert alert_rule.comparison_delta == 60 * 60
+        assert alert_rule.resolve_threshold == 110
+        triggers = {trigger.label: trigger for trigger in alert_rule.alertruletrigger_set.all()}
+        assert triggers["critical"].alert_threshold == 150
+        assert triggers["warning"].alert_threshold == 140
+        assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+
+    def test_comparison_delta_below(self):
+        params = self.valid_params.copy()
+        params["threshold_type"] = AlertRuleThresholdType.BELOW.value
+        params["comparison_delta"] = 60
+        params["resolveThreshold"] = 10
+        params["triggers"][0]["alertThreshold"] = 50
+        params["triggers"][1]["alertThreshold"] = 40
+        serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        assert alert_rule.comparison_delta == 60 * 60
+        assert alert_rule.resolve_threshold == 90
+        triggers = {trigger.label: trigger for trigger in alert_rule.alertruletrigger_set.all()}
+        assert triggers["critical"].alert_threshold == 50
+        assert triggers["warning"].alert_threshold == 60
+        assert alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION * 60
+
+        params["comparison_delta"] = None
+        params["resolveThreshold"] = 100
+        params["triggers"][0]["alertThreshold"] = 40
+        params["triggers"][1]["alertThreshold"] = 50
+        serializer = AlertRuleSerializer(
+            context=self.context, instance=alert_rule, data=params, partial=True
+        )
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        assert alert_rule.comparison_delta is None
+        assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
 
 
 class TestAlertRuleTriggerSerializer(TestCase):

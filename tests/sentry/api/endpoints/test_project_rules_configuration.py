@@ -98,7 +98,13 @@ class ProjectRuleConfigurationTest(APITestCase):
             assert JIRA_ACTION not in action_ids
 
     def test_percent_condition_flag(self):
-        with self.feature({"organizations:issue-percent-filters": False}):
+        with self.feature(
+            {
+                "projects:alert-filters": False,
+                "organizations:integrations-ticket-rules": False,
+                "organizations:issue-percent-filters": False,
+            }
+        ):
             # We should not get back the condition.
             response = self.get_valid_response(self.organization.slug, self.project.slug)
             assert len(response.data["conditions"]) == 9
@@ -108,7 +114,13 @@ class ProjectRuleConfigurationTest(APITestCase):
                     != "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition"
                 )
 
-        with self.feature({"organizations:issue-percent-filters": True}):
+        with self.feature(
+            {
+                "projects:alert-filters": False,
+                "organizations:integrations-ticket-rules": False,
+                "organizations:issue-percent-filters": True,
+            }
+        ):
             # We should get back the condition.
             response = self.get_valid_response(self.organization.slug, self.project.slug)
             assert len(response.data["conditions"]) == 10
@@ -161,7 +173,7 @@ class ProjectRuleConfigurationTest(APITestCase):
             schema={"elements": [self.create_alert_rule_action_schema()]},
             is_alertable=True,
         )
-        self.create_sentry_app_installation(
+        install = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization, user=self.user
         )
         component = SentryAppComponent.objects.get(
@@ -177,11 +189,12 @@ class ProjectRuleConfigurationTest(APITestCase):
             "prompt": sentry_app.name,
             "enabled": True,
             "label": "Create Task with App with these ",
-            "formfields": {
+            "formFields": {
                 "type": "alert-rule-settings",
                 "uri": "/sentry/alert-rule",
                 "required_fields": [{"type": "text", "name": "channel", "label": "Channel"}],
             },
+            "sentryAppInstallationUuid": str(install.uuid),
         } in response.data["actions"]
         assert len(response.data["conditions"]) == 6
         assert len(response.data["filters"]) == 7

@@ -48,7 +48,7 @@ import {
   TagCollection,
 } from 'app/types';
 import {defined} from 'app/utils';
-import {analytics, metric, trackAnalyticsEvent} from 'app/utils/analytics';
+import {analytics, trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import CursorPoller from 'app/utils/cursorPoller';
 import {getUtcDateString} from 'app/utils/dates';
@@ -193,31 +193,6 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    // Fire off profiling/metrics first
-    if (prevState.issuesLoading && !this.state.issuesLoading) {
-      // First Meaningful Paint for /organizations/:orgId/issues/
-      if (prevState.queryCount === null) {
-        metric.measure({
-          name: 'app.page.perf.issue-list',
-          start: 'page-issue-list-start',
-          data: {
-            // start_type is set on 'page-issue-list-start'
-            org_id: parseInt(this.props.organization.id, 10),
-            group: this.props.organization.features.includes('enterprise-perf')
-              ? 'enterprise-perf'
-              : 'control',
-            milestone: 'first-meaningful-paint',
-            is_enterprise: this.props.organization.features
-              .includes('enterprise-orgs')
-              .toString(),
-            is_outlier: this.props.organization.features
-              .includes('enterprise-orgs-outliers')
-              .toString(),
-          },
-        });
-      }
-    }
-
     if (prevState.realtimeActive !== this.state.realtimeActive) {
       // User toggled realtime button
       if (this.state.realtimeActive) {
@@ -1099,6 +1074,7 @@ class IssueListOverview extends React.Component<Props, State> {
           onSavedSearchSelect={this.onSavedSearchSelect}
           onSavedSearchDelete={this.onSavedSearchDelete}
           displayReprocessingTab={showReprocessingTab}
+          selectedProjectIds={selection.projects}
         />
 
         <StyledPageContent>
