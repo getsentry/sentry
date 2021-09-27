@@ -3,7 +3,7 @@ import {Location} from 'history';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
-import {Organization, NewQuery, Project, SelectValue} from 'app/types';
+import {NewQuery, Organization, Project, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
