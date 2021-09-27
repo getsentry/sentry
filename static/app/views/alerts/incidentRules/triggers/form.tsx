@@ -15,7 +15,6 @@ import Field from 'app/views/settings/components/forms/field';
 import {isSessionAggregate} from '../../utils';
 import {
   AlertRuleThresholdType,
-  SessionsAggregate,
   ThresholdControlValue,
   Trigger,
   UnsavedIncidentRule,
