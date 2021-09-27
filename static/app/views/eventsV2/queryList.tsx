@@ -169,6 +169,7 @@ class QueryList extends React.Component<Props> {
               location={location}
               eventView={eventView}
               organization={organization}
+              referrer="api.discover.homepage.prebuilt"
             />
           )}
           onEventClick={() => {
@@ -224,6 +225,7 @@ class QueryList extends React.Component<Props> {
 
       const to = eventView.getResultsViewShortUrlTarget(organization.slug);
       const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
+      const referrer = `api.discover.${eventView.getDisplayMode()}-chart`;
 
       return (
         <QueryCard
@@ -246,6 +248,7 @@ class QueryList extends React.Component<Props> {
               location={location}
               eventView={eventView}
               organization={organization}
+              referrer={referrer}
             />
           )}
           renderContextMenu={() => (

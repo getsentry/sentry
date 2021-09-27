@@ -231,6 +231,7 @@ function SidebarCharts({
             includePrevious={false}
             yAxis={['apdex()', 'failure_rate()', 'epm()']}
             partial
+            referrer="api.performance.transaction-summary.sidebar-chart"
           >
             {({results, errored, loading, reloading}) => {
               if (errored) {
