@@ -1,9 +1,9 @@
 import NoProjectMessage from 'app/components/noProjectMessage';
-import {LightWeightOrganization, Organization, Project} from 'app/types';
+import {Organization, Project} from 'app/types';
 import withProjects from 'app/utils/withProjects';
 
 type Props = {
-  organization: LightWeightOrganization | Organization;
+  organization: Organization;
   projects: Project[];
   loadingProjects: boolean;
 };
