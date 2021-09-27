@@ -221,7 +221,6 @@ const PaddedIconArrow = styled(IconArrow)`
 `;
 
 const SubText = styled('div')<{color: Color}>`
-  font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme[p.color]};
 `;
 

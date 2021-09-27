@@ -40,7 +40,7 @@ function TeamMisery({
   const miseryRenderer =
     periodTableData?.meta && getFieldRenderer('user_misery', periodTableData.meta);
 
-  function renderTrend(periodScore: number, weekScore?: number) {
+  function renderChange(periodScore: number, weekScore?: number) {
     if (weekScore === undefined) {
       return '\u2014';
     }
@@ -48,11 +48,20 @@ function TeamMisery({
     const trend = (periodScore - weekScore) * 100;
     const val = Math.round(Math.abs(trend));
 
+    if (val === 0) {
+      return (
+        <SubText>
+          {`0\u0025 `}
+          {t('change')}
+        </SubText>
+      );
+    }
+
     return (
-      <SubText color={trend >= 0 ? 'green300' : 'red300'}>
+      <TrendText color={trend >= 0 ? 'green300' : 'red300'}>
         {`${val}\u0025 `}
         {trend >= 0 ? t('better') : t('worse')}
-      </SubText>
+      </TrendText>
     );
   }
 
@@ -63,7 +72,7 @@ function TeamMisery({
         t('Project'),
         tct('Last [period]', {period}),
         t('This Week'),
-        <RightAligned key="diff">{t('Difference')}</RightAligned>,
+        <RightAligned key="change">{t('Change')}</RightAligned>,
       ]}
       isLoading={isLoading}
     >
@@ -97,7 +106,7 @@ function TeamMisery({
             <div>{periodMisery}</div>
             <div>{weekMisery ?? '\u2014'}</div>
             <ScoreWrapper>
-              {renderTrend(
+              {renderChange(
                 dataRow.user_misery as number,
                 weekRow?.user_misery as undefined | number
               )}
@@ -222,7 +231,10 @@ const ScoreWrapper = styled('div')`
   text-align: right;
 `;
 
-const SubText = styled('div')<{color: Color}>`
-  font-size: ${p => p.theme.fontSizeMedium};
+const SubText = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+const TrendText = styled('div')<{color: Color}>`
   color: ${p => p.theme[p.color]};
 `;
