@@ -357,7 +357,10 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
         symbolication_duration = int(time() - symbolication_start_time)
 
         with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics.counter"):
-            realtime_metrics.increment_project_event_counter(project_id, timestamp)
+            try:
+                realtime_metrics.increment_project_event_counter(project_id, timestamp)
+            except Exception:
+                pass
 
         with sentry_sdk.start_span(
             op="tasks.store.symbolicate_event.low_priority.metrics.histogram"
