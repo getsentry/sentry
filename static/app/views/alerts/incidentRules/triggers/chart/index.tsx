@@ -164,9 +164,10 @@ class TriggersChart extends React.PureComponent<Props, State> {
   componentDidMount() {
     if (this.isSessionAggregate) {
       this.fetchSessionTimeSeries();
-    } else {
-      this.fetchTotalCount();
+      return;
     }
+
+    this.fetchTotalCount();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -180,9 +181,10 @@ class TriggersChart extends React.PureComponent<Props, State> {
     ) {
       if (this.isSessionAggregate) {
         this.fetchSessionTimeSeries();
-      } else {
-        this.fetchTotalCount();
+        return;
       }
+
+      this.fetchTotalCount();
     }
   }
 
@@ -305,14 +307,10 @@ class TriggersChart extends React.PureComponent<Props, State> {
         )}
         <ChartControls>
           <InlineContainer>
-            <React.Fragment>
-              <SectionHeading>{t('Total Events')}</SectionHeading>
-              {totalCount !== null ? (
-                <SectionValue>{totalCount.toLocaleString()}</SectionValue>
-              ) : (
-                <SectionValue>&mdash;</SectionValue>
-              )}
-            </React.Fragment>
+            <SectionHeading>{t('Total Events')}</SectionHeading>
+            <SectionValue>
+              {totalCount !== null ? totalCount.toLocaleString() : '\u2014'}
+            </SectionValue>
           </InlineContainer>
           <InlineContainer>
             <OptionSelector
