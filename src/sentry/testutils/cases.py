@@ -971,6 +971,10 @@ class SessionMetricsTestCase(SnubaTestCase):
         if status != "ok":  # terminal
             self._push_metric(session, "distribution", "session.duration", {}, session["duration"])
 
+    def bulk_store_sessions(self, sessions):
+        for session in sessions:
+            self.store_session(session)
+
     @classmethod
     def _push_metric(cls, session, type, name, tags, value):
         def metric_id(name):

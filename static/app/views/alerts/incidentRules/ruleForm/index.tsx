@@ -608,7 +608,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       organization,
       projects: this.state.projects,
       triggers,
-      query: queryWithTypeFilter,
+      query: dataset === Dataset.SESSIONS ? query : queryWithTypeFilter,
       aggregate,
       timeWindow,
       environment,
@@ -617,20 +617,21 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     };
     const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
 
-    const wizardBuilderChart =
-      dataset === Dataset.SESSIONS ? null : (
-        <TriggersChart
-          {...chartProps}
-          header={
-            <ChartHeader>
-              <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
+    const wizardBuilderChart = (
+      <TriggersChart
+        {...chartProps}
+        header={
+          <ChartHeader>
+            <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
+            {dataset !== Dataset.SESSIONS && (
               <AlertInfo>
                 {aggregate} | event.type:{eventTypes?.join(',')}
               </AlertInfo>
-            </ChartHeader>
-          }
-        />
-      );
+            )}
+          </ChartHeader>
+        }
+      />
+    );
 
     const ownerId = rule.owner?.split(':')[1];
     const canEdit =
