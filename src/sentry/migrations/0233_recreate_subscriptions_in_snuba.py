@@ -25,7 +25,8 @@ def migrate_subscriptions(apps, schema_editor):
 
             try:
                 _delete_from_snuba(
-                    QueryDatasets(subscription.snuba_query.dataset), subscription.subscription_id,
+                    QueryDatasets(subscription.snuba_query.dataset),
+                    subscription.subscription_id,
                 )
             except Exception as e:
                 logging.exception(f"failed to delete {subscription.subscription_id}: {e}")
