@@ -1717,6 +1717,9 @@ SENTRY_DEVSERVICES = {
             "command": [
                 "postgres",
                 "-c",
+                # TODO: let devservices up append to cmdline
+                "fsync=off",
+                "-c",
                 "wal_level=logical",
                 "-c",
                 "max_replication_slots=1",
