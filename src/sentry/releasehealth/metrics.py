@@ -6,19 +6,24 @@ from snuba_sdk import BooleanCondition, Column, Condition, Entity, Op, Query
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.query import SelectableExpression
 
+from sentry import releasehealth
 from sentry.models.project import Project
 from sentry.releasehealth.base import (
     CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
     OrganizationId,
+    OverviewStat,
     ProjectId,
     ProjectOrRelease,
+    ProjectRelease,
     ReleaseHealthBackend,
     ReleaseName,
+    StatsPeriod,
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -48,6 +53,22 @@ def reverse_tag_value(org_id: int, index: int) -> str:
     str_value = indexer.reverse_resolve(org_id, UseCase.TAG_VALUE, index)  # type: ignore
     assert str_value is not None
     return str_value  # type: ignore
+
+
+def get_tag_values_list(org_id: int, values: Sequence[str]) -> Sequence[int]:
+    return [x for x in [try_get_tag_value(org_id, x) for x in values] if x is not None]
+
+
+def filter_projects_by_project_release(org_id: int, project_releases: Sequence[ProjectRelease]):
+    return Condition(Column("project_id"), Op.IN, list(x for x, _ in project_releases))
+
+
+def filter_releases_by_project_release(org_id: int, project_releases: Sequence[ProjectRelease]):
+    return Condition(
+        Column(tag_key(org_id, "release")),
+        Op.IN,
+        get_tag_values_list(org_id, [x for _, x in project_releases]),
+    )
 
 
 class MetricsReleaseHealthBackend(ReleaseHealthBackend):
@@ -167,7 +188,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     def get_release_adoption(
         self,
-        project_releases: Sequence[Tuple[ProjectId, ReleaseName]],
+        project_releases: Sequence[ProjectRelease],
         environments: Optional[Sequence[EnvironmentName]] = None,
         now: Optional[datetime] = None,
         org_id: Optional[OrganizationId] = None,
@@ -187,7 +208,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def _get_release_adoption_impl(
         now: datetime,
         org_id: int,
-        project_releases: Sequence[Tuple[ProjectId, ReleaseName]],
+        project_releases: Sequence[ProjectRelease],
         project_ids: Sequence[ProjectId],
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> ReleaseHealthBackend.ReleasesAdoption:
@@ -196,7 +217,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         def _get_common_where(total: bool) -> List[Union[BooleanCondition, Condition]]:
             where_common: List[Union[BooleanCondition, Condition]] = [
                 Condition(Column("org_id"), Op.EQ, org_id),
-                Condition(Column("project_id"), Op.IN, project_ids),
+                filter_projects_by_project_release(org_id, project_releases),
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("timestamp"), Op.LT, now),
                 Condition(
@@ -205,30 +226,16 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ]
 
             if environments is not None:
-                environment_tag_values = []
-
-                for environment in environments:
-                    value = indexer.resolve(org_id, UseCase.TAG_VALUE, environment)  # type: ignore
-                    if value is not None:
-                        environment_tag_values.append(value)
-
                 where_common.append(
-                    Condition(Column(tag_key(org_id, "environment")), Op.IN, environment_tag_values)
+                    Condition(
+                        Column(tag_key(org_id, "environment")),
+                        Op.IN,
+                        get_tag_values_list(org_id, environments),
+                    )
                 )
 
             if not total:
-                release_tag_values = []
-
-                for _, release in project_releases:
-                    value = indexer.resolve(org_id, UseCase.TAG_VALUE, release)  # type: ignore
-                    if value is not None:
-                        # We should not append the value if it hasn't been
-                        # observed before.
-                        release_tag_values.append(value)
-
-                where_common.append(
-                    Condition(Column(tag_key(org_id, "release")), Op.IN, release_tag_values)
-                )
+                where_common.append(filter_releases_by_project_release(org_id, project_releases))
 
             return where_common
 
@@ -252,6 +259,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 select=[Column("value")],
                 where=_get_common_where(total)
                 + [
+                    # TODO(markus): This can't be right? We will double-count sessions here!
                     Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
                 ],
                 groupby=_get_common_groupby(total),
@@ -378,12 +386,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         if includes_releases:
             releases = [x[1] for x in projects_list]  # type: ignore
             release_column_name = tag_key(org_id, "release")
-            releases_ids = [
-                release_id
-                for release_id in [try_get_tag_value(org_id, release) for release in releases]
-                if release_id is not None
-            ]
-            where_clause.append(Condition(Column(release_column_name), Op.IN, releases_ids))
+            where_clause.append(
+                Condition(Column(release_column_name), Op.IN, get_tag_values_list(org_id, releases))
+            )
             column_names = ["project_id", release_column_name]
 
         else:
@@ -429,13 +434,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Set[ReleaseName]:
 
         release_column_name = tag_key(organization_id, "release")
-        releases_ids = [
-            release_id
-            for release_id in [
-                try_get_tag_value(organization_id, release) for release in release_versions
-            ]
-            if release_id is not None
-        ]
+        releases_ids = get_tag_values_list(organization_id, release_versions)
         query = Query(
             dataset=Dataset.Metrics.value,
             match=Entity("metrics_counters"),
@@ -459,3 +458,208 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             return reverse_tag_value(organization_id, row.get(release_column_name))  # type: ignore
 
         return {extract_row_info(row) for row in result["data"]}
+
+    def get_release_health_data_overview(
+        self,
+        project_releases: Sequence[ProjectRelease],
+        environments: Optional[Sequence[EnvironmentName]] = None,
+        summary_stats_period: Optional[StatsPeriod] = None,
+        health_stats_period: Optional[StatsPeriod] = None,
+        stat: OverviewStat = None,
+    ):
+        if stat is None:
+            stat = "sessions"
+        assert stat in ("sessions", "users")
+        now = datetime.now(pytz.utc)
+        _, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h")
+        stats_rollup, stats_start, stats_buckets = get_rollup_starts_and_buckets(
+            health_stats_period
+        )
+
+        org_id = self._get_org_id([x for x, _ in project_releases])
+
+        where: List[Union[BooleanCondition, Condition]] = [
+            Condition(Column("org_id"), Op.EQ, org_id),
+            filter_projects_by_project_release(org_id, project_releases),
+            Condition(Column("timestamp"), Op.GTE, summary_start),
+            Condition(Column("timestamp"), Op.LT, now),
+        ]
+
+        if environments is not None:
+            where.append(
+                Condition(
+                    Column(tag_key(org_id, "environment")),
+                    Op.IN,
+                    get_tag_values_list(org_id, environments),
+                )
+            )
+
+        release_column_name = tag_key(org_id, "release")
+
+        aggregates: List[SelectableExpression] = [
+            Column(release_column_name),
+            Column("project_id"),
+        ]
+
+        # Percentiles of session duration
+        rv_durations = {}
+
+        for row in raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                match=Entity("metrics_distributions"),
+                select=aggregates + [Column("percentiles")],
+                where=where
+                + [
+                    Condition(Column("metric_id"), Op.EQ, "session.duration"),
+                ],
+                groupby=aggregates,
+            ),
+            referrer="releasehealth.metrics.get_release_health_data_overview",
+        )["data"]:
+            # See https://github.com/getsentry/snuba/blob/8680523617e06979427bfa18c6b4b4e8bf86130f/snuba/datasets/entities/metrics.py#L184 for quantiles
+            rv_durations[row["project_id"], reverse_tag_value(org_id, row[release_column_name])] = {
+                "duration_p50": row["percentiles"][0],
+                "duration_p90": row["percentiles"][2],
+            }
+
+        # Count of errored sessions, incl fatal (abnormal, crashed) sessions
+        rv_errored_sessions = {}
+
+        for row in raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                match=Entity("metrics_sets"),
+                select=aggregates + [Column("value")],
+                where=where
+                + [
+                    Condition(Column("metric_id"), Op.EQ, "session.error"),
+                ],
+                groupby=aggregates,
+            ),
+            referrer="releasehealth.metrics.get_release_health_data_overview.errored",
+        )["data"]:
+            rv_errored_sessions[
+                row["project_id"], reverse_tag_value(org_id, row[release_column_name])
+            ] = row["value"]
+
+        rv_sessions = {}
+
+        # Count of init, abnormal and crashed sessions, each
+        session_status_column_name = tag_key(org_id, "session.status")
+
+        for row in raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                match=Entity("metrics_counters"),
+                select=aggregates + [Column(session_status_column_name), Column("value")],
+                where=where
+                + [
+                    Condition(Column("metric_id"), Op.EQ, "session"),
+                    Condition(
+                        Column(session_status_column_name),
+                        Op.IN,
+                        get_tag_values_list(org_id, ["abnormal", "crashed", "init"]),
+                    ),
+                ],
+                groupby=aggregates + [Column(session_status_column_name)],
+            ),
+            referrer="releasehealth.metrics.get_release_health_data_overview.sessions_statuses",
+        )["data"]:
+            rv_sessions[
+                row["project_id"],
+                reverse_tag_value(org_id, row[release_column_name]),
+                row[session_status_column_name],
+            ] = row["value"]
+
+        # Count of users and crashed users
+        rv_users = {}
+
+        for row in raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                match=Entity("metrics_sets"),
+                select=aggregates + [Column(session_status_column_name), Column("value")],
+                where=where
+                + [
+                    Condition(Column("metric_id"), Op.EQ, "user"),
+                    Condition(
+                        Column(session_status_column_name),
+                        Op.IN,
+                        get_tag_values_list(org_id, ["crashed", "init"]),
+                    ),
+                ],
+                groupby=aggregates + [Column(session_status_column_name)],
+            ),
+            referrer="releasehealth.metrics.get_release_health_data_overview.users",
+        )["data"]:
+            rv_users[row["project_id"], reverse_tag_value(org_id, row[release_column_name])] = row[
+                "value"
+            ]
+
+        release_adoption = releasehealth.get_release_adoption(project_releases, environments)
+
+        rv = {}
+
+        missing_releases = set()
+
+        for project_id, release in project_releases:
+            rv_row = rv[project_id, release] = {
+                "project_id": project_id,
+                "release": release,
+                **(release_adoption.get((project_id, release)) or {}),
+            }
+            rv_row["total_sessions"] = total_sessions = rv_sessions.get(
+                (project_id, release, "init")
+            )
+            rv_row["total_users"] = total_users = rv_users.get((project_id, release, "init"))
+
+            rv_row["has_health_data"] = has_health_data = bool(total_sessions)
+
+            # has_health_data is supposed to be irrespective of the currently
+            # selected rollup window. Therefore we need to run another query
+            # over 90d just to see if health data is available to compute
+            # has_health_data correctly.
+            if not total_sessions and summary_stats_period != "90d":
+                missing_releases.add((project_id, release))
+
+            rv_row["sessions_crashed"] = sessions_crashed = rv_sessions.get(
+                (project_id, release, "crashed"), 0
+            )
+            users_crashed = rv_users.get((project_id, release, "crashed"), 0)
+
+            rv_row["crash_free_users"] = (
+                100 - users_crashed / total_users * 100 if total_users else None
+            )
+
+            rv_row["crash_free_sessions"] = (
+                100 - sessions_crashed / float(total_sessions) * 100 if total_sessions else None
+            )
+
+            rv_row["sessions_errored"] = max(
+                0,
+                rv_errored_sessions.get((project_id, release), 0)
+                - sessions_crashed
+                - rv_sessions.get((project_id, release, "abnormal"), 0),
+            )
+
+            rv_row.update(
+                rv_durations.get((project_id, release))
+                or {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                }
+            )
+
+            if health_stats_period:
+                rv_row["stats"] = {
+                    health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)
+                }
+
+        if missing_releases:
+            has_health_data = releasehealth.check_has_health_data(missing_releases)  # type: ignore
+
+            for key in missing_releases:
+                rv[key]["has_health_data"] = key in has_health_data
+
+        return rv
