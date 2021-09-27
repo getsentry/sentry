@@ -1,9 +1,8 @@
 import Reflux from 'reflux';
 
 import OrganizationActions from 'app/actions/organizationActions';
-import ProjectActions from 'app/actions/projectActions';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
-import {Organization, Project} from 'app/types';
+import {Organization} from 'app/types';
 import RequestError from 'app/utils/requestError/requestError';
 
 type UpdateOptions = {
@@ -23,8 +22,6 @@ type OrganizationStoreInterface = {
   reset: () => void;
   onUpdate: (org: Organization, options: UpdateOptions) => void;
   onFetchOrgError: (err: RequestError) => void;
-  onProjectsChange: () => void;
-  onLoadProjects: (projects: Project[]) => void;
   get: () => State;
 };
 
@@ -34,16 +31,6 @@ const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {
     this.listenTo(OrganizationActions.update, this.onUpdate);
     this.listenTo(OrganizationActions.fetchOrg, this.reset);
     this.listenTo(OrganizationActions.fetchOrgError, this.onFetchOrgError);
-
-    // fill in projects if they are loaded
-    this.listenTo(ProjectActions.loadProjects, this.onLoadProjects);
-
-    // mark the store as dirty if projects change
-    this.listenTo(ProjectActions.createSuccess, this.onProjectsChange);
-    this.listenTo(ProjectActions.updateSuccess, this.onProjectsChange);
-    this.listenTo(ProjectActions.changeSlug, this.onProjectsChange);
-    this.listenTo(ProjectActions.addTeamSuccess, this.onProjectsChange);
-    this.listenTo(ProjectActions.removeTeamSuccess, this.onProjectsChange);
   },
 
   reset() {
@@ -81,20 +68,6 @@ const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {
     this.error = err;
     this.dirty = false;
     this.trigger(this.get());
-  },
-
-  onProjectsChange() {
-    // mark the store as dirty so the next fetch will trigger an org details refetch
-    this.dirty = true;
-  },
-
-  onLoadProjects(projects: Project[]) {
-    if (this.organization) {
-      // sort projects to mimic how they are received from backend
-      projects.sort((a, b) => a.slug.localeCompare(b.slug));
-      this.organization = {...this.organization, projects};
-      this.trigger(this.get());
-    }
   },
 
   get() {

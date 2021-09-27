@@ -155,7 +155,7 @@ export function getIncidentDiscoverUrl(opts: {
     id: undefined,
     name: (incident && incident.title) || '',
     orderby: `-${getAggregateAlias(incident.alertRule.aggregate)}`,
-    yAxis: incident.alertRule.aggregate,
+    yAxis: incident.alertRule.aggregate ? [incident.alertRule.aggregate] : undefined,
     query: incident?.discoverQuery ?? '',
     projects: projects
       .filter(({slug}) => incident.projects.includes(slug))
