@@ -116,6 +116,13 @@ def run_sessions_query(
 
     conditions.extend(_get_filter_conditions(org_id, query.conditions))
 
+    # It greatly simplifies code if we just assume that these two tags exist:
+    # TODO: Can we get away with that assumption?
+    tag_key_release = indexer.resolve(org_id, UseCase.TAG_KEY, "release")
+    assert tag_key_release is not None
+    tag_key_environment = indexer.resolve(org_id, UseCase.TAG_KEY, "environment")
+    assert tag_key_environment is not None
+
     tag_keys = {
         field: indexer.resolve(org_id, UseCase.TAG_KEY, field) for field in query.raw_groupby
     }
@@ -248,7 +255,11 @@ def run_sessions_query(
             value = row.pop(value_key)
             raw_session_status = row.pop(f"tags[{session_status_tag_key}]", None)
             flat_key = _FlatKey(
-                metric_name=metric_name, raw_session_status=raw_session_status, **row
+                metric_name=metric_name,
+                raw_session_status=raw_session_status,
+                release=row.pop(f"tags[{tag_key_release}]", None),
+                environment=row.pop(f"tags[{tag_key_environment}]", None),
+                bucketed_time=row.pop("bucketed_time", None),
             )
             flat_data[flat_key] = value
 
@@ -273,9 +284,16 @@ def run_sessions_query(
 
         by = {}
         if key.release is not None:
-            by["release"] = key.release
+            # Note: If the tag value reverse-resolves to None here, it's a bug in the tag indexer
+            release = by["release"] = indexer.reverse_resolve(
+                org_id, UseCase.TAG_VALUE, key.release
+            )
+            assert release is not None
         if key.environment is not None:
-            by["environment"] = key.environment
+            environment = by["environment"] = indexer.reverse_resolve(
+                org_id, UseCase.TAG_VALUE, key.environment
+            )
+            assert environment is not None
 
         group = groups[tuple(sorted(by.items()))]
         assert fields

@@ -12,14 +12,13 @@ from sentry.snuba.sessions_v2 import InvalidField, InvalidParams, QueryDefinitio
 # NOTE: this currently extends `OrganizationEventsEndpointBase` for `handle_query_errors` only, which should ideally be decoupled from the base class.
 class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
-        # with self.handle_query_errors():
-        # FIXME: handle query errors again
-        with sentry_sdk.start_span(op="sessions.endpoint", description="build_sessions_query"):
-            query = self.build_sessions_query(request, organization)
+        with self.handle_query_errors():
+            with sentry_sdk.start_span(op="sessions.endpoint", description="build_sessions_query"):
+                query = self.build_sessions_query(request, organization)
 
-        result = releasehealth.run_sessions_query(
-            organization.id, query, span_op="sessions.endpoint"
-        )
+            result = releasehealth.run_sessions_query(
+                organization.id, query, span_op="sessions.endpoint"
+            )
 
         return Response(result, status=200)
 
