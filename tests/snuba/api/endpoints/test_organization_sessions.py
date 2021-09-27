@@ -64,12 +64,17 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             "received": self.received,
         }
 
+        def make_duration(project, kwargs):
+            """Randomish but deterministic duration"""
+            return float(project.id + len(str(kwargs)))
+
         def make_session(project, **kwargs):
             return dict(
                 template,
                 session_id=uuid4().hex,
                 org_id=project.organization_id,
                 project_id=project.id,
+                duration=make_duration(project, kwargs),
                 **kwargs,
             )
 
@@ -606,33 +611,97 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                     "p99(session.duration)",
                     "max(session.duration)",
                 ],
+                "groupBy": "session.status",
             }
         )
 
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == [
             {
-                "by": {},
+                "by": {"session.status": "abnormal"},
                 "series": {
-                    "avg(session.duration)": [123.4],
-                    "max(session.duration)": [123.4],
-                    "p50(session.duration)": [123.4],
-                    "p75(session.duration)": [123.4],
-                    "p90(session.duration)": [123.4],
-                    "p95(session.duration)": [123.4],
-                    "p99(session.duration)": [123.4],
+                    "avg(session.duration)": [None],
+                    "max(session.duration)": [None],
+                    "p50(session.duration)": [None],
+                    "p75(session.duration)": [None],
+                    "p90(session.duration)": [None],
+                    "p95(session.duration)": [None],
+                    "p99(session.duration)": [None],
                 },
                 "totals": {
-                    "avg(session.duration)": 123.4,
-                    "max(session.duration)": 123.4,
-                    "p50(session.duration)": 123.4,
-                    "p75(session.duration)": 123.4,
-                    "p90(session.duration)": 123.4,
-                    "p95(session.duration)": 123.4,
-                    "p99(session.duration)": 123.4,
+                    "avg(session.duration)": None,
+                    "max(session.duration)": None,
+                    "p50(session.duration)": None,
+                    "p75(session.duration)": None,
+                    "p90(session.duration)": None,
+                    "p95(session.duration)": None,
+                    "p99(session.duration)": None,
                 },
             },
-        ], result_sorted(response.data)["groups"]
+            {
+                "by": {"session.status": "crashed"},
+                "series": {
+                    "avg(session.duration)": [None],
+                    "max(session.duration)": [None],
+                    "p50(session.duration)": [None],
+                    "p75(session.duration)": [None],
+                    "p90(session.duration)": [None],
+                    "p95(session.duration)": [None],
+                    "p99(session.duration)": [None],
+                },
+                "totals": {
+                    "avg(session.duration)": None,
+                    "max(session.duration)": None,
+                    "p50(session.duration)": None,
+                    "p75(session.duration)": None,
+                    "p90(session.duration)": None,
+                    "p95(session.duration)": None,
+                    "p99(session.duration)": None,
+                },
+            },
+            {
+                "by": {"session.status": "errored"},
+                "series": {
+                    "avg(session.duration)": [None],
+                    "max(session.duration)": [None],
+                    "p50(session.duration)": [None],
+                    "p75(session.duration)": [None],
+                    "p90(session.duration)": [None],
+                    "p95(session.duration)": [None],
+                    "p99(session.duration)": [None],
+                },
+                "totals": {
+                    "avg(session.duration)": None,
+                    "max(session.duration)": None,
+                    "p50(session.duration)": None,
+                    "p75(session.duration)": None,
+                    "p90(session.duration)": None,
+                    "p95(session.duration)": None,
+                    "p99(session.duration)": None,
+                },
+            },
+            {
+                "by": {"session.status": "healthy"},
+                "series": {
+                    "avg(session.duration)": [45250.0],
+                    "max(session.duration)": [84000.0],
+                    "p50(session.duration)": [37000.0],
+                    "p75(session.duration)": [56250.0],
+                    "p90(session.duration)": [75600.0],
+                    "p95(session.duration)": [79800.0],
+                    "p99(session.duration)": [83159.99999999999],
+                },
+                "totals": {
+                    "avg(session.duration)": 45250.0,
+                    "max(session.duration)": 84000.0,
+                    "p50(session.duration)": 37000.0,
+                    "p75(session.duration)": 56250.0,
+                    "p90(session.duration)": 75600.0,
+                    "p95(session.duration)": 79800.0,
+                    "p99(session.duration)": 83159.99999999999,
+                },
+            },
+        ]
 
 
 @patch("sentry.api.endpoints.organization_sessions.releasehealth", MetricsReleaseHealthBackend())
