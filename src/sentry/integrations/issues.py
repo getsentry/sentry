@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import Any, Optional
+from typing import Any, Mapping, Optional, Tuple
 
 from sentry import features
 from sentry.models import ExternalIssue, Group, GroupLink, GroupStatus, Organization, User
@@ -326,33 +326,42 @@ class IssueSyncMixin(IssueBasicMixin):
         """
         raise NotImplementedError
 
-    def should_unresolve(self, data):
+    def _get_resolve_unresolve(self, data: Mapping[str, Any]) -> Tuple[bool, bool]:
         """
-        Given webhook data, check whether the status
-        category changed FROM "done" to something else,
-        meaning the sentry issue should be marked as
-        unresolved
-
-        >>> def should_unresolve(self, data):
-        >>>     client = self.get_client()
-        >>>     statuses = client.get_statuses()
-        >>>     done_statuses = [s['id'] for s in statuses if s['category'] == 'done']
-        >>>     return data['from_status'] in done_statuses \
-        >>>         and data['to_status'] not in done_statuses
-
+        Because checking the "done" states can rely on an API call, this function
+        should calculate both "resolve" and "unresolve" to save a round trip.
         """
         raise NotImplementedError
 
-    def should_resolve(self, data):
+    def get_resolve_unresolve(self, data: Mapping[str, Any]) -> Tuple[bool, bool]:
         """
-        Given webhook data, check whether the status
-        category changed TO "done" from something else,
-        meaning the sentry issue should be marked as
-        resolved
+        Given webhook data, check whether the status category changed FROM
+        "done" to something else, meaning the Sentry issue should be marked as
+        unresolved or if the status category changed TO "done" from something
+        else, meaning the sentry issue should be marked as resolved. Log if
+        there is a conflict.
+        """
+        should_resolve, should_unresolve = self._get_resolve_unresolve(data)
+        if should_resolve and should_unresolve:
+            logger.warning(
+                "sync-config-conflict",
+                extra={
+                    "integration_id": self.model.id,
+                    "provider": self.model.get_provider(),
+                },
+            )
+            return False, False
+        return should_resolve, should_unresolve
 
-        see example above
-        """
-        raise NotImplementedError
+    def should_unresolve(self, data: Mapping[str, Any]) -> bool:
+        """@deprecated"""
+        _, should_unresolve = self.get_resolve_unresolve(data)
+        return should_unresolve
+
+    def should_resolve(self, data: Mapping[str, Any]) -> bool:
+        """@deprecated"""
+        should_resolve, _ = self.get_resolve_unresolve(data)
+        return should_resolve
 
     def sync_status_inbound(self, issue_key, data):
         if not self.should_sync("inbound_status"):

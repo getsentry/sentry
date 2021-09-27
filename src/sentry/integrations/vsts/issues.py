@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
 
 from django.urls import reverse
 from django.utils.translation import ugettext as _
@@ -310,15 +310,13 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
                 },
             )
 
-    def should_unresolve(self, data: Mapping[str, str]) -> bool:
-        done_states = self.get_done_states(data["project"])
-        return not data["new_state"] in done_states or data["old_state"] is None
+    def _get_resolve_unresolve(self, data: Mapping[str, Any]) -> Tuple[bool, bool]:
+        done_states = self._get_done_statuses(data["project"])
+        return (not data["old_state"] in done_states and data["new_state"] in done_states), (
+            not data["new_state"] in done_states or data["old_state"] is None
+        )
 
-    def should_resolve(self, data: Mapping[str, str]) -> bool:
-        done_states = self.get_done_states(data["project"])
-        return not data["old_state"] in done_states and data["new_state"] in done_states
-
-    def get_done_states(self, project: str) -> Sequence[str]:
+    def _get_done_statuses(self, project: str) -> Set[str]:
         client = self.get_client()
         try:
             all_states = client.get_work_item_states(self.instance, project)["value"]
@@ -327,11 +325,8 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
                 "vsts.get-done-states.failed",
                 extra={"integration_id": self.model.id, "exception": err},
             )
-            return []
-        done_states = [
-            state["name"] for state in all_states if state["category"] in self.done_categories
-        ]
-        return done_states
+            return set()
+        return {state["name"] for state in all_states if state["category"] in self.done_categories}
 
     def get_issue_display_name(self, external_issue: "ExternalIssue") -> str:
         return (external_issue.metadata or {}).get("display_name", "")
