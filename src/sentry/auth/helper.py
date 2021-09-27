@@ -228,22 +228,24 @@ class AuthIdentityHandler:
         self,
         identity: Identity,
         member: Optional[OrganizationMember] = None,
+        user: Optional[User] = None,
     ) -> AuthIdentity:
         """
         Given an already authenticated user, attach or re-attach an identity.
         """
+        user = user if user else self.user
         # prioritize identifying by the SSO provider's user ID
         auth_identity = self._get_auth_identity(ident=identity["id"])
         if auth_identity is None:
             # otherwise look for an already attached identity
             # this can happen if the SSO provider's internal ID changes
-            auth_identity = self._get_auth_identity(user=self.user)
+            auth_identity = self._get_auth_identity(user=user)
 
         if auth_identity is None:
             auth_is_new = True
             auth_identity = AuthIdentity.objects.create(
                 auth_provider=self.auth_provider,
-                user=self.user,
+                user=user,
                 ident=identity["id"],
                 data=identity.get("data", {}),
             )
@@ -254,14 +256,14 @@ class AuthIdentityHandler:
             # and in that kind of situation its very reasonable that we could
             # test email addresses + is_managed to determine if we can auto
             # merge
-            if auth_identity.user != self.user:
+            if auth_identity.user != user:
                 wipe = self._wipe_existing_identity(auth_identity)
             else:
                 wipe = None
 
             now = timezone.now()
             auth_identity.update(
-                user=self.user,
+                user=user,
                 ident=identity["id"],
                 data=self.provider.update_identity(
                     new_data=identity.get("data", {}), current_data=auth_identity.data
@@ -275,7 +277,7 @@ class AuthIdentityHandler:
                 extra={
                     "wipe_result": repr(wipe),
                     "organization_id": self.organization.id,
-                    "user_id": self.user.id,
+                    "user_id": user.id,
                     "auth_identity_user_id": auth_identity.user.id,
                     "auth_provider_id": self.auth_provider.id,
                     "idp_identity_id": identity["id"],
@@ -290,7 +292,7 @@ class AuthIdentityHandler:
         if auth_is_new:
             AuditLogEntry.objects.create(
                 organization=self.organization,
-                actor=self.user,
+                actor=user,
                 ip_address=self.request.META["REMOTE_ADDR"],
                 target_object=auth_identity.id,
                 event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
@@ -479,26 +481,12 @@ class AuthIdentityHandler:
                 }
 
                 user = User.objects.get(id=verification_value["user_id"])
-                auth_identity = AuthIdentity.objects.create(
-                    auth_provider=self.auth_provider,
-                    user=user,
-                    ident=identity["id"],
-                    data=identity.get("data", {}),
-                )
-
                 member = OrganizationMember.objects.get(id=verification_value["member_id"])
-                self._set_linked_flag(member)
-
-                AuditLogEntry.objects.create(
-                    organization=self.organization,
-                    actor=user,
-                    ip_address=self.request.META["REMOTE_ADDR"],
-                    target_object=auth_identity.id,
-                    event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
-                    data=auth_identity.get_audit_log_data(),
+                auth_identity = self.handle_attach_identity(
+                    identity,
+                    member=member,
+                    user=user,
                 )
-
-                messages.add_message(self.request, messages.SUCCESS, OK_LINK_IDENTITY)
 
         if not op:
             existing_user, template = self._dispatch_to_confirmation(identity)
