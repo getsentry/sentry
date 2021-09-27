@@ -7,7 +7,7 @@ from datetime import timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import List, Mapping, Optional, Set
+from typing import List, Mapping, Optional, Sequence, Set
 
 from django.core.cache import cache
 from django.db import models
@@ -29,6 +29,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.eventstore.models import Event
+from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
@@ -294,6 +295,22 @@ class GroupManager(BaseManager):
             ).values_list("group_id", flat=True),
             project__organization_id__in=integration.organizations.values_list("id", flat=True),
         )
+
+    def update_group_status(
+        self, groups: Sequence["Group"], status: GroupStatus, activity_type: ActivityType
+    ) -> None:
+        """For each groups, update status to `status` and create an Activity."""
+        from sentry.models import Activity
+
+        updated_count = (
+            self.filter(id__in=[g.id for g in groups]).exclude(status=status).update(status=status)
+        )
+        if updated_count:
+            for group in groups:
+                activity = Activity.objects.create(
+                    project=group.project, group=group, type=activity_type.value
+                )
+                activity.send_notification()
 
 
 class Group(Model):
