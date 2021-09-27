@@ -32,7 +32,9 @@ def send_confirm_email(user: User, email: str, verification_key: str) -> None:
     msg.send_async([email])
 
 
-def create_verification_key(user: User, org: Organization, email: str) -> None:
+def send_one_time_account_confirm_link(
+    user: User, org: Organization, email: str, identity_id: str
+) -> None:
     """Store and email a verification key for IdP migration.
 
     Create a one-time verification key for a user whose SSO identity
@@ -49,7 +51,12 @@ def create_verification_key(user: User, org: Organization, email: str) -> None:
 
     verification_code = get_random_string(32, string.ascii_letters + string.digits)
     verification_key = f"auth:one-time-key:{verification_code}"
-    verification_value = {"user_id": user.id, "email": email, "member_id": member_id}
+    verification_value = {
+        "user_id": user.id,
+        "email": email,
+        "member_id": member_id,
+        "identity_id": identity_id,
+    }
     cluster.hmset(verification_key, verification_value)
     cluster.expire(verification_key, int(_TTL.total_seconds()))
 
