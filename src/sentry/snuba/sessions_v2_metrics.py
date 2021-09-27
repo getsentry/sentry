@@ -10,6 +10,8 @@ from typing import Dict, Mapping, Optional, Sequence, Union
 
 from snuba_sdk import Column, Condition, Entity, Op, Query
 from snuba_sdk.expressions import Granularity
+from snuba_sdk.function import Function
+from snuba_sdk.legacy import json_to_snql
 from typing_extensions import Literal, TypedDict
 
 from sentry.sentry_metrics import indexer
@@ -108,18 +110,11 @@ def run_sessions_query(
     conditions = [
         Condition(Column("org_id"), Op.EQ, org_id),
         Condition(Column("project_id"), Op.IN, query.filter_keys["project_id"]),
-        # Condition(
-        #     Column("metric_id"),
-        #     Op.IN,
-        #     [
-        #         indexer.resolve(self._project.id, UseCase.METRIC, name)
-        #         for _, name in query_definition.fields.values()
-        #     ],
-        # ),
         Condition(Column(TS_COL_QUERY), Op.GTE, query.start),
         Condition(Column(TS_COL_QUERY), Op.LT, query.end),
     ]
-    # FIXME: add filter conditions
+
+    conditions.extend(_get_filter_conditions(org_id, query.conditions))
 
     tag_keys = {
         field: indexer.resolve(org_id, UseCase.TAG_KEY, field) for field in query.raw_groupby
@@ -136,7 +131,13 @@ def run_sessions_query(
 
     metric_to_fields = {}
 
-    def _query(entity: str, metric_id: int, column: str, series: bool) -> Query:
+    def _query(
+        entity: str,
+        metric_id: int,
+        column: str,
+        series: bool,
+        extra_conditions: Sequence[Condition],
+    ) -> Query:
         full_groupby = list(groupby.values())
         if series:
             full_groupby.append(Column(TS_COL_GROUP))
@@ -146,7 +147,9 @@ def run_sessions_query(
             match=Entity(entity),
             select=[Column(column)],
             groupby=full_groupby,
-            where=conditions + [Condition(Column("metric_id"), Op.EQ, metric_id)],
+            where=conditions
+            + [Condition(Column("metric_id"), Op.EQ, metric_id)]
+            + extra_conditions,
             granularity=Granularity(query.rollup),
         )
 
@@ -166,9 +169,24 @@ def run_sessions_query(
         },
     }
 
-    def _query_data(entity: str, metric_name: str, metric_id: int, column: str):
+    def _query_data(
+        entity: str,
+        metric_name: str,
+        metric_id: int,
+        column: str,
+        extra_conditions: Optional[Sequence[Condition]] = None,
+    ):
+        if extra_conditions is None:
+            extra_conditions = []
+
         for query_type in ("series", "totals"):
-            snuba_query = _query(entity, metric_id, column, series=query_type == "series")
+            snuba_query = _query(
+                entity,
+                metric_id,
+                column,
+                series=query_type == "series",
+                extra_conditions=extra_conditions,
+            )
             referrer = referrers[metric_name][query_type]
             query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
             yield (metric_name, query_data)
@@ -210,11 +228,16 @@ def run_sessions_query(
 
             else:
                 # Simply count the number of started sessions:
-                tag_value = indexer.resolve(org_id, UseCase.TAG_VALUE, "init")
-                if session_status_tag_key is not None and tag_value is not None:
-                    data.extend(_query_data("metrics_counters", "session", metric_id, "value"))
-
-                    # FIXME: require group by
+                init = indexer.resolve(org_id, UseCase.TAG_VALUE, "init")
+                if session_status_tag_key is not None and init is not None:
+                    extra_conditions = [
+                        Condition(Column(f"tags[{session_status_tag_key}]"), Op.EQ, init)
+                    ]
+                    data.extend(
+                        _query_data(
+                            "metrics_counters", "session", metric_id, "value", extra_conditions
+                        )
+                    )
 
                 metric_to_fields["session"] = [_SumSessionField()]
 
@@ -289,6 +312,58 @@ def run_sessions_query(
     }
 
 
+def _get_filter_conditions(org_id, conditions):
+
+    # Translate given conditions to typed query:
+    dummy_entity = "metrics_sets"
+    filter_conditions = json_to_snql(
+        {"selected_columns": ["value"], "conditions": conditions}, entity=dummy_entity
+    ).where
+    return _translate_conditions(org_id, filter_conditions)
+
+
+def _translate_conditions(org_id, input_):
+    if isinstance(input_, Column):
+        # The only filterable tag keys are release and environment.
+        assert input_.name in ("release", "environment")
+        # It greatly simplifies code if we just assume that they exist.
+        # Alternative would be:
+        #   * if tag key or value does not exist in AND-clause, return no data
+        #   * if tag key or value does not exist in OR-clause, remove condition
+        tag_key = indexer.resolve(org_id, UseCase.TAG_KEY, input_.name)
+        assert tag_key is not None
+
+        return Column(f"tags[{tag_key}]")
+
+    if isinstance(input_, str):
+        # Assuming this is the right-hand side, we need to fetch a tag value.
+        # It's OK if the tag value resolves to None, the snuba query will then
+        # return no results, as is intended behavior
+
+        return indexer.resolve(org_id, UseCase.TAG_VALUE, input_)
+
+    if isinstance(input_, Function):
+
+        return Function(
+            function=input_.function, parameters=_translate_conditions(org_id, input_.parameters)
+        )
+
+    if isinstance(input_, Condition):
+
+        return Condition(
+            lhs=_translate_conditions(org_id, input_.lhs),
+            op=input_.op,
+            rhs=_translate_conditions(org_id, input_.rhs),
+        )
+
+    if isinstance(input_, (int, float)):
+
+        return input_
+
+    assert isinstance(input_, list), input_
+    return [_translate_conditions(org_id, item) for item in input_]
+
+
 class _Field:
     def get_session_status(self, raw_session_status: Optional[str]) -> Optional[str]:
         return None
@@ -343,7 +418,3 @@ class _DistributionField(_Field):
 
     def get_value(self, flat_data, key):
         return -1  # FIXME
-
-
-def _get_query(for_series: bool):
-    return
