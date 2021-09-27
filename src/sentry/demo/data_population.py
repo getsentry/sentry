@@ -967,7 +967,7 @@ class DataPopulation:
             "projects": [project.id],
             "range": "7d",
             "environment": [],
-            "yAxis": "p75(transaction.duration)",
+            "yAxis": ["p75(transaction.duration)"],
             "display": "daily",
         }
 

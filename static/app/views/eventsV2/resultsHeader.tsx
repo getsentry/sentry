@@ -26,6 +26,7 @@ type Props = {
   onIncompatibleAlertQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
+  yAxis: string[];
 };
 
 type State = {
@@ -86,8 +87,14 @@ class ResultsHeader extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization, location, errorCode, eventView, onIncompatibleAlertQuery} =
-      this.props;
+    const {
+      organization,
+      location,
+      errorCode,
+      eventView,
+      onIncompatibleAlertQuery,
+      yAxis,
+    } = this.props;
     const {savedQuery, loading} = this.state;
 
     return (
@@ -115,6 +122,7 @@ class ResultsHeader extends React.Component<Props, State> {
             disabled={errorCode >= 400 && errorCode < 500}
             updateCallback={() => this.fetchData()}
             onIncompatibleAlertQuery={onIncompatibleAlertQuery}
+            yAxis={yAxis}
           />
         </Layout.HeaderActions>
       </Layout.Header>
