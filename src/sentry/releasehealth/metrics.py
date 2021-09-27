@@ -502,7 +502,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ]
 
         # Percentiles of session duration
-        rv_durations = {}
+        rv_durations: Mapping[Tuple[int, str], Any] = {}
 
         for row in raw_snql_query(
             Query(
@@ -518,13 +518,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             referrer="releasehealth.metrics.get_release_health_data_overview",
         )["data"]:
             # See https://github.com/getsentry/snuba/blob/8680523617e06979427bfa18c6b4b4e8bf86130f/snuba/datasets/entities/metrics.py#L184 for quantiles
-            rv_durations[row["project_id"], reverse_tag_value(org_id, row[release_column_name])] = {
+            key = row["project_id"], reverse_tag_value(org_id, row[release_column_name])
+            rv_durations[key] = {
                 "duration_p50": row["percentiles"][0],
                 "duration_p90": row["percentiles"][2],
             }
 
         # Count of errored sessions, incl fatal (abnormal, crashed) sessions
-        rv_errored_sessions = {}
+        rv_errored_sessions: Mapping[Tuple[int, str], int] = {}
 
         for row in raw_snql_query(
             Query(
@@ -539,11 +540,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ),
             referrer="releasehealth.metrics.get_release_health_data_overview.errored",
         )["data"]:
-            rv_errored_sessions[
-                row["project_id"], reverse_tag_value(org_id, row[release_column_name])
-            ] = row["value"]
+            key = row["project_id"], reverse_tag_value(org_id, row[release_column_name])
+            rv_errored_sessions[key] = row["value"]
 
-        rv_sessions = {}
+        rv_sessions: Mapping[Tuple[int, str, str], int] = {}
 
         # Count of init, abnormal and crashed sessions, each
         session_status_column_name = tag_key(org_id, "session.status")
@@ -566,14 +566,15 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ),
             referrer="releasehealth.metrics.get_release_health_data_overview.sessions_statuses",
         )["data"]:
-            rv_sessions[
+            key = (
                 row["project_id"],
                 reverse_tag_value(org_id, row[release_column_name]),
-                row[session_status_column_name],
-            ] = row["value"]
+                reverse_tag_value(org_id, row[session_status_column_name]),
+            )
+            rv_sessions[key] = row["value"]
 
         # Count of users and crashed users
-        rv_users = {}
+        rv_users: Mapping[Tuple[int, str, str], int] = {}
 
         for row in raw_snql_query(
             Query(
@@ -593,15 +594,18 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ),
             referrer="releasehealth.metrics.get_release_health_data_overview.users",
         )["data"]:
-            rv_users[row["project_id"], reverse_tag_value(org_id, row[release_column_name])] = row[
-                "value"
-            ]
+            key = (
+                row["project_id"],
+                reverse_tag_value(org_id, row[release_column_name]),
+                reverse_tag_value(org_id, row[session_status_column_name]),
+            )
+            rv_users[key] = row["value"]
 
         release_adoption = releasehealth.get_release_adoption(project_releases, environments)
 
         rv = {}
 
-        missing_releases = set()
+        fetch_has_health_data_releases = set()
 
         for project_id, release in project_releases:
             rv_row = rv[project_id, release] = {
@@ -621,7 +625,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             # over 90d just to see if health data is available to compute
             # has_health_data correctly.
             if not total_sessions and summary_stats_period != "90d":
-                missing_releases.add((project_id, release))
+                fetch_has_health_data_releases.add((project_id, release))
 
             rv_row["sessions_crashed"] = sessions_crashed = rv_sessions.get(
                 (project_id, release, "crashed"), 0
@@ -656,10 +660,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)
                 }
 
-        if missing_releases:
-            has_health_data = releasehealth.check_has_health_data(missing_releases)  # type: ignore
+        if fetch_has_health_data_releases:
+            has_health_data = releasehealth.check_has_health_data(fetch_has_health_data_releases)  # type: ignore
 
-            for key in missing_releases:
+            for key in fetch_has_health_data_releases:
                 rv[key]["has_health_data"] = key in has_health_data
 
         return rv
