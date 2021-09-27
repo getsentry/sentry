@@ -201,6 +201,7 @@ const Column = styled('div')`
 
 const StyledCount = styled(Count)`
   ${columnStyle}
+  font-variant-numeric: tabular-nums;
 `;
 
 const Diff = styled('div')`

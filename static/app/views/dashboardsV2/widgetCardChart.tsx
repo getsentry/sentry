@@ -270,7 +270,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {
       grid: {
-        left: 0,
+        left: 4,
         right: 0,
         top: '40px',
         bottom: 0,

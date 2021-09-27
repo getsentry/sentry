@@ -69,6 +69,7 @@ const TimeWrapper = styled('div')`
 
 const EventCount = styled('div')`
   align-items: center;
+  font-variant-numeric: tabular-nums;
   line-height: 1.1;
 `;
 

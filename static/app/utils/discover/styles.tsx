@@ -19,11 +19,13 @@ export const VersionContainer = styled('div')`
 
 export const NumberContainer = styled('div')`
   text-align: right;
+  font-variant-numeric: tabular-nums;
   ${overflowEllipsis};
 `;
 
 export const FieldDateTime = styled(DateTime)`
   color: ${p => p.theme.gray300};
+  font-variant-numeric: tabular-nums;
   ${overflowEllipsis};
 `;
 

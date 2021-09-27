@@ -103,11 +103,11 @@ class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
               </InnerRow>
               <InnerRow>
                 <Text>{row.dateLabel}</Text>
-                <Text right>
+                <Percent right>
                   {defined(row.crashFreeUsers)
                     ? displayCrashFreePercent(row.crashFreeUsers)
                     : '-'}
-                </Text>
+                </Percent>
               </InnerRow>
             </Row>
           ))}
@@ -159,6 +159,10 @@ const Text = styled('div')<{bold?: boolean; right?: boolean}>`
   color: ${p => (p.bold ? p.theme.textColor : p.theme.gray300)};
   padding-bottom: ${space(0.25)};
   ${overflowEllipsis};
+`;
+
+const Percent = styled(Text)`
+  font-variant-numeric: tabular-nums;
 `;
 
 export default TotalCrashFreeUsers;

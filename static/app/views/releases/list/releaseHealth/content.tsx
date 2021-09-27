@@ -347,6 +347,8 @@ const Column = styled('div')`
 `;
 
 const NewIssuesColumn = styled(Column)`
+  font-variant-numeric: tabular-nums;
+
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     text-align: right;
   }
@@ -354,6 +356,8 @@ const NewIssuesColumn = styled(Column)`
 
 const AdoptionColumn = styled(Column)`
   display: none;
+  font-variant-numeric: tabular-nums;
+
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: flex;
     /* Chart tooltips need overflow */
@@ -367,6 +371,8 @@ const AdoptionColumn = styled(Column)`
 
 const AdoptionStageColumn = styled(Column)`
   display: none;
+  font-variant-numeric: tabular-nums;
+
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     display: flex;
 
@@ -387,6 +393,8 @@ const AdoptionWrapper = styled('span')`
 `;
 
 const CrashFreeRateColumn = styled(Column)`
+  font-variant-numeric: tabular-nums;
+
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     text-align: center;
   }
@@ -398,6 +406,7 @@ const CrashFreeRateColumn = styled(Column)`
 
 const CrashesColumn = styled(Column)`
   display: none;
+  font-variant-numeric: tabular-nums;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: block;

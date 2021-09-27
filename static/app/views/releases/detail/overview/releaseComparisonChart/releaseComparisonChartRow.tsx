@@ -61,7 +61,7 @@ function ReleaseComparisonChartRow({
           {releaseComparisonChartLabels[type]}&nbsp;{drilldown}
         </TitleWrapper>
       </DescriptionCell>
-      <Cell>
+      <NumericCell>
         {showPlaceholders ? (
           <Placeholder height="20px" />
         ) : defined(allReleases) ? (
@@ -69,8 +69,8 @@ function ReleaseComparisonChartRow({
         ) : (
           <NotAvailable />
         )}
-      </Cell>
-      <Cell>
+      </NumericCell>
+      <NumericCell>
         {showPlaceholders ? (
           <Placeholder height="20px" />
         ) : defined(thisRelease) ? (
@@ -78,8 +78,8 @@ function ReleaseComparisonChartRow({
         ) : (
           <NotAvailable />
         )}
-      </Cell>
-      <Cell>
+      </NumericCell>
+      <NumericCell>
         {showPlaceholders ? (
           <Placeholder height="20px" />
         ) : defined(diff) ? (
@@ -87,7 +87,7 @@ function ReleaseComparisonChartRow({
         ) : (
           <NotAvailable />
         )}
-      </Cell>
+      </NumericCell>
       {withExpanders && (
         <ExpanderCell>
           {role === 'parent' && (
@@ -109,6 +109,10 @@ const Cell = styled('div')`
   text-align: right;
   color: ${p => p.theme.subText};
   ${overflowEllipsis}
+`;
+
+const NumericCell = styled(Cell)`
+  font-variant-numeric: tabular-nums;
 `;
 
 const DescriptionCell = styled(Cell)`
@@ -166,16 +170,16 @@ const ChartTableRow = styled('label')<{
     p.isActive &&
     !p.isLoading &&
     css`
-      ${Cell}, ${DescriptionCell}, ${TitleWrapper}, ${ExpanderCell} {
+      ${Cell}, ${NumericCell}, ${DescriptionCell}, ${TitleWrapper}, ${ExpanderCell} {
         background-color: ${p.theme.bodyBackground};
       }
     `}
 
   &:hover {
     cursor: pointer;
-    ${/* sc-selector */ Cell}, ${/* sc-selector */ DescriptionCell},${
-      /* sc-selector */ ExpanderCell
-    }, ${/* sc-selector */ TitleWrapper} {
+    ${/* sc-selector */ Cell}, ${/* sc-selector */ NumericCell}, ${
+      /* sc-selector */ DescriptionCell
+    },${/* sc-selector */ ExpanderCell}, ${/* sc-selector */ TitleWrapper} {
       ${p => !p.isLoading && `background-color: ${p.theme.bodyBackground}`}
     }
   }
@@ -184,7 +188,7 @@ const ChartTableRow = styled('label')<{
     (p.role === 'default' || (p.role === 'parent' && !p.expanded)) &&
     css`
       &:not(:last-child) {
-        ${Cell}, ${DescriptionCell}, ${ExpanderCell} {
+        ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {
           border-bottom: 1px solid ${p.theme.border};
         }
       }
@@ -212,7 +216,7 @@ const ChartTableRow = styled('label')<{
     ${p =>
     p.role === 'children' &&
     css`
-      ${Cell}, ${DescriptionCell}, ${ExpanderCell} {
+      ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {
         padding-bottom: ${space(0.75)};
         padding-top: ${space(0.75)};
         border-bottom: 0;
