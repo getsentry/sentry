@@ -2,9 +2,9 @@ import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {GlobalSelection, Organization, Project} from 'app/types';
-import {analytics, metric} from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization, {isLightweightOrganization} from 'app/utils/withOrganization';
+import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
 import GroupDetails from './groupDetails';
@@ -18,28 +18,11 @@ type Props = {
 } & RouteComponentProps<{orgId: string; groupId: string}, {}>;
 
 class OrganizationGroupDetails extends React.Component<Props> {
-  constructor(props: Props) {
-    super(props);
-
-    // Setup in the constructor as render() may be expensive
-    this.startMetricCollection();
-  }
-
   componentDidMount() {
     analytics('issue_page.viewed', {
       group_id: parseInt(this.props.params.groupId, 10),
       org_id: parseInt(this.props.organization.id, 10),
     });
-  }
-
-  /**
-   * See "page-issue-list-start" for explanation on hot/cold-starts
-   */
-  startMetricCollection() {
-    const startType = isLightweightOrganization(this.props.organization)
-      ? 'cold-start'
-      : 'warm-start';
-    metric.mark({name: 'page-issue-details-start', data: {start_type: startType}});
   }
 
   render() {

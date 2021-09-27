@@ -19,9 +19,7 @@ import AuthLayout from 'app/views/auth/layout';
 import IssueListContainer from 'app/views/issueList/container';
 import IssueListOverview from 'app/views/issueList/overview';
 import OrganizationContextContainer from 'app/views/organizationContext';
-import OrganizationDetails, {
-  LightWeightOrganizationDetails,
-} from 'app/views/organizationDetails';
+import OrganizationDetails from 'app/views/organizationDetails';
 import {Tab} from 'app/views/organizationGroupDetails/types';
 import OrganizationRoot from 'app/views/organizationRoot';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
@@ -868,11 +866,7 @@ function routes() {
           </Route>
         </Route>
 
-        {/* A route tree for lightweight organizational detail views. We place
-      this above the heavyweight organization detail views because there
-      exist some redirects from deprecated routes which should not take
-      precedence over these lightweight routes */}
-        <Route component={errorHandler(LightWeightOrganizationDetails)}>
+        <Route component={errorHandler(OrganizationDetails)}>
           <Route
             path="/organizations/:orgId/projects/"
             componentPromise={() => import('app/views/projectsDashboard')}
@@ -1582,7 +1576,6 @@ function routes() {
           </Route>
         </Route>
 
-        {/* The heavyweight organization detail views */}
         <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
           <Route component={errorHandler(OrganizationRoot)}>
             {hook('routes:organization-root')}
@@ -1692,9 +1685,7 @@ function routes() {
           </Route>
         </Route>
 
-        {/* A route tree for lightweight organizational detail views.
-          This is strictly for deprecated URLs that we need to maintain */}
-        <Route component={errorHandler(LightWeightOrganizationDetails)}>
+        <Route component={errorHandler(OrganizationDetails)}>
           {/* This is in the bottom lightweight group because "/organizations/:orgId/projects/new/" in heavyweight needs to be matched first */}
           <Route
             path="/organizations/:orgId/projects/:projectId/"

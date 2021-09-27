@@ -279,6 +279,7 @@ function RuleModal({
           <Button
             priority="primary"
             onClick={() => onSubmit({conditions, sampleRate, submitRules})}
+            title={submitDisabled ? t('Required fields must be filled out') : undefined}
             disabled={submitDisabled}
           >
             {t('Save Rule')}

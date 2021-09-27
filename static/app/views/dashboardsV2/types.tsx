@@ -8,6 +8,7 @@ export enum DisplayType {
   WORLD_MAP = 'world_map',
   BIG_NUMBER = 'big_number',
   STACKED_AREA = 'stacked_area',
+  TOP_N = 'top_n',
 }
 
 export type WidgetQuery = {

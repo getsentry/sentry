@@ -75,13 +75,13 @@ class RuleNode extends React.Component<Props> {
       }
     }
 
-    // Cast `key` to string, this problem pops up because of react-select v3 where
-    // `value` requires the `option` object (e.g. {label, object}) - we have
-    // helpers in `SelectControl` to filter `choices` to produce the value object
-    //
-    // However there are integrations that give the form field choices with the value as number, but
+    // Cast `value` to string
+    // There are integrations that give the form field choices with the value as number, but
     // when the integration configuration gets saved, it gets saved and returned as a string
-    const options = fieldConfig.choices.map(([value, label]) => ({value, label}));
+    const options = fieldConfig.choices.map(([value, label]) => ({
+      value: `${value}`,
+      label,
+    }));
 
     const handleChange = ({value}) => {
       if (fieldConfig.resetsForm) {
@@ -90,7 +90,6 @@ class RuleNode extends React.Component<Props> {
         onPropertyChange(index, name, value);
       }
     };
-
     return (
       <InlineSelectControl
         isClearable={false}
