@@ -22,6 +22,7 @@ import {Organization, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
+import {decodeList} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 
 import {handleCreateQuery, handleDeleteQuery} from './savedQuery/utils';
@@ -67,23 +68,24 @@ class QueryList extends React.Component<Props> {
     });
   };
 
-  handleDuplicateQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
-    event.preventDefault();
-    event.stopPropagation();
+  handleDuplicateQuery =
+    (eventView: EventView, yAxis: string[]) => (event: React.MouseEvent<Element>) => {
+      event.preventDefault();
+      event.stopPropagation();
 
-    const {api, location, organization, onQueryChange} = this.props;
+      const {api, location, organization, onQueryChange} = this.props;
 
-    eventView = eventView.clone();
-    eventView.name = `${eventView.name} copy`;
+      eventView = eventView.clone();
+      eventView.name = `${eventView.name} copy`;
 
-    handleCreateQuery(api, organization, eventView).then(() => {
-      onQueryChange();
-      browserHistory.push({
-        pathname: location.pathname,
-        query: {},
+      handleCreateQuery(api, organization, eventView, yAxis).then(() => {
+        onQueryChange();
+        browserHistory.push({
+          pathname: location.pathname,
+          query: {},
+        });
       });
-    });
-  };
+    };
 
   handleAddQueryToDashboard =
     (eventView: EventView, savedQuery?: SavedQuery) =>
@@ -274,7 +276,10 @@ class QueryList extends React.Component<Props> {
               </MenuItem>
               <MenuItem
                 data-test-id="duplicate-query"
-                onClick={this.handleDuplicateQuery(eventView)}
+                onClick={this.handleDuplicateQuery(
+                  eventView,
+                  decodeList(savedQuery.yAxis)
+                )}
               >
                 {t('Duplicate Query')}
               </MenuItem>

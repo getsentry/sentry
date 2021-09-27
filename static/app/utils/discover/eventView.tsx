@@ -13,7 +13,6 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
 import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'app/types';
 import {
   aggregateOutputType,
@@ -430,7 +429,8 @@ class EventView {
         },
         'environment'
       ),
-      yAxis: saved.yAxis,
+      // Workaround to only use the first yAxis since eventView yAxis doesn't accept string[]
+      yAxis: Array.isArray(saved.yAxis) ? saved.yAxis[0] : saved.yAxis,
       display: saved.display,
       createdBy: saved.createdBy,
       expired: saved.expired,
@@ -463,7 +463,10 @@ class EventView {
             ? decodeQuery(location)
             : queryStringFromSavedQuery(saved),
         sorts: sorts.length === 0 ? fromSorts(saved.orderby) : sorts,
-        yAxis: decodeScalar(location.query.yAxis) || saved.yAxis,
+        yAxis:
+          decodeScalar(location.query.yAxis) ||
+          // Workaround to only use the first yAxis since eventView yAxis doesn't accept string[]
+          (Array.isArray(saved.yAxis) ? saved.yAxis[0] : saved.yAxis),
         display: decodeScalar(location.query.display) || saved.display,
         interval: decodeScalar(location.query.interval),
         createdBy: saved.createdBy,
@@ -544,7 +547,7 @@ class EventView {
       end: this.end,
       range: this.statsPeriod,
       environment: this.environment,
-      yAxis: this.yAxis,
+      yAxis: this.yAxis ? [this.yAxis] : undefined,
       display: this.display,
     };
 
@@ -617,7 +620,6 @@ class EventView {
   }
 
   generateQueryStringObject(): Query {
-    const user = ConfigStore.get('user');
     const output = {
       id: this.id,
       name: this.name,
@@ -630,7 +632,6 @@ class EventView {
       yAxis: this.yAxis || this.getYAxis(),
       display: this.display,
       interval: this.interval,
-      user: user.id,
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
@@ -1125,8 +1126,7 @@ class EventView {
   }
 
   getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
-    const user = ConfigStore.get('user');
-    const output = {id: this.id, user: user.id};
+    const output = {id: this.id};
     for (const field of [...Object.values(URL_PARAM), 'cursor']) {
       if (this[field] && this[field].length) {
         output[field] = this[field];
