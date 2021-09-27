@@ -2,7 +2,6 @@
 from the `metrics` dataset instead of `sessions`.
 
 Do not call this module directly. Use the `releasehealth` service instead. """
-import enum
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -70,29 +69,6 @@ class SessionsQueryResult(TypedDict):
     groups: Sequence[SessionsQueryGroup]
 
 
-class _SelectField(enum.Enum):
-    SUM_SESSION = "sum(session)"
-    COUNT_UNIQUE_USER = "count_unique(user)"
-    AVG_SESSION_DURATION = "avg(session.duration)"
-    P50_SESSION_DURATION = "p50(session.duration)"
-    P75_SESSION_DURATION = "p75(session.duration)"
-    P90_SESSION_DURATION = "p90(session.duration)"
-    P95_SESSION_DURATION = "p95(session.duration)"
-    P99_SESSION_DURATION = "p99(session.duration)"
-    MAX_SESSION_DURATION = "max(session.duration)"
-
-
-# class _GroupByField(enum.Enum):
-#     PROJECT = "project"
-#     RELEASE = "release"
-#     ENVIRONMENT = "environment"
-#     SESSION_STATUS = "session.status"
-
-
-# ]
-# FilterField = Literal["project", "release", "environment"]
-
-
 @dataclass(frozen=True)
 class _FlatKey:
     metric_name: str
@@ -101,6 +77,7 @@ class _FlatKey:
     environment: Optional[str] = None
     bucketed_time: Optional[datetime] = None
     column: Literal["value", "avg", "max", "p50", "p75", "p90", "p95", "p99"] = "value"
+    project_id: Optional[int] = None
 
 
 def run_sessions_query(
@@ -124,14 +101,17 @@ def run_sessions_query(
     tag_key_environment = indexer.resolve(org_id, UseCase.TAG_KEY, "environment")
     assert tag_key_environment is not None
 
-    tag_keys = {
-        field: indexer.resolve(org_id, UseCase.TAG_KEY, field) for field in query.raw_groupby
-    }
+    groupby_tags = [field for field in query.raw_groupby if field != "project"]
+
+    tag_keys = {field: indexer.resolve(org_id, UseCase.TAG_KEY, field) for field in groupby_tags}
     groupby = {
         field: Column(f"tags[{tag_id}]")
         for field, tag_id in tag_keys.items()
         if tag_id is not None  # exclude unresolved keys from groupby
     }
+
+    if "project" in query.raw_groupby:
+        groupby["project"] = Column("project_id")
 
     data = []
 
@@ -239,9 +219,6 @@ def run_sessions_query(
                     data.extend(
                         _query_data("metrics_sets", "session.error", error_metric_id, ["value"])
                     )
-
-                metric_to_fields["session"] = [_SumSessionByStatusField()]
-
             else:
                 # Simply count the number of started sessions:
                 init = indexer.resolve(org_id, UseCase.TAG_VALUE, "init")
@@ -255,7 +232,7 @@ def run_sessions_query(
                         )
                     )
 
-                metric_to_fields["session"] = [_SumSessionField()]
+            metric_to_fields["session"] = [_SumSessionField()]
 
     flat_data: Dict[_FlatKey, Union[None, float, Sequence[float]]] = {}
     for metric_name, metric_data in data:
@@ -273,6 +250,7 @@ def run_sessions_query(
                 release=row.pop(f"tags[{tag_key_release}]", None),
                 environment=row.pop(f"tags[{tag_key_environment}]", None),
                 bucketed_time=row.pop("bucketed_time", None),
+                project_id=row.pop("project_id", None),
             )
 
             # Percentile column expands into multiple "virtual" columns:
@@ -321,6 +299,8 @@ def run_sessions_query(
                 org_id, UseCase.TAG_VALUE, key.environment
             )
             assert environment is not None
+        if key.project_id is not None:
+            by["project"] = key.project_id
 
         assert fields
 
@@ -435,38 +415,42 @@ class _UserField(_Field):
 
     name = "count_unique(user)"
 
-    def get_session_status(self, raw_session_status: Optional[str]):
-        # Not every init session is healthy, but that is taken care of in get_value
-        return "healthy" if raw_session_status == "init" else raw_session_status
-
     def get_values(self, flat_data, key) -> Sequence[StatusValue]:
 
+        if key.raw_session_status is None:
+            return [StatusValue(None, int(flat_data[key]))]
+
         if key.raw_session_status == "init":
-            # Transform init to healthy:
-            errored_key = replace(key, raw_session_status="errored")
+            # sessions_v2 always shows all session statuses (even if they have a count of 0),
+            # So let's hardcode them here
             started = int(flat_data[key])
-            errored = int(flat_data[errored_key])
+            abnormal = int(flat_data.get(replace(key, raw_session_status="abnormal"), 0))
+            crashed = int(flat_data.get(replace(key, raw_session_status="crashed"), 0))
+            all_errored = int(flat_data.get(replace(key, raw_session_status="crashed"), 0))
+
+            healthy = max(0, started - all_errored)
+            errored = max(0, all_errored - abnormal - crashed)
 
             return [
-                StatusValue("healthy", started - errored),
-                StatusValue("errored", errored),  # FIXME: subtract fatals
+                StatusValue("abnormal", abnormal),
+                StatusValue("crashed", crashed),
+                StatusValue("errored", errored),
+                StatusValue("healthy", healthy),
             ]
 
-        return [StatusValue(key.raw_session_status, int(flat_data[key]))]
+        return []  # Everything's been handled above
 
 
 class _SumSessionField(_Field):
-    name = "sum(session)"
-
-
-class _SumSessionByStatusField(_SumSessionField):
     """Specialized version for when grouped by session.status"""
 
-    def get_session_status(self, raw_session_status: Optional[str]):
-        # Not every init session is healthy, but that is taken care of in get_value
-        return "healthy" if raw_session_status == "init" else raw_session_status
+    name = "sum(session)"
 
     def get_values(self, flat_data, key) -> Sequence[StatusValue]:
+
+        if key.raw_session_status is None:
+            return [StatusValue(None, int(flat_data[key]))]
+
         if key.raw_session_status == "init":
             # sessions_v2 always shows all session statuses (even if they have a count of 0),
             # So let's hardcode them here
@@ -486,9 +470,10 @@ class _SumSessionByStatusField(_SumSessionField):
                 StatusValue("healthy", healthy),
             ]
 
-        return []
+        return []  # Everything's been handled above
 
 
 class _DistributionField(_Field):
     def __init__(self, name: str) -> None:
         self.name = name
+        # TODO: handle group status here
