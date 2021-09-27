@@ -167,7 +167,7 @@ class LinkSharedEventTest(BaseEventTest):
 
     def test_valid_token(self):
         data = self.share_links()
-        assert data["token"] == "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        assert data["token"] == "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
 
     def test_user_access_token(self):
         # this test is needed to make sure that classic bots installed by on-prem users
@@ -266,7 +266,7 @@ class MessageIMEventTest(BaseEventTest):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT))
         assert resp.status_code == 200, resp.content
         request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         data = json.loads(request.body)
         heading, contents = self.get_block_section_text(data)
         assert heading == "Unknown command: `helloo`"
@@ -286,7 +286,7 @@ class MessageIMEventTest(BaseEventTest):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_LINK))
         assert resp.status_code == 200, resp.content
         request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         data = json.loads(request.body)
         assert "Link your Slack identity" in data["text"]
 
@@ -308,7 +308,7 @@ class MessageIMEventTest(BaseEventTest):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_LINK))
         assert resp.status_code == 200, resp.content
         request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         data = json.loads(request.body)
         assert "You are already linked" in data["text"]
 
@@ -330,7 +330,7 @@ class MessageIMEventTest(BaseEventTest):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_UNLINK))
         assert resp.status_code == 200, resp.content
         request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         data = json.loads(request.body)
         assert "Click here to unlink your identity" in data["text"]
 
@@ -345,7 +345,7 @@ class MessageIMEventTest(BaseEventTest):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT_UNLINK))
         assert resp.status_code == 200, resp.content
         request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         data = json.loads(request.body)
         assert "You do not have a linked identity to unlink" in data["text"]
 

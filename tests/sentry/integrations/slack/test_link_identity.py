@@ -87,6 +87,8 @@ class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
         self.unlinking_url = build_unlinking_url(
             self.integration.id,
+            # TODO(mgaeta): Remove parameter.
+            self.organization.id,
             self.external_id,
             self.channel_id,
             self.response_url,

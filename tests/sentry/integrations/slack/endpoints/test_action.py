@@ -310,7 +310,7 @@ class StatusActionTest(BaseEventTest):
         self.group = Group.objects.get(id=self.group.id)
 
         associate_url = build_unlinking_url(
-            self.integration.id, self.org.id, "slack_id2", "C065W1189", self.response_url
+            self.integration.id, self.organization.id, "slack_id2", "C065W1189", self.response_url
         )
 
         assert resp.status_code == 200, resp.content
@@ -375,7 +375,11 @@ class StatusActionTest(BaseEventTest):
         # client_put.assert_called()
 
         associate_url = build_unlinking_url(
-            self.integration.id, self.org.id, self.external_id, "C065W1189", self.response_url
+            self.integration.id,
+            self.organization.id,
+            self.external_id,
+            "C065W1189",
+            self.response_url,
         )
 
         assert resp.status_code == 200, resp.content
