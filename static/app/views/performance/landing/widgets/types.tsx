@@ -6,10 +6,6 @@ import BaseChart from 'app/components/charts/baseChart';
 import {RenderProps} from 'app/components/charts/eventsRequest';
 import {DateString, Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import {
-  HistogramChildren,
-  HistogramChildrenProps,
-} from 'app/utils/performance/histogram/histogramQuery';
 
 import {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
 
@@ -119,9 +115,6 @@ export type WidgetDataProps<T> = {
   widgetData: T;
   setWidgetDataForKey: (dataKey: string, result?: WidgetDataResult) => void;
 };
-
-export type HistogramQueryChildrenProps = HistogramChildrenProps;
-export type HistogramQueryChildren = HistogramChildren;
 
 export type EventsRequestChildrenProps = RenderProps;
 
