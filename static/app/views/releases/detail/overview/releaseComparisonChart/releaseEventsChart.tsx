@@ -161,6 +161,7 @@ function ReleaseEventsChart({
       field={getField()}
       confirmedQuery={chartType === ReleaseComparisonChartType.FAILURE_RATE}
       partial
+      referrer="api.releases.release-details-chart"
     >
       {({timeseriesData, loading, reloading}) => (
         <EventsChart
@@ -221,6 +222,7 @@ function ReleaseEventsChart({
             }
             return series;
           }}
+          referrer="api.releases.release-details-chart"
         />
       )}
     </EventsRequest>

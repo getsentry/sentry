@@ -66,6 +66,7 @@ type ChartProps = {
   height?: number;
   timeframe?: {start: number; end: number};
   topEvents?: number;
+  referrer?: string;
 };
 
 type State = {
@@ -371,6 +372,10 @@ export type EventsChartProps = {
    * Name of the previous series
    */
   previousSeriesName?: string;
+  /**
+   * A unique name for what's triggering this request, see organization_events_stats for an allowlist
+   */
+  referrer?: string;
 } & Pick<
   ChartProps,
   | 'seriesTransformer'

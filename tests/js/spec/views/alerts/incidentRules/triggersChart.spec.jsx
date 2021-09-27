@@ -56,6 +56,7 @@ describe('Incident Rules Create', () => {
           query: 'event.type:error',
           statsPeriod: '1d',
           yAxis: 'count()',
+          referrer: 'api.organization-event-stats',
         },
       })
     );
@@ -118,6 +119,7 @@ describe('Incident Rules Create', () => {
           query: 'event.type:error',
           statsPeriod: '1d',
           yAxis: 'count()',
+          referrer: 'api.organization-event-stats',
         },
       })
     );

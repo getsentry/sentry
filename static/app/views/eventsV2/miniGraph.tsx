@@ -30,6 +30,7 @@ type Props = {
   eventView: EventView;
   api: Client;
   location: Location;
+  referrer?: string;
 };
 
 class MiniGraph extends React.Component<Props> {
@@ -124,7 +125,7 @@ class MiniGraph extends React.Component<Props> {
   }
 
   render() {
-    const {theme, api} = this.props;
+    const {theme, api, referrer} = this.props;
     const {
       query,
       start,
@@ -161,6 +162,7 @@ class MiniGraph extends React.Component<Props> {
         orderby={orderby}
         expired={expired}
         name={name}
+        referrer={referrer}
         partial
       >
         {({loading, timeseriesData, results, errored}) => {

@@ -57,6 +57,7 @@ describe('Incident Rules Create', function () {
           query: 'event.type:error',
           statsPeriod: '1d',
           yAxis: 'count()',
+          referrer: 'api.organization-event-stats',
         },
       })
     );

@@ -71,6 +71,7 @@ class ResultsChart extends Component<ResultsChartProps> {
     const isPeriod = display === DisplayModes.DEFAULT || display === DisplayModes.TOP5;
     const isDaily = display === DisplayModes.DAILYTOP5 || display === DisplayModes.DAILY;
     const isPrevious = display === DisplayModes.PREVIOUS;
+    const referrer = `api.discover.${display}-chart`;
 
     return (
       <Fragment>
@@ -101,6 +102,7 @@ class ResultsChart extends Component<ResultsChartProps> {
               chartComponent={
                 hasConnectDiscoverAndDashboards && !isDaily ? AreaChart : undefined
               }
+              referrer={referrer}
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,

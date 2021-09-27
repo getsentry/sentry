@@ -87,6 +87,7 @@ function DurationChart(props: Props) {
       yAxis={[field, ..._backupField]}
       partial
       hideError
+      referrer="api.performance.homepage.duration-chart"
     >
       {({
         loading,

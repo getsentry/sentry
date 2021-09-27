@@ -148,6 +148,7 @@ class DurationChart extends Component<Props> {
               yAxis={generateYAxisValues()}
               partial
               withoutZerofill={withoutZerofill}
+              referrer="api.performance.transaction-summary.duration-chart"
             >
               {({results, errored, loading, reloading, timeframe}) => {
                 if (errored) {

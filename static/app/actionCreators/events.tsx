@@ -31,6 +31,7 @@ type Options = {
   orderby?: string;
   partial: boolean;
   withoutZerofill?: boolean;
+  referrer?: string;
 };
 
 /**
@@ -67,6 +68,7 @@ export const doEventsRequest = (
     orderby,
     partial,
     withoutZerofill,
+    referrer,
   }: Options
 ): Promise<EventsStats | MultiSeriesEventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
@@ -83,6 +85,7 @@ export const doEventsRequest = (
       orderby,
       partial: partial ? '1' : undefined,
       withoutZerofill: withoutZerofill ? '1' : undefined,
+      referrer: referrer ? referrer : 'api.organization-event-stats',
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
