@@ -6,7 +6,7 @@ from django.db.models import F, Q
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import analytics, features, releasehealth
+from sentry import analytics, features, release_health
 from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -325,7 +325,7 @@ class OrganizationReleasesEndpoint(
                         : total_offset + limit
                     ]
                 )
-                releases_with_session_data = releasehealth.check_releases_have_health_data(
+                releases_with_session_data = release_health.check_releases_have_health_data(
                     organization.id,
                     filter_params["project_id"],
                     release_versions,

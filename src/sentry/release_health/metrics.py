@@ -454,7 +454,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
 
         result = raw_snql_query(
-            query, referrer="releasehealth.metrics.check_releases_have_health_data", use_cache=False
+            query,
+            referrer="release_health.metrics.check_releases_have_health_data",
+            use_cache=False,
         )
 
         def extract_row_info(row: Mapping[str, Union[OrganizationId, str]]) -> ReleaseName:
