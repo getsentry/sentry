@@ -31,6 +31,7 @@ export const DurationPill = styled('div')<{
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   color: ${p => (p.showDetail === true ? p.theme.gray200 : p.theme.gray300)};
+  font-variant-numeric: tabular-nums;
 
   ${getDurationPillAlignment}
 

@@ -340,11 +340,13 @@ const OpsName = styled('div')`
 
 const Dur = styled('div')`
   color: ${p => p.theme.gray300};
+  font-variant-numeric: tabular-nums;
 `;
 
 const Pct = styled('div')`
   min-width: 40px;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 `;
 
 function mergeInterval(intervals: TimeWindowSpan[]): TimeWindowSpan[] {
