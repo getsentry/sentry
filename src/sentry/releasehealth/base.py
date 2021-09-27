@@ -1,53 +1,16 @@
 from datetime import datetime
 from typing import Mapping, Optional, Sequence, Tuple
 
-from typing_extensions import Literal, TypedDict
+from typing_extensions import TypedDict
 
 from sentry.snuba.sessions_v2 import QueryDefinition
+from sentry.snuba.sessions_v2_metrics import SessionsQueryResult
 from sentry.utils.services import Service
 
 ProjectId = int
 OrganizationId = int
 ReleaseName = str
 EnvironmentName = str
-DateString = str
-
-
-SelectField = Literal[
-    "sum(session)",
-    "count_unique(user)",
-    "avg(session.duration)",
-    "p50(session.duration)",
-    "p75(session.duration)",
-    "p90(session.duration)",
-    "p95(session.duration)",
-    "p99(session.duration)",
-    "max(session.duration)",
-]
-
-GroupByField = Literal[
-    "project",
-    "release",
-    "environment",
-    "session.status",
-]
-FilterField = Literal["project", "release", "environment"]
-
-
-class SessionsQuery(TypedDict):
-    org_id: OrganizationId
-    project_ids: Sequence[ProjectId]
-    select_fields: Sequence[SelectField]
-    filter_query: Mapping[FilterField, str]
-    start: datetime
-    end: datetime
-    rollup: int  # seconds
-
-
-class SessionsQueryGroup(TypedDict):
-    by: Mapping[GroupByField, str]
-    series: Mapping[SelectField, Sequence[float]]
-    totals: Mapping[SelectField, float]
 
 
 class ReleaseHealthBackend(Service):  # type: ignore
@@ -143,12 +106,6 @@ class ReleaseHealthBackend(Service):  # type: ignore
         """
 
         raise NotImplementedError()
-
-    class SessionsQueryResult(TypedDict):
-        start: DateString
-        end: DateString
-        intervals: Sequence[DateString]
-        groups: Sequence[SessionsQueryGroup]
 
     def run_sessions_query(
         self,

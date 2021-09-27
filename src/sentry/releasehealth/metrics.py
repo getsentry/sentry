@@ -17,7 +17,11 @@ from sentry.releasehealth.base import (
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.sessions_v2_metrics import QueryDefinition, run_sessions_query
+from sentry.snuba.sessions_v2_metrics import (
+    QueryDefinition,
+    SessionsQueryResult,
+    run_sessions_query,
+)
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -347,6 +351,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         org_id: int,
         query: QueryDefinition,
         span_op: str,
-    ) -> ReleaseHealthBackend.SessionsQueryResult:
+    ) -> SessionsQueryResult:
 
         return run_sessions_query(org_id, query, span_op)
