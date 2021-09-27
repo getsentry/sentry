@@ -8,7 +8,7 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 
-export default function FinishSetupAlert({
+export default function SampleEventAlert({
   organization,
   project,
 }: {
@@ -20,18 +20,18 @@ export default function FinishSetupAlert({
       <IconLightning />
       <TextWrapper>
         {t(
-          'You are viewing a sample transaction. Configure performance to start viewing real transactions.'
+          'You are viewing a sample error. Configure Sentry to start viewing real errors.'
         )}
       </TextWrapper>
       <Button
         size="xsmall"
         priority="primary"
-        target="_blank"
-        external
-        href="https://docs.sentry.io/performance-monitoring/getting-started/"
+        to={`/${organization.slug}/${project.slug}/getting-started/${
+          project.platform || ''
+        }`}
         onClick={() =>
           trackAdvancedAnalyticsEvent('growth.sample_transaction_docs_link_clicked', {
-            project_id: project.id,
+            project_id: '0',
             organization,
           })
         }
