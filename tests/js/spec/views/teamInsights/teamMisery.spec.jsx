@@ -57,6 +57,6 @@ describe('TeamMisery', () => {
 
     expect(sessionsApi).toHaveBeenCalledTimes(2);
     expect(wrapper.getAllByText(project.slug)).toHaveLength(2);
-    expect(wrapper.getAllByText('0% better')).toHaveLength(2);
+    expect(wrapper.getAllByText('0% change')).toHaveLength(2);
   });
 });
