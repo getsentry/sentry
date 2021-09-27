@@ -4,7 +4,7 @@ from the `metrics` dataset instead of `sessions`.
 Do not call this module directly. Use the `releasehealth` service instead. """
 import enum
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Dict, Mapping, Optional, Sequence, Union
 
@@ -100,6 +100,7 @@ class _FlatKey:
     release: Optional[str] = None
     environment: Optional[str] = None
     bucketed_time: Optional[datetime] = None
+    column: Literal["value", "avg", "max", "p50", "p75", "p90", "p95", "p99"] = "value"
 
 
 def run_sessions_query(
@@ -141,7 +142,7 @@ def run_sessions_query(
     def _query(
         entity: str,
         metric_id: int,
-        column: str,
+        columns: Sequence[str],
         series: bool,
         extra_conditions: Sequence[Condition],
     ) -> Query:
@@ -152,7 +153,7 @@ def run_sessions_query(
         return Query(
             dataset=Dataset.Metrics.value,
             match=Entity(entity),
-            select=[Column(column)],
+            select=[Column(column) for column in columns],
             groupby=full_groupby,
             where=conditions
             + [Condition(Column("metric_id"), Op.EQ, metric_id)]
@@ -180,7 +181,7 @@ def run_sessions_query(
         entity: str,
         metric_name: str,
         metric_id: int,
-        column: str,
+        columns: Sequence[str],
         extra_conditions: Optional[Sequence[Condition]] = None,
     ):
         if extra_conditions is None:
@@ -190,7 +191,7 @@ def run_sessions_query(
             snuba_query = _query(
                 entity,
                 metric_id,
-                column,
+                columns,
                 series=query_type == "series",
                 extra_conditions=extra_conditions,
             )
@@ -201,16 +202,17 @@ def run_sessions_query(
     if "count_unique(user)" in query.raw_fields:
         metric_id = indexer.resolve(org_id, UseCase.METRIC, "user")
         if metric_id is not None:
-            data.extend(_query_data("metrics_sets", "user", metric_id, "value"))
+            data.extend(_query_data("metrics_sets", "user", metric_id, ["value"]))
             metric_to_fields["user"] = [_UserField()]
 
     duration_fields = [field for field in query.raw_fields if "session.duration" in field]
     if duration_fields:
         metric_id = indexer.resolve(org_id, UseCase.METRIC, "session.duration")
         if metric_id is not None:
+            columns = ["percentiles" if field[0] == "p" else field[:3] for field in duration_fields]
             # TODO: What about avg., max.
             data.extend(
-                _query_data("metrics_distributions", "session.duration", metric_id, "percentiles")
+                _query_data("metrics_distributions", "session.duration", metric_id, columns)
             )
             metric_to_fields["session.duration"] = [
                 _DistributionField(field) for field in duration_fields
@@ -223,13 +225,13 @@ def run_sessions_query(
                 # We need session counters grouped by status, as well as the number of errored sessions
 
                 # 1 session counters
-                data.extend(_query_data("metrics_counters", "session", metric_id, "value"))
+                data.extend(_query_data("metrics_counters", "session", metric_id, ["value"]))
 
                 # 2: session.error
                 error_metric_id = indexer.resolve(org_id, UseCase.METRIC, "session.error")
                 if error_metric_id is not None:
                     groupby.pop("session.status")
-                    data.extend(_query_data("metrics_sets", "session", error_metric_id, "value"))
+                    data.extend(_query_data("metrics_sets", "session", error_metric_id, ["value"]))
 
                 metric_to_fields["session"] = [_SumSessionByStatusField()]
 
@@ -242,7 +244,7 @@ def run_sessions_query(
                     ]
                     data.extend(
                         _query_data(
-                            "metrics_counters", "session", metric_id, "value", extra_conditions
+                            "metrics_counters", "session", metric_id, ["value"], extra_conditions
                         )
                     )
 
@@ -251,8 +253,7 @@ def run_sessions_query(
     flat_data: Dict[_FlatKey, Union[None, float, Sequence[float]]] = {}
     for metric_name, metric_data in data:
         for row in metric_data:
-            value_key = "percentiles" if metric_name == "session.duration" else "value"
-            value = row.pop(value_key)
+
             raw_session_status = row.pop(f"tags[{session_status_tag_key}]", None)
             flat_key = _FlatKey(
                 metric_name=metric_name,
@@ -261,7 +262,21 @@ def run_sessions_query(
                 environment=row.pop(f"tags[{tag_key_environment}]", None),
                 bucketed_time=row.pop("bucketed_time", None),
             )
-            flat_data[flat_key] = value
+
+            # Percentile column expands into multiple "virtual" columns:
+            if "percentiles" in row:
+                # TODO: Use percentile enum
+                percentiles = row.pop("percentiles")
+                for i, percentile in enumerate(["p50", "p75", "p90", "p95", "p99"]):
+                    percentile_key = replace(flat_key, column=percentile)
+                    flat_data[percentile_key] = percentiles[i]
+
+            # Remaining data are simple columns:
+            for key in list(row.keys()):
+                assert key in ("avg", "max", "value")
+                flat_data[replace(flat_key, column=key)] = row.pop(key)
+
+            assert row == {}
 
     intervals = list(get_intervals(query))
     timestamp_index = {timestamp.isoformat(): index for index, timestamp in enumerate(intervals)}
@@ -304,7 +319,6 @@ def run_sessions_query(
         for field in fields:
             value = field.get_value(flat_data, key)
             if key.bucketed_time is None:
-                # TODO: handle percentiles
                 group["totals"][field.name] = value
             else:
                 index = timestamp_index[key.bucketed_time]
@@ -402,7 +416,7 @@ class _UserField(_Field):
 
         if key.raw_session_status == "init":
             # Transform init to healthy:
-            errored_key = key.replace(raw_session_status="errored")
+            errored_key = replace(key, raw_session_status="errored")
             started = int(flat_data[key])
             errored = int(flat_data[errored_key])
 
@@ -433,6 +447,3 @@ class _SumSessionByStatusField(_SumSessionField):
 class _DistributionField(_Field):
     def __init__(self, name: str) -> None:
         self.name = name
-
-    def get_value(self, flat_data, key):
-        return -1  # FIXME
