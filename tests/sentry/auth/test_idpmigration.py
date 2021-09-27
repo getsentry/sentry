@@ -25,7 +25,7 @@ class IDPMigrationTests(TestCase):
         assert send_confirm_email.call_args.args[1] == self.email
         assert len(send_confirm_email.call_args.args[2]) == 32
 
-    def test_verify_new_identity(self):
+    def test_verify_account(self):
         verification_key = idpmigration.create_verification_key(self.user, self.org, self.email)
         path = reverse(
             "sentry-idp-email-verification",
@@ -36,7 +36,7 @@ class IDPMigrationTests(TestCase):
         assert response.status_code == 302
         assert response.url == "/auth/login/"
 
-    def test_verify_new_identity_wrong_key(self):
+    def test_verify_account_wrong_key(self):
         idpmigration.create_verification_key(self.user, self.org, self.email)
         path = reverse(
             "sentry-idp-email-verification",

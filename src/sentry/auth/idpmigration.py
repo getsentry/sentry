@@ -66,7 +66,7 @@ def get_redis_key(verification_key: str) -> str:
     return f"auth:one-time-key:{verification_key}"
 
 
-def verify_new_identity(key: str) -> bool:
+def verify_account(key: str) -> bool:
     """Verify a key to migrate a user to a new IdP.
 
     If the provided one-time key is valid, create a new auth identity
