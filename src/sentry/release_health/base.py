@@ -23,6 +23,24 @@ class CurrentAndPreviousCrashFreeRate(TypedDict):
 CurrentAndPreviousCrashFreeRates = Mapping[ProjectId, CurrentAndPreviousCrashFreeRate]
 
 
+class ReleaseAdoption(TypedDict):
+    #: Adoption rate (based on usercount) for a project's release from 0..100
+    adoption: Optional[float]
+    #: Adoption rate (based on sessioncount) for a project's release from 0..100
+    sessions_adoption: Optional[float]
+    #: User count for a project's release (past 24h)
+    users_24h: Optional[int]
+    #: Sessions count for a project's release (past 24h)
+    sessions_24h: Optional[int]
+    #: Sessions count for the entire project (past 24h)
+    project_users_24h: Optional[int]
+    #: Sessions count for the entire project (past 24h)
+    project_sessions_24h: Optional[int]
+
+
+ReleasesAdoption = Mapping[Tuple[ProjectId, ReleaseName], ReleaseAdoption]
+
+
 class ReleaseHealthBackend(Service):  # type: ignore
     """Abstraction layer for all release health related queries"""
 
@@ -71,22 +89,6 @@ class ReleaseHealthBackend(Service):  # type: ignore
             }
         """
         raise NotImplementedError()
-
-    class ReleaseAdoption(TypedDict):
-        #: Adoption rate (based on usercount) for a project's release from 0..100
-        adoption: Optional[float]
-        #: Adoption rate (based on sessioncount) for a project's release from 0..100
-        sessions_adoption: Optional[float]
-        #: User count for a project's release (past 24h)
-        users_24h: Optional[int]
-        #: Sessions count for a project's release (past 24h)
-        sessions_24h: Optional[int]
-        #: Sessions count for the entire project (past 24h)
-        project_users_24h: Optional[int]
-        #: Sessions count for the entire project (past 24h)
-        project_sessions_24h: Optional[int]
-
-    ReleasesAdoption = Mapping[Tuple[ProjectId, ReleaseName], ReleaseAdoption]
 
     def get_release_adoption(
         self,
