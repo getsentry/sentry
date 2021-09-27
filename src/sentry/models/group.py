@@ -307,10 +307,7 @@ class GroupManager(BaseManager):
         )
         if updated_count:
             for group in groups:
-                activity = Activity.objects.create(
-                    project=group.project, group=group, type=activity_type.value
-                )
-                activity.send_notification()
+                Activity.objects.create_group_activity(group, activity_type)
 
 
 class Group(Model):

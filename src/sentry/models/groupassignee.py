@@ -9,6 +9,7 @@ from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
 from sentry.models.activity import Activity
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_assigned
+from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
 
@@ -160,10 +161,9 @@ class GroupAssigneeManager(BaseManager):
             )
 
         if affected:
-            activity = Activity.objects.create(
-                project=group.project,
-                group=group,
-                type=Activity.ASSIGNED,
+            Activity.objects.create_group_activity(
+                group,
+                ActivityType.ASSIGNED,
                 user=acting_user,
                 data={
                     "assignee": str(assigned_to.id),

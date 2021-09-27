@@ -73,6 +73,7 @@ from sentry.reprocessing2 import (
 )
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
+from sentry.types.activity import ActivityType
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -1314,14 +1315,9 @@ def _handle_regression(group, event, release):
                     activity.update(data={"version": release.version})
 
     if is_regression:
-        activity = Activity.objects.create(
-            project_id=group.project_id,
-            group=group,
-            type=Activity.SET_REGRESSION,
-            data={"version": release.version if release else ""},
+        Activity.objects.create_group_activity(
+            group, ActivityType.SET_REGRESSION, data={"version": release.version if release else ""}
         )
-        activity.send_notification()
-
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
