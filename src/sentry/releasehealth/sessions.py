@@ -9,6 +9,7 @@ from sentry.releasehealth.base import (
     ProjectId,
     ReleaseHealthBackend,
     ReleaseName,
+    SessionsQueryResult,
 )
 from sentry.snuba.sessions import _get_release_adoption, get_current_and_previous_crash_free_rates
 from sentry.snuba.sessions_v2 import QueryDefinition, massage_sessions_result, run_sessions_query
@@ -52,7 +53,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         org_id: int,
         query: QueryDefinition,
         span_op: str,
-    ) -> ReleaseHealthBackend.SessionsQueryResult:
+    ) -> SessionsQueryResult:
         with sentry_sdk.start_span(op=span_op, description="run_sessions_query"):
             totals, series = run_sessions_query(query)
 

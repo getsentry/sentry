@@ -58,7 +58,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             "release": "foo@1.0.0",
             "environment": "production",
             "retention_days": 90,
-            "duration": None,
+            "duration": 123.4,
             "errors": 0,
             "started": self.session_started,
             "received": self.received,
@@ -589,6 +589,50 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 "totals": {"count_unique(user)": 0},
             },
         ]
+
+    @freeze_time("2021-01-14T12:27:28.303Z")
+    def test_duration_percentiles(self):
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": [
+                    "avg(session.duration)",
+                    "p50(session.duration)",
+                    "p75(session.duration)",
+                    "p90(session.duration)",
+                    "p95(session.duration)",
+                    "p99(session.duration)",
+                    "max(session.duration)",
+                ],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {},
+                "series": {
+                    "avg(session.duration)": [None],
+                    "max(session.duration)": [None],
+                    "p50(session.duration)": [None],
+                    "p75(session.duration)": [None],
+                    "p90(session.duration)": [None],
+                    "p95(session.duration)": [None],
+                    "p99(session.duration)": [None],
+                },
+                "totals": {
+                    "avg(session.duration)": None,
+                    "max(session.duration)": None,
+                    "p50(session.duration)": None,
+                    "p75(session.duration)": None,
+                    "p90(session.duration)": None,
+                    "p95(session.duration)": None,
+                    "p99(session.duration)": None,
+                },
+            },
+        ], result_sorted(response.data)["groups"]
 
 
 @patch("sentry.api.endpoints.organization_sessions.releasehealth", MetricsReleaseHealthBackend())
