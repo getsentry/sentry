@@ -150,7 +150,7 @@ def _check_has_health_data(projects_list):
     return {data_tuple(x) for x in raw_query(**raw_query_args)["data"]}
 
 
-def check_releases_have_health_data(
+def _check_releases_have_health_data(
     organization_id: int,
     project_ids: List[int],
     release_versions: List[str],
@@ -274,9 +274,7 @@ def get_project_releases_count(
         where=where,
         having=having,
     )
-    data = snuba.raw_snql_query(query, referrer="snuba.sessions.check_releases_have_health_data")[
-        "data"
-    ]
+    data = snuba.raw_snql_query(query, referrer="snuba.sessions.get_project_releases_count")["data"]
     return data[0]["count"] if data else 0
 
 
