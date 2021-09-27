@@ -387,25 +387,27 @@ describe('Filters and Sampling', function () {
       // Clear release field
       fireEvent.change(releaseField, {target: {value: ''}});
 
-      expect(saveRuleButton).toBeDisabled();
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Add new value to the release field
       fireEvent.change(releaseField, {target: {value: '[I3].[0-9]'}});
 
-      expect(saveRuleButton).toBeEnabled();
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
 
       // Clear sample rate field
       fireEvent.change(sampleRateField, {target: {value: null}});
 
-      expect(saveRuleButton).toBeDisabled();
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Update sample rate field
       fireEvent.change(sampleRateField, {target: {value: 50}});
 
-      expect(saveRuleButton).toBeEnabled();
+      // Save button is now enabled
+      const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+      expect(saveRuleButtonEnabled).toBeEnabled();
 
       // Click on save button
-      fireEvent.click(saveRuleButton);
+      fireEvent.click(saveRuleButtonEnabled);
 
       // Modal will close
       await waitForElementToBeRemoved(() => getByText('Edit Error Sampling Rule'));
@@ -425,7 +427,7 @@ describe('Filters and Sampling', function () {
       expect(getByText('50%')).toBeTruthy();
     });
 
-    it('transaction rule', async function () {
+    it('transaction trace rule', async function () {
       // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
@@ -562,25 +564,27 @@ describe('Filters and Sampling', function () {
       // Clear release field
       fireEvent.change(releaseField, {target: {value: ''}});
 
-      expect(saveRuleButton).toBeDisabled();
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Add new value to the release field
       fireEvent.change(releaseField, {target: {value: '[0-9]'}});
 
-      expect(saveRuleButton).toBeEnabled();
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
 
       // Clear sample rate field
       fireEvent.change(sampleRateField, {target: {value: null}});
 
-      expect(saveRuleButton).toBeDisabled();
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Update sample rate field
       fireEvent.change(sampleRateField, {target: {value: 60}});
 
-      expect(saveRuleButton).toBeEnabled();
+      // Save button is now enabled
+      const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+      expect(saveRuleButtonEnabled).toBeEnabled();
 
       // Click on save button
-      fireEvent.click(saveRuleButton);
+      fireEvent.click(saveRuleButtonEnabled);
 
       // Modal will close
       await waitForElementToBeRemoved(() => getByText('Edit Transaction Sampling Rule'));
@@ -589,6 +593,183 @@ describe('Filters and Sampling', function () {
       expect(errorRules).toHaveLength(1);
 
       expect(getByText('Transaction traces')).toBeTruthy();
+      expect(queryAllByText('Release')).toHaveLength(2);
+
+      // Old values
+      expect(queryByText('1.2.3')).toBeFalsy();
+      expect(queryByText('20%')).toBeFalsy();
+
+      // New values
+      expect(getByText('[0-9]')).toBeTruthy();
+      expect(getByText('60%')).toBeTruthy();
+    });
+
+    it('individual transaction rule', async function () {
+      // @ts-expect-error
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/',
+        method: 'GET',
+        // @ts-expect-error
+        body: TestStubs.Project({
+          dynamicSampling: {
+            rules: [
+              {
+                sampleRate: 0.1,
+                type: 'error',
+                condition: {
+                  op: 'and',
+                  inner: [
+                    {
+                      op: 'glob',
+                      name: 'event.release',
+                      value: ['1*'],
+                    },
+                  ],
+                },
+                id: 39,
+              },
+              {
+                sampleRate: 0.2,
+                type: 'transaction',
+                condition: {
+                  op: 'and',
+                  inner: [
+                    {
+                      op: 'glob',
+                      name: 'event.release',
+                      value: ['1.2.3'],
+                    },
+                  ],
+                },
+                id: 40,
+              },
+            ],
+            next_id: 43,
+          },
+        }),
+      });
+
+      // @ts-expect-error
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/',
+        method: 'PUT',
+        // @ts-expect-error
+        body: TestStubs.Project({
+          dynamicSampling: {
+            rules: [
+              {
+                sampleRate: 0.1,
+                type: 'error',
+                condition: {
+                  op: 'and',
+                  inner: [
+                    {
+                      op: 'glob',
+                      name: 'event.release',
+                      value: ['1*'],
+                    },
+                  ],
+                },
+                id: 44,
+              },
+              {
+                sampleRate: 0.6,
+                type: 'transaction',
+                condition: {
+                  op: 'and',
+                  inner: [
+                    {
+                      op: 'glob',
+                      name: 'event.release',
+                      value: ['[0-9]'],
+                    },
+                  ],
+                },
+                id: 45,
+              },
+            ],
+            next_id: 43,
+          },
+        }),
+      });
+
+      const component = renderComponent();
+      const {queryAllByText, queryByText, getByText, queryAllByLabelText} = component;
+
+      // Error rules container
+      expect(queryByText('There are no error rules to display')).toBeFalsy();
+      const errorRules = queryAllByText('Errors only');
+      expect(errorRules).toHaveLength(1);
+
+      // Transaction traces and individual transactions rules container
+      expect(queryByText('There are no transaction rules to display')).toBeFalsy();
+      const transactionTraceRules = queryAllByText('Individual transactions');
+      expect(transactionTraceRules).toHaveLength(1);
+
+      const editRuleButtons = queryAllByLabelText('Edit Rule');
+      expect(editRuleButtons).toHaveLength(2);
+
+      // Open rule modal - edit transaction rule
+      const modal = await renderModal(component, editRuleButtons[1]);
+
+      // Modal content
+      expect(modal.getByText('Edit Transaction Sampling Rule')).toBeTruthy();
+      expect(modal.queryByText('Tracing')).toBeTruthy();
+      expect(modal.getByRole('checkbox')).not.toBeChecked();
+
+      // Release Field
+      const releaseField = modal.getByPlaceholderText(
+        'ex. 1* or [I3].[0-9].* (Multiline)'
+      );
+      expect(releaseField).toBeTruthy();
+
+      // Release field is not empty
+      expect(releaseField).toHaveValue('1.2.3');
+
+      // Button is enabled - meaning the form is valid
+      const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
+      expect(saveRuleButton).toBeTruthy();
+      expect(saveRuleButton).toBeEnabled();
+
+      // Sample rate field
+      const sampleRateField = modal.getByPlaceholderText('\u0025');
+      expect(sampleRateField).toBeTruthy();
+
+      // Sample rate is not empty
+      expect(sampleRateField).toHaveValue(20);
+
+      // Clear release field
+      fireEvent.change(releaseField, {target: {value: ''}});
+
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
+
+      // Add new value to the release field
+      fireEvent.change(releaseField, {target: {value: '[0-9]'}});
+
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
+
+      // Clear sample rate field
+      fireEvent.change(sampleRateField, {target: {value: null}});
+
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
+
+      // Update sample rate field
+      fireEvent.change(sampleRateField, {target: {value: 60}});
+
+      // Save button is now enabled
+      const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+      expect(saveRuleButtonEnabled).toBeEnabled();
+
+      // Click on save button
+      fireEvent.click(saveRuleButtonEnabled);
+
+      // Modal will close
+      await waitForElementToBeRemoved(() => getByText('Edit Transaction Sampling Rule'));
+
+      // Error rules panel is updated
+      expect(errorRules).toHaveLength(1);
+
+      expect(getByText('Individual transactions')).toBeTruthy();
       expect(queryAllByText('Release')).toHaveLength(2);
 
       // Old values
@@ -961,10 +1142,12 @@ describe('Filters and Sampling', function () {
       expect(sampleRateField).toBeTruthy();
       fireEvent.change(sampleRateField, {target: {value: 20}});
 
-      expect(saveRuleButton).toBeEnabled();
+      // Save button is now enabled
+      const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+      expect(saveRuleButtonEnabled).toBeEnabled();
 
       // Click on save button
-      fireEvent.click(saveRuleButton);
+      fireEvent.click(saveRuleButtonEnabled);
 
       // Modal will close
       await waitForElementToBeRemoved(() => getByText('Add Error Sampling Rule'));
@@ -1049,7 +1232,7 @@ describe('Filters and Sampling', function () {
         );
       }
 
-      // Uncheck tracing checkbox
+      // Unchecked tracing checkbox
       fireEvent.click(modal.getByRole('checkbox'));
 
       // Click on 'Add condition'
@@ -1108,6 +1291,9 @@ describe('Filters and Sampling', function () {
         // Open Modal
         const modal = await renderModal(component, getByText('Add transaction rule'));
 
+        // Checked tracing checkbox
+        expect(modal.getByRole('checkbox')).toBeChecked();
+
         // Click on 'Add condition'
         fireEvent.click(modal.getByText('Add Condition'));
 
@@ -1140,10 +1326,12 @@ describe('Filters and Sampling', function () {
         expect(sampleRateField).toBeTruthy();
         fireEvent.change(sampleRateField, {target: {value: 20}});
 
-        expect(saveRuleButton).toBeEnabled();
+        // Save button is now enabled
+        const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+        expect(saveRuleButtonEnabled).toBeEnabled();
 
         // Click on save button
-        fireEvent.click(saveRuleButton);
+        fireEvent.click(saveRuleButtonEnabled);
 
         // Modal will close
         await waitForElementToBeRemoved(() => getByText('Add Transaction Sampling Rule'));
@@ -1195,7 +1383,7 @@ describe('Filters and Sampling', function () {
           // Open Modal
           const modal = await renderModal(component, getByText('Add transaction rule'));
 
-          // Uncheck tracing checkbox
+          // Unchecked tracing checkbox
           fireEvent.click(modal.getByRole('checkbox'));
 
           // Click on 'Add condition'
@@ -1230,10 +1418,12 @@ describe('Filters and Sampling', function () {
           expect(sampleRateField).toBeTruthy();
           fireEvent.change(sampleRateField, {target: {value: 20}});
 
-          expect(saveRuleButton).toBeEnabled();
+          // Save button is now enabled
+          const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+          expect(saveRuleButtonEnabled).toBeEnabled();
 
           // Click on save button
-          fireEvent.click(saveRuleButton);
+          fireEvent.click(saveRuleButtonEnabled);
 
           // Modal will close
           await waitForElementToBeRemoved(() =>
@@ -1294,9 +1484,16 @@ describe('Filters and Sampling', function () {
 
           // Open Modal
           const modal = await renderModal(component, getByText('Add transaction rule'));
+          const checkedCheckbox = modal.getByRole('checkbox');
+
+          // Checked tracing checkbox
+          expect(checkedCheckbox).toBeChecked();
 
           // Uncheck tracing checkbox
-          fireEvent.click(modal.getByRole('checkbox'));
+          fireEvent.click(checkedCheckbox);
+
+          // Unched tracing checkbox
+          expect(checkedCheckbox).not.toBeChecked();
 
           // Click on 'Add condition'
           fireEvent.click(modal.getByText('Add Condition'));
@@ -1353,10 +1550,11 @@ describe('Filters and Sampling', function () {
           fireEvent.change(sampleRateField, {target: {value: 20}});
 
           // Save button is now enabled
-          expect(saveRuleButton).toBeEnabled();
+          const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+          expect(saveRuleButtonEnabled).toBeEnabled();
 
           // Click on save button
-          fireEvent.click(saveRuleButton);
+          fireEvent.click(saveRuleButtonEnabled);
 
           // Modal will close
           await waitForElementToBeRemoved(() =>
