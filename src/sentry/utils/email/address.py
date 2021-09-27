@@ -1,3 +1,4 @@
+import re
 from email.utils import parseaddr
 
 from django.conf import settings
@@ -11,6 +12,8 @@ from .signer import _CaseInsensitiveSigner
 # This is just a tuple of (email, email-domain)
 _from_email_domain_cache = (None, None)
 
+# Pull email from the string: u'lauryn <lauryn@sentry.io>'
+EMAIL_PARSER = re.compile(r"<(.*)>")
 
 signer = _CaseInsensitiveSigner()
 
@@ -54,3 +57,8 @@ def domain_from_email(email):
 
 def is_valid_email_address(value: str) -> bool:
     return not settings.INVALID_EMAIL_ADDRESS_PATTERN.search(value)
+
+
+def parse_email(email: str) -> str:
+    # TODO(mgaeta): This is too brittle and doesn't pass types.
+    return EMAIL_PARSER.search(email).group(1)  # type: ignore
