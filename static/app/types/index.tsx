@@ -775,10 +775,6 @@ export interface Config {
     upgradeAvailable: boolean;
     latest: string;
   };
-  statuspage?: {
-    id: string;
-    api_host: string;
-  };
   sentryConfig: {
     dsn: string;
     release: string;
@@ -788,6 +784,10 @@ export interface Config {
   apmSampling: number;
   dsn_requests: string;
   demoMode: boolean;
+  statuspage?: {
+    id: string;
+    api_host: string;
+  };
 }
 
 // https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
