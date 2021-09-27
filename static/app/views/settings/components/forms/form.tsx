@@ -12,8 +12,7 @@ import FormContext, {
   FormContextData,
 } from 'app/views/settings/components/forms/formContext';
 import FormModel, {FormOptions} from 'app/views/settings/components/forms/model';
-
-type Data = Record<string, any>;
+import {Data, OnSubmitCallback} from 'app/views/settings/components/forms/type';
 
 type RenderProps = {
   model: FormModel;
@@ -81,13 +80,7 @@ type Props = {
    * Your callback is expected to call `onSubmitSuccess` when the action succeeds and
    * `onSubmitError` when the action fails.
    */
-  onSubmit?: (
-    data: Data,
-    onSubmitSuccess: (data: Data) => void,
-    onSubmitError: (error: any) => void,
-    e: React.FormEvent,
-    model: FormModel
-  ) => void;
+  onSubmit?: OnSubmitCallback;
   onPreSubmit?: () => void;
 } & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
 

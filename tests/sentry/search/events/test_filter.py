@@ -1634,6 +1634,7 @@ class SemverFilterConverterTest(BaseSemverConverterTest, TestCase):
             self.run_test(">=", "1.2.4", "NOT IN", [release.version])
             self.run_test("<", "1.2.5", "NOT IN", [release_2.version])
             self.run_test("<=", "1.2.4", "NOT IN", [release_2.version])
+            self.run_test("!=", "1.2.3", "NOT IN", [release.version])
 
     def test_invert_fails(self):
         # Tests that when we invert and still receive too many records that we return

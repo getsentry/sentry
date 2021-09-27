@@ -5,12 +5,10 @@ from datetime import datetime, timedelta
 import pytz
 from django.utils import timezone
 
-from sentry.releasehealth.metrics import MetricsReleaseHealthBackend
-from sentry.releasehealth.sessions import SessionsReleaseHealthBackend
+from sentry.release_health.metrics import MetricsReleaseHealthBackend
+from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions import (
     _make_stats,
-    check_has_health_data,
-    check_releases_have_health_data,
     get_adjacent_releases_based_on_adoption,
     get_oldest_health_data_for_releases,
     get_project_releases_by_stability,
@@ -147,7 +145,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         }
 
     def test_check_has_health_data(self):
-        data = check_has_health_data(
+        data = self.backend.check_has_health_data(
             [(self.project.id, self.session_release), (self.project.id, "dummy-release")]
         )
         assert data == {(self.project.id, self.session_release)}
@@ -180,7 +178,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 }
             )
         )
-        data = check_has_health_data([self.project.id, project2.id])
+        data = self.backend.check_has_health_data([self.project.id, project2.id])
         assert data == {self.project.id}
 
     def test_check_has_health_data_without_releases_should_include_sessions_lte_90_days(self):
@@ -201,11 +199,11 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 {"project_id": project2.id, "org_id": project2.organization_id, "status": "exited"}
             )
         )
-        data = check_has_health_data([self.project.id, project2.id])
+        data = self.backend.check_has_health_data([self.project.id, project2.id])
         assert data == {self.project.id, project2.id}
 
     def test_check_has_health_data_does_not_crash_when_sending_projects_list_as_set(self):
-        data = check_has_health_data({self.project.id})
+        data = self.backend.check_has_health_data({self.project.id})
         assert data == {self.project.id}
 
     def test_get_project_releases_by_stability(self):
@@ -568,7 +566,9 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
 
 
 class SnubaSessionsTestMetrics(ReleaseHealthMetricsTestCase, SnubaSessionsTest):
-    """repeat tests with metrics"""
+    """
+    Same tests as in SnunbaSessionsTest but using the Metrics backend
+    """
 
     pass
 
@@ -1852,13 +1852,15 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
 
 
 class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
+    backend = SessionsReleaseHealthBackend()
+
     def run_test(self, expected, projects, releases, start=None, end=None):
         if not start:
             start = datetime.now() - timedelta(days=1)
         if not end:
             end = datetime.now()
         assert (
-            check_releases_have_health_data(
+            self.backend.check_releases_have_health_data(
                 self.organization.id,
                 [p.id for p in projects],
                 [r.version for r in releases],
@@ -1891,3 +1893,11 @@ class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
         self.run_test([release_1], [other_project], [release_1])
         self.run_test([release_1, release_2], [other_project], [release_1, release_2])
         self.run_test([release_1, release_2], [self.project, other_project], [release_1, release_2])
+
+
+class CheckReleasesHaveHealthDataTestMetrics(
+    ReleaseHealthMetricsTestCase, CheckReleasesHaveHealthDataTest
+):
+    """Repeat tests with metrics backend"""
+
+    pass
