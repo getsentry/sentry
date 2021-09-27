@@ -19,7 +19,7 @@ from sentry.releasehealth.base import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.base import UseCase
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -134,7 +134,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         count_query = Query(
             dataset=Dataset.Metrics.value,
-            match=Entity("metrics_counters"),
+            match=Entity(EntityKey.MetricsCounters.value),
             select=[Column("value")],
             where=[
                 Condition(Column("org_id"), Op.EQ, org_id),
@@ -259,7 +259,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         def _count_sessions(total: bool, referrer: str) -> Dict[Any, int]:
             query = Query(
                 dataset=Dataset.Metrics.value,
-                match=Entity("metrics_counters"),
+                match=Entity(EntityKey.MetricsCounters.value),
                 select=[Column("value")],
                 where=_get_common_where(total)
                 + [
@@ -280,7 +280,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         def _count_users(total: bool, referrer: str) -> Dict[Any, int]:
             query = Query(
                 dataset=Dataset.Metrics.value,
-                match=Entity("metrics_sets"),
+                match=Entity(EntityKey.MetricsSets.value),
                 select=[Column("value")],
                 where=_get_common_where(total)
                 + [
@@ -414,7 +414,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             # init counter. This should take care of most cases on its own.
             init_sessions_query = Query(
                 dataset=Dataset.Metrics.value,
-                match=Entity("metrics_counters"),
+                match=Entity(EntityKey.MetricsCounters.value),
                 select=select,
                 where=where
                 + [
@@ -442,7 +442,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             # testcase matters particularly.
             terminal_sessions_query = Query(
                 dataset=Dataset.Metrics.value,
-                match=Entity("metrics_distributions"),
+                match=Entity(EntityKey.MetricsDistributions.value),
                 select=select,
                 where=where
                 + [
@@ -555,7 +555,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         query = Query(
             dataset=Dataset.Metrics.value,
-            match=Entity("metrics_counters"),
+            match=Entity(EntityKey.MetricsCounters.value),
             select=query_cols,
             where=where_clause,
             groupby=group_by_clause,
