@@ -42,7 +42,7 @@ type ChartProps = {
   currentSeriesNames: string[];
   releaseSeries?: Series[];
   previousSeriesNames: string[];
-  previousTimeseriesData?: Series | null;
+  previousTimeseriesData?: Series[] | null;
   /**
    * A callback to allow for post-processing of the series data.
    * Can be used to rename series or even insert a new series.
@@ -221,7 +221,10 @@ class Chart extends React.Component<ChartProps, State> {
     }
 
     if (previousSeriesTransformer) {
-      previousSeries = previousSeriesTransformer(previousTimeseriesData);
+      // TODO
+      previousSeries = previousSeries?.map(
+        prev => previousSeriesTransformer(prev) as Series
+      );
     }
     const chartOptions = {
       colors: timeseriesData.length
@@ -267,7 +270,7 @@ class Chart extends React.Component<ChartProps, State> {
         legend={legend}
         onLegendSelectChanged={this.handleLegendSelectChanged}
         series={series}
-        previousPeriod={previousSeries ? [previousSeries] : undefined}
+        previousPeriod={previousSeries ? previousSeries : undefined}
         height={height}
       />
     );
@@ -399,6 +402,7 @@ type ChartDataProps = {
   releaseSeries?: Series[];
   timeframe?: {start: number; end: number};
   topEvents?: number;
+  previousMultiSeriesResults?: Series[];
 };
 
 class EventsChart extends React.Component<EventsChartProps> {
@@ -479,6 +483,7 @@ class EventsChart extends React.Component<EventsChartProps> {
       timeseriesData,
       previousTimeseriesData,
       timeframe,
+      previousMultiSeriesResults,
     }: ChartDataProps) => {
       if (errored) {
         return (
@@ -506,7 +511,13 @@ class EventsChart extends React.Component<EventsChartProps> {
             showLegend={showLegend}
             releaseSeries={releaseSeries || []}
             timeseriesData={seriesData ?? []}
-            previousTimeseriesData={previousTimeseriesData}
+            previousTimeseriesData={
+              previousMultiSeriesResults
+                ? previousMultiSeriesResults
+                : previousTimeseriesData
+                ? [previousTimeseriesData]
+                : previousTimeseriesData
+            }
             currentSeriesNames={currentSeriesName}
             previousSeriesNames={previousSeriesName}
             seriesTransformer={seriesTransformer}
@@ -568,8 +579,8 @@ class EventsChart extends React.Component<EventsChartProps> {
             interval={intervalVal}
             query={query}
             includePrevious={includePrevious}
-            currentSeriesName={currentSeriesName[0]}
-            previousSeriesName={previousSeriesName[0]}
+            currentSeriesNames={currentSeriesName}
+            previousSeriesNames={previousSeriesName}
             yAxis={yAxis}
             field={field}
             orderby={orderby}

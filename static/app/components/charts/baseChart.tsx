@@ -289,6 +289,13 @@ function BaseChartUnwrapped({
     s => Array.isArray(s.data) && s.data.length <= 1
   );
 
+  const resolveColors =
+    colors !== undefined ? (Array.isArray(colors) ? colors : colors(theme)) : null;
+
+  const color =
+    resolveColors ||
+    (series.length ? theme.charts.getColorPalette(series.length) : theme.charts.colors);
+
   const transformedSeries =
     (hasSinglePoints && transformSinglePointToBar
       ? (series as EChartOption.SeriesLine[] | undefined)?.map(s => ({
@@ -301,12 +308,19 @@ function BaseChartUnwrapped({
       : series) ?? [];
 
   const transformedPreviousPeriod =
-    previousPeriod?.map(previous =>
+    previousPeriod?.map((previous, index) =>
       LineSeries({
         name: previous.seriesName,
         data: previous.data.map(({name, value}) => [name, value]),
-        lineStyle: {color: theme.gray200, type: 'dotted'},
-        itemStyle: {color: theme.gray200},
+        lineStyle: {
+          color: previousPeriod.length > 1 ? color[index] : theme.gray200,
+          type: 'dotted',
+          opacity: previousPeriod.length > 1 ? 0.5 : 1,
+        },
+        itemStyle: {
+          color: previousPeriod.length > 1 ? color[index] : theme.gray200,
+        },
+        stack: 'previous',
       })
     ) ?? [];
 
@@ -359,13 +373,6 @@ function BaseChartUnwrapped({
           ...tooltip,
         })
       : undefined;
-
-  const resolveColors =
-    colors !== undefined ? (Array.isArray(colors) ? colors : colors(theme)) : null;
-
-  const color =
-    resolveColors ||
-    (series.length ? theme.charts.getColorPalette(series.length) : theme.charts.colors);
 
   const chartOption = {
     ...options,

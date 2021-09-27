@@ -180,7 +180,9 @@ class ResultsChartContainer extends Component<ContainerProps> {
         // Can only use default display or total daily with multi y axis
         if (
           yAxis.length > 1 &&
-          ![DisplayModes.DEFAULT, DisplayModes.DAILY].includes(opt.value as DisplayModes)
+          ![DisplayModes.DEFAULT, DisplayModes.DAILY, DisplayModes.PREVIOUS].includes(
+            opt.value as DisplayModes
+          )
         ) {
           return {
             ...opt,
