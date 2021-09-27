@@ -150,9 +150,7 @@ const OrganizationDetailsBody = withOrganization(function OrganizationDetailsBod
   );
 });
 
-type Props = {
-  detailed: boolean;
-} & RouteComponentProps<{orgId: string}, {}>;
+type Props = RouteComponentProps<{orgId: string}, {}>;
 
 export default class OrganizationDetails extends Component<Props> {
   componentDidMount() {
@@ -173,6 +171,7 @@ export default class OrganizationDetails extends Component<Props> {
       switchOrganization();
     }
   }
+
   render() {
     return (
       <OrganizationContextContainer includeSidebar useLastOrganization {...this.props}>
@@ -182,8 +181,4 @@ export default class OrganizationDetails extends Component<Props> {
       </OrganizationContextContainer>
     );
   }
-}
-
-export function LightWeightOrganizationDetails(props: Omit<Props, 'detailed'>) {
-  return <OrganizationDetails detailed={false} {...props} />;
 }

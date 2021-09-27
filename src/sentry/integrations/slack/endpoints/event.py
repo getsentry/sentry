@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.event import SlackEventMessageBuilder
@@ -172,6 +172,11 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
                     actor=request.user,
                 )
             ):
+                analytics.record(
+                    "integrations.slack.chart_unfurl",
+                    organization_id=integration.organizations.all()[0].id,
+                    unfurls_count=0,
+                )
                 self.prompt_link(data, slack_request, integration)
                 return self.respond()
 
