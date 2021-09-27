@@ -615,8 +615,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             adoption_info = release_adoption.get((project_id, release)) or {}
 
             rv_row = rv[project_id, release] = {
-                "project_id": project_id,
-                "release": release,
                 "adoption": adoption_info.get("adoption"),
                 "sessions_adoption": adoption_info.get("sessions_adoption"),
                 "total_users_24h": adoption_info.get("users_24h"),
