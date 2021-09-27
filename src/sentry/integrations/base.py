@@ -383,7 +383,7 @@ class IntegrationInstallation:
     def uninstall(self) -> None:
         """
         For integrations that need additional steps for uninstalling
-        that are not covered in the `delete_organization_integration`
+        that are not covered by the deletion task for OrganizationIntegration
         task.
         """
         pass
