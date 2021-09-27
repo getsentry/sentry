@@ -1,16 +1,16 @@
 from sentry.models import Organization
-from sentry.sentry_metrics.indexer.mock import MockIndexer, UseCase
+from sentry.sentry_metrics.indexer.mock import MockIndexer
 
 INDEXER = MockIndexer()
 
 
 def test_resolve():
-    mock_org = Organization()
-    assert INDEXER.resolve(mock_org, UseCase.METRIC, "what") is None
-    assert INDEXER.resolve(mock_org, UseCase.METRIC, "user") == 11
+    mock_org_id = Organization().id
+    assert INDEXER.resolve(mock_org_id, "what") is None
+    assert INDEXER.resolve(mock_org_id, "user") == 11
 
 
 def test_reverse_resolve():
-    mock_org = Organization()
-    assert INDEXER.reverse_resolve(mock_org, UseCase.METRIC, 666) is None
-    assert INDEXER.reverse_resolve(mock_org, UseCase.METRIC, 11) == "user"
+    mock_org_id = Organization().id
+    assert INDEXER.reverse_resolve(mock_org_id, 666) is None
+    assert INDEXER.reverse_resolve(mock_org_id, 11) == "user"
