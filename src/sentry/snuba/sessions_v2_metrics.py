@@ -194,10 +194,10 @@ def run_sessions_query(
     if duration_fields:
         metric_id = indexer.resolve(org_id, UseCase.METRIC, "session.duration")
         if metric_id is not None:
-            columns = ["percentiles" if field[0] == "p" else field[:3] for field in duration_fields]
+            columns = {"percentiles" if field[0] == "p" else field[:3] for field in duration_fields}
             # TODO: What about avg., max.
             data.extend(
-                _query_data("metrics_distributions", "session.duration", metric_id, columns)
+                _query_data("metrics_distributions", "session.duration", metric_id, list(columns))
             )
             metric_to_fields["session.duration"] = [
                 _DistributionField(field) for field in duration_fields
@@ -477,3 +477,9 @@ class _DistributionField(_Field):
     def __init__(self, name: str) -> None:
         self.name = name
         # TODO: handle group status here
+
+    def get_values(self, flat_data, key) -> Sequence[StatusValue]:
+        if self.name[:3] == key.column:
+            return [StatusValue(key.raw_session_status, flat_data[key])]
+
+        return []
