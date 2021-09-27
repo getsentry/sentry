@@ -601,7 +601,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             )
             rv_users[key] = row["value"]
 
-        release_adoption = releasehealth.get_release_adoption(project_releases, environments)
+        # XXX: In order to be able to dual-read and compare results from both
+        # old and new backend, this should really go back through the
+        # releasehealth service instead of directly calling `self`. For now
+        # that makes the entire backend too hard to test though.
+        release_adoption = self.get_release_adoption(project_releases, environments)
 
         rv = {}
 
@@ -613,6 +617,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             rv_row = rv[project_id, release] = {
                 "project_id": project_id,
                 "release": release,
+                "adoption": adoption_info.get("adoption"),
                 "sessions_adoption": adoption_info.get("sessions_adoption"),
                 "total_users_24h": adoption_info.get("users_24h"),
                 "total_project_users_24h": adoption_info.get("project_users_24h"),
