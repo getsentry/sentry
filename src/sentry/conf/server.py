@@ -1361,7 +1361,7 @@ SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 
 # Release Health
-SENTRY_RELEASE_HEALTH = "sentry.releasehealth.sessions.SessionsReleaseHealthBackend"
+SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
 SENTRY_RELEASE_HEALTH_OPTIONS = {}
 
 # Render charts on the backend. This uses the Chartcuterie external service.
