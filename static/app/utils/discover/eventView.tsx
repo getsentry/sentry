@@ -497,7 +497,6 @@ class EventView {
       'sorts',
       'project',
       'environment',
-      'yAxis',
       'display',
     ];
 
@@ -526,6 +525,14 @@ class EventView {
           return false;
         }
       }
+    }
+
+    // compare yAxis selections
+    // undefined yAxis values default to count()
+    const currentYAxisValue = this.yAxis ?? 'count()';
+    const otherYAxisValue = other.yAxis ?? 'count()';
+    if (!isEqual(currentYAxisValue, otherYAxisValue)) {
+      return false;
     }
 
     return true;

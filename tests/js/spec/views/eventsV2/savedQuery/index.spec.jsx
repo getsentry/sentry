@@ -224,6 +224,46 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       expect(buttonDelete.exists()).toBe(true);
     });
 
+    it('treats undefined yAxis the same as count() when checking for changes', () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewSaved,
+        {...savedQuery, yAxis: undefined},
+        ['count()']
+      );
+
+      const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
+      const buttonSaved = wrapper.find(SELECTOR_BUTTON_SAVED);
+      const buttonUpdate = wrapper.find(SELECTOR_BUTTON_UPDATE);
+      const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE);
+
+      expect(buttonSaveAs.exists()).toBe(false);
+      expect(buttonSaved.exists()).toBe(true);
+      expect(buttonUpdate.exists()).toBe(false);
+      expect(buttonDelete.exists()).toBe(true);
+    });
+
+    it('converts string yAxis values to array when checking for changes', () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewSaved,
+        {...savedQuery, yAxis: 'count()'},
+        ['count()']
+      );
+
+      const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
+      const buttonSaved = wrapper.find(SELECTOR_BUTTON_SAVED);
+      const buttonUpdate = wrapper.find(SELECTOR_BUTTON_UPDATE);
+      const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE);
+
+      expect(buttonSaveAs.exists()).toBe(false);
+      expect(buttonSaved.exists()).toBe(true);
+      expect(buttonUpdate.exists()).toBe(false);
+      expect(buttonDelete.exists()).toBe(true);
+    });
+
     it('deletes the saved query', async () => {
       const wrapper = generateWrappedComponent(
         location,
