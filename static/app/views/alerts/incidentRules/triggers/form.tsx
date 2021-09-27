@@ -12,6 +12,7 @@ import withConfig from 'app/utils/withConfig';
 import ThresholdControl from 'app/views/alerts/incidentRules/triggers/thresholdControl';
 import Field from 'app/views/settings/components/forms/field';
 
+import {isSessionAggregate} from '../../utils';
 import {
   AlertRuleThresholdType,
   SessionsAggregate,
@@ -141,10 +142,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       return 'ms';
     }
 
-    if (
-      aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
-      aggregate === SessionsAggregate.CRASH_FREE_USERS
-    ) {
+    if (isSessionAggregate(aggregate)) {
       return '%';
     }
 
@@ -156,10 +154,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       return '0.05';
     }
 
-    if (
-      aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
-      aggregate === SessionsAggregate.CRASH_FREE_USERS
-    ) {
+    if (isSessionAggregate(aggregate)) {
       return '97';
     }
 
