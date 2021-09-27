@@ -3,7 +3,9 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
 from django.test import Client, RequestFactory
+from django.urls import reverse
 
+import sentry.auth.idpmigration as idpmigration
 from sentry.auth.helper import (
     OK_LINK_IDENTITY,
     AuthHelper,
@@ -340,6 +342,24 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert "login_form" in context
 
     # TODO: More test cases for various values of request.POST.get("op")
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_authenticate_user_with_SSO_provider(self, mock_render):
+        self.org = self.create_organization()
+        self.login_as(self.user)
+        OrganizationMember.objects.create(organization=self.org, user=self.user)
+        verification_key = idpmigration.send_one_time_account_confirm_link(
+            self.user, self.org, self.email, self.identity["id"]
+        )
+        path = reverse(
+            "sentry-idp-email-verification",
+            args=[verification_key],
+        )
+        self.client.get(path)
+        # self.request = _set_up_request()
+        # self.request.session["verification_key"] = f"auth:one-time-key:{verification_key}"
+        # with self.feature("organizations:idp-automatic-migration"):
+        # redirect = self.handler.handle_unknown_identity(self.state, self.identity)
+        # print(context)
 
 
 class AuthHelperTest(TestCase):
