@@ -206,6 +206,6 @@ export type OnSubmitCallback = (
   data: Data,
   onSubmitSuccess: (data: Data) => void,
   onSubmitError: (error: any) => void,
-  e: React.FormEvent,
+  event: React.FormEvent,
   model: FormModel
 ) => void;

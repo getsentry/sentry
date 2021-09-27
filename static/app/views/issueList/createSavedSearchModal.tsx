@@ -48,7 +48,7 @@ class CreateSavedSearchModal extends React.Component<Props, State> {
     return IssueSortOptions.DATE;
   }
 
-  onSubmit: OnSubmitCallback = (data, onSubmitSuccess, onSubmitError, event) => {
+  handleSubmit: OnSubmitCallback = (data, onSubmitSuccess, onSubmitError, event) => {
     const {api, organization} = this.props;
     const sort = this.validateSortOption(data.sort);
 
@@ -108,7 +108,7 @@ class CreateSavedSearchModal extends React.Component<Props, State> {
 
     return (
       <Form
-        onSubmit={this.onSubmit}
+        onSubmit={this.handleSubmit}
         onCancel={closeModal}
         saveOnBlur={false}
         initialData={initialData}
