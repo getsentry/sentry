@@ -1709,7 +1709,7 @@ SENTRY_DEVSERVICES = {
             "ports": {"5432/tcp": 5432},
             "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
             # TODO: guard with CI flag
-            "tmpfs": ("/var/lib/postgresql/data",),
+            "tmpfs": ["/var/lib/postgresql/data"],
             "volumes": {
                 # TODO: disable with CI flag
                 # "postgres": {"bind": "/var/lib/postgresql/data"},
