@@ -474,19 +474,19 @@ class AuthIdentityHandler:
             verification_key = self.request.session["verification_key"]
             verification_value_byte = cluster.hgetall(verification_key)
             if verification_value_byte:
-                op = "verify"
                 verification_value = {
                     y.decode("ascii"): verification_value_byte.get(y).decode("ascii")
                     for y in verification_value_byte.keys()
                 }
-
-                user = User.objects.get(id=verification_value["user_id"])
-                member = OrganizationMember.objects.get(id=verification_value["member_id"])
-                auth_identity = self.handle_attach_identity(
-                    identity,
-                    member=member,
-                    user=user,
-                )
+                if verification_value["identity_id"] == identity["id"]:
+                    op = "verify"
+                    user = User.objects.get(id=verification_value["user_id"])
+                    member = OrganizationMember.objects.get(id=verification_value["member_id"])
+                    auth_identity = self.handle_attach_identity(
+                        identity,
+                        member=member,
+                        user=user,
+                    )
 
         if not op:
             existing_user, template = self._dispatch_to_confirmation(identity)
