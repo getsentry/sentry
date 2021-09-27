@@ -173,7 +173,11 @@ def run_sessions_query(
         },
         "session": {
             "series": "releasehealth.metrics.sessions_v2.session.series",
-            "totals": "releasehealth.metrics.sessions_v2.totals",
+            "totals": "releasehealth.metrics.sessions_v2.session.totals",
+        },
+        "session.error": {
+            "series": "releasehealth.metrics.sessions_v2.session.error.series",
+            "totals": "releasehealth.metrics.sessions_v2.session.error.totals",
         },
     }
 
@@ -197,6 +201,7 @@ def run_sessions_query(
             )
             referrer = referrers[metric_name][query_type]
             query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
+
             yield (metric_name, query_data)
 
     if "count_unique(user)" in query.raw_fields:
@@ -231,7 +236,9 @@ def run_sessions_query(
                 error_metric_id = indexer.resolve(org_id, UseCase.METRIC, "session.error")
                 if error_metric_id is not None:
                     groupby.pop("session.status")
-                    data.extend(_query_data("metrics_sets", "session", error_metric_id, ["value"]))
+                    data.extend(
+                        _query_data("metrics_sets", "session.error", error_metric_id, ["value"])
+                    )
 
                 metric_to_fields["session"] = [_SumSessionByStatusField()]
 
@@ -255,6 +262,11 @@ def run_sessions_query(
         for row in metric_data:
 
             raw_session_status = row.pop(f"tags[{session_status_tag_key}]", None)
+            if raw_session_status is not None:
+                raw_session_status = indexer.reverse_resolve(
+                    org_id, UseCase.TAG_VALUE, raw_session_status
+                )
+                assert raw_session_status is not None
             flat_key = _FlatKey(
                 metric_name=metric_name,
                 raw_session_status=raw_session_status,
@@ -310,19 +322,20 @@ def run_sessions_query(
             )
             assert environment is not None
 
-        group = groups[tuple(sorted(by.items()))]
         assert fields
-        session_status = fields[0].get_session_status(key.raw_session_status)
-        if session_status is not None:
-            by["session.status"] = session_status
 
         for field in fields:
-            value = field.get_value(flat_data, key)
-            if key.bucketed_time is None:
-                group["totals"][field.name] = value
-            else:
-                index = timestamp_index[key.bucketed_time]
-                group["series"][field.name][index] = value
+            for status_value in field.get_values(flat_data, key):
+                if status_value.session_status is not None:
+                    by["session.status"] = status_value.session_status
+
+                group = groups[tuple(sorted(by.items()))]
+
+                if key.bucketed_time is None:
+                    group["totals"][field.name] = status_value.value
+                else:
+                    index = timestamp_index[key.bucketed_time]
+                    group["series"][field.name][index] = status_value.value
 
     groups = [
         {
@@ -396,12 +409,26 @@ def _translate_conditions(org_id, input_):
     return [_translate_conditions(org_id, item) for item in input_]
 
 
-class _Field:
-    def get_session_status(self, raw_session_status: Optional[str]) -> Optional[str]:
-        return None
+SessionStatus = Literal[
+    "abnormal",
+    "crashed",
+    "errored",
+    "healthy",
+]
 
-    def get_value(self, flat_data, key):
-        return flat_data[key]
+
+@dataclass(frozen=True)
+class StatusValue:
+    """A data value associated with a certain session status"""
+
+    session_status: Optional[SessionStatus]
+    value: Union[None, float, int]
+
+
+class _Field:
+    def get_values(self, flat_data, key) -> Sequence[StatusValue]:
+        """List values by session.status"""
+        return [StatusValue(None, flat_data[key])]
 
 
 class _UserField(_Field):
@@ -412,7 +439,7 @@ class _UserField(_Field):
         # Not every init session is healthy, but that is taken care of in get_value
         return "healthy" if raw_session_status == "init" else raw_session_status
 
-    def get_value(self, flat_data, key):
+    def get_values(self, flat_data, key) -> Sequence[StatusValue]:
 
         if key.raw_session_status == "init":
             # Transform init to healthy:
@@ -420,9 +447,12 @@ class _UserField(_Field):
             started = int(flat_data[key])
             errored = int(flat_data[errored_key])
 
-            return started - errored
+            return [
+                StatusValue("healthy", started - errored),
+                StatusValue("errored", errored),  # FIXME: subtract fatals
+            ]
 
-        return int(flat_data[key])
+        return [StatusValue(key.raw_session_status, int(flat_data[key]))]
 
 
 class _SumSessionField(_Field):
@@ -436,12 +466,27 @@ class _SumSessionByStatusField(_SumSessionField):
         # Not every init session is healthy, but that is taken care of in get_value
         return "healthy" if raw_session_status == "init" else raw_session_status
 
-    def get_value(self, flat_data, key):
-        # This assumes the correct queries were made
+    def get_values(self, flat_data, key) -> Sequence[StatusValue]:
+        if key.raw_session_status == "init":
+            # sessions_v2 always shows all session statuses (even if they have a count of 0),
+            # So let's hardcode them here
+            started = int(flat_data[key])
+            abnormal = int(flat_data.get(replace(key, raw_session_status="abnormal"), 0))
+            crashed = int(flat_data.get(replace(key, raw_session_status="crashed"), 0))
+            errored_key = replace(key, metric_name="session.error", raw_session_status=None)
+            all_errored = int(flat_data.get(errored_key, 0))
 
-        #        error_key = key.replace(metric_name="session.error")
-        # TODO: magic
-        return int(flat_data[key])
+            healthy = max(0, started - all_errored)
+            errored = max(0, all_errored - abnormal - crashed)
+
+            return [
+                StatusValue("abnormal", abnormal),
+                StatusValue("crashed", crashed),
+                StatusValue("errored", errored),
+                StatusValue("healthy", healthy),
+            ]
+
+        return []
 
 
 class _DistributionField(_Field):
