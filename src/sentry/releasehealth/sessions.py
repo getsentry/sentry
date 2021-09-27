@@ -1,14 +1,21 @@
 from datetime import datetime
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Sequence, Set, Tuple
 
 from sentry.releasehealth.base import (
+    CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
     OrganizationId,
     ProjectId,
+    ProjectOrRelease,
     ReleaseHealthBackend,
     ReleaseName,
 )
-from sentry.snuba.sessions import _get_release_adoption, get_current_and_previous_crash_free_rates
+from sentry.snuba.sessions import (
+    _check_has_health_data,
+    _check_releases_have_health_data,
+    _get_release_adoption,
+    get_current_and_previous_crash_free_rates,
+)
 
 
 class SessionsReleaseHealthBackend(ReleaseHealthBackend):
@@ -23,7 +30,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         previous_end: datetime,
         rollup: int,
         org_id: Optional[OrganizationId] = None,
-    ) -> ReleaseHealthBackend.CurrentAndPreviousCrashFreeRates:
+    ) -> CurrentAndPreviousCrashFreeRates:
         return get_current_and_previous_crash_free_rates(  # type: ignore
             project_ids=project_ids,
             current_start=current_start,
@@ -42,4 +49,25 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
     ) -> ReleaseHealthBackend.ReleasesAdoption:
         return _get_release_adoption(  # type: ignore
             project_releases=project_releases, environments=environments, now=now
+        )
+
+    def check_has_health_data(
+        self, projects_list: Sequence[ProjectOrRelease]
+    ) -> Set[ProjectOrRelease]:
+        return _check_has_health_data(projects_list)  # type: ignore
+
+    def check_releases_have_health_data(
+        self,
+        organization_id: OrganizationId,
+        project_ids: Sequence[ProjectId],
+        release_versions: Sequence[ReleaseName],
+        start: datetime,
+        end: datetime,
+    ) -> Set[ReleaseName]:
+        return _check_releases_have_health_data(  # type: ignore
+            organization_id,
+            project_ids,
+            release_versions,
+            start,
+            end,
         )

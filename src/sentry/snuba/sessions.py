@@ -104,7 +104,7 @@ def get_oldest_health_data_for_releases(project_releases):
     return rv
 
 
-def check_has_health_data(projects_list):
+def _check_has_health_data(projects_list):
     """
     Function that returns a set of all project_ids or (project, release) if they have health data
     within the last 90 days based on a list of projects or a list of project, release combinations
@@ -150,7 +150,7 @@ def check_has_health_data(projects_list):
     return {data_tuple(x) for x in raw_query(**raw_query_args)["data"]}
 
 
-def check_releases_have_health_data(
+def _check_releases_have_health_data(
     organization_id: int,
     project_ids: List[int],
     release_versions: List[str],
@@ -274,9 +274,7 @@ def get_project_releases_count(
         where=where,
         having=having,
     )
-    data = snuba.raw_snql_query(query, referrer="snuba.sessions.check_releases_have_health_data")[
-        "data"
-    ]
+    data = snuba.raw_snql_query(query, referrer="snuba.sessions.get_project_releases_count")["data"]
     return data[0]["count"] if data else 0
 
 
@@ -460,7 +458,7 @@ def get_release_health_data_overview(
         # If we're already looking at a 90 day horizont we don't need to
         # fire another query, we can already assume there is no data.
         if summary_stats_period != "90d":
-            has_health_data = check_has_health_data(missing_releases)
+            has_health_data = releasehealth.check_has_health_data(missing_releases)
         else:
             has_health_data = ()
         for key in missing_releases:
