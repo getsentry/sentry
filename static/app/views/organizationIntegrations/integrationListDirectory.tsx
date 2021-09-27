@@ -478,9 +478,12 @@ export class IntegrationListDirectory extends AsyncComponent<
                   name="select-categories"
                   onChange={this.onCategorySelect}
                   value={selectedCategory}
-                  choices={[
-                    ['', t('All Categories')],
-                    ...categoryList.map(category => [category, startCase(category)]),
+                  options={[
+                    {value: '', label: t('All Categories')},
+                    ...categoryList.map(category => ({
+                      value: category,
+                      label: startCase(category),
+                    })),
                   ]}
                 />
                 <SearchBar

@@ -17,6 +17,7 @@ import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {DateString, Organization, RelativePeriod, TeamWithProjects} from 'app/types';
+import localStorage from 'app/utils/localStorage';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeamsForUser from 'app/utils/withTeamsForUser';
@@ -56,11 +57,19 @@ function TeamInsightsOverview({
   router,
 }: Props) {
   const query = location?.query ?? {};
-  const currentTeamId = query.team ?? teams[0]?.id;
+  const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
+
+  let localTeamId: string | null | undefined =
+    query.team ?? localStorage.getItem(localStorageKey);
+  if (localTeamId && !teams.find(team => team.id === localTeamId)) {
+    localTeamId = null;
+  }
+  const currentTeamId = localTeamId ?? teams[0]?.id;
   const currentTeam = teams.find(team => team.id === currentTeamId);
   const projects = currentTeam?.projects ?? [];
 
   function handleChangeTeam(teamId: string) {
+    localStorage.setItem(localStorageKey, teamId);
     setStateOnUrl({team: teamId});
   }
 
@@ -155,7 +164,7 @@ function TeamInsightsOverview({
     <Fragment>
       <BorderlessHeader>
         <StyledHeaderContent>
-          <StyledLayoutTitle>{t('Team Insights')}</StyledLayoutTitle>
+          <StyledLayoutTitle>{t('Projects')}</StyledLayoutTitle>
         </StyledHeaderContent>
       </BorderlessHeader>
       <Layout.Header>
@@ -226,6 +235,8 @@ export {TeamInsightsOverview};
 export default withApi(withOrganization(withTeamsForUser(TeamInsightsOverview)));
 
 const Body = styled(Layout.Body)`
+  margin-bottom: -20px;
+
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: block;
   }

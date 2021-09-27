@@ -130,7 +130,7 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"
@@ -167,7 +167,7 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"
@@ -205,7 +205,7 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"
@@ -253,7 +253,7 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"
@@ -286,7 +286,7 @@ class UnfurlTest(TestCase):
             data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
         )
 
-        url = f"https://sentry.io/organizations/{self.org.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h&user={self.user.id}"
+        url = f"https://sentry.io/organizations/{self.org.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h"
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -303,7 +303,7 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"
@@ -326,7 +326,7 @@ class UnfurlTest(TestCase):
             data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
         )
 
-        url = f"https://sentry.io/organizations/{self.org.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&statsPeriod=24h&user={self.user.id}"
+        url = f"https://sentry.io/organizations/{self.org.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -343,7 +343,7 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"

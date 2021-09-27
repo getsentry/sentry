@@ -1,5 +1,6 @@
 from typing import Any, Dict, Mapping
 
+from requests import post
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -183,30 +184,42 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         data = slack_request.data
 
+        # Actions list may be empty when receiving a dialog response
+        action_list = data.get("actions", [])
+        action_option = action_list and action_list[0].get("value", "")
+
         # if a user is just clicking our auto response in the messages tab we just return a 200
-        if (
-            data.get("actions")
-            and data["actions"][0].get("value", "") == "sentry_docs_link_clicked"
-        ):
+        if action_option == "sentry_docs_link_clicked":
             return self.respond()
 
         channel_id = slack_request.channel_id
         user_id = slack_request.user_id
+        integration = slack_request.integration
         response_url = data.get("response_url")
+
+        if action_option in ["link", "ignore"]:
+            analytics.record(
+                "integrations.slack.chart_unfurl_action",
+                organization_id=integration.organizations.all()[0].id,
+                action=action_option,
+            )
+            payload = {"delete_original": "true"}
+            try:
+                post(response_url, json=payload)
+            except ApiError as e:
+                logger.error("slack.action.response-error", extra={"error": str(e)})
+                return self.respond(status=403)
+
+            return self.respond()
 
         logging_data["channel_id"] = channel_id
         logging_data["slack_user_id"] = user_id
         logging_data["response_url"] = response_url
-
-        integration = slack_request.integration
         logging_data["integration_id"] = integration.id
 
         # Determine the issue group action is being taken on
         group_id = slack_request.callback_data["issue"]
         logging_data["group_id"] = group_id
-
-        # Actions list may be empty when receiving a dialog response
-        action_list = data.get("actions", [])
 
         try:
             group = Group.objects.select_related("project__organization").get(

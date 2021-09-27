@@ -802,4 +802,42 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.queries[0].fields).toEqual(['count()']);
     wrapper.unmount();
   });
+
+  it('should automatically add columns for top n widget charts', async function () {
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+    // Select Top n display
+    selectByLabel(wrapper, 'Top Events', {name: 'displayType', at: 0, control: true});
+    expect(getDisplayType(wrapper).props().value).toEqual('top_n');
+
+    // No delete button as there is only one field.
+    expect(wrapper.find('IconDelete')).toHaveLength(0);
+
+    // Restricting to a single query
+    expect(wrapper.find('button[aria-label="Add Query"]')).toHaveLength(0);
+
+    // Restricting to a single y-axis
+    expect(wrapper.find('button[aria-label="Add Overlay"]')).toHaveLength(0);
+
+    const titleColumn = wrapper.find('input[name="field"]').at(0);
+    expect(titleColumn.props().value).toEqual({
+      kind: 'field',
+      meta: {dataType: 'string', name: 'title'},
+    });
+    const countColumn = wrapper.find('input[name="field"]').at(1);
+    expect(countColumn.props().value).toEqual({
+      kind: 'function',
+      meta: {parameters: [], name: 'count'},
+    });
+    expect(wrapper.find('WidgetQueriesForm Field[data-test-id="y-axis"]')).toHaveLength(
+      1
+    );
+    expect(wrapper.find('WidgetQueriesForm SelectControl[name="orderby"]')).toHaveLength(
+      1
+    );
+
+    wrapper.unmount();
+  });
 });
