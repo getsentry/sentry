@@ -1660,7 +1660,7 @@ export type NewQuery = {
   end?: string;
 
   // Graph
-  yAxis?: string;
+  yAxis?: string[];
   display?: string;
 
   teams?: Readonly<('myteams' | number)[]>;
