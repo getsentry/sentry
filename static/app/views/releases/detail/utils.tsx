@@ -12,7 +12,7 @@ import {
   CommitFile,
   FilesByRepository,
   GlobalSelection,
-  LightWeightOrganization,
+  Organization,
   ReleaseComparisonChartType,
   ReleaseProject,
   ReleaseWithHealth,
@@ -117,7 +117,7 @@ export function getReposToRender(repos: Array<string>, activeRepository?: Reposi
 export function getReleaseEventView(
   selection: GlobalSelection,
   version: string,
-  _organization: LightWeightOrganization
+  _organization: Organization
 ): EventView {
   const {projects, environments, datetime} = selection;
   const {start, end, period} = datetime;

@@ -6,7 +6,7 @@ import {createSavedSearch} from 'app/actionCreators/savedSearches';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import {t} from 'app/locale';
-import {LightWeightOrganization} from 'app/types';
+import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import {Form, SelectField, TextField} from 'app/views/settings/components/forms';
 import {OnSubmitCallback} from 'app/views/settings/components/forms/type';
@@ -17,7 +17,7 @@ type Props = ModalRenderProps & {
   api: Client;
   query: string;
   sort?: string;
-  organization: LightWeightOrganization;
+  organization: Organization;
 };
 
 type State = {

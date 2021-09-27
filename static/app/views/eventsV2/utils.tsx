@@ -5,7 +5,7 @@ import Papa from 'papaparse';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
-import {LightWeightOrganization, Organization, SelectValue} from 'app/types';
+import {Organization, SelectValue} from 'app/types';
 import {Event} from 'app/types/event';
 import {getUtcDateString} from 'app/utils/dates';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
@@ -140,7 +140,7 @@ export function generateTitle({
   return titles.join(' - ');
 }
 
-export function getPrebuiltQueries(organization: LightWeightOrganization) {
+export function getPrebuiltQueries(organization: Organization) {
   const views = [...ALL_VIEWS];
   if (organization.features.includes('performance-view')) {
     // insert transactions queries at index 2
@@ -423,7 +423,7 @@ function generateExpandedConditions(
 }
 
 type FieldGeneratorOpts = {
-  organization: LightWeightOrganization;
+  organization: Organization;
   tagKeys?: string[] | null;
   measurementKeys?: string[] | null;
   spanOperationBreakdownKeys?: string[];

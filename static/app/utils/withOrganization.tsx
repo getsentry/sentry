@@ -1,11 +1,11 @@
 import * as React from 'react';
 
 import SentryTypes from 'app/sentryTypes';
-import {LightWeightOrganization, Organization} from 'app/types';
+import {Organization} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
 
 type InjectedOrganizationProps = {
-  organization?: Organization | LightWeightOrganization;
+  organization?: Organization;
 };
 
 const withOrganization = <P extends InjectedOrganizationProps>(

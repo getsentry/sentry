@@ -233,13 +233,6 @@ export type Organization = OrganizationSummary & {
 };
 
 /**
- * @deprecated This was used before we removed projects and teams as
- *             normalized data on the organization object. This will be
- *             removed very soon.
- */
-export type LightWeightOrganization = Organization;
-
-/**
  * Minimal organization shape used on shared issue views.
  */
 export type SharedViewOrganization = {

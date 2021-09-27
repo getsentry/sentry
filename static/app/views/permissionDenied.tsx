@@ -7,7 +7,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import LoadingError from 'app/components/loadingError';
 import {t, tct} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
-import {LightWeightOrganization, Project} from 'app/types';
+import {Organization, Project} from 'app/types';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
@@ -15,7 +15,7 @@ import withProject from 'app/utils/withProject';
 const ERROR_NAME = 'Permission Denied';
 
 type Props = WithRouterProps & {
-  organization: LightWeightOrganization;
+  organization: Organization;
   project?: Project;
 };
 

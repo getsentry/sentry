@@ -12,7 +12,7 @@ import Placeholder from 'app/components/placeholder';
 import {MAX_PICKABLE_DAYS} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {LightWeightOrganization} from 'app/types';
+import {Organization} from 'app/types';
 import {analytics} from 'app/utils/analytics';
 import {
   getEndOfDay,
@@ -50,7 +50,7 @@ type Props = WithRouterProps & {
   /**
    * Just used for metrics
    */
-  organization: LightWeightOrganization;
+  organization: Organization;
 
   /**
    * Start date value for absolute date selector

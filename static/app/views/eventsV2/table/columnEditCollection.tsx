@@ -8,7 +8,7 @@ import {SectionHeading} from 'app/components/charts/styles';
 import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {LightWeightOrganization} from 'app/types';
+import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {
   AGGREGATIONS,
@@ -32,7 +32,7 @@ type Props = {
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
-  organization: LightWeightOrganization;
+  organization: Organization;
   className?: string;
 };
 

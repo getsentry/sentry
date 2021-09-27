@@ -13,7 +13,7 @@ import Switch from 'app/components/switchButton';
 import Truncate from 'app/components/truncate';
 import {IconAdd, IconFlag} from 'app/icons';
 import {t} from 'app/locale';
-import {LightWeightOrganization, ServiceHook} from 'app/types';
+import {Organization, ServiceHook} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -54,7 +54,7 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
 }
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
-  organization: LightWeightOrganization;
+  organization: Organization;
 };
 
 type State = {

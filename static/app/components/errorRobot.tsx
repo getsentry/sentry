@@ -8,14 +8,14 @@ import Button from 'app/components/button';
 import Link from 'app/components/links/link';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {LightWeightOrganization, Project} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import withApi from 'app/utils/withApi';
 import CreateSampleEventButton from 'app/views/onboarding/createSampleEventButton';
 
 type Props = {
   api: Client;
-  org: LightWeightOrganization;
+  org: Organization;
   project?: Project;
   gradient: boolean;
   /**

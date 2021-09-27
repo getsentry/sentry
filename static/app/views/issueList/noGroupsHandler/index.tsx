@@ -6,13 +6,13 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import Placeholder from 'app/components/placeholder';
 import {DEFAULT_QUERY} from 'app/constants';
 import {t} from 'app/locale';
-import {LightWeightOrganization, Project} from 'app/types';
+import {Organization, Project} from 'app/types';
 
 import NoUnresolvedIssues from './noUnresolvedIssues';
 
 type Props = {
   api: Client;
-  organization: LightWeightOrganization;
+  organization: Organization;
   query: string;
   selectedProjectIds?: number[];
   groupIds: string[];

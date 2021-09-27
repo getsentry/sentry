@@ -12,14 +12,14 @@ import {IconChat, IconMute, IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
 import space from 'app/styles/space';
-import {BaseGroup, LightWeightOrganization} from 'app/types';
+import {BaseGroup, Organization} from 'app/types';
 import {getMessage} from 'app/utils/events';
 import {Aliases} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 type HeaderProps = {
-  organization: LightWeightOrganization;
+  organization: Organization;
   projectId: string;
   data: BaseGroup;
   eventId?: string;
@@ -85,7 +85,7 @@ function isGroup(maybe: GroupTypes): maybe is BaseGroup {
 type Props = {
   api: Client;
   id: string;
-  organization: LightWeightOrganization;
+  organization: Organization;
   eventId?: string;
   data?: BaseGroup;
 };

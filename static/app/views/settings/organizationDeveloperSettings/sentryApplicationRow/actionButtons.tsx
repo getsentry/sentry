@@ -5,10 +5,10 @@ import ConfirmDelete from 'app/components/confirmDelete';
 import {IconDelete, IconStats, IconUpgrade} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {LightWeightOrganization, SentryApp} from 'app/types';
+import {Organization, SentryApp} from 'app/types';
 
 type Props = {
-  org: LightWeightOrganization;
+  org: Organization;
   app: SentryApp;
 
   showPublish: boolean;

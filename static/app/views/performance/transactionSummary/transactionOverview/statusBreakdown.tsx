@@ -11,14 +11,14 @@ import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import {LightWeightOrganization} from 'app/types';
+import {Organization} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
 type Props = {
-  organization: LightWeightOrganization;
+  organization: Organization;
   location: Location;
   eventView: EventView;
 };
