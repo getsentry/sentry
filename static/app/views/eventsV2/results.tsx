@@ -24,7 +24,6 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'app/constants';
 import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, SavedQuery} from 'app/types';
@@ -582,16 +581,6 @@ function ResultsContainer(props: Props) {
    * you no longer need to enforce a project if it is empty. We assume an empty project is
    * the desired behavior because saved queries can contain a project filter.
    */
-
-  const {location, router} = props;
-  const user = ConfigStore.get('user');
-
-  if (user.id !== location.query.user) {
-    router.push({
-      pathname: location.pathname,
-      query: {...location.query, user: user.id},
-    });
-  }
 
   return (
     <GlobalSelectionHeader

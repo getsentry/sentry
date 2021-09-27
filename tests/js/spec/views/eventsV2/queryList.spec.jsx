@@ -159,7 +159,6 @@ describe('EventsV2 > QueryList', function () {
     expect(link.query).toEqual({
       id: '2',
       statsPeriod: '14d',
-      user: '1',
     });
   });
 

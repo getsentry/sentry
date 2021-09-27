@@ -203,51 +203,6 @@ describe('EventsV2 > Results', function () {
     expect(eventResultsMock).toHaveBeenCalled();
   });
 
-  it('pushes to router when user id is wrong', async function () {
-    const organization = TestStubs.Organization({
-      features,
-    });
-
-    const initialData = initializeOrg({
-      organization,
-      router: {
-        location: {query: {...generateFields(), cursor: '0%3A50%3A0', user: '2'}},
-      },
-    });
-
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
-
-    const wrapper = mountWithTheme(
-      <Results
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-      />,
-      initialData.routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(initialData.router.location).toEqual({
-      query: {
-        ...generateFields(),
-        cursor: '0%3A50%3A0',
-        user: '2',
-      },
-    });
-
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: undefined,
-      query: {
-        ...generateFields(),
-        cursor: '0%3A50%3A0',
-        user: '1',
-      },
-    });
-    wrapper.unmount();
-  });
-
   it('pagination cursor should be cleared when making a search', async function () {
     const organization = TestStubs.Organization({
       features,
