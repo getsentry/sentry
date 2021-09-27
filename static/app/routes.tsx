@@ -25,7 +25,6 @@ import OrganizationRoot from 'app/views/organizationRoot';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'app/views/routeNotFound';
-import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
 
 type CustomProps = {
@@ -847,9 +846,7 @@ function routes() {
                   () => import('app/views/settings/project/projectSettingsLayout')
                 )}
               >
-                <Route component={errorHandler(SettingsProjectProvider)}>
-                  {projectSettingsRoutes}
-                </Route>
+                {projectSettingsRoutes}
               </Route>
 
               <Redirect from=":projectId/" to="projects/:projectId/" />

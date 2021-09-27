@@ -37,6 +37,7 @@ function ProjectSettingsLayout({
             {children && React.isValidElement(children)
               ? React.cloneElement(children, {
                   organization,
+                  project,
                 })
               : children}
           </SettingsLayout>
