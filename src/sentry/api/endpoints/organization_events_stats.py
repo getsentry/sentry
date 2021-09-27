@@ -69,7 +69,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             referrer = (
                 referrer
                 if referrer in ALLOWED_EVENTS_STATS_REFERRERS
-                else "api.organization-event-stats",
+                else "api.organization-event-stats"
             )
 
         def get_event_stats(query_columns, query, params, rollup, zerofill_results):
