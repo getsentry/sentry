@@ -281,13 +281,6 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     symbolication_start_time = time()
 
-    submission_ratio = options.get("symbolicate-event.low-priority.metrics.submission-rate")
-    submit_realtime_metrics = not from_reprocessing and random.random() < submission_ratio
-
-    if submit_realtime_metrics:
-        with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics.counter"):
-            realtime_metrics.increment_project_event_counter(project_id, symbolication_start_time)
-
     with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
         span.set_data("symbolication_function", symbolication_function_name)
         with metrics.timer(
@@ -357,13 +350,20 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
                     has_changed = True
                     break
 
-    if submit_realtime_metrics:
-        symbolication_duration = time() - symbolication_start_time
+    submission_ratio = options.get("symbolicate-event.low-priority.metrics.submission-rate")
+
+    if not from_reprocessing and random.random() < submission_ratio:
+        timestamp = int(symbolication_start_time)
+        symbolication_duration = int(time() - symbolication_start_time)
+
+        with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics.counter"):
+            realtime_metrics.increment_project_event_counter(project_id, timestamp)
+
         with sentry_sdk.start_span(
             op="tasks.store.symbolicate_event.low_priority.metrics.histogram"
         ):
             realtime_metrics.increment_project_duration_counter(
-                project_id, symbolication_start_time, symbolication_duration
+                project_id, timestamp, symbolication_duration
             )
 
     # We cannot persist canonical types in the cache, so we need to

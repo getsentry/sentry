@@ -1,5 +1,4 @@
 import datetime
-from typing import Union
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
@@ -40,17 +39,15 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         if self._counter_bucket_size <= 0:
             raise InvalidConfiguration("bucket size must be at least 1")
 
-    def increment_project_event_counter(
-        self, project_id: int, timestamp: Union[int, float]
-    ) -> None:
+    def increment_project_event_counter(self, project_id: int, timestamp: int) -> None:
         """Increment the event counter for the given project_id.
 
         The counter is used to track the rate of events for the project.
         Calling this increments the counter of the current
-        time-window bucket with "timestamp" providing the time of the event.
+        time-window bucket with "timestamp" providing the time of the event
+        in seconds since the UNIX epoch (i.e., as returned by time.time()).
         """
 
-        timestamp = int(timestamp)
         if self._counter_bucket_size > 1:
             timestamp -= timestamp % self._counter_bucket_size
 
@@ -62,19 +59,18 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
             pipeline.execute()
 
     def increment_project_duration_counter(
-        self, project_id: int, timestamp: Union[int, float], duration: Union[int, float]
+        self, project_id: int, timestamp: int, duration: int
     ) -> None:
         """Increments the duration counter for the given project_id and duration.
 
         The counter is used to track the processing time of events for the project.
         Calling this increments the counter of the current time-window bucket with "timestamp" providing
-        the time of the event and "duration" the processing time.
+        the time of the event in seconds since the UNIX epoch and "duration" the processing time in seconds.
         """
         if self._histogram_bucket_size > 1:
             timestamp -= timestamp % self._histogram_bucket_size
 
         key = f"{self._prefix}:histogram:{self._histogram_bucket_size}:{project_id}:{timestamp}"
-        duration = int(duration)
         duration -= duration % 10
 
         with self.cluster.pipeline() as pipeline:

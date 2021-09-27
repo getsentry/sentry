@@ -45,7 +45,7 @@ def test_default() -> None:
     realtime_metrics.increment_project_event_counter(17, 1234)
 
 
-def test_increment_project_event_counter(
+def test_increment_project_event_counter_simple(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     store.increment_project_event_counter(17, 1147)
@@ -54,7 +54,7 @@ def test_increment_project_event_counter(
     assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140") is None
 
 
-def test_increment_project_event_counter_twice(
+def test_increment_project_event_counter_same_bucket(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     store.increment_project_event_counter(17, 1147)
@@ -69,7 +69,7 @@ def test_increment_project_event_counter_twice(
     assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140") is None
 
 
-def test_increment_project_event_counter_multiple(
+def test_increment_project_event_counter_different_buckets(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     store.increment_project_event_counter(17, 1147)
@@ -79,7 +79,7 @@ def test_increment_project_event_counter_multiple(
     assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1150") == "1"
 
 
-def test_increment_project_duration_counter(
+def test_increment_project_duration_counter_simple(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     store.increment_project_duration_counter(17, 1147, 15)
@@ -88,7 +88,7 @@ def test_increment_project_duration_counter(
     assert redis_cluster.get("symbolicate_event_low_priority:histogram:10:17:1140") is None
 
 
-def test_increment_project_duration_counter_twice(
+def test_increment_project_duration_counter_same_bucket(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     store.increment_project_duration_counter(17, 1147, 15)
@@ -103,7 +103,7 @@ def test_increment_project_duration_counter_twice(
     assert redis_cluster.get("symbolicate_event_low_priority:histogram:10:17:1140") is None
 
 
-def test_increment_project_duration_counter_multiple(
+def test_increment_project_duration_counter_different_buckets(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     store.increment_project_duration_counter(17, 1147, 23)

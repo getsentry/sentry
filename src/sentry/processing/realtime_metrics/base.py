@@ -1,5 +1,3 @@
-from typing import Union
-
 from sentry.utils.services import Service
 
 
@@ -8,24 +6,23 @@ class RealtimeMetricsStore(Service):  # type: ignore
 
     __all__ = ("increment_project_event_counter", "validate")
 
-    def increment_project_event_counter(
-        self, project_id: int, timestamp: Union[int, float]
-    ) -> None:
+    def increment_project_event_counter(self, project_id: int, timestamp: int) -> None:
         """Increment the event counter for the given project_id.
 
         The counter is used to track the rate of events for the project.
         Calling this increments the counter of the current
-        time-window bucket with "timestamp" providing the time of the event.
+        time-window bucket with "timestamp" providing the time of the event
+        in seconds since the UNIX epoch (i.e., as returned by time.time()).
         """
         pass
 
     def increment_project_duration_counter(
-        self, project_id: int, timestamp: Union[int, float], duration: Union[int, float]
+        self, project_id: int, timestamp: int, duration: int
     ) -> None:
         """Increments the duration counter for the given project_id and duration.
 
         The counter is used to track the processing time of events for the project.
         Calling this increments the counter of the current time-window bucket with "timestamp" providing
-        the time of the event and "duration" the processing time.
+        the time of the event in seconds since the UNIX epoch and "duration" the processing time in seconds.
         """
         pass
