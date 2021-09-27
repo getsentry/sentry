@@ -439,7 +439,7 @@ export function generateFieldOptions({
   aggregations = AGGREGATIONS,
   fields = FIELDS,
 }: FieldGeneratorOpts) {
-  let fieldKeys = Object.keys(fields);
+  let fieldKeys = Object.keys(fields).sort();
   let functions = Object.keys(aggregations);
 
   // Strip tracing features if the org doesn't have access.
@@ -491,6 +491,7 @@ export function generateFieldOptions({
   });
 
   if (tagKeys !== undefined && tagKeys !== null) {
+    tagKeys.sort();
     tagKeys.forEach(tag => {
       const tagValue =
         fields.hasOwnProperty(tag) || AGGREGATIONS.hasOwnProperty(tag)
@@ -507,6 +508,7 @@ export function generateFieldOptions({
   }
 
   if (measurementKeys !== undefined && measurementKeys !== null) {
+    measurementKeys.sort();
     measurementKeys.forEach(measurement => {
       fieldOptions[`measurement:${measurement}`] = {
         label: measurement,
@@ -519,6 +521,7 @@ export function generateFieldOptions({
   }
 
   if (Array.isArray(spanOperationBreakdownKeys)) {
+    spanOperationBreakdownKeys.sort();
     spanOperationBreakdownKeys.forEach(breakdownField => {
       fieldOptions[`span_op_breakdown:${breakdownField}`] = {
         label: breakdownField,
