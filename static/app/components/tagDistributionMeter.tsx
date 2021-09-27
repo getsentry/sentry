@@ -236,6 +236,7 @@ const Label = styled('div')`
 
 const Percent = styled('div')`
   font-weight: bold;
+  font-variant-numeric: tabular-nums;
   padding-left: ${space(0.5)};
   color: ${p => p.theme.textColor};
 `;

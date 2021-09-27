@@ -614,6 +614,7 @@ const TimeAxis = styled('div')`
   color: ${p => p.theme.gray300};
   font-size: 10px;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
   overflow: hidden;
 `;
 
