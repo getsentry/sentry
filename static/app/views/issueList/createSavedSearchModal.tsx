@@ -145,7 +145,6 @@ class CreateSavedSearchModal extends React.Component<Props, State> {
             key="sort"
             name="sort"
             label={t('Sort By')}
-            value={query}
             options={sortOptions}
             required
             clearable={false}
