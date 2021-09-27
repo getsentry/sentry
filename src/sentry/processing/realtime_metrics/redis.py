@@ -1,5 +1,4 @@
 import datetime
-from typing import Union
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
@@ -33,17 +32,15 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         if self._counter_bucket_size <= 0:
             raise InvalidConfiguration("bucket size must be at least 1")
 
-    def increment_project_event_counter(
-        self, project_id: int, timestamp: Union[int, float]
-    ) -> None:
+    def increment_project_event_counter(self, project_id: int, timestamp: int) -> None:
         """Increment the event counter for the given project_id.
 
         The counter is used to track the rate of events for the project.
         Calling this increments the counter of the current
-        time-window bucket with "timestamp" providing the time of the event.
+        time-window bucket with "timestamp" providing the time of the event
+        in seconds since the UNIX epoch (i.e., as returned by time.time()).
         """
 
-        timestamp = int(timestamp)
         if self._counter_bucket_size > 1:
             timestamp -= timestamp % self._counter_bucket_size
 
