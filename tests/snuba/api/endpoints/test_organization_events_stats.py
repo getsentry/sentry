@@ -7,6 +7,7 @@ import pytest
 from django.urls import reverse
 from pytz import utc
 
+from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba.discover import OTHER_KEY
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -1060,7 +1061,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             "field": ["count()", "message", "user.email"],
         }
         with self.feature(self.enabled_features):
-            data["topEvents"] = 50
+            data["topEvents"] = MAX_TOP_EVENTS + 1
             response = self.client.get(self.url, data, format="json")
             assert response.status_code == 400
 
