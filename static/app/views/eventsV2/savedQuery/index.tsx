@@ -94,7 +94,15 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     // For modifying a SavedQuery
     const isEqualQuery = nextEventView.isEqualTo(savedEventView);
-    const isEqualYAxis = isEqual(yAxis, savedQuery.yAxis);
+    // undefined saved yAxis defaults to count() and string values are converted to array
+    const isEqualYAxis = isEqual(
+      yAxis,
+      !savedQuery.yAxis
+        ? ['count()']
+        : typeof savedQuery.yAxis === 'string'
+        ? [savedQuery.yAxis]
+        : savedQuery.yAxis
+    );
     return {
       isNewQuery: false,
       isEditingQuery: !isEqualQuery || !isEqualYAxis,
