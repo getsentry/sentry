@@ -20,11 +20,7 @@ from sentry.api.serializers.rest_framework import (
 )
 from sentry.models import Activity, Project, Release, ReleaseCommitError, ReleaseStatus
 from sentry.models.release import UnsafeReleaseDeletion
-from sentry.snuba.sessions import (
-    STATS_PERIODS,
-    get_adjacent_releases_based_on_adoption,
-    get_release_sessions_time_bounds,
-)
+from sentry.snuba.sessions import STATS_PERIODS, get_release_sessions_time_bounds
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
@@ -96,37 +92,6 @@ class OrganizationReleaseDetailsPaginationMixin:
             | Q(date_added=release.date_added, id__lt=release.id),
             "order_by": ["-date_added", "-id"],
         }
-
-    @staticmethod
-    def __filter_down_snuba_primary_results_according_to_status_and_query(
-        org, project_ids, version_list, status_filter, query
-    ):
-        """
-        Helper function used to query Release model from the primary results of a snuba query
-        which happens when sorting on sessions, users, crash_free_users and crash_free_sessions
-        Inputs:-
-            * org: organization
-            * project_ids: list of project ids
-            * version_list: list of release versions
-            * status_filter: either open or archived
-            * query: query string
-        Returns:-
-            A list of filtered release versions in the same order it received it
-        """
-        queryset = Release.objects.filter(
-            organization=org, projects__id__in=project_ids, version__in=version_list
-        )
-
-        # Add status filter
-        queryset = add_status_filter_to_queryset(queryset, status_filter)
-
-        # Add query filter
-        queryset = add_query_filter_to_queryset(queryset, query)
-
-        # Required re-ordering because django filter does not guarantee order of snuba primary order
-        release_dict = {release.version: release for release in queryset}
-
-        return list(filter(None, [release_dict.get(version) for version in version_list]))
 
     @staticmethod
     def __get_release_according_to_filters_and_order_by_for_date_sort(
@@ -213,45 +178,6 @@ class OrganizationReleaseDetailsPaginationMixin:
             next_release_list = self.__get_release_according_to_filters_and_order_by_for_date_sort(
                 **release_common_filters,
                 **self.__get_next_release_date_query_q_and_order_by(release),
-            )
-
-        elif sort in (
-            "crash_free_sessions",
-            "crash_free_users",
-            "sessions",
-            "users",
-            "sessions_24h",
-            "users_24h",
-        ):
-            # Get primary results from snuba
-            prev_and_next_releases_list = get_adjacent_releases_based_on_adoption(
-                project_id=filter_params["project_id"][0],
-                org_id=org.id,
-                release=release.version,
-                scope=sort,
-                environments=filter_params.get("environment"),
-                stats_period=stats_period,
-            )
-
-            # Get previous queryset of current release
-            prev_release_list = (
-                self.__filter_down_snuba_primary_results_according_to_status_and_query(
-                    org=org.id,
-                    project_ids=filter_params["project_id"],
-                    version_list=prev_and_next_releases_list["prev_releases_list"],
-                    status_filter=status_filter,
-                    query=query,
-                )
-            )
-            # Get next queryset of current release
-            next_release_list = (
-                self.__filter_down_snuba_primary_results_according_to_status_and_query(
-                    org=org.id,
-                    project_ids=filter_params["project_id"],
-                    version_list=prev_and_next_releases_list["next_releases_list"],
-                    status_filter=status_filter,
-                    query=query,
-                )
             )
         else:
             raise InvalidSortException
