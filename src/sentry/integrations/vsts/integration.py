@@ -30,6 +30,7 @@ from sentry.models import (
     Organization,
     OrganizationIntegration,
     Repository,
+    generate_token,
 )
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import (
@@ -44,7 +45,6 @@ from sentry.web.helpers import render_to_response
 
 from .client import VstsApiClient
 from .repository import VstsRepositoryProvider
-from .webhooks import WorkItemWebhook
 
 DESCRIPTION = """
 Connect your Sentry organization to one or more of your Azure DevOps
@@ -426,11 +426,10 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
     def create_subscription(
         self, instance: Optional[str], oauth_data: Mapping[str, Any]
     ) -> Tuple[int, str]:
-        webhook = WorkItemWebhook()
+        client = VstsApiClient(Identity(data=oauth_data), self.oauth_redirect_url)
+        shared_secret = generate_token()
         try:
-            subscription, shared_secret = webhook.create_subscription(
-                instance, oauth_data, self.oauth_redirect_url
-            )
+            subscription = client.create_subscription(instance, shared_secret)
         except ApiError as e:
             auth_codes = (400, 401, 403)
             permission_error = "permission" in str(e) or "not authorized" in str(e)
