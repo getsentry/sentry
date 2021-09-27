@@ -367,6 +367,44 @@ describe('EventView.fromSavedQuery()', function () {
     // this is expected since datetime (start and end) are normalized
     expect(eventView2.isEqualTo(eventView3)).toBe(true);
   });
+
+  it('uses the first yAxis from the SavedQuery', function () {
+    const saved = {
+      id: '42',
+      name: 'best query',
+      fields: ['count()', 'id'],
+      query: 'event.type:transaction',
+      projects: [123],
+      teams: ['myteams', 1],
+      range: '14d',
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      orderby: '-id',
+      environment: ['staging'],
+      display: 'previous',
+      yAxis: ['count()', 'failure_count()'],
+    };
+    const eventView = EventView.fromSavedQuery(saved);
+
+    expect(eventView).toMatchObject({
+      id: saved.id,
+      name: saved.name,
+      fields: [
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'id', width: COL_WIDTH_UNDEFINED},
+      ],
+      sorts: [{field: 'id', kind: 'desc'}],
+      query: 'event.type:transaction',
+      project: [123],
+      team: ['myteams', 1],
+      start: undefined,
+      end: undefined,
+      statsPeriod: '14d',
+      environment: ['staging'],
+      yAxis: 'count()',
+      display: 'previous',
+    });
+  });
 });
 
 describe('EventView.fromNewQueryWithLocation()', function () {
@@ -862,6 +900,52 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
 
     // this is expected since datetime (start and end) are normalized
     expect(eventView2.isEqualTo(eventView3)).toBe(true);
+  });
+
+  it('uses the first yAxis from the SavedQuery', function () {
+    const saved = {
+      id: '42',
+      name: 'best query',
+      fields: ['count()', 'id'],
+      query: 'event.type:transaction',
+      projects: [123],
+      range: '14d',
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      orderby: '-id',
+      environment: ['staging'],
+      display: 'previous',
+      yAxis: ['count()', 'failure_count()'],
+    };
+
+    const location = {
+      query: {
+        statsPeriod: '14d',
+        project: ['123'],
+        team: ['myteams', '1', '2'],
+        environment: ['staging'],
+      },
+    };
+    const eventView = EventView.fromSavedQueryOrLocation(saved, location);
+
+    expect(eventView).toMatchObject({
+      id: saved.id,
+      name: saved.name,
+      fields: [
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'id', width: COL_WIDTH_UNDEFINED},
+      ],
+      sorts: [{field: 'id', kind: 'desc'}],
+      query: 'event.type:transaction',
+      project: [123],
+      team: ['myteams', 1, 2],
+      start: undefined,
+      end: undefined,
+      statsPeriod: '14d',
+      environment: ['staging'],
+      yAxis: 'count()',
+      display: 'previous',
+    });
   });
 });
 
