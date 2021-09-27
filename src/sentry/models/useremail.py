@@ -1,9 +1,10 @@
-from collections import defaultdict
+from collections import Mapping, defaultdict
 from datetime import timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 
 from django.conf import settings
 from django.db import models
+from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
@@ -12,16 +13,16 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
 
 if TYPE_CHECKING:
-    from sentry.models import User
+    from sentry.models import Organization, User
 
 CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 
 class UserEmailManager(BaseManager):
-    def get_for_organization(self, organization):
+    def get_for_organization(self, organization: "Organization") -> QuerySet:
         return self.filter(user__sentry_orgmember_set__organization=organization)
 
-    def get_emails_by_user(self, organization):
+    def get_emails_by_user(self, organization: "Organization") -> Mapping["User", Iterable[str]]:
         emails_by_user = defaultdict(set)
         user_emails = self.get_for_organization(organization).select_related("user")
         for entry in user_emails:

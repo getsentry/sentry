@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Sequence
 
 from django.db import IntegrityError, models
 from django.db.models.signals import post_save
@@ -126,7 +127,7 @@ class Integration(DefaultFieldsModel):
 
         return integrations.get(self.provider)
 
-    def get_installation(self, organization_id, **kwargs):
+    def get_installation(self, organization_id: int, **kwargs: Any) -> Any:
         return self.get_provider().get_installation(self, organization_id, **kwargs)
 
     def has_feature(self, feature):
