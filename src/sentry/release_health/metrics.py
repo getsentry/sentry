@@ -7,14 +7,16 @@ from snuba_sdk.expressions import Granularity
 from snuba_sdk.query import SelectableExpression
 
 from sentry.models.project import Project
-from sentry.releasehealth.base import (
+from sentry.release_health.base import (
     CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
     OrganizationId,
     ProjectId,
     ProjectOrRelease,
+    ReleaseAdoption,
     ReleaseHealthBackend,
     ReleaseName,
+    ReleasesAdoption,
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.base import UseCase
@@ -140,7 +142,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
 
         count_data = raw_snql_query(
-            count_query, referrer="releasehealth.metrics.get_crash_free_data", use_cache=False
+            count_query, referrer="release_health.metrics.get_crash_free_data", use_cache=False
         )["data"]
 
         for row in count_data:
@@ -171,7 +173,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         environments: Optional[Sequence[EnvironmentName]] = None,
         now: Optional[datetime] = None,
         org_id: Optional[OrganizationId] = None,
-    ) -> ReleaseHealthBackend.ReleasesAdoption:
+    ) -> ReleasesAdoption:
         project_ids = list({x[0] for x in project_releases})
         if org_id is None:
             org_id = self._get_org_id(project_ids)
@@ -190,7 +192,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         project_releases: Sequence[Tuple[ProjectId, ReleaseName]],
         project_ids: Sequence[ProjectId],
         environments: Optional[Sequence[EnvironmentName]] = None,
-    ) -> ReleaseHealthBackend.ReleasesAdoption:
+    ) -> ReleasesAdoption:
         start = now - timedelta(days=1)
 
         def _get_common_where(total: bool) -> List[Union[BooleanCondition, Condition]]:
@@ -301,18 +303,18 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         # Count of sessions/users for given list of environments and timerange, per-project
         sessions_per_project: Dict[int, int] = _count_sessions(
-            total=True, referrer="releasehealth.metrics.get_release_adoption.total_sessions"
+            total=True, referrer="release_health.metrics.get_release_adoption.total_sessions"
         )
         users_per_project: Dict[int, int] = _count_users(
-            total=True, referrer="releasehealth.metrics.get_release_adoption.total_users"
+            total=True, referrer="release_health.metrics.get_release_adoption.total_users"
         )
 
         # Count of sessions/users for given list of environments and timerange AND GIVEN RELEASES, per-project
         sessions_per_release: Dict[Tuple[int, int], int] = _count_sessions(
-            total=False, referrer="releasehealth.metrics.get_release_adoption.releases_sessions"
+            total=False, referrer="release_health.metrics.get_release_adoption.releases_sessions"
         )
         users_per_release: Dict[Tuple[int, int], int] = _count_users(
-            total=False, referrer="releasehealth.metrics.get_release_adoption.releases_users"
+            total=False, referrer="release_health.metrics.get_release_adoption.releases_users"
         )
 
         rv = {}
@@ -330,7 +332,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             total_sessions = sessions_per_project.get(project_id)
             total_users = users_per_project.get(project_id)
 
-            adoption: ReleaseHealthBackend.ReleaseAdoption = {
+            adoption: ReleaseAdoption = {
                 "adoption": float(release_users) / total_users * 100
                 if release_users and total_users
                 else None,
@@ -414,7 +416,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
 
         result = raw_snql_query(
-            query, referrer="releasehealth.metrics.check_has_health_data", use_cache=False
+            query, referrer="release_health.metrics.check_has_health_data", use_cache=False
         )
 
         return {extract_row_info(row) for row in result["data"]}
@@ -452,7 +454,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
 
         result = raw_snql_query(
-            query, referrer="releasehealth.metrics.check_releases_have_health_data", use_cache=False
+            query,
+            referrer="release_health.metrics.check_releases_have_health_data",
+            use_cache=False,
         )
 
         def extract_row_info(row: Mapping[str, Union[OrganizationId, str]]) -> ReleaseName:
