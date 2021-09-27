@@ -511,7 +511,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 select=aggregates + [Column("percentiles")],
                 where=where
                 + [
-                    Condition(Column("metric_id"), Op.EQ, "session.duration"),
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.duration")),
                 ],
                 groupby=aggregates,
             ),
@@ -533,7 +533,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 select=aggregates + [Column("value")],
                 where=where
                 + [
-                    Condition(Column("metric_id"), Op.EQ, "session.error"),
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.error")),
                 ],
                 groupby=aggregates,
             ),
@@ -555,7 +555,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 select=aggregates + [Column(session_status_column_name), Column("value")],
                 where=where
                 + [
-                    Condition(Column("metric_id"), Op.EQ, "session"),
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
                     Condition(
                         Column(session_status_column_name),
                         Op.IN,
@@ -582,7 +582,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 select=aggregates + [Column(session_status_column_name), Column("value")],
                 where=where
                 + [
-                    Condition(Column("metric_id"), Op.EQ, "user"),
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")),
                     Condition(
                         Column(session_status_column_name),
                         Op.IN,
