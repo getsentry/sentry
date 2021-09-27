@@ -9,7 +9,6 @@ from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions import (
     _make_stats,
-    check_releases_have_health_data,
     get_adjacent_releases_based_on_adoption,
     get_oldest_health_data_for_releases,
     get_project_releases_by_stability,
@@ -568,7 +567,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
 
 class SnubaSessionsTestMetrics(ReleaseHealthMetricsTestCase, SnubaSessionsTest):
     """
-    Same tests as in SnunbaSessionsTest but using the Metrics backendx
+    Same tests as in SnunbaSessionsTest but using the Metrics backend
     """
 
     pass
@@ -1853,13 +1852,15 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
 
 
 class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
+    backend = SessionsReleaseHealthBackend()
+
     def run_test(self, expected, projects, releases, start=None, end=None):
         if not start:
             start = datetime.now() - timedelta(days=1)
         if not end:
             end = datetime.now()
         assert (
-            check_releases_have_health_data(
+            self.backend.check_releases_have_health_data(
                 self.organization.id,
                 [p.id for p in projects],
                 [r.version for r in releases],
@@ -1892,3 +1893,11 @@ class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
         self.run_test([release_1], [other_project], [release_1])
         self.run_test([release_1, release_2], [other_project], [release_1, release_2])
         self.run_test([release_1, release_2], [self.project, other_project], [release_1, release_2])
+
+
+class CheckReleasesHaveHealthDataTestMetrics(
+    ReleaseHealthMetricsTestCase, CheckReleasesHaveHealthDataTest
+):
+    """Repeat tests with metrics backend"""
+
+    pass

@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from django.conf import settings
 from django.db import transaction
 from django.utils.encoding import force_text
+from django.utils.http import urlencode
 
 from sentry.utils import json
 from sentry.utils.compat import filter
@@ -200,3 +201,21 @@ def setdefault_path(data, *path, **kwargs):
     """
     kwargs["overwrite"] = False
     return set_path(data, *path, **kwargs)
+
+
+def safe_urlencode(query, **kwargs):
+    """
+    django.utils.http.urlencode wrapper that replaces query parameter values
+    of None with empty string so that urlencode doesn't raise TypeError
+    "Cannot encode None in a query string".
+    """
+    # sequence of 2-element tuples
+    if isinstance(query, (list, tuple)):
+        safe_query = ((pair[0], "" if pair[1] is None else pair[1]) for pair in query)
+        return urlencode(safe_query, **kwargs)
+
+    if isinstance(query, dict):
+        safe_query = {k: "" if v is None else v for k, v in query.items()}
+        return urlencode(safe_query, **kwargs)
+
+    return urlencode(query, **kwargs)
