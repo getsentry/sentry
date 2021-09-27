@@ -608,11 +608,18 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         fetch_has_health_data_releases = set()
 
         for project_id, release in project_releases:
+            adoption_info = release_adoption.get((project_id, release)) or {}
+
             rv_row = rv[project_id, release] = {
                 "project_id": project_id,
                 "release": release,
-                **(release_adoption.get((project_id, release)) or {}),
+                "sessions_adoption": adoption_info.get("sessions_adoption"),
+                "total_users_24h": adoption_info.get("users_24h"),
+                "total_project_users_24h": adoption_info.get("project_users_24h"),
+                "total_sessions_24h": adoption_info.get("sessions_24h"),
+                "total_project_sessions_24h": adoption_info.get("project_sessions_24h"),
             }
+
             rv_row["total_sessions"] = total_sessions = rv_sessions.get(
                 (project_id, release, "init")
             )
