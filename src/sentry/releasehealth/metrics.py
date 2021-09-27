@@ -17,11 +17,8 @@ from sentry.releasehealth.base import (
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.sessions_v2_metrics import (
-    QueryDefinition,
-    SessionsQueryResult,
-    run_sessions_query,
-)
+from sentry.snuba.sessions_v2 import QueryDefinition
+from sentry.snuba.sessions_v2_metrics import SessionsQueryResult, run_sessions_query
 from sentry.utils.snuba import raw_snql_query
 
 

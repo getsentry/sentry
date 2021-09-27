@@ -5,7 +5,7 @@ Do not call this module directly. Use the `releasehealth` service instead. """
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from datetime import datetime
-from typing import Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tuple, Union
 
 from snuba_sdk import Column, Condition, Entity, Op, Query
 from snuba_sdk.expressions import Granularity
@@ -67,24 +67,153 @@ class SessionsQueryResult(TypedDict):
     end: DateString
     intervals: Sequence[DateString]
     groups: Sequence[SessionsQueryGroup]
+    query: str
+
+
+def resolve(org_id: int, use_case: UseCase, name: str) -> Optional[int]:
+    """Wrapper for typing"""
+    return indexer.resolve(org_id, use_case, name)  # type: ignore
+
+
+def resolve_ensured(org_id: int, use_case: UseCase, name: str) -> int:
+    index = resolve(org_id, use_case, name)
+    assert index is not None
+    return index
+
+
+def reverse_resolve(org_id: int, use_case: UseCase, index: int) -> Optional[str]:
+    """Wrapper for typing"""
+    return indexer.reverse_resolve(org_id, use_case, index)  # type: ignore
+
+
+def reverse_resolve_ensured(org_id: int, use_case: UseCase, index: int) -> str:
+    string = reverse_resolve(org_id, use_case, index)
+    assert string is not None
+    return string
+
+
+_SessionStatus = Literal[
+    "abnormal",
+    "crashed",
+    "errored",
+    "healthy",
+]
+
+
+@dataclass(frozen=True)
+class _StatusValue:
+    """A data value associated with a certain session status"""
+
+    session_status: Optional[_SessionStatus]
+    value: Union[None, float, int]
 
 
 @dataclass(frozen=True)
 class _FlatKey:
     metric_name: str
     raw_session_status: Optional[str] = None
-    release: Optional[str] = None
-    environment: Optional[str] = None
+    release: Optional[int] = None
+    environment: Optional[int] = None
     bucketed_time: Optional[datetime] = None
     column: Literal["value", "avg", "max", "p50", "p75", "p90", "p95", "p99"] = "value"
     project_id: Optional[int] = None
 
 
-def run_sessions_query(
+_FlatData = Dict[_FlatKey, float]
+
+
+class _Field:
+
+    name = ""
+
+    def get_values(self, flat_data: _FlatData, key: _FlatKey) -> Sequence[_StatusValue]:
+        """List values by session.status"""
+        return [_StatusValue(None, flat_data[key])]
+
+
+class _UserField(_Field):
+
+    name = "count_unique(user)"
+
+    def get_values(self, flat_data: _FlatData, key: _FlatKey) -> Sequence[_StatusValue]:
+
+        if key.raw_session_status is None:
+            return [_StatusValue(None, int(flat_data[key]))]
+
+        if key.raw_session_status == "init":
+            # sessions_v2 always shows all session statuses (even if they have a count of 0),
+            # So let's hardcode them here
+            started = int(flat_data[key])
+            abnormal = int(flat_data.get(replace(key, raw_session_status="abnormal"), 0))
+            crashed = int(flat_data.get(replace(key, raw_session_status="crashed"), 0))
+            all_errored = int(flat_data.get(replace(key, raw_session_status="crashed"), 0))
+
+            healthy = max(0, started - all_errored)
+            errored = max(0, all_errored - abnormal - crashed)
+
+            return [
+                _StatusValue("abnormal", abnormal),
+                _StatusValue("crashed", crashed),
+                _StatusValue("errored", errored),
+                _StatusValue("healthy", healthy),
+            ]
+
+        return []  # Everything's been handled above
+
+
+class _SumSessionField(_Field):
+    name = "sum(session)"
+
+    def get_values(self, flat_data: _FlatData, key: _FlatKey) -> Sequence[_StatusValue]:
+
+        if key.raw_session_status is None:
+            return [_StatusValue(None, int(flat_data[key]))]
+
+        if key.raw_session_status == "init":
+            # sessions_v2 always shows all session statuses (even if they have a count of 0),
+            # So let's hardcode them here
+            started = int(flat_data[key])
+            abnormal = int(flat_data.get(replace(key, raw_session_status="abnormal"), 0))
+            crashed = int(flat_data.get(replace(key, raw_session_status="crashed"), 0))
+            errored_key = replace(key, metric_name="session.error", raw_session_status=None)
+            all_errored = int(flat_data.get(errored_key, 0))
+
+            healthy = max(0, started - all_errored)
+            errored = max(0, all_errored - abnormal - crashed)
+
+            return [
+                _StatusValue("abnormal", abnormal),
+                _StatusValue("crashed", crashed),
+                _StatusValue("errored", errored),
+                _StatusValue("healthy", healthy),
+            ]
+
+        return []  # Everything's been handled above
+
+
+class _DistributionField(_Field):
+    def __init__(self, name: str) -> None:
+        self.name = name
+        # TODO: handle group status here
+
+    def get_values(self, flat_data: _FlatData, key: _FlatKey) -> Sequence[_StatusValue]:
+        if self.name[:3] == key.column:
+            return [_StatusValue(key.raw_session_status, flat_data[key])]
+
+        return []
+
+
+_MetricName = str
+_SnubaData = Sequence[Dict[str, Any]]
+_MetricToFields = Mapping[_MetricName, Sequence[_Field]]
+_SnubaDataByMetric = Sequence[Tuple[_MetricName, _SnubaData]]
+
+
+def _fetch_data(
     org_id: int,
     query: QueryDefinition,
-    span_op: str,
-) -> SessionsQueryResult:
+) -> Tuple[_SnubaDataByMetric, _MetricToFields]:
+
     conditions = [
         Condition(Column("org_id"), Op.EQ, org_id),
         Condition(Column("project_id"), Op.IN, query.filter_keys["project_id"]),
@@ -96,14 +225,16 @@ def run_sessions_query(
 
     # It greatly simplifies code if we just assume that these two tags exist:
     # TODO: Can we get away with that assumption?
-    tag_key_release = indexer.resolve(org_id, UseCase.TAG_KEY, "release")
+    tag_key_release = resolve(org_id, UseCase.TAG_KEY, "release")
     assert tag_key_release is not None
-    tag_key_environment = indexer.resolve(org_id, UseCase.TAG_KEY, "environment")
+    tag_key_environment = resolve(org_id, UseCase.TAG_KEY, "environment")
     assert tag_key_environment is not None
+    tag_key_session_status = resolve(org_id, UseCase.TAG_KEY, "session.status")
+    assert tag_key_session_status is not None
 
     groupby_tags = [field for field in query.raw_groupby if field != "project"]
 
-    tag_keys = {field: indexer.resolve(org_id, UseCase.TAG_KEY, field) for field in groupby_tags}
+    tag_keys = {field: resolve(org_id, UseCase.TAG_KEY, field) for field in groupby_tags}
     groupby = {
         field: Column(f"tags[{tag_id}]")
         for field, tag_id in tag_keys.items()
@@ -114,17 +245,14 @@ def run_sessions_query(
         groupby["project"] = Column("project_id")
 
     data = []
-
-    session_status_tag_key = indexer.resolve(org_id, UseCase.TAG_KEY, "session.status")
-
-    metric_to_fields = {}
+    metric_to_fields: _MetricToFields = {}
 
     def _query(
         entity: str,
         metric_id: int,
         columns: Sequence[str],
         series: bool,
-        extra_conditions: Sequence[Condition],
+        extra_conditions: List[Condition],
     ) -> Query:
         full_groupby = list(groupby.values())
         if series:
@@ -167,7 +295,7 @@ def run_sessions_query(
         metric_id: int,
         columns: Sequence[str],
         extra_conditions: Optional[Sequence[Condition]] = None,
-    ):
+    ) -> Generator[Tuple[_MetricName, _SnubaData], None, None]:
         if extra_conditions is None:
             extra_conditions = []
 
@@ -185,14 +313,14 @@ def run_sessions_query(
             yield (metric_name, query_data)
 
     if "count_unique(user)" in query.raw_fields:
-        metric_id = indexer.resolve(org_id, UseCase.METRIC, "user")
+        metric_id = resolve(org_id, UseCase.METRIC, "user")
         if metric_id is not None:
             data.extend(_query_data("metrics_sets", "user", metric_id, ["value"]))
             metric_to_fields["user"] = [_UserField()]
 
     duration_fields = [field for field in query.raw_fields if "session.duration" in field]
     if duration_fields:
-        metric_id = indexer.resolve(org_id, UseCase.METRIC, "session.duration")
+        metric_id = resolve(org_id, UseCase.METRIC, "session.duration")
         if metric_id is not None:
             columns = {"percentiles" if field[0] == "p" else field[:3] for field in duration_fields}
             # TODO: What about avg., max.
@@ -204,7 +332,7 @@ def run_sessions_query(
             ]
 
     if "sum(session)" in query.raw_fields:
-        metric_id = indexer.resolve(org_id, UseCase.METRIC, "session")
+        metric_id = resolve(org_id, UseCase.METRIC, "session")
         if metric_id is not None:
             if "session.status" in groupby:
                 # We need session counters grouped by status, as well as the number of errored sessions
@@ -213,7 +341,7 @@ def run_sessions_query(
                 data.extend(_query_data("metrics_counters", "session", metric_id, ["value"]))
 
                 # 2: session.error
-                error_metric_id = indexer.resolve(org_id, UseCase.METRIC, "session.error")
+                error_metric_id = resolve(org_id, UseCase.METRIC, "session.error")
                 if error_metric_id is not None:
                     groupby.pop("session.status")
                     data.extend(
@@ -221,10 +349,10 @@ def run_sessions_query(
                     )
             else:
                 # Simply count the number of started sessions:
-                init = indexer.resolve(org_id, UseCase.TAG_VALUE, "init")
-                if session_status_tag_key is not None and init is not None:
+                init = resolve(org_id, UseCase.TAG_VALUE, "init")
+                if tag_key_session_status is not None and init is not None:
                     extra_conditions = [
-                        Condition(Column(f"tags[{session_status_tag_key}]"), Op.EQ, init)
+                        Condition(Column(f"tags[{tag_key_session_status}]"), Op.EQ, init)
                     ]
                     data.extend(
                         _query_data(
@@ -234,16 +362,29 @@ def run_sessions_query(
 
             metric_to_fields["session"] = [_SumSessionField()]
 
-    flat_data: Dict[_FlatKey, Union[None, float, Sequence[float]]] = {}
+    return data, metric_to_fields
+
+
+def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _FlatData:
+    flat_data = {}
+
+    # It greatly simplifies code if we just assume that these two tags exist:
+    # TODO: Can we get away with that assumption?
+    tag_key_release = resolve(org_id, UseCase.TAG_KEY, "release")
+    assert tag_key_release is not None
+    tag_key_environment = resolve(org_id, UseCase.TAG_KEY, "environment")
+    assert tag_key_environment is not None
+    tag_key_session_status = resolve(org_id, UseCase.TAG_KEY, "session.status")
+    assert tag_key_session_status is not None
+
     for metric_name, metric_data in data:
         for row in metric_data:
 
-            raw_session_status = row.pop(f"tags[{session_status_tag_key}]", None)
+            raw_session_status = row.pop(f"tags[{tag_key_session_status}]", None)
             if raw_session_status is not None:
-                raw_session_status = indexer.reverse_resolve(
+                raw_session_status = reverse_resolve_ensured(
                     org_id, UseCase.TAG_VALUE, raw_session_status
                 )
-                assert raw_session_status is not None
             flat_key = _FlatKey(
                 metric_name=metric_name,
                 raw_session_status=raw_session_status,
@@ -268,13 +409,30 @@ def run_sessions_query(
 
             assert row == {}
 
+    return flat_data
+
+
+def run_sessions_query(
+    org_id: int,
+    query: QueryDefinition,
+    span_op: str,
+) -> SessionsQueryResult:
+
+    data, metric_to_fields = _fetch_data(org_id, query)
+
+    flat_data = _flatten_data(org_id, data)
+
     intervals = list(get_intervals(query))
     timestamp_index = {timestamp.isoformat(): index for index, timestamp in enumerate(intervals)}
 
-    def default_for(field):
+    def default_for(field: SelectFieldName) -> Optional[int]:
         return 0 if field in ("sum(session)", "count_unique(user)") else None
 
-    groups = defaultdict(
+    class Group(TypedDict):
+        totals: Mapping[str, Optional[int]]
+        series: Mapping[str, Sequence[Optional[int]]]
+
+    groups: Dict[str, Group] = defaultdict(
         lambda: {
             "totals": {field: default_for(field) for field in query.raw_fields},
             "series": {field: len(intervals) * [default_for(field)] for field in query.raw_fields},
@@ -290,15 +448,9 @@ def run_sessions_query(
         by = {}
         if key.release is not None:
             # Note: If the tag value reverse-resolves to None here, it's a bug in the tag indexer
-            release = by["release"] = indexer.reverse_resolve(
-                org_id, UseCase.TAG_VALUE, key.release
-            )
-            assert release is not None
+            by["release"] = reverse_resolve_ensured(org_id, UseCase.TAG_VALUE, key.release)
         if key.environment is not None:
-            environment = by["environment"] = indexer.reverse_resolve(
-                org_id, UseCase.TAG_VALUE, key.environment
-            )
-            assert environment is not None
+            by["environment"] = reverse_resolve_ensured(org_id, UseCase.TAG_VALUE, key.environment)
         if key.project_id is not None:
             by["project"] = key.project_id
 
@@ -317,7 +469,7 @@ def run_sessions_query(
                     index = timestamp_index[key.bucketed_time]
                     group["series"][field.name][index] = status_value.value
 
-    groups = [
+    groups_as_list = [
         {
             "by": dict(by),
             **group,
@@ -333,11 +485,11 @@ def run_sessions_query(
         "end": format_datetime(query.end),
         "query": query.query,
         "intervals": [format_datetime(dt) for dt in intervals],
-        "groups": groups,
+        "groups": groups_as_list,
     }
 
 
-def _get_filter_conditions(org_id, conditions):
+def _get_filter_conditions(org_id: int, conditions: Sequence[Condition]) -> Sequence[Condition]:
 
     # Translate given conditions to typed query:
     dummy_entity = "metrics_sets"
@@ -347,7 +499,7 @@ def _get_filter_conditions(org_id, conditions):
     return _translate_conditions(org_id, filter_conditions)
 
 
-def _translate_conditions(org_id, input_):
+def _translate_conditions(org_id: int, input_: Any) -> Any:
     if isinstance(input_, Column):
         # The only filterable tag keys are release and environment.
         assert input_.name in ("release", "environment")
@@ -355,7 +507,7 @@ def _translate_conditions(org_id, input_):
         # Alternative would be:
         #   * if tag key or value does not exist in AND-clause, return no data
         #   * if tag key or value does not exist in OR-clause, remove condition
-        tag_key = indexer.resolve(org_id, UseCase.TAG_KEY, input_.name)
+        tag_key = resolve(org_id, UseCase.TAG_KEY, input_.name)
         assert tag_key is not None
 
         return Column(f"tags[{tag_key}]")
@@ -365,7 +517,7 @@ def _translate_conditions(org_id, input_):
         # It's OK if the tag value resolves to None, the snuba query will then
         # return no results, as is intended behavior
 
-        return indexer.resolve(org_id, UseCase.TAG_VALUE, input_)
+        return resolve(org_id, UseCase.TAG_VALUE, input_)
 
     if isinstance(input_, Function):
 
@@ -387,99 +539,3 @@ def _translate_conditions(org_id, input_):
 
     assert isinstance(input_, list), input_
     return [_translate_conditions(org_id, item) for item in input_]
-
-
-SessionStatus = Literal[
-    "abnormal",
-    "crashed",
-    "errored",
-    "healthy",
-]
-
-
-@dataclass(frozen=True)
-class StatusValue:
-    """A data value associated with a certain session status"""
-
-    session_status: Optional[SessionStatus]
-    value: Union[None, float, int]
-
-
-class _Field:
-    def get_values(self, flat_data, key) -> Sequence[StatusValue]:
-        """List values by session.status"""
-        return [StatusValue(None, flat_data[key])]
-
-
-class _UserField(_Field):
-
-    name = "count_unique(user)"
-
-    def get_values(self, flat_data, key) -> Sequence[StatusValue]:
-
-        if key.raw_session_status is None:
-            return [StatusValue(None, int(flat_data[key]))]
-
-        if key.raw_session_status == "init":
-            # sessions_v2 always shows all session statuses (even if they have a count of 0),
-            # So let's hardcode them here
-            started = int(flat_data[key])
-            abnormal = int(flat_data.get(replace(key, raw_session_status="abnormal"), 0))
-            crashed = int(flat_data.get(replace(key, raw_session_status="crashed"), 0))
-            all_errored = int(flat_data.get(replace(key, raw_session_status="crashed"), 0))
-
-            healthy = max(0, started - all_errored)
-            errored = max(0, all_errored - abnormal - crashed)
-
-            return [
-                StatusValue("abnormal", abnormal),
-                StatusValue("crashed", crashed),
-                StatusValue("errored", errored),
-                StatusValue("healthy", healthy),
-            ]
-
-        return []  # Everything's been handled above
-
-
-class _SumSessionField(_Field):
-    """Specialized version for when grouped by session.status"""
-
-    name = "sum(session)"
-
-    def get_values(self, flat_data, key) -> Sequence[StatusValue]:
-
-        if key.raw_session_status is None:
-            return [StatusValue(None, int(flat_data[key]))]
-
-        if key.raw_session_status == "init":
-            # sessions_v2 always shows all session statuses (even if they have a count of 0),
-            # So let's hardcode them here
-            started = int(flat_data[key])
-            abnormal = int(flat_data.get(replace(key, raw_session_status="abnormal"), 0))
-            crashed = int(flat_data.get(replace(key, raw_session_status="crashed"), 0))
-            errored_key = replace(key, metric_name="session.error", raw_session_status=None)
-            all_errored = int(flat_data.get(errored_key, 0))
-
-            healthy = max(0, started - all_errored)
-            errored = max(0, all_errored - abnormal - crashed)
-
-            return [
-                StatusValue("abnormal", abnormal),
-                StatusValue("crashed", crashed),
-                StatusValue("errored", errored),
-                StatusValue("healthy", healthy),
-            ]
-
-        return []  # Everything's been handled above
-
-
-class _DistributionField(_Field):
-    def __init__(self, name: str) -> None:
-        self.name = name
-        # TODO: handle group status here
-
-    def get_values(self, flat_data, key) -> Sequence[StatusValue]:
-        if self.name[:3] == key.column:
-            return [StatusValue(key.raw_session_status, flat_data[key])]
-
-        return []
