@@ -1,5 +1,8 @@
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Set, Tuple, TypeVar
+from typing import TYPE_CHECKING, Mapping, Optional, Sequence, Set, Tuple, TypeVar, Union
+
+if TYPE_CHECKING:
+    from typing_extensions import Literal
 
 from typing_extensions import TypedDict
 
@@ -13,6 +16,21 @@ EnvironmentName = str
 ProjectRelease = Tuple[ProjectId, ReleaseName]
 
 ProjectOrRelease = TypeVar("ProjectOrRelease", ProjectId, ProjectRelease)
+
+# taken from sentry.snuba.sessions.STATS_PERIODS
+StatsPeriod = Union[
+    'Literal["1h"]',
+    'Literal["24h"]',
+    'Literal["1d"]',
+    'Literal["48h"]',
+    'Literal["2d"]',
+    'Literal["7d"]',
+    'Literal["14d"]',
+    'Literal["30d"]',
+    'Literal["90d"]',
+]
+
+OverviewStat = Union['Literal["users"]', 'Literal["sessions"]']
 
 
 class CurrentAndPreviousCrashFreeRate(TypedDict):
@@ -31,6 +49,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "get_release_adoption",
         "check_has_health_data",
         "check_releases_have_health_data",
+        "get_release_health_data_overview",
     )
 
     def get_current_and_previous_crash_free_rates(
@@ -90,7 +109,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
 
     def get_release_adoption(
         self,
-        project_releases: Sequence[Tuple[ProjectId, ReleaseName]],
+        project_releases: Sequence[ProjectRelease],
         environments: Optional[Sequence[EnvironmentName]] = None,
         now: Optional[datetime] = None,
         org_id: Optional[OrganizationId] = None,
@@ -133,8 +152,24 @@ class ReleaseHealthBackend(Service):  # type: ignore
         start: datetime,
         end: datetime,
     ) -> Set[ReleaseName]:
-
         """
         Returns a set of all release versions that have health data within a given period of time.
         """
+
+        raise NotImplementedError()
+
+    def get_release_health_data_overview(
+        self,
+        project_releases: Sequence[ProjectRelease],
+        environments: Optional[Sequence[EnvironmentName]] = None,
+        summary_stats_period: Optional[StatsPeriod] = None,
+        health_stats_period: Optional[StatsPeriod] = None,
+        stat: OverviewStat = None,
+    ):
+        """Checks quickly for which of the given project releases we have
+        health data available.  The argument is a tuple of `(project_id, release_name)`
+        tuples.  The return value is a set of all the project releases that have health
+        data.
+        """
+
         raise NotImplementedError()

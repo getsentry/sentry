@@ -5,15 +5,19 @@ from sentry.releasehealth.base import (
     CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
     OrganizationId,
+    OverviewStat,
     ProjectId,
     ProjectOrRelease,
+    ProjectRelease,
     ReleaseHealthBackend,
     ReleaseName,
+    StatsPeriod,
 )
 from sentry.snuba.sessions import (
     _check_has_health_data,
     _check_releases_have_health_data,
     _get_release_adoption,
+    _get_release_health_data_overview,
     get_current_and_previous_crash_free_rates,
 )
 
@@ -70,4 +74,20 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
             release_versions,
             start,
             end,
+        )
+
+    def get_release_health_data_overview(
+        self,
+        project_releases: Sequence[ProjectRelease],
+        environments: Optional[Sequence[EnvironmentName]] = None,
+        summary_stats_period: Optional[StatsPeriod] = None,
+        health_stats_period: Optional[StatsPeriod] = None,
+        stat: OverviewStat = None,
+    ):
+        return _get_release_health_data_overview(  # type: ignore
+            project_releases=project_releases,
+            environments=environments,
+            summary_stats_period=summary_stats_period,
+            health_stats_period=health_stats_period,
+            stat=stat,
         )
