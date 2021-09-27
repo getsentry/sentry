@@ -1,13 +1,13 @@
 import {t} from 'app/locale';
 import {
-  Breadcrumb,
   BreadcrumbLevelType,
-  BreadcrumbsWithDetails,
   BreadcrumbType,
+  Crumb,
+  RawCrumb,
 } from 'app/types/breadcrumbs';
 import {defined} from 'app/utils';
 
-function convertCrumbType(breadcrumb: Breadcrumb): Breadcrumb {
+function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
   if (breadcrumb.type === BreadcrumbType.EXCEPTION) {
     return {
       ...breadcrumb,
@@ -62,7 +62,7 @@ function convertCrumbType(breadcrumb: Breadcrumb): Breadcrumb {
 
 function getCrumbDescriptionAndColor(
   type: BreadcrumbType
-): Pick<BreadcrumbsWithDetails[0], 'color' | 'description'> {
+): Pick<Crumb, 'color' | 'description'> {
   switch (type) {
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
@@ -134,7 +134,7 @@ function getCrumbDescriptionAndColor(
   }
 }
 
-export function transformCrumbs(breadcrumbs: Array<Breadcrumb>): BreadcrumbsWithDetails {
+export function transformCrumbs(breadcrumbs: Array<RawCrumb>): Crumb[] {
   return breadcrumbs.map((breadcrumb, index) => {
     const convertedCrumbType = convertCrumbType(breadcrumb);
     const {color, description} = getCrumbDescriptionAndColor(convertedCrumbType.type);

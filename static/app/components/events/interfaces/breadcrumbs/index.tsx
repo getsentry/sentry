@@ -11,10 +11,10 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {
-  Breadcrumb,
   BreadcrumbLevelType,
-  BreadcrumbsWithDetails,
   BreadcrumbType,
+  Crumb,
+  RawCrumb,
 } from 'app/types/breadcrumbs';
 import {EntryType, Event} from 'app/types/event';
 import {defined} from 'app/utils';
@@ -42,15 +42,15 @@ type Props = {
   organization: Organization;
   type: string;
   data: {
-    values: Array<Breadcrumb>;
+    values: Array<RawCrumb>;
   };
 };
 
 type State = {
   searchTerm: string;
-  breadcrumbs: BreadcrumbsWithDetails;
-  filteredByFilter: BreadcrumbsWithDetails;
-  filteredBySearch: BreadcrumbsWithDetails;
+  breadcrumbs: Crumb[];
+  filteredByFilter: Crumb[];
+  filteredBySearch: Crumb[];
   filterOptions: FilterOptions;
   displayRelativeTime: boolean;
   relativeTime?: string;
@@ -170,7 +170,7 @@ function BreadcrumbsContainer({data, event, organization, type: eventType}: Prop
     return filterLevels;
   }
 
-  function filterBySearch(newSearchTerm: string, crumbs: BreadcrumbsWithDetails) {
+  function filterBySearch(newSearchTerm: string, crumbs: Crumb[]) {
     if (!newSearchTerm.trim()) {
       return crumbs;
     }
@@ -248,7 +248,7 @@ function BreadcrumbsContainer({data, event, organization, type: eventType}: Prop
     return match[1];
   }
 
-  function getVirtualCrumb(): Breadcrumb | undefined {
+  function getVirtualCrumb(): RawCrumb | undefined {
     const exception = event.entries.find(entry => entry.type === EntryType.EXCEPTION);
 
     if (!exception && !event.message) {
