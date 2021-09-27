@@ -64,11 +64,9 @@ class RuleNodeList extends React.Component<Props> {
       return node;
     }
 
-    const item = items.find(i => i.id === node.id);
-
     return getChangeAlertNode(
       node as IssueAlertRuleConditionTemplate,
-      item as IssueAlertRuleCondition,
+      items[itemIdx] as IssueAlertRuleCondition,
       itemIdx,
       this.props.onPropertyChange
     );
