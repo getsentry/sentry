@@ -205,7 +205,7 @@ class BuildSnubaFilterTest(TestCase):
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
             environment=None,
-            event_types=[SnubaQueryEventType.EventType.SESSION],
+            event_types=[],
         )
         assert snuba_filter
         assert snuba_filter.aggregations == [
@@ -223,7 +223,7 @@ class BuildSnubaFilterTest(TestCase):
             query="",
             aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
             environment=None,
-            event_types=[SnubaQueryEventType.EventType.USER],
+            event_types=[],
         )
         assert snuba_filter
         assert snuba_filter.aggregations == [
@@ -253,7 +253,7 @@ class BuildSnubaFilterTest(TestCase):
             query="release:ahmed@12.2",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
             environment=env,
-            event_types=[SnubaQueryEventType.EventType.SESSION],
+            event_types=[],
         )
         assert snuba_filter
         assert snuba_filter.aggregations == [
@@ -276,7 +276,7 @@ class BuildSnubaFilterTest(TestCase):
             query="release:ahmed@12.2",
             aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
             environment=env,
-            event_types=[SnubaQueryEventType.EventType.USER],
+            event_types=[],
         )
         assert snuba_filter
         assert snuba_filter.aggregations == [
@@ -446,7 +446,7 @@ class TestApplyDatasetQueryConditions(TestCase):
             apply_dataset_query_conditions(
                 QueryDatasets.SESSIONS,
                 "release:123",
-                [SnubaQueryEventType.EventType.SESSION],
+                [],
                 False,
             )
             == "release:123"

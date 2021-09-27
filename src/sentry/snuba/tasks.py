@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import timedelta
 
 import sentry_sdk
@@ -8,7 +9,7 @@ from snuba_sdk.legacy import json_to_snql
 from sentry.constants import CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
-from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
+from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.snuba import (
@@ -28,10 +29,6 @@ logger = logging.getLogger(__name__)
 DATASET_CONDITIONS = {
     QueryDatasets.EVENTS: "event.type:error",
     QueryDatasets.TRANSACTIONS: "event.type:transaction",
-}
-SESSIONS_EVENT_TYPES_TO_COLUMNS = {
-    SnubaQueryEventType.EventType.SESSION: "sessions",
-    SnubaQueryEventType.EventType.USER: "users",
 }
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
 
@@ -189,8 +186,10 @@ def build_snuba_filter(dataset, query, aggregate, environment, event_types, para
     if dataset == QueryDatasets.SESSIONS:
         # This aggregation is added to return the total number of sessions in crash
         # rate alerts that is used to identify if we are below a general minimum alert threshold
-        count_col = SESSIONS_EVENT_TYPES_TO_COLUMNS[event_types[0]]
-        aggregations += [f"identity({count_col}) AS {CRASH_RATE_ALERT_SESSION_COUNT_ALIAS}"]
+        count_col = re.search(r"(sessions|users)", aggregate)
+        count_col_matched = count_col.group()
+
+        aggregations += [f"identity({count_col_matched}) AS {CRASH_RATE_ALERT_SESSION_COUNT_ALIAS}"]
         functions_acl = ["identity"]
 
     query = apply_dataset_query_conditions(dataset, query, event_types)
