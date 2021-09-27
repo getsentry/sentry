@@ -1353,97 +1353,75 @@ function routes() {
               componentPromise={() => import('app/views/performance/content')}
               component={SafeLazyLoad}
             />
-          </Route>
-          <Route
-            path="/organizations/:orgId/performance/trends/"
-            componentPromise={() => import('app/views/performance')}
-            component={SafeLazyLoad}
-          >
-            <IndexRoute
+
+            <Route
+              path="trends/"
               componentPromise={() => import('app/views/performance/trends')}
               component={SafeLazyLoad}
             />
-          </Route>
-          <Route
-            path="/organizations/:orgId/performance/summary/"
-            componentPromise={() => import('app/views/performance')}
-            component={SafeLazyLoad}
-          >
-            <IndexRoute
-              componentPromise={() =>
-                import('app/views/performance/transactionSummary/transactionOverview')
-              }
-              component={SafeLazyLoad}
-            />
+
+            <Route path="/organizations/:orgId/performance/summary/">
+              <IndexRoute
+                componentPromise={() =>
+                  import('app/views/performance/transactionSummary/transactionOverview')
+                }
+                component={SafeLazyLoad}
+              />
+              <Route
+                path="vitals/"
+                componentPromise={() =>
+                  import('app/views/performance/transactionSummary/transactionVitals')
+                }
+                component={SafeLazyLoad}
+              />
+              <Route
+                path="tags/"
+                componentPromise={() =>
+                  import('app/views/performance/transactionSummary/transactionTags')
+                }
+                component={SafeLazyLoad}
+              />
+              <Route
+                path="events/"
+                componentPromise={() =>
+                  import('app/views/performance/transactionSummary/transactionEvents')
+                }
+                component={SafeLazyLoad}
+              />
+              <Route
+                path="spans/"
+                componentPromise={() =>
+                  import('app/views/performance/transactionSummary/transactionSpans')
+                }
+                component={SafeLazyLoad}
+              />
+            </Route>
+
             <Route
-              path="/organizations/:orgId/performance/summary/vitals/"
-              componentPromise={() =>
-                import('app/views/performance/transactionSummary/transactionVitals')
-              }
-              component={SafeLazyLoad}
-            />
-            <Route
-              path="/organizations/:orgId/performance/summary/tags/"
-              componentPromise={() =>
-                import('app/views/performance/transactionSummary/transactionTags')
-              }
-              component={SafeLazyLoad}
-            />
-            <Route
-              path="/organizations/:orgId/performance/summary/events/"
-              componentPromise={() =>
-                import('app/views/performance/transactionSummary/transactionEvents')
-              }
-              component={SafeLazyLoad}
-            />
-            <Route
-              path="/organizations/:orgId/performance/summary/spans/"
-              componentPromise={() =>
-                import('app/views/performance/transactionSummary/transactionSpans')
-              }
-              component={SafeLazyLoad}
-            />
-          </Route>
-          <Route
-            path="/organizations/:orgId/performance/vitaldetail/"
-            componentPromise={() => import('app/views/performance')}
-            component={SafeLazyLoad}
-          >
-            <IndexRoute
+              path="vitaldetail/"
               componentPromise={() => import('app/views/performance/vitalDetail')}
               component={SafeLazyLoad}
             />
-          </Route>
-          <Route
-            path="/organizations/:orgId/performance/trace/:traceSlug/"
-            componentPromise={() => import('app/views/performance')}
-            component={SafeLazyLoad}
-          >
-            <IndexRoute
+
+            <Route
+              path="trace/:traceSlug/"
               componentPromise={() => import('app/views/performance/traceDetails')}
               component={SafeLazyLoad}
             />
-          </Route>
-          <Route
-            path="/organizations/:orgId/performance/:eventSlug/"
-            componentPromise={() => import('app/views/performance')}
-            component={SafeLazyLoad}
-          >
-            <IndexRoute
+
+            <Route
+              path=":eventSlug/"
               componentPromise={() => import('app/views/performance/transactionDetails')}
               component={SafeLazyLoad}
             />
-          </Route>
-          <Route
-            path="/organizations/:orgId/performance/compare/:baselineEventSlug/:regressionEventSlug/"
-            componentPromise={() => import('app/views/performance')}
-            component={SafeLazyLoad}
-          >
-            <IndexRoute
+
+            <Route
+              path="compare/:baselineEventSlug/:regressionEventSlug/"
               componentPromise={() => import('app/views/performance/compare')}
               component={SafeLazyLoad}
             />
           </Route>
+
           <Route
             path="/organizations/:orgId/dashboards/new/"
             componentPromise={() => import('app/views/dashboardsV2/create')}
