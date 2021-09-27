@@ -16,6 +16,7 @@ from sentry.release_health.base import (
     ReleaseAdoption,
     ReleaseHealthBackend,
     ReleaseName,
+    ReleasesAdoption,
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.base import UseCase
@@ -172,7 +173,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         environments: Optional[Sequence[EnvironmentName]] = None,
         now: Optional[datetime] = None,
         org_id: Optional[OrganizationId] = None,
-    ) -> ReleaseHealthBackend.ReleasesAdoption:
+    ) -> ReleasesAdoption:
         project_ids = list({x[0] for x in project_releases})
         if org_id is None:
             org_id = self._get_org_id(project_ids)
@@ -191,7 +192,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         project_releases: Sequence[Tuple[ProjectId, ReleaseName]],
         project_ids: Sequence[ProjectId],
         environments: Optional[Sequence[EnvironmentName]] = None,
-    ) -> ReleaseHealthBackend.ReleasesAdoption:
+    ) -> ReleasesAdoption:
         start = now - timedelta(days=1)
 
         def _get_common_where(total: bool) -> List[Union[BooleanCondition, Condition]]:
