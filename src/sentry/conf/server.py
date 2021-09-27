@@ -1708,16 +1708,19 @@ SENTRY_DEVSERVICES = {
             "pull": True,
             "ports": {"5432/tcp": 5432},
             "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
+            # TODO: guard with CI flag
+            "tmpfs": ("/var/lib/postgresql/data",),
             "volumes": {
-                "postgres": {"bind": "/var/lib/postgresql/data"},
+                # TODO: disable with CI flag
+                # "postgres": {"bind": "/var/lib/postgresql/data"},
                 "wal2json": {"bind": "/wal2json"},
                 settings.CDC_CONFIG_DIR: {"bind": "/cdc"},
                 **build_cdc_postgres_init_db_volume(settings),
             },
             "command": [
                 "postgres",
+                # TODO: guard with CI flag
                 "-c",
-                # TODO: let devservices up append to cmdline
                 "fsync=off",
                 "-c",
                 "wal_level=logical",
