@@ -24,8 +24,8 @@ class QueryBuilder(QueryFilter):
         orderby: Optional[List[str]] = None,
         auto_aggregations: bool = False,
         use_aggregate_conditions: bool = False,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
+        limit: Optional[int] = 50,
+        offset: Optional[int] = 0,
         limitby: Optional[Tuple[str, int]] = None,
     ):
         super().__init__(dataset, params)
