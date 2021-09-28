@@ -35,6 +35,7 @@ class _NoTimeBounds(TypedDict):
 
 ReleaseSessionsTimeBounds = Union[_TimeBounds, _NoTimeBounds]
 
+
 class ReleaseAdoption(TypedDict):
     #: Adoption rate (based on usercount) for a project's release from 0..100
     adoption: Optional[float]
