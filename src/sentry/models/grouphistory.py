@@ -52,7 +52,7 @@ class GroupHistory(Model):
         ),
     )
     prev_history_id = FlexibleForeignKey(
-        "sentry.GroupHistory"
+        "sentry.GroupHistory", null=True
     )  # This field has no immediate use, but might be useful.
     prev_history_date = models.DateTimeField(
         null=True
