@@ -34,6 +34,7 @@ def _resolve(org_id: int, use_case: UseCase, name: str) -> Optional[int]:
 
 
 def _resolve_ensured(org_id: int, use_case: UseCase, name: str) -> int:
+    """Assume the index entry exists"""
     index = _resolve(org_id, use_case, name)
     assert index is not None
     return index
@@ -45,6 +46,7 @@ def _reverse_resolve(org_id: int, use_case: UseCase, index: int) -> Optional[str
 
 
 def _reverse_resolve_ensured(org_id: int, use_case: UseCase, index: int) -> str:
+    """Assume the index entry exists"""
     string = _reverse_resolve(org_id, use_case, index)
     assert string is not None
     return string
@@ -92,7 +94,6 @@ class _UserField(_Field):
     name: SelectFieldName = "count_unique(user)"
 
     def get_values(self, flat_data: _FlatData, key: _FlatKey) -> Sequence[_StatusValue]:
-
         if key.raw_session_status is None:
             return [_StatusValue(None, int(flat_data[key]))]
 
@@ -121,7 +122,6 @@ class _SumSessionField(_Field):
     name: SelectFieldName = "sum(session)"
 
     def get_values(self, flat_data: _FlatData, key: _FlatKey) -> Sequence[_StatusValue]:
-
         if key.raw_session_status is None:
             return [_StatusValue(None, int(flat_data[key]))]
 
@@ -147,16 +147,18 @@ class _SumSessionField(_Field):
         return []  # Everything's been handled above
 
 
-class _DistributionField(_Field):
+class _SessionDurationField(_Field):
     def __init__(self, name: SelectFieldName) -> None:
         self.name = name
-        # TODO: handle group status here
 
     def get_values(self, flat_data: _FlatData, key: _FlatKey) -> Sequence[_StatusValue]:
         if self.name[:3] == key.column:
             if key.raw_session_status is None:
-                # This is weird but it seems to be what sessions_v2 does
-                return [_StatusValue("healthy", flat_data[key])]
+                return [_StatusValue(None, flat_data[key])]
+            # TODO: handle group-by-status case.
+            # This is special-cased in sessions_v2 as well, so unsure what
+            # to do here.
+            # E.g. we cannot say p50(healthy) = p50(init) - p50(errored)
 
         return []
 
@@ -171,7 +173,7 @@ def _fetch_data(
     org_id: int,
     query: QueryDefinition,
 ) -> Tuple[_SnubaDataByMetric, _MetricToFields]:
-
+    """Build & run necessary snuba queries"""
     conditions = [
         Condition(Column("org_id"), Op.EQ, org_id),
         Condition(Column("project_id"), Op.IN, query.filter_keys["project_id"]),
@@ -200,13 +202,14 @@ def _fetch_data(
     data: List[Tuple[_MetricName, _SnubaData]] = []
     metric_to_fields: MutableMapping[_MetricName, Sequence[_Field]] = {}
 
-    def _query(
+    def get_query(
         entity: str,
         metric_id: int,
         columns: Sequence[str],
         series: bool,
         extra_conditions: List[Condition],
     ) -> Query:
+        """Build the snuba query"""
         full_groupby = list(groupby.values())
         if series:
             full_groupby.append(Column(TS_COL_GROUP))
@@ -242,7 +245,7 @@ def _fetch_data(
         },
     }
 
-    def _query_data(
+    def get_query_data(
         entity: str,
         metric_name: str,
         metric_id: int,
@@ -253,7 +256,7 @@ def _fetch_data(
             extra_conditions = []
 
         for query_type in ("series", "totals"):
-            snuba_query = _query(
+            snuba_query = get_query(
                 entity,
                 metric_id,
                 columns,
@@ -268,7 +271,7 @@ def _fetch_data(
     if "count_unique(user)" in query.raw_fields:
         metric_id = _resolve(org_id, UseCase.METRIC, "user")
         if metric_id is not None:
-            data.extend(_query_data("metrics_sets", "user", metric_id, ["value"]))
+            data.extend(get_query_data("metrics_sets", "user", metric_id, ["value"]))
             metric_to_fields["user"] = [_UserField()]
 
     duration_fields = [field for field in query.raw_fields if "session.duration" in field]
@@ -278,10 +281,12 @@ def _fetch_data(
             columns = {"percentiles" if field[0] == "p" else field[:3] for field in duration_fields}
             # TODO: What about avg., max.
             data.extend(
-                _query_data("metrics_distributions", "session.duration", metric_id, list(columns))
+                get_query_data(
+                    "metrics_distributions", "session.duration", metric_id, list(columns)
+                )
             )
             metric_to_fields["session.duration"] = [
-                _DistributionField(field) for field in duration_fields
+                _SessionDurationField(field) for field in duration_fields
             ]
 
     if "sum(session)" in query.raw_fields:
@@ -291,14 +296,14 @@ def _fetch_data(
                 # We need session counters grouped by status, as well as the number of errored sessions
 
                 # 1 session counters
-                data.extend(_query_data("metrics_counters", "session", metric_id, ["value"]))
+                data.extend(get_query_data("metrics_counters", "session", metric_id, ["value"]))
 
                 # 2: session.error
                 error_metric_id = _resolve(org_id, UseCase.METRIC, "session.error")
                 if error_metric_id is not None:
                     groupby.pop("session.status")
                     data.extend(
-                        _query_data("metrics_sets", "session.error", error_metric_id, ["value"])
+                        get_query_data("metrics_sets", "session.error", error_metric_id, ["value"])
                     )
             else:
                 # Simply count the number of started sessions:
@@ -308,7 +313,7 @@ def _fetch_data(
                         Condition(Column(f"tags[{tag_key_session_status}]"), Op.EQ, init)
                     ]
                     data.extend(
-                        _query_data(
+                        get_query_data(
                             "metrics_counters", "session", metric_id, ["value"], extra_conditions
                         )
                     )
@@ -319,6 +324,7 @@ def _fetch_data(
 
 
 def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _FlatData:
+    """Unite snuba data from multiple queries into a single key-value map for easier access"""
     flat_data = {}
 
     # It greatly simplifies code if we just assume that these two tags exist:
@@ -443,8 +449,7 @@ def run_sessions_query(
 
 
 def _get_filter_conditions(org_id: int, conditions: Sequence[Condition]) -> Any:
-
-    # Translate given conditions to typed query:
+    """Translate given conditions to snql"""
     dummy_entity = "metrics_sets"
     filter_conditions = json_to_snql(
         {"selected_columns": ["value"], "conditions": conditions}, entity=dummy_entity
