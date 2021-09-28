@@ -354,12 +354,12 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     submit_realtime_metrics = not from_reprocessing and random.random() < submission_ratio
 
     if submit_realtime_metrics:
-        timestamp = int(symbolication_start_time)
-        with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics.counter"):
+        with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics"):
+            timestamp = int(symbolication_start_time)
             try:
                 realtime_metrics.increment_project_event_counter(project_id, timestamp)
-            except Exception:
-                pass
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     # We cannot persist canonical types in the cache, so we need to
     # downgrade this.
