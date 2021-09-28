@@ -396,7 +396,9 @@ class IssueSyncMixin(IssueBasicMixin):
                 groups_to_resolve.append(group)
 
         if groups_to_resolve:
-            Group.objects.update_group_status(groups_to_resolve, GroupStatus.RESOLVED, ActivityType.SET_RESOLVED)
+            Group.objects.update_group_status(
+                groups_to_resolve, GroupStatus.RESOLVED, ActivityType.SET_RESOLVED
+            )
 
         if groups_to_unresolve:
             Group.objects.update_group_status(
