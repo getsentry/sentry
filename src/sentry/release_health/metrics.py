@@ -21,12 +21,12 @@ from sentry.release_health.base import (
     ReleaseHealthBackend,
     ReleaseName,
     ReleasesAdoption,
-    StatsPeriod,
     ReleaseSessionsTimeBounds,
+    StatsPeriod,
 )
-from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets, parse_snuba_datetime
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets, parse_snuba_datetime
 from sentry.utils.snuba import raw_snql_query
 
 
