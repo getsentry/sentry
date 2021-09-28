@@ -829,6 +829,24 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             release_1_e_2,
         }
 
+        query = {"field": ["id"], "query": f"{SEMVER_ALIAS}:1.2.3"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+        }
+
+        query = {"field": ["id"], "query": f"!{SEMVER_ALIAS}:1.2.3"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_2_e_1,
+            release_2_e_2,
+            release_3_e_1,
+            release_3_e_2,
+        }
+
     def test_release_stage(self):
         replaced_release = self.create_release(
             version="replaced_release", environments=[self.environment]
@@ -993,6 +1011,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert {r["id"] for r in response.data["data"]} == {
             release_2_e_1,
+        }
+        query = {"field": ["id"], "query": f"!{SEMVER_BUILD_ALIAS}:124"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
         }
 
     def test_aliased_fields(self):

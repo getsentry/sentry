@@ -1,14 +1,23 @@
 import string
 from datetime import timedelta
 
+<<<<<<< HEAD
 from django.urls import reverse
+
+=======
+>>>>>>> master
 from django.utils.crypto import get_random_string
 
 from sentry import options
 from sentry.models import Organization, OrganizationMember, User
 from sentry.utils import redis
 from sentry.utils.email import MessageBuilder
+
+<<<<<<< HEAD
 from sentry.utils.http import absolute_uri
+
+=======
+>>>>>>> master
 
 _REDIS_KEY = "verificationKeyStorage"
 _TTL = timedelta(minutes=10)
@@ -17,12 +26,19 @@ _TTL = timedelta(minutes=10)
 def send_confirm_email(user: User, email: str, verification_key: str) -> None:
     context = {
         "user": user,
+<<<<<<< HEAD
         "url": absolute_uri(
             reverse(
                 "sentry-idp-email-verification",
                 args=[verification_key],
             )
         ),
+=======
+        # TODO left incase we want to have a clickable verification link for future
+        # "url": absolute_uri(
+        #     reverse("sentry-account-confirm-email", args=[user.id, verification_key])
+        # ),
+>>>>>>> master
         "confirm_email": email,
         "verification_key": verification_key,
     }

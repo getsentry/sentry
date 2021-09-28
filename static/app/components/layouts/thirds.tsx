@@ -62,7 +62,7 @@ export const HeaderActions = styled('div')`
 /**
  * Heading container that includes margins.
  */
-export const Title = styled('h2')`
+export const Title = styled('h1')`
   font-size: ${p => p.theme.headerFontSize};
   font-weight: normal;
   line-height: 1.2;

@@ -47,7 +47,9 @@ export default class MonitorCheckIns extends AsyncComponent<Props, State> {
             <TimeSinceWrapper>
               <TimeSince date={checkIn.dateCreated} />
             </TimeSinceWrapper>
-            <div>{checkIn.duration && <Duration seconds={checkIn.duration / 100} />}</div>
+            <DurationWrapper>
+              {checkIn.duration && <Duration seconds={checkIn.duration / 100} />}
+            </DurationWrapper>
           </PanelItem>
         ))}
       </PanelBody>
@@ -64,7 +66,13 @@ const CheckInIconWrapper = styled(DivMargin)`
   align-items: center;
 `;
 
-const TimeSinceWrapper = styled(DivMargin)``;
+const TimeSinceWrapper = styled(DivMargin)`
+  font-variant-numeric: tabular-nums;
+`;
+
+const DurationWrapper = styled('div')`
+  font-variant-numeric: tabular-nums;
+`;
 
 const ErrorWrapper = styled('div')`
   margin: ${space(3)} ${space(3)} 0;

@@ -36,8 +36,10 @@ describe('CreateSavedSearchModal', function () {
 
   describe('saves a search', function () {
     it('saves a search when query is not changed', async function () {
-      wrapper.find('#id-name').simulate('change', {target: {value: 'new search name'}});
-      wrapper.find('Footer').find('Button[priority="primary"]').simulate('submit');
+      wrapper
+        .find('input[name="name"]')
+        .simulate('change', {target: {value: 'new search name'}});
+      wrapper.find('button[data-test-id="form-submit"]').simulate('submit');
 
       await tick();
       expect(createMock).toHaveBeenCalledWith(
@@ -54,10 +56,14 @@ describe('CreateSavedSearchModal', function () {
     });
 
     it('saves a search when query is changed', async function () {
-      wrapper.find('#id-name').simulate('change', {target: {value: 'new search name'}});
-      wrapper.find('#id-query').simulate('change', {target: {value: 'is:resolved'}});
+      wrapper
+        .find('input[name="name"]')
+        .simulate('change', {target: {value: 'new search name'}});
+      wrapper
+        .find('input[name="query"]')
+        .simulate('change', {target: {value: 'is:resolved'}});
       selectByValue(wrapper, IssueSortOptions.PRIORITY, {name: 'sort', control: true});
-      wrapper.find('Footer').find('Button[priority="primary"]').simulate('submit');
+      wrapper.find('button[data-test-id="form-submit"]').simulate('submit');
 
       await tick();
       expect(createMock).toHaveBeenCalledWith(
