@@ -7,7 +7,6 @@ from snuba_sdk import BooleanCondition, Column, Condition, Entity, Function, Op,
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.query import SelectableExpression
 
-from sentry import release_health
 from sentry.models.project import Project
 from sentry.release_health.base import (
     CurrentAndPreviousCrashFreeRates,
@@ -72,7 +71,7 @@ def get_tag_values_list(org_id: int, values: Sequence[str]) -> Sequence[int]:
     return [x for x in [try_get_tag_value(org_id, x) for x in values] if x is not None]
 
 
-def filter_projects_by_project_release(org_id: int, project_releases: Sequence[ProjectRelease]):
+def filter_projects_by_project_release(project_releases: Sequence[ProjectRelease]):
     return Condition(Column("project_id"), Op.IN, list(x for x, _ in project_releases))
 
 
@@ -213,16 +212,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         if now is None:
             now = datetime.now(pytz.utc)
 
-        return self._get_release_adoption_impl(
-            now, org_id, project_releases, project_ids, environments
-        )
+        return self._get_release_adoption_impl(now, org_id, project_releases, environments)
 
     @staticmethod
     def _get_release_adoption_impl(
         now: datetime,
         org_id: int,
         project_releases: Sequence[ProjectRelease],
-        project_ids: Sequence[ProjectId],
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> ReleasesAdoption:
         start = now - timedelta(days=1)
@@ -230,7 +226,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         def _get_common_where(total: bool) -> List[Union[BooleanCondition, Condition]]:
             where_common: List[Union[BooleanCondition, Condition]] = [
                 Condition(Column("org_id"), Op.EQ, org_id),
-                filter_projects_by_project_release(org_id, project_releases),
+                filter_projects_by_project_release(project_releases),
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("timestamp"), Op.LT, now),
                 Condition(
@@ -610,7 +606,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def _get_session_duration_data_for_overview(
         where: List[Union[BooleanCondition, Condition]], org_id: int
     ) -> Mapping[Tuple[int, str], Any]:
-        # Percentiles of session duration
+        """
+        Percentiles of session duration
+        """
         rv_durations: Mapping[Tuple[int, str], Any] = {}
 
         release_column_name = tag_key(org_id, "release")
@@ -645,7 +643,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def _get_errored_sessions_for_overview(
         where: List[Union[BooleanCondition, Condition]], org_id: int
     ) -> Mapping[Tuple[int, str], int]:
-        # Count of errored sessions, incl fatal (abnormal, crashed) sessions
+        """
+        Count of errored sessions, incl fatal (abnormal, crashed) sessions
+        """
         rv_errored_sessions: Mapping[Tuple[int, str], int] = {}
 
         release_column_name = tag_key(org_id, "release")
@@ -673,9 +673,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         return rv_errored_sessions
 
     @staticmethod
-    def _get_abnormal_and_crashed_sessions_for_overview(
+    def _get_session_by_status_for_overview(
         where: List[Union[BooleanCondition, Condition]], org_id: int
     ) -> Mapping[Tuple[int, str, str], int]:
+        """
+        Counts of init, abnormal and crashed sessions, purpose-built for overview
+        """
         release_column_name = tag_key(org_id, "release")
         session_status_column_name = tag_key(org_id, "session.status")
 
@@ -685,7 +688,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             Column(session_status_column_name),
         ]
 
-        # Count of init, abnormal and crashed sessions, each
         rv_sessions: Mapping[Tuple[int, str, str], int] = {}
 
         for row in raw_snql_query(
@@ -829,7 +831,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         environments: Optional[Sequence[EnvironmentName]] = None,
         summary_stats_period: Optional[StatsPeriod] = None,
         health_stats_period: Optional[StatsPeriod] = None,
-        stat: OverviewStat = None,
+        stat: Optional[OverviewStat] = None,
     ):
         if stat is None:
             stat = "sessions"
@@ -841,7 +843,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         where: List[Union[BooleanCondition, Condition]] = [
             Condition(Column("org_id"), Op.EQ, org_id),
-            filter_projects_by_project_release(org_id, project_releases),
+            filter_projects_by_project_release(project_releases),
             Condition(Column("timestamp"), Op.GTE, summary_start),
             Condition(Column("timestamp"), Op.LT, now),
         ]
@@ -864,7 +866,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         rv_durations = self._get_session_duration_data_for_overview(where, org_id)
         rv_errored_sessions = self._get_errored_sessions_for_overview(where, org_id)
-        rv_sessions = self._get_abnormal_and_crashed_sessions_for_overview(where, org_id)
+        rv_sessions = self._get_session_by_status_for_overview(where, org_id)
         rv_users = self._get_users_and_crashed_users_for_overview(where, org_id)
 
         # XXX: In order to be able to dual-read and compare results from both
@@ -932,7 +934,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 rv_row["stats"] = {health_stats_period: health_stats_data[project_id, release]}
 
         if fetch_has_health_data_releases:
-            has_health_data = release_health.check_has_health_data(fetch_has_health_data_releases)  # type: ignore
+            has_health_data = self.check_has_health_data(fetch_has_health_data_releases)  # type: ignore
 
             for key in fetch_has_health_data_releases:
                 rv[key]["has_health_data"] = key in has_health_data
