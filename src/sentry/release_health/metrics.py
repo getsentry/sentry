@@ -637,7 +637,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             Column("bucketed_time"),
         ]
 
-        rv = defaultdict(lambda: _make_stats(stats_start, stats_rollup, stats_buckets))
+        rv = defaultdict(
+            lambda: {health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)}
+        )
 
         for row in raw_snql_query(
             Query(
