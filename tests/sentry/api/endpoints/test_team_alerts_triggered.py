@@ -1,3 +1,5 @@
+from freezegun import freeze_time
+
 from sentry.incidents.models import (
     AlertRuleThresholdType,
     IncidentActivity,
@@ -9,7 +11,10 @@ from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
+@freeze_time()
 class TeamAlertsTriggeredTest(APITestCase):
+    endpoint = "sentry-api-0-team-alerts-triggered"
+
     def test_simple(self):
         project1 = self.create_project(
             teams=[self.team], slug="foo"
@@ -40,21 +45,57 @@ class TeamAlertsTriggeredTest(APITestCase):
         IncidentActivity.objects.bulk_create(activities)
 
         self.login_as(user=self.user)
-        url = f"/api/0/teams/{self.team.organization.slug}/{self.team.slug}/alerts-triggered/"
-        response = self.client.get(url, format="json")
+        response = self.get_success_response(self.team.organization.slug, self.team.slug)
+        assert len(response.data) == 90
+        for i in range(1, 9):
+            assert (
+                response.data[
+                    str(
+                        before_now(days=i).replace(
+                            hour=0, minute=0, second=0, microsecond=0, tzinfo=None
+                        )
+                    )
+                ]
+                == 1
+            )
 
-        assert response.status_code == 200
-        assert len(response.data) == 8
-        for i in response.data:
-            assert i["count"] == 1
+        for i in range(10, 90):
+            assert (
+                response.data[
+                    str(
+                        before_now(days=i).replace(
+                            hour=0, minute=0, second=0, microsecond=0, tzinfo=None
+                        )
+                    )
+                ]
+                == 0
+            )
 
-        url = f"/api/0/teams/{self.team.organization.slug}/{self.team.slug}/alerts-triggered/?statsPeriod=7d"
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200
-        assert len(response.data) == 6
-        for i in response.data:
-            assert i["count"] == 1
+        response = self.get_success_response(
+            self.team.organization.slug, self.team.slug, statsPeriod="7d"
+        )
+        assert len(response.data) == 7
+        assert (
+            response.data[
+                str(
+                    before_now(days=0).replace(
+                        hour=0, minute=0, second=0, microsecond=0, tzinfo=None
+                    )
+                )
+            ]
+            == 0
+        )
+        for i in range(1, 6):
+            assert (
+                response.data[
+                    str(
+                        before_now(days=i).replace(
+                            hour=0, minute=0, second=0, microsecond=0, tzinfo=None
+                        )
+                    )
+                ]
+                == 1
+            )
 
     def test_not_as_simple(self):
         team_with_user = self.create_team(
@@ -113,9 +154,28 @@ class TeamAlertsTriggeredTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        url = f"/api/0/teams/{self.team.organization.slug}/{self.team.slug}/alerts-triggered/"
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200
+        response = self.get_success_response(self.team.organization.slug, self.team.slug)
+        assert len(response.data) == 90
         assert (
-            len(response.data) == 1
-        )  # only getting the team owned incident, because the user owned incident is for another project that the team isn't on
+            response.data[
+                str(
+                    before_now(days=2).replace(
+                        hour=0, minute=0, second=0, microsecond=0, tzinfo=None
+                    )
+                )
+            ]
+            == 1
+        )
+        # only getting the team owned incident, because the user owned incident is for another project that the team isn't on
+        for i in range(0, 90):
+            if i != 2:
+                assert (
+                    response.data[
+                        str(
+                            before_now(days=i).replace(
+                                hour=0, minute=0, second=0, microsecond=0, tzinfo=None
+                            )
+                        )
+                    ]
+                    == 0
+                )

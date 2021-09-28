@@ -22,7 +22,7 @@ class TeamAlertsTriggeredEndpoint(TeamEndpoint, EnvironmentMixin):
         Return a time-bucketed (by day) count of triggered alerts owned by a given team.
         """
         project_list = Project.objects.get_for_team_ids([team.id])
-        owner_ids = [team.actor_id] + [om.user.actor_id for om in team.member_set]
+        owner_ids = [team.actor_id] + list(team.member_set.values_list("user__actor_id", flat=True))
         start, end = get_date_range_from_params(request.GET)
         bucketed_alert_counts = (
             IncidentActivity.objects.filter(
