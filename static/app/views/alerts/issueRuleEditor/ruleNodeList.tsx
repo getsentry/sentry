@@ -17,8 +17,8 @@ import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'app/views/projectInstall/issueA
 import {
   CHANGE_ALERT_CONDITION_IDS,
   COMPARISON_INTERVAL_CHOICES,
+  COMPARISON_TYPE_CHOICE_VALUES,
   COMPARISON_TYPE_CHOICES,
-  COMPARISON_TYPE_CHOICE_VALUES
 } from './constants/changeAlerts';
 import RuleNode from './ruleNode';
 
@@ -87,7 +87,10 @@ class RuleNodeList extends React.Component<Props> {
     if (item.comparisonType) {
       changeAlertNode = {
         ...changeAlertNode,
-        label: changeAlertNode.label.replace('{comparisonType}', COMPARISON_TYPE_CHOICE_VALUES[item.comparisonType]),
+        label: changeAlertNode.label.replace(
+          '{comparisonType}',
+          COMPARISON_TYPE_CHOICE_VALUES[item.comparisonType]
+        ),
       };
 
       if (item.comparisonType === 'percent') {
