@@ -316,7 +316,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       return {
         label: d.title,
         value: d.id,
-        isDisabled: d.widgetDisplay.length > MAX_WIDGETS,
+        isDisabled: d.widgetDisplay.length >= MAX_WIDGETS,
       };
     });
     return (
