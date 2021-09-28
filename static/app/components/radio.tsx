@@ -30,7 +30,6 @@ const Radio = styled('input')<Props>`
   align-items: center;
   justify-content: center;
   border: 1px solid ${p => p.theme.border};
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.04);
   background: none;
   appearance: none;
 

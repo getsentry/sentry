@@ -146,7 +146,6 @@ const ErrorRobotWrapper = styled('div')<{gradient: boolean}>`
   display: flex;
   justify-content: center;
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
   border-radius: 0 0 3px 3px;
   padding: 40px ${space(3)} ${space(3)};
   min-height: 260px;

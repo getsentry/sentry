@@ -1421,7 +1421,6 @@ export {SmartSearchBar};
 
 const Container = styled('div')<{isOpen: boolean}>`
   border: 1px solid ${p => p.theme.border};
-  box-shadow: inset ${p => p.theme.dropShadowLight};
   background: ${p => p.theme.background};
   padding: 7px ${space(1)};
   position: relative;

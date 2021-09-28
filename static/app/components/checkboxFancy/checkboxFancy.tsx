@@ -46,7 +46,6 @@ const CheckboxFancy = styled(
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 1px 1px 5px 0px rgba(0, 0, 0, 0.05) inset;
   width: ${p => p.size};
   height: ${p => p.size};
   border-radius: 5px;

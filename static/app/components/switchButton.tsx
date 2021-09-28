@@ -67,7 +67,6 @@ const SwitchButton = styled('button')<StyleProps>`
   padding: 0;
   border: 1px solid ${p => p.theme.border};
   position: relative;
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.04);
   transition: 0.15s border ease;
   cursor: ${p => (p.isLoading || p.isDisabled ? 'not-allowed' : 'pointer')};
   pointer-events: ${p => (p.isLoading || p.isDisabled ? 'none' : null)};

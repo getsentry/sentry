@@ -278,7 +278,6 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
 
 const Container = styled('div')<{isOpen: boolean}>`
   border: 1px solid ${p => p.theme.border};
-  box-shadow: inset ${p => p.theme.dropShadowLight};
   background: ${p => p.theme.background};
   position: relative;
 
