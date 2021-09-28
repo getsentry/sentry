@@ -2,6 +2,7 @@ import logging
 import signal
 from typing import Any, Mapping, Optional, Tuple
 
+from confluent_kafka import OFFSET_INVALID, TopicPartition
 from django.conf import settings
 from django.utils.functional import cached_property
 
@@ -10,9 +11,14 @@ from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.postprocessworker import (
     _CONCURRENCY_OPTION,
     PostProcessForwarderWorker,
+    _sampled_eventstream_timer,
+)
+from sentry.eventstream.kafka.protocol import (
+    get_task_kwargs_for_message,
+    get_task_kwargs_for_message_from_headers,
 )
 from sentry.eventstream.snuba import SnubaProtocolEventStream
-from sentry.utils import json, kafka
+from sentry.utils import json, kafka, metrics
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
 
 logger = logging.getLogger(__name__)
@@ -167,7 +173,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         )
         return consumer
 
-    def run_post_process_forwarder(
+    def run_batched_consumer(
         self,
         consumer_group,
         commit_log_topic,
@@ -176,8 +182,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         commit_batch_timeout_ms=5000,
         initial_offset_reset="latest",
     ):
-        logger.debug("Starting post-process forwarder...")
-
         consumer = self._build_consumer(
             consumer_group,
             commit_log_topic,
@@ -194,3 +198,229 @@ class KafkaEventStream(SnubaProtocolEventStream):
         signal.signal(signal.SIGTERM, handler)
 
         consumer.run()
+
+    def run_streaming_consumer(
+        self,
+        consumer_group,
+        commit_log_topic,
+        synchronize_commit_group,
+        commit_batch_size=100,
+        initial_offset_reset="latest",
+    ):
+        cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
+
+        consumer = SynchronizedConsumer(
+            cluster_name=cluster_name,
+            consumer_group=consumer_group,
+            commit_log_topic=commit_log_topic,
+            synchronize_commit_group=synchronize_commit_group,
+            initial_offset_reset=initial_offset_reset,
+        )
+
+        owned_partition_offsets = {}
+
+        def commit(partitions):
+            results = consumer.commit(offsets=partitions, asynchronous=False)
+
+            errors = [i for i in results if i.error is not None]
+            if errors:
+                raise Exception(
+                    "Failed to commit {}/{} partitions: {!r}".format(
+                        len(errors), len(partitions), errors
+                    )
+                )
+
+            return results
+
+        def on_assign(consumer, partitions):
+            logger.info("Received partition assignment: %r", partitions)
+
+            for i in partitions:
+                if i.offset == OFFSET_INVALID:
+                    updated_offset = None
+                elif i.offset < 0:
+                    raise Exception(
+                        f"Received unexpected negative offset during partition assignment: {i!r}"
+                    )
+                else:
+                    updated_offset = i.offset
+
+                key = (i.topic, i.partition)
+                previous_offset = owned_partition_offsets.get(key, None)
+                if previous_offset is not None and previous_offset != updated_offset:
+                    logger.warning(
+                        "Received new offset for owned partition %r, will overwrite previous stored offset %r with %r.",
+                        key,
+                        previous_offset,
+                        updated_offset,
+                    )
+
+                owned_partition_offsets[key] = updated_offset
+
+        def on_revoke(consumer, partitions):
+            logger.info("Revoked partition assignment: %r", partitions)
+
+            offsets_to_commit = []
+
+            for i in partitions:
+                key = (i.topic, i.partition)
+
+                try:
+                    offset = owned_partition_offsets.pop(key)
+                except KeyError:
+                    logger.warning(
+                        "Received unexpected partition revocation for unowned partition: %r",
+                        i,
+                        exc_info=True,
+                    )
+                    continue
+
+                if offset is None:
+                    logger.debug("Skipping commit of unprocessed partition: %r", i)
+                    continue
+
+                offsets_to_commit.append(TopicPartition(i.topic, i.partition, offset))
+
+            if offsets_to_commit:
+                logger.debug(
+                    "Committing offset(s) for %s revoked partition(s): %r",
+                    len(offsets_to_commit),
+                    offsets_to_commit,
+                )
+                commit(offsets_to_commit)
+
+        consumer.subscribe([self.topic], on_assign=on_assign, on_revoke=on_revoke)
+
+        def commit_offsets():
+            offsets_to_commit = []
+            for (topic, partition), offset in owned_partition_offsets.items():
+                if offset is None:
+                    logger.debug("Skipping commit of unprocessed partition: %r", (topic, partition))
+                    continue
+
+                offsets_to_commit.append(TopicPartition(topic, partition, offset))
+
+            if offsets_to_commit:
+                logger.debug(
+                    "Committing offset(s) for %s owned partition(s): %r",
+                    len(offsets_to_commit),
+                    offsets_to_commit,
+                )
+                commit(offsets_to_commit)
+
+        shutdown_requested = False
+
+        def handle_shutdown_request(signum: int, frame: Any) -> None:
+            nonlocal shutdown_requested
+            logger.debug("Received signal %r, requesting shutdown...", signum)
+            shutdown_requested = True
+
+        signal.signal(signal.SIGINT, handle_shutdown_request)
+        signal.signal(signal.SIGTERM, handle_shutdown_request)
+
+        i = 0
+        while not shutdown_requested:
+            message = consumer.poll(0.1)
+            if message is None:
+                continue
+
+            error = message.error()
+            if error is not None:
+                raise Exception(error)
+
+            key = (message.topic(), message.partition())
+            if key not in owned_partition_offsets:
+                logger.warning("Skipping message for unowned partition: %r", key)
+                continue
+
+            i = i + 1
+            owned_partition_offsets[key] = message.offset() + 1
+
+            use_kafka_headers = options.get("post-process-forwarder:kafka-headers")
+
+            if use_kafka_headers is True:
+                try:
+                    with _sampled_eventstream_timer(
+                        instance="get_task_kwargs_for_message_from_headers"
+                    ):
+                        task_kwargs = get_task_kwargs_for_message_from_headers(message.headers())
+
+                    if task_kwargs is not None:
+                        with _sampled_eventstream_timer(
+                            instance="dispatch_post_process_group_task"
+                        ):
+                            if task_kwargs["group_id"] is None:
+                                metrics.incr(
+                                    "eventstream.messages",
+                                    tags={"partition": message.partition(), "type": "transactions"},
+                                )
+                            else:
+                                metrics.incr(
+                                    "eventstream.messages",
+                                    tags={"partition": message.partition(), "type": "errors"},
+                                )
+                            self._dispatch_post_process_group_task(**task_kwargs)
+
+                except Exception as error:
+                    logger.error("Could not forward message: %s", error, exc_info=True)
+                    self._get_task_kwargs_and_dispatch(message)
+
+            else:
+                self._get_task_kwargs_and_dispatch(message)
+
+            if i % commit_batch_size == 0:
+                commit_offsets()
+
+        logger.debug("Committing offsets and closing consumer...")
+        commit_offsets()
+
+        consumer.close()
+
+    def _get_task_kwargs_and_dispatch(self, message) -> None:
+        with metrics.timer("eventstream.duration", instance="get_task_kwargs_for_message"):
+            task_kwargs = get_task_kwargs_for_message(message.value())
+
+        if task_kwargs is not None:
+            if task_kwargs["group_id"] is None:
+                metrics.incr(
+                    "eventstream.messages",
+                    tags={"partition": message.partition(), "type": "transactions"},
+                )
+            else:
+                metrics.incr(
+                    "eventstream.messages",
+                    tags={"partition": message.partition(), "type": "errors"},
+                )
+            with metrics.timer("eventstream.duration", instance="dispatch_post_process_group_task"):
+                self._dispatch_post_process_group_task(**task_kwargs)
+
+    def run_post_process_forwarder(
+        self,
+        consumer_group,
+        commit_log_topic,
+        synchronize_commit_group,
+        commit_batch_size=100,
+        commit_batch_timeout_ms=5000,
+        initial_offset_reset="latest",
+    ):
+        logger.debug("Starting post-process forwarder...")
+
+        if settings.SENTRY_POST_PROCESS_FORWARDER_BATCHING:
+            logger.info("Starting batching consumer")
+            self.run_batched_consumer(
+                consumer_group,
+                commit_log_topic,
+                synchronize_commit_group,
+                commit_batch_size,
+                commit_batch_timeout_ms,
+                initial_offset_reset,
+            )
+        else:
+            logger.info("Starting streaming consumer")
+            self.run_streaming_consumer(
+                consumer_group,
+                commit_log_topic,
+                synchronize_commit_group,
+                commit_batch_size,
+                initial_offset_reset,
+            )

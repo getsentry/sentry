@@ -1,5 +1,8 @@
 import logging
+from typing import Optional
 
+from sentry.tasks.post_process import post_process_group
+from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
 
 logger = logging.getLogger(__name__)
@@ -29,6 +32,31 @@ class EventStream(Service):
         "requires_post_process_forwarder",
         "run_post_process_forwarder",
     )
+
+    def _dispatch_post_process_group_task(
+        self,
+        event_id: str,
+        project_id: int,
+        group_id: Optional[int],
+        is_new: bool,
+        is_regression: bool,
+        is_new_group_environment: bool,
+        primary_hash: Optional[str],
+        skip_consume: bool = False,
+    ) -> None:
+        if skip_consume:
+            logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
+        else:
+            cache_key = cache_key_for_event({"project": project_id, "event_id": event_id})
+
+            post_process_group.delay(
+                is_new=is_new,
+                is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
+                primary_hash=primary_hash,
+                cache_key=cache_key,
+                group_id=group_id,
+            )
 
     def insert(
         self,

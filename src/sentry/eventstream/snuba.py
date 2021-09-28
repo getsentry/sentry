@@ -8,7 +8,6 @@ import urllib3
 
 from sentry import quotas
 from sentry.eventstream.base import EventStream
-from sentry.eventstream.kafka.postprocessworker import dispatch_post_process_group_task
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
@@ -371,7 +370,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
             skip_consume,
         )
 
-        dispatch_post_process_group_task(
+        self._dispatch_post_process_group_task(
             event.event_id,
             event.project_id,
             event.group_id,
