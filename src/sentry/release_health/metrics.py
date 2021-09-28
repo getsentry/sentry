@@ -641,11 +641,20 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         for row in raw_snql_query(
             Query(
                 dataset=Dataset.Metrics.value,
-                match=Entity("metrics_counters"),
+                match=Entity(
+                    {
+                        "users": "metrics_sets",
+                        "sessions": "metrics_counters",
+                    }[stat]
+                ),
                 select=aggregates + [Column("value")],
                 where=where
                 + [
-                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+                    Condition(
+                        Column("metric_id"),
+                        Op.EQ,
+                        metric_id(org_id, {"sessions": "session", "users": "user"}[stat]),
+                    ),
                     Condition(Column("timestamp"), Op.GTE, stats_start),
                     Condition(Column("timestamp"), Op.LT, now),
                     Condition(
@@ -665,7 +674,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             )
             key = row["project_id"], reverse_tag_value(org_id, row[release_column_name])
             timeseries = rv[key]
-            assert stat == "sessions"  # TODO
             if time_bucket < len(timeseries):
                 timeseries[time_bucket][1] = row["value"]
 
