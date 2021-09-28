@@ -130,6 +130,12 @@ class Integration(DefaultFieldsModel):
     def get_installation(self, organization_id: int, **kwargs: Any) -> Any:
         return self.get_provider().get_installation(self, organization_id, **kwargs)
 
+    def get_installations(self, **kwargs: Any) -> Sequence[Any]:
+        return [
+            self.get_provider().get_installation(self, organization.id, **kwargs)
+            for organization in self.organizations.all()
+        ]
+
     def has_feature(self, feature):
         return feature in self.get_provider().features
 

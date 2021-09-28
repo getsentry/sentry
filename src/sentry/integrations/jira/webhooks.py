@@ -1,4 +1,5 @@
 import logging
+from typing import TYPE_CHECKING, Any, Mapping, Optional
 
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
@@ -12,27 +13,19 @@ from sentry.integrations.utils import sync_group_assignee_inbound
 
 from .client import JiraApiClient, JiraCloud
 
+if TYPE_CHECKING:
+    from sentry.models import Integration
+
 logger = logging.getLogger("sentry.integrations.jira.webhooks")
 
 
-def handle_assignee_change(integration, data, use_email_scope=False):
-    assignee_changed = any(
-        item for item in data["changelog"]["items"] if item["field"] == "assignee"
-    )
-    if not assignee_changed:
-        return
-
-    fields = data["issue"]["fields"]
-
-    # if no assignee, assume it was unassigned
-    assignee = fields.get("assignee")
-    issue_key = data["issue"]["key"]
-
-    if assignee is None:
-        sync_group_assignee_inbound(integration, None, issue_key, assign=False)
-        return
+def get_assignee_email(
+    integration: "Integration",
+    assignee: Mapping[str, str],
+    use_email_scope: bool = False,
+) -> Optional[str]:
+    """Get email from `assignee` or pull it from API (if we have the scope for it.)"""
     email = assignee.get("emailAddress")
-    # pull email from API if we can use it
     if not email and use_email_scope:
         account_id = assignee.get("accountId")
         client = JiraApiClient(
@@ -41,7 +34,31 @@ def handle_assignee_change(integration, data, use_email_scope=False):
             verify_ssl=True,
         )
         email = client.get_email(account_id)
+    return email
 
+
+def handle_assignee_change(
+    integration: "Integration",
+    data: Mapping[str, Any],
+    use_email_scope: bool = False,
+) -> None:
+    assignee_changed = any(
+        item for item in data["changelog"]["items"] if item["field"] == "assignee"
+    )
+    if not assignee_changed:
+        return
+
+    fields = data["issue"]["fields"]
+
+    # If there is no assignee, assume it was unassigned.
+    assignee = fields.get("assignee")
+    issue_key = data["issue"]["key"]
+
+    if assignee is None:
+        sync_group_assignee_inbound(integration, None, issue_key, assign=False)
+        return
+
+    email = get_assignee_email(integration, assignee, use_email_scope)
     # TODO(steve) check display name
     if not email:
         logger.info(

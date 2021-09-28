@@ -1,6 +1,6 @@
-from collections import Mapping, defaultdict
+from collections import defaultdict
 from datetime import timedelta
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, Iterable, Mapping
 
 from django.conf import settings
 from django.db import models
@@ -9,8 +9,7 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
-from sentry.db.models.manager import BaseManager
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
 
 if TYPE_CHECKING:
     from sentry.models import Organization, User
@@ -33,6 +32,12 @@ class UserEmailManager(BaseManager):
         user_email, _ = self.get_or_create(user=user, email=user.email)
         return user_email
 
+    def get_users_by_id(self, email: str) -> Mapping[int, "User"]:
+        return {
+            row["user"].id: row["user"]
+            for row in self.filter(is_verified=True, email=email).select_related("user")
+        }
+
 
 def default_validation_hash():
     return get_random_string(32, CHARACTERS)
@@ -50,6 +55,7 @@ class UserEmail(Model):
         default=False,
         help_text=_("Designates whether this user has confirmed their email."),
     )
+
     objects = UserEmailManager()
 
     class Meta:

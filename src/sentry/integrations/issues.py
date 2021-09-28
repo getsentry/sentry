@@ -369,7 +369,7 @@ class IssueSyncMixin(IssueBasicMixin):
 
     def sync_status_inbound(self, issue_key: str, data: Mapping[str, Any]) -> None:
         if not where_should_sync(self.model, "inbound_status", self.organization_id):
-            return
+            return None
 
         sync_status_inbound_task.apply_async(
             kwargs={
