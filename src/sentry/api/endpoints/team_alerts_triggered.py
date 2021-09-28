@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.db.models import Count, Q
 from django.db.models.functions import TruncDay
 from rest_framework.response import Response
@@ -48,4 +50,15 @@ class TeamAlertsTriggeredEndpoint(TeamEndpoint, EnvironmentMixin):
             .annotate(count=Count("id"))
         )
 
-        return Response(list(bucketed_alert_counts))
+        counts = {str(r["bucket"].replace(tzinfo=None)): r["count"] for r in bucketed_alert_counts}
+        current_day = start.replace(
+            hour=0, minute=0, second=0, microsecond=0, tzinfo=None
+        ) + timedelta(days=1)
+        end_day = end.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+        while current_day <= end_day:
+            key = str(current_day)
+            if key not in counts:
+                counts[key] = 0
+            current_day += timedelta(days=1)
+
+        return Response(counts)
