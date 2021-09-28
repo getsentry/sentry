@@ -69,9 +69,9 @@ runs:
         echo "::set-output name=pip-cache-dir::$(pip cache dir)"
         echo "::set-output name=pip-version::$(pip -V | awk -F ' ' '{print $2}')"
 
-    - name: pip cache
-      uses: actions/cache@v2
-      with:
-        path: ${{ steps.pip-info.outputs.pip-cache-dir }}
-        key: |
-          ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip-info.outputs.pip-version }}-${{ inputs.pip-cache-version }}-${{ inputs.cache-files-hash }}
+    # - name: pip cache
+    #   uses: actions/cache@v2
+    #   with:
+    #     path: ${{ steps.pip-info.outputs.pip-cache-dir }}
+    #     key: |
+    #       ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip-info.outputs.pip-version }}-${{ inputs.pip-cache-version }}-${{ inputs.cache-files-hash }}
