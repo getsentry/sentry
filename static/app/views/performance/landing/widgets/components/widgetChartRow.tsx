@@ -2,10 +2,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {PerformanceLayoutBodyRow} from 'app/components/performance/layouts';
 import space from 'app/styles/space';
 import EventView from 'app/utils/discover/eventView';
 
-import {PerformanceLayoutBodyRow} from '../../../layouts';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 import WidgetContainer from './widgetContainer';
@@ -15,11 +15,11 @@ export type ChartRowProps = {
   location: Location;
   allowedCharts: PerformanceWidgetSetting[];
   chartHeight: number;
-  numberCharts: number;
+  chartCount: number;
 };
 
 const ChartRow = (props: ChartRowProps) => {
-  const charts = props.numberCharts;
+  const charts = props.chartCount;
   const theme = useTheme();
   const palette = theme.charts.getColorPalette(charts);
 
@@ -43,17 +43,17 @@ const ChartRow = (props: ChartRowProps) => {
   );
 };
 
-export const MiniChartRow = (props: ChartRowProps) => <ChartRow {...props} />;
+export const TripleChartRow = (props: ChartRowProps) => <ChartRow {...props} />;
 
-MiniChartRow.defaultProps = {
-  numberCharts: 3,
+TripleChartRow.defaultProps = {
+  chartCount: 3,
   chartHeight: 160,
 };
 
 export const DoubleChartRow = (props: ChartRowProps) => <ChartRow {...props} />;
 
 DoubleChartRow.defaultProps = {
-  numberCharts: 2,
+  chartCount: 2,
   chartHeight: 300,
 };
 

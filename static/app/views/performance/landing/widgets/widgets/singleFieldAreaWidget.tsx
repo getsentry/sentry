@@ -67,7 +67,9 @@ export function SingleFieldAreaWidget(props: Props) {
       HeaderActions={provided => (
         <Fragment>
           <HighlightNumber color={props.chartColor}>
-            {provided.widgetData.chart?.dataMean?.[0].label}
+            {provided.widgetData.chart?.hasData
+              ? provided.widgetData.chart?.dataMean?.[0].label
+              : null}
           </HighlightNumber>
           <ContainerActions {...provided.widgetData.chart} />
         </Fragment>

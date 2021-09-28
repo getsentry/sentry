@@ -2,7 +2,6 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import MenuItem from 'app/components/menuItem';
-import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import localStorage from 'app/utils/localStorage';
 import {useOrganization} from 'app/utils/useOrganization';
@@ -13,7 +12,7 @@ import {GenericPerformanceWidgetDataType} from '../types';
 import {PerformanceWidgetSetting, WIDGET_DEFINITIONS} from '../widgetDefinitions';
 import {SingleFieldAreaWidget} from '../widgets/singleFieldAreaWidget';
 
-import {ChartRowProps} from './miniChartRow';
+import {ChartRowProps} from './widgetChartRow';
 
 type Props = {
   index: number;
@@ -116,7 +115,7 @@ export const WidgetContainerActions = ({
         onClick={() => setChartSetting(setting)}
         data-test-id="performance-widget-menu-item"
       >
-        {t(options.title)}
+        {options.title}
       </MenuItem>
     );
   }

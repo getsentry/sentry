@@ -1,7 +1,7 @@
 import {usePageError} from 'app/utils/performance/contexts/pageError';
 
 import Table from '../../table';
-import {DoubleChartRow, MiniChartRow} from '../widgets/components/miniChartRow';
+import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
 import {BasePerformanceViewProps} from './types';
@@ -9,7 +9,7 @@ import {BasePerformanceViewProps} from './types';
 export function AllTransactionsView(props: BasePerformanceViewProps) {
   return (
     <div>
-      <MiniChartRow
+      <TripleChartRow
         {...props}
         allowedCharts={[
           PerformanceWidgetSetting.USER_MISERY_AREA,
