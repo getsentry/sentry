@@ -361,6 +361,18 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
                     has_changed = True
                     break
 
+    if submit_realtime_metrics:
+        with sentry_sdk.start_span(
+            op="tasks.store.symbolicate_event.low_priority.metrics.histogram"
+        ):
+            symbolication_duration = int(time() - symbolication_start_time)
+            try:
+                realtime_metrics.increment_project_duration_counter(
+                    project_id, timestamp, symbolication_duration
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
     # We cannot persist canonical types in the cache, so we need to
     # downgrade this.
     if isinstance(data, CANONICAL_TYPES):
