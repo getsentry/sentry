@@ -194,6 +194,7 @@ class BaseAvatar extends React.Component<Props, State> {
 
   renderLetterAvatar() {
     const {title, letterId, round, suggested} = this.props;
+
     return (
       <LetterAvatar
         round={round}
@@ -220,6 +221,7 @@ class BaseAvatar extends React.Component<Props, State> {
       tooltip,
       tooltipOptions,
       forwardedRef,
+      type,
       ...props
     } = this.props;
     let sizeStyle = {};
@@ -234,6 +236,7 @@ class BaseAvatar extends React.Component<Props, State> {
     return (
       <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions}>
         <StyledBaseAvatar
+          data-test-id={`${type}-avatar`}
           ref={forwardedRef}
           loaded={this.state.hasLoaded}
           className={classNames('avatar', className)}
