@@ -28,15 +28,9 @@ class OrganizationGroupDetails extends React.Component<Props> {
 
   render() {
     const {selection, ...props} = this.props;
-
     return (
       <React.Fragment>
-        {this.props.projects.length > 0 && !this.props.projects[0].firstEvent && (
-          <SampleEventAlert
-            organization={this.props.organization}
-            project={this.props.projects[0]}
-          />
-        )}
+        <SampleEventAlert />
 
         <GroupDetails
           key={`${this.props.params.groupId}-envs:${selection.environments.join(',')}`}

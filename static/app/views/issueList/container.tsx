@@ -1,13 +1,15 @@
-import {Component} from 'react';
+import React, {Component} from 'react';
 import DocumentTitle from 'react-document-title';
 
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
+import SampleEventAlert from 'app/views/organizationGroupDetails/sampleEventAlert';
 
 type Props = {
   organization: Organization;
+  projects: Project[];
 };
 
 class IssueListContainer extends Component<Props> {
@@ -17,14 +19,16 @@ class IssueListContainer extends Component<Props> {
 
   render() {
     const {organization, children} = this.props;
-
     return (
       <DocumentTitle title={this.getTitle()}>
-        <GlobalSelectionHeader>
-          <LightWeightNoProjectMessage organization={organization}>
-            {children}
-          </LightWeightNoProjectMessage>
-        </GlobalSelectionHeader>
+        <React.Fragment>
+          <SampleEventAlert />
+          <GlobalSelectionHeader>
+            <LightWeightNoProjectMessage organization={organization}>
+              {children}
+            </LightWeightNoProjectMessage>
+          </GlobalSelectionHeader>
+        </React.Fragment>
       </DocumentTitle>
     );
   }

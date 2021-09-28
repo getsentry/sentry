@@ -5,16 +5,31 @@ import Button from 'app/components/button';
 import {IconLightning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {GlobalSelection, Organization, Project} from 'app/types';
 import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withOrganization from 'app/utils/withOrganization';
+import withProjects from 'app/utils/withProjects';
 
-export default function SampleEventAlert({
+function SampleEventAlert({
+  selection,
   organization,
-  project,
+  projects,
 }: {
+  selection: GlobalSelection;
   organization: Organization;
-  project: Project;
+  projects: Project[];
 }) {
+  if (projects.length === 0) {
+    return null;
+  }
+  if (selection.projects.length !== 1) {
+    return null;
+  }
+  const selectedProject = projects.find(p => p.id === selection.projects[0].toString());
+  if (!selectedProject || selectedProject.firstEvent) {
+    return null;
+  }
   return (
     <AlertBar>
       <IconLightning />
@@ -26,8 +41,8 @@ export default function SampleEventAlert({
       <Button
         size="xsmall"
         priority="primary"
-        to={`/${organization.slug}/${project.slug}/getting-started/${
-          project.platform || ''
+        to={`/${organization.slug}/${selectedProject.slug}/getting-started/${
+          selectedProject.platform || ''
         }`}
         onClick={() =>
           trackAdvancedAnalyticsEvent('growth.sample_transaction_docs_link_clicked', {
@@ -41,6 +56,8 @@ export default function SampleEventAlert({
     </AlertBar>
   );
 }
+
+export default withProjects(withOrganization(withGlobalSelection(SampleEventAlert)));
 
 const TextWrapper = styled('span')`
   margin: 0 ${space(1)};
