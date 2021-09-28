@@ -640,8 +640,8 @@ CELERY_QUEUES = [
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
     Queue(
-        "symbolicator.compute_low_priority_queue",
-        routing_key="symbolicator.compute_low_priority_queue",
+        "symbolications.compute_low_priority_projects",
+        routing_key="symbolications.compute_low_priority_projects",
     ),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
