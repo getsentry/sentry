@@ -62,6 +62,9 @@ CLEAN_MODULE_RE = re.compile(
 )
 VERSION_RE = re.compile(r"^[a-f0-9]{32}|[a-f0-9]{40}$", re.I)
 NODE_MODULES_RE = re.compile(r"\bnode_modules/")
+# Default Webpack output path using multiple namespace - https://webpack.js.org/configuration/output/#outputdevtoolmodulefilenametemplate
+# eg. webpack://myproject/./src/lib/hellothere.js
+WEBPACK_NAMESPACE_RE = re.compile(r"^webpack://[a-zA-Z0-9_\-@\.]+/\./")
 SOURCE_MAPPING_URL_RE = re.compile(b"//# sourceMappingURL=(.*)$")
 CACHE_CONTROL_RE = re.compile(r"max-age=(\d+)")
 CACHE_CONTROL_MAX = 7200
@@ -1006,6 +1009,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     # (i.e. node_modules)
                     if "/~/" in filename:
                         filename = "~/" + abs_path.split("/~/", 1)[-1]
+                    elif WEBPACK_NAMESPACE_RE.match(filename):
+                        filename = re.sub(WEBPACK_NAMESPACE_RE, "./", abs_path)
                     else:
                         filename = filename.split("webpack:///", 1)[-1]
 
