@@ -106,7 +106,7 @@ class ProjectCodeOwners(DefaultFieldsModel):
                 if project in projects:
                     users_dict[external_actor.external_name] = user.email
                 else:
-                    users_without_access.append(f"{user.username}")
+                    users_without_access.append(f"{user.email}")
             elif type == "team":
                 team = external_actor.actor.resolve()
                 # make sure the sentry team has access to the project
