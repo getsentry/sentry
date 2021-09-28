@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import {switchOrganization} from 'app/actionCreators/organizations';
 import AlertActions from 'app/actions/alertActions';
@@ -12,7 +12,6 @@ import {Body, Main} from 'app/components/layouts/thirds';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import withOrganization from 'app/utils/withOrganization';
 import OrganizationContextContainer from 'app/views/organizationContext';
 
@@ -156,15 +155,6 @@ const OrganizationDetailsBody = withOrganization(function OrganizationDetailsBod
 type Props = RouteComponentProps<{orgId: string}, {}>;
 
 export default class OrganizationDetails extends Component<Props> {
-  componentDidMount() {
-    const {routes} = this.props;
-    const isOldRoute = getRouteStringFromRoutes(routes) === '/:orgId/';
-
-    if (isOldRoute) {
-      browserHistory.replace(`/organizations/${this.props.params.orgId}/`);
-    }
-  }
-
   componentDidUpdate(prevProps: Props) {
     if (
       prevProps.params &&
