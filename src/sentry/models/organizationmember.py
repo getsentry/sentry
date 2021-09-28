@@ -84,6 +84,12 @@ class OrganizationMemberManager(BaseManager):
             user__isnull=False,
         )
 
+    def delete_expired(self, threshold: int) -> None:
+        """Delete un-accepted member invitations that expired `threshold` days ago."""
+        self.filter(token_expires_at__lt=threshold, user_id__exact=None).exclude(
+            email__exact=None
+        ).delete()
+
 
 class OrganizationMember(Model):
     """
@@ -380,13 +386,3 @@ class OrganizationMember(Model):
 
         scopes = frozenset(s for s in scopes if s not in disabled_scopes)
         return scopes
-
-    @classmethod
-    def delete_expired(cls, threshold):
-        """
-        Delete un-accepted member invitations that expired
-        ``threshold`` days ago.
-        """
-        cls.objects.filter(token_expires_at__lt=threshold, user_id__exact=None).exclude(
-            email__exact=None
-        ).delete()

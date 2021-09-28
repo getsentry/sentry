@@ -309,6 +309,14 @@ class GroupManager(BaseManager):
             for group in groups:
                 Activity.objects.create_group_activity(group, activity_type)
 
+    def from_share_id(self, share_id: str) -> "Group":
+        if not share_id or len(share_id) != 32:
+            raise Group.DoesNotExist
+
+        from sentry.models import GroupShare
+
+        return self.get(id__in=GroupShare.objects.filter(uuid=share_id).values_list("group_id")[:1])
+
 
 class Group(Model):
     """
@@ -468,17 +476,6 @@ class Group(Model):
         except IndexError:
             # Otherwise it has not been shared yet.
             return None
-
-    @classmethod
-    def from_share_id(cls, share_id):
-        if not share_id or len(share_id) != 32:
-            raise cls.DoesNotExist
-
-        from sentry.models import GroupShare
-
-        return cls.objects.get(
-            id__in=GroupShare.objects.filter(uuid=share_id).values_list("group_id")[:1]
-        )
 
     def get_score(self):
         return type(self).calculate_score(self.times_seen, self.last_seen)

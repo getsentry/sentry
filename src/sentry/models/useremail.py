@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.db import models
@@ -9,6 +10,9 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
+
+if TYPE_CHECKING:
+    from sentry.models import User
 
 CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
@@ -23,6 +27,10 @@ class UserEmailManager(BaseManager):
         for entry in user_emails:
             emails_by_user[entry.user].add(entry.email)
         return emails_by_user
+
+    def get_primary_email(self, user: "User") -> "UserEmail":
+        user_email, _ = self.get_or_create(user=user, email=user.email)
+        return user_email
 
 
 def default_validation_hash():
@@ -59,7 +67,3 @@ class UserEmail(Model):
 
     def is_primary(self):
         return self.user.email == self.email
-
-    @classmethod
-    def get_primary_email(self, user):
-        return UserEmail.objects.get_or_create(user=user, email=user.email)[0]
