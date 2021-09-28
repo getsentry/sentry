@@ -3,9 +3,7 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
 from django.test import Client, RequestFactory
-from django.urls import reverse
 
-import sentry.auth.idpmigration as idpmigration
 from sentry.auth.helper import (
     OK_LINK_IDENTITY,
     AuthHelper,
@@ -23,7 +21,7 @@ from sentry.models import (
     OrganizationMemberTeam,
 )
 from sentry.testutils import TestCase
-from sentry.utils import json
+from sentry.utils import json, redis
 from sentry.utils.compat import mock
 from sentry.utils.redis import clusters
 
@@ -341,25 +339,32 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert context["existing_user"] == existing_user
         assert "login_form" in context
 
-    # TODO: More test cases for various values of request.POST.get("op")
-    @mock.patch("sentry.auth.helper.render_to_response")
-    def test_authenticate_user_with_SSO_provider(self, mock_render):
+    @mock.patch("sentry.auth.helper.messages")
+    def test_authenticate_user_with_SSO_provider(self, mock_messages):
         self.org = self.create_organization()
         self.login_as(self.user)
-        OrganizationMember.objects.create(organization=self.org, user=self.user)
-        verification_key = idpmigration.send_one_time_account_confirm_link(
-            self.user, self.org, self.email, self.identity["id"]
+        member = OrganizationMember.objects.create(organization=self.org, user=self.user)
+
+        cluster = redis.clusters.get("default").get_local_client_for_key("verificationKeyStorage")
+        verification_key = "auth:one-time-key:mj46KwhhWcbORyOp90Uxopz7GYq8SY6A"
+        verification_value = {
+            "user_id": self.user.id,
+            "email": self.email,
+            "member_id": member.id,
+            "identity_id": self.identity["id"],
+        }
+        cluster.hmset(verification_key, verification_value)
+
+        self.handler.handle_authentication_using_verification_key(self.identity, verification_key)
+        auth_identity = AuthIdentity.objects.get(user_id=self.user.id)
+
+        assert mock_messages.add_message.called_with(
+            self.request, messages.SUCCESS, OK_LINK_IDENTITY
         )
-        path = reverse(
-            "sentry-idp-email-verification",
-            args=[verification_key],
-        )
-        self.client.get(path)
-        # self.request = _set_up_request()
-        # self.request.session["verification_key"] = f"auth:one-time-key:{verification_key}"
-        # with self.feature("organizations:idp-automatic-migration"):
-        # redirect = self.handler.handle_unknown_identity(self.state, self.identity)
-        # print(context)
+        assert auth_identity.user_id == self.user.id
+        assert auth_identity.ident == self.identity["id"]
+
+    # TODO: More test cases for various values of request.POST.get("op")
 
 
 class AuthHelperTest(TestCase):
