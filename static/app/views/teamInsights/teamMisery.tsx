@@ -140,7 +140,8 @@ function TeamMiseryWrapper({
   const commonEventView = {
     id: undefined,
     query: 'transaction.duration:<15m team_key_transaction:true',
-    projects: projects.map(project => Number(project.id)),
+    // Empty array selects all projects for a user
+    projects: projects.length > 0 ? projects.map(project => Number(project.id)) : [-2],
     version: 2 as SavedQueryVersions,
     orderby: '-tpm',
     fields: [
