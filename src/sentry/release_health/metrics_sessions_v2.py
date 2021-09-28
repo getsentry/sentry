@@ -5,7 +5,18 @@ Do not call this module directly. Use the `release_health` service instead. """
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from datetime import datetime
-from typing import Any, Generator, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Generator,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 from snuba_sdk import Column, Condition, Entity, Op, Query
 from snuba_sdk.expressions import Granularity
@@ -147,17 +158,28 @@ class _SumSessionField(_Field):
 
 
 class _SessionDurationField(_Field):
-    def __init__(self, name: SelectFieldName) -> None:
+    def __init__(self, name: SelectFieldName, group_by_status: bool) -> None:
         self.name = name
 
+        self.group_by_status = group_by_status
+
     def get_values(self, flat_data: _FlatData, key: _FlatKey) -> Sequence[_StatusValue]:
+        # session.duration does not have this tag:
+        assert key.raw_session_status is None, key
         if self.name[:3] == key.column:
-            if key.raw_session_status is None:
-                return [_StatusValue(None, flat_data[key])]
-            # TODO: handle group-by-status case.
-            # This is special-cased in sessions_v2 as well, so unsure what
-            # to do here.
-            # E.g. we cannot say p50(healthy) = p50(init) - p50(errored)
+            value = 1000.0 * flat_data[key]  # sessions backend stores milliseconds
+            if self.group_by_status:
+                # Only 'healthy' sessions have duration data:
+                return [
+                    _StatusValue("abnormal", None),
+                    _StatusValue("crashed", None),
+                    _StatusValue("errored", None),
+                    _StatusValue("healthy", value),
+                ]
+            else:
+                return [
+                    _StatusValue(None, value),
+                ]
 
         return []
 
@@ -207,17 +229,18 @@ def _fetch_data(
         columns: Sequence[str],
         series: bool,
         extra_conditions: List[Condition],
+        remove_groupby: Set[Column],
     ) -> Query:
         """Build the snuba query"""
-        full_groupby = list(groupby.values())
+        full_groupby = set(groupby.values()) - remove_groupby
         if series:
-            full_groupby.append(Column(TS_COL_GROUP))
+            full_groupby.add(Column(TS_COL_GROUP))
 
         return Query(
             dataset=Dataset.Metrics.value,
             match=Entity(entity),
             select=[Column(column) for column in columns],
-            groupby=full_groupby,
+            groupby=list(full_groupby),
             where=conditions
             + [Condition(Column("metric_id"), Op.EQ, metric_id)]
             + extra_conditions,
@@ -250,9 +273,13 @@ def _fetch_data(
         metric_id: int,
         columns: Sequence[str],
         extra_conditions: Optional[List[Condition]] = None,
+        remove_groupby: Optional[Set[Column]] = None,
     ) -> Generator[Tuple[_MetricName, _SnubaData], None, None]:
         if extra_conditions is None:
             extra_conditions = []
+
+        if remove_groupby is None:
+            remove_groupby = set()
 
         for query_type in ("series", "totals"):
             snuba_query = get_query(
@@ -261,6 +288,7 @@ def _fetch_data(
                 columns,
                 series=query_type == "series",
                 extra_conditions=extra_conditions,
+                remove_groupby=remove_groupby,
             )
             referrer = referrers[metric_name][query_type]
             query_data = raw_snql_query(snuba_query, referrer=referrer)["data"]
@@ -278,14 +306,20 @@ def _fetch_data(
         metric_id = _resolve(org_id, "session.duration")
         if metric_id is not None:
             columns = {"percentiles" if field[0] == "p" else field[:3] for field in duration_fields}
-            # TODO: What about avg., max.
+
             data.extend(
                 get_query_data(
-                    "metrics_distributions", "session.duration", metric_id, list(columns)
+                    "metrics_distributions",
+                    "session.duration",
+                    metric_id,
+                    list(columns),
+                    # This metric does not have the status key
+                    remove_groupby={Column(f"tags[{tag_key_session_status}]")},
                 )
             )
+            group_by_status = "session.status" in query.raw_groupby
             metric_to_fields["session.duration"] = [
-                _SessionDurationField(field) for field in duration_fields
+                _SessionDurationField(field, group_by_status) for field in duration_fields
             ]
 
     if "sum(session)" in query.raw_fields:
@@ -337,7 +371,6 @@ def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _FlatData:
 
     for metric_name, metric_data in data:
         for row in metric_data:
-
             raw_session_status = row.pop(f"tags[{tag_key_session_status}]", None)
             if raw_session_status is not None:
                 raw_session_status = _reverse_resolve_ensured(org_id, raw_session_status)

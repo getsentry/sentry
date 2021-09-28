@@ -967,7 +967,7 @@ class SessionMetricsTestCase(SnubaTestCase):
             self._push_metric(session, "counter", "session", {"session.status": status}, +1)
             self._push_metric(session, "set", "user", {"session.status": status}, user)
 
-        if status != "ok":  # terminal
+        if status == "exited":  # Only collect healthy sessions
             if session["duration"] is not None:
                 self._push_metric(
                     session, "distribution", "session.duration", {}, session["duration"]
