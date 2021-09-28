@@ -1,3 +1,5 @@
-Please confirm your email ({{ confirm_email }}) by submitting the following code on the verification page: ({{ verification_key }}).
+Please confirm your email ({{ confirm_email }}) by clicking the link below.
 
-This code will expire in 10 minutes.
+{{ url|safe }}
+
+This link will expire in 10 minutes.
