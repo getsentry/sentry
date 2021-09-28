@@ -1,7 +1,4 @@
-import string
-
 from django.urls import reverse
-from django.utils.crypto import get_random_string
 
 import sentry.auth.idpmigration as idpmigration
 from sentry.models import OrganizationMember
@@ -36,7 +33,10 @@ class IDPMigrationTests(TestCase):
             args=[verification_key],
         )
         response = self.client.get(path)
-        assert self.client.session["verification_key"] == f"auth:one-time-key:{verification_key}"
+        assert (
+            self.client.session["confirm_account_verification_key"]
+            == f"auth:one-time-key:{verification_key}"
+        )
         assert response.status_code == 302
         assert response.url == "/auth/login/"
 
@@ -46,7 +46,7 @@ class IDPMigrationTests(TestCase):
         )
         path = reverse(
             "sentry-idp-email-verification",
-            args=[get_random_string(32, string.ascii_letters + string.digits)],
+            args=["d14Ja9N2eQfPfVzcydS6vzcxWecZJG2z2"],
         )
         response = self.client.get(path)
         assert response.status_code == 404
