@@ -3,10 +3,10 @@ import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 import AvatarComponent from 'app/components/avatar';
 import {Avatar} from 'app/types';
 
+const gravatarBaseUrl = 'gravatarBaseUrl';
+
 jest.mock('app/stores/configStore', () => ({
-  getConfig: () => ({
-    gravatarBaseUrl: 'gravatarBaseUrl',
-  }),
+  getConfig: () => ({gravatarBaseUrl}),
 }));
 
 describe('Avatar', function () {
@@ -28,8 +28,6 @@ describe('Avatar', function () {
     .split(' ')
     .map(n => n[0])
     .join('');
-
-  const gravatarBaseUrl = 'gravatarBaseUrl';
 
   describe('render()', function () {
     it('has `avatar` className', function () {
