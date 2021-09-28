@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import _EventsRequest from 'app/components/charts/eventsRequest';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
