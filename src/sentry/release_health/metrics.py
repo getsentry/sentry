@@ -16,8 +16,8 @@ from sentry.release_health.base import (
     ReleaseAdoption,
     ReleaseHealthBackend,
     ReleaseName,
-    ReleaseSessionsTimeBounds,
     ReleasesAdoption,
+    ReleaseSessionsTimeBounds,
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.base import UseCase
