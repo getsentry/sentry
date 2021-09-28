@@ -10,7 +10,7 @@ from sentry.tasks.integrations import logger
     max_retries=5,
 )
 @retry(exclude=(Integration.DoesNotExist, Repository.DoesNotExist, Organization.DoesNotExist))
-def migrate_repo(repo_id, integration_id, organization_id):
+def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> None:
     integration = Integration.objects.get(id=integration_id)
     installation = integration.get_installation(organization_id=organization_id)
     repo = Repository.objects.get(id=repo_id)

@@ -1,4 +1,5 @@
 from time import time
+from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -16,7 +17,7 @@ from sentry.tasks.integrations import logger
     max_retries=5,
 )
 @retry(exclude=(ApiError, ApiUnauthorized, Integration.DoesNotExist))
-def vsts_subscription_check(integration_id, organization_id, **kwargs):
+def vsts_subscription_check(integration_id: int, organization_id: int, **kwargs: Any) -> None:
     integration = Integration.objects.get(id=integration_id)
     installation = integration.get_installation(organization_id=organization_id)
     try:

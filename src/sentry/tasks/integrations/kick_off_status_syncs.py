@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.models import GroupLink
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.tasks.integrations import sync_status_outbound
@@ -11,7 +13,7 @@ from sentry.tasks.integrations import sync_status_outbound
 )
 @retry()
 @track_group_async_operation
-def kick_off_status_syncs(project_id, group_id, **kwargs):
+def kick_off_status_syncs(project_id: int, group_id: int, **kwargs: Any) -> None:
     # doing this in a task since this has to go in the event manager
     # and didn't want to introduce additional queries there
     external_issue_ids = GroupLink.objects.filter(

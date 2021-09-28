@@ -1,6 +1,9 @@
+from typing import Optional
+
 from sentry import analytics, features
 from sentry.models import ExternalIssue, Group, GroupStatus, Integration
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
+from sentry.utils.types import Any
 
 
 @instrumented_task(
@@ -9,9 +12,9 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
     default_retry_delay=60 * 5,
     max_retries=5,
 )
-@retry(exclude=(Integration.DoesNotExist))
+@retry(exclude=(Integration.DoesNotExist,))
 @track_group_async_operation
-def sync_status_outbound(group_id, external_issue_id, **kwargs):
+def sync_status_outbound(group_id: int, external_issue_id: int, **kwargs: Any) -> Optional[bool]:
     try:
         group = Group.objects.filter(
             id=group_id, status__in=[GroupStatus.UNRESOLVED, GroupStatus.RESOLVED]
@@ -27,7 +30,8 @@ def sync_status_outbound(group_id, external_issue_id, **kwargs):
         external_issue = ExternalIssue.objects.get(id=external_issue_id)
     except ExternalIssue.DoesNotExist:
         # Issue link could have been deleted while sync job was in the queue.
-        return
+        return None
+
     integration = Integration.objects.get(id=external_issue.integration_id)
     installation = integration.get_installation(organization_id=external_issue.organization_id)
     if installation.should_sync("outbound_status"):
@@ -40,3 +44,4 @@ def sync_status_outbound(group_id, external_issue_id, **kwargs):
             id=integration.id,
             organization_id=external_issue.organization_id,
         )
+    return None

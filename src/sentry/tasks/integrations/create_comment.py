@@ -2,6 +2,7 @@ from sentry import analytics
 from sentry.models import Activity, ExternalIssue, Integration
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.integrations import should_comment_sync
+from sentry.utils.types import Any
 
 
 @instrumented_task(
@@ -12,7 +13,7 @@ from sentry.tasks.integrations import should_comment_sync
 )
 # TODO(jess): Add more retry exclusions once ApiClients have better error handling
 @retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
-def create_comment(external_issue_id, user_id, group_note_id, **kwargs):
+def create_comment(external_issue_id: int, user_id: int, group_note_id: int, **kwargs: Any) -> None:
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
     installation = Integration.objects.get(id=external_issue.integration_id).get_installation(
         organization_id=external_issue.organization_id

@@ -13,7 +13,7 @@ from sentry.tasks.integrations import vsts_subscription_check
     max_retries=5,
 )
 @retry()
-def kickoff_vsts_subscription_check():
+def kickoff_vsts_subscription_check() -> None:
     organization_integrations = OrganizationIntegration.objects.filter(
         integration__provider="vsts",
         integration__status=ObjectStatus.VISIBLE,
