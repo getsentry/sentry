@@ -18,6 +18,7 @@ import {
   AggregationKey,
   Column,
   ColumnType,
+  DEPRECATED_FIELDS,
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'app/utils/discover/fields';
@@ -112,7 +113,7 @@ class QueryField extends React.Component<Props> {
       return (
         <components.Option label={label} data={data} {...props}>
           <span data-test-id="label">{label}</span>
-          {this.renderTag(data.value.kind)}
+          {this.renderTag(data.value.kind, label)}
         </components.Option>
       );
     },
@@ -126,7 +127,7 @@ class QueryField extends React.Component<Props> {
       return (
         <components.SingleValue data={data} {...props}>
           <span data-test-id="label">{data.label}</span>
-          {this.renderTag(data.value.kind)}
+          {this.renderTag(data.value.kind, data.label)}
         </components.SingleValue>
       );
     },
@@ -512,7 +513,7 @@ class QueryField extends React.Component<Props> {
     return inputs;
   }
 
-  renderTag(kind) {
+  renderTag(kind: FieldValueKind, label: string) {
     const {shouldRenderTag} = this.props;
     if (shouldRenderTag === false) {
       return null;
@@ -536,7 +537,7 @@ class QueryField extends React.Component<Props> {
         tagType = 'warning';
         break;
       case FieldValueKind.FIELD:
-        text = kind;
+        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : kind;
         tagType = 'highlight';
         break;
       default:

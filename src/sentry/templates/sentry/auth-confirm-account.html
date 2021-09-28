@@ -1,0 +1,19 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_avatars %}
+
+{% block title %}{% trans "Confirm Identity" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+    <div>
+        <p>
+            We found an existing Sentry account for {{ identity.email }}.
+            Please check your inbox for a verificaton key and enter it here.
+        </p>
+        <form>
+            <!--TODO-->
+        </form>
+    </div>
+{% endblock %}

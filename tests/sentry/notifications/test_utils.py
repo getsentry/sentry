@@ -2,7 +2,6 @@ from sentry.models import NotificationSetting
 from sentry.notifications.helpers import (
     _get_setting_mapping_from_mapping,
     collect_groups_by_project,
-    get_fallback_settings,
     get_scope_type,
     get_settings_by_provider,
     get_subscription_from_attributes,
@@ -199,34 +198,5 @@ class NotificationHelpersTest(TestCase):
         assert get_settings_by_provider(settings) == {
             ExternalProviders.EMAIL: {
                 NotificationScopeType.USER: NotificationSettingOptionValues.NEVER
-            }
-        }
-
-    def test_get_fallback_settings_minimal(self):
-        assert get_fallback_settings({NotificationSettingTypes.ISSUE_ALERTS}, {}, {}) == {}
-
-    def test_get_fallback_settings_user(self):
-        data = get_fallback_settings({NotificationSettingTypes.ISSUE_ALERTS}, {}, {}, self.user)
-        assert data == {
-            "alerts": {
-                "user": {
-                    self.user.id: {
-                        "email": "always",
-                        "slack": "never",
-                    }
-                }
-            }
-        }
-
-    def test_get_fallback_settings_projects(self):
-        data = get_fallback_settings({NotificationSettingTypes.ISSUE_ALERTS}, {self.project.id}, {})
-        assert data == {
-            "alerts": {
-                "project": {
-                    self.project.id: {
-                        "email": "default",
-                        "slack": "default",
-                    }
-                }
             }
         }

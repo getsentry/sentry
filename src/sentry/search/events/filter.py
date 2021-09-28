@@ -505,12 +505,14 @@ def _semver_build_filter_converter(
     project_ids: Optional[list[int]] = params.get("project_id")
     build: str = search_filter.value.raw_value
 
+    operator, negated = handle_operator_negation(search_filter.operator)
     versions = list(
         Release.objects.filter_by_semver_build(
             organization_id,
-            OPERATOR_TO_DJANGO[search_filter.operator],
+            OPERATOR_TO_DJANGO[operator],
             build,
             project_ids=project_ids,
+            negated=negated,
         ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
     )
 
@@ -519,6 +521,14 @@ def _semver_build_filter_converter(
         versions = [SEMVER_EMPTY_RELEASE]
 
     return ["release", "IN", versions]
+
+
+def handle_operator_negation(operator):
+    negated = False
+    if operator == "!=":
+        negated = True
+        operator = "="
+    return operator, negated
 
 
 def parse_semver(version, operator) -> Optional[SemverFilter]:
@@ -533,6 +543,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
      - 1.2.3.4-alpha
      - 1.*
     """
+    (operator, negated) = handle_operator_negation(operator)
     operator = OPERATOR_TO_DJANGO[operator]
     version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
     parsed = parse_release_relay(version)
@@ -550,6 +561,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
                 0 if prerelease else 1,
                 prerelease,
             ],
+            negated=negated,
         )
         if parsed["package"] and parsed["package"] != SEMVER_FAKE_PACKAGE:
             semver_filter.package = parsed["package"]
@@ -570,7 +582,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
                     raise InvalidSearchQuery(INVALID_SEMVER_MESSAGE)
 
         package = package if package and package != SEMVER_FAKE_PACKAGE else None
-        return SemverFilter("exact", version_parts, package)
+        return SemverFilter("exact", version_parts, package, negated)
 
 
 key_conversion_map: Mapping[
@@ -613,7 +625,17 @@ def convert_search_filter_to_snuba_query(
     elif name in ARRAY_FIELDS and search_filter.value.is_wildcard():
         # Escape and convert meta characters for LIKE expressions.
         raw_value = search_filter.value.raw_value
-        like_value = raw_value.replace("%", "\\%").replace("_", "\\_").replace("*", "%")
+        # TODO: There are rare cases where this chaining don't
+        # work. For example, a wildcard like '\**' will incorrectly
+        # be replaced with '\%%'.
+        like_value = (
+            # Slashes have to be double escaped so they are
+            # interpreted as a string literal.
+            raw_value.replace("\\", "\\\\")
+            .replace("%", "\\%")
+            .replace("_", "\\_")
+            .replace("*", "%")
+        )
         operator = "LIKE" if search_filter.operator == "=" else "NOT LIKE"
         return [name, operator, like_value]
     elif name in ARRAY_FIELDS and search_filter.is_in_filter:
@@ -1320,10 +1342,16 @@ class QueryFilter(QueryFields):
 
         if name in ARRAY_FIELDS:
             if search_filter.value.is_wildcard():
+                # TODO: There are rare cases where this chaining don't
+                # work. For example, a wildcard like '\**' will incorrectly
+                # be replaced with '\%%'.
                 return Condition(
                     lhs,
                     Op.LIKE if search_filter.operator == "=" else Op.NOT_LIKE,
-                    search_filter.value.raw_value.replace("%", "\\%")
+                    # Slashes have to be double escaped so they are
+                    # interpreted as a string literal.
+                    search_filter.value.raw_value.replace("\\", "\\\\")
+                    .replace("%", "\\%")
                     .replace("_", "\\_")
                     .replace("*", "%"),
                 )
@@ -1534,7 +1562,7 @@ class QueryFilter(QueryFields):
         # Handle "has" queries
         if search_filter.value.raw_value == "":
             return Condition(
-                self.resolve_field_alias(search_filter.key.name),
+                self.resolve_field(search_filter.key.name),
                 Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
             )
         if search_filter.is_in_filter:
@@ -1544,7 +1572,7 @@ class QueryFilter(QueryFields):
         else:
             internal_value = translate_transaction_status(search_filter.value.raw_value)
         return Condition(
-            self.resolve_field_alias(search_filter.key.name),
+            self.resolve_field(search_filter.key.name),
             Op(search_filter.operator),
             internal_value,
         )
@@ -1767,12 +1795,14 @@ class QueryFilter(QueryFields):
         project_ids: Optional[list[int]] = self.params.get("project_id")
         build: str = search_filter.value.raw_value
 
+        operator, negated = handle_operator_negation(search_filter.operator)
         versions = list(
             Release.objects.filter_by_semver_build(
                 organization_id,
-                OPERATOR_TO_DJANGO[search_filter.operator],
+                OPERATOR_TO_DJANGO[operator],
                 build,
                 project_ids=project_ids,
+                negated=negated,
             ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
         )
 

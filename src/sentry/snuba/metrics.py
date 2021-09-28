@@ -14,7 +14,6 @@ from typing_extensions import Protocol
 
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     InvalidField,
     InvalidParams,
@@ -431,9 +430,9 @@ class SnubaQueryBuilder:
         if filter_ is None:
             return None
 
-        def to_int(string_type, string):
+        def to_int(string):
             try:
-                return indexer.resolve(self._project.id, string_type, string)
+                return indexer.resolve(self._project.organization_id, string)
             except KeyError:
                 return None
 
@@ -444,9 +443,9 @@ class SnubaQueryBuilder:
                     And,
                     [
                         Condition(
-                            Column(f"tags[{to_int(UseCase.TAG_KEY, tag)}]"),
+                            Column(f"tags[{to_int(tag)}]"),
                             Op.EQ,
-                            to_int(UseCase.TAG_VALUE, value),
+                            to_int(value),
                         )
                         for tag, value in or_operand["and"]
                     ],
@@ -465,7 +464,7 @@ class SnubaQueryBuilder:
                 Column("metric_id"),
                 Op.IN,
                 [
-                    indexer.resolve(self._project.id, UseCase.METRIC, name)
+                    indexer.resolve(self._project.organization_id, name)
                     for _, name in query_definition.fields.values()
                 ],
             ),
@@ -480,7 +479,7 @@ class SnubaQueryBuilder:
 
     def _build_groupby(self, query_definition: QueryDefinition) -> List[SelectableExpression]:
         return [Column("metric_id")] + [
-            Column(f"tags[{indexer.resolve(self._project.id, UseCase.TAG_KEY, field)}]")
+            Column(f"tags[{indexer.resolve(self._project.organization_id, field)}]")
             for field in query_definition.groupby
         ]
 
@@ -556,9 +555,13 @@ class SnubaResultConverter:
     """Interpret a Snuba result and convert it to API format"""
 
     def __init__(
-        self, project_id: int, query_definition: QueryDefinition, intervals: List[datetime], results
+        self,
+        organization_id: int,
+        query_definition: QueryDefinition,
+        intervals: List[datetime],
+        results,
     ):
-        self._project_id = project_id
+        self._organization_id = organization_id
         self._query_definition = query_definition
         self._intervals = intervals
         self._results = results
@@ -571,12 +574,12 @@ class SnubaResultConverter:
 
     def _parse_tag(self, tag_string: str) -> str:
         tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
-        return indexer.reverse_resolve(self._project_id, UseCase.TAG_KEY, tag_key)
+        return indexer.reverse_resolve(self._organization_id, tag_key)
 
     def _extract_data(self, entity, data, groups):
         tags = tuple((key, data[key]) for key in sorted(data.keys()) if key.startswith("tags["))
 
-        metric_name = indexer.reverse_resolve(self._project_id, UseCase.METRIC, data["metric_id"])
+        metric_name = indexer.reverse_resolve(self._organization_id, data["metric_id"])
         ops = self._ops_by_metric[metric_name]
 
         tag_data = groups.setdefault(
@@ -620,14 +623,12 @@ class SnubaResultConverter:
             for data in series:
                 self._extract_data(entity, data, groups)
 
-        project_id = self._project_id
+        org_id = self._organization_id
 
         groups = [
             dict(
                 by={
-                    self._parse_tag(key): indexer.reverse_resolve(
-                        project_id, UseCase.TAG_VALUE, value
-                    )
+                    self._parse_tag(key): indexer.reverse_resolve(org_id, value)
                     for key, value in tags
                 },
                 **data,
@@ -656,7 +657,7 @@ class SnubaDataSource(IndexMockingDataSource):
             for entity, queries in snuba_queries.items()
         }
 
-        converter = SnubaResultConverter(project.id, query, intervals, results)
+        converter = SnubaResultConverter(project.organization_id, query, intervals, results)
 
         return {
             "start": query.start,

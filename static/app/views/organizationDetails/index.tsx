@@ -136,12 +136,15 @@ const OrganizationDetailsBody = withOrganization(function OrganizationDetailsBod
   organization,
 }: OrganizationDetailsProps) {
   const status = organization?.status?.id;
+
   if (organization && status === 'pending_deletion') {
     return <DeletionPending organization={organization} />;
   }
+
   if (organization && status === 'deletion_in_progress') {
     return <DeletionInProgress organization={organization} />;
   }
+
   return (
     <Fragment>
       <ErrorBoundary>{children}</ErrorBoundary>
@@ -150,9 +153,7 @@ const OrganizationDetailsBody = withOrganization(function OrganizationDetailsBod
   );
 });
 
-type Props = {
-  detailed: boolean;
-} & RouteComponentProps<{orgId: string}, {}>;
+type Props = RouteComponentProps<{orgId: string}, {}>;
 
 export default class OrganizationDetails extends Component<Props> {
   componentDidMount() {
@@ -173,6 +174,7 @@ export default class OrganizationDetails extends Component<Props> {
       switchOrganization();
     }
   }
+
   render() {
     return (
       <OrganizationContextContainer includeSidebar useLastOrganization {...this.props}>
@@ -182,8 +184,4 @@ export default class OrganizationDetails extends Component<Props> {
       </OrganizationContextContainer>
     );
   }
-}
-
-export function LightWeightOrganizationDetails(props: Omit<Props, 'detailed'>) {
-  return <OrganizationDetails detailed={false} {...props} />;
 }

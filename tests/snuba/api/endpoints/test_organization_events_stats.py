@@ -8,6 +8,7 @@ from django.urls import reverse
 from pytz import utc
 
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
+from sentry.snuba.discover import OTHER_KEY
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat import mock, zip
@@ -735,7 +736,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
         assert mock_query.call_count == 1
 
-    def test_invalid_interval(self):
+    @mock.patch("sentry.snuba.discover.raw_query", return_value={"data": []})
+    def test_invalid_interval(self, mock_query):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
@@ -748,7 +750,10 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     "yAxis": "count()",
                 },
             )
-        assert response.status_code == 400
+        assert response.status_code == 200
+        assert mock_query.call_count == 1
+        # Should've reset to the default for 24h
+        assert mock_query.mock_calls[0].kwargs["rollup"] == 300
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
@@ -762,8 +767,10 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     "yAxis": "count()",
                 },
             )
-        assert response.status_code == 400
-        assert "zero duration" in response.data["detail"]
+        assert response.status_code == 200
+        assert mock_query.call_count == 2
+        # Should've reset to the default for 24h
+        assert mock_query.mock_calls[1].kwargs["rollup"] == 300
 
     def test_out_of_retention(self):
         with self.options({"system.event-retention-days": 10}):
@@ -1241,6 +1248,40 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             [{"count": 0}],
         ]
 
+    def test_top_events_with_negated_condition(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "query": f"!message:{self.events[0].message}",
+                    "field": ["message", "count()"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 6
+
+        for index, event in enumerate(self.events[1:5]):
+            message = event.message or event.transaction
+            results = data[message]
+            assert results["order"] == index
+            assert [{"count": self.event_data[index + 1]["count"]}] in [
+                attrs for _, attrs in results["data"]
+            ]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
+
     def test_top_events_with_epm(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -1499,6 +1540,41 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             [{"count": 0}],
         ]
 
+    def test_top_events_with_user_display(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["message", "user.display", "count()"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 6
+
+        for index, event in enumerate(self.events[:5]):
+            message = event.message or event.transaction
+            user = self.event_data[index]["data"]["user"]
+            results = data[
+                ",".join([message, user.get("email", None) or user.get("ip_address", "None")])
+            ]
+            assert results["order"] == index
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for _, attrs in results["data"]
+            ]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
+
     @pytest.mark.skip(reason="A query with group_id will not return transactions")
     def test_top_events_none_filter(self):
         """When a field is None in one of the top events, make sure we filter by it
@@ -1731,7 +1807,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 0.03}] in [attrs for _, attrs in other["data"]]
 
-    def test_invalid_interval(self):
+    @mock.patch("sentry.snuba.discover.raw_query", return_value={"data": [], "meta": []})
+    def test_invalid_interval(self, mock_query):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
@@ -1747,6 +1824,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 200
+        assert mock_query.call_count == 1
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
@@ -1763,7 +1841,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "topEvents": 2,
                 },
             )
-        assert response.status_code == 400
+        assert response.status_code == 200
+        assert mock_query.call_count == 3
+        # Should've reset to the default for between 1 and 24h
+        assert mock_query.mock_calls[2].kwargs["rollup"] == 300
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
@@ -1781,6 +1862,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 200
+        assert mock_query.call_count == 5
+        # Should've left the interval alone since we're just below the limit
+        assert mock_query.mock_calls[4].kwargs["rollup"] == 1
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
@@ -1793,10 +1877,13 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "query": "",
                     "interval": "0d",
                     "yAxis": "count()",
+                    "topEvents": 5,
                 },
             )
-        assert response.status_code == 400
-        assert "zero duration" in response.data["detail"]
+        assert response.status_code == 200
+        assert mock_query.call_count == 7
+        # Should've default to 24h's default of 5m
+        assert mock_query.mock_calls[6].kwargs["rollup"] == 300
 
     def test_top_events_timestamp_fields(self):
         with self.feature("organizations:discover-basic"):
@@ -1865,3 +1952,41 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         other = data["Other"]
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
+
+    def test_top_events_with_field_overlapping_other_key(self):
+        transaction_data = load_data("transaction")
+        transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
+        transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=6))
+        transaction_data["transaction"] = OTHER_KEY
+        for i in range(5):
+            data = transaction_data.copy()
+            data["event_id"] = "ab" + f"{i}" * 30
+            data["contexts"]["trace"]["span_id"] = "ab" + f"{i}" * 14
+            self.store_event(data, project_id=self.project.id)
+
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 6
+
+        assert f"{OTHER_KEY} (message)" in data
+        results = data[f"{OTHER_KEY} (message)"]
+        assert [{"count": 5}] in [attrs for _, attrs in results["data"]]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 4}] in [attrs for _, attrs in other["data"]]

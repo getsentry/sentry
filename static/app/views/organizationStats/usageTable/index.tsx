@@ -133,6 +133,7 @@ const StyledPanelTable = styled(PanelTable)`
 export const CellStat = styled('div')`
   flex-shrink: 1;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 `;
 
 export const CellProject = styled(CellStat)`
