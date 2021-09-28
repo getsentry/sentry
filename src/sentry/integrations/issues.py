@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict
 
 from sentry import features
-from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupStatus, Organization
+from sentry.models import ExternalIssue, Group, GroupLink, GroupStatus, Organization
 from sentry.models.useroption import UserOption
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.types.activity import ActivityType

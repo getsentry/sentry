@@ -171,7 +171,7 @@ class GroupAssigneeManager(BaseManager):
                     "assigneeType": assignee_type,
                 },
             )
-            activity.send_notification()
+
             metrics.incr("group.assignee.change", instance="assigned", skip_internal=True)
             # sync Sentry assignee to external issues
             if assignee_type == "user" and features.has(
