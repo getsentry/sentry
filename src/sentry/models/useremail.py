@@ -67,3 +67,8 @@ class UserEmail(Model):
 
     def is_primary(self):
         return self.user.email == self.email
+
+    @classmethod
+    def get_primary_email(cls, user: "User") -> "UserEmail":
+        """@deprecated"""
+        return cls.objects.get_primary_email(user)
