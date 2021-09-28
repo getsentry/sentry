@@ -10,7 +10,6 @@ from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions import (
     _make_stats,
     get_adjacent_releases_based_on_adoption,
-    get_changed_project_release_model_adoptions,
     get_oldest_health_data_for_releases,
     get_project_releases_by_stability,
     get_project_releases_count,
@@ -575,7 +574,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         Test that the basic (project,release) data is returned
         """
         proj_id = self.project.id
-        data = get_changed_project_release_model_adoptions([proj_id])
+        data = self.backend.get_changed_project_release_model_adoptions([proj_id])
         assert set(data) == {(proj_id, "foo@1.0.0"), (proj_id, "foo@2.0.0")}
 
     def test_old_release_model_adoptions(self):
@@ -602,7 +601,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             }
         )
 
-        data = get_changed_project_release_model_adoptions([proj_id])
+        data = self.backend.get_changed_project_release_model_adoptions([proj_id])
         assert set(data) == {(proj_id, "foo@1.0.0"), (proj_id, "foo@2.0.0")}
 
     def test_multi_proj_release_model_adoptions(self):
@@ -627,7 +626,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             }
         )
 
-        data = get_changed_project_release_model_adoptions([proj_id, new_proj_id])
+        data = self.backend.get_changed_project_release_model_adoptions([proj_id, new_proj_id])
         assert set(data) == {
             (proj_id, "foo@1.0.0"),
             (proj_id, "foo@2.0.0"),
