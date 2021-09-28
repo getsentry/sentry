@@ -41,6 +41,7 @@ function useSessionStorage<T>(
 
   function removeItem() {
     sessionStorage.removeItem(key);
+    setState(undefined);
   }
 
   return [state, setState, removeItem];
