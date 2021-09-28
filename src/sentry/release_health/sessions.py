@@ -13,12 +13,14 @@ from sentry.release_health.base import (
     ReleaseName,
     StatsPeriod,
     ReleasesAdoption,
+    ReleaseSessionsTimeBounds,
 )
 from sentry.snuba.sessions import (
     _check_has_health_data,
     _check_releases_have_health_data,
     _get_release_adoption,
     _get_release_health_data_overview,
+    _get_release_sessions_time_bounds,
     get_current_and_previous_crash_free_rates,
 )
 
@@ -54,6 +56,17 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
     ) -> ReleasesAdoption:
         return _get_release_adoption(  # type: ignore
             project_releases=project_releases, environments=environments, now=now
+        )
+
+    def get_release_sessions_time_bounds(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        org_id: OrganizationId,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> ReleaseSessionsTimeBounds:
+        return _get_release_sessions_time_bounds(  # type: ignore
+            project_id=project_id, release=release, org_id=org_id, environments=environments
         )
 
     def check_has_health_data(

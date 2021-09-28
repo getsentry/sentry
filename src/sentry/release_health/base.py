@@ -12,9 +12,9 @@ ProjectId = int
 OrganizationId = int
 ReleaseName = str
 EnvironmentName = str
+FormattedIsoTime = str
 
 ProjectRelease = Tuple[ProjectId, ReleaseName]
-
 ProjectOrRelease = TypeVar("ProjectOrRelease", ProjectId, ProjectRelease)
 
 # taken from sentry.snuba.sessions.STATS_PERIODS
@@ -39,6 +39,19 @@ class CurrentAndPreviousCrashFreeRate(TypedDict):
 
 
 CurrentAndPreviousCrashFreeRates = Mapping[ProjectId, CurrentAndPreviousCrashFreeRate]
+
+
+class _TimeBounds(TypedDict):
+    sessions_lower_bound: FormattedIsoTime
+    sessions_upper_bound: FormattedIsoTime
+
+
+class _NoTimeBounds(TypedDict):
+    sessions_lower_bound: None
+    sessions_upper_bound: None
+
+
+ReleaseSessionsTimeBounds = Union[_TimeBounds, _NoTimeBounds]
 
 
 class ReleaseAdoption(TypedDict):
@@ -66,6 +79,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "get_current_and_previous_crash_free_rates",
         "get_release_adoption",
         "check_has_health_data",
+        "get_release_sessions_time_bounds",
         "check_releases_have_health_data",
         "get_release_health_data_overview",
     )
@@ -131,6 +145,28 @@ class ReleaseHealthBackend(Service):  # type: ignore
             that. Omit if you're not sure.
         """
 
+        raise NotImplementedError()
+
+    def get_release_sessions_time_bounds(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        org_id: OrganizationId,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> ReleaseSessionsTimeBounds:
+        """
+        Get the sessions time bounds in terms of when the first session started and
+        when the last session started according to a specific (project_id, org_id, release, environments)
+        combination
+        Inputs:
+            * project_id
+            * release
+            * org_id: Organisation Id
+            * environments
+        Return:
+            Dictionary with two keys "sessions_lower_bound" and "sessions_upper_bound" that
+        correspond to when the first session occurred and when the last session occurred respectively
+        """
         raise NotImplementedError()
 
     def check_has_health_data(
