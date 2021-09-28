@@ -505,12 +505,14 @@ def _semver_build_filter_converter(
     project_ids: Optional[list[int]] = params.get("project_id")
     build: str = search_filter.value.raw_value
 
+    operator, negated = handle_operator_negation(search_filter.operator)
     versions = list(
         Release.objects.filter_by_semver_build(
             organization_id,
-            OPERATOR_TO_DJANGO[search_filter.operator],
+            OPERATOR_TO_DJANGO[operator],
             build,
             project_ids=project_ids,
+            negated=negated,
         ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
     )
 
@@ -519,6 +521,14 @@ def _semver_build_filter_converter(
         versions = [SEMVER_EMPTY_RELEASE]
 
     return ["release", "IN", versions]
+
+
+def handle_operator_negation(operator):
+    negated = False
+    if operator == "!=":
+        negated = True
+        operator = "="
+    return operator, negated
 
 
 def parse_semver(version, operator) -> Optional[SemverFilter]:
@@ -533,6 +543,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
      - 1.2.3.4-alpha
      - 1.*
     """
+    (operator, negated) = handle_operator_negation(operator)
     operator = OPERATOR_TO_DJANGO[operator]
     version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
     parsed = parse_release_relay(version)
@@ -550,6 +561,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
                 0 if prerelease else 1,
                 prerelease,
             ],
+            negated=negated,
         )
         if parsed["package"] and parsed["package"] != SEMVER_FAKE_PACKAGE:
             semver_filter.package = parsed["package"]
@@ -570,7 +582,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
                     raise InvalidSearchQuery(INVALID_SEMVER_MESSAGE)
 
         package = package if package and package != SEMVER_FAKE_PACKAGE else None
-        return SemverFilter("exact", version_parts, package)
+        return SemverFilter("exact", version_parts, package, negated)
 
 
 key_conversion_map: Mapping[
@@ -1783,12 +1795,14 @@ class QueryFilter(QueryFields):
         project_ids: Optional[list[int]] = self.params.get("project_id")
         build: str = search_filter.value.raw_value
 
+        operator, negated = handle_operator_negation(search_filter.operator)
         versions = list(
             Release.objects.filter_by_semver_build(
                 organization_id,
-                OPERATOR_TO_DJANGO[search_filter.operator],
+                OPERATOR_TO_DJANGO[operator],
                 build,
                 project_ids=project_ids,
+                negated=negated,
             ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
         )
 

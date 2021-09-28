@@ -120,6 +120,11 @@ def pytest_configure(config):
         settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
         settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
+    if os.environ.get("USE_REDIS_INDEXER", False):
+        settings.SENTRY_METRICS_INDEXER = (
+            "sentry.sentry_metrics.indexer.redis_mock.RedisMockIndexer"
+        )
+
     if os.environ.get("DISABLE_TEST_SDK", False):
         settings.SENTRY_SDK_CONFIG = {}
 

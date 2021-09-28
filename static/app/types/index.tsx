@@ -196,10 +196,8 @@ export type RelaysByPublickey = {
 
 /**
  * Detailed organization (e.g. when requesting details for a single org)
- *
- * Lightweight in this case means it does not contain `projects` or `teams`
  */
-export type LightWeightOrganization = OrganizationSummary & {
+export type Organization = OrganizationSummary & {
   relayPiiConfig: string;
   scrubIPAddresses: boolean;
   attachmentsRole: string;
@@ -232,13 +230,6 @@ export type LightWeightOrganization = OrganizationSummary & {
   onboardingTasks: OnboardingTaskStatus[];
   trustedRelays: Relay[];
   role?: string;
-};
-
-/**
- * Full organization details
- */
-export type Organization = LightWeightOrganization & {
-  projects: Project[];
 };
 
 /**
@@ -1662,7 +1653,7 @@ export type NewQuery = {
   end?: string;
 
   // Graph
-  yAxis?: string;
+  yAxis?: string[];
   display?: string;
 
   teams?: Readonly<('myteams' | number)[]>;
