@@ -15,16 +15,16 @@ from sentry.utils.types import Any
 @retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
 def create_comment(external_issue_id: int, user_id: int, group_note_id: int, **kwargs: Any) -> None:
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
-    installation = Integration.objects.get(id=external_issue.integration_id).get_installation(
-        organization_id=external_issue.organization_id
-    )
+    installation = external_issue.get_installation()
 
     if not should_comment_sync(installation, external_issue):
         return
+
     try:
         note = Activity.objects.get(type=Activity.NOTE, id=group_note_id)
     except Activity.DoesNotExist:
         return
+
     comment = installation.create_comment(external_issue.key, user_id, note)
     note.data["external_id"] = installation.get_comment_id(comment)
     note.save()
