@@ -28,9 +28,9 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Install prerequisites
-        # brew can be finicky but it does not always means that the rest of the job will fail
+        # Necessary packages for some Python deps
         run: |
-          make prerequisites
+          brew install libxmlsec1
 
       - name: Setup Python
         uses: ./.github/actions/setup-python
