@@ -68,9 +68,6 @@ dataset_valid_event_types = {
         SnubaQueryEventType.EventType.DEFAULT,
     },
     QueryDatasets.TRANSACTIONS: {SnubaQueryEventType.EventType.TRANSACTION},
-    QueryDatasets.SESSIONS: {
-        SnubaQueryEventType.EventType.SESSION,
-    },
 }
 
 # TODO(davidenwang): eventually we should pass some form of these to the event_search parser to raise an error

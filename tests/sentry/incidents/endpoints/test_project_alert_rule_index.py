@@ -578,7 +578,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
             "owner": self.user.id,
             "name": "JustAValidTestRule",
             "dataset": "sessions",
-            "eventTypes": ["session"],
+            "eventTypes": [],
         }
         # Login
         self.create_member(
@@ -599,6 +599,20 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
         return self.create_user()
 
     def test_simple_crash_rate_alerts_for_sessions(self):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_valid_response(
+                self.organization.slug, self.project.slug, status_code=201, **self.valid_alert_rule
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+
+    def test_simple_crash_rate_alerts_for_users(self):
+        self.valid_alert_rule.update(
+            {
+                "aggregate": "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+            }
+        )
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_valid_response(
                 self.organization.slug, self.project.slug, status_code=201, **self.valid_alert_rule

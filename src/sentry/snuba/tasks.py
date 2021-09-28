@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import timedelta
 
 import sentry_sdk
@@ -185,7 +186,10 @@ def build_snuba_filter(dataset, query, aggregate, environment, event_types, para
     if dataset == QueryDatasets.SESSIONS:
         # This aggregation is added to return the total number of sessions in crash
         # rate alerts that is used to identify if we are below a general minimum alert threshold
-        aggregations += [f"identity(sessions) AS {CRASH_RATE_ALERT_SESSION_COUNT_ALIAS}"]
+        count_col = re.search(r"(sessions|users)", aggregate)
+        count_col_matched = count_col.group()
+
+        aggregations += [f"identity({count_col_matched}) AS {CRASH_RATE_ALERT_SESSION_COUNT_ALIAS}"]
         functions_acl = ["identity"]
 
     query = apply_dataset_query_conditions(dataset, query, event_types)
