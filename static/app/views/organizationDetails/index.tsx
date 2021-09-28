@@ -136,12 +136,15 @@ const OrganizationDetailsBody = withOrganization(function OrganizationDetailsBod
   organization,
 }: OrganizationDetailsProps) {
   const status = organization?.status?.id;
+
   if (organization && status === 'pending_deletion') {
     return <DeletionPending organization={organization} />;
   }
+
   if (organization && status === 'deletion_in_progress') {
     return <DeletionInProgress organization={organization} />;
   }
+
   return (
     <Fragment>
       <ErrorBoundary>{children}</ErrorBoundary>
