@@ -538,13 +538,18 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   handleResolveThresholdChange = (
     resolveThreshold: UnsavedIncidentRule['resolveThreshold']
   ) => {
-    const {triggers} = this.state;
+    this.setState(state => {
+      const triggerErrors = this.validateTriggers(
+        state.triggers,
+        state.thresholdType,
+        resolveThreshold
+      );
+      if (Array.from(triggerErrors).length === 0) {
+        clearIndicators();
+      }
 
-    const triggerErrors = this.validateTriggers(triggers, undefined, resolveThreshold);
-    this.setState(state => ({
-      resolveThreshold,
-      triggerErrors: new Map([...triggerErrors, ...state.triggerErrors]),
-    }));
+      return {resolveThreshold, triggerErrors};
+    });
   };
 
   handleDeleteRule = async () => {
