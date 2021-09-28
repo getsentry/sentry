@@ -459,6 +459,158 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         return {extract_row_info(row) for row in result["data"]}
 
+    @staticmethod
+    def _get_session_duration_data_for_overview(
+        where: List[Union[BooleanCondition, Condition]], org_id: int
+    ) -> Mapping[Tuple[int, str], Any]:
+        # Percentiles of session duration
+        rv_durations: Mapping[Tuple[int, str], Any] = {}
+
+        release_column_name = tag_key(org_id, "release")
+        aggregates: List[SelectableExpression] = [
+            Column(release_column_name),
+            Column("project_id"),
+        ]
+
+        for row in raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                match=Entity("metrics_distributions"),
+                select=aggregates + [Column("percentiles")],
+                where=where
+                + [
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.duration")),
+                ],
+                groupby=aggregates,
+            ),
+            referrer="releasehealth.metrics.get_release_health_data_overview",
+        )["data"]:
+            # See https://github.com/getsentry/snuba/blob/8680523617e06979427bfa18c6b4b4e8bf86130f/snuba/datasets/entities/metrics.py#L184 for quantiles
+            key = row["project_id"], reverse_tag_value(org_id, row[release_column_name])
+            rv_durations[key] = {
+                "duration_p50": row["percentiles"][0],
+                "duration_p90": row["percentiles"][2],
+            }
+
+        return rv_durations
+
+    @staticmethod
+    def _get_errored_sessions_for_overview(
+        where: List[Union[BooleanCondition, Condition]], org_id: int
+    ) -> Mapping[Tuple[int, str], int]:
+        # Count of errored sessions, incl fatal (abnormal, crashed) sessions
+        rv_errored_sessions: Mapping[Tuple[int, str], int] = {}
+
+        release_column_name = tag_key(org_id, "release")
+        aggregates: List[SelectableExpression] = [
+            Column(release_column_name),
+            Column("project_id"),
+        ]
+
+        for row in raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                match=Entity("metrics_sets"),
+                select=aggregates + [Column("value")],
+                where=where
+                + [
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.error")),
+                ],
+                groupby=aggregates,
+            ),
+            referrer="releasehealth.metrics.get_release_health_data_overview.errored",
+        )["data"]:
+            key = row["project_id"], reverse_tag_value(org_id, row[release_column_name])
+            rv_errored_sessions[key] = row["value"]
+
+        return rv_errored_sessions
+
+    @staticmethod
+    def _get_abnormal_and_crashed_sessions_for_overview(
+        where: List[Union[BooleanCondition, Condition]], org_id: int
+    ) -> Mapping[Tuple[int, str, str], int]:
+        release_column_name = tag_key(org_id, "release")
+        session_status_column_name = tag_key(org_id, "session.status")
+
+        aggregates: List[SelectableExpression] = [
+            Column(release_column_name),
+            Column("project_id"),
+            Column(session_status_column_name),
+        ]
+
+        # Count of init, abnormal and crashed sessions, each
+        rv_sessions: Mapping[Tuple[int, str, str], int] = {}
+
+        for row in raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                match=Entity("metrics_counters"),
+                select=aggregates + [Column("value")],
+                where=where
+                + [
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+                    Condition(
+                        Column(session_status_column_name),
+                        Op.IN,
+                        get_tag_values_list(org_id, ["abnormal", "crashed", "init"]),
+                    ),
+                ],
+                groupby=aggregates,
+            ),
+            referrer="releasehealth.metrics.get_release_health_data_overview.sessions_statuses",
+        )["data"]:
+            key = (
+                row["project_id"],
+                reverse_tag_value(org_id, row[release_column_name]),
+                reverse_tag_value(org_id, row[session_status_column_name]),
+            )
+            rv_sessions[key] = row["value"]
+
+        return rv_sessions
+
+    @staticmethod
+    def _get_users_and_crashed_users_for_overview(
+        where: List[Union[BooleanCondition, Condition]], org_id: int
+    ) -> Mapping[Tuple[int, str, str], int]:
+        release_column_name = tag_key(org_id, "release")
+        session_status_column_name = tag_key(org_id, "session.status")
+
+        aggregates: List[SelectableExpression] = [
+            Column(release_column_name),
+            Column("project_id"),
+            Column(session_status_column_name),
+        ]
+
+        # Count of users and crashed users
+        rv_users: Mapping[Tuple[int, str, str], int] = {}
+
+        for row in raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                match=Entity("metrics_sets"),
+                select=aggregates + [Column("value")],
+                where=where
+                + [
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")),
+                    Condition(
+                        Column(session_status_column_name),
+                        Op.IN,
+                        get_tag_values_list(org_id, ["crashed", "init"]),
+                    ),
+                ],
+                groupby=aggregates,
+            ),
+            referrer="releasehealth.metrics.get_release_health_data_overview.users",
+        )["data"]:
+            key = (
+                row["project_id"],
+                reverse_tag_value(org_id, row[release_column_name]),
+                reverse_tag_value(org_id, row[session_status_column_name]),
+            )
+            rv_users[key] = row["value"]
+
+        return rv_users
+
     def get_release_health_data_overview(
         self,
         project_releases: Sequence[ProjectRelease],
@@ -494,112 +646,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 )
             )
 
-        release_column_name = tag_key(org_id, "release")
-
-        aggregates: List[SelectableExpression] = [
-            Column(release_column_name),
-            Column("project_id"),
-        ]
-
-        # Percentiles of session duration
-        rv_durations: Mapping[Tuple[int, str], Any] = {}
-
-        for row in raw_snql_query(
-            Query(
-                dataset=Dataset.Metrics.value,
-                match=Entity("metrics_distributions"),
-                select=aggregates + [Column("percentiles")],
-                where=where
-                + [
-                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.duration")),
-                ],
-                groupby=aggregates,
-            ),
-            referrer="releasehealth.metrics.get_release_health_data_overview",
-        )["data"]:
-            # See https://github.com/getsentry/snuba/blob/8680523617e06979427bfa18c6b4b4e8bf86130f/snuba/datasets/entities/metrics.py#L184 for quantiles
-            key = row["project_id"], reverse_tag_value(org_id, row[release_column_name])
-            rv_durations[key] = {
-                "duration_p50": row["percentiles"][0],
-                "duration_p90": row["percentiles"][2],
-            }
-
-        # Count of errored sessions, incl fatal (abnormal, crashed) sessions
-        rv_errored_sessions: Mapping[Tuple[int, str], int] = {}
-
-        for row in raw_snql_query(
-            Query(
-                dataset=Dataset.Metrics.value,
-                match=Entity("metrics_sets"),
-                select=aggregates + [Column("value")],
-                where=where
-                + [
-                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.error")),
-                ],
-                groupby=aggregates,
-            ),
-            referrer="releasehealth.metrics.get_release_health_data_overview.errored",
-        )["data"]:
-            key = row["project_id"], reverse_tag_value(org_id, row[release_column_name])
-            rv_errored_sessions[key] = row["value"]
-
-        rv_sessions: Mapping[Tuple[int, str, str], int] = {}
-
-        # Count of init, abnormal and crashed sessions, each
-        session_status_column_name = tag_key(org_id, "session.status")
-
-        for row in raw_snql_query(
-            Query(
-                dataset=Dataset.Metrics.value,
-                match=Entity("metrics_counters"),
-                select=aggregates + [Column(session_status_column_name), Column("value")],
-                where=where
-                + [
-                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
-                    Condition(
-                        Column(session_status_column_name),
-                        Op.IN,
-                        get_tag_values_list(org_id, ["abnormal", "crashed", "init"]),
-                    ),
-                ],
-                groupby=aggregates + [Column(session_status_column_name)],
-            ),
-            referrer="releasehealth.metrics.get_release_health_data_overview.sessions_statuses",
-        )["data"]:
-            key = (
-                row["project_id"],
-                reverse_tag_value(org_id, row[release_column_name]),
-                reverse_tag_value(org_id, row[session_status_column_name]),
-            )
-            rv_sessions[key] = row["value"]
-
-        # Count of users and crashed users
-        rv_users: Mapping[Tuple[int, str, str], int] = {}
-
-        for row in raw_snql_query(
-            Query(
-                dataset=Dataset.Metrics.value,
-                match=Entity("metrics_sets"),
-                select=aggregates + [Column(session_status_column_name), Column("value")],
-                where=where
-                + [
-                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")),
-                    Condition(
-                        Column(session_status_column_name),
-                        Op.IN,
-                        get_tag_values_list(org_id, ["crashed", "init"]),
-                    ),
-                ],
-                groupby=aggregates + [Column(session_status_column_name)],
-            ),
-            referrer="releasehealth.metrics.get_release_health_data_overview.users",
-        )["data"]:
-            key = (
-                row["project_id"],
-                reverse_tag_value(org_id, row[release_column_name]),
-                reverse_tag_value(org_id, row[session_status_column_name]),
-            )
-            rv_users[key] = row["value"]
+        rv_durations = self._get_session_duration_data_for_overview(where, org_id)
+        rv_errored_sessions = self._get_errored_sessions_for_overview(where, org_id)
+        rv_sessions = self._get_abnormal_and_crashed_sessions_for_overview(where, org_id)
+        rv_users = self._get_users_and_crashed_users_for_overview(where, org_id)
 
         # XXX: In order to be able to dual-read and compare results from both
         # old and new backend, this should really go back through the
@@ -614,6 +664,22 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         for project_id, release in project_releases:
             adoption_info = release_adoption.get((project_id, release)) or {}
 
+            total_sessions = rv_sessions.get((project_id, release, "init"))
+
+            total_users = rv_users.get((project_id, release, "init"))
+            has_health_data = bool(total_sessions)
+
+            # has_health_data is supposed to be irrespective of the currently
+            # selected rollup window. Therefore we need to run another query
+            # over 90d just to see if health data is available to compute
+            # has_health_data correctly.
+            if not has_health_data and summary_stats_period != "90d":
+                fetch_has_health_data_releases.add((project_id, release))
+
+            sessions_crashed = rv_sessions.get((project_id, release, "crashed"), 0)
+
+            users_crashed = rv_users.get((project_id, release, "crashed"), 0)
+
             rv_row = rv[project_id, release] = {
                 "adoption": adoption_info.get("adoption"),
                 "sessions_adoption": adoption_info.get("sessions_adoption"),
@@ -621,49 +687,30 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 "total_project_users_24h": adoption_info.get("project_users_24h"),
                 "total_sessions_24h": adoption_info.get("sessions_24h"),
                 "total_project_sessions_24h": adoption_info.get("project_sessions_24h"),
+                "total_sessions": total_sessions,
+                "total_users": total_users,
+                "has_health_data": has_health_data,
+                "sessions_crashed": sessions_crashed,
+                "crash_free_users": (
+                    100 - users_crashed / total_users * 100 if total_users else None
+                ),
+                "crash_free_sessions": (
+                    100 - sessions_crashed / float(total_sessions) * 100 if total_sessions else None
+                ),
+                "sessions_errored": max(
+                    0,
+                    rv_errored_sessions.get((project_id, release), 0)
+                    - sessions_crashed
+                    - rv_sessions.get((project_id, release, "abnormal"), 0),
+                ),
+                **(
+                    rv_durations.get((project_id, release))
+                    or {
+                        "duration_p50": None,
+                        "duration_p90": None,
+                    }
+                ),
             }
-
-            rv_row["total_sessions"] = total_sessions = rv_sessions.get(
-                (project_id, release, "init")
-            )
-            rv_row["total_users"] = total_users = rv_users.get((project_id, release, "init"))
-
-            rv_row["has_health_data"] = has_health_data = bool(total_sessions)
-
-            # has_health_data is supposed to be irrespective of the currently
-            # selected rollup window. Therefore we need to run another query
-            # over 90d just to see if health data is available to compute
-            # has_health_data correctly.
-            if not total_sessions and summary_stats_period != "90d":
-                fetch_has_health_data_releases.add((project_id, release))
-
-            rv_row["sessions_crashed"] = sessions_crashed = rv_sessions.get(
-                (project_id, release, "crashed"), 0
-            )
-            users_crashed = rv_users.get((project_id, release, "crashed"), 0)
-
-            rv_row["crash_free_users"] = (
-                100 - users_crashed / total_users * 100 if total_users else None
-            )
-
-            rv_row["crash_free_sessions"] = (
-                100 - sessions_crashed / float(total_sessions) * 100 if total_sessions else None
-            )
-
-            rv_row["sessions_errored"] = max(
-                0,
-                rv_errored_sessions.get((project_id, release), 0)
-                - sessions_crashed
-                - rv_sessions.get((project_id, release, "abnormal"), 0),
-            )
-
-            rv_row.update(
-                rv_durations.get((project_id, release))
-                or {
-                    "duration_p50": None,
-                    "duration_p90": None,
-                }
-            )
 
             if health_stats_period:
                 rv_row["stats"] = {
