@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
 import TeamActions from 'app/actions/teamActions';
@@ -6,7 +6,7 @@ import {Client} from 'app/api';
 import OrganizationStore from 'app/stores/organizationStore';
 import TeamStore from 'app/stores/teamStore';
 import {useLegacyStore} from 'app/stores/useLegacyStore';
-import {Team} from 'app/types';
+import {TeamWithProjects} from 'app/types';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import RequestError from 'app/utils/requestError/requestError';
 import useApi from 'app/utils/useApi';
@@ -39,7 +39,7 @@ export type Result = {
   /**
    * The loaded teams list
    */
-  teams: Team[];
+  teams: TeamWithProjects[];
   /**
    * This is an action provided to consumers for them to update the current
    * teams result set using a simple search query.
@@ -54,6 +54,14 @@ type Options = {
    * Number of teams to return when not using `props.slugs`
    */
   limit?: number;
+  /**
+   * Slugs of teams to immediately fetch
+   */
+  slugs?: string[];
+  /**
+   * Whether to immediately attempt to provide user teams
+   */
+  provideUserTeams?: boolean;
 };
 
 type FetchTeamOptions = Pick<Options, 'limit'> & {
@@ -61,6 +69,7 @@ type FetchTeamOptions = Pick<Options, 'limit'> & {
   cursor?: State['nextCursor'];
   search?: State['lastSearch'];
   lastSearch?: State['lastSearch'];
+  userTeams?: boolean;
 };
 
 /**
@@ -69,8 +78,13 @@ type FetchTeamOptions = Pick<Options, 'limit'> & {
 async function fetchTeams(
   api: Client,
   orgId: string,
-  {slugs, search, limit, lastSearch, cursor}: FetchTeamOptions = {}
+  {slugs, search, limit, lastSearch, cursor, userTeams}: FetchTeamOptions = {}
 ) {
+  if (userTeams) {
+    const teams = await api.requestPromise(`/organizations/${orgId}/user-teams/`);
+    return {results: teams, hasMore: false, nextCursor: null};
+  }
+
   const query: {
     query?: string;
     cursor?: typeof cursor;
@@ -112,7 +126,7 @@ async function fetchTeams(
   return {results: data, hasMore, nextCursor};
 }
 
-function useTeams({limit}: Options = {}) {
+function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   const api = useApi();
   const {organization} = useLegacyStore(OrganizationStore);
   const store = useLegacyStore(TeamStore);
@@ -124,6 +138,52 @@ function useTeams({limit}: Options = {}) {
     nextCursor: null,
     fetchError: null,
   });
+
+  async function loadSpecificTeams() {
+    // TODO(davidenwang): Currently used to tell if we have all teams in the store already or if we need to fetch more, should be replaced with something more reliable
+    if (store.teams.length < 100) {
+      return;
+    }
+
+    const orgId = organization?.slug;
+
+    if (orgId === undefined) {
+      return;
+    }
+
+    let teamPromise: ReturnType<typeof fetchTeams> | null = null;
+
+    if (slugs) {
+      teamPromise = fetchTeams(api, orgId, {
+        slugs,
+        limit,
+      });
+    } else if (provideUserTeams) {
+      teamPromise = fetchTeams(api, orgId, {userTeams: true});
+    }
+
+    if (!teamPromise) {
+      return;
+    }
+
+    try {
+      setState({...state, fetching: true});
+      const {results, hasMore, nextCursor} = await teamPromise;
+      const fetchedTeams = uniqBy([...store.teams, ...results], ({slug}) => slug);
+      TeamActions.loadTeams(fetchedTeams);
+
+      setState({
+        ...state,
+        hasMore,
+        fetching: false,
+        nextCursor,
+      });
+    } catch (err) {
+      console.error(err); // eslint-disable-line no-console
+
+      setState({...state, fetching: false, fetchError: err});
+    }
+  }
 
   async function handleSearch(search: string) {
     const {lastSearch} = state;
@@ -172,8 +232,22 @@ function useTeams({limit}: Options = {}) {
     }
   }
 
+  useEffect(() => {
+    if (slugs || provideUserTeams) {
+      loadSpecificTeams();
+    }
+  }, [slugs, provideUserTeams]);
+
+  let filteredTeams = store.teams;
+
+  if (provideUserTeams) {
+    filteredTeams = filteredTeams.filter(t => t.isMember);
+  } else if (slugs) {
+    filteredTeams = filteredTeams.filter(t => slugs.includes(t.slug));
+  }
+
   const result: Result = {
-    teams: store.teams,
+    teams: filteredTeams as TeamWithProjects[],
     fetching: state.fetching || store.loading,
     fetchError: state.fetchError,
     hasMore: state.hasMore,
