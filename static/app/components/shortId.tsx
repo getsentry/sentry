@@ -33,9 +33,12 @@ const StyledShortId = styled('div')`
 const StyledAutoSelectText = styled(AutoSelectText, {shouldForwardProp: isPropValid})<{
   avatar: boolean;
 }>`
-  color: ${p => p.theme.linkColor};
   margin-left: ${p => p.avatar && '0.5em'};
   min-width: 0;
+
+  a & {
+    color: ${p => p.theme.linkColor};
+  }
 `;
 
 export default ShortId;
