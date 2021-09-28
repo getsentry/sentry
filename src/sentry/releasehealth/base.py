@@ -1,16 +1,64 @@
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Tuple
+from typing import Mapping, Optional, Sequence, Tuple, Union
 
-from typing_extensions import TypedDict
+from typing_extensions import Literal, TypedDict
 
 from sentry.snuba.sessions_v2 import QueryDefinition
-from sentry.snuba.sessions_v2_metrics import SessionsQueryResult
 from sentry.utils.services import Service
 
 ProjectId = int
 OrganizationId = int
 ReleaseName = str
 EnvironmentName = str
+DateString = str
+
+
+SelectFieldName = Literal[
+    "sum(session)",
+    "count_unique(user)",
+    "avg(session.duration)",
+    "p50(session.duration)",
+    "p75(session.duration)",
+    "p90(session.duration)",
+    "p95(session.duration)",
+    "p99(session.duration)",
+    "max(session.duration)",
+]
+
+GroupByFieldName = Literal[
+    "project",
+    "release",
+    "environment",
+    "session.status",
+]
+FilterFieldName = Literal["project", "release", "environment"]
+
+
+class SessionsQuery(TypedDict):
+    org_id: OrganizationId
+    project_ids: Sequence[ProjectId]
+    select_fields: Sequence[SelectFieldName]
+    filter_query: Mapping[FilterFieldName, str]
+    start: datetime
+    end: datetime
+    rollup: int  # seconds
+
+
+SessionsQueryValue = Union[None, float, int]
+
+
+class SessionsQueryGroup(TypedDict):
+    by: Mapping[GroupByFieldName, Union[str, int]]
+    series: Mapping[SelectFieldName, Sequence[SessionsQueryValue]]
+    totals: Mapping[SelectFieldName, SessionsQueryValue]
+
+
+class SessionsQueryResult(TypedDict):
+    start: DateString
+    end: DateString
+    intervals: Sequence[DateString]
+    groups: Sequence[SessionsQueryGroup]
+    query: str
 
 
 class ReleaseHealthBackend(Service):  # type: ignore
