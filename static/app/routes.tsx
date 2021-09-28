@@ -19,15 +19,12 @@ import AuthLayout from 'app/views/auth/layout';
 import IssueListContainer from 'app/views/issueList/container';
 import IssueListOverview from 'app/views/issueList/overview';
 import OrganizationContextContainer from 'app/views/organizationContext';
-import OrganizationDetails, {
-  LightWeightOrganizationDetails,
-} from 'app/views/organizationDetails';
+import OrganizationDetails from 'app/views/organizationDetails';
 import {Tab} from 'app/views/organizationGroupDetails/types';
 import OrganizationRoot from 'app/views/organizationRoot';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'app/views/routeNotFound';
-import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
 
 type CustomProps = {
@@ -849,9 +846,7 @@ function routes() {
                   () => import('app/views/settings/project/projectSettingsLayout')
                 )}
               >
-                <Route component={errorHandler(SettingsProjectProvider)}>
-                  {projectSettingsRoutes}
-                </Route>
+                {projectSettingsRoutes}
               </Route>
 
               <Redirect from=":projectId/" to="projects/:projectId/" />
@@ -868,11 +863,7 @@ function routes() {
           </Route>
         </Route>
 
-        {/* A route tree for lightweight organizational detail views. We place
-      this above the heavyweight organization detail views because there
-      exist some redirects from deprecated routes which should not take
-      precedence over these lightweight routes */}
-        <Route component={errorHandler(LightWeightOrganizationDetails)}>
+        <Route component={errorHandler(OrganizationDetails)}>
           <Route
             path="/organizations/:orgId/projects/"
             componentPromise={() => import('app/views/projectsDashboard')}
@@ -1362,97 +1353,75 @@ function routes() {
               componentPromise={() => import('app/views/performance/content')}
               component={SafeLazyLoad}
             />
-          </Route>
-          <Route
-            path="/organizations/:orgId/performance/trends/"
-            componentPromise={() => import('app/views/performance')}
-            component={SafeLazyLoad}
-          >
-            <IndexRoute
+
+            <Route
+              path="trends/"
               componentPromise={() => import('app/views/performance/trends')}
               component={SafeLazyLoad}
             />
-          </Route>
-          <Route
-            path="/organizations/:orgId/performance/summary/"
-            componentPromise={() => import('app/views/performance')}
-            component={SafeLazyLoad}
-          >
-            <IndexRoute
-              componentPromise={() =>
-                import('app/views/performance/transactionSummary/transactionOverview')
-              }
-              component={SafeLazyLoad}
-            />
+
+            <Route path="/organizations/:orgId/performance/summary/">
+              <IndexRoute
+                componentPromise={() =>
+                  import('app/views/performance/transactionSummary/transactionOverview')
+                }
+                component={SafeLazyLoad}
+              />
+              <Route
+                path="vitals/"
+                componentPromise={() =>
+                  import('app/views/performance/transactionSummary/transactionVitals')
+                }
+                component={SafeLazyLoad}
+              />
+              <Route
+                path="tags/"
+                componentPromise={() =>
+                  import('app/views/performance/transactionSummary/transactionTags')
+                }
+                component={SafeLazyLoad}
+              />
+              <Route
+                path="events/"
+                componentPromise={() =>
+                  import('app/views/performance/transactionSummary/transactionEvents')
+                }
+                component={SafeLazyLoad}
+              />
+              <Route
+                path="spans/"
+                componentPromise={() =>
+                  import('app/views/performance/transactionSummary/transactionSpans')
+                }
+                component={SafeLazyLoad}
+              />
+            </Route>
+
             <Route
-              path="/organizations/:orgId/performance/summary/vitals/"
-              componentPromise={() =>
-                import('app/views/performance/transactionSummary/transactionVitals')
-              }
-              component={SafeLazyLoad}
-            />
-            <Route
-              path="/organizations/:orgId/performance/summary/tags/"
-              componentPromise={() =>
-                import('app/views/performance/transactionSummary/transactionTags')
-              }
-              component={SafeLazyLoad}
-            />
-            <Route
-              path="/organizations/:orgId/performance/summary/events/"
-              componentPromise={() =>
-                import('app/views/performance/transactionSummary/transactionEvents')
-              }
-              component={SafeLazyLoad}
-            />
-            <Route
-              path="/organizations/:orgId/performance/summary/spans/"
-              componentPromise={() =>
-                import('app/views/performance/transactionSummary/transactionSpans')
-              }
-              component={SafeLazyLoad}
-            />
-          </Route>
-          <Route
-            path="/organizations/:orgId/performance/vitaldetail/"
-            componentPromise={() => import('app/views/performance')}
-            component={SafeLazyLoad}
-          >
-            <IndexRoute
+              path="vitaldetail/"
               componentPromise={() => import('app/views/performance/vitalDetail')}
               component={SafeLazyLoad}
             />
-          </Route>
-          <Route
-            path="/organizations/:orgId/performance/trace/:traceSlug/"
-            componentPromise={() => import('app/views/performance')}
-            component={SafeLazyLoad}
-          >
-            <IndexRoute
+
+            <Route
+              path="trace/:traceSlug/"
               componentPromise={() => import('app/views/performance/traceDetails')}
               component={SafeLazyLoad}
             />
-          </Route>
-          <Route
-            path="/organizations/:orgId/performance/:eventSlug/"
-            componentPromise={() => import('app/views/performance')}
-            component={SafeLazyLoad}
-          >
-            <IndexRoute
+
+            <Route
+              path=":eventSlug/"
               componentPromise={() => import('app/views/performance/transactionDetails')}
               component={SafeLazyLoad}
             />
-          </Route>
-          <Route
-            path="/organizations/:orgId/performance/compare/:baselineEventSlug/:regressionEventSlug/"
-            componentPromise={() => import('app/views/performance')}
-            component={SafeLazyLoad}
-          >
-            <IndexRoute
+
+            <Route
+              path="compare/:baselineEventSlug/:regressionEventSlug/"
               componentPromise={() => import('app/views/performance/compare')}
               component={SafeLazyLoad}
             />
           </Route>
+
           <Route
             path="/organizations/:orgId/dashboards/new/"
             componentPromise={() => import('app/views/dashboardsV2/create')}
@@ -1582,7 +1551,6 @@ function routes() {
           </Route>
         </Route>
 
-        {/* The heavyweight organization detail views */}
         <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
           <Route component={errorHandler(OrganizationRoot)}>
             {hook('routes:organization-root')}
@@ -1692,9 +1660,7 @@ function routes() {
           </Route>
         </Route>
 
-        {/* A route tree for lightweight organizational detail views.
-          This is strictly for deprecated URLs that we need to maintain */}
-        <Route component={errorHandler(LightWeightOrganizationDetails)}>
+        <Route component={errorHandler(OrganizationDetails)}>
           {/* This is in the bottom lightweight group because "/organizations/:orgId/projects/new/" in heavyweight needs to be matched first */}
           <Route
             path="/organizations/:orgId/projects/:projectId/"

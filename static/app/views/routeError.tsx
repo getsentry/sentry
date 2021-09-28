@@ -7,13 +7,13 @@ import Alert from 'app/components/alert';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {LightWeightOrganization, Project} from 'app/types';
+import {Organization, Project} from 'app/types';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
 
 type Props = WithRouterProps & {
-  organization: LightWeightOrganization;
+  organization: Organization;
   error: Error | undefined;
   /**
    * Disable logging to Sentry

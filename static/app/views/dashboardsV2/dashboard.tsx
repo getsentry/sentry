@@ -39,11 +39,29 @@ type Props = {
 
 class Dashboard extends Component<Props> {
   async componentDidMount() {
-    const {api, organization, isEditing, newWidget} = this.props;
+    const {isEditing} = this.props;
     // Load organization tags when in edit mode.
     if (isEditing) {
       this.fetchTags();
     }
+    this.addNewWidget();
+  }
+
+  async componentDidUpdate(prevProps: Props) {
+    const {isEditing, newWidget} = this.props;
+
+    // Load organization tags when going into edit mode.
+    // We use tags on the add widget modal.
+    if (prevProps.isEditing !== isEditing && isEditing) {
+      this.fetchTags();
+    }
+    if (newWidget !== prevProps.newWidget) {
+      this.addNewWidget();
+    }
+  }
+
+  async addNewWidget() {
+    const {api, organization, newWidget} = this.props;
     if (newWidget) {
       try {
         await validateWidget(api, organization.slug, newWidget);
@@ -52,16 +70,6 @@ class Dashboard extends Component<Props> {
         // Don't do anything, widget isn't valid
         addErrorMessage(error);
       }
-    }
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    const {isEditing} = this.props;
-
-    // Load organization tags when going into edit mode.
-    // We use tags on the add widget modal.
-    if (prevProps.isEditing !== isEditing && isEditing) {
-      this.fetchTags();
     }
   }
 
