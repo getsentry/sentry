@@ -784,23 +784,21 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         rv = defaultdict(lambda: _make_stats(stats_start, stats_rollup, stats_buckets))
 
+        entity = {
+            "users": EntityKey.MetricsSets.value,
+            "sessions": EntityKey.MetricsCounters.value,
+        }[stat]
+
+        metric_name = metric_id(org_id, {"sessions": "session", "users": "user"}[stat])
+
         for row in raw_snql_query(
             Query(
                 dataset=Dataset.Metrics.value,
-                match=Entity(
-                    {
-                        "users": EntityKey.MetricsSets.value,
-                        "sessions": EntityKey.MetricsCounters.value,
-                    }[stat]
-                ),
+                match=Entity(entity),
                 select=aggregates + [Column("value")],
                 where=where
                 + [
-                    Condition(
-                        Column("metric_id"),
-                        Op.EQ,
-                        metric_id(org_id, {"sessions": "session", "users": "user"}[stat]),
-                    ),
+                    Condition(Column("metric_id"), Op.EQ, metric_name),
                     Condition(Column("timestamp"), Op.GTE, stats_start),
                     Condition(Column("timestamp"), Op.LT, now),
                     Condition(
