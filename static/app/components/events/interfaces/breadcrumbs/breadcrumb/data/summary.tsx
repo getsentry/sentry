@@ -59,9 +59,11 @@ const ContextDataWrapper = styled('div')`
 `;
 
 const StyledCode = styled('code')`
-  line-height: 26px;
   font-size: inherit;
   white-space: pre-wrap;
   background: none;
   padding: 0;
+  > * {
+    vertical-align: middle;
+  }
 `;
