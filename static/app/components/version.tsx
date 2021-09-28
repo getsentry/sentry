@@ -164,6 +164,7 @@ const VersionText = styled('span')<{truncate?: boolean}>`
     `max-width: 100%;
     display: block;
   overflow: hidden;
+  font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;`}
 `;

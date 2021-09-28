@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.event import SlackEventMessageBuilder
@@ -147,16 +147,17 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         # An unfurl may have multiple links to unfurl
         for item in data["links"]:
             try:
-                # We would like to track what types of links users are sharing,
-                # but it's a little difficult to do in sentry since we filter
-                # requests from Slack bots. Instead we just log to Kibana
-                logger.info(
-                    "slack.link-shared", extra={"slack_shared_link": parse_link(item["url"])}
-                )
+                url = item["url"]
+                slack_shared_link = parse_link(url)
             except Exception as e:
                 logger.error("slack.parse-link-error", extra={"error": str(e)})
+                continue
 
-            link_type, args = match_link(item["url"])
+            # We would like to track what types of links users are sharing, but
+            # it's a little difficult to do in Sentry because we filter requests
+            # from Slack bots. Instead we just log to Kibana.
+            logger.info("slack.link-shared", extra={"slack_shared_link": slack_shared_link})
+            link_type, args = match_link(url)
 
             # Link can't be unfurled
             if link_type is None or args is None:
@@ -171,6 +172,11 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
                     actor=request.user,
                 )
             ):
+                analytics.record(
+                    "integrations.slack.chart_unfurl",
+                    organization_id=integration.organizations.all()[0].id,
+                    unfurls_count=0,
+                )
                 self.prompt_link(data, slack_request, integration)
                 return self.respond()
 
@@ -180,7 +186,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
                 continue
 
             links_seen.add(seen_marker)
-            matches[link_type].append(UnfurlableUrl(url=item["url"], args=args))
+            matches[link_type].append(UnfurlableUrl(url=url, args=args))
 
         if not matches:
             return None

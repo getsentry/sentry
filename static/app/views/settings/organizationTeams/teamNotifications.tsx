@@ -6,7 +6,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Integration, LightWeightOrganization, Team} from 'app/types';
+import {Integration, Organization, Team} from 'app/types';
 import {toTitleCase} from 'app/utils';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
@@ -14,7 +14,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import TextField from 'app/views/settings/components/forms/textField';
 
 type Props = RouteComponentProps<{orgId: string; teamId: string}, {}> & {
-  organization: LightWeightOrganization;
+  organization: Organization;
   team: Team;
 };
 
