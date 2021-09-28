@@ -18,7 +18,7 @@ import {
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
-  LightWeightOrganization,
+  Organization,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
@@ -42,7 +42,7 @@ const mapIntegrationParams = analyticsParams => {
 
 export const trackIntegrationAnalytics = makeAnalyticsFunction<
   IntegrationEventParameters,
-  {organization: LightWeightOrganization} // org is required
+  {organization: Organization} // org is required
 >(integrationEventMap, {
   mapValuesFn: mapIntegrationParams,
 });

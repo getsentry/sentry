@@ -450,6 +450,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         includePrevious={false}
         currentSeriesName={rule.aggregate}
         partial={false}
+        referrer="api.alerts.alert-rule-chart"
       >
         {({loading, timeseriesData}) => {
           if (loading || !timeseriesData) {

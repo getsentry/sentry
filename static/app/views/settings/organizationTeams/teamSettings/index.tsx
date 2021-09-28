@@ -9,7 +9,7 @@ import {Panel, PanelHeader} from 'app/components/panels';
 import teamSettingsFields from 'app/data/forms/teamSettingsFields';
 import {IconDelete} from 'app/icons';
 import {t, tct} from 'app/locale';
-import {LightWeightOrganization, Scope, Team} from 'app/types';
+import {Organization, Scope, Team} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 import Field from 'app/views/settings/components/forms/field';
@@ -20,7 +20,7 @@ import FormModel from 'app/views/settings/components/forms/model';
 import TeamModel from './model';
 
 type Props = RouteComponentProps<{orgId: string; teamId: string}, {}> & {
-  organization: LightWeightOrganization;
+  organization: Organization;
   team: Team;
 };
 

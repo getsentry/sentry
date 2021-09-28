@@ -8,7 +8,7 @@ from snuba_sdk.query import SelectableExpression
 
 from sentry import releasehealth
 from sentry.models.project import Project
-from sentry.releasehealth.base import (
+from sentry.release_health.base import (
     CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
     OrganizationId,
@@ -19,38 +19,41 @@ from sentry.releasehealth.base import (
     ReleaseHealthBackend,
     ReleaseName,
     StatsPeriod,
+    ReleaseAdoption,
+    ReleaseHealthBackend,
+    ReleaseName,
+    ReleasesAdoption,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets
 from sentry.utils.snuba import raw_snql_query
 
 
 def metric_id(org_id: int, name: str) -> int:
-    index = indexer.resolve(org_id, UseCase.TAG_KEY, name)  # type: ignore
+    index = indexer.resolve(org_id, name)  # type: ignore
     assert index is not None  # TODO: assert too strong?
     return index  # type: ignore
 
 
 def tag_key(org_id: int, name: str) -> str:
-    index = indexer.resolve(org_id, UseCase.TAG_KEY, name)  # type: ignore
+    index = indexer.resolve(org_id, name)  # type: ignore
     assert index is not None
     return f"tags[{index}]"
 
 
 def tag_value(org_id: int, name: str) -> int:
-    index = indexer.resolve(org_id, UseCase.TAG_VALUE, name)  # type: ignore
+    index = indexer.resolve(org_id, name)  # type: ignore
     assert index is not None
     return index  # type: ignore
 
 
 def try_get_tag_value(org_id: int, name: str) -> Optional[int]:
-    return indexer.resolve(org_id, UseCase.TAG_VALUE, name)  # type: ignore
+    return indexer.resolve(org_id, name)  # type: ignore
 
 
 def reverse_tag_value(org_id: int, index: int) -> str:
-    str_value = indexer.reverse_resolve(org_id, UseCase.TAG_VALUE, index)  # type: ignore
+    str_value = indexer.reverse_resolve(org_id, index)  # type: ignore
     assert str_value is not None
     return str_value  # type: ignore
 
@@ -161,7 +164,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
 
         count_data = raw_snql_query(
-            count_query, referrer="releasehealth.metrics.get_crash_free_data", use_cache=False
+            count_query, referrer="release_health.metrics.get_crash_free_data", use_cache=False
         )["data"]
 
         for row in count_data:
@@ -192,7 +195,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         environments: Optional[Sequence[EnvironmentName]] = None,
         now: Optional[datetime] = None,
         org_id: Optional[OrganizationId] = None,
-    ) -> ReleaseHealthBackend.ReleasesAdoption:
+    ) -> ReleasesAdoption:
         project_ids = list({x[0] for x in project_releases})
         if org_id is None:
             org_id = self._get_org_id(project_ids)
@@ -211,7 +214,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         project_releases: Sequence[ProjectRelease],
         project_ids: Sequence[ProjectId],
         environments: Optional[Sequence[EnvironmentName]] = None,
-    ) -> ReleaseHealthBackend.ReleasesAdoption:
+    ) -> ReleasesAdoption:
         start = now - timedelta(days=1)
 
         def _get_common_where(total: bool) -> List[Union[BooleanCondition, Condition]]:
@@ -309,24 +312,24 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         # Count of sessions/users for given list of environments and timerange, per-project
         sessions_per_project: Dict[int, int] = _count_sessions(
-            total=True, referrer="releasehealth.metrics.get_release_adoption.total_sessions"
+            total=True, referrer="release_health.metrics.get_release_adoption.total_sessions"
         )
         users_per_project: Dict[int, int] = _count_users(
-            total=True, referrer="releasehealth.metrics.get_release_adoption.total_users"
+            total=True, referrer="release_health.metrics.get_release_adoption.total_users"
         )
 
         # Count of sessions/users for given list of environments and timerange AND GIVEN RELEASES, per-project
         sessions_per_release: Dict[Tuple[int, int], int] = _count_sessions(
-            total=False, referrer="releasehealth.metrics.get_release_adoption.releases_sessions"
+            total=False, referrer="release_health.metrics.get_release_adoption.releases_sessions"
         )
         users_per_release: Dict[Tuple[int, int], int] = _count_users(
-            total=False, referrer="releasehealth.metrics.get_release_adoption.releases_users"
+            total=False, referrer="release_health.metrics.get_release_adoption.releases_users"
         )
 
         rv = {}
 
         for project_id, release in project_releases:
-            release_tag_value = indexer.resolve(org_id, UseCase.TAG_VALUE, release)  # type: ignore
+            release_tag_value = indexer.resolve(org_id, release)  # type: ignore
             if release_tag_value is None:
                 # Don't emit empty releases -- for exact compatibility with
                 # sessions table backend.
@@ -338,7 +341,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             total_sessions = sessions_per_project.get(project_id)
             total_users = users_per_project.get(project_id)
 
-            adoption: ReleaseHealthBackend.ReleaseAdoption = {
+            adoption: ReleaseAdoption = {
                 "adoption": float(release_users) / total_users * 100
                 if release_users and total_users
                 else None,
@@ -419,7 +422,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
 
         result = raw_snql_query(
-            query, referrer="releasehealth.metrics.check_has_health_data", use_cache=False
+            query, referrer="release_health.metrics.check_has_health_data", use_cache=False
         )
 
         return {extract_row_info(row) for row in result["data"]}
@@ -451,7 +454,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
 
         result = raw_snql_query(
-            query, referrer="releasehealth.metrics.check_releases_have_health_data", use_cache=False
+            query,
+            referrer="release_health.metrics.check_releases_have_health_data",
+            use_cache=False,
         )
 
         def extract_row_info(row: Mapping[str, Union[OrganizationId, str]]) -> ReleaseName:
