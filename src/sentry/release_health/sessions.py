@@ -9,8 +9,8 @@ from sentry.release_health.base import (
     ProjectOrRelease,
     ReleaseHealthBackend,
     ReleaseName,
-    ReleaseSessionsTimeBounds,
     ReleasesAdoption,
+    ReleaseSessionsTimeBounds,
 )
 from sentry.snuba.sessions import (
     _check_has_health_data,
