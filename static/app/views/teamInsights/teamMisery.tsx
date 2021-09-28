@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -67,6 +68,7 @@ function TeamMisery({
 
   return (
     <StyledPanelTable
+      isEmpty={projects.length === 0 || periodTableData?.data.length === 0}
       headers={[
         t('Key transaction'),
         t('Project'),
@@ -195,7 +197,7 @@ function TeamMiseryWrapper({
 
 export default TeamMiseryWrapper;
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   grid-template-columns: 1fr 0.5fr 112px 112px 0.25fr;
   font-size: ${p => p.theme.fontSizeMedium};
   white-space: nowrap;
@@ -206,6 +208,14 @@ const StyledPanelTable = styled(PanelTable)`
   & > div {
     padding: ${space(1)} ${space(2)};
   }
+
+  ${p =>
+    p.isEmpty &&
+    css`
+      & > div:last-child {
+        padding: 48px ${space(2)};
+      }
+    `}
 `;
 
 const ProjectBadgeContainer = styled('div')`

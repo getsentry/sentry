@@ -59,4 +59,23 @@ describe('TeamMisery', () => {
     expect(wrapper.getAllByText(project.slug)).toHaveLength(2);
     expect(wrapper.getAllByText('0% change')).toHaveLength(2);
   });
+
+  it('should render empty state', async () => {
+    const routerContext = TestStubs.routerContext();
+    const wrapper = mountWithTheme(
+      <TeamMisery
+        organization={TestStubs.Organization()}
+        projects={[]}
+        period="14d"
+        location={routerContext.context}
+      />,
+      {context: routerContext}
+    );
+
+    await waitFor(() => {
+      expect(wrapper.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    });
+
+    expect(wrapper.getByText('There are no items to display')).toBeTruthy();
+  });
 });
