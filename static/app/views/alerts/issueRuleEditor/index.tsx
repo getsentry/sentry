@@ -509,7 +509,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           : condition
       ) ?? null
     );
-  };
+  }
 
   getTeamId = () => {
     const {rule} = this.state;
