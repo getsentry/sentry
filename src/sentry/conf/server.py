@@ -890,6 +890,8 @@ SENTRY_FEATURES = {
     "organizations:app-store-connect-multiple": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
+    # Enable change alerts for an org
+    "organizations:change-alerts": False,
     # Enable unfurling charts using the Chartcuterie service
     "organizations:chart-unfurls": False,
     # Enable alerting based on crash free sessions/users
