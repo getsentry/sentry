@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
@@ -16,17 +17,15 @@ from sentry.release_health.base import (
     ProjectId,
     ProjectOrRelease,
     ProjectRelease,
-    ReleaseHealthBackend,
-    ReleaseName,
-    StatsPeriod,
     ReleaseAdoption,
     ReleaseHealthBackend,
     ReleaseName,
     ReleasesAdoption,
+    StatsPeriod,
 )
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets
+from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets, parse_snuba_datetime
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -617,31 +616,60 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         return rv_users
 
     @staticmethod
-    def _get_health_stats_for_overview(where: List[Union[BooleanCondition, Condition]], org_id: int, health_stats_period):
+    def _get_health_stats_for_overview(
+        where: List[Union[BooleanCondition, Condition]],
+        org_id: int,
+        health_stats_period: StatsPeriod,
+        stat: OverviewStat,
+        now: datetime,
+    ):
         release_column_name = tag_key(org_id, "release")
         session_status_column_name = tag_key(org_id, "session.status")
         session_init_tag_value = tag_value(org_id, "init")
 
+        stats_rollup, stats_start, stats_buckets = get_rollup_starts_and_buckets(
+            health_stats_period
+        )
+
         aggregates: List[SelectableExpression] = [
             Column(release_column_name),
             Column("project_id"),
+            Column("bucketed_time"),
         ]
 
-        for row in raw_snql_query(Query(
-            dataset=Dataset.Metrics.value,
-            match=Entity("metrics_counters"),
-            select=aggregates + [Column("value")],
-            where=where + [
-                Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
-                Condition(
-                    Column(session_status_column_name),
-                    Op.EQ,
-                    session_init_tag_value,
-                )
-            ],
-            groupby=aggregates,
-        ), referrer="releasehealth.metrics.get_health_stats_for_overview")['data']:
-            pass
+        rv = defaultdict(lambda: _make_stats(stats_start, stats_rollup, stats_buckets))
+
+        for row in raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                match=Entity("metrics_counters"),
+                select=aggregates + [Column("value")],
+                where=where
+                + [
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+                    Condition(Column("timestamp"), Op.GTE, stats_start),
+                    Condition(Column("timestamp"), Op.LT, now),
+                    Condition(
+                        Column(session_status_column_name),
+                        Op.EQ,
+                        session_init_tag_value,
+                    ),
+                ],
+                granularity=Granularity(stats_rollup),  # type: ignore
+                groupby=aggregates,
+            ),
+            referrer="releasehealth.metrics.get_health_stats_for_overview",
+        )["data"]:
+            time_bucket = int(
+                (parse_snuba_datetime(row["bucketed_time"]) - stats_start).total_seconds()
+                / stats_rollup
+            )
+            key = row["project_id"], reverse_tag_value(org_id, row[release_column_name])
+            timeseries = rv[key]["stats"][health_stats_period]
+            if time_bucket < len(timeseries):
+                timeseries[time_bucket][1] = row[stat]
+
+        return rv
 
     def get_release_health_data_overview(
         self,
@@ -656,9 +684,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         assert stat in ("sessions", "users")
         now = datetime.now(pytz.utc)
         _, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h")
-        stats_rollup, stats_start, stats_buckets = get_rollup_starts_and_buckets(
-            health_stats_period
-        )
 
         org_id = self._get_org_id([x for x, _ in project_releases])
 
@@ -677,6 +702,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     get_tag_values_list(org_id, environments),
                 )
             )
+
+        if health_stats_period:
+            health_stats_data = self._get_health_stats_for_overview(
+                where, org_id, health_stats_period, stat, now
+            )
+        else:
+            health_stats_data = {}
 
         rv_durations = self._get_session_duration_data_for_overview(where, org_id)
         rv_errored_sessions = self._get_errored_sessions_for_overview(where, org_id)
@@ -745,16 +777,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             }
 
             if health_stats_period:
-                rv_row["stats"] = {
-                    health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)
-                }
+                rv_row["stats"] = health_stats_data[project_id, release]
 
         if fetch_has_health_data_releases:
             has_health_data = releasehealth.check_has_health_data(fetch_has_health_data_releases)  # type: ignore
 
             for key in fetch_has_health_data_releases:
                 rv[key]["has_health_data"] = key in has_health_data
-
-        if health_stats_period:
 
         return rv
