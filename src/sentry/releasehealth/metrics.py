@@ -483,7 +483,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 ],
                 groupby=aggregates,
             ),
-            referrer="releasehealth.metrics.get_release_health_data_overview",
+            referrer="releasehealth.metrics.get_session_duration_data_for_overview",
         )["data"]:
             # See https://github.com/getsentry/snuba/blob/8680523617e06979427bfa18c6b4b4e8bf86130f/snuba/datasets/entities/metrics.py#L184 for quantiles
             key = row["project_id"], reverse_tag_value(org_id, row[release_column_name])
@@ -518,7 +518,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 ],
                 groupby=aggregates,
             ),
-            referrer="releasehealth.metrics.get_release_health_data_overview.errored",
+            referrer="releasehealth.metrics.get_errored_sessions_for_overview",
         )["data"]:
             key = row["project_id"], reverse_tag_value(org_id, row[release_column_name])
             rv_errored_sessions[key] = row["value"]
@@ -557,7 +557,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 ],
                 groupby=aggregates,
             ),
-            referrer="releasehealth.metrics.get_release_health_data_overview.sessions_statuses",
+            referrer="releasehealth.metrics.get_abnormal_and_crashed_sessions_for_overview",
         )["data"]:
             key = (
                 row["project_id"],
@@ -600,7 +600,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 ],
                 groupby=aggregates,
             ),
-            referrer="releasehealth.metrics.get_release_health_data_overview.users",
+            referrer="releasehealth.metrics.get_users_and_crashed_users_for_overview",
         )["data"]:
             key = (
                 row["project_id"],
@@ -610,6 +610,33 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             rv_users[key] = row["value"]
 
         return rv_users
+
+    @staticmethod
+    def _get_health_stats_for_overview(where: List[Union[BooleanCondition, Condition]], org_id: int, health_stats_period):
+        release_column_name = tag_key(org_id, "release")
+        session_status_column_name = tag_key(org_id, "session.status")
+        session_init_tag_value = tag_value(org_id, "init")
+
+        aggregates: List[SelectableExpression] = [
+            Column(release_column_name),
+            Column("project_id"),
+        ]
+
+        for row in raw_snql_query(Query(
+            dataset=Dataset.Metrics.value,
+            match=Entity("metrics_counters"),
+            select=aggregates + [Column("value")],
+            where=where + [
+                Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+                Condition(
+                    Column(session_status_column_name),
+                    Op.EQ,
+                    session_init_tag_value,
+                )
+            ],
+            groupby=aggregates,
+        ), referrer="releasehealth.metrics.get_health_stats_for_overview")['data']:
+            pass
 
     def get_release_health_data_overview(
         self,
@@ -722,5 +749,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
             for key in fetch_has_health_data_releases:
                 rv[key]["has_health_data"] = key in has_health_data
+
+        if health_stats_period:
 
         return rv
