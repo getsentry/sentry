@@ -4,10 +4,9 @@ from rest_framework.response import Response
 
 from sentry.auth.idpmigration import get_redis_key, verify_account
 from sentry.utils.auth import get_login_url
-from sentry.web.frontend.base import BaseView
 
 
-class IDPEmailVerificationView(BaseView):
+class IDPEmailVerificationView:
     def confirm_email(request: Request, key: str) -> Response:
         verification_key = get_redis_key(key)
         if verify_account(key):
