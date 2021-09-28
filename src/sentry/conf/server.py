@@ -1811,7 +1811,7 @@ SENTRY_DEVSERVICES = {
     ),
     "bigtable": lambda settings, options: (
         {
-            "image": "mattrobenolt/cbtemulator:0.51.0",
+            "image": "us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614",
             "ports": {"8086/tcp": 8086},
             "only_if": "bigtable" in settings.SENTRY_NODESTORE,
         }
