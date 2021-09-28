@@ -6,7 +6,7 @@ from django.utils.translation import ugettext as _
 from mistune import markdown
 from rest_framework.response import Response
 
-from sentry.integrations.issues import IssueSyncMixin
+from sentry.integrations.issues import IssueSyncMixin, ResolveSyncAction
 from sentry.models import Activity, IntegrationExternalProject, OrganizationIntegration, User
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 
@@ -310,10 +310,13 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
                 },
             )
 
-    def _get_resolve_unresolve(self, data: Mapping[str, Any]) -> Tuple[bool, bool]:
+    def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
         done_states = self._get_done_statuses(data["project"])
-        return (not data["old_state"] in done_states and data["new_state"] in done_states), (
-            not data["new_state"] in done_states or data["old_state"] is None
+        return ResolveSyncAction.from_resolve_unresolve(
+            should_resolve=(
+                not data["old_state"] in done_states and data["new_state"] in done_states
+            ),
+            should_unresolve=(not data["new_state"] in done_states or data["old_state"] is None),
         )
 
     def _get_done_statuses(self, project: str) -> Set[str]:

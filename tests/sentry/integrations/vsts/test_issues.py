@@ -5,6 +5,7 @@ import responses
 from django.test import RequestFactory
 from exam import fixture
 
+from sentry.integrations.issues import ResolveSyncAction
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models import (
     ExternalIssue,
@@ -334,27 +335,42 @@ class VstsIssueSyncTest(VstsIssueBase):
 
     @responses.activate
     def test_should_resolve_active_to_resolved(self):
-        should_resolve = self.integration.should_resolve(
-            {"project": self.project_id_with_states, "old_state": "Active", "new_state": "Resolved"}
+        assert (
+            self.integration.get_resolve_sync_action(
+                {
+                    "project": self.project_id_with_states,
+                    "old_state": "Active",
+                    "new_state": "Resolved",
+                }
+            )
+            == ResolveSyncAction.RESOLVE
         )
-        assert should_resolve is True
 
     @responses.activate
     def test_should_resolve_resolved_to_active(self):
-        should_resolve = self.integration.should_resolve(
-            {"project": self.project_id_with_states, "old_state": "Resolved", "new_state": "Active"}
+        assert (
+            self.integration.get_resolve_sync_action(
+                {
+                    "project": self.project_id_with_states,
+                    "old_state": "Resolved",
+                    "new_state": "Active",
+                }
+            )
+            == ResolveSyncAction.UNRESOLVE
         )
-        assert should_resolve is False
 
     @responses.activate
     def test_should_resolve_new(self):
-        should_resolve = self.integration.should_resolve(
-            {"project": self.project_id_with_states, "old_state": None, "new_state": "New"}
+        assert (
+            self.integration.get_resolve_sync_action(
+                {"project": self.project_id_with_states, "old_state": None, "new_state": "New"}
+            )
+            == ResolveSyncAction.UNRESOLVE
         )
-        assert should_resolve is False
 
     @responses.activate
     def test_should_resolve_done_status_failure(self):
+        """TODO(mgaeta): Should this be NOOP instead of unresolving when we lose connecttion?"""
         responses.reset()
         responses.add(
             responses.GET,
@@ -364,38 +380,30 @@ class VstsIssueSyncTest(VstsIssueBase):
                 "error": "The requested operation is not allowed. Your account is pending deletion."
             },
         )
-        should_resolve = self.integration.should_resolve(
-            {"project": self.project_id_with_states, "old_state": "Active", "new_state": "Resolved"}
-        )
-        assert should_resolve is False
 
-    @responses.activate
-    def test_should_unresolve_active_to_resolved(self):
-        should_unresolve = self.integration.should_unresolve(
-            {"project": self.project_id_with_states, "old_state": "Active", "new_state": "Resolved"}
+        assert (
+            self.integration.get_resolve_sync_action(
+                {
+                    "project": self.project_id_with_states,
+                    "old_state": "Active",
+                    "new_state": "Resolved",
+                }
+            )
+            == ResolveSyncAction.UNRESOLVE
         )
-        assert should_unresolve is False
-
-    @responses.activate
-    def test_should_unresolve_resolved_to_active(self):
-        should_unresolve = self.integration.should_unresolve(
-            {"project": self.project_id_with_states, "old_state": "Resolved", "new_state": "Active"}
-        )
-        assert should_unresolve is True
 
     @responses.activate
     def test_should_not_unresolve_resolved_to_closed(self):
-        should_unresolve = self.integration.should_unresolve(
-            {"project": self.project_id_with_states, "old_state": "Resolved", "new_state": "Closed"}
+        assert (
+            self.integration.get_resolve_sync_action(
+                {
+                    "project": self.project_id_with_states,
+                    "old_state": "Resolved",
+                    "new_state": "Closed",
+                }
+            )
+            == ResolveSyncAction.NOOP
         )
-        assert should_unresolve is False
-
-    @responses.activate
-    def test_should_unresolve_new(self):
-        should_unresolve = self.integration.should_unresolve(
-            {"project": self.project_id_with_states, "old_state": None, "new_state": "New"}
-        )
-        assert should_unresolve is True
 
 
 class VstsIssueFormTest(VstsIssueBase):
