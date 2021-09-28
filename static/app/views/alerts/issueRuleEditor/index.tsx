@@ -41,6 +41,10 @@ import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
+import {
+  CHANGE_ALERT_CONDITION_IDS,
+  CHANGE_ALERT_PLACEHOLDERS_LABELS,
+} from 'app/views/alerts/issueRuleEditor/constants/changeAlerts';
 import AsyncView from 'app/views/asyncView';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
@@ -488,6 +492,25 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }));
   };
 
+  getConditions() {
+    const {organization} = this.props;
+
+    if (!organization.features.includes('change-alerts')) {
+      return this.state.configs?.conditions ?? null;
+    }
+
+    return (
+      this.state.configs?.conditions?.map(condition =>
+        CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
+          ? ({
+              ...condition,
+              label: CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id],
+            } as IssueAlertRuleConditionTemplate)
+          : condition
+      ) ?? null
+    );
+  }
+
   getTeamId = () => {
     const {rule} = this.state;
     const owner = rule?.owner;
@@ -693,7 +716,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                               )}
                             </StepLead>
                             <RuleNodeList
-                              nodes={this.state.configs?.conditions ?? null}
+                              nodes={this.getConditions()}
                               items={conditions ?? []}
                               placeholder={
                                 hasFeature
