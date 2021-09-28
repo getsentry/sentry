@@ -46,6 +46,7 @@ export default class OrganizationCreate extends AsyncView {
             label={t('Organization Name')}
             placeholder={t('e.g. My Company')}
             inline={false}
+            flexibleControlStateSize
             stacked
             required
           />
