@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, Sequence, Set, Tuple
 
-from sentry.releasehealth.base import (
+from sentry.release_health.base import (
     CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
     OrganizationId,
@@ -10,6 +10,7 @@ from sentry.releasehealth.base import (
     ReleaseHealthBackend,
     ReleaseName,
     ReleaseSessionsTimeBounds,
+    ReleasesAdoption,
 )
 from sentry.snuba.sessions import (
     _check_has_health_data,
@@ -48,7 +49,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         environments: Optional[Sequence[EnvironmentName]] = None,
         now: Optional[datetime] = None,
         org_id: Optional[OrganizationId] = None,
-    ) -> ReleaseHealthBackend.ReleasesAdoption:
+    ) -> ReleasesAdoption:
         return _get_release_adoption(  # type: ignore
             project_releases=project_releases, environments=environments, now=now
         )

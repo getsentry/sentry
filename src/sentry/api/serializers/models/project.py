@@ -8,7 +8,7 @@ from django.db.models import prefetch_related_objects
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
-from sentry import features, options, projectoptions, releasehealth, roles
+from sentry import features, options, projectoptions, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles, get_team_memberships
@@ -307,7 +307,7 @@ class ProjectSerializer(Serializer):
         current_interval_start = now - (segments * interval)
         previous_interval_start = now - (2 * segments * interval)
 
-        project_health_data_dict = releasehealth.get_current_and_previous_crash_free_rates(
+        project_health_data_dict = release_health.get_current_and_previous_crash_free_rates(
             project_ids=project_ids,
             current_start=current_interval_start,
             current_end=now,
@@ -335,7 +335,7 @@ class ProjectSerializer(Serializer):
         # call -> check_has_data with those ids and then update our `project_health_data_dict`
         # accordingly
         if check_has_health_data_ids:
-            projects_with_health_data = releasehealth.check_has_health_data(
+            projects_with_health_data = release_health.check_has_health_data(
                 check_has_health_data_ids
             )
             for project_id in projects_with_health_data:

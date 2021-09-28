@@ -6,6 +6,26 @@ from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.snuba import discover
 
+ALLOWED_EVENTS_STATS_REFERRERS = {
+    "api.alerts.alert-rule-chart",
+    "api.dashboards.widget.area-chart",
+    "api.dashboards.widget.bar-chart",
+    "api.dashboards.widget.line-chart",
+    "api.dashboards.top-events",
+    "api.discover.prebuilt-chart",
+    "api.discover.previous-chart",
+    "api.discover.default-chart",
+    "api.discover.daily-chart",
+    "api.discover.top5-chart",
+    "api.discover.dailytop5-chart",
+    "api.performance.homepage.duration-chart",
+    "api.performance.transaction-summary.sidebar-chart",
+    "api.performance.transaction-summary.vitals-chart",
+    "api.performance.transaction-summary.trends-chart",
+    "api.performance.transaction-summary.duration",
+    "api.releases.release-details-chart",
+}
+
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     def has_chart_interpolation(self, organization, request):
@@ -45,6 +65,13 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             # the start of the bucket does not align with the rollup.
             allow_partial_buckets = request.GET.get("partial") == "1"
 
+            referrer = request.GET.get("referrer")
+            referrer = (
+                referrer
+                if referrer in ALLOWED_EVENTS_STATS_REFERRERS
+                else "api.organization-event-stats"
+            )
+
         def get_event_stats(query_columns, query, params, rollup, zerofill_results):
             if top_events > 0:
                 return discover.top_events_timeseries(
@@ -57,7 +84,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     rollup=rollup,
                     limit=top_events,
                     organization=organization,
-                    referrer="api.organization-event-stats.find-topn",
+                    referrer=referrer + ".find-topn",
                     allow_empty=False,
                     zerofill_results=zerofill_results,
                     include_other=self.has_top_events(organization, request),

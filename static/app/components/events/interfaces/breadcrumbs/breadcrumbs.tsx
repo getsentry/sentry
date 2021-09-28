@@ -13,7 +13,7 @@ import Tooltip from 'app/components/tooltip';
 import {IconSwitch} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {BreadcrumbsWithDetails} from 'app/types/breadcrumbs';
+import {Crumb} from 'app/types/breadcrumbs';
 
 import Breadcrumb from './breadcrumb';
 
@@ -28,7 +28,7 @@ type Props = Pick<
   React.ComponentProps<typeof Breadcrumb>,
   'event' | 'orgSlug' | 'searchTerm' | 'relativeTime' | 'displayRelativeTime'
 > & {
-  breadcrumbs: BreadcrumbsWithDetails;
+  breadcrumbs: Crumb[];
   onSwitchTimeFormat: () => void;
   emptyMessage: Pick<
     React.ComponentProps<typeof PanelTable>,
