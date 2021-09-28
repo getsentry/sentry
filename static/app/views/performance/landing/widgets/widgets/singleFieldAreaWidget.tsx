@@ -34,7 +34,7 @@ type AreaDataType = {
 
 export function SingleFieldAreaWidget(props: Props) {
   const {ContainerActions} = props;
-  const {statsPeriod} = getParams(props.location.query);
+  const globalSelection = props.eventView.getGlobalSelection();
 
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);
@@ -63,7 +63,9 @@ export function SingleFieldAreaWidget(props: Props) {
   return (
     <GenericPerformanceWidget<AreaDataType>
       {...props}
-      subtitle={<Subtitle>{t('Compared to last %s ', statsPeriod)}</Subtitle>}
+      subtitle={
+        <Subtitle>{t('Compared to last %s ', globalSelection.datetime.period)}</Subtitle>
+      }
       HeaderActions={provided => (
         <Fragment>
           <HighlightNumber color={props.chartColor}>
