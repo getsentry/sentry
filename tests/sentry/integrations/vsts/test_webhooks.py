@@ -167,13 +167,12 @@ class VstsWebhookWorkItemTest(APITestCase):
                 data=work_item,
                 HTTP_SHARED_SECRET=self.shared_secret,
             )
-            assert resp.status_code == 200
-            group_ids = [g.id for g in groups]
-            assert (
-                len(Group.objects.filter(id__in=group_ids, status=GroupStatus.RESOLVED))
-                == num_groups
-            )
-            assert len(Activity.objects.filter(group_id__in=group_ids)) == num_groups
+        assert resp.status_code == 200
+        group_ids = [g.id for g in groups]
+        assert (
+            len(Group.objects.filter(id__in=group_ids, status=GroupStatus.RESOLVED)) == num_groups
+        )
+        assert len(Activity.objects.filter(group_id__in=group_ids)) == num_groups
 
     @responses.activate
     def test_inbound_status_sync_unresolve(self):
@@ -201,13 +200,12 @@ class VstsWebhookWorkItemTest(APITestCase):
                 data=work_item,
                 HTTP_SHARED_SECRET=self.shared_secret,
             )
-            assert resp.status_code == 200
-            group_ids = [g.id for g in groups]
-            assert (
-                len(Group.objects.filter(id__in=group_ids, status=GroupStatus.UNRESOLVED))
-                == num_groups
-            )
-            assert len(Activity.objects.filter(group_id__in=group_ids)) == num_groups
+        assert resp.status_code == 200
+        group_ids = [g.id for g in groups]
+        assert (
+            len(Group.objects.filter(id__in=group_ids, status=GroupStatus.UNRESOLVED)) == num_groups
+        )
+        assert len(Activity.objects.filter(group_id__in=group_ids)) == num_groups
 
     @responses.activate
     def test_inbound_status_sync_new_workitem(self):
