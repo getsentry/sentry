@@ -6,7 +6,6 @@ import {
   Dataset,
   Datasource,
   EventTypes,
-  SessionsAggregate,
   TimeWindow,
   Trigger,
   UnsavedIncidentRule,
@@ -14,6 +13,7 @@ import {
 import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
   getQueryDatasource,
+  isSessionAggregate,
 } from 'app/views/alerts/utils';
 import {AlertType, WizardRuleTemplate} from 'app/views/alerts/wizard/options';
 
@@ -153,10 +153,7 @@ export function createRuleFromWizardTemplate(
   const {eventTypes, aggregate, dataset} = wizardTemplate;
   const defaultRuleOptions: Partial<UnsavedIncidentRule> = {};
 
-  if (
-    aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
-    aggregate === SessionsAggregate.CRASH_FREE_USERS
-  ) {
+  if (isSessionAggregate(aggregate)) {
     defaultRuleOptions.thresholdType = AlertRuleThresholdType.BELOW;
     defaultRuleOptions.timeWindow = TimeWindow.ONE_HOUR;
   }

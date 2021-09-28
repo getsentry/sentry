@@ -22,6 +22,7 @@ import {Organization, Project, SessionApiResponse, SessionField} from 'app/types
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 import {getCount, getCrashFreeRateSeries} from 'app/utils/sessions';
 import withApi from 'app/utils/withApi';
+import {isSessionAggregate} from 'app/views/alerts/utils';
 import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 
@@ -162,7 +163,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
   };
 
   componentDidMount() {
-    if (this.isSessionAggregate) {
+    if (isSessionAggregate(this.props.aggregate)) {
       this.fetchSessionTimeSeries();
       return;
     }
@@ -171,7 +172,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {query, environment, timeWindow} = this.props;
+    const {query, environment, timeWindow, aggregate} = this.props;
     const {statsPeriod} = this.state;
     if (
       prevProps.environment !== environment ||
@@ -179,7 +180,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
       prevProps.timeWindow !== timeWindow ||
       prevState.statsPeriod !== statsPeriod
     ) {
-      if (this.isSessionAggregate) {
+      if (isSessionAggregate(aggregate)) {
         this.fetchSessionTimeSeries();
         return;
       }
@@ -201,14 +202,6 @@ class TriggersChart extends React.PureComponent<Props, State> {
       : statsPeriodOptions[0];
     return period;
   };
-
-  get isSessionAggregate() {
-    const {aggregate} = this.props;
-    return (
-      aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
-      aggregate === SessionsAggregate.CRASH_FREE_USERS
-    );
-  }
 
   async fetchTotalCount() {
     const {api, organization, environment, projects, query} = this.props;
@@ -285,7 +278,8 @@ class TriggersChart extends React.PureComponent<Props, State> {
     isReloading: boolean,
     maxValue?: number
   ) {
-    const {triggers, resolveThreshold, thresholdType, header, timeWindow} = this.props;
+    const {triggers, resolveThreshold, thresholdType, header, timeWindow, aggregate} =
+      this.props;
     const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = AVAILABLE_TIME_PERIODS[timeWindow];
     const period = this.getStatsPeriod();
@@ -303,11 +297,14 @@ class TriggersChart extends React.PureComponent<Props, State> {
             triggers={triggers}
             resolveThreshold={resolveThreshold}
             thresholdType={thresholdType}
+            aggregate={aggregate}
           />
         )}
         <ChartControls>
           <InlineContainer>
-            <SectionHeading>{t('Total Events')}</SectionHeading>
+            <SectionHeading>
+              {isSessionAggregate(aggregate) ? t('Total Sessions') : t('Total Events')}
+            </SectionHeading>
             <SectionValue>
               {totalCount !== null ? totalCount.toLocaleString() : '\u2014'}
             </SectionValue>
@@ -336,8 +333,13 @@ class TriggersChart extends React.PureComponent<Props, State> {
 
     const period = this.getStatsPeriod();
 
-    return this.isSessionAggregate ? (
-      this.renderChart(sessionTimeSeries ?? undefined, sessionsLoading, sessionsReloading)
+    return isSessionAggregate(aggregate) ? (
+      this.renderChart(
+        sessionTimeSeries ?? undefined,
+        sessionsLoading,
+        sessionsReloading,
+        100
+      )
     ) : (
       <Feature features={['metric-alert-builder-aggregate']} organization={organization}>
         {({hasFeature}) => {

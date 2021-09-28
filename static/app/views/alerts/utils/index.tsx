@@ -12,6 +12,7 @@ import {
   EventTypes,
   IncidentRule,
   SavedIncidentRule,
+  SessionsAggregate,
 } from 'app/views/alerts/incidentRules/types';
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
@@ -268,4 +269,8 @@ export function getQueryDatasource(
   }
 
   return null;
+}
+
+export function isSessionAggregate(aggregate: string) {
+  return Object.values(SessionsAggregate).includes(aggregate as SessionsAggregate);
 }
