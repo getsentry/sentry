@@ -14,6 +14,7 @@ import Duration from 'app/components/duration';
 import IdBadge from 'app/components/idBadge';
 import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
 import * as Layout from 'app/components/layouts/thirds';
+import NotAvailable from 'app/components/notAvailable';
 import {Panel, PanelBody} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {parseSearch} from 'app/components/searchSyntax/parser';
@@ -105,15 +106,23 @@ export default class DetailsBody extends React.Component<Props> {
 
   getFilter() {
     const {rule} = this.props;
+    const {dataset, query} = rule ?? {};
     if (!rule) {
       return null;
     }
 
-    const eventType = extractEventTypeFilterFromRule(rule);
-    const parsedQuery = parseSearch([eventType, rule.query].join(' '));
+    const eventType =
+      dataset === Dataset.SESSIONS ? null : extractEventTypeFilterFromRule(rule);
+    const parsedQuery = parseSearch([eventType, query].join(' '));
 
     return (
-      <Filters>{parsedQuery && <HighlightQuery parsedQuery={parsedQuery} />}</Filters>
+      <Filters>
+        {query || eventType ? (
+          <HighlightQuery parsedQuery={parsedQuery ?? []} />
+        ) : (
+          <NotAvailable />
+        )}
+      </Filters>
     );
   }
 
