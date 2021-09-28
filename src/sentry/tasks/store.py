@@ -281,6 +281,17 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     symbolication_start_time = time()
 
+    submission_ratio = options.get("symbolicate-event.low-priority.metrics.submission-rate")
+    submit_realtime_metrics = not from_reprocessing and random.random() < submission_ratio
+
+    if submit_realtime_metrics:
+        with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics.counter"):
+            timestamp = int(symbolication_start_time)
+            try:
+                realtime_metrics.increment_project_event_counter(project_id, timestamp)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
     with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
         span.set_data("symbolication_function", symbolication_function_name)
         with metrics.timer(
@@ -349,17 +360,6 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
                     data.setdefault("_metrics", {})["flag.processing.fatal"] = True
                     has_changed = True
                     break
-
-    submission_ratio = options.get("symbolicate-event.low-priority.metrics.submission-rate")
-    submit_realtime_metrics = not from_reprocessing and random.random() < submission_ratio
-
-    if submit_realtime_metrics:
-        with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics"):
-            timestamp = int(symbolication_start_time)
-            try:
-                realtime_metrics.increment_project_event_counter(project_id, timestamp)
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
 
     # We cannot persist canonical types in the cache, so we need to
     # downgrade this.
