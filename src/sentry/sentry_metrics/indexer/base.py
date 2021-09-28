@@ -1,13 +1,6 @@
-from enum import Enum
 from typing import Dict, List, Optional
 
 from sentry.utils.services import Service
-
-
-class UseCase(Enum):
-    METRIC = 0
-    TAG_KEY = 1
-    TAG_VALUE = 2
 
 
 class StringIndexer(Service):  # type: ignore
