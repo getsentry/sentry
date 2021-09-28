@@ -191,6 +191,7 @@ class Endpoint(APIView):
                 auth_id=auth_id,
                 path=self.request.path,
                 caller_ip=self.request.META.get("REMOTE_ADDR"),
+                user_agent=self.request.META.get("HTTP_USER_AGENT"),
             )
             api_access_logger.info("api.access", extra=log_metrics)
         except Exception:
