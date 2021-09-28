@@ -102,6 +102,8 @@ class RuleNodeList extends React.Component<Props> {
             comparisonInterval: {
               type: 'choice',
               choices: COMPARISON_INTERVAL_CHOICES,
+              // comparisonInterval initial value isn't on the item, so it needs to be selected by user
+              initial: 'select',
             },
           },
         };
