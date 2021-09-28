@@ -634,6 +634,7 @@ CELERY_QUEUES = [
     Queue("reports.deliver", routing_key="reports.deliver"),
     Queue("reports.prepare", routing_key="reports.prepare"),
     Queue("search", routing_key="search"),
+    Queue("similarity.index", routing_key="similarity.index"),
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
@@ -951,6 +952,8 @@ SENTRY_FEATURES = {
     "organizations:metrics-extraction": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
+    # Enable migrating auth identities between providers automatically
+    "organizations:idp-automatic-migration": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -1358,7 +1361,7 @@ SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 
 # Release Health
-SENTRY_RELEASE_HEALTH = "sentry.releasehealth.sessions.SessionsReleaseHealthBackend"
+SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
 SENTRY_RELEASE_HEALTH_OPTIONS = {}
 
 # Render charts on the backend. This uses the Chartcuterie external service.
@@ -1808,7 +1811,7 @@ SENTRY_DEVSERVICES = {
     ),
     "bigtable": lambda settings, options: (
         {
-            "image": "mattrobenolt/cbtemulator:0.51.0",
+            "image": "us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614",
             "ports": {"8086/tcp": 8086},
             "only_if": "bigtable" in settings.SENTRY_NODESTORE,
         }
@@ -2165,6 +2168,8 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
+KAFKA_INGEST_METRICS = "ingest-metrics"
+KAFKA_SNUBA_METRICS = "snuba-metrics"
 
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
@@ -2183,6 +2188,10 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_ATTACHMENTS: {"cluster": "default", "topic": KAFKA_INGEST_ATTACHMENTS},
     # Topic for receiving transaction events (APM events) from Relay
     KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
+    # Topic for receiving metrics from Relay
+    KAFKA_INGEST_METRICS: {"cluster": "default", "topic": KAFKA_INGEST_METRICS},
+    # Topic for indexer translated metrics
+    KAFKA_SNUBA_METRICS: {"cluster": "default", "topic": KAFKA_SNUBA_METRICS},
 }
 
 # If True, consumers will create the topics if they don't exist
@@ -2330,6 +2339,10 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # Note that the time is counted after the last time a counter is incremented.
     "counter_ttl": timedelta(seconds=300),
 }
+
+# XXX(meredith): Temporary metrics indexer
+SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
+
 # Timeout for the project counter statement execution.
 # In case of contention on the project counter, prevent workers saturation with
 # save_event tasks from single project.

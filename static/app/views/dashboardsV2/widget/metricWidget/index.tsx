@@ -233,8 +233,8 @@ class MetricWidget extends AsyncView<Props, State> {
               <VisualizationWrapper>
                 <StyledSelectField
                   name="displayType"
-                  choices={[DisplayType.LINE, DisplayType.BAR, DisplayType.AREA].map(
-                    value => [value, displayTypes[value]]
+                  options={[DisplayType.LINE, DisplayType.BAR, DisplayType.AREA].map(
+                    value => ({value, label: displayTypes[value]})
                   )}
                   value={displayType}
                   onChange={value => {
@@ -267,7 +267,7 @@ class MetricWidget extends AsyncView<Props, State> {
             >
               <StyledSelectField
                 name="project"
-                choices={projects.map(project => [project, project.slug])}
+                options={projects.map(project => ({value: project, label: project.slug}))}
                 onChange={project => this.handleProjectChange(project.id)}
                 value={selectedProject}
                 components={{

@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
-import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
@@ -13,26 +12,21 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {ChangeData} from 'app/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
-import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {DateString, Organization, RelativePeriod, TeamWithProjects} from 'app/types';
+import localStorage from 'app/utils/localStorage';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeamsForUser from 'app/utils/withTeamsForUser';
 
+import DescriptionCard from './descriptionCard';
 import HeaderTabs from './headerTabs';
-import TeamKeyTransactions from './keyTransactions';
 import TeamDropdown from './teamDropdown';
+import TeamMisery from './teamMisery';
 import TeamStability from './teamStability';
 
-type Props = {
-  api: Client;
-  organization: Organization;
-  teams: TeamWithProjects[];
-  loadingTeams: boolean;
-  error: Error | null;
-} & RouteComponentProps<{orgId: string}, {}>;
+const INSIGHTS_DEFAULT_STATS_PERIOD = '8w';
 
 const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
@@ -47,6 +41,14 @@ const PAGE_QUERY_PARAMS = [
   'team',
 ];
 
+type Props = {
+  api: Client;
+  organization: Organization;
+  teams: TeamWithProjects[];
+  loadingTeams: boolean;
+  error: Error | null;
+} & RouteComponentProps<{orgId: string}, {}>;
+
 function TeamInsightsOverview({
   organization,
   teams,
@@ -55,11 +57,19 @@ function TeamInsightsOverview({
   router,
 }: Props) {
   const query = location?.query ?? {};
-  const currentTeamId = query.team ?? teams[0]?.id;
+  const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
+
+  let localTeamId: string | null | undefined =
+    query.team ?? localStorage.getItem(localStorageKey);
+  if (localTeamId && !teams.find(team => team.id === localTeamId)) {
+    localTeamId = null;
+  }
+  const currentTeamId = localTeamId ?? teams[0]?.id;
   const currentTeam = teams.find(team => team.id === currentTeamId);
   const projects = currentTeam?.projects ?? [];
 
   function handleChangeTeam(teamId: string) {
+    localStorage.setItem(localStorageKey, teamId);
     setStateOnUrl({team: teamId});
   }
 
@@ -90,9 +100,6 @@ function TeamInsightsOverview({
     pageStart?: DateString;
     pageEnd?: DateString;
     pageUtc?: boolean | null;
-    sort?: string;
-    query?: string;
-    cursor?: string;
     team?: string;
   }): LocationDescriptorObject {
     const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
@@ -123,7 +130,7 @@ function TeamInsightsOverview({
     });
 
     if (!statsPeriod && !start && !end) {
-      return {period: DEFAULT_STATS_PERIOD};
+      return {period: INSIGHTS_DEFAULT_STATS_PERIOD};
     }
 
     // Following getParams, statsPeriod will take priority over start/end
@@ -146,7 +153,7 @@ function TeamInsightsOverview({
           };
     }
 
-    return {period: DEFAULT_STATS_PERIOD};
+    return {period: INSIGHTS_DEFAULT_STATS_PERIOD};
   }
   const {period, start, end, utc} = dataDatetime();
 
@@ -154,14 +161,14 @@ function TeamInsightsOverview({
     <Fragment>
       <BorderlessHeader>
         <StyledHeaderContent>
-          <StyledLayoutTitle>{t('Team Insights')}</StyledLayoutTitle>
+          <StyledLayoutTitle>{t('Projects')}</StyledLayoutTitle>
         </StyledHeaderContent>
       </BorderlessHeader>
       <Layout.Header>
         <HeaderTabs organization={organization} activeTab="teamInsights" />
       </Layout.Header>
 
-      <Layout.Body>
+      <Body>
         {loadingTeams && <LoadingIndicator />}
         {!loadingTeams && (
           <Layout.Main fullWidth>
@@ -171,45 +178,72 @@ function TeamInsightsOverview({
                 selectedTeam={currentTeamId}
                 handleChangeTeam={handleChangeTeam}
               />
-              <PageTimeRangeSelector
+              <StyledPageTimeRangeSelector
                 organization={organization}
                 relative={period ?? ''}
                 start={start ?? null}
                 end={end ?? null}
                 utc={utc ?? null}
                 onUpdate={handleUpdateDatetime}
-                relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
+                showAbsolute={false}
+                relativeOptions={{
+                  '14d': t('Last 2 weeks'),
+                  '4w': t('Last 4 weeks'),
+                  [INSIGHTS_DEFAULT_STATS_PERIOD]: t('Last 8 weeks'),
+                  '12w': t('Last 12 weeks'),
+                }}
               />
             </ControlsWrapper>
 
-            <SectionTitle>{t('Stability')}</SectionTitle>
-            <TeamStability
-              projects={projects}
-              organization={organization}
-              period={period}
-              start={start}
-              end={end}
-              utc={utc}
-            />
+            <SectionTitle>{t('Project Health')}</SectionTitle>
+            <DescriptionCard
+              title={t('Crash Free Sessions')}
+              description={t(
+                'The percentage of healthy, errored, and abnormal sessions that did not cause a crash.'
+              )}
+            >
+              <TeamStability
+                projects={projects}
+                organization={organization}
+                period={period}
+                start={start}
+                end={end}
+                utc={utc}
+              />
+            </DescriptionCard>
 
-            <SectionTitle>{t('Performance')}</SectionTitle>
-            <TeamKeyTransactions
-              organization={organization}
-              projects={projects}
-              period={period}
-              start={start?.toString()}
-              end={end?.toString()}
-              location={location}
-            />
+            <DescriptionCard
+              title={t('User Misery')}
+              description={t(
+                'User Misery shows the number of unique users that experienced load times 4x the project’s configured threshold.'
+              )}
+            >
+              <TeamMisery
+                organization={organization}
+                projects={projects}
+                period={period}
+                start={start?.toString()}
+                end={end?.toString()}
+                location={location}
+              />
+            </DescriptionCard>
           </Layout.Main>
         )}
-      </Layout.Body>
+      </Body>
     </Fragment>
   );
 }
 
 export {TeamInsightsOverview};
 export default withApi(withOrganization(withTeamsForUser(TeamInsightsOverview)));
+
+const Body = styled(Layout.Body)`
+  margin-bottom: -20px;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: block;
+  }
+`;
 
 const BorderlessHeader = styled(Layout.Header)`
   border-bottom: 0;
@@ -228,6 +262,10 @@ const ControlsWrapper = styled('div')`
   align-items: center;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
+`;
+
+const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+  flex-grow: 1;
 `;
 
 const SectionTitle = styled(Layout.Title)`

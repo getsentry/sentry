@@ -503,3 +503,20 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
         ingest_consumer_types=",".join(sorted(consumer_types)), _all_threads=True
     ):
         get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options).run()
+
+
+@run.command("metrics-consumer")
+@log_options()
+@click.option(
+    "--group_id",
+    default="metrics-consumer",
+    help="Consumer group to track metric indexer offsets. ",
+)
+@click.option("--topic", default="ingest-metrics", help="Topic to get subscription updates from.")
+@batching_kafka_options("metrics-consumer")
+@configuration
+def metrics_consumer(**options):
+
+    from sentry.sentry_metrics.indexer.indexer_consumer import get_metrics_consumer
+
+    get_metrics_consumer(**options).run()

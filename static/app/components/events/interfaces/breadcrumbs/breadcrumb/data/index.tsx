@@ -1,5 +1,5 @@
 import {Organization} from 'app/types';
-import {Breadcrumb, BreadcrumbType} from 'app/types/breadcrumbs';
+import {BreadcrumbType, RawCrumb} from 'app/types/breadcrumbs';
 import {Event} from 'app/types/event';
 
 import Default from './default';
@@ -8,7 +8,7 @@ import Http from './http';
 
 type Props = {
   searchTerm: string;
-  breadcrumb: Breadcrumb;
+  breadcrumb: RawCrumb;
   event: Event;
   orgSlug: Organization['slug'];
 };

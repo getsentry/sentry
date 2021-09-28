@@ -22,13 +22,20 @@ standard_intervals = {
     "30d": ("30 days", timedelta(days=30)),
 }
 comparison_intervals = {
+    "1m": ("one minute", timedelta(minutes=1)),
     "5m": ("5 minutes", timedelta(minutes=5)),
+    "15m": ("15 minutes", timedelta(minutes=15)),
+    "1h": ("one hour", timedelta(hours=1)),
     "1d": ("one day", timedelta(hours=24)),
     "1w": ("one week", timedelta(days=7)),
     "30d": ("30 days", timedelta(days=30)),
 }
 COMPARISON_TYPE_COUNT = "count"
 COMPARISON_TYPE_PERCENT = "percent"
+comparison_types = {
+    COMPARISON_TYPE_COUNT: COMPARISON_TYPE_COUNT,
+    COMPARISON_TYPE_PERCENT: COMPARISON_TYPE_PERCENT,
+}
 
 
 class EventFrequencyForm(forms.Form):
@@ -42,6 +49,32 @@ class EventFrequencyForm(forms.Form):
         ]
     )
     value = forms.IntegerField(widget=forms.TextInput())
+    comparisonType = forms.ChoiceField(
+        choices=list(sorted(comparison_types.items(), key=lambda item: item[1])),
+        required=False,
+    )
+    comparisonInterval = forms.ChoiceField(
+        choices=[
+            (key, label)
+            for key, (label, duration) in sorted(
+                comparison_intervals.items(), key=lambda item: item[1][1]
+            )
+        ],
+        required=False,
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        # Don't store an empty string here if the value isn't passed
+        if cleaned_data.get("comparisonInterval") == "":
+            del cleaned_data["comparisonInterval"]
+        cleaned_data["comparisonType"] = cleaned_data.get("comparisonType") or COMPARISON_TYPE_COUNT
+        if cleaned_data["comparisonType"] == COMPARISON_TYPE_PERCENT and not cleaned_data.get(
+            "comparisonInterval"
+        ):
+            msg = forms.ValidationError("comparisonInterval is required when comparing by percent")
+            self.add_error("comparisonInterval", msg)
+            return
 
 
 class BaseEventFrequencyCondition(EventCondition):

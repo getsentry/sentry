@@ -95,11 +95,13 @@ export type BreadcrumbTypeDefault = {
   data?: Record<string, any>;
 } & BreadcrumbTypeBase;
 
-export type Breadcrumb =
+export type RawCrumb =
   | BreadcrumbTypeNavigation
   | BreadcrumbTypeHTTP
   | BreadcrumbTypeDefault;
 
-export type BreadcrumbsWithDetails = Array<
-  Breadcrumb & {description: string; color: Color; id: number}
->;
+export type Crumb = RawCrumb & {
+  description: string;
+  color: Color;
+  id: number;
+};

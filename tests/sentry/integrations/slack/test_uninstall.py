@@ -1,6 +1,14 @@
 from typing import Optional
 
-from sentry.models import Integration, NotificationSetting, OrganizationIntegration, Project, User
+from sentry.constants import ObjectStatus
+from sentry.models import (
+    Integration,
+    NotificationSetting,
+    OrganizationIntegration,
+    Project,
+    ScheduledDeletion,
+    User,
+)
 from sentry.notifications.helpers import NOTIFICATION_SETTING_DEFAULTS
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase
@@ -18,9 +26,9 @@ class SlackUninstallTest(APITestCase):
         self.login_as(self.user)
 
     def uninstall(self) -> None:
-        assert OrganizationIntegration.objects.filter(
+        org_integration = OrganizationIntegration.objects.get(
             integration=self.integration, organization=self.organization
-        ).exists()
+        )
 
         with self.tasks():
             self.get_success_response(self.organization.slug, self.integration.id)
@@ -28,7 +36,12 @@ class SlackUninstallTest(APITestCase):
         assert Integration.objects.filter(id=self.integration.id).exists()
 
         assert not OrganizationIntegration.objects.filter(
-            integration=self.integration, organization=self.organization
+            integration=self.integration,
+            organization=self.organization,
+            status=ObjectStatus.VISIBLE,
+        ).exists()
+        assert ScheduledDeletion.objects.filter(
+            model_name="OrganizationIntegration", object_id=org_integration.id
         ).exists()
 
     def get_setting(

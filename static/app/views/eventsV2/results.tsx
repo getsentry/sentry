@@ -24,7 +24,6 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'app/constants';
 import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, SavedQuery} from 'app/types';
@@ -32,7 +31,7 @@ import {defined, generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
-import {CHART_AXIS_OPTIONS, DisplayModes} from 'app/utils/discover/types';
+import {DisplayModes} from 'app/utils/discover/types';
 import localStorage from 'app/utils/localStorage';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
@@ -67,12 +66,21 @@ type State = {
   needConfirmation: boolean;
   confirmedQuery: boolean;
   incompatibleAlertNotice: React.ReactNode;
+  savedQuery?: SavedQuery;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
 function readShowTagsState() {
   const value = localStorage.getItem(SHOW_TAGS_STORAGE_KEY);
   return value === '1';
+}
+
+function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQuery) {
+  return location.query.yAxis
+    ? decodeList(location.query.yAxis)
+    : savedQuery?.yAxis && savedQuery.yAxis.length > 0
+    ? decodeList(savedQuery?.yAxis)
+    : [eventView.getYAxis()];
 }
 
 class Results extends React.Component<Props, State> {
@@ -82,7 +90,7 @@ class Results extends React.Component<Props, State> {
         nextProps.savedQuery,
         nextProps.location
       );
-      return {...prevState, eventView};
+      return {...prevState, eventView, savedQuery: nextProps.savedQuery};
     }
     return prevState;
   }
@@ -110,21 +118,30 @@ class Results extends React.Component<Props, State> {
     if (defined(location.query.id)) {
       updateSavedQueryVisit(organization.slug, location.query.id);
     }
-    if (organization.features.includes('connect-discover-and-dashboards')) {
-      this.defaultYAxis();
-    }
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
     const {api, location, organization, selection} = this.props;
-    const {eventView, confirmedQuery} = this.state;
+    const {eventView, confirmedQuery, savedQuery} = this.state;
 
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
+    const yAxisArray = getYAxis(location, eventView, savedQuery);
+    const prevYAxisArray = getYAxis(
+      prevProps.location,
+      prevState.eventView,
+      prevState.savedQuery
+    );
+
     if (
       !isAPIPayloadSimilar(currentQuery, prevQuery) ||
-      this.hasChartParametersChanged(prevState.eventView, eventView)
+      this.hasChartParametersChanged(
+        prevState.eventView,
+        eventView,
+        prevYAxisArray,
+        yAxisArray
+      )
     ) {
       api.clear();
       this.canLoadEvents();
@@ -142,11 +159,13 @@ class Results extends React.Component<Props, State> {
 
   tagsApi: Client = new Client();
 
-  hasChartParametersChanged(prevEventView: EventView, eventView: EventView) {
-    const prevYAxisValue = prevEventView.getYAxis();
-    const yAxisValue = eventView.getYAxis();
-
-    if (prevYAxisValue !== yAxisValue) {
+  hasChartParametersChanged(
+    prevEventView: EventView,
+    eventView: EventView,
+    prevYAxisArray: string[],
+    yAxisArray: string[]
+  ) {
+    if (!isEqual(prevYAxisArray, yAxisArray)) {
       return true;
     }
 
@@ -405,18 +424,6 @@ class Results extends React.Component<Props, State> {
     this.setState({incompatibleAlertNotice});
   };
 
-  defaultYAxis() {
-    const {location} = this.props;
-    const yAxisArray = decodeList(location.query.yAxis);
-    // Default Y-Axis to count() if none is selected
-    if (yAxisArray.length === 0) {
-      browserHistory.replace({
-        ...location,
-        query: {...location.query, yAxis: [CHART_AXIS_OPTIONS[0].value]},
-      });
-    }
-  }
-
   renderError(error: string) {
     if (!error) {
       return null;
@@ -442,13 +449,14 @@ class Results extends React.Component<Props, State> {
       showTags,
       incompatibleAlertNotice,
       confirmedQuery,
+      savedQuery,
     } = this.state;
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
       : eventView.fields;
     const query = eventView.query;
     const title = this.getDocumentTitle();
-    const yAxisArray = decodeList(location.query.yAxis);
+    const yAxisArray = getYAxis(location, eventView, savedQuery);
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
@@ -460,6 +468,7 @@ class Results extends React.Component<Props, State> {
               location={location}
               eventView={eventView}
               onIncompatibleAlertQuery={this.handleIncompatibleQuery}
+              yAxis={yAxisArray}
             />
             <Layout.Body>
               {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
@@ -582,16 +591,6 @@ function ResultsContainer(props: Props) {
    * you no longer need to enforce a project if it is empty. We assume an empty project is
    * the desired behavior because saved queries can contain a project filter.
    */
-
-  const {location, router} = props;
-  const user = ConfigStore.get('user');
-
-  if (user.id !== location.query.user) {
-    router.push({
-      pathname: location.pathname,
-      query: {...location.query, user: user.id},
-    });
-  }
 
   return (
     <GlobalSelectionHeader
