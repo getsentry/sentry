@@ -79,7 +79,8 @@ class RuleNodeList extends React.Component<Props> {
         comparisonType: {
           type: 'choice',
           choices: COMPARISON_TYPE_CHOICES,
-          initial: null,
+          // give an initial value from not among choices so selector starts with none selected
+          initial: 'select',
         },
       },
     };
@@ -101,7 +102,6 @@ class RuleNodeList extends React.Component<Props> {
             comparisonInterval: {
               type: 'choice',
               choices: COMPARISON_INTERVAL_CHOICES,
-              initial: null,
             },
           },
         };

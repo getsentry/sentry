@@ -492,7 +492,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }));
   };
 
-  getConditions = (): IssueAlertRuleConditionTemplate[] | null => {
+  getConditions() {
     const {organization} = this.props;
 
     if (!organization.features.includes('change-alerts')) {
@@ -502,10 +502,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return (
       this.state.configs?.conditions?.map(condition =>
         CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
-          ? {
+          ? ({
               ...condition,
               label: CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id],
-            }
+            } as IssueAlertRuleConditionTemplate)
           : condition
       ) ?? null
     );
