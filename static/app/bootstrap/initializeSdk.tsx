@@ -5,7 +5,7 @@ import SentryRRWeb from '@sentry/rrweb';
 import {Integrations} from '@sentry/tracing';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
-import {DISABLE_RR_WEB, SPA_DSN} from 'app/constants';
+import {DISABLE_RR_WEB, SENTRY_RELEASE_VERSION, SPA_DSN} from 'app/constants';
 import {Config} from 'app/types';
 import {init as initApiSentryClient} from 'app/utils/apiSentryClient';
 
@@ -76,6 +76,11 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      * as well as `whitelistUrls`
      */
     dsn: SPA_DSN || sentryConfig?.dsn,
+    /**
+     * Frontend can be built with a `SENTRY_RELEASE_VERSION` environment variable for release string, useful if frontend is
+     * deployed separately from backend.
+     */
+    release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
     whitelistUrls: SPA_DSN
       ? ['localhost', 'dev.getsentry.net', 'sentry.dev', 'webpack-internal://']
       : sentryConfig?.whitelistUrls,
