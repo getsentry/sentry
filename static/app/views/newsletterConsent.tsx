@@ -1,9 +1,11 @@
 import {Component} from 'react';
 
-import {ApiForm, RadioBooleanField} from 'app/components/forms';
 import ExternalLink from 'app/components/links/externalLink';
 import NarrowLayout from 'app/components/narrowLayout';
 import {t, tct} from 'app/locale';
+import {ApiForm, InputField} from 'app/views/settings/components/forms';
+import RadioBoolean from 'app/views/settings/components/forms/controls/radioBoolean';
+import FieldWrapper from 'app/views/settings/components/forms/field/fieldWrapper';
 
 type Props = {
   onSubmitSuccess?: () => void;
@@ -22,35 +24,37 @@ export default class NewsletterConsent extends Component<Props> {
   render() {
     return (
       <NarrowLayout>
-        <p>
-          {t('Pardon the interruption, we just need to get a quick answer from you.')}
-        </p>
-
         <ApiForm
           apiMethod="POST"
           apiEndpoint="/users/me/subscriptions/"
           onSubmitSuccess={() => this.props.onSubmitSuccess?.()}
           submitLabel={t('Continue')}
         >
-          <RadioBooleanField
-            key="subscribed"
+          <FieldWrapper stacked={false} hasControlState={false}>
+            {t('Pardon the interruption, we just need to get a quick answer from you.')}
+          </FieldWrapper>
+          <InputField
             name="subscribed"
+            key="subscribed"
             label={t('Email Updates')}
-            help={
-              <span>
-                {tct(
-                  `We'd love to keep you updated via email with product and feature
-                   announcements, promotions, educational materials, and events. Our updates
-                   focus on relevant information, and we'll never sell your data to third
-                   parties. See our [link:Privacy Policy] for more details.
-                   `,
-                  {link: <ExternalLink href="https://sentry.io/privacy/" />}
-                )}
-              </span>
-            }
-            yesLabel={t('Yes, I would like to receive updates via email')}
-            noLabel={t("No, I'd prefer not to receive these updates")}
             required
+            inline={false}
+            help={tct(
+              `We'd love to keep you updated via email with product and feature
+               announcements, promotions, educational materials, and events. Our updates
+               focus on relevant information, and we'll never sell your data to third
+               parties. See our [link:Privacy Policy] for more details.
+               `,
+              {link: <ExternalLink href="https://sentry.io/privacy/" />}
+            )}
+            field={fieldProps => (
+              <RadioBoolean
+                {...fieldProps}
+                label={t('Email Updates')}
+                yesLabel={t('Yes, I would like to receive updates via email')}
+                noLabel={t("No, I'd prefer not to receive these updates")}
+              />
+            )}
           />
         </ApiForm>
       </NarrowLayout>

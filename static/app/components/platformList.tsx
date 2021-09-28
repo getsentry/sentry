@@ -87,6 +87,7 @@ function PlatformList({
       <PlatformIcons>
         {platformIcons.map((visiblePlatform, index) => (
           <StyledPlatformIcon
+            data-test-id={`platform-icon-${visiblePlatform}`}
             key={visiblePlatform + index}
             platform={visiblePlatform}
             size={size}

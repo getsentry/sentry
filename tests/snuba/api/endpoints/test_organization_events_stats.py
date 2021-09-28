@@ -736,7 +736,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
         assert mock_query.call_count == 1
 
-    def test_invalid_interval(self):
+    @mock.patch("sentry.snuba.discover.raw_query", return_value={"data": []})
+    def test_invalid_interval(self, mock_query):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
@@ -749,7 +750,10 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     "yAxis": "count()",
                 },
             )
-        assert response.status_code == 400
+        assert response.status_code == 200
+        assert mock_query.call_count == 1
+        # Should've reset to the default for 24h
+        assert mock_query.mock_calls[0].kwargs["rollup"] == 300
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
@@ -763,8 +767,10 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     "yAxis": "count()",
                 },
             )
-        assert response.status_code == 400
-        assert "zero duration" in response.data["detail"]
+        assert response.status_code == 200
+        assert mock_query.call_count == 2
+        # Should've reset to the default for 24h
+        assert mock_query.mock_calls[1].kwargs["rollup"] == 300
 
     def test_out_of_retention(self):
         with self.options({"system.event-retention-days": 10}):
@@ -1801,7 +1807,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 0.03}] in [attrs for _, attrs in other["data"]]
 
-    def test_invalid_interval(self):
+    @mock.patch("sentry.snuba.discover.raw_query", return_value={"data": [], "meta": []})
+    def test_invalid_interval(self, mock_query):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
@@ -1817,6 +1824,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 200
+        assert mock_query.call_count == 1
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
@@ -1833,7 +1841,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "topEvents": 2,
                 },
             )
-        assert response.status_code == 400
+        assert response.status_code == 200
+        assert mock_query.call_count == 3
+        # Should've reset to the default for between 1 and 24h
+        assert mock_query.mock_calls[2].kwargs["rollup"] == 300
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
@@ -1851,6 +1862,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 200
+        assert mock_query.call_count == 5
+        # Should've left the interval alone since we're just below the limit
+        assert mock_query.mock_calls[4].kwargs["rollup"] == 1
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
@@ -1863,10 +1877,13 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "query": "",
                     "interval": "0d",
                     "yAxis": "count()",
+                    "topEvents": 5,
                 },
             )
-        assert response.status_code == 400
-        assert "zero duration" in response.data["detail"]
+        assert response.status_code == 200
+        assert mock_query.call_count == 7
+        # Should've default to 24h's default of 5m
+        assert mock_query.mock_calls[6].kwargs["rollup"] == 300
 
     def test_top_events_timestamp_fields(self):
         with self.feature("organizations:discover-basic"):

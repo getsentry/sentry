@@ -38,7 +38,7 @@ def send_confirm_email(user: User, email: str, verification_key: str) -> None:
 
 def send_one_time_account_confirm_link(
     user: User, org: Organization, email: str, identity_id: str
-) -> None:
+) -> str:
     """Store and email a verification key for IdP migration.
 
     Create a one-time verification key for a user whose SSO identity
@@ -49,6 +49,7 @@ def send_one_time_account_confirm_link(
     :param user: the user profile to link
     :param org: the organization whose SSO provider is being used
     :param email: the email address associated with the SSO identity
+    :param identity_id: the SSO identity id
     """
     cluster = redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
     member_id = OrganizationMember.objects.get(organization=org, user=user).id

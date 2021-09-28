@@ -14,7 +14,7 @@ import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconCalendar} from 'app/icons';
 import space from 'app/styles/space';
-import {DateString, LightWeightOrganization} from 'app/types';
+import {DateString, Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {analytics} from 'app/utils/analytics';
 import {
@@ -133,7 +133,7 @@ type Props = WithRouterProps & {
   /**
    * Just used for metrics
    */
-  organization: LightWeightOrganization;
+  organization: Organization;
 
   /**
    * Small info icon with tooltip hint text

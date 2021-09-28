@@ -11,7 +11,7 @@ type Props = {
 function Summary({kvData, children}: Props) {
   if (!kvData || !Object.keys(kvData).length) {
     if (!children) {
-      return null;
+      return <div />;
     }
 
     return (
