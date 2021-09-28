@@ -1,9 +1,40 @@
-import uuid
+import string
+from datetime import timedelta
 
-from sentry.models import Organization, User
+from django.utils.crypto import get_random_string
+
+from sentry import options
+from sentry.models import Organization, OrganizationMember, User
+from sentry.utils import redis
+from sentry.utils.email import MessageBuilder
+
+_REDIS_KEY = "verificationKeyStorage"
+_TTL = timedelta(minutes=10)
 
 
-def create_verification_key(user: User, org: Organization, email: str) -> None:
+def send_confirm_email(user: User, email: str, verification_key: str) -> None:
+    context = {
+        "user": user,
+        # TODO left incase we want to have a clickable verification link for future
+        # "url": absolute_uri(
+        #     reverse("sentry-account-confirm-email", args=[user.id, verification_key])
+        # ),
+        "confirm_email": email,
+        "verification_key": verification_key,
+    }
+    msg = MessageBuilder(
+        subject="{}Confirm Email".format(options.get("mail.subject-prefix")),
+        template="sentry/emails/idp_verification_email.txt",
+        html_template="sentry/emails/idp_verification_email.html",
+        type="user.confirm_email",
+        context=context,
+    )
+    msg.send_async([email])
+
+
+def send_one_time_account_confirm_link(
+    user: User, org: Organization, email: str, identity_id: str
+) -> None:
     """Store and email a verification key for IdP migration.
 
     Create a one-time verification key for a user whose SSO identity
@@ -15,8 +46,21 @@ def create_verification_key(user: User, org: Organization, email: str) -> None:
     :param org: the organization whose SSO provider is being used
     :param email: the email address associated with the SSO identity
     """
-    key = str(uuid.uuid4())  # noqa
-    raise NotImplementedError  # TODO
+    cluster = redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
+    member_id = OrganizationMember.objects.get(organization=org, user=user).id
+
+    verification_code = get_random_string(32, string.ascii_letters + string.digits)
+    verification_key = f"auth:one-time-key:{verification_code}"
+    verification_value = {
+        "user_id": user.id,
+        "email": email,
+        "member_id": member_id,
+        "identity_id": identity_id,
+    }
+    cluster.hmset(verification_key, verification_value)
+    cluster.expire(verification_key, int(_TTL.total_seconds()))
+
+    send_confirm_email(user, email, verification_code)
 
 
 def verify_new_identity(user: User, org: Organization, key: str) -> bool:
@@ -30,4 +74,5 @@ def verify_new_identity(user: User, org: Organization, key: str) -> bool:
     :param key: the one-time verification key
     :return: whether the key is valid
     """
+    # user cluster.hgetall(key) to get from redis
     raise NotImplementedError  # TODO

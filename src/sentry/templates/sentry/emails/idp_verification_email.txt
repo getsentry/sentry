@@ -1,0 +1,5 @@
+Please confirm your email ({{ confirm_email }}) by submitting the following code on the verification page: ({{ verification_key }}).
+
+This code will expire in 10 minutes.
+
+If you did not make this request, you may simply ignore this email.
