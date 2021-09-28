@@ -1,4 +1,11 @@
-from sentry.incidents.models import AlertRuleThresholdType, IncidentTrigger, TriggerStatus
+from sentry.incidents.models import (
+    AlertRuleThresholdType,
+    IncidentActivity,
+    IncidentActivityType,
+    IncidentStatus,
+    IncidentTrigger,
+    TriggerStatus,
+)
 from sentry.models import ActorTuple
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -37,6 +44,12 @@ class TeamAlertsTriggeredTest(APITestCase):
                 status=TriggerStatus.ACTIVE.value,
                 date_added=before_now(days=i),
             )
+            IncidentActivity.objects.create(
+                incident=user_owned_incident,
+                type=IncidentActivityType.CREATED.value,
+                value=IncidentStatus.OPEN,
+                date_added=before_now(days=i),
+            )
 
         self.login_as(user=self.user)
         url = f"/api/0/teams/{self.team.organization.slug}/{self.team.slug}/alerts-triggered/"
@@ -45,7 +58,7 @@ class TeamAlertsTriggeredTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 30
         for i in response.data:
-            assert i["count"] == 2
+            assert i["count"] == 1
 
         url = f"/api/0/teams/{self.team.organization.slug}/{self.team.slug}/alerts-triggered/?statsPeriod=14d"
         response = self.client.get(url, format="json")
@@ -53,7 +66,7 @@ class TeamAlertsTriggeredTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 13
         for i in response.data:
-            assert i["count"] == 2
+            assert i["count"] == 1
 
     def test_not_as_simple(self):
         team_with_user = self.create_team(
@@ -123,6 +136,17 @@ class TeamAlertsTriggeredTest(APITestCase):
             alert_rule_trigger=trigger4,
             status=TriggerStatus.ACTIVE.value,
             date_added=before_now(days=4),
+        )
+        IncidentActivity.objects.create(
+            incident=user_owned_incident,
+            type=IncidentActivityType.CREATED.value,
+            value=IncidentStatus.OPEN,
+        )
+        IncidentActivity.objects.create(
+            incident=team_owned_incident,
+            type=IncidentActivityType.CREATED.value,
+            value=IncidentStatus.OPEN,
+            date_added=before_now(days=2),
         )
 
         self.login_as(user=self.user)
