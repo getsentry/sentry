@@ -360,15 +360,15 @@ class Issues extends Component<Props, State> {
     const hasReleaseComparison = organization.features.includes('release-comparison');
     const issuesTypes = [
       {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
-      {value: IssuesType.NEW, label: t('New Issues'), issueCount: count.new},
+      {value: IssuesType.NEW, label: t('New'), issueCount: count.new},
       {
         value: IssuesType.UNHANDLED,
-        label: t('Unhandled Issues'),
+        label: t('Unhandled'),
         issueCount: count.unhandled,
       },
       {
         value: IssuesType.RESOLVED,
-        label: t('Resolved Issues'),
+        label: t('Resolved'),
         issueCount: count.resolved,
       },
     ];
