@@ -37,7 +37,10 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
     def validate(self) -> None:
         if self._counter_bucket_size <= 0:
-            raise InvalidConfiguration("bucket size must be at least 1")
+            raise InvalidConfiguration("counter bucket size must be at least 1")
+
+        if self._histogram_bucket_size <= 0:
+            raise InvalidConfiguration("histogram bucket size must be at least 1")
 
     def increment_project_event_counter(self, project_id: int, timestamp: int) -> None:
         """Increment the event counter for the given project_id.
