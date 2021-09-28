@@ -1,5 +1,4 @@
 from time import time
-from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -17,7 +16,7 @@ from sentry.tasks.integrations import logger
     max_retries=5,
 )
 @retry(exclude=(ApiError, ApiUnauthorized, Integration.DoesNotExist))
-def vsts_subscription_check(integration_id: int, organization_id: int, **kwargs: Any) -> None:
+def vsts_subscription_check(integration_id: int, organization_id: int) -> None:
     integration = Integration.objects.get(id=integration_id)
     installation = integration.get_installation(organization_id=organization_id)
     try:
@@ -25,6 +24,8 @@ def vsts_subscription_check(integration_id: int, organization_id: int, **kwargs:
     except ObjectDoesNotExist:
         return
 
+    subscription_id = None
+    subscription = None
     try:
         subscription_id = integration.metadata["subscription"]["id"]
         subscription = client.get_subscription(
@@ -39,13 +40,11 @@ def vsts_subscription_check(integration_id: int, organization_id: int, **kwargs:
                 "error": str(e),
             },
         )
-        subscription = None
 
     # https://docs.microsoft.com/en-us/rest/api/vsts/hooks/subscriptions/replace%20subscription?view=vsts-rest-4.1#subscriptionstatus
     if not subscription or subscription["status"] == "disabledBySystem":
         # Update subscription does not work for disabled subscriptions
         # We instead will try to delete and then create a new one.
-
         if subscription:
             try:
                 client.delete_subscription(

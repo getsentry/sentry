@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Optional
 
 from sentry import analytics, features
 from sentry.models import ExternalIssue, Integration, Organization, User
@@ -19,10 +19,8 @@ from sentry.tasks.base import instrumented_task, retry
         Organization.DoesNotExist,
     )
 )
-def sync_assignee_outbound(
-    external_issue_id: int, user_id: Optional[int], assign: bool, **kwargs: Any
-) -> None:
-    # sync Sentry assignee to an external issue
+def sync_assignee_outbound(external_issue_id: int, user_id: Optional[int], assign: bool) -> None:
+    # Sync Sentry assignee to an external issue.
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
 
     organization = Organization.objects.get(id=external_issue.organization_id)
@@ -32,11 +30,9 @@ def sync_assignee_outbound(
         return
 
     integration = Integration.objects.get(id=external_issue.integration_id)
-    # assume unassign if None
-    if user_id is None:
-        user = None
-    else:
-        user = User.objects.get(id=user_id)
+
+    # Assume unassign if None.
+    user = User.objects.get(id=user_id) if user_id else None
 
     installation = integration.get_installation(organization_id=external_issue.organization_id)
     if installation.should_sync("outbound_assignee"):

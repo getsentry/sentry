@@ -1,5 +1,3 @@
-from typing import Any
-
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task, retry
@@ -12,7 +10,7 @@ from sentry.tasks.base import instrumented_task, retry
     max_retries=5,
 )
 @retry(on=(IntegrationError,), exclude=(Integration.DoesNotExist,))
-def sync_metadata(integration_id: int, **kwargs: Any) -> None:
+def sync_metadata(integration_id: int) -> None:
     integration = Integration.objects.get(id=integration_id)
     installation = integration.get_installation(None)
     installation.sync_metadata()

@@ -15,7 +15,7 @@ def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> Non
     installation = integration.get_installation(organization_id=organization_id)
     repo = Repository.objects.get(id=repo_id)
     if installation.has_repo_access(repo):
-        # this probably shouldn't happen, but log it just in case
+        # This probably shouldn't happen, but log it just in case.
         if repo.integration_id is not None and repo.integration_id != integration_id:
             logger.info(
                 "repo.migration.integration-change",
@@ -29,7 +29,7 @@ def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> Non
 
         repo.integration_id = integration_id
         repo.provider = f"integrations:{integration.provider}"
-        # check against disabled specifically -- don't want to accidentally un-delete repos
+        # Check against disabled specifically -- don't want to accidentally un-delete repos.
         original_status = repo.status
         if repo.status == ObjectStatus.DISABLED:
             repo.status = ObjectStatus.VISIBLE

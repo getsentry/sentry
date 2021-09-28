@@ -25,13 +25,12 @@ def kickoff_vsts_subscription_check() -> None:
         integration = org_integration.integration
 
         try:
-            if (
-                "subscription" not in integration.metadata
-                or integration.metadata["subscription"]["check"] > six_hours_ago
-            ):
-                continue
+            check = integration.metadata["subscription"]["check"]
         except KeyError:
             pass
+        else:
+            if "subscription" not in integration.metadata or check > six_hours_ago:
+                continue
 
         vsts_subscription_check.apply_async(
             kwargs={"integration_id": integration.id, "organization_id": organization_id}

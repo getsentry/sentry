@@ -3,7 +3,6 @@ from typing import Optional
 from sentry import analytics, features
 from sentry.models import ExternalIssue, Group, GroupStatus, Integration
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
-from sentry.utils.types import Any
 
 
 @instrumented_task(
@@ -14,14 +13,14 @@ from sentry.utils.types import Any
 )
 @retry(exclude=(Integration.DoesNotExist,))
 @track_group_async_operation
-def sync_status_outbound(group_id: int, external_issue_id: int, **kwargs: Any) -> Optional[bool]:
-    try:
-        group = Group.objects.filter(
-            id=group_id, status__in=[GroupStatus.UNRESOLVED, GroupStatus.RESOLVED]
-        )[0]
-    except IndexError:
+def sync_status_outbound(group_id: int, external_issue_id: int) -> Optional[bool]:
+    groups = Group.objects.filter(
+        id=group_id, status__in=[GroupStatus.UNRESOLVED, GroupStatus.RESOLVED]
+    )
+    if not groups:
         return False
 
+    group = groups[0]
     has_issue_sync = features.has("organizations:integrations-issue-sync", group.organization)
     if not has_issue_sync:
         return False
