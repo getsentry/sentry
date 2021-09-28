@@ -68,6 +68,10 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
     yAxisMin: null,
   };
 
+  componentDidMount() {
+    this.handleUpdateChartAxis();
+  }
+
   componentDidUpdate(prevProps: Props) {
     if (
       this.props.triggers !== prevProps.triggers ||
