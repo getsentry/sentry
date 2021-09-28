@@ -10,7 +10,7 @@ from sentry.utils import redis
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
-_REDIS_KEY = "verificationKeyStorage"
+REDIS_KEY = "verificationKeyStorage"
 _TTL = timedelta(minutes=10)
 
 
@@ -36,6 +36,10 @@ def send_confirm_email(user: User, email: str, verification_key: str) -> None:
     msg.send_async([email])
 
 
+def get_redis_cluster():
+    return redis.clusters.get("default").get_local_client_for_key(REDIS_KEY)
+
+
 def send_one_time_account_confirm_link(
     user: User, org: Organization, email: str, identity_id: str
 ) -> str:
@@ -51,7 +55,7 @@ def send_one_time_account_confirm_link(
     :param email: the email address associated with the SSO identity
     :param identity_id: the SSO identity id
     """
-    cluster = redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
+    cluster = get_redis_cluster()
     member_id = OrganizationMember.objects.get(organization=org, user=user).id
 
     verification_code = get_random_string(32, string.ascii_letters + string.digits)
@@ -74,6 +78,10 @@ def get_redis_key(verification_key: str) -> str:
     return f"auth:one-time-key:{verification_key}"
 
 
+def get_verification_value_from_key(cluster, verification_key):
+    return cluster.hgetall(verification_key)
+
+
 def verify_account(key: str) -> bool:
     """Verify a key to migrate a user to a new IdP.
 
@@ -85,10 +93,10 @@ def verify_account(key: str) -> bool:
     :param key: the one-time verification key
     :return: whether the key is valid
     """
-    cluster = redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
+    cluster = get_redis_cluster()
 
     verification_key = get_redis_key(key)
-    verification_value_byte = cluster.hgetall(verification_key)
+    verification_value_byte = get_verification_value_from_key(cluster, verification_key)
     if not verification_value_byte:
         return False
 

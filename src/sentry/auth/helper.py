@@ -19,7 +19,11 @@ from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.auth.idpmigration import send_one_time_account_confirm_link
+from sentry.auth.idpmigration import (
+    get_redis_cluster,
+    get_verification_value_from_key,
+    send_one_time_account_confirm_link,
+)
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -36,7 +40,7 @@ from sentry.models import (
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
-from sentry.utils import auth, json, metrics, redis
+from sentry.utils import auth, json, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
@@ -61,8 +65,6 @@ ERR_UID_MISMATCH = _("There was an error encountered during authentication.")
 ERR_NOT_AUTHED = _("You must be authenticated to link accounts.")
 
 ERR_INVALID_IDENTITY = _("The provider did not return a valid user identity.")
-
-_REDIS_KEY = "verificationKeyStorage"
 
 
 class AuthHelperSessionStore(PipelineSessionStore):
@@ -384,14 +386,17 @@ class AuthIdentityHandler:
         return response
 
     def handle_authentication_using_verification_key(self, identity, verification_key):
-        cluster = redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
-        verification_value_byte = cluster.hgetall(verification_key)
+        cluster = get_redis_cluster()
+        verification_value_byte = get_verification_value_from_key(cluster, verification_key)
         if verification_value_byte:
             verification_value = {
                 y.decode("ascii"): verification_value_byte.get(y).decode("ascii")
                 for y in verification_value_byte.keys()
             }
-            if verification_value["identity_id"] == identity["id"]:
+            if (
+                verification_value["identity_id"] == identity["id"]
+                and verification_value["email"] == identity["email"]
+            ):
                 op = "verify"
                 user = User.objects.get(id=verification_value["user_id"])
                 member = OrganizationMember.objects.get(id=verification_value["member_id"])
@@ -460,6 +465,11 @@ class AuthIdentityHandler:
             else:
                 # force them to create a new account
                 acting_user = None
+        elif self.request.session.get("confirm_account_verification_key"):
+            verification_key = self.request.session["confirm_account_verification_key"]
+            auth_identity, op = self.handle_authentication_using_verification_key(
+                identity, verification_key
+            )
         # without a usable password they can't login, so let's clear the acting_user
         elif acting_user and not acting_user.has_usable_password():
             acting_user = None
@@ -485,14 +495,8 @@ class AuthIdentityHandler:
                     return self._post_login_redirect()
             else:
                 auth.log_auth_failure(self.request, self.request.POST.get("username"))
-        else:
+        elif op != "verify":
             op = None
-
-        if self.request.session.get("confirm_account_verification_key"):
-            verification_key = self.request.session["confirm_account_verification_key"]
-            auth_identity, op = self.handle_authentication_using_verification_key(
-                identity, verification_key
-            )
 
         if not op:
             existing_user, template = self._dispatch_to_confirmation(identity)

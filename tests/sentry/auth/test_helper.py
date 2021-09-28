@@ -10,6 +10,7 @@ from sentry.auth.helper import (
     AuthHelperSessionStore,
     AuthIdentityHandler,
 )
+from sentry.auth.idpmigration import get_redis_cluster
 from sentry.auth.provider import Provider
 from sentry.models import (
     AuditLogEntry,
@@ -21,7 +22,7 @@ from sentry.models import (
     OrganizationMemberTeam,
 )
 from sentry.testutils import TestCase
-from sentry.utils import json, redis
+from sentry.utils import json
 from sentry.utils.compat import mock
 from sentry.utils.redis import clusters
 
@@ -345,7 +346,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         self.login_as(self.user)
         member = OrganizationMember.objects.create(organization=self.org, user=self.user)
 
-        cluster = redis.clusters.get("default").get_local_client_for_key("verificationKeyStorage")
+        cluster = get_redis_cluster()
         verification_key = "auth:one-time-key:mj46KwhhWcbORyOp90Uxopz7GYq8SY6A"
         verification_value = {
             "user_id": self.user.id,
