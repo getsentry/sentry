@@ -1,8 +1,11 @@
+from datetime import timedelta
 
+from django.utils.timezone import now
+
+from sentry.models import GroupHistory, GroupHistoryStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
-from sentry.models import GroupHistory, GroupHistoryStatus
 
 class TeamTimeToResolutionTest(APITestCase):
     def test_simple(self):
@@ -15,7 +18,6 @@ class TeamTimeToResolutionTest(APITestCase):
             group=group1,
             project=project1,
             actor=self.user.actor,
-
             date_added=before_now(days=5),
             status=GroupHistoryStatus.UNRESOLVED,
             prev_history=None,
@@ -26,17 +28,81 @@ class TeamTimeToResolutionTest(APITestCase):
             group=group1,
             project=project1,
             actor=self.user.actor,
-
             status=GroupHistoryStatus.RESOLVED,
             prev_history=gh1,
             prev_history_date=gh1.date_added,
+            date_added=before_now(days=2),
         )
 
+        gh2 = GroupHistory.objects.create(
+            group=group2,
+            project=project2,
+            actor=self.user.actor,
+            date_added=before_now(days=10),
+            status=GroupHistoryStatus.UNRESOLVED,
+            prev_history=None,
+            prev_history_date=None,
+        )
+
+        GroupHistory.objects.create(
+            group=group2,
+            project=project2,
+            actor=self.user.actor,
+            status=GroupHistoryStatus.RESOLVED,
+            prev_history=gh2,
+            prev_history_date=gh2.date_added,
+        )
+        today = str(now().replace(hour=0, minute=0, second=0, microsecond=0))
+        yesterday = str(
+            (now() - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        )
+        two_days_ago = str(
+            (now() - timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
+        )
         self.login_as(user=self.user)
-        url = f"/api/0/teams/{self.team.organization.slug}/{self.team.slug}/time-to-solution/"
+        url = f"/api/0/teams/{self.team.organization.slug}/{self.team.slug}/time-to-resolution/?statsPeriod=14d"
         response = self.client.get(url, format="json")
-        print("response:",response)
+
+        assert len(response.data) == 14
         assert response.status_code == 200
-        assert len(response.data) == 2
-        assert response.data[0]["id"] == str(group1.id)
-        assert response.data[1]["id"] == str(group2.id)
+        assert response.data[today]["avg"] == timedelta(days=10).total_seconds()
+        assert response.data[two_days_ago]["avg"] == timedelta(days=3).total_seconds()
+        assert response.data[yesterday]["avg"] == 0
+
+        # Lower "todays" average by adding another resolution, but this time 5 days instead of 10 (avg is 7.5 now)
+        gh2 = GroupHistory.objects.create(
+            group=group2,
+            project=project2,
+            actor=self.user.actor,
+            date_added=before_now(days=5),
+            status=GroupHistoryStatus.UNRESOLVED,
+            prev_history=None,
+            prev_history_date=None,
+        )
+        GroupHistory.objects.create(
+            group=group2,
+            project=project2,
+            actor=self.user.actor,
+            status=GroupHistoryStatus.RESOLVED,
+            prev_history=gh2,
+            prev_history_date=gh2.date_added,
+        )
+
+        # making sure it doesnt bork anything
+        GroupHistory.objects.create(
+            group=group2,
+            project=project2,
+            actor=self.user.actor,
+            status=GroupHistoryStatus.DELETED,
+            prev_history=gh2,
+            prev_history_date=gh2.date_added,
+        )
+
+        url = f"/api/0/teams/{self.team.organization.slug}/{self.team.slug}/time-to-resolution/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert len(response.data) == 90
+        assert response.data[today]["avg"] == timedelta(days=7, hours=12).total_seconds()
+        assert response.data[two_days_ago]["avg"] == timedelta(days=3).total_seconds()
+        assert response.data[yesterday]["avg"] == 0
