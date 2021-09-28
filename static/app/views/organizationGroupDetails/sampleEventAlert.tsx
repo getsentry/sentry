@@ -45,7 +45,7 @@ function SampleEventAlert({
           selectedProject.platform || ''
         }`}
         onClick={() =>
-          trackAdvancedAnalyticsEvent('growth.sample_transaction_docs_link_clicked', {
+          trackAdvancedAnalyticsEvent('growth.sample_error_docs_link_clicked', {
             project_id: '0',
             organization,
           })
