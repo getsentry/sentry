@@ -1,7 +1,7 @@
 import isEqual from 'lodash/isEqual';
 
 import {RELEASE_ADOPTION_STAGES} from 'app/constants';
-import {LightWeightOrganization, SelectValue} from 'app/types';
+import {Organization, SelectValue} from 'app/types';
 import {assert} from 'app/types/utils';
 
 export type Sort = {
@@ -431,7 +431,7 @@ export type PlotType = 'bar' | 'line' | 'area';
 
 type DefaultValueInputs = {
   parameter: AggregateParameter;
-  organization: LightWeightOrganization;
+  organization: Organization;
 };
 
 export type Aggregation = {
@@ -600,6 +600,8 @@ export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.ISSUE]: 'string',
   [FieldKey.USER_DISPLAY]: 'string',
 };
+
+export const DEPRECATED_FIELDS: string[] = [FieldKey.CULPRIT];
 
 export type FieldTag = {
   key: FieldKey;
@@ -873,7 +875,7 @@ export function isLegalEquationColumn(column: Column): boolean {
 }
 
 export function generateAggregateFields(
-  organization: LightWeightOrganization,
+  organization: Organization,
   eventFields: readonly Field[] | Field[],
   excludeFields: readonly string[] = []
 ): Field[] {

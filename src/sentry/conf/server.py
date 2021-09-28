@@ -1811,7 +1811,7 @@ SENTRY_DEVSERVICES = {
     ),
     "bigtable": lambda settings, options: (
         {
-            "image": "mattrobenolt/cbtemulator:0.51.0",
+            "image": "us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614",
             "ports": {"8086/tcp": 8086},
             "only_if": "bigtable" in settings.SENTRY_NODESTORE,
         }
@@ -2316,6 +2316,29 @@ SENTRY_USE_UWSGI = True
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
 
 SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
+
+# Which backend to use for RealtimeMetricsStore.
+#
+# Currently, only redis is supported.
+SENTRY_REALTIME_METRICS_BACKEND = (
+    "sentry.processing.realtime_metrics.redis.RedisRealtimeMetricsStore"
+)
+SENTRY_REALTIME_METRICS_OPTIONS = {
+    # The redis cluster used for the realtime store redis backend.
+    "cluster": "default",
+    # The bucket size of the counter.
+    #
+    # The size (in seconds) of the buckets that events are sorted into.
+    "counter_bucket_size": 10,
+    # Number of seconds to keep symbolicate_event rates per project.
+    #
+    # symbolicate_event tasks report the rates of events per project to redis
+    # so that projects that exceed a reasonable rate can be sent to the low
+    # priority queue. This setting determines how long we keep these rates
+    # around.
+    # Note that the time is counted after the last time a counter is incremented.
+    "counter_ttl": timedelta(seconds=300),
+}
 
 # XXX(meredith): Temporary metrics indexer
 SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"

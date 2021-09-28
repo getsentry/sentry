@@ -56,6 +56,7 @@ const Wrapper = styled('div')`
 
 const CrashFreePercent = styled('div')`
   ${overflowEllipsis};
+  font-variant-numeric: tabular-nums;
 `;
 
 export default CrashFree;
