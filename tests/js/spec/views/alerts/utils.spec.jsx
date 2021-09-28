@@ -1,7 +1,11 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Dataset, Datasource} from 'app/views/alerts/incidentRules/types';
-import {getQueryDatasource} from 'app/views/alerts/utils';
+import {
+  Dataset,
+  Datasource,
+  SessionsAggregate,
+} from 'app/views/alerts/incidentRules/types';
+import {getQueryDatasource, isSessionAggregate} from 'app/views/alerts/utils';
 import {getIncidentDiscoverUrl} from 'app/views/alerts/utils/getIncidentDiscoverUrl';
 
 describe('Alert utils', function () {
@@ -145,6 +149,18 @@ describe('Alert utils', function () {
         source: Datasource.ERROR,
         query: 'explode OR (event.type:default event.level:fatal)',
       });
+    });
+  });
+
+  describe('isSessionAggregate', () => {
+    it('accepts session aggregate', () => {
+      Object.values(SessionsAggregate).forEach(aggregate => {
+        expect(isSessionAggregate(aggregate)).toBeTruthy();
+      });
+    });
+
+    it('rejects other aggregates', () => {
+      expect(isSessionAggregate('p95(transaction.duration)')).toBeFalsy();
     });
   });
 });

@@ -8,8 +8,10 @@ import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
+import {defined} from 'app/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import theme from 'app/utils/theme';
+import {isSessionAggregate} from 'app/views/alerts/utils';
 
 import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
 
@@ -22,6 +24,7 @@ type Props = DefaultProps & {
   resolveThreshold: IncidentRule['resolveThreshold'];
   thresholdType: IncidentRule['thresholdType'];
   maxValue?: number;
+  aggregate: string;
 } & Partial<GlobalSelection['datetime']>;
 
 type State = {
@@ -243,6 +246,24 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
     );
   };
 
+  tooltipValueFormatter = (value: number, seriesName?: string) => {
+    const {aggregate} = this.props;
+    if (isSessionAggregate(aggregate)) {
+      return defined(value) ? `${value}%` : '\u2015';
+    }
+
+    return tooltipFormatter(value, seriesName);
+  };
+
+  axisFormatter = (value: number) => {
+    const {data, aggregate} = this.props;
+    if (isSessionAggregate(aggregate)) {
+      return defined(value) ? `${value}%` : '\u2015';
+    }
+
+    return axisLabelFormatter(value, data.length ? data[0].seriesName : '');
+  };
+
   render() {
     const {data, triggers, period} = this.props;
     const dataWithoutRecentBucket: LineChartSeries[] = data?.map(
@@ -268,15 +289,12 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
     const chartOptions = {
       tooltip: {
-        valueFormatter: (value, seriesName) => {
-          return tooltipFormatter(value, seriesName);
-        },
+        valueFormatter: this.tooltipValueFormatter,
       },
       yAxis: {
         max: this.state.yAxisMax ?? undefined,
         axisLabel: {
-          formatter: (value: number) =>
-            axisLabelFormatter(value, data.length ? data[0].seriesName : ''),
+          formatter: this.axisFormatter,
         },
       },
     };

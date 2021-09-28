@@ -1,6 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import ProjectsStore from 'app/stores/projectsStore';
 import EventView from 'app/utils/discover/eventView';
 import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'app/views/eventsV2/data';
 import EventDetails from 'app/views/eventsV2/eventDetails';
@@ -21,6 +22,8 @@ describe('EventsV2 > EventDetails', function () {
   );
 
   beforeEach(function () {
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -110,7 +113,7 @@ describe('EventsV2 > EventDetails', function () {
   it('renders', function () {
     const wrapper = mountWithTheme(
       <WrappedEventDetails
-        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: allEventsView.generateQueryStringObject()}}
       />,
@@ -123,7 +126,7 @@ describe('EventsV2 > EventDetails', function () {
   it('renders a 404', function () {
     const wrapper = mountWithTheme(
       <WrappedEventDetails
-        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:abad1'}}
         location={{query: allEventsView.generateQueryStringObject()}}
       />,
@@ -136,7 +139,7 @@ describe('EventsV2 > EventDetails', function () {
   it('renders a chart in grouped view', async function () {
     const wrapper = mountWithTheme(
       <WrappedEventDetails
-        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: errorsView.generateQueryStringObject()}}
       />,
@@ -160,7 +163,7 @@ describe('EventsV2 > EventDetails', function () {
     });
     const wrapper = mountWithTheme(
       <WrappedEventDetails
-        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: allEventsView.generateQueryStringObject()}}
       />,
@@ -173,7 +176,7 @@ describe('EventsV2 > EventDetails', function () {
 
   it('navigates when tag values are clicked', async function () {
     const {organization, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
+      organization: TestStubs.Organization(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
@@ -237,7 +240,7 @@ describe('EventsV2 > EventDetails', function () {
 
   it('appends tag value to existing query when clicked', async function () {
     const {organization, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
+      organization: TestStubs.Organization(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',

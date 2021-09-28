@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
+import ProjectsStore from 'app/stores/projectsStore';
 import ManageDashboards from 'app/views/dashboardsV2/manage';
 
 const FEATURES = [
@@ -20,6 +21,8 @@ describe('Dashboards > Detail', function () {
     features: FEATURES,
   });
   beforeEach(function () {
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -51,6 +54,8 @@ describe('Dashboards > Detail', function () {
   });
 
   it('denies access on no projects', function () {
+    ProjectsStore.loadInitialData([]);
+
     const wrapper = mountWithTheme(
       <ManageDashboards
         organization={mockAuthorizedOrg}
@@ -64,10 +69,8 @@ describe('Dashboards > Detail', function () {
   });
 
   it('creates new dashboard', async function () {
-    const org = TestStubs.Organization({
-      features: FEATURES,
-      projects: [TestStubs.Project()],
-    });
+    const org = TestStubs.Organization({features: FEATURES});
+
     const wrapper = mountWithTheme(
       <ManageDashboards organization={org} location={{query: {}}} router={{}} />
     );
@@ -83,10 +86,8 @@ describe('Dashboards > Detail', function () {
   });
 
   it('can sort', async function () {
-    const org = TestStubs.Organization({
-      features: FEATURES,
-      projects: [TestStubs.Project()],
-    });
+    const org = TestStubs.Organization({features: FEATURES});
+
     const wrapper = mountWithTheme(
       <ManageDashboards organization={org} location={{query: {}}} router={{}} />,
       TestStubs.routerContext()
