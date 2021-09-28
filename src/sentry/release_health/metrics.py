@@ -396,7 +396,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         except MetricIndexNotFound:
             # Some filter condition can't be constructed and therefore can't be
             # satisfied.
-            return {"sessions_lower_bound": None, "sessions_upper_bound": None}
+            #
+            # Ignore return type because of https://github.com/python/mypy/issues/8533
+            return {"sessions_lower_bound": None, "sessions_upper_bound": None}  # type: ignore
 
         # XXX(markus): We know that this combination of queries is not fully
         # equivalent to the sessions-table based backend. Example:
@@ -481,12 +483,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 upper_bound = row["max"]
 
         if lower_bound is None or upper_bound is None:
-            return {"sessions_lower_bound": None, "sessions_upper_bound": None}
+            return {"sessions_lower_bound": None, "sessions_upper_bound": None}  # type: ignore
 
-        def iso_format_snuba_datetime(date):
+        def iso_format_snuba_datetime(date: str) -> str:
             return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S+00:00").isoformat()[:19] + "Z"
 
-        return {
+        return {  # type: ignore
             "sessions_lower_bound": iso_format_snuba_datetime(lower_bound),
             "sessions_upper_bound": iso_format_snuba_datetime(upper_bound),
         }
