@@ -1,13 +1,17 @@
 from datetime import timedelta
 
 from django.utils.timezone import now
+from freezegun import freeze_time
 
 from sentry.models import GroupHistory, GroupHistoryStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
+@freeze_time()
 class TeamTimeToResolutionTest(APITestCase):
+    endpoint = "sentry-api-0-team-time-to-resolution"
+
     def test_simple(self):
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
@@ -60,11 +64,10 @@ class TeamTimeToResolutionTest(APITestCase):
             (now() - timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
         )
         self.login_as(user=self.user)
-        url = f"/api/0/teams/{self.team.organization.slug}/{self.team.slug}/time-to-resolution/?statsPeriod=14d"
-        response = self.client.get(url, format="json")
-
+        response = self.get_success_response(
+            self.team.organization.slug, self.team.slug, statsPeriod="14d"
+        )
         assert len(response.data) == 14
-        assert response.status_code == 200
         assert response.data[today]["avg"] == timedelta(days=10).total_seconds()
         assert response.data[two_days_ago]["avg"] == timedelta(days=3).total_seconds()
         assert response.data[yesterday]["avg"] == 0
@@ -98,10 +101,7 @@ class TeamTimeToResolutionTest(APITestCase):
             prev_history_date=gh2.date_added,
         )
 
-        url = f"/api/0/teams/{self.team.organization.slug}/{self.team.slug}/time-to-resolution/"
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200
+        response = self.get_success_response(self.team.organization.slug, self.team.slug)
         assert len(response.data) == 90
         assert response.data[today]["avg"] == timedelta(days=7, hours=12).total_seconds()
         assert response.data[two_days_ago]["avg"] == timedelta(days=3).total_seconds()
