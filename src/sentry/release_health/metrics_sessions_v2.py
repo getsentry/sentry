@@ -417,11 +417,13 @@ def run_sessions_query(
     def default_for(field: SelectFieldName) -> SessionsQueryValue:
         return 0 if field in ("sum(session)", "count_unique(user)") else None
 
+    GroupKey = Tuple[Tuple[GroupByFieldName, Union[str, int]]]
+
     class Group(TypedDict):
         series: MutableMapping[SelectFieldName, List[SessionsQueryValue]]
         totals: MutableMapping[SelectFieldName, SessionsQueryValue]
 
-    groups: MutableMapping[Tuple[Tuple[GroupByFieldName, Union[str, int]]], Group] = defaultdict(
+    groups: MutableMapping[GroupKey, Group] = defaultdict(
         lambda: {
             "totals": {field: default_for(field) for field in query.raw_fields},
             "series": {field: len(intervals) * [default_for(field)] for field in query.raw_fields},
@@ -450,7 +452,8 @@ def run_sessions_query(
                 if status_value.session_status is not None:
                     by["session.status"] = status_value.session_status
 
-                group = groups[tuple(sorted(by.items()))]
+                group_key: GroupKey = tuple(sorted(by.items()))
+                group = groups[group_key]
 
                 if key.bucketed_time is None:
                     group["totals"][field.name] = status_value.value
@@ -461,7 +464,8 @@ def run_sessions_query(
     groups_as_list: List[SessionsQueryGroup] = [
         {
             "by": dict(by),
-            **group,
+            "totals": group["totals"],
+            "series": group["series"],
         }
         for by, group in groups.items()
     ]
