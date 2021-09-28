@@ -3,7 +3,7 @@ from collections import defaultdict
 from django.core.cache import cache
 from django.db.models import Sum
 
-from sentry import releasehealth, tagstore
+from sentry import release_health, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
 from sentry.models import (
@@ -377,7 +377,7 @@ class ReleaseSerializer(Serializer):
 
         # XXX: Legacy should be removed later
         if with_health_data:
-            health_data = releasehealth.get_release_health_data_overview(
+            health_data = release_health.get_release_health_data_overview(
                 [(pr["project__id"], pr["release__version"]) for pr in project_releases],
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,

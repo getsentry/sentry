@@ -7,7 +7,7 @@ from snuba_sdk import BooleanCondition, Column, Condition, Entity, Op, Query
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.query import SelectableExpression
 
-from sentry import releasehealth
+from sentry import release_health
 from sentry.models.project import Project
 from sentry.release_health.base import (
     CurrentAndPreviousCrashFreeRates,
@@ -487,7 +487,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 ],
                 groupby=aggregates,
             ),
-            referrer="releasehealth.metrics.get_session_duration_data_for_overview",
+            referrer="release_health.metrics.get_session_duration_data_for_overview",
         )["data"]:
             # See https://github.com/getsentry/snuba/blob/8680523617e06979427bfa18c6b4b4e8bf86130f/snuba/datasets/entities/metrics.py#L184 for quantiles
             key = row["project_id"], reverse_tag_value(org_id, row[release_column_name])
@@ -522,7 +522,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 ],
                 groupby=aggregates,
             ),
-            referrer="releasehealth.metrics.get_errored_sessions_for_overview",
+            referrer="release_health.metrics.get_errored_sessions_for_overview",
         )["data"]:
             key = row["project_id"], reverse_tag_value(org_id, row[release_column_name])
             rv_errored_sessions[key] = row["value"]
@@ -561,7 +561,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 ],
                 groupby=aggregates,
             ),
-            referrer="releasehealth.metrics.get_abnormal_and_crashed_sessions_for_overview",
+            referrer="release_health.metrics.get_abnormal_and_crashed_sessions_for_overview",
         )["data"]:
             key = (
                 row["project_id"],
@@ -604,7 +604,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 ],
                 groupby=aggregates,
             ),
-            referrer="releasehealth.metrics.get_users_and_crashed_users_for_overview",
+            referrer="release_health.metrics.get_users_and_crashed_users_for_overview",
         )["data"]:
             key = (
                 row["project_id"],
@@ -658,7 +658,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 granularity=Granularity(stats_rollup),  # type: ignore
                 groupby=aggregates,
             ),
-            referrer="releasehealth.metrics.get_health_stats_for_overview",
+            referrer="release_health.metrics.get_health_stats_for_overview",
         )["data"]:
             time_bucket = int(
                 (parse_snuba_datetime(row["bucketed_time"]) - stats_start).total_seconds()
@@ -717,7 +717,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         # XXX: In order to be able to dual-read and compare results from both
         # old and new backend, this should really go back through the
-        # releasehealth service instead of directly calling `self`. For now
+        # release_health service instead of directly calling `self`. For now
         # that makes the entire backend too hard to test though.
         release_adoption = self.get_release_adoption(project_releases, environments)
 
@@ -780,7 +780,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 rv_row["stats"] = health_stats_data[project_id, release]
 
         if fetch_has_health_data_releases:
-            has_health_data = releasehealth.check_has_health_data(fetch_has_health_data_releases)  # type: ignore
+            has_health_data = release_health.check_has_health_data(fetch_has_health_data_releases)  # type: ignore
 
             for key in fetch_has_health_data_releases:
                 rv[key]["has_health_data"] = key in has_health_data
