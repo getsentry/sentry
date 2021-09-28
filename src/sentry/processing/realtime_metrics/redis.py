@@ -20,7 +20,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         """Creates a RedisRealtimeMetricsStore.
 
         "cluster" is the name of the Redis cluster to use. "counter_bucket_size" is the size
-        in second of the buckets that timestamps will be sorted into when a project's event counter is incremented.
+        in seconds of the buckets that timestamps will be sorted into when a project's event counter is incremented.
         "counter_ttl" is the duration that event counter entries will be kept around for *after
         the last increment call*.
 

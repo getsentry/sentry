@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 import pytz
-from snuba_sdk import BooleanCondition, Column, Condition, Entity, Op, Query
+from snuba_sdk import BooleanCondition, Column, Condition, Entity, Function, Op, Query
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.query import SelectableExpression
 
@@ -17,27 +17,35 @@ from sentry.release_health.base import (
     ReleaseHealthBackend,
     ReleaseName,
     ReleasesAdoption,
+    ReleaseSessionsTimeBounds,
 )
 from sentry.sentry_metrics import indexer
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.utils.snuba import raw_snql_query
+
+
+class MetricIndexNotFound(Exception):
+    pass
 
 
 def metric_id(org_id: int, name: str) -> int:
     index = indexer.resolve(org_id, name)  # type: ignore
-    assert index is not None  # TODO: assert too strong?
+    if index is None:
+        raise MetricIndexNotFound(name)
     return index  # type: ignore
 
 
 def tag_key(org_id: int, name: str) -> str:
     index = indexer.resolve(org_id, name)  # type: ignore
-    assert index is not None
+    if index is None:
+        raise MetricIndexNotFound(name)
     return f"tags[{index}]"
 
 
 def tag_value(org_id: int, name: str) -> int:
     index = indexer.resolve(org_id, name)  # type: ignore
-    assert index is not None
+    if index is None:
+        raise MetricIndexNotFound(name)
     return index  # type: ignore
 
 
@@ -47,6 +55,9 @@ def try_get_tag_value(org_id: int, name: str) -> Optional[int]:
 
 def reverse_tag_value(org_id: int, index: int) -> str:
     str_value = indexer.reverse_resolve(org_id, index)  # type: ignore
+    # If the value can't be reversed it's very likely a real programming bug
+    # instead of something to be caught down: We probably got back a value from
+    # Snuba that's not in the indexer => partial data loss
     assert str_value is not None
     return str_value  # type: ignore
 
@@ -124,7 +135,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         count_query = Query(
             dataset=Dataset.Metrics.value,
-            match=Entity("metrics_counters"),
+            match=Entity(EntityKey.MetricsCounters.value),
             select=[Column("value")],
             where=[
                 Condition(Column("org_id"), Op.EQ, org_id),
@@ -249,7 +260,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         def _count_sessions(total: bool, referrer: str) -> Dict[Any, int]:
             query = Query(
                 dataset=Dataset.Metrics.value,
-                match=Entity("metrics_counters"),
+                match=Entity(EntityKey.MetricsCounters.value),
                 select=[Column("value")],
                 where=_get_common_where(total)
                 + [
@@ -270,7 +281,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         def _count_users(total: bool, referrer: str) -> Dict[Any, int]:
             query = Query(
                 dataset=Dataset.Metrics.value,
-                match=Entity("metrics_sets"),
+                match=Entity(EntityKey.MetricsSets.value),
                 select=[Column("value")],
                 where=_get_common_where(total)
                 + [
@@ -348,6 +359,139 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         return rv
 
+    def get_release_sessions_time_bounds(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        org_id: OrganizationId,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> ReleaseSessionsTimeBounds:
+        select: List[SelectableExpression] = [
+            Function("min", [Column("timestamp")], "min"),
+            Function("max", [Column("timestamp")], "max"),
+        ]
+
+        try:
+            where: List[Union[BooleanCondition, Condition]] = [
+                Condition(Column("org_id"), Op.EQ, org_id),
+                Condition(Column("project_id"), Op.EQ, project_id),
+                Condition(Column(tag_key(org_id, "release")), Op.EQ, tag_value(org_id, release)),
+                Condition(Column("timestamp"), Op.GTE, datetime.min),
+                Condition(Column("timestamp"), Op.LT, datetime.now(pytz.utc)),
+            ]
+
+            if environments is not None:
+                env_filter = [
+                    x
+                    for x in [
+                        try_get_tag_value(org_id, environment) for environment in environments
+                    ]
+                    if x is not None
+                ]
+                if not env_filter:
+                    raise MetricIndexNotFound()
+
+                where.append(Condition(Column(tag_key(org_id, "environment")), Op.IN, env_filter))
+        except MetricIndexNotFound:
+            # Some filter condition can't be constructed and therefore can't be
+            # satisfied.
+            #
+            # Ignore return type because of https://github.com/python/mypy/issues/8533
+            return {"sessions_lower_bound": None, "sessions_upper_bound": None}  # type: ignore
+
+        # XXX(markus): We know that this combination of queries is not fully
+        # equivalent to the sessions-table based backend. Example:
+        #
+        # 1. Session sid=x is started with timestamp started=n
+        # 2. Same sid=x is updated with new payload with timestamp started=n - 1
+        #
+        # Old sessions backend would return [n - 1 ; n - 1] as range.
+        # New metrics backend would return [n ; n - 1] as range.
+        #
+        # We don't yet know if this case is relevant. Session's started
+        # timestamp shouldn't really change as session status is updated
+        # though.
+
+        try:
+            # Take care of initial values for session.started by querying the
+            # init counter. This should take care of most cases on its own.
+            init_sessions_query = Query(
+                dataset=Dataset.Metrics.value,
+                match=Entity(EntityKey.MetricsCounters.value),
+                select=select,
+                where=where
+                + [
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+                    Condition(
+                        Column(tag_key(org_id, "session.status")), Op.EQ, tag_value(org_id, "init")
+                    ),
+                ],
+            )
+
+            rows = raw_snql_query(
+                init_sessions_query,
+                referrer="release_health.metrics.get_release_sessions_time_bounds.init_sessions",
+                use_cache=False,
+            )["data"]
+        except MetricIndexNotFound:
+            rows = []
+
+        try:
+            # Take care of potential timestamp updates by looking at the metric
+            # for session duration, which is emitted once a session is closed ("terminal state")
+            #
+            # There is a testcase checked in that tests specifically for a
+            # session update that lowers session.started. We don't know if that
+            # testcase matters particularly.
+            terminal_sessions_query = Query(
+                dataset=Dataset.Metrics.value,
+                match=Entity(EntityKey.MetricsDistributions.value),
+                select=select,
+                where=where
+                + [
+                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.duration")),
+                ],
+            )
+            rows.extend(
+                raw_snql_query(
+                    terminal_sessions_query,
+                    referrer="release_health.metrics.get_release_sessions_time_bounds.terminal_sessions",
+                    use_cache=False,
+                )["data"]
+            )
+        except MetricIndexNotFound:
+            pass
+
+        # This check is added because if there are no sessions found, then the
+        # aggregations query return both the sessions_lower_bound and the
+        # sessions_upper_bound as `0` timestamp and we do not want that behaviour
+        # by default
+        # P.S. To avoid confusion the `0` timestamp which is '1970-01-01 00:00:00'
+        # is rendered as '0000-00-00 00:00:00' in clickhouse shell
+        formatted_unix_start_time = datetime.utcfromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+
+        lower_bound: Optional[str] = None
+        upper_bound: Optional[str] = None
+
+        for row in rows:
+            if set(row.values()) == {formatted_unix_start_time}:
+                continue
+            if lower_bound is None or row["min"] < lower_bound:
+                lower_bound = row["min"]
+            if upper_bound is None or row["max"] > upper_bound:
+                upper_bound = row["max"]
+
+        if lower_bound is None or upper_bound is None:
+            return {"sessions_lower_bound": None, "sessions_upper_bound": None}  # type: ignore
+
+        def iso_format_snuba_datetime(date: str) -> str:
+            return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S+00:00").isoformat()[:19] + "Z"
+
+        return {  # type: ignore
+            "sessions_lower_bound": iso_format_snuba_datetime(lower_bound),
+            "sessions_upper_bound": iso_format_snuba_datetime(upper_bound),
+        }
+
     def check_has_health_data(
         self, projects_list: Sequence[ProjectOrRelease]
     ) -> Set[ProjectOrRelease]:
@@ -408,7 +552,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         query = Query(
             dataset=Dataset.Metrics.value,
-            match=Entity("metrics_counters"),
+            match=Entity(EntityKey.MetricsCounters.value),
             select=query_cols,
             where=where_clause,
             groupby=group_by_clause,

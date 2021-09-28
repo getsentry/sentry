@@ -2338,7 +2338,17 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # around.
     # Note that the time is counted after the last time a counter is incremented.
     "counter_ttl": timedelta(seconds=300),
+    # The bucket size of the histogram.
+    #
+    # The size (in seconds) of the buckets that events are sorted into.
     "histogram_bucket_size": 10,
+    # Number of seconds to keep symbolicate_event durations per project.
+    #
+    # symbolicate_event tasks report the processing durations of events per project to redis
+    # so that projects that exceed a reasonable duration can be sent to the low
+    # priority queue. This setting determines how long we keep these duration values
+    # around.
+    # Note that the time is counted after the last time a counter is incremented.
     "histogram_ttl": timedelta(seconds=900),
 }
 
