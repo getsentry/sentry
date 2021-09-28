@@ -65,6 +65,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
         send_new_headers = options.get("eventstream:kafka-headers")
 
         if send_new_headers is True:
+            # TODO: Change transaction_forwarder to be intelligent once transaction post process forwarder
+            #       is implemented and caught up with current events post process forwarder.
             return strip_none_values(
                 {
                     "Received-Timestamp": str(received_timestamp),
@@ -76,6 +78,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     "is_new_group_environment": encode_bool(is_new_group_environment),
                     "is_regression": encode_bool(is_regression),
                     "skip_consume": encode_bool(skip_consume),
+                    "transaction_forwarder": encode_bool(False),
                 }
             )
         else:
