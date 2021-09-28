@@ -51,7 +51,7 @@ class GroupHistory(Model):
             (GroupHistoryStatus.REVIEWED, _("Reviewed")),
         ),
     )
-    prev_history_id = FlexibleForeignKey(
+    prev_history = FlexibleForeignKey(
         "sentry.GroupHistory", null=True
     )  # This field has no immediate use, but might be useful.
     prev_history_date = models.DateTimeField(
