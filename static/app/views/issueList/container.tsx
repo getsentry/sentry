@@ -44,7 +44,6 @@ class IssueListContainer extends Component<Props> {
 
   onGroupChange() {
     this.setState({
-      // Only display
       showSampleEventBanner: GroupStore.getAllItemIds().length === 1,
     });
   }
