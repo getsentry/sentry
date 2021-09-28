@@ -14,7 +14,12 @@ import {
 } from 'app/types/alerts';
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'app/views/projectInstall/issueAlertOptions';
 
-import {CHANGE_ALERT_CONDITION_IDS, getChangeAlertNode} from './changeAlerts';
+import {
+  CHANGE_ALERT_CONDITION_IDS,
+  COMPARISON_INTERVAL_CHOICES,
+  COMPARISON_TYPE_CHOICES,
+  COMPARISON_TYPE_CHOICE_VALUES
+} from './constants/changeAlerts';
 import RuleNode from './ruleNode';
 
 type Props = {
@@ -64,12 +69,43 @@ class RuleNodeList extends React.Component<Props> {
       return node;
     }
 
-    return getChangeAlertNode(
-      node as IssueAlertRuleConditionTemplate,
-      items[itemIdx] as IssueAlertRuleCondition,
-      itemIdx,
-      this.props.onPropertyChange
-    );
+    const item = items[itemIdx] as IssueAlertRuleCondition;
+
+    let changeAlertNode: IssueAlertRuleConditionTemplate = {
+      ...node,
+      label: node.label.replace('...', ' {comparisonType}'),
+      formFields: {
+        ...node.formFields,
+        comparisonType: {
+          type: 'choice',
+          choices: COMPARISON_TYPE_CHOICES,
+          initial: null,
+        },
+      },
+    };
+
+    if (item.comparisonType) {
+      changeAlertNode = {
+        ...changeAlertNode,
+        label: changeAlertNode.label.replace('{comparisonType}', COMPARISON_TYPE_CHOICE_VALUES[item.comparisonType]),
+      };
+
+      if (item.comparisonType === 'percent') {
+        changeAlertNode = {
+          ...changeAlertNode,
+          formFields: {
+            ...changeAlertNode.formFields,
+            comparisonInterval: {
+              type: 'choice',
+              choices: COMPARISON_INTERVAL_CHOICES,
+              initial: null,
+            },
+          },
+        };
+      }
+    }
+
+    return changeAlertNode;
   };
 
   render() {
