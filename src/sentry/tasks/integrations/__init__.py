@@ -3,7 +3,6 @@ __all__ = (
     "kick_off_status_syncs",
     "kickoff_vsts_subscription_check",
     "migrate_repo",
-    "post_comment",
     "should_comment_sync",
     "sync_assignee_outbound",
     "sync_metadata",
