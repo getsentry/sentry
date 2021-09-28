@@ -38,7 +38,7 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
-from sentry.search.events.filter import handle_negation, parse_semver
+from sentry.search.events.filter import handle_operator_negation, parse_semver
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
     STATS_PERIODS,
@@ -126,7 +126,7 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
             )
 
         if search_filter.key.name == SEMVER_BUILD_ALIAS:
-            (operator, negated) = handle_negation(search_filter.operator)
+            (operator, negated) = handle_operator_negation(search_filter.operator)
             queryset = queryset.filter_by_semver_build(
                 organization.id,
                 OPERATOR_TO_DJANGO[operator],

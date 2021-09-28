@@ -350,9 +350,14 @@ class ReleaseModelManager(BaseManager):
         operator: str,
         build: str,
         project_ids: Optional[Sequence[int]] = None,
+        negated: bool = False,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_semver_build(
-            organization_id, operator, build, project_ids
+            organization_id,
+            operator,
+            build,
+            project_ids,
+            negated=negated,
         )
 
     def filter_by_semver(
