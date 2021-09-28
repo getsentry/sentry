@@ -35,6 +35,10 @@ const StyledAutoSelectText = styled(AutoSelectText, {shouldForwardProp: isPropVa
 }>`
   margin-left: ${p => p.avatar && '0.5em'};
   min-width: 0;
+
+  a & {
+    color: ${p => p.theme.linkColor};
+  }
 `;
 
 export default ShortId;
