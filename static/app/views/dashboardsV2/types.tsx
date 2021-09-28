@@ -1,5 +1,7 @@
 import {User} from 'app/types';
 
+export const MAX_WIDGETS = 30;
+
 export enum DisplayType {
   AREA = 'area',
   BAR = 'bar',

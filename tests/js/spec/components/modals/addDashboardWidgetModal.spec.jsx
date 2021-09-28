@@ -97,7 +97,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
-      body: [{id: '1', title: t('Test Dashboard')}],
+      body: [{id: '1', title: t('Test Dashboard'), widgetDisplay: ['area']}],
     });
   });
 
