@@ -2,7 +2,7 @@ from django.db.models import Q
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, release_health
 from sentry.api.base import ReleaseAnalyticsMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.organization_releases import (
@@ -20,7 +20,7 @@ from sentry.api.serializers.rest_framework import (
 )
 from sentry.models import Activity, Project, Release, ReleaseCommitError, ReleaseStatus
 from sentry.models.release import UnsafeReleaseDeletion
-from sentry.snuba.sessions import STATS_PERIODS, get_release_sessions_time_bounds
+from sentry.snuba.sessions import STATS_PERIODS
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
@@ -317,7 +317,7 @@ class OrganizationReleaseDetailsEndpoint(
             environments = set(request.GET.getlist("environment")) or None
             current_project_meta.update(
                 {
-                    **get_release_sessions_time_bounds(
+                    **release_health.get_release_sessions_time_bounds(
                         project_id=int(project_id),
                         release=release.version,
                         org_id=organization.id,

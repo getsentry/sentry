@@ -8,7 +8,7 @@ from snuba_sdk.entity import Entity
 from snuba_sdk.function import Function
 from snuba_sdk.query import Query
 
-from sentry import releasehealth
+from sentry import release_health
 from sentry.snuba.dataset import Dataset
 from sentry.utils import snuba
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -425,7 +425,7 @@ def get_release_health_data_overview(
         # If we're already looking at a 90 day horizont we don't need to
         # fire another query, we can already assume there is no data.
         if summary_stats_period != "90d":
-            has_health_data = releasehealth.check_has_health_data(missing_releases)
+            has_health_data = release_health.check_has_health_data(missing_releases)
         else:
             has_health_data = ()
         for key in missing_releases:
@@ -445,7 +445,7 @@ def get_release_health_data_overview(
                     health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)
                 }
 
-    release_adoption = releasehealth.get_release_adoption(project_releases, environments)
+    release_adoption = release_health.get_release_adoption(project_releases, environments)
     for key in rv:
         adoption_info = release_adoption.get(key) or {}
         rv[key]["adoption"] = adoption_info.get("adoption")
@@ -638,7 +638,7 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
     return stats, totals
 
 
-def get_release_sessions_time_bounds(project_id, release, org_id, environments=None):
+def _get_release_sessions_time_bounds(project_id, release, org_id, environments=None):
     """
     Get the sessions time bounds in terms of when the first session started and
     when the last session started according to a specific (project_id, org_id, release, environments)
