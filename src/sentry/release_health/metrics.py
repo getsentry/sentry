@@ -261,7 +261,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 select=[Column("value")],
                 where=_get_common_where(total)
                 + [
-                    # TODO(markus): This can't be right? We will double-count sessions here!
                     Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
                 ],
                 groupby=_get_common_groupby(total),
@@ -637,9 +636,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             Column("bucketed_time"),
         ]
 
-        rv = defaultdict(
-            lambda: {health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)}
-        )
+        rv = defaultdict(lambda: _make_stats(stats_start, stats_rollup, stats_buckets))
 
         for row in raw_snql_query(
             Query(
@@ -667,9 +664,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 / stats_rollup
             )
             key = row["project_id"], reverse_tag_value(org_id, row[release_column_name])
-            timeseries = rv[key]["stats"][health_stats_period]
+            timeseries = rv[key]
+            assert stat == "sessions"  # TODO
             if time_bucket < len(timeseries):
-                timeseries[time_bucket][1] = row[stat]
+                timeseries[time_bucket][1] = row["value"]
 
         return rv
 
@@ -779,7 +777,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             }
 
             if health_stats_period:
-                rv_row["stats"] = health_stats_data[project_id, release]
+                rv_row["stats"] = {health_stats_period: health_stats_data[project_id, release]}
 
         if fetch_has_health_data_releases:
             has_health_data = release_health.check_has_health_data(fetch_has_health_data_releases)  # type: ignore
