@@ -887,7 +887,14 @@ def _do_save_event(
 
             if start_time:
                 metrics.timing(
-                    "events.time-to-process", time() - start_time, instance=data["platform"]
+                    "events.time-to-process",
+                    time() - start_time,
+                    instance=data["platform"],
+                    tags={
+                        "is_reprocessing2": "true"
+                        if reprocessing2.is_reprocessed_event(data)
+                        else "false",
+                    },
                 )
 
             time_synthetic_monitoring_event(data, project_id, start_time)
