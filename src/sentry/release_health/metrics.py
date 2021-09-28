@@ -578,7 +578,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         releases_ids = get_tag_values_list(organization_id, release_versions)
         query = Query(
             dataset=Dataset.Metrics.value,
-            match=Entity("metrics_counters"),
+            match=Entity(EntityKey.MetricsCounters.value),
             select=[Column(release_column_name)],
             where=[
                 Condition(Column("org_id"), Op.EQ, organization_id),
@@ -620,7 +620,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         for row in raw_snql_query(
             Query(
                 dataset=Dataset.Metrics.value,
-                match=Entity("metrics_distributions"),
+                match=Entity(EntityKey.MetricsDistributions.value),
                 select=aggregates + [Column("percentiles")],
                 where=where
                 + [
@@ -657,7 +657,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         for row in raw_snql_query(
             Query(
                 dataset=Dataset.Metrics.value,
-                match=Entity("metrics_sets"),
+                match=Entity(EntityKey.MetricsSets.value),
                 select=aggregates + [Column("value")],
                 where=where
                 + [
@@ -693,7 +693,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         for row in raw_snql_query(
             Query(
                 dataset=Dataset.Metrics.value,
-                match=Entity("metrics_counters"),
+                match=Entity(EntityKey.MetricsCounters.value),
                 select=aggregates + [Column("value")],
                 where=where
                 + [
@@ -736,7 +736,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         for row in raw_snql_query(
             Query(
                 dataset=Dataset.Metrics.value,
-                match=Entity("metrics_sets"),
+                match=Entity(EntityKey.MetricsSets.value),
                 select=aggregates + [Column("value")],
                 where=where
                 + [
@@ -789,8 +789,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 dataset=Dataset.Metrics.value,
                 match=Entity(
                     {
-                        "users": "metrics_sets",
-                        "sessions": "metrics_counters",
+                        "users": EntityKey.MetricsSets.value,
+                        "sessions": EntityKey.MetricsCounters.value,
                     }[stat]
                 ),
                 select=aggregates + [Column("value")],
