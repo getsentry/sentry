@@ -11,9 +11,9 @@ from sentry.release_health.base import (
     ProjectRelease,
     ReleaseHealthBackend,
     ReleaseName,
-    StatsPeriod,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
+    StatsPeriod,
 )
 from sentry.snuba.sessions import (
     _check_has_health_data,
