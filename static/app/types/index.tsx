@@ -233,13 +233,6 @@ export type Organization = OrganizationSummary & {
 };
 
 /**
- * @deprecated This was used before we removed projects and teams as
- *             normalized data on the organization object. This will be
- *             removed very soon.
- */
-export type LightWeightOrganization = Organization;
-
-/**
  * Minimal organization shape used on shared issue views.
  */
 export type SharedViewOrganization = {
@@ -775,10 +768,6 @@ export interface Config {
     upgradeAvailable: boolean;
     latest: string;
   };
-  statuspage?: {
-    id: string;
-    api_host: string;
-  };
   sentryConfig: {
     dsn: string;
     release: string;
@@ -788,6 +777,10 @@ export interface Config {
   apmSampling: number;
   dsn_requests: string;
   demoMode: boolean;
+  statuspage?: {
+    id: string;
+    api_host: string;
+  };
 }
 
 // https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
@@ -1660,7 +1653,7 @@ export type NewQuery = {
   end?: string;
 
   // Graph
-  yAxis?: string;
+  yAxis?: string[];
   display?: string;
 
   teams?: Readonly<('myteams' | number)[]>;

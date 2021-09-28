@@ -1,4 +1,5 @@
 import logging
+import random
 from datetime import datetime
 from time import sleep, time
 
@@ -14,6 +15,7 @@ from sentry.datascrubbing import scrub_data
 from sentry.eventstore.processing import event_processing_store
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Activity, Organization, Project, ProjectOption
+from sentry.processing import realtime_metrics
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -278,6 +280,17 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     has_changed = False
 
     symbolication_start_time = time()
+
+    submission_ratio = options.get("symbolicate-event.low-priority.metrics.submission-rate")
+    submit_realtime_metrics = not from_reprocessing and random.random() < submission_ratio
+
+    if submit_realtime_metrics:
+        with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics.counter"):
+            timestamp = int(symbolication_start_time)
+            try:
+                realtime_metrics.increment_project_event_counter(project_id, timestamp)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
         span.set_data("symbolication_function", symbolication_function_name)
@@ -887,7 +900,14 @@ def _do_save_event(
 
             if start_time:
                 metrics.timing(
-                    "events.time-to-process", time() - start_time, instance=data["platform"]
+                    "events.time-to-process",
+                    time() - start_time,
+                    instance=data["platform"],
+                    tags={
+                        "is_reprocessing2": "true"
+                        if reprocessing2.is_reprocessed_event(data)
+                        else "false",
+                    },
                 )
 
             time_synthetic_monitoring_event(data, project_id, start_time)

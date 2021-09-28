@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import {BreadcrumbsWithDetails, BreadcrumbType} from 'app/types/breadcrumbs';
+import {BreadcrumbType, Crumb} from 'app/types/breadcrumbs';
 import {Event} from 'app/types/event';
 
 import Category from './category';
@@ -14,7 +14,7 @@ import Time from './time';
 import Type from './type';
 
 type Props = {
-  breadcrumb: BreadcrumbsWithDetails[0];
+  breadcrumb: Crumb;
   event: Event;
   orgSlug: Organization['slug'];
   searchTerm: string;

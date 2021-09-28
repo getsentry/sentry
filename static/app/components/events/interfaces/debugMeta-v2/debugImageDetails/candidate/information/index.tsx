@@ -278,10 +278,12 @@ const TimeSinceWrapper = styled('div')`
   grid-template-columns: max-content 1fr;
   align-items: center;
   grid-gap: ${space(0.5)};
+  font-variant-numeric: tabular-nums;
 `;
 
 const DateTimeWrapper = styled('div')`
   padding-top: ${space(1)};
+  font-variant-numeric: tabular-nums;
 `;
 
 const StyledProcessingList = styled(ProcessingList)`

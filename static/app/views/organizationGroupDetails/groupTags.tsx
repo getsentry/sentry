@@ -214,6 +214,7 @@ const TagBarLabel = styled('div')`
 const TagBarCount = styled('div')`
   position: relative;
   padding-left: ${space(2)};
+  font-variant-numeric: tabular-nums;
 `;
 
 export default withApi(GroupTags);

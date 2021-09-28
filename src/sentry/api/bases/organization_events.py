@@ -20,7 +20,7 @@ from sentry.search.events.fields import get_function_alias
 from sentry.search.events.filter import get_filter
 from sentry.snuba import discover
 from sentry.utils import snuba
-from sentry.utils.dates import get_rollup_from_request
+from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
 from sentry.utils.http import absolute_uri
 from sentry.utils.snuba import MAX_FIELDS
 
@@ -276,16 +276,23 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     except NoProjects:
                         return {"data": []}
 
-                rollup = get_rollup_from_request(
-                    request,
-                    params,
-                    default_interval=None,
-                    error=InvalidSearchQuery(
-                        "Your interval and date range would create too many results. "
-                        "Use a larger interval, or a smaller date range."
-                    ),
-                    top_events=top_events,
-                )
+                try:
+                    rollup = get_rollup_from_request(
+                        request,
+                        params,
+                        default_interval=None,
+                        error=InvalidSearchQuery(),
+                        top_events=top_events,
+                    )
+                # If the user sends an invalid interval, use the default instead
+                except InvalidSearchQuery:
+                    sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))
+                    date_range = params["end"] - params["start"]
+                    rollup = int(
+                        parse_stats_period(
+                            get_interval_from_range(date_range, False)
+                        ).total_seconds()
+                    )
                 # Backwards compatibility for incidents which uses the old
                 # column aliases as it straddles both versions of events/discover.
                 # We will need these aliases until discover2 flags are enabled for all
