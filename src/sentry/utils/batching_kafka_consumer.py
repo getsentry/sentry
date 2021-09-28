@@ -395,7 +395,7 @@ class BatchingKafkaConsumer:
         self.worker.shutdown()
         logger.debug("Stopping consumer")
         self.consumer.close()
-        if self.commit_log_topic:
+        if self.dead_letter_topic:
             logger.debug("Stopping producer")
             self.producer.close()
         logger.debug("Stopped")

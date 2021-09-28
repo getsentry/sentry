@@ -369,7 +369,6 @@ class SnubaEventStream(SnubaProtocolEventStream):
             received_timestamp,
             skip_consume,
         )
-
         self._dispatch_post_process_group_task(
             event.event_id,
             event.project_id,
