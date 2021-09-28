@@ -4,7 +4,7 @@ import sentry_sdk
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import features, releasehealth
+from sentry import features, release_health
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.snuba.sessions_v2 import InvalidField, InvalidParams, QueryDefinition
 
@@ -16,7 +16,7 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
             with sentry_sdk.start_span(op="sessions.endpoint", description="build_sessions_query"):
                 query = self.build_sessions_query(request, organization)
 
-            result = releasehealth.run_sessions_query(
+            result = release_health.run_sessions_query(
                 organization.id, query, span_op="sessions.endpoint"
             )
 

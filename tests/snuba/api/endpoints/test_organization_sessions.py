@@ -7,7 +7,7 @@ import sentry_sdk
 from django.urls import reverse
 from freezegun import freeze_time
 
-from sentry.releasehealth.metrics import MetricsReleaseHealthBackend
+from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.utils.dates import to_timestamp
