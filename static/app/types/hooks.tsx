@@ -41,7 +41,6 @@ export type RouteHooks = {
   'routes:admin': RoutesHook;
   'routes:api': RoutesHook;
   'routes:organization': RoutesHook;
-  'routes:organization-root': RoutesHook;
 };
 
 /**
