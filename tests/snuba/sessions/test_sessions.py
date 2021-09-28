@@ -14,7 +14,6 @@ from sentry.snuba.sessions import (
     get_project_releases_by_stability,
     get_project_releases_count,
     get_release_health_data_overview,
-    get_release_sessions_time_bounds,
 )
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase
@@ -513,19 +512,25 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             }
         )
 
+        if isinstance(self.backend, MetricsReleaseHealthBackend):
+            truncation = {"second": 0}
+        else:
+            truncation = {"minute": 0}
+
         expected_formatted_lower_bound = (
             datetime.utcfromtimestamp(self.session_started - 3600 * 2)
-            .replace(minute=0)
+            .replace(**truncation)
             .isoformat()[:19]
             + "Z"
         )
 
         expected_formatted_upper_bound = (
-            datetime.utcfromtimestamp(self.session_started).replace(minute=0).isoformat()[:19] + "Z"
+            datetime.utcfromtimestamp(self.session_started).replace(**truncation).isoformat()[:19]
+            + "Z"
         )
 
         # Test for self.session_release
-        data = get_release_sessions_time_bounds(
+        data = self.backend.get_release_sessions_time_bounds(
             project_id=self.project.id,
             release=self.session_release,
             org_id=self.organization.id,
@@ -537,7 +542,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         }
 
         # Test for self.session_crashed_release
-        data = get_release_sessions_time_bounds(
+        data = self.backend.get_release_sessions_time_bounds(
             project_id=self.project.id,
             release=self.session_crashed_release,
             org_id=self.organization.id,
@@ -553,7 +558,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         Test that ensures if no sessions are available for a specific release then the bounds
         should be returned as None
         """
-        data = get_release_sessions_time_bounds(
+        data = self.backend.get_release_sessions_time_bounds(
             project_id=self.project.id,
             release="different_release",
             org_id=self.organization.id,
