@@ -47,6 +47,13 @@ def test_default() -> None:
     realtime_metrics.increment_project_duration_counter(17, 1234, 55)
 
 
+# TODO: group tests using classes
+
+#
+# increment_project_event_counter()
+#
+
+
 def test_increment_project_event_counter_simple(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
@@ -79,6 +86,11 @@ def test_increment_project_event_counter_different_buckets(
 
     assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140") == "1"
     assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1150") == "1"
+
+
+#
+# increment_project_duration_counter()
+#
 
 
 def test_increment_project_duration_counter_simple(
@@ -115,6 +127,11 @@ def test_increment_project_duration_counter_different_buckets(
     assert redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1150", "40") == "1"
 
 
+#
+# get_lpq_projects()
+#
+
+
 def test_get_lpq_projects_unset(store: RedisRealtimeMetricsStore) -> None:
     in_lpq = store.get_lpq_projects()
     assert in_lpq == set()
@@ -130,12 +147,25 @@ def test_get_lpq_projects_empty(
     assert in_lpq == set()
 
 
-def test_get_lpq_projects_filled(
+def test_get_lpq_projects_hit(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     redis_cluster.sadd("store.symbolicate-event-lpq-selected", 1)
     in_lpq = store.get_lpq_projects()
     assert in_lpq == {1}
+
+
+def test_get_lpq_projects_no_hit(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+) -> None:
+    redis_cluster.sadd("store.symbolicate-event-lpq-selected", 2)
+    in_lpq = store.get_lpq_projects()
+    assert in_lpq == set()
+
+
+#
+# add_project_to_lpq()
+#
 
 
 def test_add_project_to_lpq_unset(
@@ -521,7 +551,6 @@ def test_get_durations_for_project_negative_timestamp(
     ]
 
 
-# is this ok...
 def test_get_durations_for_project_negative_duration(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
@@ -533,7 +562,6 @@ def test_get_durations_for_project_negative_duration(
     ]
 
 
-# is this ok...
 def test_get_durations_for_project_negative_count(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
