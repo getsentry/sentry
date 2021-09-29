@@ -1,4 +1,5 @@
 import {css} from '@emotion/react';
+import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
 import {
@@ -55,21 +56,22 @@ export function getMatchFieldPlaceholder(category: DynamicSamplingInnerName) {
       return t('ex. paid, common (Multiline)');
     case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
     case DynamicSamplingInnerName.EVENT_ENVIRONMENT:
-      return t('ex. prod or dev (Multiline)');
+      return t('ex. prod, dev');
     case DynamicSamplingInnerName.TRACE_RELEASE:
     case DynamicSamplingInnerName.EVENT_RELEASE:
-      return t('ex. 1* or [I3].[0-9].* (Multiline)');
+      return t('ex. 1* or [I3].[0-9].*');
     case DynamicSamplingInnerName.EVENT_IP_ADDRESSES:
       return t('ex. 127.0.0.1 or 10.0.0.0/8 (Multiline)');
     case DynamicSamplingInnerName.EVENT_CSP:
-      return t('ex. file://* or example.com (Multiline)');
+      return t('ex. file://*, example.com (Multiline)');
     case DynamicSamplingInnerName.EVENT_ERROR_MESSAGES:
       return t('ex. TypeError* (Multiline)');
     case DynamicSamplingInnerName.TRACE_TRANSACTION:
     case DynamicSamplingInnerName.EVENT_TRANSACTION:
-      return t('ex. "page-load" (Multiline)');
+      return t('ex. "page-load"');
     default:
-      return '';
+      Sentry.captureException(new Error('Unknown dynamic sampling condition inner name'));
+      return ''; // this shall never happen this shall never happen
   }
 }
 
