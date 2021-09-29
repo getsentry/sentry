@@ -10,8 +10,6 @@ This has three major tasks, executed in the following general order:
 
 import logging
 
-import sentry_sdk
-
 from sentry.processing.realtime_metrics import realtime_metrics_store
 from sentry.processing.realtime_metrics.base import BucketedCount, DurationHistogram
 from sentry.tasks.base import instrumented_task
@@ -41,24 +39,19 @@ def _scan_for_suspect_projects() -> None:
     # out they need to be evicted.
     current_lpq_projects = realtime_metrics_store.get_lpq_projects() or set([])
     deleted_projects = current_lpq_projects.difference(suspect_projects)
-
     if len(deleted_projects) == 0:
         return
 
     removed = realtime_metrics_store.remove_projects_from_lpq(deleted_projects)
 
-    # TODO: should this just be logger.warning(...)?
     if len(removed) > 0:
-        sentry_sdk.capture_message(
-            f"Moved project(s) {removed} out of symbolicator's low priority queue.", level="info"
-        )
+        for project_id in removed:
+            logger.warning("Moved project out of symbolicator's low priority queue: %s", project_id)
 
     not_removed = deleted_projects.difference(removed)
     if len(not_removed) > 0:
-        # TODO: should this just be logger.exception(...) or just raising an exception?
-        sentry_sdk.capture_message(
-            f"Failed to move project(s) {removed} out of symbolicator's low priority queue.",
-            level="error",
+        logger.warning(
+            "Failed to move project(s) out of symbolicator's low priority queue: %s", not_removed
         )
 
 
