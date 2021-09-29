@@ -465,10 +465,10 @@ class EventsChart extends React.Component<EventsChartProps> {
       return yAxisLabel;
     });
 
-    const previousSeriesName = previousName
+    const previousSeriesNames = previousName
       ? [previousName]
       : yAxisSeriesNames.map(name => t('previous %s', name));
-    const currentSeriesName = currentName ? [currentName] : yAxisSeriesNames;
+    const currentSeriesNames = currentName ? [currentName] : yAxisSeriesNames;
 
     const intervalVal = showDaily ? '1d' : interval || getInterval(this.props, 'high');
 
@@ -517,8 +517,8 @@ class EventsChart extends React.Component<EventsChartProps> {
                 ? [previousTimeseriesData]
                 : previousTimeseriesData
             }
-            currentSeriesNames={currentSeriesName}
-            previousSeriesNames={previousSeriesName}
+            currentSeriesNames={currentSeriesNames}
+            previousSeriesNames={previousSeriesNames}
             seriesTransformer={seriesTransformer}
             previousSeriesTransformer={previousSeriesTransformer}
             stacked={this.isStacked()}
@@ -578,8 +578,8 @@ class EventsChart extends React.Component<EventsChartProps> {
             interval={intervalVal}
             query={query}
             includePrevious={includePrevious}
-            currentSeriesNames={currentSeriesName}
-            previousSeriesNames={previousSeriesName}
+            currentSeriesNames={currentSeriesNames}
+            previousSeriesNames={previousSeriesNames}
             yAxis={yAxis}
             field={field}
             orderby={orderby}

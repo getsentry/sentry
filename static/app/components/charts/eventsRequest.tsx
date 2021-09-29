@@ -367,16 +367,20 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     ];
   }
 
-  processData(response: EventsStats, index: number = 0) {
+  processData(response: EventsStats, seriesIndex: number = 0) {
     const {data, totals} = response;
-    const {includeTransformedData, includeTimeAggregation, timeAggregationSeriesName} =
-      this.props;
+    const {
+      includeTransformedData,
+      includeTimeAggregation,
+      timeAggregationSeriesName,
+      currentSeriesNames,
+    } = this.props;
     const {current, previous} = this.getData(data);
     const transformedData = includeTransformedData
-      ? this.transformTimeseriesData(current, this.props.currentSeriesNames?.[index])
+      ? this.transformTimeseriesData(current, currentSeriesNames?.[seriesIndex])
       : [];
     const previousData = includeTransformedData
-      ? this.transformPreviousPeriodData(current, previous, index)
+      ? this.transformPreviousPeriodData(current, previous, seriesIndex)
       : null;
     const timeAggregatedData = includeTimeAggregation
       ? this.transformAggregatedTimeseries(current, timeAggregationSeriesName || '')
@@ -421,11 +425,14 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       // Convert the timeseries data into a multi-series result set.
       // As the server will have replied with a map like:
       // {[titleString: string]: EventsStats}
-      const timeframe: {start: number; end: number} | undefined = undefined;
+      let timeframe: {start: number; end: number} | undefined = undefined;
       const sortedTimeseriesData = Object.keys(timeseriesData)
         .map((seriesName: string, index: number): [number, Series, Series | null] => {
           const seriesData: EventsStats = timeseriesData[seriesName];
           const processedData = this.processData(seriesData, index);
+          if (!timeframe) {
+            timeframe = processedData.timeframe;
+          }
           return [
             seriesData.order || 0,
             processedData.data[0],

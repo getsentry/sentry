@@ -156,7 +156,7 @@ function ReleaseEventsChart({
       interval={getInterval({start, end, period, utc}, 'high')}
       query="event.type:transaction"
       includePrevious={false}
-      currentSeriesName={t('All Releases')}
+      currentSeriesNames={[t('All Releases')]}
       yAxis={getYAxis()}
       field={getField()}
       confirmedQuery={chartType === ReleaseComparisonChartType.FAILURE_RATE}

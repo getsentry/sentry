@@ -346,7 +346,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
               period={period}
               yAxis={aggregate}
               includePrevious={false}
-              currentSeriesName={aggregate}
+              currentSeriesNames={[aggregate]}
               partial={false}
             >
               {({loading, reloading, timeseriesData}) => {
