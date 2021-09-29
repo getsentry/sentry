@@ -11,7 +11,7 @@ type Props = {
 function Summary({kvData, children}: Props) {
   if (!kvData || !Object.keys(kvData).length) {
     if (!children) {
-      return null;
+      return <div />;
     }
 
     return (
@@ -59,9 +59,11 @@ const ContextDataWrapper = styled('div')`
 `;
 
 const StyledCode = styled('code')`
-  line-height: 26px;
   font-size: inherit;
   white-space: pre-wrap;
   background: none;
   padding: 0;
+  > * {
+    vertical-align: middle;
+  }
 `;

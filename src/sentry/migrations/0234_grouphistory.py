@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
     atomic = True
 
     dependencies = [
-        ("sentry", "0232_backfill_missed_semver_releases"),
+        ("sentry", "0233_recreate_subscriptions_in_snuba"),
     ]
 
     operations = [
