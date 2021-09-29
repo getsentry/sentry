@@ -77,7 +77,7 @@ class TeamIssues extends AsyncComponent<Props, State> {
       <ChartWrapper>
         {alertsTriggered && (
           <BarChart
-            style={{height: 200}}
+            style={{height: 190}}
             isGroupedByDate
             legend={{right: 0, top: 0}}
             yAxis={{minInterval: 1}}
