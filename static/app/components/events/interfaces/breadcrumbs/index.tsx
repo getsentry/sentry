@@ -37,7 +37,7 @@ type FilterTypes = {
   levels: BreadcrumbLevelType[];
 };
 
-type Props = {
+type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   event: Event;
   organization: Organization;
   type: string;
@@ -56,7 +56,14 @@ type State = {
   relativeTime?: string;
 };
 
-function BreadcrumbsContainer({data, event, organization, type: eventType}: Props) {
+function BreadcrumbsContainer({
+  data,
+  event,
+  organization,
+  type: eventType,
+  route,
+  router,
+}: Props) {
   const [state, setState] = useState<State>({
     searchTerm: '',
     breadcrumbs: [],
@@ -94,7 +101,7 @@ function BreadcrumbsContainer({data, event, organization, type: eventType}: Prop
 
     setState({
       ...state,
-      relativeTime: transformedCrumbs[transformedCrumbs.length - 1]?.timestamp,
+      relativeTime: transformedCrumbs[transformedCrumbs.length - 1].timestamp,
       breadcrumbs: transformedCrumbs,
       filteredByFilter: transformedCrumbs,
       filteredBySearch: transformedCrumbs,
@@ -383,6 +390,8 @@ function BreadcrumbsContainer({data, event, organization, type: eventType}: Prop
     >
       <ErrorBoundary>
         <Breadcrumbs
+          router={router}
+          route={route}
           emptyMessage={getEmptyMessage()}
           breadcrumbs={filteredBySearch}
           event={event}
