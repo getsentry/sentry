@@ -176,7 +176,7 @@ class OAuthLoginView(PipelineView):
                 "identity.bitbucket-server.request-token",
                 extra={"url": config.get("url"), "error": error},
             )
-            return pipeline.error("Could not fetch a request token from Bitbucket. %s" % error)
+            return pipeline.error(f"Could not fetch a request token from Bitbucket. {error}")
 
 
 class OAuthCallbackView(PipelineView):
@@ -205,7 +205,7 @@ class OAuthCallbackView(PipelineView):
             return pipeline.next_step()
         except ApiError as error:
             logger.info("identity.bitbucket-server.access-token", extra={"error": error})
-            return pipeline.error("Could not fetch an access token from Bitbucket. %s" % str(error))
+            return pipeline.error(f"Could not fetch an access token from Bitbucket. {str(error)}")
 
 
 class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
@@ -347,5 +347,5 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
         bindings.add(
             "integration-repository.provider",
             BitbucketServerRepositoryProvider,
-            id="integrations:%s" % self.key,
+            id=f"integrations:{self.key}",
         )

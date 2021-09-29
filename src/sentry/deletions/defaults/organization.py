@@ -39,6 +39,8 @@ class OrganizationDeletionTask(ModelDeletionTask):
             Repository,
             ServiceHook,
             CommitAuthor,
+            Incident,
+            AlertRule,
             Release,
             Project,
             Environment,
@@ -48,8 +50,6 @@ class OrganizationDeletionTask(ModelDeletionTask):
             TeamKeyTransaction,
             ExternalIssue,
             PromptsActivity,
-            Incident,
-            AlertRule,
             ProjectTransactionThreshold,
         )
         relations.extend([ModelRelation(m, {"organization_id": instance.id}) for m in model_list])
