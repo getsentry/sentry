@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 
 import pytz
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
@@ -54,7 +53,6 @@ class ReleaseHealthMetricsTestCase(SessionMetricsTestCase):
     backend = MetricsReleaseHealthBackend()
 
 
-@freeze_time("2021-05-01 12:59")
 class SnubaSessionsTest(TestCase, SnubaTestCase):
     backend = SessionsReleaseHealthBackend()
 
@@ -578,6 +576,11 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             start=start,
             environments=["prod"],
         )
+
+        # Last returned date is generated within function, should be close to now:
+        last_date = data[-1].pop("date")
+        assert timezone.now() - last_date < timedelta(seconds=1)
+
         assert data == [
             {
                 "crash_free_sessions": None,
@@ -596,7 +599,6 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             {
                 "crash_free_sessions": 100.0,
                 "crash_free_users": 100.0,
-                "date": start + timedelta(days=4),
                 "total_sessions": 2,
                 "total_users": 1,
             },
@@ -608,6 +610,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             start=start,
             environments=["prod"],
         )
+        data[-1].pop("date")
         assert data == [
             {
                 "crash_free_sessions": None,
@@ -626,7 +629,6 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             {
                 "crash_free_sessions": 0.0,
                 "crash_free_users": 0.0,
-                "date": start + timedelta(days=4),
                 "total_sessions": 1,
                 "total_users": 1,
             },
@@ -637,6 +639,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             start=start,
             environments=["prod"],
         )
+        data[-1].pop("date")
         assert data == [
             {
                 "crash_free_sessions": None,
@@ -655,7 +658,6 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             {
                 "crash_free_sessions": None,
                 "crash_free_users": None,
-                "date": start + timedelta(days=4),
                 "total_sessions": 0,
                 "total_users": 0,
             },

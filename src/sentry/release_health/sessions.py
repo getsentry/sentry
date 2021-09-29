@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Collection, Optional, Sequence, Set, Tuple
+from typing import Optional, Sequence, Set, Tuple
 
 from sentry.release_health.base import (
     CrashFreeBreakdown,
@@ -93,8 +93,8 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         project_id: ProjectId,
         release: ReleaseName,
         start: datetime,
-        environments: Optional[Collection[EnvironmentName]] = None,
+        environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> Sequence[CrashFreeBreakdown]:
-        return get_crash_free_breakdown(
+        return get_crash_free_breakdown(  # type: ignore
             project_id=project_id, release=release, start=start, environments=environments
         )
