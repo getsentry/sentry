@@ -290,7 +290,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         )
         responses.add(
             responses.GET,
-            "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
+            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
         )

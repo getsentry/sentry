@@ -13,7 +13,7 @@ def build_user_choice(user_response, user_id_field):
 
     display = "{} {}{}".format(
         user_response.get("displayName", name),
-        f"- {email if email else ''} ",
-        f"({name if name else ''})",
+        f"- {email} " if email else "",
+        f"({name})" if name else "",
     )
     return user_response[user_id_field], display.strip()
