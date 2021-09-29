@@ -628,6 +628,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 where=where
                 + [
                     Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.duration")),
+                    Condition(
+                        Column(tag_key(org_id, "session.status")),
+                        Op.EQ,
+                        tag_value(org_id, "exited"),
+                    ),
                 ],
                 groupby=aggregates,
             ),

@@ -967,8 +967,14 @@ class SessionMetricsTestCase(SnubaTestCase):
             self._push_metric(session, "counter", "session", {"session.status": status}, +1)
             self._push_metric(session, "set", "user", {"session.status": status}, user)
 
-        if status == "exited":
-            self._push_metric(session, "distribution", "session.duration", {}, session["duration"])
+        if status != "ok":  # terminal
+            self._push_metric(
+                session,
+                "distribution",
+                "session.duration",
+                {"session.status": status},
+                session["duration"],
+            )
 
     def bulk_store_sessions(self, sessions):
         for session in sessions:
