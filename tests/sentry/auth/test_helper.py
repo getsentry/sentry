@@ -10,7 +10,6 @@ from sentry.auth.helper import (
     AuthHelperSessionStore,
     AuthIdentityHandler,
 )
-from sentry.auth.idpmigration import get_redis_cluster
 from sentry.auth.provider import Provider
 from sentry.models import (
     AuditLogEntry,
@@ -339,31 +338,6 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert not mock_create_key.called
         assert context["existing_user"] == existing_user
         assert "login_form" in context
-
-    @mock.patch("sentry.auth.helper.messages")
-    def test_authenticate_user_with_SSO_provider(self, mock_messages):
-        self.org = self.create_organization()
-        self.login_as(self.user)
-        member = OrganizationMember.objects.create(organization=self.org, user=self.user)
-
-        cluster = get_redis_cluster()
-        verification_key = "auth:one-time-key:mj46KwhhWcbORyOp90Uxopz7GYq8SY6A"
-        verification_value = {
-            "user_id": self.user.id,
-            "email": self.email,
-            "member_id": member.id,
-            "identity_id": self.identity["id"],
-        }
-        cluster.hmset(verification_key, verification_value)
-
-        self.handler.handle_authentication_using_verification_key(self.identity, verification_key)
-        auth_identity = AuthIdentity.objects.get(user_id=self.user.id)
-
-        assert mock_messages.add_message.called_with(
-            self.request, messages.SUCCESS, OK_LINK_IDENTITY
-        )
-        assert auth_identity.user_id == self.user.id
-        assert auth_identity.ident == self.identity["id"]
 
     # TODO: More test cases for various values of request.POST.get("op")
 

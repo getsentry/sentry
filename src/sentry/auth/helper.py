@@ -19,11 +19,7 @@ from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.auth.idpmigration import (
-    get_redis_cluster,
-    get_verification_value_from_key,
-    send_one_time_account_confirm_link,
-)
+from sentry.auth.idpmigration import send_one_time_account_confirm_link
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -230,24 +226,22 @@ class AuthIdentityHandler:
         self,
         identity: Identity,
         member: Optional[OrganizationMember] = None,
-        user: Optional[User] = None,
     ) -> AuthIdentity:
         """
         Given an already authenticated user, attach or re-attach an identity.
         """
-        user = user if user else self.user
         # prioritize identifying by the SSO provider's user ID
         auth_identity = self._get_auth_identity(ident=identity["id"])
         if auth_identity is None:
             # otherwise look for an already attached identity
             # this can happen if the SSO provider's internal ID changes
-            auth_identity = self._get_auth_identity(user=user)
+            auth_identity = self._get_auth_identity(user=self.user)
 
         if auth_identity is None:
             auth_is_new = True
             auth_identity = AuthIdentity.objects.create(
                 auth_provider=self.auth_provider,
-                user=user,
+                user=self.user,
                 ident=identity["id"],
                 data=identity.get("data", {}),
             )
@@ -258,14 +252,14 @@ class AuthIdentityHandler:
             # and in that kind of situation its very reasonable that we could
             # test email addresses + is_managed to determine if we can auto
             # merge
-            if auth_identity.user != user:
+            if auth_identity.user != self.user:
                 wipe = self._wipe_existing_identity(auth_identity)
             else:
                 wipe = None
 
             now = timezone.now()
             auth_identity.update(
-                user=user,
+                user=self.user,
                 ident=identity["id"],
                 data=self.provider.update_identity(
                     new_data=identity.get("data", {}), current_data=auth_identity.data
@@ -279,7 +273,7 @@ class AuthIdentityHandler:
                 extra={
                     "wipe_result": repr(wipe),
                     "organization_id": self.organization.id,
-                    "user_id": user.id,
+                    "user_id": self.user.id,
                     "auth_identity_user_id": auth_identity.user.id,
                     "auth_provider_id": self.auth_provider.id,
                     "idp_identity_id": identity["id"],
@@ -294,7 +288,7 @@ class AuthIdentityHandler:
         if auth_is_new:
             AuditLogEntry.objects.create(
                 organization=self.organization,
-                actor=user,
+                actor=self.user,
                 ip_address=self.request.META["REMOTE_ADDR"],
                 target_object=auth_identity.id,
                 event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
@@ -385,28 +379,6 @@ class AuthIdentityHandler:
 
         return response
 
-    def handle_authentication_using_verification_key(self, identity, verification_key):
-        cluster = get_redis_cluster()
-        verification_value_byte = get_verification_value_from_key(cluster, verification_key)
-        if verification_value_byte:
-            verification_value = {
-                y.decode("ascii"): verification_value_byte.get(y).decode("ascii")
-                for y in verification_value_byte.keys()
-            }
-            if (
-                verification_value["identity_id"] == identity["id"]
-                and verification_value["email"] == identity["email"]
-            ):
-                op = "verify"
-                user = User.objects.get(id=verification_value["user_id"])
-                member = OrganizationMember.objects.get(id=verification_value["member_id"])
-                auth_identity = self.handle_attach_identity(
-                    identity,
-                    member=member,
-                    user=user,
-                )
-                return auth_identity, op
-
     def handle_unknown_identity(
         self,
         state: AuthHelperSessionStore,
@@ -444,7 +416,11 @@ class AuthIdentityHandler:
         # we trust identity providers, its considered safe.
         # Note: we do not trust things like SAML, so the SSO implementation needs
         # to consider if 'email_verified' can be trusted or not
-        if acting_user and identity.get("email_verified"):
+        if (
+            acting_user
+            and identity.get("email_verified")
+            or self.request.session.get("confirm_account_verification_key")
+        ):
             # we only allow this flow to happen if the existing user has
             # membership, otherwise we short circuit because it might be
             # an attempt to hijack membership of another organization
@@ -465,11 +441,6 @@ class AuthIdentityHandler:
             else:
                 # force them to create a new account
                 acting_user = None
-        elif self.request.session.get("confirm_account_verification_key"):
-            verification_key = self.request.session["confirm_account_verification_key"]
-            auth_identity, op = self.handle_authentication_using_verification_key(
-                identity, verification_key
-            )
         # without a usable password they can't login, so let's clear the acting_user
         elif acting_user and not acting_user.has_usable_password():
             acting_user = None

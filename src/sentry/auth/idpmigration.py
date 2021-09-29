@@ -78,8 +78,19 @@ def get_redis_key(verification_key: str) -> str:
     return f"auth:one-time-key:{verification_key}"
 
 
-def get_verification_value_from_key(cluster, verification_key):
-    return cluster.hgetall(verification_key)
+def decode_verification_value(verification_value_byte):
+    return {
+        y.decode("ascii"): verification_value_byte.get(y).decode("ascii")
+        for y in verification_value_byte.keys()
+    }
+
+
+def get_verification_value_from_key(verification_key):
+    cluster = get_redis_cluster()
+    verification_value_byte = cluster.hgetall(verification_key)
+    if verification_value_byte:
+        return decode_verification_value(verification_value_byte)
+    return verification_value_byte
 
 
 def verify_account(key: str) -> bool:
@@ -93,11 +104,8 @@ def verify_account(key: str) -> bool:
     :param key: the one-time verification key
     :return: whether the key is valid
     """
-    cluster = get_redis_cluster()
-
-    verification_key = get_redis_key(key)
-    verification_value_byte = get_verification_value_from_key(cluster, verification_key)
-    if not verification_value_byte:
+    verification_value = get_redis_key(key)
+    if not verification_value:
         return False
 
     return True
