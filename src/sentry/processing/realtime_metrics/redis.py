@@ -103,11 +103,10 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
     def add_project_to_lpq(self, project_id: int) -> None:
         """
-        Moves a project to the low priority queue.
+        Assigns a project to the low priority queue.
 
-        This forces all symbolication events triggered by the specified project to be redirected to
-        the low priority queue, unless the project is manually excluded from the low priority queue
-        via the `store.symbolicate-event-lpq-never` kill switch.
+        This registers an intent to redirect all symbolication events triggered by the specified
+        project to be redirected to the low priority queue.
 
         This may throw an exception if there is some sort of issue registering the project with the
         queue.
@@ -122,9 +121,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         """
         Removes projects from the low priority queue.
 
-        This restores all specified projects back to the regular queue, unless they have been
-        manually forced into the low priority queue via the `store.symbolicate-event-lpq-always`
-        kill switch.
+        This registers an intent to restore all specified projects back to the regular queue.
 
         This may throw an exception if there is some sort of issue deregistering the projects from
         the queue.
