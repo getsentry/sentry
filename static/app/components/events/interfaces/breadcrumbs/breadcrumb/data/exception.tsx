@@ -11,14 +11,16 @@ import Summary from './summary';
 type Props = {
   searchTerm: string;
   breadcrumb: BreadcrumbTypeDefault;
+  linkedEvent?: React.ReactElement;
 };
 
-const Exception = ({breadcrumb, searchTerm}: Props) => {
-  const {data} = breadcrumb;
+function Exception({breadcrumb, searchTerm, linkedEvent}: Props) {
+  const {data, message} = breadcrumb;
   const dataValue = data?.value;
 
   return (
     <Summary kvData={omit(data, ['type', 'value'])}>
+      {linkedEvent}
       {data?.type && (
         <AnnotatedText
           value={
@@ -39,14 +41,14 @@ const Exception = ({breadcrumb, searchTerm}: Props) => {
           meta={getMeta(data, 'value')}
         />
       )}
-      {breadcrumb?.message && (
+      {message && (
         <AnnotatedText
-          value={<Highlight text={searchTerm}>{breadcrumb.message}</Highlight>}
+          value={<Highlight text={searchTerm}>{message}</Highlight>}
           meta={getMeta(breadcrumb, 'message')}
         />
       )}
     </Summary>
   );
-};
+}
 
 export default Exception;

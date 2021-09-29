@@ -15,26 +15,33 @@ type Props = {
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
   event: Event;
   orgSlug: Organization['slug'];
+  linkedEvent?: React.ReactElement;
 };
 
-const Default = ({breadcrumb, event, orgSlug, searchTerm}: Props) => (
-  <Summary kvData={breadcrumb.data}>
-    {breadcrumb?.message && (
-      <AnnotatedText
-        value={
-          <FormatMessage
-            searchTerm={searchTerm}
-            event={event}
-            orgSlug={orgSlug}
-            breadcrumb={breadcrumb}
-            message={breadcrumb.message}
-          />
-        }
-        meta={getMeta(breadcrumb, 'message')}
-      />
-    )}
-  </Summary>
-);
+function Default({breadcrumb, event, orgSlug, searchTerm, linkedEvent}: Props) {
+  const {message} = breadcrumb;
+  return (
+    <Summary kvData={breadcrumb.data}>
+      {linkedEvent}
+      {message && (
+        <AnnotatedText
+          value={
+            <FormatMessage
+              searchTerm={searchTerm}
+              event={event}
+              orgSlug={orgSlug}
+              breadcrumb={breadcrumb}
+              message={message}
+            />
+          }
+          meta={getMeta(breadcrumb, 'message')}
+        />
+      )}
+    </Summary>
+  );
+}
+
+export default Default;
 
 function isEventId(maybeEventId: string): boolean {
   // maybeEventId is an event id if it's a hex string of 32 characters long
@@ -80,5 +87,3 @@ const FormatMessage = withProjects(function FormatMessageInner({
 
   return content;
 });
-
-export default Default;

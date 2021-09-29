@@ -1,4 +1,4 @@
-import {memo, useEffect, useState} from 'react';
+import React, {memo, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -55,7 +55,7 @@ const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
 
 type ProGuardErrors = Array<Error>;
 
-type Props = {
+type Props = Pick<React.ComponentProps<typeof EventEntry>, 'route' | 'router'> & {
   /**
    * The organization can be the shared view on a public issue view.
    */
@@ -81,6 +81,8 @@ const EventEntries = memo(
     event,
     group,
     className,
+    router,
+    route,
     isShare = false,
     showExampleCommit = false,
     showTagSummary = true,
@@ -320,6 +322,8 @@ const EventEntries = memo(
             organization={organization}
             event={definedEvent}
             entry={entry}
+            route={route}
+            router={router}
           />
         </ErrorBoundary>
       ));

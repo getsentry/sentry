@@ -26,7 +26,13 @@ const cache = new CellMeasurerCache({
 
 type Props = Pick<
   React.ComponentProps<typeof Breadcrumb>,
-  'event' | 'orgSlug' | 'searchTerm' | 'relativeTime' | 'displayRelativeTime'
+  | 'event'
+  | 'orgSlug'
+  | 'searchTerm'
+  | 'relativeTime'
+  | 'displayRelativeTime'
+  | 'router'
+  | 'route'
 > & {
   breadcrumbs: Crumb[];
   onSwitchTimeFormat: () => void;
@@ -45,6 +51,8 @@ function Breadcrumbs({
   event,
   relativeTime,
   emptyMessage,
+  route,
+  router,
 }: Props) {
   const [scrollToIndex, setScrollToIndex] = useState<number | undefined>(undefined);
   const [scrollbarSize, setScrollbarSize] = useState(0);
@@ -107,6 +115,8 @@ function Breadcrumbs({
                 ? scrollbarSize
                 : 0
             }
+            router={router}
+            route={route}
           />
         )}
       </CellMeasurer>

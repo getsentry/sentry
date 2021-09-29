@@ -39,7 +39,7 @@ class EventDetails extends Component<Props> {
       : [t('Discover')];
 
   render() {
-    const {organization, location, params} = this.props;
+    const {organization, location, params, router, route} = this.props;
     const eventView = this.getEventView();
     const eventSlug = this.getEventSlug();
 
@@ -60,6 +60,8 @@ class EventDetails extends Component<Props> {
               params={params}
               eventView={eventView}
               eventSlug={eventSlug}
+              router={router}
+              route={route}
             />
           </LightWeightNoProjectMessage>
         </StyledPageContent>

@@ -50,7 +50,10 @@ import LinkedIssue from './linkedIssue';
  */
 const EXCLUDED_TAG_KEYS = new Set(['release']);
 
-type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'location'> & {
+type Props = Pick<
+  RouteComponentProps<{eventSlug: string}, {}>,
+  'params' | 'location' | 'route' | 'router'
+> & {
   organization: Organization;
   eventSlug: string;
   eventView: EventView;
@@ -134,7 +137,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {organization, location, eventView} = this.props;
+    const {organization, location, eventView, route, router} = this.props;
     const {isSidebarVisible} = this.state;
 
     // metrics
@@ -238,6 +241,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         showExampleCommit={false}
                         showTagSummary={false}
                         api={this.api}
+                        router={router}
+                        route={route}
                         isBorderless
                       />
                     </QuickTraceContext.Provider>

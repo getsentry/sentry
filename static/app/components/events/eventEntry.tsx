@@ -15,7 +15,7 @@ import Threads from 'app/components/events/interfaces/threads';
 import {Group, Organization, Project, SharedViewOrganization} from 'app/types';
 import {Entry, EntryType, Event, EventTransaction} from 'app/types/event';
 
-type Props = {
+type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;
   projectSlug: Project['slug'];
   event: Event;
@@ -23,7 +23,15 @@ type Props = {
   group?: Group;
 };
 
-function EventEntry({entry, projectSlug, event, organization, group}: Props) {
+function EventEntry({
+  entry,
+  projectSlug,
+  event,
+  organization,
+  group,
+  route,
+  router,
+}: Props) {
   const hasHierarchicalGrouping =
     !!organization.features?.includes('grouping-stacktrace-ui') &&
     !!(event.metadata.current_tree_label || event.metadata.finest_tree_label);
@@ -87,6 +95,8 @@ function EventEntry({entry, projectSlug, event, organization, group}: Props) {
           data={data}
           organization={organization as Organization}
           event={event}
+          router={router}
+          route={route}
         />
       );
     }

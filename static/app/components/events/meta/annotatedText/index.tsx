@@ -17,9 +17,10 @@ import ValueElement from './valueElement';
 type Props = {
   value: React.ReactNode;
   meta?: Meta;
+  className?: string;
 };
 
-const AnnotatedText = ({value, meta, ...props}: Props) => {
+const AnnotatedText = ({value, meta, className, ...props}: Props) => {
   const renderValue = () => {
     if (meta?.chunks?.length && meta.chunks.length > 1) {
       return <Chunks chunks={meta.chunks} />;
@@ -86,7 +87,7 @@ const AnnotatedText = ({value, meta, ...props}: Props) => {
   };
 
   return (
-    <span {...props}>
+    <span className={className} {...props}>
       {renderValue()}
       {meta?.err && renderErrors(meta.err)}
     </span>
