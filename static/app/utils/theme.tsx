@@ -584,7 +584,7 @@ const commonTheme = {
 
   text: {
     family: '"Rubik", "Avenir Next", sans-serif',
-    familyMono: '"IBM Plex", Monaco, Consolas, "Courier New", monospace',
+    familyMono: '"Roboto Mono", Monaco, Consolas, "Courier New", monospace',
     lineHeightHeading: '1.15',
     lineHeightBody: '1.4',
   },
