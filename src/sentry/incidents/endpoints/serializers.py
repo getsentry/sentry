@@ -489,7 +489,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
         event_types = data.get("event_types")
 
-        valid_event_types = dataset_valid_event_types[data["dataset"]]
+        valid_event_types = dataset_valid_event_types.get(data["dataset"], set())
         if event_types and set(event_types) - valid_event_types:
             raise serializers.ValidationError(
                 "Invalid event types for this dataset. Valid event types are %s"
