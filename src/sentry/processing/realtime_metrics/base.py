@@ -53,7 +53,7 @@ class RealtimeMetricsStore(Service):  # type: ignore
         time-window bucket with "timestamp" providing the time of the event
         in seconds since the UNIX epoch (i.e., as returned by time.time()).
         """
-        pass
+        raise NotImplementedError
 
     def increment_project_duration_counter(
         self, project_id: int, timestamp: int, duration: int
@@ -64,27 +64,27 @@ class RealtimeMetricsStore(Service):  # type: ignore
         Calling this increments the counter of the current time-window bucket with "timestamp" providing
         the time of the event in seconds since the UNIX epoch and "duration" the processing time in seconds.
         """
-        pass
+        raise NotImplementedError
 
     def projects(self) -> Iterable[int]:
         """
         Returns IDs of all projects that should be considered for the low priority queue.
         """
-        pass
+        raise NotImplementedError
 
     def get_counts_for_project(self, project_id: int) -> Iterable[BucketedCount]:
         """
         Returns a sorted list of bucketed timestamps paired with the count of symbolicator requests
         made during that time for some given project.
         """
-        pass
+        raise NotImplementedError
 
     def get_durations_for_project(self, project_id: int) -> Iterable[DurationHistogram]:
         """
         Returns a sorted list of bucketed timestamps paired with a dictionary of symbolicator
         durations grouped in 10 second durations made during that time for some given project.
         """
-        pass
+        raise NotImplementedError
 
     def get_lpq_projects(self) -> Set[int]:
         """
@@ -92,7 +92,7 @@ class RealtimeMetricsStore(Service):  # type: ignore
 
         Returns a list of project IDs.
         """
-        pass
+        raise NotImplementedError
 
     def add_project_to_lpq(self, project_id: int) -> bool:
         """
@@ -105,7 +105,7 @@ class RealtimeMetricsStore(Service):  # type: ignore
         Returns True if the project was a new addition to the list. Returns False if it was already
         assigned to the low priority queue.
         """
-        pass
+        raise NotImplementedError
 
     def remove_project_from_lpq(self, project_id: int) -> bool:
         """
@@ -118,7 +118,7 @@ class RealtimeMetricsStore(Service):  # type: ignore
         Returns True if the project was assigned to the queue prior to its removal. Returns False if
         it wasn't assigned to the queue to begin with.
         """
-        pass
+        raise NotImplementedError
 
     def remove_projects_from_lpq(self, project_ids: Set[int]) -> int:
         """
@@ -132,4 +132,4 @@ class RealtimeMetricsStore(Service):  # type: ignore
         were not assigned to the low priority queue to begin with will be omitted from the return
         value.
         """
-        pass
+        raise NotImplementedError
