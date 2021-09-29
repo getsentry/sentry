@@ -300,7 +300,10 @@ class IssueSyncMixin(IssueBasicMixin):
 
     def should_sync(self, attribute: str) -> bool:
         key = getattr(self, f"{attribute}_key", None)
-        return self.org_integration.config.get(key, False)
+        if key is None:
+            return False
+        value: bool = self.org_integration.config.get(key, False)
+        return value
 
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         """
