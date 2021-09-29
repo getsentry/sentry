@@ -7,6 +7,7 @@ from sentry.release_health.base import (
     OrganizationId,
     ProjectId,
     ProjectOrRelease,
+    ProjectRelease,
     ReleaseHealthBackend,
     ReleaseName,
     ReleasesAdoption,
@@ -90,5 +91,5 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
     def get_changed_project_release_model_adoptions(
         self,
         project_ids: Sequence[ProjectId],
-    ) -> Sequence[Tuple[ProjectId, ReleaseName]]:
+    ) -> Sequence[ProjectRelease]:
         return _get_changed_project_release_model_adoptions(project_ids)  # type: ignore

@@ -611,7 +611,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def get_changed_project_release_model_adoptions(
         self,
         project_ids: Sequence[ProjectId],
-    ) -> Sequence[Tuple[ProjectId, ReleaseName]]:
+    ) -> Sequence[ProjectRelease]:
 
         now = datetime.now(pytz.utc)
         start = now - timedelta(days=3)

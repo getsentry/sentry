@@ -180,7 +180,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
     def get_changed_project_release_model_adoptions(
         self,
         project_ids: Sequence[ProjectId],
-    ) -> Sequence[Tuple[ProjectId, ReleaseName]]:
+    ) -> Sequence[ProjectRelease]:
         """
         Returns a sequence of tuples (ProjectId, ReleaseName) with the
         releases seen in the last 72 hours for the requested projects.
