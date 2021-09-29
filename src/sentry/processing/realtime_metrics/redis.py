@@ -97,7 +97,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
     def projects(self) -> Iterable[int]:
         """
-        Returns IDs of all projects that should be considered for the low priority queue.
+        Returns IDs of all projects for which metrics have been recorded in the store.
 
         This may throw an exception if there is some sort of issue scanning the redis store for
         projects.
