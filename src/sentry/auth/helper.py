@@ -466,7 +466,7 @@ class AuthIdentityHandler:
                     return self._post_login_redirect()
             else:
                 auth.log_auth_failure(self.request, self.request.POST.get("username"))
-        elif op != "verify":
+        else:
             op = None
 
         if not op:
