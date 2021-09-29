@@ -437,7 +437,7 @@ class EventView {
       // Workaround to only use the first yAxis since eventView yAxis doesn't accept string[]
       yAxis: Array.isArray(saved.yAxis) ? saved.yAxis[0] : saved.yAxis,
       display: saved.display,
-      topEvents: saved.topEvents,
+      topEvents: saved.topEvents ? saved.topEvents.toString() : undefined,
       createdBy: saved.createdBy,
       expired: saved.expired,
       additionalConditions: new MutableSearch([]),
@@ -474,8 +474,11 @@ class EventView {
           // Workaround to only use the first yAxis since eventView yAxis doesn't accept string[]
           (Array.isArray(saved.yAxis) ? saved.yAxis[0] : saved.yAxis),
         display: decodeScalar(location.query.display) || saved.display,
-        topEvents:
-          decodeScalar(location.query.topEvents) || saved.topEvents || TOP_N.toString(),
+        topEvents: (
+          decodeScalar(location.query.topEvents) ||
+          saved.topEvents ||
+          TOP_N
+        ).toString(),
         interval: decodeScalar(location.query.interval),
         createdBy: saved.createdBy,
         expired: saved.expired,
