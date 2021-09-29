@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-from django.db import router
 from django.db.models import Max
 from django.utils import timezone
 
@@ -14,14 +13,11 @@ def collect_project_platforms(**kwargs):
     now = timezone.now()
 
     min_project_id = 0
-    max_project_id = (
-        Project.objects.using(router.db_for_read(Project, replica=True)).aggregate(x=Max("id"))["x"]
-        or 0
-    )
+    max_project_id = Project.objects.using_replica().aggregate(x=Max("id"))["x"] or 0
     step = 1000
     while min_project_id <= max_project_id:
         queryset = (
-            Group.objects.using(router.db_for_read(Group, replica=True))
+            Group.objects.using_replica()
             .filter(
                 last_seen__gte=now - timedelta(days=1),
                 project__gte=min_project_id,

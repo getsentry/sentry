@@ -436,3 +436,10 @@ class BaseManager(Manager, Generic[M]):  # type: ignore
         if hasattr(self, "_hints"):
             return self._queryset_class(self.model, using=self._db, hints=self._hints)
         return self._queryset_class(self.model, using=self._db)
+
+    def using_replica(self) -> BaseQuerySet:
+        """
+        Use read replica for this query. Database router is expected to use the
+        `replica=True` hint to make routing decision.
+        """
+        return self.using(router.db_for_read(self.model, replica=True))
