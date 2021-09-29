@@ -52,31 +52,11 @@ class TeamReleaseCountTest(APITestCase):
         assert len(response.data) == 2
         assert project2.id not in response.data
         assert len(response.data[project3.id]) == 90
-        assert (
-            response.data[project3.id][
-                str(before_now(days=5).replace(hour=0, minute=0, second=0, microsecond=0))
-            ]
-            == 2
-        )
-        assert (
-            response.data[project3.id][
-                str(before_now(days=0).replace(hour=0, minute=0, second=0, microsecond=0))
-            ]
-            == 0
-        )
+        assert response.data[project3.id][str(before_now(days=5).date())] == 2
+        assert response.data[project3.id][str(before_now(days=0).date())] == 0
 
-        assert (
-            response.data[project1.id][
-                str(before_now(days=15).replace(hour=0, minute=0, second=0, microsecond=0))
-            ]
-            == 1
-        )
-        assert (
-            response.data[project1.id][
-                str(before_now(days=10).replace(hour=0, minute=0, second=0, microsecond=0))
-            ]
-            == 1
-        )
+        assert response.data[project1.id][str(before_now(days=15).date())] == 1
+        assert response.data[project1.id][str(before_now(days=10).date())] == 1
 
     def test_multi_project_release(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -124,54 +104,14 @@ class TeamReleaseCountTest(APITestCase):
         response = self.get_valid_response(org.slug, team1.slug)
         assert len(response.data) == 2
         assert project2.id not in response.data
-        assert (
-            response.data[project3.id][
-                str(before_now(days=15).replace(hour=0, minute=0, second=0, microsecond=0))
-            ]
-            == 1
-        )
-        assert (
-            response.data[project3.id][
-                str(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-            ]
-            == 0
-        )
+        assert response.data[project3.id][str(before_now(days=15).date())] == 1
+        assert response.data[project3.id][str(before_now(days=2).date())] == 0
 
-        assert (
-            response.data[project3.id][
-                str(before_now(days=5).replace(hour=0, minute=0, second=0, microsecond=0))
-            ]
-            == 2
-        )
-        assert (
-            response.data[project3.id][
-                str(before_now(days=0).replace(hour=0, minute=0, second=0, microsecond=0))
-            ]
-            == 0
-        )
+        assert response.data[project3.id][str(before_now(days=5).date())] == 2
+        assert response.data[project3.id][str(before_now(days=0).date())] == 0
 
-        assert (
-            response.data[project1.id][
-                str(before_now(days=15).replace(hour=0, minute=0, second=0, microsecond=0))
-            ]
-            == 1
-        )
-        assert (
-            response.data[project1.id][
-                str(before_now(days=5).replace(hour=0, minute=0, second=0, microsecond=0))
-            ]
-            == 0
-        )
+        assert response.data[project1.id][str(before_now(days=15).date())] == 1
+        assert response.data[project1.id][str(before_now(days=5).date())] == 0
 
-        assert (
-            response.data[project1.id][
-                str(before_now(days=10).replace(hour=0, minute=0, second=0, microsecond=0))
-            ]
-            == 1
-        )
-        assert (
-            response.data[project1.id][
-                str(before_now(days=0).replace(hour=0, minute=0, second=0, microsecond=0))
-            ]
-            == 0
-        )
+        assert response.data[project1.id][str(before_now(days=10).date())] == 1
+        assert response.data[project1.id][str(before_now(days=0).date())] == 0

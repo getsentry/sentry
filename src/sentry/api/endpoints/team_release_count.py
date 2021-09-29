@@ -18,6 +18,8 @@ class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
         """
         project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         start, end = get_date_range_from_params(request.GET)
+        end = end.date() + timedelta(days=1)
+        start = start.date() + timedelta(days=1)
 
         bucketed_releases = (
             Release.objects.filter(
@@ -33,15 +35,10 @@ class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
 
         agg_project_counts = defaultdict(dict)
         for bucket in bucketed_releases:
-            agg_project_counts[bucket["projects"]][
-                str(bucket["bucket"].replace(tzinfo=None))
-            ] = bucket["count"]
+            agg_project_counts[bucket["projects"]][str(bucket["bucket"].date())] = bucket["count"]
 
-        current_day = start.replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=None
-        ) + timedelta(days=1)
-        end_day = end.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
-        while current_day <= end_day:
+        current_day = start
+        while current_day < end:
             key = str(current_day)
             for project_id in list(agg_project_counts.keys()):
                 if key not in agg_project_counts[project_id]:
