@@ -11,6 +11,7 @@ import {
 } from 'app/components/charts/styles';
 import {t} from 'app/locale';
 import {Organization, SelectValue} from 'app/types';
+import {TOP_EVENT_MODES} from 'app/utils/discover/types';
 
 type Props = {
   organization: Organization;
@@ -21,6 +22,8 @@ type Props = {
   displayMode: string;
   displayOptions: SelectValue<string>[];
   onDisplayChange: (value: string) => void;
+  onTopEventsChange: (value: string) => void;
+  topEvents: string;
 };
 
 export default function ChartFooter({
@@ -32,6 +35,8 @@ export default function ChartFooter({
   displayMode,
   displayOptions,
   onDisplayChange,
+  onTopEventsChange,
+  topEvents,
 }: Props) {
   const elements: React.ReactNode[] = [];
 
@@ -45,6 +50,10 @@ export default function ChartFooter({
       <SectionValue key="total-value">{total.toLocaleString()}</SectionValue>
     )
   );
+  const topEventOptions: SelectValue<string>[] = [];
+  for (let i = 2; i <= 10; i++) {
+    topEventOptions.push({value: i.toString(), label: i.toString()});
+  }
 
   return (
     <ChartControls>
@@ -57,6 +66,23 @@ export default function ChartFooter({
           onChange={onDisplayChange}
           menuWidth="170px"
         />
+        <Feature organization={organization} features={['discover-top-events']}>
+          {({hasFeature}) => {
+            if (hasFeature && TOP_EVENT_MODES.includes(displayMode)) {
+              return (
+                <OptionSelector
+                  title={t('Limit')}
+                  selected={topEvents}
+                  options={topEventOptions}
+                  onChange={onTopEventsChange}
+                  menuWidth="170px"
+                />
+              );
+            } else {
+              return null;
+            }
+          }}
+        </Feature>
         <Feature
           organization={organization}
           features={['connect-discover-and-dashboards']}

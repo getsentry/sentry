@@ -363,6 +363,25 @@ class Results extends React.Component<Props, State> {
     }
   };
 
+  handleTopEventsChange = (value: string) => {
+    const {router, location} = this.props;
+
+    const newQuery = {
+      ...location.query,
+      topEvents: value,
+    };
+
+    router.push({
+      pathname: location.pathname,
+      query: newQuery,
+    });
+
+    // Treat display changing like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
+  };
+
   getDocumentTitle(): string {
     const {organization} = this.props;
     const {eventView} = this.state;
@@ -490,6 +509,7 @@ class Results extends React.Component<Props, State> {
                   location={location}
                   onAxisChange={this.handleYAxisChange}
                   onDisplayChange={this.handleDisplayChange}
+                  onTopEventsChange={this.handleTopEventsChange}
                   total={totalValues}
                   confirmedQuery={confirmedQuery}
                   yAxis={yAxisArray}

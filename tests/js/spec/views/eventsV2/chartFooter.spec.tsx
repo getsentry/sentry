@@ -43,6 +43,8 @@ describe('EventsV2 > ChartFooter', function () {
         displayMode={DisplayModes.DEFAULT}
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
         onDisplayChange={() => undefined}
+        onTopEventsChange={() => undefined}
+        topEvents="5"
       />,
       initialData.routerContext
     );
@@ -82,6 +84,8 @@ describe('EventsV2 > ChartFooter', function () {
         displayMode={DisplayModes.DEFAULT}
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
         onDisplayChange={() => undefined}
+        onTopEventsChange={() => undefined}
+        topEvents="5"
       />,
       initialData.routerContext
     );
