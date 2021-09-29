@@ -13,7 +13,6 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupAssignee,
     models.GroupCommitResolution,
     models.GroupLink,
-    models.GroupHistory,
     models.GroupBookmark,
     models.GroupMeta,
     models.GroupEnvironment,
