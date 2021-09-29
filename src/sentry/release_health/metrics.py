@@ -13,6 +13,7 @@ from sentry.release_health.base import (
     OrganizationId,
     ProjectId,
     ProjectOrRelease,
+    ProjectRelease,
     ReleaseAdoption,
     ReleaseHealthBackend,
     ReleaseName,
@@ -647,7 +648,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             use_cache=False,
         )
 
-        def extract_row_info(row: Mapping[str, Union[OrganizationId, str]]) -> ReleaseName:
+        def extract_row_info(row: Mapping[str, Union[OrganizationId, str]]) -> ProjectRelease:
             return row.get("project_id"), reverse_tag_value(org_id, row.get(release_column_name))  # type: ignore
 
         return [extract_row_info(row) for row in result["data"]]

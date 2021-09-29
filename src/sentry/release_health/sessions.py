@@ -91,4 +91,4 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         self,
         project_ids: Sequence[ProjectId],
     ) -> Sequence[Tuple[ProjectId, ReleaseName]]:
-        return _get_changed_project_release_model_adoptions(project_ids)
+        return _get_changed_project_release_model_adoptions(project_ids)  # type: ignore
