@@ -34,8 +34,7 @@ class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
 
         current_day, time_series_dict = start, {}
         while current_day < end:
-            key = str(current_day)
-            time_series_dict[key] = 0
+            time_series_dict[str(current_day)] = 0
             current_day += timedelta(days=1)
 
         agg_project_counts = {project.id: time_series_dict.copy() for project in project_list}
