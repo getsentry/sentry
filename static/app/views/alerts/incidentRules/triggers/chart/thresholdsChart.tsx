@@ -16,7 +16,7 @@ import {isSessionAggregate} from 'app/views/alerts/utils';
 
 import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
 
-const MIN_BUFFER = 1.03;
+const MIN_MAX_BUFFER = 1.03;
 
 type DefaultProps = {
   data: Series[];
@@ -83,6 +83,12 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
   ref: null | ReactEchartsRef = null;
 
+  get shouldScale() {
+    // We want crash free rate charts to be scaled because they are usually too
+    // close to 100% and therefore too fine to see the spikes on 0%-100% scale.
+    return isSessionAggregate(this.props.aggregate);
+  }
+
   // If we have ref to chart and data, try to update chart axis so that
   // alertThreshold or resolveThreshold is visible in chart
   handleUpdateChartAxis = () => {
@@ -102,14 +108,18 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
    */
   updateChartAxis = debounce((minThreshold: number, maxThreshold: number) => {
     const {minValue, maxValue} = this.props;
-    let yAxisMax = maxValue ?? null;
-    let yAxisMin = minValue ?? null;
+    let yAxisMax =
+      this.shouldScale && maxValue
+        ? this.clampMaxValue(Math.ceil(maxValue * MIN_MAX_BUFFER))
+        : null;
+    let yAxisMin =
+      this.shouldScale && minValue ? Math.floor(minValue / MIN_MAX_BUFFER) : 0;
 
     if (typeof maxValue === 'number' && maxThreshold > maxValue) {
       yAxisMax = maxThreshold;
     }
     if (typeof minValue === 'number' && minThreshold < minValue) {
-      yAxisMin = Math.floor(minThreshold / MIN_BUFFER);
+      yAxisMin = Math.floor(minThreshold / MIN_MAX_BUFFER);
     }
 
     // We need to force update after we set a new yAxis min/max because `convertToPixel`
@@ -280,6 +290,16 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
     return axisLabelFormatter(value, data.length ? data[0].seriesName : '');
   };
+
+  clampMaxValue(value: number) {
+    // When we apply top buffer to the crash free percentage (99.7% * 1.03), it
+    // can cross 100%, so we clamp it
+    if (isSessionAggregate(this.props.aggregate) && value > 100) {
+      return 100;
+    }
+
+    return value;
+  }
 
   render() {
     const {data, triggers, period} = this.props;
