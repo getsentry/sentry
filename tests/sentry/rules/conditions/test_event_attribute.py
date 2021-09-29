@@ -150,6 +150,11 @@ class EventAttributeConditionTest(RuleTestCase):
         )
         self.assertPasses(rule, event)
 
+        rule = self.get_rule(
+            data={"match": MatchType.CONTAINS, "attribute": "message", "value": "not present"}
+        )
+        self.assertDoesNotPass(rule, event)
+
     def test_does_not_contain(self):
         event = self.get_event()
         rule = self.get_rule(
