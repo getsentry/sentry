@@ -67,6 +67,7 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
       acc[team.id] = team;
       return acc;
     }, {});
+
     // Replace or insert new user teams
     userTeams.reduce((acc: Record<string, Team>, userTeam: Team) => {
       acc[userTeam.id] = userTeam;
@@ -79,6 +80,7 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
       loadedUserTeams: true,
       teams,
     };
+
     this.trigger(new Set(Object.keys(teamIdMap)));
   },
 
