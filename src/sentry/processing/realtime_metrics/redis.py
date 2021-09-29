@@ -50,10 +50,10 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         if self._histogram_bucket_size <= 0:
             raise InvalidConfiguration("histogram bucket size must be at least 1")
 
-    def counter_key_prefix(self) -> str:
+    def _counter_key_prefix(self) -> str:
         return f"{self._prefix}:counter:{self._counter_bucket_size}"
 
-    def histogram_key_prefix(self) -> str:
+    def _histogram_key_prefix(self) -> str:
         return f"{self._prefix}:histogram:{self._histogram_bucket_size}"
 
     def increment_project_event_counter(self, project_id: int, timestamp: int) -> None:
@@ -68,7 +68,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         if self._counter_bucket_size > 1:
             timestamp -= timestamp % self._counter_bucket_size
 
-        key = f"{self.counter_key_prefix()}:{project_id}:{timestamp}"
+        key = f"{self._counter_key_prefix()}:{project_id}:{timestamp}"
 
         with self.cluster.pipeline() as pipeline:
             pipeline.incr(key)
@@ -87,7 +87,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         if self._histogram_bucket_size > 1:
             timestamp -= timestamp % self._histogram_bucket_size
 
-        key = f"{self.histogram_key_prefix()}:{project_id}:{timestamp}"
+        key = f"{self._histogram_key_prefix()}:{project_id}:{timestamp}"
         duration -= duration % 10
 
         with self.cluster.pipeline() as pipeline:
@@ -108,10 +108,10 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         # entry for it as well, but double check both to be safe
         all_keys = chain(
             self.cluster.scan_iter(
-                match=self.counter_key_prefix() + ":*",
+                match=self._counter_key_prefix() + ":*",
             ),
             self.cluster.scan_iter(
-                match=self.histogram_key_prefix() + ":*",
+                match=self._histogram_key_prefix() + ":*",
             ),
         )
 
@@ -132,7 +132,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         This may throw an exception if there is some sort of issue fetching counts from the redis
         store.
         """
-        key_prefix = f"{self.counter_key_prefix()}:{project_id}:"
+        key_prefix = f"{self._counter_key_prefix()}:{project_id}:"
 
         keys = sorted(
             self.cluster.scan_iter(
@@ -164,7 +164,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         This may throw an exception if there is some sort of issue fetching durations from the redis
         store.
         """
-        key_prefix = f"{self.histogram_key_prefix()}:{project_id}:"
+        key_prefix = f"{self._histogram_key_prefix()}:{project_id}:"
         keys = sorted(
             self.cluster.scan_iter(
                 match=key_prefix + "*",
