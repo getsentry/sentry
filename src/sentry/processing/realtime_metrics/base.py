@@ -1,9 +1,18 @@
-from collections import namedtuple
 from typing import Iterable, Set, Union
+import dataclasses
 
 from sentry.utils.services import Service
 
-BucketedCount = namedtuple("BucketedCount", ["timestamp", "count"])
+
+@dataclasses.dataclass(frozen=True)
+class BucketedCount:
+    """
+    Timestamp to count mapping. This represents some `count` amount of something performed
+    during `timestamp`. `timestamp` is stored in seconds.
+    """
+
+    timestamp: int
+    count: int
 
 
 class RealtimeMetricsStore(Service):  # type: ignore
