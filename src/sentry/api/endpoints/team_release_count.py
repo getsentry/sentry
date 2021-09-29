@@ -1,4 +1,3 @@
-from collections import defaultdict
 from datetime import timedelta
 
 from django.db.models import Count
@@ -33,16 +32,14 @@ class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
             .annotate(count=Count("id"))
         )
 
-        agg_project_counts = defaultdict(dict)
-        for bucket in bucketed_releases:
-            agg_project_counts[bucket["projects"]][str(bucket["bucket"].date())] = bucket["count"]
-
-        current_day = start
+        current_day, time_series_dict = start, {}
         while current_day < end:
             key = str(current_day)
-            for project_id in list(agg_project_counts.keys()):
-                if key not in agg_project_counts[project_id]:
-                    agg_project_counts[project_id][key] = 0
+            time_series_dict[key] = 0
             current_day += timedelta(days=1)
+
+        agg_project_counts = {project.id: time_series_dict.copy() for project in project_list}
+        for bucket in bucketed_releases:
+            agg_project_counts[bucket["projects"]][str(bucket["bucket"].date())] = bucket["count"]
 
         return Response(agg_project_counts)
