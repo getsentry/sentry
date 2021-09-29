@@ -217,7 +217,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         client = self.get_client()
         assignee = None
 
-        if assign is True:
+        if user and assign is True:
             sentry_emails = [email.email.lower() for email in user.get_verified_emails()]
             continuation_token = None
             while True:

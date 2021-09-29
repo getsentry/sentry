@@ -847,7 +847,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         client = self.get_client()
 
         jira_user = None
-        if assign:
+        if user and assign:
             for ue in user.emails.filter(is_verified=True):
                 try:
                     possible_users = client.search_users_for_issue(external_issue.key, ue.email)
