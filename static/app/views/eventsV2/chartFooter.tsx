@@ -51,7 +51,7 @@ export default function ChartFooter({
     )
   );
   const topEventOptions: SelectValue<string>[] = [];
-  for (let i = 2; i <= 10; i++) {
+  for (let i = 1; i <= 10; i++) {
     topEventOptions.push({value: i.toString(), label: i.toString()});
   }
 
@@ -75,7 +75,7 @@ export default function ChartFooter({
                   selected={topEvents}
                   options={topEventOptions}
                   onChange={onTopEventsChange}
-                  menuWidth="170px"
+                  menuWidth="60px"
                 />
               );
             } else {
