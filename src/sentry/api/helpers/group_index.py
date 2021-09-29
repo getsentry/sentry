@@ -498,8 +498,17 @@ def build_rate_limit_key(function, request):
 
 
 def rate_limit_endpoint(limit=1, window=1):
+    """
+    Rate limitting wrapper for endpoints
+    Limits hits on an endpoint to `limit` hits per `window` seconds
+
+    :param int limit: Number of hits allowed in the window
+    :param int window: rate limit window size in seconds
+    """
+
     def inner(function):
         def wrapper(self, request, *args, **kwargs):
+
             if ratelimiter.is_limited(
                 build_rate_limit_key(function, request),
                 limit=limit,
