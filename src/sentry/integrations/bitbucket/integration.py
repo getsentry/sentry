@@ -200,7 +200,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         bindings.add(
             "integration-repository.provider",
             BitbucketRepositoryProvider,
-            id="integrations:%s" % self.key,
+            id=f"integrations:{self.key}",
         )
 
 

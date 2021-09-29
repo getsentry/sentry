@@ -55,7 +55,7 @@ class GitHubEnterprisePushEventWebhook(PushEventWebhook):
         return email[-25:] == "@users.noreply.github.com"
 
     def get_external_id(self, username):
-        return "github_enterprise:%s" % username
+        return f"github_enterprise:{username}"
 
     def get_idp_external_id(self, integration, host):
         return "{}:{}".format(host, integration.metadata["installation"]["id"])
@@ -72,7 +72,7 @@ class GitHubEnterprisePullRequestEventWebhook(PullRequestEventWebhook):
         return email[-25:] == "@users.noreply.github.com"
 
     def get_external_id(self, username):
-        return "github_enterprise:%s" % username
+        return f"github_enterprise:{username}"
 
     def get_idp_external_id(self, integration, host):
         return "{}:{}".format(host, integration.metadata["installation"]["id"])

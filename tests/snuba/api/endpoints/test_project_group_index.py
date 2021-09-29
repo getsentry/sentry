@@ -334,7 +334,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_token_auth(self):
         token = ApiToken.objects.create(user=self.user, scopes=256)
         response = self.client.get(
-            self.path, format="json", HTTP_AUTHORIZATION="Bearer %s" % token.token
+            self.path, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}"
         )
         assert response.status_code == 200, response.content
 

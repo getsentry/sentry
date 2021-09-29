@@ -653,7 +653,7 @@ class PostSentryAppsTest(SentryAppsTest):
 
         url = reverse("sentry-api-0-organization-projects", args=[self.org.slug])
         response = self.client.get(
-            url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION="Bearer %s" % (token.token)
+            url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION=f"Bearer {token.token}"
         )
         assert response.status_code == 200
 
@@ -670,7 +670,7 @@ class PostSentryAppsTest(SentryAppsTest):
 
         url = reverse("sentry-api-0-organization-projects", args=[self.org.slug])
         response = self.client.get(
-            url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION="Bearer %s" % (token.token)
+            url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION=f"Bearer {token.token}"
         )
         assert response.status_code == 400
 

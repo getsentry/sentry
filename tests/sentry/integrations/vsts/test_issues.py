@@ -152,7 +152,7 @@ class VstsIssueSyncTest(VstsIssueBase):
     def test_get_issue(self):
         responses.add(
             responses.GET,
-            "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%s" % self.issue_id,
+            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{self.issue_id}",
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
         )
@@ -170,8 +170,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         vsts_work_item_id = 5
         responses.add(
             responses.PATCH,
-            "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
-            % vsts_work_item_id,
+            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
         )
@@ -265,8 +264,7 @@ class VstsIssueSyncTest(VstsIssueBase):
 
         assert (
             responses.calls[2].request.url
-            == "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
-            % vsts_work_item_id
+            == f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}"
         )
         request_body = json.loads(responses.calls[2].request.body)
         assert len(request_body) == 1
@@ -280,8 +278,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         vsts_work_item_id = 5
         responses.add(
             responses.PATCH,
-            "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
-            % vsts_work_item_id,
+            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
         )
@@ -293,8 +290,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         )
         responses.add(
             responses.GET,
-            "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
-            % vsts_work_item_id,
+            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
         )
@@ -324,8 +320,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         req = responses.calls[2].request
         assert (
             req.url
-            == "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d"
-            % vsts_work_item_id
+            == f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}"
         )
         assert json.loads(req.body) == [
             {"path": "/fields/System.State", "value": "Resolved", "op": "replace"}

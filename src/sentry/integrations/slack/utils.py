@@ -150,7 +150,7 @@ def get_channel_id_with_timeout(
         3. timed_out: boolean (whether we hit our self-imposed time limit)
     """
 
-    headers = {"Authorization": "Bearer %s" % integration.metadata["access_token"]}
+    headers = {"Authorization": f"Bearer {integration.metadata['access_token']}"}
 
     payload = {
         "exclude_archived": False,
@@ -169,7 +169,7 @@ def get_channel_id_with_timeout(
     for list_type, result_name, prefix in list_types:
         cursor = ""
         while True:
-            endpoint = "/%s.list" % list_type
+            endpoint = f"/{list_type}.list"
             try:
                 # Slack limits the response of `<list_type>.list` to 1000 channels
                 items = client.get(

@@ -665,7 +665,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get(
             reverse("sentry-api-0-organization-group-index", args=[self.project.organization.slug]),
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % token.token,
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
         assert response.status_code == 200, response.content
 

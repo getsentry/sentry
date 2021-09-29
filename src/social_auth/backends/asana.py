@@ -48,7 +48,7 @@ class AsanaAuth(BaseOAuth2):
 
     def user_data(self, access_token, *args, **kwargs):
         """Loads user data from service"""
-        headers = {"Authorization": "Bearer %s" % access_token}
+        headers = {"Authorization": f"Bearer {access_token}"}
         try:
             resp = requests.get(ASANA_USER_DETAILS_URL, headers=headers)
             resp.raise_for_status()

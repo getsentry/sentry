@@ -11,7 +11,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
 
     def get_installation(self, integration_id, organization_id):
         if integration_id is None:
-            raise IntegrationError("%s requires an integration id." % self.name)
+            raise IntegrationError(f"{self.name} requires an integration id.")
 
         integration_model = Integration.objects.get(
             id=integration_id, organizations=organization_id, provider="gitlab"

@@ -215,7 +215,7 @@ def build_actions(
 
     ignore_button = {"name": "status", "value": "ignored", "type": "button", "text": "Ignore"}
 
-    cache_key = "has_releases:2:%s" % project.id
+    cache_key = f"has_releases:2:{project.id}"
     has_releases = cache.get(cache_key)
     if has_releases is None:
         has_releases = ReleaseProject.objects.filter(project_id=project.id).exists()

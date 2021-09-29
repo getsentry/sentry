@@ -359,7 +359,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def create_comment_attribution(self, user_id, comment_text):
         user = User.objects.get(id=user_id)
-        attribution = "%s wrote:\n\n" % user.name
+        attribution = f"{user.name} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
     def update_comment(self, issue_id, user_id, group_note):

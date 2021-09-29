@@ -55,7 +55,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         logging_data = logging_data.copy()
         logging_data["response"] = str(error.body)
         logging_data["action_type"] = action_type
-        logger.info("slack.action.api-error-pre-message: %s" % str(logging_data))
+        logger.info(f"slack.action.api-error-pre-message: {str(logging_data)}")
         logger.info("slack.action.api-error", extra=logging_data)
 
         return self.respond(

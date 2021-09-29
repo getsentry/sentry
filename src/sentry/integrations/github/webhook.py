@@ -64,7 +64,7 @@ class Webhook:
 
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
-                provider="integrations:%s" % self.provider,
+                provider=f"integrations:{self.provider}",
                 external_id=str(event["repository"]["id"]),
             )
             for repo in repos:
@@ -142,7 +142,7 @@ class InstallationEventWebhook(Webhook):
 
         Repository.objects.filter(
             organization_id__in=organizations.values_list("id", flat=True),
-            provider="integrations:%s" % self.provider,
+            provider=f"integrations:{self.provider}",
             integration_id=integration.id,
         ).update(status=ObjectStatus.DISABLED)
 
@@ -160,7 +160,7 @@ class PushEventWebhook(Webhook):
         return email[-25:] == "@users.noreply.github.com"
 
     def get_external_id(self, username):
-        return "github:%s" % username
+        return f"github:{username}"
 
     def get_idp_external_id(self, integration, host=None):
         return options.get("github-app.id")
@@ -305,7 +305,7 @@ class PullRequestEventWebhook(Webhook):
         return email[-25:] == "@users.noreply.github.com"
 
     def get_external_id(self, username):
-        return "github:%s" % username
+        return f"github:{username}"
 
     def get_idp_external_id(self, integration, host=None):
         return options.get("github-app.id")

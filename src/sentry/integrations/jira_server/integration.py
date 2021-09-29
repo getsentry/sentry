@@ -181,7 +181,7 @@ class OAuthLoginView(PipelineView):
                 "identity.jira-server.request-token",
                 extra={"url": config.get("url"), "error": error},
             )
-            return pipeline.error("Could not fetch a request token from Jira. %s" % error)
+            return pipeline.error(f"Could not fetch a request token from Jira. {error}")
 
 
 class OAuthCallbackView(PipelineView):

@@ -54,7 +54,7 @@ INSTALL_NOTICE_TEXT = _(
 
 
 external_install = {
-    "url": "https://vercel.com/integrations/%s/add" % options.get("vercel.integration-slug"),
+    "url": f"https://vercel.com/integrations/{options.get('vercel.integration-slug')}/add",
     "buttonText": _("Vercel Marketplace"),
     "noticeText": _(INSTALL_NOTICE_TEXT),
 }
@@ -97,7 +97,7 @@ class VercelIntegration(IntegrationInstallation):
             "/settings/%s/integrations/?%s"
             % (organization.slug, urlencode({"category": "source code management"}))
         )
-        add_project_link = absolute_uri("/organizations/%s/projects/new/" % (organization.slug))
+        add_project_link = absolute_uri(f"/organizations/{organization.slug}/projects/new/")
         return {
             "configure_integration": {
                 "instructions": [
@@ -146,7 +146,7 @@ class VercelIntegration(IntegrationInstallation):
         vercel_client = self.get_client()
         # TODO: add try/catch if we get API failure
         slug = self.get_slug()
-        base_url = "https://vercel.com/%s" % slug
+        base_url = f"https://vercel.com/{slug}"
         vercel_projects = [
             {"value": p["id"], "label": p["name"], "url": "{}/{}".format(base_url, p["name"])}
             for p in vercel_client.get_projects()

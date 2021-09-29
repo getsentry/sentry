@@ -591,7 +591,7 @@ def build_assignee_note(group):
     assignee = get_assignee_string(group)
     if not assignee:
         return None
-    return {"type": "TextBlock", "size": "Small", "text": "**Assigned to %s**" % (assignee)}
+    return {"type": "TextBlock", "size": "Small", "text": f"**Assigned to {assignee}**"}
 
 
 def build_group_card(group, event, rules, integration):
