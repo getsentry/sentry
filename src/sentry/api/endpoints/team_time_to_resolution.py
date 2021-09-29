@@ -18,6 +18,8 @@ class TeamTimeToResolutionEndpoint(TeamEndpoint, EnvironmentMixin):
         """
         project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         start, end = get_date_range_from_params(request.GET)
+        end = end.replace(hour=23, minute=59, second=59, microsecond=999999)
+        start = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         history_list = (
             GroupHistory.objects.filter(
                 status=GroupHistoryStatus.RESOLVED,
@@ -38,10 +40,9 @@ class TeamTimeToResolutionEndpoint(TeamEndpoint, EnvironmentMixin):
                 sums[key]["count"] += 1
             else:
                 sums[key] = {"sum": gh["ttr"], "count": 1}
-        current_day = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-        end_day = end.replace(hour=0, minute=0, second=0, microsecond=0)
         avgs = {}
-        while current_day <= end_day:
+        current_day = start
+        while current_day <= end:
             key = str(current_day)
             if key in sums:
                 avg = int((sums[key]["sum"] / sums[key]["count"]).total_seconds())
