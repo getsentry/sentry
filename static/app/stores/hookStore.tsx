@@ -69,7 +69,6 @@ const validHookNames = new Set<HookName>([
   'routes:admin',
   'routes:api',
   'routes:organization',
-  'routes:organization-root',
   'settings:api-navigation-config',
   'settings:organization-navigation',
   'settings:organization-navigation-config',

@@ -1600,7 +1600,6 @@ function routes() {
   // me why we need the OrganizationRoot root container.
   const legacyOrganizationRootRoutes = (
     <Route component={errorHandler(OrganizationRoot)}>
-      {hook('routes:organization-root')}
       <Route
         path="/organizations/:orgId/teams/new/"
         componentPromise={() => import('app/views/teamCreate')}
