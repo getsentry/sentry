@@ -313,6 +313,12 @@ def cron(**options):
     help="How many messages to process (may or may not result in an enqueued task) before committing offsets.",
 )
 @click.option(
+    "--commit-batch-timeout-ms",
+    default=5000,
+    type=int,
+    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
+)
+@click.option(
     "--initial-offset-reset",
     default="latest",
     type=click.Choice(["earliest", "latest"]),
@@ -330,6 +336,7 @@ def post_process_forwarder(**options):
             commit_log_topic=options["commit_log_topic"],
             synchronize_commit_group=options["synchronize_commit_group"],
             commit_batch_size=options["commit_batch_size"],
+            commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
             initial_offset_reset=options["initial_offset_reset"],
         )
     except ForwarderNotRequired:
