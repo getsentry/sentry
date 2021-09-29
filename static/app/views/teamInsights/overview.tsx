@@ -230,9 +230,9 @@ function TeamInsightsOverview({
             </DescriptionCard>
 
             <DescriptionCard
-              title={t('Alerts Triggered')}
+              title={t('Metric Alerts Triggered')}
               description={t(
-                'This shows the alerts triggered from the alert rules that your team owns and breaks it down by those alerts that were seen by your team and those that weren’t.'
+                'These are the alerts triggered from the Alert Rules your team created.'
               )}
             >
               <TeamAlertsTriggered
