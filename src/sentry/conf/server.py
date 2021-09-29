@@ -562,8 +562,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
-    "sentry.tasks.low_priority_symbolication"
-    "sentry.tasks.members",
+    "sentry.tasks.low_priority_symbolication" "sentry.tasks.members",
     "sentry.tasks.merge",
     "sentry.tasks.releasemonitor",
     "sentry.tasks.options",

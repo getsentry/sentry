@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Dict, Iterable, Set, NewType
+from typing import Dict, Iterable, NewType, Set
 
 from sentry.utils.services import Service
 

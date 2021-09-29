@@ -1,7 +1,7 @@
 import datetime
 import logging
-from typing import Iterable, Set
 from itertools import chain
+from typing import Iterable, Set
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis

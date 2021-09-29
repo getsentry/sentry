@@ -5,8 +5,12 @@ from typing import TYPE_CHECKING, Any, Dict
 import pytest
 
 from sentry.processing import realtime_metrics  # type: ignore
+from sentry.processing.realtime_metrics.base import (  # type: ignore
+    BucketedCount,
+    BucketedDurations,
+    DurationHistogram,
+)
 from sentry.processing.realtime_metrics.redis import RedisRealtimeMetricsStore  # type: ignore
-from sentry.processing.realtime_metrics.base import BucketedCount, BucketedDurations, DurationHistogram  # type: ignore
 from sentry.utils import redis
 
 if TYPE_CHECKING:
