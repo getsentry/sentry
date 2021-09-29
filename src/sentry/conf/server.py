@@ -890,6 +890,8 @@ SENTRY_FEATURES = {
     "organizations:app-store-connect-multiple": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
+    # Enable the linked event feature in the issue details breadcrumb.
+    "organizations:breadcrumb-linked-event": False,
     # Enable change alerts for an org
     "organizations:change-alerts": False,
     # Enable unfurling charts using the Chartcuterie service

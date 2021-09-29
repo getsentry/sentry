@@ -16,7 +16,7 @@ import Type from './type';
 type Props = Pick<React.ComponentProps<typeof Data>, 'route' | 'router'> & {
   breadcrumb: Crumb;
   event: Event;
-  orgSlug: Organization['slug'];
+  organization: Organization;
   searchTerm: string;
   relativeTime: string;
   displayRelativeTime: boolean;
@@ -28,7 +28,7 @@ type Props = Pick<React.ComponentProps<typeof Data>, 'route' | 'router'> & {
 };
 
 const Breadcrumb = memo(function Breadcrumb({
-  orgSlug,
+  organization,
   event,
   breadcrumb,
   relativeTime,
@@ -56,7 +56,7 @@ const Breadcrumb = memo(function Breadcrumb({
       <Category category={category} searchTerm={searchTerm} />
       <Data
         event={event}
-        orgSlug={orgSlug}
+        organization={organization}
         breadcrumb={breadcrumb}
         searchTerm={searchTerm}
         route={route}

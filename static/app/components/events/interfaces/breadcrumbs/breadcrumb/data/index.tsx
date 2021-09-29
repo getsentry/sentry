@@ -11,18 +11,22 @@ type Props = Pick<React.ComponentProps<typeof LinkedEvent>, 'route' | 'router'> 
   searchTerm: string;
   breadcrumb: RawCrumb;
   event: Event;
-  orgSlug: Organization['slug'];
+  organization: Organization;
 };
 
-function Data({breadcrumb, event, orgSlug, searchTerm, route, router}: Props) {
-  const linkedEvent = breadcrumb.event_id ? (
-    <LinkedEvent
-      orgSlug={orgSlug}
-      eventId={breadcrumb.event_id}
-      route={route}
-      router={router}
-    />
-  ) : undefined;
+function Data({breadcrumb, event, organization, searchTerm, route, router}: Props) {
+  const orgSlug = organization.slug;
+
+  const linkedEvent =
+    !!organization.features?.includes('breadcrumb-linked-event') &&
+    breadcrumb.event_id ? (
+      <LinkedEvent
+        orgSlug={orgSlug}
+        eventId={breadcrumb.event_id}
+        route={route}
+        router={router}
+      />
+    ) : undefined;
 
   if (breadcrumb.type === BreadcrumbType.HTTP) {
     return (
