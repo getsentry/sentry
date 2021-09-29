@@ -19,6 +19,7 @@ class TeamTimeToResolutionTest(APITestCase):
         group2 = self.create_group(checksum="b" * 32, project=project2, times_seen=5)
 
         gh1 = GroupHistory.objects.create(
+            organization=self.organization,
             group=group1,
             project=project1,
             actor=self.user.actor,
@@ -29,6 +30,7 @@ class TeamTimeToResolutionTest(APITestCase):
         )
 
         GroupHistory.objects.create(
+            organization=self.organization,
             group=group1,
             project=project1,
             actor=self.user.actor,
@@ -39,6 +41,7 @@ class TeamTimeToResolutionTest(APITestCase):
         )
 
         gh2 = GroupHistory.objects.create(
+            organization=self.organization,
             group=group2,
             project=project2,
             actor=self.user.actor,
@@ -49,6 +52,7 @@ class TeamTimeToResolutionTest(APITestCase):
         )
 
         GroupHistory.objects.create(
+            organization=self.organization,
             group=group2,
             project=project2,
             actor=self.user.actor,
@@ -56,13 +60,9 @@ class TeamTimeToResolutionTest(APITestCase):
             prev_history=gh2,
             prev_history_date=gh2.date_added,
         )
-        today = str(now().replace(hour=0, minute=0, second=0, microsecond=0))
-        yesterday = str(
-            (now() - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-        )
-        two_days_ago = str(
-            (now() - timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
-        )
+        today = str(now().date())
+        yesterday = str((now() - timedelta(days=1)).date())
+        two_days_ago = str((now() - timedelta(days=2)).date())
         self.login_as(user=self.user)
         response = self.get_success_response(
             self.team.organization.slug, self.team.slug, statsPeriod="14d"
@@ -74,6 +74,7 @@ class TeamTimeToResolutionTest(APITestCase):
 
         # Lower "todays" average by adding another resolution, but this time 5 days instead of 10 (avg is 7.5 now)
         gh2 = GroupHistory.objects.create(
+            organization=self.organization,
             group=group2,
             project=project2,
             actor=self.user.actor,
@@ -83,6 +84,7 @@ class TeamTimeToResolutionTest(APITestCase):
             prev_history_date=None,
         )
         GroupHistory.objects.create(
+            organization=self.organization,
             group=group2,
             project=project2,
             actor=self.user.actor,
@@ -93,6 +95,7 @@ class TeamTimeToResolutionTest(APITestCase):
 
         # making sure it doesnt bork anything
         GroupHistory.objects.create(
+            organization=self.organization,
             group=group2,
             project=project2,
             actor=self.user.actor,
