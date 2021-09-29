@@ -323,7 +323,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   transformPreviousPeriodData(
     current: EventsStatsData,
     previous: EventsStatsData | null,
-    index: number = 0
+    seriesName?: string
   ): Series | null {
     // Need the current period data array so we can take the timestamp
     // so we can be sure the data lines up
@@ -332,7 +332,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     }
 
     return {
-      seriesName: this.props.previousSeriesNames?.[index] ?? 'Previous',
+      seriesName: seriesName ?? 'Previous',
       data: this.calculateTotalsPerTimestamp(
         previous,
         (_timestamp, _countArray, i) => current[i][0] * 1000
@@ -366,20 +366,30 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     ];
   }
 
-  processData(response: EventsStats, seriesIndex: number = 0) {
+  processData(response: EventsStats, seriesIndex: number = 0, seriesName?: string) {
     const {data, totals} = response;
     const {
       includeTransformedData,
       includeTimeAggregation,
       timeAggregationSeriesName,
       currentSeriesNames,
+      previousSeriesNames,
     } = this.props;
     const {current, previous} = this.getData(data);
     const transformedData = includeTransformedData
-      ? this.transformTimeseriesData(current, currentSeriesNames?.[seriesIndex])
+      ? this.transformTimeseriesData(
+          current,
+          currentSeriesNames?.[seriesIndex] ?? seriesName
+        )
       : [];
     const previousData = includeTransformedData
-      ? this.transformPreviousPeriodData(current, previous, seriesIndex)
+      ? this.transformPreviousPeriodData(
+          current,
+          previous,
+          previousSeriesNames?.[seriesIndex] ?? seriesName
+            ? `previous ${seriesName}`
+            : undefined
+        )
       : null;
     const timeAggregatedData = includeTimeAggregation
       ? this.transformAggregatedTimeseries(current, timeAggregationSeriesName || '')
@@ -428,7 +438,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       const sortedTimeseriesData = Object.keys(timeseriesData)
         .map((seriesName: string, index: number): [number, Series, Series | null] => {
           const seriesData: EventsStats = timeseriesData[seriesName];
-          const processedData = this.processData(seriesData, index);
+          const processedData = this.processData(seriesData, index, seriesName);
           if (!timeframe) {
             timeframe = processedData.timeframe;
           }

@@ -171,15 +171,17 @@ describe('EventsRequest', function () {
               ],
             },
           ],
-          previousTimeseriesData: {
-            seriesName: 'Previous',
-            data: [
-              expect.objectContaining({
-                name: expect.anything(),
-                value: 400,
-              }),
-            ],
-          },
+          previousTimeseriesData: [
+            expect.objectContaining({
+              seriesName: 'Previous',
+              data: [
+                expect.objectContaining({
+                  name: expect.anything(),
+                  value: 400,
+                }),
+              ],
+            }),
+          ],
 
           originalTimeseriesData: [
             [expect.anything(), [expect.objectContaining({count: 123})]],
@@ -331,15 +333,17 @@ describe('EventsRequest', function () {
               ],
             },
           ],
-          previousTimeseriesData: {
-            seriesName: 'Previous',
-            data: [
-              expect.objectContaining({
-                name: expect.anything(),
-                value: 400,
-              }),
-            ],
-          },
+          previousTimeseriesData: [
+            expect.objectContaining({
+              seriesName: 'Previous',
+              data: [
+                expect.objectContaining({
+                  name: expect.anything(),
+                  value: 400,
+                }),
+              ],
+            }),
+          ],
 
           originalTimeseriesData: [
             [expect.anything(), [expect.objectContaining({count: 123})]],
@@ -389,7 +393,7 @@ describe('EventsRequest', function () {
       );
 
       wrapper = mountWithTheme(
-        <EventsRequest {...DEFAULTS} includePrevious yAxis={['apdex()', 'epm()']}>
+        <EventsRequest {...DEFAULTS} yAxis={['apdex()', 'epm()']}>
           {mock}
         </EventsRequest>
       );
@@ -453,12 +457,7 @@ describe('EventsRequest', function () {
       );
 
       wrapper = mountWithTheme(
-        <EventsRequest
-          {...DEFAULTS}
-          includePrevious
-          field={['project', 'level']}
-          topEvents={2}
-        >
+        <EventsRequest {...DEFAULTS} field={['project', 'level']} topEvents={2}>
           {mock}
         </EventsRequest>
       );
