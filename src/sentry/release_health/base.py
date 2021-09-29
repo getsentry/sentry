@@ -63,6 +63,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "check_has_health_data",
         "get_release_sessions_time_bounds",
         "check_releases_have_health_data",
+        "get_changed_project_release_model_adoptions",
     )
 
     def get_current_and_previous_crash_free_rates(
@@ -171,8 +172,17 @@ class ReleaseHealthBackend(Service):  # type: ignore
         start: datetime,
         end: datetime,
     ) -> Set[ReleaseName]:
-
         """
         Returns a set of all release versions that have health data within a given period of time.
+        """
+        raise NotImplementedError()
+
+    def get_changed_project_release_model_adoptions(
+        self,
+        project_ids: Sequence[ProjectId],
+    ) -> Sequence[ProjectRelease]:
+        """
+        Returns a sequence of tuples (ProjectId, ReleaseName) with the
+        releases seen in the last 72 hours for the requested projects.
         """
         raise NotImplementedError()

@@ -31,7 +31,7 @@ def _get_conditions_and_filter_keys(project_releases, environments):
     return conditions, filter_keys
 
 
-def get_changed_project_release_model_adoptions(project_ids):
+def _get_changed_project_release_model_adoptions(project_ids):
     """Returns the last 72 hours worth of releases."""
     start = datetime.now(pytz.utc) - timedelta(days=3)
     rv = []
