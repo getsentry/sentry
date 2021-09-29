@@ -11,6 +11,7 @@ const TeamActions = Reflux.createActions([
   'fetchDetailsError',
   'fetchDetailsSuccess',
   'loadTeams',
+  'loadUserTeams',
   'removeTeam',
   'removeTeamError',
   'removeTeamSuccess',

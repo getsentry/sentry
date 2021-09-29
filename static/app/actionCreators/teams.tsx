@@ -47,6 +47,12 @@ export function fetchTeams(api: Client, params: OrgSlug, options: CallbackOption
   });
 }
 
+// Fetch user teams for current org and place them in the team store
+export async function fetchUserTeams(api: Client, params: OrgSlug) {
+  const teams = await api.requestPromise(`/organizations/${params.orgId}/user-teams/`);
+  TeamActions.loadUserTeams(teams);
+}
+
 export function fetchTeamDetails(
   api: Client,
   params: OrgAndTeamSlug,
