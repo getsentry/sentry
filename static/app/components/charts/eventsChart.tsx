@@ -397,11 +397,10 @@ type ChartDataProps = {
   reloading: boolean;
   results?: Series[];
   timeseriesData?: Series[];
-  previousTimeseriesData?: Series | null;
+  previousTimeseriesData?: Series[] | null;
   releaseSeries?: Series[];
   timeframe?: {start: number; end: number};
   topEvents?: number;
-  previousMultiSeriesResults?: Series[];
 };
 
 class EventsChart extends React.Component<EventsChartProps> {
@@ -482,7 +481,6 @@ class EventsChart extends React.Component<EventsChartProps> {
       timeseriesData,
       previousTimeseriesData,
       timeframe,
-      previousMultiSeriesResults,
     }: ChartDataProps) => {
       if (errored) {
         return (
@@ -511,9 +509,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             releaseSeries={releaseSeries || []}
             timeseriesData={seriesData ?? []}
             previousTimeseriesData={
-              previousMultiSeriesResults
-                ? previousMultiSeriesResults
-                : previousTimeseriesData
+              previousTimeseriesData && !Array.isArray(previousTimeseriesData)
                 ? [previousTimeseriesData]
                 : previousTimeseriesData
             }

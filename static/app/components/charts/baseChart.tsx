@@ -291,7 +291,6 @@ function BaseChartUnwrapped({
 
   const resolveColors =
     colors !== undefined ? (Array.isArray(colors) ? colors : colors(theme)) : null;
-
   const color =
     resolveColors ||
     (series.length ? theme.charts.getColorPalette(series.length) : theme.charts.colors);
@@ -310,16 +309,16 @@ function BaseChartUnwrapped({
       : series) ?? [];
 
   const transformedPreviousPeriod =
-    previousPeriod?.map((previous, index) =>
+    previousPeriod?.map((previous, seriesIndex) =>
       LineSeries({
         name: previous.seriesName,
         data: previous.data.map(({name, value}) => [name, value]),
         lineStyle: {
-          color: previousPeriodColors ? previousPeriodColors[index] : theme.gray200,
+          color: previousPeriodColors ? previousPeriodColors[seriesIndex] : theme.gray200,
           type: 'dotted',
         },
         itemStyle: {
-          color: previousPeriodColors ? previousPeriodColors[index] : theme.gray200,
+          color: previousPeriodColors ? previousPeriodColors[seriesIndex] : theme.gray200,
         },
         stack: 'previous',
       })

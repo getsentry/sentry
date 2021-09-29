@@ -24,7 +24,7 @@ export type TimeSeriesData = {
   originalTimeseriesData?: EventsStatsData;
   timeseriesTotals?: {count: number};
   originalPreviousTimeseriesData?: EventsStatsData | null;
-  previousTimeseriesData?: Series | null;
+  previousTimeseriesData?: Series[] | null;
   timeAggregatedData?: Series | {};
   timeframe?: {start: number; end: number};
 };
@@ -44,7 +44,6 @@ type MultiSeriesResults = Series[];
 export type RenderProps = LoadingStatus &
   TimeSeriesData & {
     results?: MultiSeriesResults;
-    previousMultiSeriesResults?: MultiSeriesResults;
   };
 
 type DefaultProps = {
@@ -443,7 +442,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       const results: MultiSeriesResults = sortedTimeseriesData.map(item => {
         return item[1];
       });
-      const previousMultiSeriesResults: MultiSeriesResults | undefined =
+      const previousTimeseriesData: MultiSeriesResults | undefined =
         sortedTimeseriesData.some(item => item[2] === null)
           ? undefined
           : sortedTimeseriesData.map(item => {
@@ -456,7 +455,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         errored,
         results,
         timeframe,
-        previousMultiSeriesResults,
+        previousTimeseriesData,
         // sometimes we want to reference props that were given to EventsRequest
         ...props,
       });
@@ -483,7 +482,9 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         originalTimeseriesData,
         timeseriesTotals,
         originalPreviousTimeseriesData,
-        previousTimeseriesData,
+        previousTimeseriesData: previousTimeseriesData
+          ? [previousTimeseriesData]
+          : previousTimeseriesData,
         timeAggregatedData,
         timeframe,
         // sometimes we want to reference props that were given to EventsRequest
@@ -494,6 +495,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       loading,
       reloading,
       errored,
+      ...props,
     });
   }
 }
