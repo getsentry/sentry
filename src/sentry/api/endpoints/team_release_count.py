@@ -25,7 +25,6 @@ class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
                 date_added__gte=start,
                 date_added__lte=end,
             )
-            .distinct()
             .annotate(bucket=TruncDay("date_added"))
             .order_by("bucket")
             .values("projects", "bucket")
