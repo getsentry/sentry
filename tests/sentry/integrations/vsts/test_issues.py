@@ -370,7 +370,7 @@ class VstsIssueSyncTest(VstsIssueBase):
 
     @responses.activate
     def test_should_resolve_done_status_failure(self):
-        """TODO(mgaeta): Should this be NOOP instead of unresolving when we lose connecttion?"""
+        """TODO(mgaeta): Should this be NOOP instead of UNRESOLVE when we lose connection?"""
         responses.reset()
         responses.add(
             responses.GET,
