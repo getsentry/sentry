@@ -10,4 +10,4 @@ def redis_cluster() -> redis._RedisCluster:
 
 
 def test_calculation_magic():
-    assert not calculation_magic([])
+    assert not calculation_magic([], [])
