@@ -119,7 +119,7 @@ class GitHubClientMixin(ApiClient):
     def request(self, method, path, headers=None, data=None, params=None):
         if headers is None:
             headers = {
-                "Authorization": "token %s" % self.get_token(),
+                "Authorization": f"token {self.get_token()}",
                 # TODO(jess): remove this whenever it's out of preview
                 "Accept": "application/vnd.github.machine-man-preview+json",
             }

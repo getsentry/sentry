@@ -341,7 +341,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         # VSTS uses markdown or xml
         # https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/bots/bots-text-formats
         user = User.objects.get(id=user_id)
-        attribution = "%s wrote:\n\n" % user.name
+        attribution = f"{user.name} wrote:\n\n"
         quoted_comment = f"{attribution}<blockquote>{comment_text}</blockquote>"
         return quoted_comment
 

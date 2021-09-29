@@ -299,18 +299,12 @@ class IssueSyncMixin(IssueBasicMixin):
     outbound_assignee_key = None
     inbound_assignee_key = None
 
-    def should_sync(self, attribute):
-        try:
-            key = getattr(self, "%s_key" % attribute)
-        except AttributeError:
-            return False
-
+    def should_sync(self, attribute: str) -> bool:
+        key = getattr(self, f"{attribute}_key", None)
         if key is None:
             return False
-
-        config = self.org_integration.config
-
-        return config.get(key, False)
+        value: bool = self.org_integration.config.get(key, False)
+        return value
 
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         """
