@@ -31,7 +31,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     def _get_activity(self, request, group, num):
-        return Activity.get_activities_for_group(group, num)
+        return Activity.objects.get_activities_for_group(group, num)
 
     def _get_seen_by(self, request, group):
         seen_by = list(
