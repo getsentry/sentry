@@ -31,7 +31,6 @@ class TeamAlertsTriggeredEndpoint(TeamEndpoint, EnvironmentMixin):
                     | Q(
                         type=IncidentActivityType.STATUS_CHANGE.value,
                         value__in=[
-                            None,
                             IncidentStatus.OPEN,
                             IncidentStatus.CRITICAL,
                             IncidentStatus.WARNING,
@@ -56,9 +55,7 @@ class TeamAlertsTriggeredEndpoint(TeamEndpoint, EnvironmentMixin):
         ) + timedelta(days=1)
         end_day = end.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
         while current_day <= end_day:
-            key = str(current_day)
-            if key not in counts:
-                counts[key] = 0
+            counts.setdefault(str(current_day), 0)
             current_day += timedelta(days=1)
 
         return Response(counts)
