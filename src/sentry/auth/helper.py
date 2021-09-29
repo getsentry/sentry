@@ -410,12 +410,7 @@ class AuthIdentityHandler:
         else:
             acting_user = self.user
             login_form = None
-        # If they already have an SSO account and the identity provider says
-        # the email matches we go ahead and let them merge it. This is the
-        # only way to prevent them having duplicate accounts, and because
-        # we trust identity providers, its considered safe.
-        # Note: we do not trust things like SAML, so the SSO implementation needs
-        # to consider if 'email_verified' can be trusted or not
+        # we don't trust all IDP email verification, so users can also confirm via one time email link
         if (
             acting_user
             and identity.get("email_verified")
