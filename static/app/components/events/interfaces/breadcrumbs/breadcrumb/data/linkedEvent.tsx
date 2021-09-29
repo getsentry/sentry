@@ -32,6 +32,7 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
     useSessionStorage<undefined | StoredLinkedEvent>(eventId);
 
   const [eventIdLookup, setEventIdLookup] = useState<undefined | EventIdResponse>();
+  const [hasError, setHasError] = useState(false);
 
   const api = useApi();
 
@@ -60,10 +61,17 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
 
       setEventIdLookup(response);
     } catch (error) {
+      setHasError(true);
+
+      if (error.status === 404) {
+        return;
+      }
+
       addErrorMessage(
         t('An error occured while fetching the data of the breadcrumb event link')
       );
       Sentry.captureException(error);
+
       // do nothing. The link won't be displayed
     }
   }
@@ -82,12 +90,22 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
       const {groupId} = eventIdLookup;
       setStoredLinkedEvent({shortId, project, groupId, orgSlug});
     } catch (error) {
+      setHasError(true);
+
+      if (error.status === 404) {
+        return;
+      }
+
       addErrorMessage(
         t('An error occured while fetching the data of the breadcrumb event link')
       );
       Sentry.captureException(error);
       // do nothing. The link won't be displayed
     }
+  }
+
+  if (hasError) {
+    return null;
   }
 
   if (!storedLinkedEvent) {
