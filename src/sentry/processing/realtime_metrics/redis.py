@@ -226,7 +226,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         # This returns 0 if project_id was already in the set, 1 if it was added, and throws an
         # exception if there's a problem. If this successfully completes then the project is
         # expected to be in the set.
-        return self.cluster.sadd(LPQ_MEMBERS_KEY, project_id) > 0
+        return int(self.cluster.sadd(LPQ_MEMBERS_KEY, project_id)) > 0
 
     def remove_project_from_lpq(self, project_id: int) -> bool:
         """
@@ -240,7 +240,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         the queue.
         """
 
-        return self.remove_projects_from_lpq([project_id]) > 1
+        return self.remove_projects_from_lpq({project_id}) > 0
 
     def remove_projects_from_lpq(self, project_ids: Set[int]) -> int:
         """
@@ -256,4 +256,4 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         # This returns the number of projects removed, and throws an exception if there's a problem.
         # If this successfully completes then the projects are expected to no longer be in the set.
-        return self.cluster.srem(LPQ_MEMBERS_KEY, *project_ids)
+        return int(self.cluster.srem(LPQ_MEMBERS_KEY, *project_ids))

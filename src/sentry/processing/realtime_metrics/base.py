@@ -79,7 +79,7 @@ class RealtimeMetricsStore(Service):  # type: ignore
         """
         pass
 
-    def get_durations_for_project(self, project_id: int) -> Iterable[BucketedCount]:
+    def get_durations_for_project(self, project_id: int) -> Iterable[DurationHistogram]:
         """
         Returns a sorted list of bucketed timestamps paired with a dictionary of symbolicator
         durations grouped in 10 second durations made during that time for some given project.
