@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.symbolicator.scan_for_suspect_projects",
+    name="sentry.tasks.low_priority_symbolication.scan_for_suspect_projects",
     queue="symbolications.compute_low_priority_projects",
     ignore_result=True,
     soft_time_limit=10,
@@ -57,7 +57,7 @@ def _scan_for_suspect_projects() -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.symbolicator.update_lpq_eligibility",
+    name="sentry.tasks.low_priority_symbolication.update_lpq_eligibility",
     queue="symbolications.compute_low_priority_projects",
     ignore_result=True,
     soft_time_limit=10,
