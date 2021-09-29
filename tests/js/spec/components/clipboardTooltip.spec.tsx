@@ -1,6 +1,6 @@
 import copy from 'copy-text-to-clipboard';
 
-import {fireEvent, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import ClipboardTooltip from 'app/components/clipboardTooltip';
 
@@ -19,9 +19,7 @@ describe('ClipboardTooltip', function () {
     expect(wrapper.getByText(content)).toBeInTheDocument();
     fireEvent.mouseEnter(wrapper.getByText(content));
 
-    await waitFor(() => {
-      expect(wrapper.getByText(title)).toBeInTheDocument();
-    });
+    await wrapper.findByText(title);
 
     const clipboardContent = wrapper.getByLabelText('Copy to clipboard');
     expect(clipboardContent).toBeInTheDocument();
