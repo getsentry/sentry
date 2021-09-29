@@ -10,7 +10,7 @@ import FormField from 'app/views/settings/components/forms/formField';
 
 type FormFieldProps = Omit<
   React.ComponentProps<typeof FormField>,
-  'help' | 'disabled' | 'required'
+  'children' | 'help' | 'disabled' | 'required'
 >;
 
 type Props = {
@@ -46,7 +46,7 @@ function CheckboxField(props: Props) {
   const helpElement = typeof help === 'function' ? help(props) : help;
 
   return (
-    <FormField name={name} inline={false}>
+    <FormField name={name} inline={false} stacked={stacked}>
       {({onChange, value}) => {
         function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
           const newValue = e.target.checked;

@@ -73,6 +73,7 @@ from sentry.reprocessing2 import (
 )
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
+from sentry.types.activity import ActivityType
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -1314,14 +1315,9 @@ def _handle_regression(group, event, release):
                     activity.update(data={"version": release.version})
 
     if is_regression:
-        activity = Activity.objects.create(
-            project_id=group.project_id,
-            group=group,
-            type=Activity.SET_REGRESSION,
-            data={"version": release.version if release else ""},
+        Activity.objects.create_group_activity(
+            group, ActivityType.SET_REGRESSION, data={"version": release.version if release else ""}
         )
-        activity.send_notification()
-
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
@@ -1697,6 +1693,27 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
     return hashes
 
 
+def _calculate_span_grouping(jobs, projects):
+    for job in jobs:
+        # Make sure this snippet doesn't crash ingestion
+        # as the feature is under development.
+        try:
+            event = job["event"]
+            project = projects[job["project_id"]]
+
+            if not features.has(
+                "organizations:performance-suspect-spans-ingestion",
+                project.organization,
+                actor=None,
+            ):
+                continue
+
+            groupings = event.get_span_groupings()
+            groupings.write_to_event(event.data)
+        except Exception:
+            sentry_sdk.capture_exception()
+
+
 @metrics.wraps("event_manager.save_transaction_events")
 def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
@@ -1730,6 +1747,7 @@ def save_transaction_events(jobs, projects):
     _get_event_user_many(jobs, projects)
     _derive_plugin_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
+    _calculate_span_grouping(jobs, projects)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)

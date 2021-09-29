@@ -22,7 +22,7 @@ const Time = memo(function Time({
   searchTerm,
 }: Props) {
   if (!(defined(timestamp) && defined(relativeTime))) {
-    return null;
+    return <div />;
   }
 
   const {date, time, displayTime} = getFormattedTimestamp(

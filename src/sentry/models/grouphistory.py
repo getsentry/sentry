@@ -30,6 +30,7 @@ class GroupHistory(Model):
 
     __include_in_export__ = False
 
+    organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     release = FlexibleForeignKey("sentry.Release", null=True, db_constraint=False)

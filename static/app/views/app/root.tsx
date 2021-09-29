@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useEffect} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {DEFAULT_APP_ROUTE} from 'app/constants';
@@ -21,20 +21,19 @@ type Props = {
  * TODO: There might be an edge case where user does not have `lastOrganization` set,
  * in which case we should load their list of organizations and make a decision
  */
-class AppRoot extends Component<Props> {
-  componentDidMount() {
-    const {config} = this.props;
-
-    if (config.lastOrganization) {
-      browserHistory.replace(
-        replaceRouterParams(DEFAULT_APP_ROUTE, {orgSlug: config.lastOrganization})
-      );
+function AppRoot({config}: Props) {
+  useEffect(() => {
+    if (!config.lastOrganization) {
+      return;
     }
-  }
 
-  render() {
-    return null;
-  }
+    const orgSlug = config.lastOrganization;
+    const url = replaceRouterParams(DEFAULT_APP_ROUTE, {orgSlug});
+
+    browserHistory.replace(url);
+  }, []);
+
+  return null;
 }
 
 export default withConfig(AppRoot);
