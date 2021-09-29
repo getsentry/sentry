@@ -200,7 +200,6 @@ class SlackCommandsLinkUserTest(SlackCommandsTest):
 
         unlinking_url = build_unlinking_url(
             self.integration.id,
-            self.organization.id,
             "UXXXXXXX1",
             "CXXXXXXX9",
             "http://example.slack.com/response_url",
