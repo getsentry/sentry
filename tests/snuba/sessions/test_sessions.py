@@ -5,17 +5,14 @@ from datetime import datetime, timedelta
 import pytz
 from django.utils import timezone
 
-from sentry.releasehealth.metrics import MetricsReleaseHealthBackend
-from sentry.releasehealth.sessions import SessionsReleaseHealthBackend
+from sentry.release_health.metrics import MetricsReleaseHealthBackend
+from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions import (
     _make_stats,
-    check_releases_have_health_data,
-    get_adjacent_releases_based_on_adoption,
     get_oldest_health_data_for_releases,
     get_project_releases_by_stability,
     get_project_releases_count,
     get_release_health_data_overview,
-    get_release_sessions_time_bounds,
 )
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase
@@ -276,18 +273,18 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         data = get_project_releases_by_stability(
             [self.project.id], offset=0, limit=100, scope="users", stats_period="24h"
         )
-        assert data == [
+        assert set(data) == {
             (self.project.id, self.session_release),
             (self.project.id, self.session_crashed_release),
-        ]
+        }
 
         data = get_project_releases_by_stability(
             [self.project.id], offset=0, limit=100, scope="crash_free_users", stats_period="24h"
         )
-        assert data == [
+        assert set(data) == {
             (self.project.id, self.session_crashed_release),
             (self.project.id, self.session_release),
-        ]
+        }
 
     def test_get_release_adoption(self):
         data = self.backend.get_release_adoption(
@@ -514,19 +511,25 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             }
         )
 
+        if isinstance(self.backend, MetricsReleaseHealthBackend):
+            truncation = {"second": 0}
+        else:
+            truncation = {"minute": 0}
+
         expected_formatted_lower_bound = (
             datetime.utcfromtimestamp(self.session_started - 3600 * 2)
-            .replace(minute=0)
+            .replace(**truncation)
             .isoformat()[:19]
             + "Z"
         )
 
         expected_formatted_upper_bound = (
-            datetime.utcfromtimestamp(self.session_started).replace(minute=0).isoformat()[:19] + "Z"
+            datetime.utcfromtimestamp(self.session_started).replace(**truncation).isoformat()[:19]
+            + "Z"
         )
 
         # Test for self.session_release
-        data = get_release_sessions_time_bounds(
+        data = self.backend.get_release_sessions_time_bounds(
             project_id=self.project.id,
             release=self.session_release,
             org_id=self.organization.id,
@@ -538,7 +541,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         }
 
         # Test for self.session_crashed_release
-        data = get_release_sessions_time_bounds(
+        data = self.backend.get_release_sessions_time_bounds(
             project_id=self.project.id,
             release=self.session_crashed_release,
             org_id=self.organization.id,
@@ -554,7 +557,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         Test that ensures if no sessions are available for a specific release then the bounds
         should be returned as None
         """
-        data = get_release_sessions_time_bounds(
+        data = self.backend.get_release_sessions_time_bounds(
             project_id=self.project.id,
             release="different_release",
             org_id=self.organization.id,
@@ -565,1090 +568,77 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             "sessions_upper_bound": None,
         }
 
+    def test_basic_release_model_adoptions(self):
+        """
+        Test that the basic (project,release) data is returned
+        """
+        proj_id = self.project.id
+        data = self.backend.get_changed_project_release_model_adoptions([proj_id])
+        assert set(data) == {(proj_id, "foo@1.0.0"), (proj_id, "foo@2.0.0")}
+
+    def test_old_release_model_adoptions(self):
+        """
+        Test that old entries (older that 72 h) are not returned
+        """
+        _100h = 100 * 60 * 60  # 100 hours in seconds
+        proj_id = self.project.id
+        self.store_session(
+            {
+                "session_id": "f6a01ae0-7fa7-44df-afb9-ae32ef1c8102",
+                "distinct_id": "5849e12a-220a-4bda-8c72-4e35391c341f",
+                "status": "crashed",
+                "seq": 0,
+                "release": "foo@3.0.0",
+                "environment": "prod",
+                "retention_days": 90,
+                "org_id": self.project.organization_id,
+                "project_id": proj_id,
+                "duration": 60.0,
+                "errors": 0,
+                "started": self.session_started - _100h,
+                "received": self.received - 3600 * 2,
+            }
+        )
+
+        data = self.backend.get_changed_project_release_model_adoptions([proj_id])
+        assert set(data) == {(proj_id, "foo@1.0.0"), (proj_id, "foo@2.0.0")}
+
+    def test_multi_proj_release_model_adoptions(self):
+        """Test that the api works with multiple projects"""
+        proj_id = self.project.id
+        new_proj_id = proj_id + 1
+        self.store_session(
+            {
+                "session_id": "f6a01ae0-7fa7-44df-afb9-ae32ef1c8102",
+                "distinct_id": "5849e12a-220a-4bda-8c72-4e35391c341f",
+                "status": "crashed",
+                "seq": 0,
+                "release": "foo@3.0.0",
+                "environment": "prod",
+                "retention_days": 90,
+                "org_id": self.project.organization_id,
+                "project_id": new_proj_id,
+                "duration": 60.0,
+                "errors": 0,
+                "started": self.session_started,
+                "received": self.received - 3600 * 2,
+            }
+        )
+
+        data = self.backend.get_changed_project_release_model_adoptions([proj_id, new_proj_id])
+        assert set(data) == {
+            (proj_id, "foo@1.0.0"),
+            (proj_id, "foo@2.0.0"),
+            (new_proj_id, "foo@3.0.0"),
+        }
+
 
 class SnubaSessionsTestMetrics(ReleaseHealthMetricsTestCase, SnubaSessionsTest):
     """
-    Same tests as in SnunbaSessionsTest but using the Metrics backendx
+    Same tests as in SnunbaSessionsTest but using the Metrics backend
     """
 
     pass
-
-
-class SnubaReleaseDetailPaginationBaseTestClass:
-    @staticmethod
-    def compare_releases_list_according_to_current_release_filters(
-        project_id, org_id, release, environments, scope, releases_list, stats_period=None
-    ):
-        adj_releases_filters = {
-            "project_id": project_id,
-            "org_id": org_id,
-            "release": release,
-            "environments": environments,
-            "scope": scope,
-        }
-        if stats_period:
-            adj_releases_filters.update({"stats_period": stats_period})
-
-        adjacent_releases = get_adjacent_releases_based_on_adoption(**adj_releases_filters)
-        assert adjacent_releases == releases_list
-
-
-class SnubaReleaseDetailPaginationOnSessionsTest(
-    TestCase, SnubaTestCase, SnubaReleaseDetailPaginationBaseTestClass
-):
-    """
-    TestClass that tests getting the previous and next release to a specific release
-    based on the `sessions` sort ordering
-
-    Summary of what the releases list order should look like:-
-    In Env -> prod & start_stats -> 24h
-        foobar@3.0.0 (3 sessions)
-        foobar@4.0.0 (3 sessions)
-        foobar@2.0.0 (2 sessions)
-        foobar@1.0.0 (1 sessions)
-
-    In Env -> prod & stats_start -> 7d
-        foobar@1.0.0 (3 sessions)
-        foobar@3.0.0 (3 sessions)
-        foobar@4.0.0 (3 sessions)
-        foobar@2.0.0 (2 sessions)
-
-    In Env -> test & stats_start -> 24h
-        foobar@1.0.0 (1 session)
-    """
-
-    def setUp(self):
-        super().setUp()
-        self.common_release_filters = {
-            "project_id": self.project.id,
-            "org_id": self.project.organization_id,
-            "scope": "sessions",
-        }
-        self.received = time.time()
-        self.session_started = time.time() // 60 * 60
-        self.session_started_gt_24h = self.session_started - 25 * 60 * 60
-        self.session_release_1 = "foobar@1.0.0"
-        self.session_release_2 = "foobar@2.0.0"
-        self.session_release_3 = "foobar@3.0.0"
-        self.session_release_4 = "foobar@4.0.0"
-
-        self.common_session_args = {
-            "project_id": self.project.id,
-            "org_id": self.project.organization_id,
-            "received": self.received,
-        }
-
-        # Release: foobar@1.0.0
-        # Env: prod
-        # Time: < 24h
-        # Total: 1 Session
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_1,
-                    "status": "exited",
-                }
-            )
-        )
-
-        # Env: prod
-        # Time: > 24h but < 14 days
-        # Total: 2 sessions
-        for _ in range(0, 2):
-            self.store_session(
-                generate_session_default_args(
-                    {
-                        **self.common_session_args,
-                        "started": self.session_started_gt_24h,
-                        "release": self.session_release_1,
-                        "status": "exited",
-                    }
-                )
-            )
-
-        # Env: test
-        # Time: < 24h
-        # Total: 1 Session
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_1,
-                    "status": "exited",
-                    "environment": "test",
-                }
-            )
-        )
-
-        # Release: foobar@2.0.0
-        # Env: prod
-        # Time: < 24h
-        # Total: 2 Sessions
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_2,
-                    "duration": None,
-                    "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                    "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                }
-            )
-        )
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_2,
-                    "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                    "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                    "status": "exited",
-                    "seq": 1,
-                }
-            )
-        )
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_2,
-                    "status": "exited",
-                }
-            )
-        )
-
-        # Release: foobar@3.0.0
-        # Env: prod
-        # Time: <24h
-        # Total: 3 Session
-        for _ in range(0, 3):
-            self.store_session(
-                generate_session_default_args(
-                    {
-                        **self.common_session_args,
-                        "started": self.session_started,
-                        "release": self.session_release_3,
-                        "status": "exited",
-                    }
-                )
-            )
-
-        # Release: foobar@4.0.0
-        # Env: prod
-        # Time: <24h
-        # Total: 3 Sessions
-        for _ in range(0, 3):
-            self.store_session(
-                generate_session_default_args(
-                    {
-                        **self.common_session_args,
-                        "started": self.session_started,
-                        "release": self.session_release_4,
-                        "status": "exited",
-                    }
-                )
-            )
-
-    def test_get_adjacent_releases_to_last_release(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@1.0.0",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": [],
-                "prev_releases_list": ["foobar@2.0.0", "foobar@4.0.0", "foobar@3.0.0"],
-            },
-        )
-
-    def test_get_adjacent_releases_to_first_release(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@3.0.0",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0", "foobar@1.0.0"],
-                "prev_releases_list": [],
-            },
-        )
-
-    def test_get_adjacent_releases_to_middle_release(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@2.0.0",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": ["foobar@1.0.0"],
-                "prev_releases_list": ["foobar@4.0.0", "foobar@3.0.0"],
-            },
-        )
-
-    def test_get_adjacent_releases_to_middle_release_with_same_sessions_count(
-        self,
-    ):
-        """
-        Test that ensures that releases with the same session count are disambiguated according to asc ordering
-        of release version
-        example -> Same session count releases
-        """
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@4.0.0",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": ["foobar@2.0.0", "foobar@1.0.0"],
-                "prev_releases_list": ["foobar@3.0.0"],
-            },
-        )
-
-    def test_get_adjacent_releases_to_middle_release_for_stats_period_7d(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@3.0.0",
-            environments=["prod"],
-            stats_period="7d",
-            releases_list={
-                "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0"],
-                "prev_releases_list": ["foobar@1.0.0"],
-            },
-        )
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@1.0.0",
-            environments=["prod"],
-            stats_period="7d",
-            releases_list={
-                "next_releases_list": ["foobar@3.0.0", "foobar@4.0.0", "foobar@2.0.0"],
-                "prev_releases_list": [],
-            },
-        )
-
-    def test_get_adjacent_releases_when_current_release_is_not_found(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@1.0.0",
-            environments=["test-whatever"],
-            releases_list={
-                "next_releases_list": [],
-                "prev_releases_list": [],
-            },
-        )
-
-    def test_get_adjacent_releases_to_last_release_in_different_env(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@1.0.0",
-            environments=["test"],
-            releases_list={
-                "next_releases_list": [],
-                "prev_releases_list": [],
-            },
-        )
-
-
-class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(
-    TestCase, SnubaTestCase, SnubaReleaseDetailPaginationBaseTestClass
-):
-    """
-    TestClass that tests getting the previous and next releases to a specific release
-    based on the `crash_free_sessions` sort ordering
-
-    Summary of what the releases list order should look like:-
-    In Env -> prod & start_stats -> 24h
-        foobar@1.0.0 (1 session: 1 healthy - 100% Crash free)
-        foobar@3.0.0 (3 sessions: 2 healthy + 1 crashed - 66.666% Crash free)
-        foobar@4.0.0 (2 sessions: 2 healthy + 1 crashed - 66.666% Crash free)
-        foobar@2.0.0 (1 session: 1 crashed - 0% Crash free)
-
-    In Env -> prod & stats_start -> 7d
-        foobar@3.0.0 (3 sessions: 2 healthy + 1 crashed - 66.666% Crash free)
-        foobar@4.0.0 (3 sessions: 2 healthy + 1 crashed - 66.666% Crash free)
-        foobar@1.0.0 (3 sessions: 1 healthy + 2 crashed - 33.333% Crash free)
-        foobar@2.0.0 (1 sessions: 1 crashed - 0% Crash free)
-
-    In Env -> test & stats_start -> 24h
-        foobar@1.0.0 (1 session: 1 crashed - 0% Crash Free)
-    """
-
-    def setUp(self):
-        super().setUp()
-
-        self.common_release_filters = {
-            "project_id": self.project.id,
-            "org_id": self.project.organization_id,
-            "scope": "crash_free_sessions",
-        }
-
-        self.received = time.time()
-        self.session_started = time.time() // 60 * 60
-        self.session_started_gt_24h = self.session_started - 25 * 60 * 60
-        self.session_release_1 = "foobar@1.0.0"
-        self.session_release_2 = "foobar@2.0.0"
-        self.session_release_3 = "foobar@3.0.0"
-        self.session_release_4 = "foobar@4.0.0"
-
-        self.common_session_args = {
-            "project_id": self.project.id,
-            "org_id": self.project.organization_id,
-            "received": self.received,
-        }
-
-        # Release: foobar@1.0.0
-
-        # Env: prod
-        # Time: < 24h
-        # Total: 1 Session -> 100% Crash Free
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_1,
-                    "status": "exited",
-                }
-            )
-        )
-
-        # Env: prod
-        # Time: > 24h but < 14 days
-        # Total: 3 sessions -> 1 Healthy + 2 Crashed -> 33.3333% Crash Free
-        for _ in range(0, 2):
-            self.store_session(
-                generate_session_default_args(
-                    {
-                        **self.common_session_args,
-                        "started": self.session_started_gt_24h,
-                        "release": self.session_release_1,
-                        "status": "crashed",
-                    }
-                )
-            )
-
-        # Env: test
-        # Time: < 24h
-        # Total: 1 Session -> 0% Crash Free
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_1,
-                    "status": "crashed",
-                    "environment": "test",
-                }
-            )
-        )
-
-        # Release: foobar@2.0.0
-        # Env: prod
-        # Time: < 24h
-        # Total: 2 Sessions -> 2 Crashed -> 0% Crash free
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_2,
-                    "duration": None,
-                    "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                    "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                }
-            )
-        )
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_2,
-                    "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                    "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                    "status": "crashed",
-                    "seq": 1,
-                }
-            )
-        )
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_2,
-                    "status": "crashed",
-                }
-            )
-        )
-
-        # Release: foobar@3.0.0
-        # Env: prod
-        # Time: <24h
-        # Total: 3 Session -> 2 Healthy + 1 Crashed -> 66.666% Crash free
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_3,
-                    "status": "crashed",
-                }
-            )
-        )
-        for _ in range(0, 2):
-            self.store_session(
-                generate_session_default_args(
-                    {
-                        **self.common_session_args,
-                        "started": self.session_started,
-                        "release": self.session_release_3,
-                        "status": "exited",
-                    }
-                )
-            )
-
-        # Release: foobar@4.0.0
-        # Env: prod
-        # Time: <24h
-        # Total: 3 Sessions -> 2 Healthy + 1 Crashed -> 66.666% Crash free
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_4,
-                    "status": "crashed",
-                }
-            )
-        )
-        for _ in range(0, 2):
-            self.store_session(
-                generate_session_default_args(
-                    {
-                        **self.common_session_args,
-                        "started": self.session_started,
-                        "release": self.session_release_4,
-                        "status": "exited",
-                    }
-                )
-            )
-
-    def test_get_adjacent_releases_to_last_release(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@2.0.0",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": [],
-                "prev_releases_list": ["foobar@4.0.0", "foobar@3.0.0", "foobar@1.0.0"],
-            },
-        )
-
-    def test_get_adjacent_releases_to_first_release(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@1.0.0",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": ["foobar@3.0.0", "foobar@4.0.0", "foobar@2.0.0"],
-                "prev_releases_list": [],
-            },
-        )
-
-    def test_get_adjacent_releases_to_middle_release(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@3.0.0",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0"],
-                "prev_releases_list": ["foobar@1.0.0"],
-            },
-        )
-
-    def test_get_adjacent_releases_to_middle_release_with_same_crash_free_sessions_percentage(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@4.0.0",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": ["foobar@2.0.0"],
-                "prev_releases_list": ["foobar@3.0.0", "foobar@1.0.0"],
-            },
-        )
-
-    def test_get_adjacent_releases_to_middle_release_for_stats_period_7d(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@3.0.0",
-            environments=["prod"],
-            stats_period="7d",
-            releases_list={
-                "next_releases_list": ["foobar@4.0.0", "foobar@1.0.0", "foobar@2.0.0"],
-                "prev_releases_list": [],
-            },
-        )
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@4.0.0",
-            environments=["prod"],
-            stats_period="7d",
-            releases_list={
-                "next_releases_list": ["foobar@1.0.0", "foobar@2.0.0"],
-                "prev_releases_list": ["foobar@3.0.0"],
-            },
-        )
-
-    def test_get_adjacent_releases_when_current_release_is_not_found(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@1.0.0",
-            environments=["test-whatever"],
-            releases_list={
-                "next_releases_list": [],
-                "prev_releases_list": [],
-            },
-        )
-
-    def test_get_adjacent_releases_to_last_release_in_different_env(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@1.0.0",
-            environments=["test"],
-            releases_list={
-                "next_releases_list": [],
-                "prev_releases_list": [],
-            },
-        )
-
-
-class SnubaReleaseDetailPaginationOnUsersTest(
-    TestCase, SnubaTestCase, SnubaReleaseDetailPaginationBaseTestClass
-):
-    """
-    TestClass that tests getting the previous and next releases to a specific release
-    based on the `users` sort ordering
-
-    Summary of what the releases list order should look like:-
-    In Env -> prod & start_stats -> 24h
-        foobar@3.0.0 (3 sessions: 3 distinct ids)
-        foobar@4.0.0 (3 sessions: 3 distinct ids)
-        foobar@2.0.0 (2 sessions: 2 distinct ids)
-        foobar@1.0.0 (1 sessions: 1 distinct id)
-
-    In Env -> prod & stats_start -> 7d
-        foobar@1.0.0 (3 sessions: 3 distinct ids)
-        foobar@3.0.0 (3 sessions: 3 distinct ids)
-        foobar@4.0.0 (3 sessions: 3 distinct ids)
-        foobar@2.0.0 (2 sessions: 2 distinct ids)
-
-    In Env -> test & stats_start -> 24h
-        foobar@1.0.0 (1 session: 1 distinct id)
-    """
-
-    def setUp(self):
-        super().setUp()
-
-        self.common_release_filters = {
-            "project_id": self.project.id,
-            "org_id": self.project.organization_id,
-            "scope": "users",
-        }
-        self.received = time.time()
-        self.session_started = time.time() // 60 * 60
-        self.session_started_gt_24h = self.session_started - 25 * 60 * 60
-        self.session_release_1 = "foobar@1.0.0"
-        self.session_release_2 = "foobar@2.0.0"
-        self.session_release_3 = "foobar@3.0.0"
-        self.session_release_4 = "foobar@4.0.0"
-
-        self.common_session_args = {
-            "project_id": self.project.id,
-            "org_id": self.project.organization_id,
-            "received": self.received,
-        }
-        # Release: foobar@1.0.0
-
-        # Env: prod
-        # Time: < 24h
-        # Total: 1 Session
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_1,
-                    "status": "exited",
-                }
-            )
-        )
-
-        # Env: prod
-        # Time: > 24h but < 14 days
-        # Total: 2 sessions
-        for _ in range(0, 2):
-            self.store_session(
-                generate_session_default_args(
-                    {
-                        **self.common_session_args,
-                        "started": self.session_started_gt_24h,
-                        "release": self.session_release_1,
-                        "status": "exited",
-                    }
-                )
-            )
-
-        # Env: test
-        # Time: < 24h
-        # Total: 1 Session
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_1,
-                    "status": "exited",
-                    "environment": "test",
-                }
-            )
-        )
-
-        # Release: foobar@2.0.0
-        # Env: prod
-        # Time: < 24h
-        # Total: 2 Sessions
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_2,
-                    "duration": None,
-                    "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                    "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                }
-            )
-        )
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_2,
-                    "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                    "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                    "status": "exited",
-                    "seq": 1,
-                }
-            )
-        )
-
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_2,
-                    "status": "exited",
-                }
-            )
-        )
-
-        # Release: foobar@3.0.0
-        # Env: prod
-        # Time: <24h
-        # Total: 3 Session
-        for _ in range(0, 3):
-            self.store_session(
-                generate_session_default_args(
-                    {
-                        **self.common_session_args,
-                        "started": self.session_started,
-                        "release": self.session_release_3,
-                        "status": "exited",
-                    }
-                )
-            )
-
-        # Release: foobar@4.0.0
-        # Env: prod
-        # Time: <24h
-        # Total: 3 Sessions
-        for _ in range(0, 3):
-            self.store_session(
-                generate_session_default_args(
-                    {
-                        **self.common_session_args,
-                        "started": self.session_started,
-                        "release": self.session_release_4,
-                        "status": "exited",
-                    }
-                )
-            )
-
-    def test_get_adjacent_releases_to_last_release(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@1.0.0",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": [],
-                "prev_releases_list": ["foobar@2.0.0", "foobar@4.0.0", "foobar@3.0.0"],
-            },
-        )
-
-    def test_get_adjacent_releases_to_first_release(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@3.0.0",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0", "foobar@1.0.0"],
-                "prev_releases_list": [],
-            },
-        )
-
-    def test_get_adjacent_releases_to_middle_release(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@2.0.0",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": ["foobar@1.0.0"],
-                "prev_releases_list": ["foobar@4.0.0", "foobar@3.0.0"],
-            },
-        )
-
-    def test_get_adjacent_releases_to_middle_release_with_same_users_count(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@4.0.0",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": ["foobar@2.0.0", "foobar@1.0.0"],
-                "prev_releases_list": ["foobar@3.0.0"],
-            },
-        )
-
-    def test_get_adjacent_releases_to_middle_release_for_stats_period_7d(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@3.0.0",
-            environments=["prod"],
-            stats_period="7d",
-            releases_list={
-                "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0"],
-                "prev_releases_list": ["foobar@1.0.0"],
-            },
-        )
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@1.0.0",
-            stats_period="7d",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": ["foobar@3.0.0", "foobar@4.0.0", "foobar@2.0.0"],
-                "prev_releases_list": [],
-            },
-        )
-
-    def test_get_adjacent_releases_when_current_release_is_not_found(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@1.0.0",
-            environments=["test-whatever"],
-            releases_list={
-                "next_releases_list": [],
-                "prev_releases_list": [],
-            },
-        )
-
-    def test_get_adjacent_releases_to_last_release_in_different_env(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@1.0.0",
-            environments=["test"],
-            releases_list={
-                "next_releases_list": [],
-                "prev_releases_list": [],
-            },
-        )
-
-
-class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(
-    TestCase, SnubaTestCase, SnubaReleaseDetailPaginationBaseTestClass
-):
-    """
-    TestClass that tests getting the previous and next releases to a specific release
-    based on the `crash_free_users` sort ordering
-
-    Summary of what the releases list order should look like:-
-    In Env -> prod & start_stats -> 24h
-        foobar@1.0.0 (1 session: 1 healthy - 100% Crash free)
-        foobar@3.0.0 (3 sessions: 2 healthy + 1 crashed - 66.666% Crash free)
-        foobar@4.0.0 (2 sessions: 2 healthy + 1 crashed - 66.666% Crash free)
-        foobar@2.0.0 (1 session: 1 crashed - 0% Crash free)
-
-    In Env -> prod & stats_start -> 7d
-        foobar@3.0.0 (3 sessions: 2 healthy + 1 crashed - 66.666% Crash free)
-        foobar@4.0.0 (3 sessions: 2 healthy + 1 crashed - 66.666% Crash free)
-        foobar@1.0.0 (3 sessions: 1 healthy + 2 crashed - 33.333% Crash free)
-        foobar@2.0.0 (1 sessions: 1 crashed - 0% Crash free)
-
-    In Env -> test & stats_start -> 24h
-        foobar@1.0.0 (1 session: 1 crashed - 0% Crash Free)
-    """
-
-    def setUp(self):
-        super().setUp()
-
-        self.common_release_filters = {
-            "project_id": self.project.id,
-            "org_id": self.project.organization_id,
-            "scope": "crash_free_users",
-        }
-        self.received = time.time()
-        self.session_started = time.time() // 60 * 60
-        self.session_started_gt_24h = self.session_started - 25 * 60 * 60
-        self.session_release_1 = "foobar@1.0.0"
-        self.session_release_2 = "foobar@2.0.0"
-        self.session_release_3 = "foobar@3.0.0"
-        self.session_release_4 = "foobar@4.0.0"
-
-        self.common_session_args = {
-            "project_id": self.project.id,
-            "org_id": self.project.organization_id,
-            "received": self.received,
-        }
-        # Release: foobar@1.0.0
-
-        # Env: prod
-        # Time: < 24h
-        # Total: 1 Session -> 100% Crash Free
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_1,
-                    "status": "exited",
-                }
-            )
-        )
-
-        # Env: prod
-        # Time: > 24h but < 14 days
-        # Total: 3 sessions -> 1 Healthy + 2 Crashed -> 33.3333% Crash Free
-        for _ in range(0, 2):
-            self.store_session(
-                generate_session_default_args(
-                    {
-                        **self.common_session_args,
-                        "started": self.session_started_gt_24h,
-                        "release": self.session_release_1,
-                        "status": "crashed",
-                    }
-                )
-            )
-        # Env: test
-        # Time: < 24h
-        # Total: 1 Session -> 0% Crash Free
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_1,
-                    "status": "crashed",
-                    "environment": "test",
-                }
-            )
-        )
-
-        # Release: foobar@2.0.0
-        # Env: prod
-        # Time: < 24h
-        # Total: 2 Sessions -> 2 Crashed -> 0% Crash free
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_2,
-                    "duration": None,
-                    "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                    "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                }
-            )
-        )
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_2,
-                    "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                    "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                    "status": "crashed",
-                    "seq": 1,
-                }
-            )
-        )
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_2,
-                    "status": "crashed",
-                }
-            )
-        )
-
-        # Release: foobar@3.0.0
-        # Env: prod
-        # Time: <24h
-        # Total: 3 Session -> 2 Healthy + 1 Crashed -> 66.666% Crash free
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_3,
-                    "status": "crashed",
-                }
-            )
-        )
-        for _ in range(0, 2):
-            self.store_session(
-                generate_session_default_args(
-                    {
-                        **self.common_session_args,
-                        "started": self.session_started,
-                        "release": self.session_release_3,
-                        "status": "exited",
-                    }
-                )
-            )
-
-        # Release: foobar@4.0.0
-        # Env: prod
-        # Time: <24h
-        # Total: 3 Sessions -> 2 Healthy + 1 Crashed -> 66.666% Crash free
-        self.store_session(
-            generate_session_default_args(
-                {
-                    **self.common_session_args,
-                    "started": self.session_started,
-                    "release": self.session_release_4,
-                    "status": "crashed",
-                }
-            )
-        )
-        for _ in range(0, 2):
-            self.store_session(
-                generate_session_default_args(
-                    {
-                        **self.common_session_args,
-                        "started": self.session_started,
-                        "release": self.session_release_4,
-                        "status": "exited",
-                    }
-                )
-            )
-
-    def test_get_adjacent_releases_to_last_release(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@2.0.0",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": [],
-                "prev_releases_list": ["foobar@4.0.0", "foobar@3.0.0", "foobar@1.0.0"],
-            },
-        )
-
-    def test_get_adjacent_releases_to_first_release(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@1.0.0",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": ["foobar@3.0.0", "foobar@4.0.0", "foobar@2.0.0"],
-                "prev_releases_list": [],
-            },
-        )
-
-    def test_get_adjacent_releases_to_middle_release(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@3.0.0",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0"],
-                "prev_releases_list": ["foobar@1.0.0"],
-            },
-        )
-
-    def test_get_adjacent_releases_to_middle_release_with_same_crash_free_percentage(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@4.0.0",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": ["foobar@2.0.0"],
-                "prev_releases_list": ["foobar@3.0.0", "foobar@1.0.0"],
-            },
-        )
-
-    def test_get_adjacent_releases_to_middle_release_for_stats_period_7d(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@3.0.0",
-            stats_period="7d",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": ["foobar@4.0.0", "foobar@1.0.0", "foobar@2.0.0"],
-                "prev_releases_list": [],
-            },
-        )
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@4.0.0",
-            stats_period="7d",
-            environments=["prod"],
-            releases_list={
-                "next_releases_list": ["foobar@1.0.0", "foobar@2.0.0"],
-                "prev_releases_list": ["foobar@3.0.0"],
-            },
-        )
-
-    def test_get_adjacent_releases_when_current_release_is_not_found(self):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@1.0.0",
-            environments=["test-whatever"],
-            releases_list={
-                "next_releases_list": [],
-                "prev_releases_list": [],
-            },
-        )
-
-    def test_get_adjacent_releases_to_last_release_in_different_env(
-        self,
-    ):
-        self.compare_releases_list_according_to_current_release_filters(
-            **self.common_release_filters,
-            release="foobar@1.0.0",
-            environments=["test"],
-            releases_list={
-                "next_releases_list": [],
-                "prev_releases_list": [],
-            },
-        )
 
 
 class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
@@ -1853,13 +843,15 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
 
 
 class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
+    backend = SessionsReleaseHealthBackend()
+
     def run_test(self, expected, projects, releases, start=None, end=None):
         if not start:
             start = datetime.now() - timedelta(days=1)
         if not end:
             end = datetime.now()
         assert (
-            check_releases_have_health_data(
+            self.backend.check_releases_have_health_data(
                 self.organization.id,
                 [p.id for p in projects],
                 [r.version for r in releases],
@@ -1892,3 +884,11 @@ class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
         self.run_test([release_1], [other_project], [release_1])
         self.run_test([release_1, release_2], [other_project], [release_1, release_2])
         self.run_test([release_1, release_2], [self.project, other_project], [release_1, release_2])
+
+
+class CheckReleasesHaveHealthDataTestMetrics(
+    ReleaseHealthMetricsTestCase, CheckReleasesHaveHealthDataTest
+):
+    """Repeat tests with metrics backend"""
+
+    pass

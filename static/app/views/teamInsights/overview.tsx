@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
-import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
@@ -13,7 +12,6 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {ChangeData} from 'app/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
-import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {DateString, Organization, RelativePeriod, TeamWithProjects} from 'app/types';
@@ -29,13 +27,7 @@ import TeamDropdown from './teamDropdown';
 import TeamMisery from './teamMisery';
 import TeamStability from './teamStability';
 
-type Props = {
-  api: Client;
-  organization: Organization;
-  teams: TeamWithProjects[];
-  loadingTeams: boolean;
-  error: Error | null;
-} & RouteComponentProps<{orgId: string}, {}>;
+const INSIGHTS_DEFAULT_STATS_PERIOD = '8w';
 
 const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
@@ -49,6 +41,14 @@ const PAGE_QUERY_PARAMS = [
   'cursor',
   'team',
 ];
+
+type Props = {
+  api: Client;
+  organization: Organization;
+  teams: TeamWithProjects[];
+  loadingTeams: boolean;
+  error: Error | null;
+} & RouteComponentProps<{orgId: string}, {}>;
 
 function TeamInsightsOverview({
   organization,
@@ -101,9 +101,6 @@ function TeamInsightsOverview({
     pageStart?: DateString;
     pageEnd?: DateString;
     pageUtc?: boolean | null;
-    sort?: string;
-    query?: string;
-    cursor?: string;
     team?: string;
   }): LocationDescriptorObject {
     const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
@@ -134,7 +131,7 @@ function TeamInsightsOverview({
     });
 
     if (!statsPeriod && !start && !end) {
-      return {period: DEFAULT_STATS_PERIOD};
+      return {period: INSIGHTS_DEFAULT_STATS_PERIOD};
     }
 
     // Following getParams, statsPeriod will take priority over start/end
@@ -157,7 +154,7 @@ function TeamInsightsOverview({
           };
     }
 
-    return {period: DEFAULT_STATS_PERIOD};
+    return {period: INSIGHTS_DEFAULT_STATS_PERIOD};
   }
   const {period, start, end, utc} = dataDatetime();
 
@@ -189,7 +186,13 @@ function TeamInsightsOverview({
                 end={end ?? null}
                 utc={utc ?? null}
                 onUpdate={handleUpdateDatetime}
-                relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h', '24h'])}
+                showAbsolute={false}
+                relativeOptions={{
+                  '14d': t('Last 2 weeks'),
+                  '4w': t('Last 4 weeks'),
+                  [INSIGHTS_DEFAULT_STATS_PERIOD]: t('Last 8 weeks'),
+                  '12w': t('Last 12 weeks'),
+                }}
               />
             </ControlsWrapper>
 

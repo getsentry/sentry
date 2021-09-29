@@ -35,7 +35,7 @@ import {IconClose, IconEllipsis, IconSearch} from 'app/icons';
 import {t} from 'app/locale';
 import MemberListStore from 'app/stores/memberListStore';
 import space from 'app/styles/space';
-import {LightWeightOrganization, SavedSearchType, Tag, User} from 'app/types';
+import {Organization, SavedSearchType, Tag, User} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
@@ -99,7 +99,7 @@ type ActionProps = {
   /**
    * The organization
    */
-  organization: LightWeightOrganization;
+  organization: Organization;
   /**
    * The saved search type passed to the search bar
    */
@@ -126,7 +126,7 @@ type AutocompleteGroup = {
 
 type Props = WithRouterProps & {
   api: Client;
-  organization: LightWeightOrganization;
+  organization: Organization;
   dropdownClassName?: string;
   className?: string;
 

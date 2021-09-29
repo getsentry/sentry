@@ -59,7 +59,7 @@ snuba-sdk>=0.0.25,<1.0.0
 simplejson==3.17.2
 statsd==3.3
 structlog==21.1.0
-symbolic==8.3.0
+symbolic==8.3.1
 toronado==0.1.0
 ua-parser==0.10.0
 unidiff==0.6.0
@@ -101,3 +101,7 @@ sqlparse==0.2.4
 # We're still using mock in Python 3.6 because it contains a fix to Python issue37972.
 # We should be able to fully swap it out for stdlib once we're on 3.8.
 mock==4.0.3
+
+# this is already a transitive dependency via structlog, and we started
+# implicitly relying on it because of that. Can probably be removed with 3.8
+typing-extensions==3.10.0.2
