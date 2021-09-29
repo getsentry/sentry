@@ -221,7 +221,6 @@ class Chart extends React.Component<ChartProps, State> {
     }
 
     if (previousSeriesTransformer) {
-      // TODO
       previousSeries = previousSeries?.map(
         prev => previousSeriesTransformer(prev) as Series
       );

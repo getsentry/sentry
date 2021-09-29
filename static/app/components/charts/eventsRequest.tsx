@@ -422,8 +422,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       // As the server will have replied with a map like:
       // {[titleString: string]: EventsStats}
       const timeframe: {start: number; end: number} | undefined = undefined;
-      const previousMultiSeriesResults: (Series | null)[] = [];
-      const results: MultiSeriesResults = Object.keys(timeseriesData)
+      const sortedTimeseriesData = Object.keys(timeseriesData)
         .map((seriesName: string, index: number): [number, Series, Series | null] => {
           const seriesData: EventsStats = timeseriesData[seriesName];
           const processedData = this.processData(seriesData, index);
@@ -433,24 +432,24 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
             processedData.previousData,
           ];
         })
-        .sort((a, b) => a[0] - b[0])
-        .map(item => {
-          // TODO
-          previousMultiSeriesResults.push(item[2]);
-          return item[1];
-        });
+        .sort((a, b) => a[0] - b[0]);
+      const results: MultiSeriesResults = sortedTimeseriesData.map(item => {
+        return item[1];
+      });
+      const previousMultiSeriesResults: MultiSeriesResults | undefined =
+        sortedTimeseriesData.some(item => item[2] === null)
+          ? undefined
+          : sortedTimeseriesData.map(item => {
+              return item[2] as Series;
+            });
 
-      const previousMultiSeriesResultsComplete =
-        !previousMultiSeriesResults.includes(null);
       return children({
         loading,
         reloading,
         errored,
         results,
         timeframe,
-        previousMultiSeriesResults: previousMultiSeriesResultsComplete
-          ? (previousMultiSeriesResults as MultiSeriesResults)
-          : undefined,
+        previousMultiSeriesResults,
         // sometimes we want to reference props that were given to EventsRequest
         ...props,
       });

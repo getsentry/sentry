@@ -29,7 +29,7 @@ import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
-import {getDimensionValue} from './utils';
+import {getDimensionValue, lightenHexToRgb} from './utils';
 
 // TODO(ts): What is the series type? EChartOption.Series's data cannot have
 // `onClick` since it's typically an array.
@@ -295,6 +295,8 @@ function BaseChartUnwrapped({
   const color =
     resolveColors ||
     (series.length ? theme.charts.getColorPalette(series.length) : theme.charts.colors);
+  const previousPeriodColors =
+    previousPeriod && previousPeriod.length > 1 ? lightenHexToRgb(color) : undefined;
 
   const transformedSeries =
     (hasSinglePoints && transformSinglePointToBar
@@ -313,12 +315,11 @@ function BaseChartUnwrapped({
         name: previous.seriesName,
         data: previous.data.map(({name, value}) => [name, value]),
         lineStyle: {
-          color: previousPeriod.length > 1 ? color[index] : theme.gray200,
+          color: previousPeriodColors ? previousPeriodColors[index] : theme.gray200,
           type: 'dotted',
-          opacity: previousPeriod.length > 1 ? 0.5 : 1,
         },
         itemStyle: {
-          color: previousPeriod.length > 1 ? color[index] : theme.gray200,
+          color: previousPeriodColors ? previousPeriodColors[index] : theme.gray200,
         },
         stack: 'previous',
       })
