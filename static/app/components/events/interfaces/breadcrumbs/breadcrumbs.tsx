@@ -27,7 +27,7 @@ const cache = new CellMeasurerCache({
 type Props = Pick<
   React.ComponentProps<typeof Breadcrumb>,
   | 'event'
-  | 'orgSlug'
+  | 'organization'
   | 'searchTerm'
   | 'relativeTime'
   | 'displayRelativeTime'
@@ -46,7 +46,7 @@ function Breadcrumbs({
   breadcrumbs,
   displayRelativeTime,
   onSwitchTimeFormat,
-  orgSlug,
+  organization,
   searchTerm,
   event,
   relativeTime,
@@ -103,7 +103,7 @@ function Breadcrumbs({
             data-test-id={isLastItem ? 'last-crumb' : 'crumb'}
             style={style}
             onLoad={measure}
-            orgSlug={orgSlug}
+            organization={organization}
             searchTerm={searchTerm}
             breadcrumb={breadcrumb}
             event={event}
