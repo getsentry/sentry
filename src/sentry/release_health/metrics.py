@@ -701,7 +701,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
         rows = raw_snql_query(
             query,
-            referrer="release_health.metrics.get_changed_project_release_model_adoptions",
+            referrer="release_health.metrics.get_oldest_health_data_for_releases",
             use_cache=False,
         )["data"]
 
