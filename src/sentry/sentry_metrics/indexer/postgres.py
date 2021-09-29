@@ -5,7 +5,7 @@ from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
 from sentry.utils.services import Service
 
 
-class StringIndexer(Service):  # type: ignore
+class PGStringIndexer(Service):  # type: ignore
     """
     Provides integer IDs for metric names, tag keys and tag values
     and the corresponding reverse lookup.
@@ -22,7 +22,7 @@ class StringIndexer(Service):  # type: ignore
 
     def bulk_record(self, org_id: int, strings: List[str]) -> Dict[str, int]:
         # first look up to see if we have any of the values
-        records = MetricsKeyIndexer.objects.filter(key__in=strings)
+        records = MetricsKeyIndexer.objects.filter(organization_id=org_id, key__in=strings)
         result = defaultdict(int)
 
         for record in records:
@@ -54,9 +54,11 @@ class StringIndexer(Service):  # type: ignore
         Returns None if the entry cannot be found.
         """
         try:
-            MetricsKeyIndexer.objects.get(org_id, key=string)
+            record = MetricsKeyIndexer.objects.get(organization_id=org_id, key=string)
         except MetricsKeyIndexer.DoesNotExist:
             return None
+
+        return record.value
 
     def reverse_resolve(self, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
@@ -64,6 +66,8 @@ class StringIndexer(Service):  # type: ignore
         Returns None if the entry cannot be found.
         """
         try:
-            MetricsKeyIndexer.objects.get(org_id, value=id)
+            record = MetricsKeyIndexer.objects.get(organization_id=org_id, value=id)
         except MetricsKeyIndexer.DoesNotExist:
             return None
+
+        return record.key
