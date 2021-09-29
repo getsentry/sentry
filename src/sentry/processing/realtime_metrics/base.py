@@ -39,10 +39,11 @@ class RealtimeMetricsStore(Service):  # type: ignore
         """
         pass
 
-    def get_lpq_candidates(self) -> Iterable[int]:
+    def projects(self) -> Iterable[int]:
         """
         Returns IDs of all projects that should be considered for the low priority queue.
         """
+        pass
 
     def get_bucketed_counts_for_project(self, project_id: int) -> Iterable[BucketedCount]:
         """

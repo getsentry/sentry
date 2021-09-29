@@ -85,7 +85,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
             pipeline.pexpire(key, self._histogram_ttl)
             pipeline.execute()
 
-    def get_lpq_candidates(self) -> Iterable[int]:
+    def projects(self) -> Iterable[int]:
         """
         Returns IDs of all projects that should be considered for the low priority queue.
         """

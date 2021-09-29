@@ -253,43 +253,47 @@ def test_remove_projects_from_lpq_no_members(
     assert remaining == {"1"}
 
 
-# get lpq candidates: unset, empty, some
-def test_lpq_candidates_unset(store: base.RealtimeMetricsStore) -> None:
-    candidates = store.get_lpq_candidates()
+#
+# projects()
+#
+
+
+def test_projects_unset(store: RedisRealtimeMetricsStore) -> None:
+    candidates = store.projects()
     assert list(candidates) == []
 
 
-def test_lpq_candidates_empty(
-    store: base.RealtimeMetricsStore, redis_cluster: redis._RedisCluster
+def test_projects_empty(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     redis_cluster.set(
         "symbolicate_event_low_priority:42:314", 0, nx=True, px=datetime.timedelta(milliseconds=100)
     )
     time.sleep(0.1)
 
-    candidates = store.get_lpq_candidates()
+    candidates = store.projects()
     assert list(candidates) == []
 
 
-def test_lpq_candidates_one(
-    store: base.RealtimeMetricsStore, redis_cluster: redis._RedisCluster
+def test_projects_one_count(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     lifetime = datetime.timedelta(seconds=3)
     redis_cluster.set("symbolicate_event_low_priority:42:314", 0, nx=True, px=lifetime)
 
-    candidates = store.get_lpq_candidates()
+    candidates = store.projects()
     assert list(candidates) == [42]
 
 
-def test_lpq_candidates_some(
-    store: base.RealtimeMetricsStore, redis_cluster: redis._RedisCluster
+def test_projects_mixed_buckets(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     lifetime = datetime.timedelta(seconds=3)
     redis_cluster.set("symbolicate_event_low_priority:42:314", 0, nx=True, px=lifetime)
     redis_cluster.set("symbolicate_event_low_priority:24:314", 0, nx=True, px=lifetime)
 
-    candidates = store.get_lpq_candidates()
     assert list(candidates) == [42, 24]
+    candidates = store.projects()
 
 
 # get bucketed counts for project: unset, empty, no keys, some keys
