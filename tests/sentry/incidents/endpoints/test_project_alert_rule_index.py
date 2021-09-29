@@ -621,6 +621,16 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
 
+    def test_simple_crash_rate_alerts_for_sessions_drops_event_types(self):
+        self.valid_alert_rule["eventTypes"] = ["sessions", "events"]
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_valid_response(
+                self.organization.slug, self.project.slug, status_code=201, **self.valid_alert_rule
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+
     def test_simple_crash_rate_alerts_for_sessions_with_invalid_time_window(self):
         self.valid_alert_rule["timeWindow"] = "90"
         with self.feature(["organizations:incidents", "organizations:performance-view"]):

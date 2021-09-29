@@ -1268,8 +1268,11 @@ class ProcessUpdateTest(TestCase, SnubaTestCase):
             value=None,
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
-        self.metrics.incr.assert_called_once_with(
-            "incidents.alert_rules.ignore_update_no_session_data"
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.ignore_update_no_session_data"),
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
         )
 
     @patch("sentry.incidents.subscription_processor.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
@@ -1287,8 +1290,11 @@ class ProcessUpdateTest(TestCase, SnubaTestCase):
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
         self.assert_no_active_incident(rule)
-        self.metrics.incr.assert_called_once_with(
-            "incidents.alert_rules.ignore_update_count_lower_than_min_threshold"
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.ignore_update_count_lower_than_min_threshold"),
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
         )
 
     @patch("sentry.incidents.subscription_processor.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
