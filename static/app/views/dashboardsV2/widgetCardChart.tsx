@@ -304,6 +304,14 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           const colors = timeseriesResults
             ? theme.charts.getColorPalette(timeseriesResults.length - 2)
             : [];
+          // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
+          if (
+            widget.displayType === 'top_n' &&
+            timeseriesResults &&
+            timeseriesResults.length > 5
+          ) {
+            colors[colors.length - 1] = theme.charts.other;
+          }
 
           // Create a list of series based on the order of the fields,
           const series = timeseriesResults
