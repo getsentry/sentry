@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional, Set
+from typing import Set
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
@@ -91,15 +91,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         Returns a list of project IDs.
         """
-        return set(
-            filter(
-                None,
-                {
-                    _to_int(project_id_raw)
-                    for project_id_raw in self.cluster.smembers(LPQ_MEMBERS_KEY)
-                },
-            )
-        )
+        return {project_id_raw for project_id_raw in self.cluster.smembers(LPQ_MEMBERS_KEY)}
 
     def add_project_to_lpq(self, project_id: int) -> None:
         """
@@ -130,10 +122,3 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
             return
 
         self.cluster.srem(LPQ_MEMBERS_KEY, *project_ids)
-
-
-def _to_int(value: str) -> Optional[int]:
-    try:
-        return int(value) if value else None
-    except ValueError:
-        return None
