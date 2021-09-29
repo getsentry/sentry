@@ -7,15 +7,11 @@ describe('TeamAlertsTriggered', () => {
     const team = TestStubs.Team();
     const organization = TestStubs.Organization();
     const alertsTriggeredApi = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/${team.slug}/alerts-triggered/`,
+      url: `/teams/${organization.slug}/${team.slug}/alerts-triggered/`,
       body: TestStubs.TeamAlertsTriggered(),
     });
     const wrapper = mountWithTheme(
-      <TeamAlertsTriggered
-        organization={organization}
-        teamSlug={team.slug}
-        period="14d"
-      />
+      <TeamAlertsTriggered organization={organization} teamSlug={team.slug} period="8w" />
     );
 
     await waitFor(() => {

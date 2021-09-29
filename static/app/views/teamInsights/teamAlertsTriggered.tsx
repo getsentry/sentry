@@ -10,7 +10,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 
-type AlertsTriggered = Array<{bucket: string; count: number}>;
+type AlertsTriggered = Record<string, number>;
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -38,7 +38,7 @@ class TeamIssues extends AsyncComponent<Props, State> {
     return [
       [
         'alertsTriggered',
-        `/organizations/${organization.slug}/${teamSlug}/alerts-triggered/`,
+        `/teams/${organization.slug}/${teamSlug}/alerts-triggered/`,
         {
           query: {
             ...getParams(datetime),
@@ -48,17 +48,34 @@ class TeamIssues extends AsyncComponent<Props, State> {
     ];
   }
 
+  componentDidUpdate(prevProps: Props) {
+    const {start, end, period, utc, teamSlug} = this.props;
+
+    if (
+      prevProps.start !== start ||
+      prevProps.end !== end ||
+      prevProps.period !== period ||
+      prevProps.utc !== utc ||
+      prevProps.teamSlug !== teamSlug
+    ) {
+      this.remountComponent();
+    }
+  }
+
   renderLoading() {
-    return this.renderBody();
+    return (
+      <ChartWrapper>
+        <LoadingIndicator />
+      </ChartWrapper>
+    );
   }
 
   renderBody() {
-    const {isLoading, alertsTriggered} = this.state;
+    const {alertsTriggered} = this.state;
 
     return (
       <ChartWrapper>
-        {isLoading && <LoadingIndicator />}
-        {!isLoading && alertsTriggered && (
+        {alertsTriggered && (
           <BarChart
             style={{height: 200}}
             isGroupedByDate
@@ -76,7 +93,7 @@ class TeamIssues extends AsyncComponent<Props, State> {
             series={[
               {
                 seriesName: t('Alerts Triggered'),
-                data: alertsTriggered.map(({bucket, count}) => ({
+                data: Object.entries(alertsTriggered).map(([bucket, count]) => ({
                   value: count,
                   name: bucket,
                 })),
