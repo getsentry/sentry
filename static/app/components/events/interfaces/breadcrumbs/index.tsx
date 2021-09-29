@@ -11,10 +11,10 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {
-  Breadcrumb,
   BreadcrumbLevelType,
-  BreadcrumbsWithDetails,
   BreadcrumbType,
+  Crumb,
+  RawCrumb,
 } from 'app/types/breadcrumbs';
 import {EntryType, Event} from 'app/types/event';
 import {defined} from 'app/utils';
@@ -37,26 +37,33 @@ type FilterTypes = {
   levels: BreadcrumbLevelType[];
 };
 
-type Props = {
+type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   event: Event;
   organization: Organization;
   type: string;
   data: {
-    values: Array<Breadcrumb>;
+    values: Array<RawCrumb>;
   };
 };
 
 type State = {
   searchTerm: string;
-  breadcrumbs: BreadcrumbsWithDetails;
-  filteredByFilter: BreadcrumbsWithDetails;
-  filteredBySearch: BreadcrumbsWithDetails;
+  breadcrumbs: Crumb[];
+  filteredByFilter: Crumb[];
+  filteredBySearch: Crumb[];
   filterOptions: FilterOptions;
   displayRelativeTime: boolean;
   relativeTime?: string;
 };
 
-function BreadcrumbsContainer({data, event, organization, type: eventType}: Props) {
+function BreadcrumbsContainer({
+  data,
+  event,
+  organization,
+  type: eventType,
+  route,
+  router,
+}: Props) {
   const [state, setState] = useState<State>({
     searchTerm: '',
     breadcrumbs: [],
@@ -94,7 +101,7 @@ function BreadcrumbsContainer({data, event, organization, type: eventType}: Prop
 
     setState({
       ...state,
-      relativeTime: transformedCrumbs[transformedCrumbs.length - 1]?.timestamp,
+      relativeTime: transformedCrumbs[transformedCrumbs.length - 1].timestamp,
       breadcrumbs: transformedCrumbs,
       filteredByFilter: transformedCrumbs,
       filteredBySearch: transformedCrumbs,
@@ -170,7 +177,7 @@ function BreadcrumbsContainer({data, event, organization, type: eventType}: Prop
     return filterLevels;
   }
 
-  function filterBySearch(newSearchTerm: string, crumbs: BreadcrumbsWithDetails) {
+  function filterBySearch(newSearchTerm: string, crumbs: Crumb[]) {
     if (!newSearchTerm.trim()) {
       return crumbs;
     }
@@ -248,7 +255,7 @@ function BreadcrumbsContainer({data, event, organization, type: eventType}: Prop
     return match[1];
   }
 
-  function getVirtualCrumb(): Breadcrumb | undefined {
+  function getVirtualCrumb(): RawCrumb | undefined {
     const exception = event.entries.find(entry => entry.type === EntryType.EXCEPTION);
 
     if (!exception && !event.message) {
@@ -383,6 +390,8 @@ function BreadcrumbsContainer({data, event, organization, type: eventType}: Prop
     >
       <ErrorBoundary>
         <Breadcrumbs
+          router={router}
+          route={route}
           emptyMessage={getEmptyMessage()}
           breadcrumbs={filteredBySearch}
           event={event}

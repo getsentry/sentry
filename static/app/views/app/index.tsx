@@ -3,7 +3,6 @@ import keydown from 'react-keydown';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
 
 import {
   displayDeployPreviewAlert,
@@ -60,22 +59,12 @@ type State = {
 };
 
 class App extends Component<Props, State> {
-  static childContextTypes = {
-    location: PropTypes.object,
-  };
-
   state: State = {
     loading: false,
     error: false,
     needsUpgrade: ConfigStore.get('user')?.isSuperuser && ConfigStore.get('needsUpgrade'),
     newsletterConsentPrompt: ConfigStore.get('user')?.flags?.newsletter_consent_prompt,
   };
-
-  getChildContext() {
-    return {
-      location: this.props.location,
-    };
-  }
 
   componentDidMount() {
     this.props.api.request('/organizations/', {

@@ -80,7 +80,6 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
@@ -971,20 +970,24 @@ class SessionMetricsTestCase(SnubaTestCase):
         if status != "ok":  # terminal
             self._push_metric(session, "distribution", "session.duration", {}, session["duration"])
 
+    def bulk_store_sessions(self, sessions):
+        for session in sessions:
+            self.store_session(session)
+
     @classmethod
     def _push_metric(cls, session, type, name, tags, value):
         def metric_id(name):
-            res = indexer.record(session["org_id"], UseCase.METRIC, name)
+            res = indexer.record(session["org_id"], name)
             assert res is not None, name
             return res
 
         def tag_key(name):
-            res = indexer.record(session["org_id"], UseCase.TAG_KEY, name)
+            res = indexer.record(session["org_id"], name)
             assert res is not None, name
             return res
 
         def tag_value(name):
-            res = indexer.record(session["org_id"], UseCase.TAG_KEY, name)
+            res = indexer.record(session["org_id"], name)
             assert res is not None, name
             return res
 

@@ -33,7 +33,10 @@ import {getTransactionDetailsUrl} from '../utils';
 
 import EventMetas from './eventMetas';
 
-type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'location'> & {
+type Props = Pick<
+  RouteComponentProps<{eventSlug: string}, {}>,
+  'params' | 'location' | 'router' | 'route'
+> & {
   organization: Organization;
   eventSlug: string;
 };
@@ -103,7 +106,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {organization, location, eventSlug} = this.props;
+    const {organization, location, eventSlug, route, router} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -198,6 +201,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                               showTagSummary={false}
                               location={location}
                               api={this.api}
+                              router={router}
+                              route={route}
                               isBorderless
                             />
                           </QuickTraceContext.Provider>
