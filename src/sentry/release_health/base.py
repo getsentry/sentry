@@ -17,6 +17,7 @@ FormattedIsoTime = str
 ProjectRelease = Tuple[ProjectId, ReleaseName]
 ProjectOrRelease = TypeVar("ProjectOrRelease", ProjectId, ProjectRelease)
 
+
 # taken from sentry.snuba.sessions.STATS_PERIODS
 StatsPeriod = Union[
     'Literal["1h"]',
@@ -53,6 +54,9 @@ class _NoTimeBounds(TypedDict):
 
 ReleaseSessionsTimeBounds = Union[_TimeBounds, _NoTimeBounds]
 
+# Inner list is supposed to be fixed length
+ReleaseHealthStats = Sequence[Sequence[int]]
+
 
 class ReleaseAdoption(TypedDict):
     #: Adoption rate (based on usercount) for a project's release from 0..100
@@ -70,6 +74,25 @@ class ReleaseAdoption(TypedDict):
 
 
 ReleasesAdoption = Mapping[Tuple[ProjectId, ReleaseName], ReleaseAdoption]
+
+
+class ReleaseHealthOverview(TypedDict, total=False):
+    adoption: Optional[float]
+    sessions_adoption: Optional[float]
+    total_users_24h: Optional[int]
+    total_project_users_24h: Optional[int]
+    total_sessions_24h: Optional[int]
+    total_project_sessions_24h: Optional[int]
+    total_sessions: Optional[int]
+    total_users: Optional[int]
+    has_health_data: bool
+    sessions_crashed: int
+    crash_free_users: Optional[float]
+    crash_free_sessions: Optional[float]
+    sessions_errored: int
+    duration_p50: Optional[float]
+    duration_p90: Optional[float]
+    stats: Mapping[StatsPeriod, ReleaseHealthStats]
 
 
 class ReleaseHealthBackend(Service):  # type: ignore
@@ -202,8 +225,8 @@ class ReleaseHealthBackend(Service):  # type: ignore
         environments: Optional[Sequence[EnvironmentName]] = None,
         summary_stats_period: Optional[StatsPeriod] = None,
         health_stats_period: Optional[StatsPeriod] = None,
-        stat: OverviewStat = None,
-    ):
+        stat: Optional[OverviewStat] = None,
+    ) -> Mapping[ProjectRelease, ReleaseHealthOverview]:
         """Checks quickly for which of the given project releases we have
         health data available.  The argument is a tuple of `(project_id, release_name)`
         tuples.  The return value is a set of all the project releases that have health

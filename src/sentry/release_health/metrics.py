@@ -18,6 +18,7 @@ from sentry.release_health.base import (
     ProjectRelease,
     ReleaseAdoption,
     ReleaseHealthBackend,
+    ReleaseHealthOverview,
     ReleaseName,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
@@ -71,11 +72,13 @@ def get_tag_values_list(org_id: int, values: Sequence[str]) -> Sequence[int]:
     return [x for x in [try_get_tag_value(org_id, x) for x in values] if x is not None]
 
 
-def filter_projects_by_project_release(project_releases: Sequence[ProjectRelease]):
+def filter_projects_by_project_release(project_releases: Sequence[ProjectRelease]) -> Condition:
     return Condition(Column("project_id"), Op.IN, list(x for x, _ in project_releases))
 
 
-def filter_releases_by_project_release(org_id: int, project_releases: Sequence[ProjectRelease]):
+def filter_releases_by_project_release(
+    org_id: int, project_releases: Sequence[ProjectRelease]
+) -> Condition:
     return Condition(
         Column(tag_key(org_id, "release")),
         Op.IN,
@@ -609,7 +612,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         """
         Percentiles of session duration
         """
-        rv_durations: Mapping[Tuple[int, str], Any] = {}
+        rv_durations: Dict[Tuple[int, str], Any] = {}
 
         release_column_name = tag_key(org_id, "release")
         aggregates: List[SelectableExpression] = [
@@ -631,7 +634,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             referrer="release_health.metrics.get_session_duration_data_for_overview",
         )["data"]:
             # See https://github.com/getsentry/snuba/blob/8680523617e06979427bfa18c6b4b4e8bf86130f/snuba/datasets/entities/metrics.py#L184 for quantiles
-            key = row["project_id"], reverse_tag_value(org_id, row[release_column_name])
+            key = (row["project_id"], reverse_tag_value(org_id, row[release_column_name]))
             rv_durations[key] = {
                 "duration_p50": row["percentiles"][0],
                 "duration_p90": row["percentiles"][2],
@@ -646,7 +649,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         """
         Count of errored sessions, incl fatal (abnormal, crashed) sessions
         """
-        rv_errored_sessions: Mapping[Tuple[int, str], int] = {}
+        rv_errored_sessions: Dict[Tuple[int, str], int] = {}
 
         release_column_name = tag_key(org_id, "release")
         aggregates: List[SelectableExpression] = [
@@ -688,7 +691,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             Column(session_status_column_name),
         ]
 
-        rv_sessions: Mapping[Tuple[int, str, str], int] = {}
+        rv_sessions: Dict[Tuple[int, str, str], int] = {}
 
         for row in raw_snql_query(
             Query(
@@ -731,7 +734,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ]
 
         # Count of users and crashed users
-        rv_users: Mapping[Tuple[int, str, str], int] = {}
+        rv_users: Dict[Tuple[int, str, str], int] = {}
 
         for row in raw_snql_query(
             Query(
@@ -767,7 +770,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         health_stats_period: StatsPeriod,
         stat: OverviewStat,
         now: datetime,
-    ):
+    ) -> Mapping[ProjectRelease, List[List[int]]]:
         release_column_name = tag_key(org_id, "release")
         session_status_column_name = tag_key(org_id, "session.status")
         session_init_tag_value = tag_value(org_id, "init")
@@ -782,7 +785,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             Column("bucketed_time"),
         ]
 
-        rv = defaultdict(lambda: _make_stats(stats_start, stats_rollup, stats_buckets))
+        rv: Dict[ProjectRelease, List[List[int]]] = defaultdict(lambda: _make_stats(stats_start, stats_rollup, stats_buckets))  # type: ignore
 
         entity = {
             "users": EntityKey.MetricsSets.value,
@@ -807,7 +810,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                         session_init_tag_value,
                     ),
                 ],
-                granularity=Granularity(stats_rollup),  # type: ignore
+                granularity=Granularity(stats_rollup),
                 groupby=aggregates,
             ),
             referrer="release_health.metrics.get_health_stats_for_overview",
@@ -830,7 +833,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         summary_stats_period: Optional[StatsPeriod] = None,
         health_stats_period: Optional[StatsPeriod] = None,
         stat: Optional[OverviewStat] = None,
-    ):
+    ) -> Mapping[ProjectRelease, ReleaseHealthOverview]:
         if stat is None:
             stat = "sessions"
         assert stat in ("sessions", "users")
@@ -873,12 +876,19 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         # that makes the entire backend too hard to test though.
         release_adoption = self.get_release_adoption(project_releases, environments)
 
-        rv = {}
+        rv: Dict[ProjectRelease, ReleaseHealthOverview] = {}
 
         fetch_has_health_data_releases = set()
 
         for project_id, release in project_releases:
-            adoption_info = release_adoption.get((project_id, release)) or {}
+            adoption_info: ReleaseAdoption = release_adoption.get((project_id, release)) or {
+                "adoption": None,
+                "sessions_adoption": None,
+                "users_24h": None,
+                "project_users_24h": None,
+                "sessions_24h": None,
+                "project_sessions_24h": None,
+            }
 
             total_sessions = rv_sessions.get((project_id, release, "init"))
 
@@ -919,14 +929,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     - sessions_crashed
                     - rv_sessions.get((project_id, release, "abnormal"), 0),
                 ),
-                **(
-                    rv_durations.get((project_id, release))
-                    or {
-                        "duration_p50": None,
-                        "duration_p90": None,
-                    }
-                ),
+                "duration_p50": None,
+                "duration_p90": None,
             }
+
+            durations = rv_durations.get((project_id, release))
+            if durations:
+                rv_row.update(durations)
 
             if health_stats_period:
                 rv_row["stats"] = {health_stats_period: health_stats_data[project_id, release]}
@@ -935,6 +944,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             has_health_data = self.check_has_health_data(fetch_has_health_data_releases)  # type: ignore
 
             for key in fetch_has_health_data_releases:
-                rv[key]["has_health_data"] = key in has_health_data
+                rv[key]["has_health_data"] = key in has_health_data  # type: ignore
 
         return rv

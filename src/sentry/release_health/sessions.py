@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Sequence, Set, Tuple
+from typing import Mapping, Optional, Sequence, Set, Tuple
 
 from sentry.release_health.base import (
     CurrentAndPreviousCrashFreeRates,
@@ -10,6 +10,7 @@ from sentry.release_health.base import (
     ProjectOrRelease,
     ProjectRelease,
     ReleaseHealthBackend,
+    ReleaseHealthOverview,
     ReleaseName,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
@@ -96,8 +97,8 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         environments: Optional[Sequence[EnvironmentName]] = None,
         summary_stats_period: Optional[StatsPeriod] = None,
         health_stats_period: Optional[StatsPeriod] = None,
-        stat: OverviewStat = None,
-    ):
+        stat: Optional[OverviewStat] = None,
+    ) -> Mapping[ProjectRelease, ReleaseHealthOverview]:
         return _get_release_health_data_overview(  # type: ignore
             project_releases=project_releases,
             environments=environments,
