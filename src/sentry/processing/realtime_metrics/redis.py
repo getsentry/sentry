@@ -91,7 +91,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         Returns a list of project IDs.
         """
-        return {project_id_raw for project_id_raw in self.cluster.smembers(LPQ_MEMBERS_KEY)}
+        return {int(project_id) for project_id in self.cluster.smembers(LPQ_MEMBERS_KEY)}
 
     def add_project_to_lpq(self, project_id: int) -> None:
         """
