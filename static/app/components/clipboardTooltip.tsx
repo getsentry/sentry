@@ -5,6 +5,7 @@ import Clipboard from 'app/components/clipboard';
 import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
 import {IconCopy} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 type Props = Omit<React.ComponentProps<typeof Tooltip>, 'isHoverable' | 'title'> & {
@@ -25,7 +26,7 @@ function ClipboardTooltip({title, onSuccess, ...props}: Props) {
           <TextOverflow>{title}</TextOverflow>
           <Clipboard value={title} onSuccess={onSuccess}>
             <TooltipClipboardIconWrapper>
-              <IconCopy size="xs" color="white" />
+              <IconCopy size="xs" color="white" aria-label={t('Copy to clipboard')} />
             </TooltipClipboardIconWrapper>
           </Clipboard>
         </TooltipClipboardWrapper>
