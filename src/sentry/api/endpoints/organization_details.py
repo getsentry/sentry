@@ -225,7 +225,7 @@ class OrganizationSerializer(serializers.Serializer):
 
     def validate_requireEmailVerification(self, value):
         user = self.context["user"]
-        has_verified = UserEmail.get_primary_email(user).is_verified
+        has_verified = UserEmail.objects.get_primary_email(user).is_verified
         if value and not has_verified:
             raise serializers.ValidationError(ERR_EMAIL_VERIFICATION)
         return value
