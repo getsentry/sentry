@@ -13,20 +13,19 @@ class IDPMigrationTests(TestCase):
         self.login_as(self.user)
         self.email = "test@example.com"
         self.org = self.create_organization()
+        self.provider = "test_provider"
         OrganizationMember.objects.create(organization=self.org, user=self.user)
 
-    @mock.patch("sentry.auth.idpmigration.send_confirm_email")
+    @mock.patch("sentry.auth.idpmigration.AccountConfirmLink.send_confirm_email")
     def test_send_one_time_account_confirm_link(self, send_confirm_email):
         idpmigration.send_one_time_account_confirm_link(
-            self.user, self.org, self.email, "drgUQCLzOyfHxmTyVs0G"
+            self.user, self.org, self.provider, self.email, "drgUQCLzOyfHxmTyVs0G"
         )
-        assert send_confirm_email.call_args.args[0] == self.user
-        assert send_confirm_email.call_args.args[1] == self.email
-        assert len(send_confirm_email.call_args.args[2]) == 32
+        assert len(send_confirm_email.call_args.args[0]) == 32
 
     def test_verify_account(self):
         verification_key = idpmigration.send_one_time_account_confirm_link(
-            self.user, self.org, self.email, "drgUQCLzOyfHxmTyVs0G"
+            self.user, self.org, self.provider, self.email, "drgUQCLzOyfHxmTyVs0G"
         )
         path = reverse(
             "sentry-idp-email-verification",
@@ -42,7 +41,7 @@ class IDPMigrationTests(TestCase):
 
     def test_verify_account_wrong_key(self):
         idpmigration.send_one_time_account_confirm_link(
-            self.user, self.org, self.email, "drgUQCLzOyfHxmTyVs0G"
+            self.user, self.org, self.provider, self.email, "drgUQCLzOyfHxmTyVs0G"
         )
         path = reverse(
             "sentry-idp-email-verification",

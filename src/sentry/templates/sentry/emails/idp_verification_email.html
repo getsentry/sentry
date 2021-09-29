@@ -3,8 +3,16 @@
 {% load i18n %}
 
 {% block main %}
-    <h3>Confirm Email</h3>
-    <p>Please confirm your email ({{ confirm_email }}) by clicking the link below. This link will expire in 10 minutes.</p>
+    <h3>Confirm Account</h3>
+    <p>
+        Sentry received a login attempt for {{ organization }} authenticated by {{ provider }},
+        with credentials for {{ email }}.
+    </p>
+
+    <p>
+        If this was you, and you wish to link your existing Sentry account to this {{ provider }} identity,
+        please follow the link below. The link will expire in 10 minutes.
+    </p>
 
     <a href="{{ url }}" class="btn">Confirm</a>
 {% endblock %}
