@@ -310,7 +310,7 @@ export function getMobileAxisOptions(organization: Organization): AxisOption[] {
 
 type TermFormatter = (organization: Organization) => string;
 
-const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
+export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   apdex: () =>
     t(
       'Apdex is the ratio of both satisfactory and tolerable response times to all response times. To adjust the tolerable threshold, go to performance settings.'
