@@ -1,5 +1,5 @@
-from typing import Iterable, Set, Union
 import dataclasses
+from typing import Dict, Iterable, Set, NewType
 
 from sentry.utils.services import Service
 
@@ -13,6 +13,24 @@ class BucketedCount:
 
     timestamp: int
     count: int
+
+
+# Duration to count mapping where the keys are durations and the values are counts. This represents
+# some `count` instances of some action where each individual instance some
+# [`duration`, `duration`+10) seconds of time to complete. `duration` is stored in seconds.
+BucketedDurations = NewType("BucketedDurations", Dict[int, int])
+
+
+@dataclasses.dataclass(frozen=True)
+class DurationHistogram:
+    """
+    Mapping of timestamp to histogram-like dict of durations. This represents some `count` amount of
+    some action performed during `timestamp`, where `counts` are grouped by how long that action
+    took. `timestamp` is stored in seconds.
+    """
+
+    timestamp: int
+    histogram: BucketedDurations
 
 
 class RealtimeMetricsStore(Service):  # type: ignore
@@ -58,6 +76,13 @@ class RealtimeMetricsStore(Service):  # type: ignore
         """
         Returns a sorted list of bucketed timestamps paired with the count of symbolicator requests
         made during that time for some given project.
+        """
+        pass
+
+    def get_durations_for_project(self, project_id: int) -> Iterable[BucketedCount]:
+        """
+        Returns a sorted list of bucketed timestamps paired with a dictionary of symbolicator
+        durations grouped in 10 second durations made during that time for some given project.
         """
         pass
 

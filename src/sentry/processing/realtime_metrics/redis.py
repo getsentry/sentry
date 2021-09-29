@@ -1,6 +1,7 @@
-from itertools import chain
 import datetime
+import logging
 from typing import Iterable, Set
+from itertools import chain
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
@@ -9,6 +10,8 @@ from . import base
 
 # redis key for entry storing current list of LPQ members
 LPQ_MEMBERS_KEY = "store.symbolicate-event-lpq-selected"
+
+logger = logging.getLogger(__name__)
 
 
 class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
@@ -137,6 +140,59 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
             timestamp_bucket = int(timestamp_raw)
             count = int(count_raw)
             yield base.BucketedCount(timestamp=timestamp_bucket, count=count)
+
+    def get_durations_for_project(self, project_id: int) -> Iterable[base.DurationHistogram]:
+        """
+        Returns a sorted list of bucketed timestamps paired with a histogram-like dictionary of
+        symbolication durations made during some timestamp for some given project.
+
+        For a given `{duration:count}` entry in the dictionary bound to a specific `timestamp`:
+
+        - `duration` represents the amount of time it took for a symbolication request to complete.
+        Durations are bucketed by 10secs, meaning that a `duration` of `30` covers all requests that
+        took between 30-39 seconds.
+
+        - `count` is the number of symbolication requests that took some amount of time within the
+        range of `[duration, duration+10)` to complete.
+        """
+        key_prefix = f"{self.histogram_key_prefix()}:{project_id}:"
+        keys = sorted(
+            self.cluster.scan_iter(
+                match=key_prefix + "*",
+            )
+        )
+
+        for key in keys:
+            print("key: ", key)
+            _, timestamp_raw = key.split(key_prefix)
+            try:
+                timestamp_bucket = int(timestamp_raw)
+            except Exception:
+                logger.warning(
+                    'Ignoring symbolicator metric: project %s key %s, timestamp could not be converted to int: "%s"',
+                    project_id,
+                    key,
+                    timestamp_raw,
+                )
+                continue
+
+            histogram_raw = self.cluster.hgetall(key)
+            print("histogram: ", histogram_raw)
+            histogram = base.BucketedDurations({})
+            try:
+                for (duration_raw, count_raw) in histogram_raw.items():
+                    duration = int(duration_raw)
+                    count = int(count_raw)
+                    histogram[duration] = count
+            except Exception:
+                logger.warning(
+                    "Ignoring symbolicator metric: project %s key %s, unable to parse histogram",
+                    project_id,
+                    key,
+                    extra={"histogram": histogram_raw},
+                )
+                continue
+            yield base.DurationHistogram(timestamp=timestamp_bucket, histogram=histogram)
 
     def get_lpq_projects(self) -> Set[int]:
         """
