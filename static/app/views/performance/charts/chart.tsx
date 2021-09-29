@@ -15,7 +15,7 @@ import {Theme} from 'app/utils/theme';
 type Props = {
   theme: Theme;
   data: Series[];
-  previousData?: Series;
+  previousData?: Series[];
   router: InjectedRouter;
   statsPeriod: string | undefined;
   start: DateString;
@@ -202,7 +202,7 @@ class Chart extends Component<Props> {
             height={height}
             {...zoomRenderProps}
             series={series}
-            previousPeriod={previousData ? [previousData] : undefined}
+            previousPeriod={previousData}
             xAxis={disableXAxis ? {show: false} : undefined}
             {...areaChartProps}
           />
