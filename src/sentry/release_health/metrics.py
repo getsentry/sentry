@@ -470,8 +470,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         # is rendered as '0000-00-00 00:00:00' in clickhouse shell
         formatted_unix_start_time = datetime.utcfromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
-        lower_bound = None
-        upper_bound = None
+        lower_bound: Optional[str] = None
+        upper_bound: Optional[str] = None
 
         for row in rows:
             if set(row.values()) == {formatted_unix_start_time}:

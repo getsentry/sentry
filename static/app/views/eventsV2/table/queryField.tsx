@@ -2,7 +2,6 @@ import {CSSProperties} from 'react';
 import * as React from 'react';
 import {components, OptionProps, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import cloneDeep from 'lodash/cloneDeep';
 
 import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
@@ -104,30 +103,18 @@ type OptionType = {
 class QueryField extends React.Component<Props> {
   FieldSelectComponents = {
     Option: ({label, data, ...props}: OptionProps<OptionType>) => {
-      if (!data.value) {
-        Sentry.withScope(scope => {
-          scope.setExtra('data', data);
-          Sentry.captureException(new Error('Value missing from field option data'));
-        });
-      }
       return (
         <components.Option label={label} data={data} {...props}>
           <span data-test-id="label">{label}</span>
-          {this.renderTag(data.value.kind, label)}
+          {data.value && this.renderTag(data.value.kind, label)}
         </components.Option>
       );
     },
     SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => {
-      if (!data.value) {
-        Sentry.withScope(scope => {
-          scope.setExtra('data', data);
-          Sentry.captureException(new Error('Value missing from field option data'));
-        });
-      }
       return (
         <components.SingleValue data={data} {...props}>
           <span data-test-id="label">{data.label}</span>
-          {this.renderTag(data.value.kind, data.label)}
+          {data.value && this.renderTag(data.value.kind, data.label)}
         </components.SingleValue>
       );
     },
