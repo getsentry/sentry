@@ -105,10 +105,10 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
     let yAxisMax = maxValue ?? null;
     let yAxisMin = minValue ?? null;
 
-    if (typeof maxValue !== 'undefined' && maxThreshold > maxValue) {
+    if (typeof maxValue === 'number' && maxThreshold > maxValue) {
       yAxisMax = maxThreshold;
     }
-    if (typeof minValue !== 'undefined' && minThreshold < minValue) {
+    if (typeof minValue === 'number' && minThreshold < minValue) {
       yAxisMin = Math.floor(minThreshold / MIN_BUFFER);
     }
 
