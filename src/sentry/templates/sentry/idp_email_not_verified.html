@@ -1,0 +1,12 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Sorry</h3>
+    <p>
+        Sentry could not find an account to verify with the provided link.
+    </p>
+
+    <a href="{{ url }}" class="btn">Go back to login</a>
+{% endblock %}

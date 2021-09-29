@@ -1,0 +1,12 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Thank you!</h3>
+    <p>
+        Sentry has confirmed your email.
+    </p>
+
+    <a href="{{ url }}" class="btn">Go back to login</a>
+{% endblock %}
