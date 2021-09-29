@@ -96,7 +96,8 @@ def verify_account(key: str) -> bool:
     :param key: the one-time verification key
     :return: whether the key is valid
     """
-    verification_value = get_redis_key(key)
+    verification_key = get_redis_key(key)
+    verification_value = get_verification_value_from_key(verification_key)
     if not verification_value:
         return False
 
