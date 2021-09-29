@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import {navigateTo} from 'app/actionCreators/navigation';
 import FormSearchStore from 'app/stores/formSearchStore';
@@ -7,7 +7,6 @@ import SettingsSearch from 'app/views/settings/components/settingsSearch';
 jest.mock('app/actionCreators/formSearch');
 jest.mock('app/actionCreators/navigation');
 
-const SETTINGS_SEARCH_PLACEHOLDER = 'Search';
 describe('SettingsSearch', function () {
   let orgsMock;
   const routerContext = TestStubs.routerContext([
@@ -61,58 +60,33 @@ describe('SettingsSearch', function () {
   });
 
   it('renders', async function () {
-    const wrapper = mountWithTheme(
-      <SettingsSearch params={{orgId: 'org-slug'}} />,
-      routerContext
+    const {getByPlaceholderText} = mountWithTheme(
+      <SettingsSearch params={{orgId: 'org-slug'}} />
     );
 
     // renders input
-    expect(wrapper.find('SearchInput')).toHaveLength(1);
-    expect(wrapper.find('input').prop('placeholder')).toBe(SETTINGS_SEARCH_PLACEHOLDER);
+    expect(getByPlaceholderText('Search')).toBeInTheDocument();
   });
 
-  it('can focus when `handleFocusSearch` is called and target is not search input', function () {
-    const wrapper = mountWithTheme(
-      <SettingsSearch params={{orgId: 'org-slug'}} />,
-      routerContext
+  it('can focus when hotkey is pressed', function () {
+    const {getByPlaceholderText} = mountWithTheme(
+      <SettingsSearch params={{orgId: 'org-slug'}} />
     );
-    const searchInput = wrapper.find('SearchInput input').instance();
-    const focusSpy = jest.spyOn(searchInput, 'focus');
 
-    wrapper.instance().handleFocusSearch({
-      preventDefault: () => {},
-      target: null,
-    });
-
-    expect(focusSpy).toHaveBeenCalled();
-  });
-
-  it('does not focus search input if it is current target and `handleFocusSearch` is called', function () {
-    const wrapper = mountWithTheme(
-      <SettingsSearch params={{orgId: 'org-slug'}} />,
-      routerContext
-    );
-    const searchInput = wrapper.find('SearchInput input').instance();
-    const focusSpy = jest.spyOn(searchInput, 'focus');
-
-    wrapper.instance().handleFocusSearch({
-      preventDefault: () => {},
-      target: searchInput,
-    });
-
-    expect(focusSpy).not.toHaveBeenCalled();
+    fireEvent.keyDown(document, {code: 'Slash', key: '/', keyCode: 191});
+    expect(document.activeElement).toEqual(getByPlaceholderText('Search'));
   });
 
   it('can search', async function () {
-    const wrapper = mountWithTheme(
+    const {getByPlaceholderText, getAllByTestId} = mountWithTheme(
       <SettingsSearch params={{orgId: 'org-slug'}} />,
-      routerContext
+      {context: routerContext}
     );
 
-    wrapper.find('input').simulate('change', {target: {value: 'bil'}});
+    const input = getByPlaceholderText('Search');
+    fireEvent.change(input, {target: {value: 'bil'}});
 
     await tick();
-    wrapper.update();
 
     expect(orgsMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -122,19 +96,15 @@ describe('SettingsSearch', function () {
       })
     );
 
-    expect(
-      wrapper.find('SearchResult [data-test-id="badge-display-name"]').first().text()
-    ).toBe('billy-org Dashboard');
+    const results = getAllByTestId('badge-display-name');
 
-    expect(wrapper.find('SearchResultWrapper').first().prop('highlighted')).toBe(true);
+    const firstResult = results
+      .filter(e => e.textContent === 'billy-org Dashboard')
+      .pop();
 
-    expect(wrapper.find('SearchResultWrapper').at(1).prop('highlighted')).toBe(false);
+    expect(firstResult).toBeDefined();
 
-    wrapper
-      .find('SearchResult [data-test-id="badge-display-name"]')
-      .first()
-      .simulate('click');
-
+    fireEvent.click(firstResult);
     expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything(), undefined);
   });
 });
