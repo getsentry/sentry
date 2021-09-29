@@ -3,6 +3,7 @@ from django.http import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.integrations.utils import get_identity_or_404
 from sentry.models import (
     ExternalActor,
     Identity,
@@ -17,7 +18,7 @@ from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from ..utils import get_identity, logger, render_error_page, send_confirmation
+from ..utils import logger, render_error_page, send_confirmation
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
 
@@ -58,8 +59,11 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
                 request=request,
             )
 
-        organization, integration, idp = get_identity(
-            request.user, params["organization_id"], params["integration_id"]
+        organization, integration, idp = get_identity_or_404(
+            ExternalProviders.SLACK,
+            request.user,
+            integration_id=params["integration_id"],
+            organization_id=params["organization_id"],
         )
         channel_name = params["channel_name"]
         channel_id = params["channel_id"]
