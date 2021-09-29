@@ -392,9 +392,9 @@ class IssueSyncMixin(IssueBasicMixin):
         action = self.get_resolve_sync_action(data)
         if action == ResolveSyncAction.RESOLVE:
             Group.objects.update_group_status(
-                affected_groups, GroupStatus.RESOLVED, ActivityType.SET_RESOLVED.value
+                affected_groups, GroupStatus.RESOLVED, ActivityType.SET_RESOLVED
             )
         if action == ResolveSyncAction.UNRESOLVE:
             Group.objects.update_group_status(
-                affected_groups, GroupStatus.UNRESOLVED, ActivityType.SET_UNRESOLVED.value
+                affected_groups, GroupStatus.UNRESOLVED, ActivityType.SET_UNRESOLVED
             )

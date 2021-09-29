@@ -1,6 +1,5 @@
 import jwt
 import responses
-from exam import fixture
 from requests.exceptions import ConnectionError
 
 from sentry.integrations.jira_server.integration import JiraServerIntegration
@@ -8,21 +7,22 @@ from sentry.models import OrganizationIntegration
 from sentry.testutils import APITestCase
 from sentry.utils.compat.mock import patch
 
-from . import EXAMPLE_PAYLOAD, get_integration
+from . import EXAMPLE_PAYLOAD, get_integration, link_group
 
 
 class JiraServerWebhookEndpointTest(APITestCase):
     endpoint = "sentry-extensions-jiraserver-issue-updated"
     method = "post"
 
-    @fixture
-    def integration(self):
-        return get_integration(self.organization, self.user)
+    def setUp(self):
+        super().setUp()
+        self.integration = get_integration(self.organization, self.user)
 
     @property
     def jwt_token(self):
-        integration = self.integration
-        return jwt.encode({"id": integration.external_id}, integration.metadata["webhook_secret"])
+        return jwt.encode(
+            {"id": self.integration.external_id}, self.integration.metadata["webhook_secret"]
+        )
 
     def test_post_empty_token(self):
         # Read the property to get side-effects in the database.
@@ -36,6 +36,8 @@ class JiraServerWebhookEndpointTest(APITestCase):
             integration_id=self.integration.id,
         )
         org_integration.update(default_auth_id=None, config={"sync_status_reverse": True})
+
+        link_group(self.organization, self.integration, self.group)
 
         with self.tasks():
             self.get_error_response(self.jwt_token, **EXAMPLE_PAYLOAD, status_code=400)
@@ -93,11 +95,11 @@ class JiraServerWebhookEndpointTest(APITestCase):
             url="https://jira.example.org/rest/api/2/status",
             body=ConnectionError(),
         )
-        project = self.create_project()
-        self.create_group(project=project)
-        integration = self.integration
-        installation = integration.get_installation(self.organization.id)
+        group = self.create_group(self.project)
+        installation = self.integration.get_installation(self.organization.id)
         installation.update_organization_config({"sync_status_reverse": True})
+
+        link_group(self.organization, self.integration, group)
 
         with self.tasks():
             self.get_error_response(self.jwt_token, **EXAMPLE_PAYLOAD, status_code=400)

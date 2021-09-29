@@ -1,4 +1,7 @@
 from sentry.models import (
+    ExternalIssue,
+    Group,
+    GroupLink,
     Identity,
     IdentityProvider,
     IdentityStatus,
@@ -98,3 +101,19 @@ def get_integration(organization: Organization, user: User) -> Integration:
     )
     integration.add_organization(organization, user, default_auth_id=identity.id)
     return integration
+
+
+def link_group(organization: Organization, integration: Integration, group: Group) -> None:
+    external_issue = ExternalIssue.objects.create(
+        key=EXAMPLE_PAYLOAD["issue"]["key"],
+        integration_id=integration.id,
+        organization_id=organization.id,
+    )
+
+    GroupLink.objects.create(
+        group_id=group.id,
+        project_id=group.project_id,
+        linked_type=GroupLink.LinkedType.issue,
+        relationship=GroupLink.Relationship.resolves,
+        linked_id=external_issue.id,
+    )
