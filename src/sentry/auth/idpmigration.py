@@ -27,6 +27,14 @@ def send_one_time_account_confirm_link(
 
 @dataclass
 class AccountConfirmLink:
+    """
+    :param user: the user profile to link
+    :param organization: the organization whose SSO provider is being used
+    :param provider_name: a display name for the SSO provider
+    :param email: the email address associated with the SSO identity
+    :param identity_id: the SSO identity id
+    """
+
     user: User
     organization: Organization
     provider_name: str
@@ -63,11 +71,6 @@ class AccountConfirmLink:
         has been deleted, presumably because the parent organization has
         switched identity providers. Store the key in Redis and send it
         in an email to the associated address.
-
-        :param auth_handler: the object handling the login attempt
-        :param user: the user profile to link
-        :param email: the email address associated with the SSO identity
-        :param identity_id: the SSO identity id
         """
         cluster = redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
         member_id = OrganizationMember.objects.get(
