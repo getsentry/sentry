@@ -1,3 +1,4 @@
+from itertools import chain
 import datetime
 from typing import Iterable, Set
 
@@ -97,12 +98,23 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         """
 
         already_seen = set()
-        for item in self.inner.scan_iter(
-            match=f"{self._prefix}:*",
-        ):
-            _prefix, project_id_raw, _else = item.split(":")
-            project_id = _to_int(project_id_raw)
-            if project_id is not None and project_id not in already_seen:
+        # Normally if there's a histogram entry for a project then there should be a counter
+        # entry for it as well, but double check both to be safe
+        all_keys = chain(
+            self.cluster.scan_iter(
+                match=self.counter_key_prefix() + ":*",
+            ),
+            self.cluster.scan_iter(
+                match=self.histogram_key_prefix() + ":*",
+            ),
+        )
+
+        for item in all_keys:
+            # Because this could be one of two patterns, this splits based on the most basic
+            # delimiter ":" instead of splitting on known prefixes
+            _prefix, _metric_type, _bucket_size, project_id_raw, _else = item.split(":", maxsplit=4)
+            project_id = int(project_id_raw)
+            if project_id not in already_seen:
                 already_seen.add(project_id)
                 yield project_id
 
@@ -111,29 +123,20 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         Returns a sorted list of bucketed timestamps paired with the count of symbolicator requests
         made during that time for some given project.
         """
+        key_prefix = f"{self.counter_key_prefix()}:{project_id}:"
 
-        # TODO: Should all entries be normalized against the current bucket size?
         keys = sorted(
-            (
-                key
-                for key in self.inner.scan_iter(
-                    match=f"{self._prefix}:{project_id}:*",
-                )
+            self.cluster.scan_iter(
+                match=key_prefix + "*",
             )
         )
-        counts = self.inner.mget(keys)
-
+        counts = self.cluster.mget(keys)
         for key, count_raw in zip(keys, counts):
-            _prefix, _project_id, timestamp_raw = key.split(":")
+            _, timestamp_raw = key.split(key_prefix)
 
             timestamp_bucket = int(timestamp_raw)
             count = int(count_raw)
-
-            if timestamp_bucket is not None and count is not None:
-                yield base.BucketedCount(timestamp=timestamp_bucket, count=count)
-            else:
-                # TODO: log if this happens? remove the key?
-                pass
+            yield base.BucketedCount(timestamp=timestamp_bucket, count=count)
 
     def get_lpq_projects(self) -> Set[int]:
         """
