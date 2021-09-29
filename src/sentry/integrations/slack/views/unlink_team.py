@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.utils import get_identity_or_404
-from sentry.models import ExternalActor, Identity, Integration, NotificationSetting, Team
+from sentry.models import ExternalActor, Identity, Integration
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start

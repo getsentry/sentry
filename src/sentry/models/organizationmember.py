@@ -98,8 +98,7 @@ class OrganizationMemberManager(BaseManager):
     def get_for_integration(self, integration: "Integration", actor: "User") -> QuerySet:
         """TODO(mgaeta): Use a Django join on sentry_organizationintegration."""
         return self.filter(
-            user=actor,
-            organization__in=integration.organizations.all()
+            user=actor, organization__in=integration.organizations.all()
         ).select_related("organization")
 
 
