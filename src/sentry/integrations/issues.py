@@ -1,8 +1,9 @@
 import logging
 from collections import defaultdict
+from typing import Any, Optional
 
 from sentry import features
-from sentry.models import ExternalIssue, Group, GroupLink, GroupStatus, Organization
+from sentry.models import ExternalIssue, Group, GroupLink, GroupStatus, Organization, User
 from sentry.models.useroption import UserOption
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.types.activity import ActivityType
@@ -306,7 +307,13 @@ class IssueSyncMixin(IssueBasicMixin):
         value: bool = self.org_integration.config.get(key, False)
         return value
 
-    def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
+    def sync_assignee_outbound(
+        self,
+        external_issue: "ExternalIssue",
+        user: Optional["User"],
+        assign: bool = True,
+        **kwargs: Any,
+    ) -> None:
         """
         Propagate a sentry issue's assignee to a linked issue's assignee.
         If assign=True, we're assigning the issue. Otherwise, deassign.
