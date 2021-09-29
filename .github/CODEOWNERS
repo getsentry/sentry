@@ -249,11 +249,12 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/api/endpoints/chunk.py                                  @getsentry/owners-native
 /src/sentry/api/endpoints/project_app_store_connect_credentials.py  @getsentry/owners-native
 /src/sentry/lang/native/                                            @getsentry/owners-native
-src/sentry/processing/realtime_metrics/                             @getsentry/owners-native
+/src/sentry/processing/realtime_metrics/                             @getsentry/owners-native
 /src/sentry/tasks/app_store_connect.py                              @getsentry/owners-native
 /src/sentry/tasks/assemble.py                                       @getsentry/owners-native
 /src/sentry/tasks/low_priority_symbolication.py                     @getsentry/owners-native
-/tests/sentry/tasks/test_low_priority_symbolication.py              @getsentry/owners-native
+/src/sentry/tasks/symbolication.py                                  @getsentry/owners-native
 /src/sentry/utils/appleconnect/                                     @getsentry/owners-native
+/tests/sentry/tasks/test_low_priority_symbolication.py              @getsentry/owners-native
 
 ## End of Native ##
