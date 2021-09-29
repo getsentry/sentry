@@ -98,6 +98,9 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
     def projects(self) -> Iterable[int]:
         """
         Returns IDs of all projects that should be considered for the low priority queue.
+
+        This may throw an exception if there is some sort of issue scanning the redis store for
+        projects.
         """
 
         already_seen = set()
@@ -125,6 +128,9 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         """
         Returns a sorted list of bucketed timestamps paired with the count of symbolicator requests
         made during that time for some given project.
+
+        This may throw an exception if there is some sort of issue fetching counts from the redis
+        store.
         """
         key_prefix = f"{self.counter_key_prefix()}:{project_id}:"
 
@@ -154,6 +160,9 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         - `count` is the number of symbolication requests that took some amount of time within the
         range of `[duration, duration+10)` to complete.
+
+        This may throw an exception if there is some sort of issue fetching durations from the redis
+        store.
         """
         key_prefix = f"{self.histogram_key_prefix()}:{project_id}:"
         keys = sorted(
@@ -197,6 +206,9 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         Fetches the list of projects that are currently using the low priority queue.
 
         Returns a list of project IDs.
+
+        This may throw an exception if there is some sort of issue fetching the list from the redis
+        store.
         """
         return {int(project_id) for project_id in self.cluster.smembers(LPQ_MEMBERS_KEY)}
 
