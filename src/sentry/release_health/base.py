@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Set, Tuple, TypeVar, Union
+from typing import Collection, Mapping, Optional, Sequence, Set, Tuple, TypeVar, Union
 
 from typing_extensions import TypedDict
 
@@ -52,6 +52,14 @@ class ReleaseAdoption(TypedDict):
 
 
 ReleasesAdoption = Mapping[Tuple[ProjectId, ReleaseName], ReleaseAdoption]
+
+
+class CrashFreeBreakdown(TypedDict):
+    date: datetime
+    total_users: int
+    crash_free_users: Optional[int]
+    total_sessions: int
+    crash_free_sessions: Optional[int]
 
 
 class ReleaseHealthBackend(Service):  # type: ignore
@@ -175,4 +183,13 @@ class ReleaseHealthBackend(Service):  # type: ignore
         """
         Returns a set of all release versions that have health data within a given period of time.
         """
+        raise NotImplementedError()
+
+    def get_crash_free_breakdown(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        start: datetime,
+        environments: Optional[Collection[EnvironmentName]] = None,
+    ) -> Sequence[CrashFreeBreakdown]:
         raise NotImplementedError()

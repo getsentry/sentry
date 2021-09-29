@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import Optional, Sequence, Set, Tuple
+from typing import Collection, Optional, Sequence, Set, Tuple
 
 from sentry.release_health.base import (
+    CrashFreeBreakdown,
     CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
     OrganizationId,
@@ -17,6 +18,7 @@ from sentry.snuba.sessions import (
     _check_releases_have_health_data,
     _get_release_adoption,
     _get_release_sessions_time_bounds,
+    get_crash_free_breakdown,
     get_current_and_previous_crash_free_rates,
 )
 
@@ -84,4 +86,15 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
             release_versions,
             start,
             end,
+        )
+
+    def get_crash_free_breakdown(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        start: datetime,
+        environments: Optional[Collection[EnvironmentName]] = None,
+    ) -> Sequence[CrashFreeBreakdown]:
+        return get_crash_free_breakdown(
+            project_id=project_id, release=release, start=start, environments=environments
         )

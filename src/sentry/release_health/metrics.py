@@ -1,5 +1,17 @@
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 import pytz
 from snuba_sdk import BooleanCondition, Column, Condition, Entity, Function, Op, Query
@@ -8,6 +20,7 @@ from snuba_sdk.query import SelectableExpression
 
 from sentry.models.project import Project
 from sentry.release_health.base import (
+    CrashFreeBreakdown,
     CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
     OrganizationId,
@@ -606,3 +619,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             return reverse_tag_value(organization_id, row.get(release_column_name))  # type: ignore
 
         return {extract_row_info(row) for row in result["data"]}
+
+    def get_crash_free_breakdown(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        start: datetime,
+        environments: Optional[Collection[EnvironmentName]] = None,
+    ) -> Sequence[CrashFreeBreakdown]:
+        pass

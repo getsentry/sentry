@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 import pytz
 from django.utils import timezone
+from freezegun import freeze_time
 
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
@@ -53,6 +54,7 @@ class ReleaseHealthMetricsTestCase(SessionMetricsTestCase):
     backend = MetricsReleaseHealthBackend()
 
 
+@freeze_time("2021-05-01 12:59")
 class SnubaSessionsTest(TestCase, SnubaTestCase):
     backend = SessionsReleaseHealthBackend()
 
@@ -567,6 +569,97 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             "sessions_lower_bound": None,
             "sessions_upper_bound": None,
         }
+
+    def test_get_crash_free_breakdown(self):
+        start = timezone.now() - timedelta(days=4)
+        data = self.backend.get_crash_free_breakdown(
+            project_id=self.project.id,
+            release=self.session_release,
+            start=start,
+            environments=["prod"],
+        )
+        assert data == [
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": start + timedelta(days=1),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": start + timedelta(days=2),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+            {
+                "crash_free_sessions": 100.0,
+                "crash_free_users": 100.0,
+                "date": start + timedelta(days=4),
+                "total_sessions": 2,
+                "total_users": 1,
+            },
+        ]
+
+        data = self.backend.get_crash_free_breakdown(
+            project_id=self.project.id,
+            release=self.session_crashed_release,
+            start=start,
+            environments=["prod"],
+        )
+        assert data == [
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": start + timedelta(days=1),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": start + timedelta(days=2),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+            {
+                "crash_free_sessions": 0.0,
+                "crash_free_users": 0.0,
+                "date": start + timedelta(days=4),
+                "total_sessions": 1,
+                "total_users": 1,
+            },
+        ]
+        data = self.backend.get_crash_free_breakdown(
+            project_id=self.project.id,
+            release="non-existing",
+            start=start,
+            environments=["prod"],
+        )
+        assert data == [
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": start + timedelta(days=1),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": start + timedelta(days=2),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": start + timedelta(days=4),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+        ]
 
 
 class SnubaSessionsTestMetrics(ReleaseHealthMetricsTestCase, SnubaSessionsTest):
