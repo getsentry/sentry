@@ -125,6 +125,7 @@ export const AGGREGATIONS = {
       {
         kind: 'column',
         columnTypes: ['string', 'integer', 'number', 'duration', 'date', 'boolean'],
+        defaultValue: 'user',
         required: true,
       },
     ],
