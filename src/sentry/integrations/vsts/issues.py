@@ -208,7 +208,11 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         }
 
     def sync_assignee_outbound(
-        self, external_issue: "ExternalIssue", user: User, assign: bool = True, **kwargs: Any
+        self,
+        external_issue: "ExternalIssue",
+        user: Optional["User"],
+        assign: bool = True,
+        **kwargs: Any,
     ) -> None:
         client = self.get_client()
         assignee = None

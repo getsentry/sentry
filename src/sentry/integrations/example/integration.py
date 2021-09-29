@@ -1,3 +1,5 @@
+from typing import Any, Optional
+
 from django.http import HttpResponse
 
 from sentry.integrations import (
@@ -9,7 +11,7 @@ from sentry.integrations import (
 )
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.mediators.plugins import Migrator
-from sentry.models import User
+from sentry.models import ExternalIssue, User
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 
@@ -127,7 +129,13 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_unmigratable_repositories(self):
         return []
 
-    def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
+    def sync_assignee_outbound(
+        self,
+        external_issue: "ExternalIssue",
+        user: Optional["User"],
+        assign: bool = True,
+        **kwargs: Any,
+    ) -> None:
         pass
 
     def sync_status_outbound(self, external_issue, is_resolved, project_id):
