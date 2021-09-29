@@ -46,6 +46,12 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         if self._histogram_bucket_size <= 0:
             raise InvalidConfiguration("histogram bucket size must be at least 1")
 
+    def counter_key_prefix(self) -> str:
+        return f"{self._prefix}:counter:{self._counter_bucket_size}"
+
+    def histogram_key_prefix(self) -> str:
+        return f"{self._prefix}:histogram:{self._histogram_bucket_size}"
+
     def increment_project_event_counter(self, project_id: int, timestamp: int) -> None:
         """Increment the event counter for the given project_id.
 
@@ -58,7 +64,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         if self._counter_bucket_size > 1:
             timestamp -= timestamp % self._counter_bucket_size
 
-        key = f"{self._prefix}:counter:{self._counter_bucket_size}:{project_id}:{timestamp}"
+        key = f"{self.counter_key_prefix()}:{project_id}:{timestamp}"
 
         with self.cluster.pipeline() as pipeline:
             pipeline.incr(key)
@@ -77,7 +83,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         if self._histogram_bucket_size > 1:
             timestamp -= timestamp % self._histogram_bucket_size
 
-        key = f"{self._prefix}:histogram:{self._histogram_bucket_size}:{project_id}:{timestamp}"
+        key = f"{self.histogram_key_prefix()}:{project_id}:{timestamp}"
         duration -= duration % 10
 
         with self.cluster.pipeline() as pipeline:
