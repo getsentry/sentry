@@ -45,11 +45,12 @@ class RealtimeMetricsStore(Service):  # type: ignore
         """
         pass
 
-    def get_bucketed_counts_for_project(self, project_id: int) -> Iterable[BucketedCount]:
+    def get_counts_for_project(self, project_id: int) -> Iterable[BucketedCount]:
         """
-        Returns a sorted list of timestamps (bucket size unknown) and the count of symbolicator
-        requests made during that timestamp for some given project.
+        Returns a sorted list of bucketed timestamps paired with the count of symbolicator requests
+        made during that time for some given project.
         """
+        pass
 
     def get_lpq_projects(self) -> Set[int]:
         """

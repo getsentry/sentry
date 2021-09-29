@@ -69,7 +69,7 @@ def compute_lpq_eligibility(project_id: int) -> None:
 
 
 def _compute_lpq_eligibility(project_id: int) -> None:
-    bucketed_counts = realtime_metrics_store.get_bucketed_counts_for_project(project_id)
+    bucketed_counts = realtime_metrics_store.get_counts_for_project(project_id)
 
     is_eligible = calculation_magic(bucketed_counts)
 

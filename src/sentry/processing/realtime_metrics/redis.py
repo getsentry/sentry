@@ -100,10 +100,10 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
                 already_seen.add(project_id)
                 yield project_id
 
-    def get_bucketed_counts_for_project(self, project_id: int) -> Iterable[base.BucketedCount]:
+    def get_counts_for_project(self, project_id: int) -> Iterable[base.BucketedCount]:
         """
-        Returns a sorted list of timestamps (bucket size unknown) and the count of symbolicator
-        requests made during that timestamp for some given project.
+        Returns a sorted list of bucketed timestamps paired with the count of symbolicator requests
+        made during that time for some given project.
         """
 
         # TODO: Should all entries be normalized against the current bucket size?
