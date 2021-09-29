@@ -120,6 +120,7 @@ const SESSION_AGGREGATE_TO_FIELD = {
 };
 
 const TIME_WINDOW_TO_SESSION_INTERVAL = {
+  [TimeWindow.THIRTY_MINUTES]: '30m',
   [TimeWindow.ONE_HOUR]: '1h',
   [TimeWindow.TWO_HOURS]: '2h',
   [TimeWindow.FOUR_HOURS]: '4h',
@@ -189,6 +190,19 @@ class TriggersChart extends React.PureComponent<Props, State> {
     }
   }
 
+  get availableTimePeriods() {
+    // We need to special case sessions, because sub-hour windows are available
+    // only when time period is six hours or less (backend limitation)
+    if (isSessionAggregate(this.props.aggregate)) {
+      return {
+        ...AVAILABLE_TIME_PERIODS,
+        [TimeWindow.THIRTY_MINUTES]: [TimePeriod.SIX_HOURS],
+      };
+    }
+
+    return AVAILABLE_TIME_PERIODS;
+  }
+
   handleStatsPeriodChange = (timePeriod: string) => {
     this.setState({statsPeriod: timePeriod as TimePeriod});
   };
@@ -196,7 +210,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
   getStatsPeriod = () => {
     const {statsPeriod} = this.state;
     const {timeWindow} = this.props;
-    const statsPeriodOptions = AVAILABLE_TIME_PERIODS[timeWindow];
+    const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = statsPeriodOptions.includes(statsPeriod)
       ? statsPeriod
       : statsPeriodOptions[0];
@@ -281,7 +295,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
     const {triggers, resolveThreshold, thresholdType, header, timeWindow, aggregate} =
       this.props;
     const {statsPeriod, totalCount} = this.state;
-    const statsPeriodOptions = AVAILABLE_TIME_PERIODS[timeWindow];
+    const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = this.getStatsPeriod();
     return (
       <React.Fragment>
