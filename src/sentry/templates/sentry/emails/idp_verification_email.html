@@ -6,13 +6,17 @@
     <h3>Confirm Account</h3>
     <p>
         Sentry received a login attempt for {{ organization }} authenticated by {{ provider }},
-        with credentials for {{ email }}.
+        with the credentials {{ email }}.
     </p>
 
     <p>
-        If this was you, and you wish to link your existing Sentry account to this {{ provider }} identity,
-        please follow the link below. The link will expire in 10 minutes.
+        If this was you, and you wish to link your existing Sentry account to the new {{ provider }} identity for {{ email }},
+        please click the link below.
     </p>
 
     <a href="{{ url }}" class="btn">Confirm</a>
+
+    <p>
+        <strong>Note:</strong> This authentication link will expire in 10 minutes.
+    </p>
 {% endblock %}
