@@ -163,7 +163,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     widths = ListField(child=serializers.CharField(), required=False, allow_null=True)
     yAxis = ListField(child=serializers.CharField(), required=False, allow_null=True)
     display = serializers.CharField(required=False, allow_null=True)
-    topEvents = serializers.CharField(required=False, allow_null=True)
+    topEvents = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
 
     disallowed_fields = {
         1: {"environment", "query", "yAxis", "display", "topEvents"},
