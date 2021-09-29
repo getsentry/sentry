@@ -19,7 +19,10 @@ from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.auth.idpmigration import send_one_time_account_confirm_link
+from sentry.auth.idpmigration import (
+    get_verification_value_from_key,
+    send_one_time_account_confirm_link,
+)
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -379,6 +382,19 @@ class AuthIdentityHandler:
 
         return response
 
+    def _check_verification_key(self, identity):
+        if self.request.session.get("confirm_account_verification_key"):
+            verification_value = get_verification_value_from_key(
+                self.request.session["confirm_account_verification_key"]
+            )
+            acting_user = self._get_user(identity)
+            if (
+                verification_value["email"] == identity["email"]
+                and verification_value["user_id"] == acting_user.id
+            ):
+                return True
+        return False
+
     def handle_unknown_identity(
         self,
         state: AuthHelperSessionStore,
@@ -411,11 +427,8 @@ class AuthIdentityHandler:
             acting_user = self.user
             login_form = None
         # we don't trust all IDP email verification, so users can also confirm via one time email link
-        if (
-            acting_user
-            and identity.get("email_verified")
-            or self.request.session.get("confirm_account_verification_key")
-        ):
+
+        if acting_user and identity.get("email_verified") or self._check_verification_key(identity):
             # we only allow this flow to happen if the existing user has
             # membership, otherwise we short circuit because it might be
             # an attempt to hijack membership of another organization

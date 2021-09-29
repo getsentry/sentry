@@ -6,7 +6,7 @@ from django.utils.crypto import get_random_string
 
 from sentry import options
 from sentry.models import Organization, OrganizationMember, User
-from sentry.utils import redis
+from sentry.utils import json, redis
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
@@ -66,8 +66,7 @@ def send_one_time_account_confirm_link(
         "member_id": member_id,
         "identity_id": identity_id,
     }
-    cluster.hmset(verification_key, verification_value)
-    cluster.expire(verification_key, int(_TTL.total_seconds()))
+    cluster.setex(verification_key, int(_TTL.total_seconds()), json.dumps(verification_value))
 
     send_confirm_email(user, email, verification_code)
 
@@ -78,19 +77,12 @@ def get_redis_key(verification_key: str) -> str:
     return f"auth:one-time-key:{verification_key}"
 
 
-def decode_verification_value(verification_value_byte):
-    return {
-        y.decode("ascii"): verification_value_byte.get(y).decode("ascii")
-        for y in verification_value_byte.keys()
-    }
-
-
 def get_verification_value_from_key(verification_key):
     cluster = get_redis_cluster()
-    verification_value_byte = cluster.hgetall(verification_key)
-    if verification_value_byte:
-        return decode_verification_value(verification_value_byte)
-    return verification_value_byte
+    verification_value = cluster.get(verification_key)
+    if verification_value:
+        return json.loads(verification_value)
+    return verification_value
 
 
 def verify_account(key: str) -> bool:
