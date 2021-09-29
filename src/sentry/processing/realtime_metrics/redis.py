@@ -173,32 +173,12 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         for key in keys:
             _, timestamp_raw = key.split(key_prefix)
-            try:
-                timestamp_bucket = int(timestamp_raw)
-            except Exception:
-                logger.warning(
-                    'Ignoring symbolicator metric: project %s key %s, timestamp could not be converted to int: "%s"',
-                    project_id,
-                    key,
-                    timestamp_raw,
-                )
-                continue
+            timestamp_bucket = int(timestamp_raw)
 
             histogram_raw = self.cluster.hgetall(key)
-            histogram = base.BucketedDurations({})
-            try:
-                for (duration_raw, count_raw) in histogram_raw.items():
-                    duration = int(duration_raw)
-                    count = int(count_raw)
-                    histogram[duration] = count
-            except Exception:
-                logger.warning(
-                    "Ignoring symbolicator metric: project %s key %s, unable to parse histogram",
-                    project_id,
-                    key,
-                    extra={"histogram": histogram_raw},
-                )
-                continue
+            histogram = base.BucketedDurations(
+                {int(duration): int(count) for duration, count in histogram_raw.items()}
+            )
             yield base.DurationHistogram(timestamp=timestamp_bucket, histogram=histogram)
 
     def get_lpq_projects(self) -> Set[int]:
