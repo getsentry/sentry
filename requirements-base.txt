@@ -59,7 +59,7 @@ snuba-sdk>=0.0.25,<1.0.0
 simplejson==3.17.2
 statsd==3.3
 structlog==21.1.0
-symbolic==8.3.0
+symbolic==8.3.1
 toronado==0.1.0
 ua-parser==0.10.0
 unidiff==0.6.0
