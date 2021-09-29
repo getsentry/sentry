@@ -16,8 +16,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-29 18:54+0000\n"
-"PO-Revision-Date: 2021-09-29 18:54+0000\n"
+"POT-Creation-Date: 2021-09-29 22:42+0000\n"
+"PO-Revision-Date: 2021-09-29 22:42+0000\n"
 "Last-Translator: Zbyněk Schwarz <zbynek.schwarz@gmail.com>\n"
 "Language-Team: Czech (http://www.transifex.com/getsentry/sentry/language/cs/)\n"
 "MIME-Version: 1.0\n"
@@ -1470,7 +1470,7 @@ msgstr ""
 
 #: models/savedsearch.py:28 static/app/views/issueList/utils.tsx:136
 msgid "Date Added"
-msgstr "Datum přidání"
+msgstr ""
 
 #: models/user.py:106
 msgid "username"
@@ -12841,7 +12841,7 @@ msgstr ""
 #: static/app/views/alerts/list/header.tsx:91
 #: static/app/views/alerts/rules/details/timeline.tsx:191
 msgid "History"
-msgstr "Historie"
+msgstr ""
 
 #: static/app/views/alerts/list/index.tsx:196
 #: static/app/views/alerts/rules/index.tsx:130
@@ -14641,7 +14641,7 @@ msgstr ""
 #: static/app/views/issueList/savedSearchMenu.tsx:104
 #: static/app/views/issueList/savedSearchTab.tsx:55
 msgid "Saved Searches"
-msgstr "Uložená hledání"
+msgstr ""
 
 #: static/app/views/issueList/savedSearchMenu.tsx:106
 msgid "No saved searches yet."
@@ -18373,7 +18373,7 @@ msgstr[3] ""
 #: static/app/views/releases/detail/releaseActions.tsx:180
 #: static/app/views/releases/detail/releaseActions.tsx:182
 msgid "Restore"
-msgstr "Obnovit"
+msgstr ""
 
 #: static/app/views/releases/detail/releaseActions.tsx:188
 msgid "Archive Release [release]"

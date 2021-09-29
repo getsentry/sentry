@@ -12,9 +12,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-29 18:54+0000\n"
-"PO-Revision-Date: 2021-09-29 18:54+0000\n"
-"Last-Translator: Billy Vong <billy@sentry.io>\n"
+"POT-Creation-Date: 2021-09-29 22:42+0000\n"
+"PO-Revision-Date: 2021-09-29 22:42+0000\n"
+"Last-Translator: Dimitris Glezos <glezos@transifex.com>\n"
 "Language-Team: Greek (http://www.transifex.com/getsentry/sentry/language/el/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -10644,7 +10644,7 @@ msgstr ""
 
 #: static/app/routes.tsx:1543
 msgid "Queue"
-msgstr ""
+msgstr "Ουρά"
 
 #: static/app/routes.tsx:1549
 msgid "Quotas"
@@ -16341,7 +16341,7 @@ msgstr ""
 
 #: static/app/views/performance/breadcrumb.tsx:123
 msgid "Event Details"
-msgstr ""
+msgstr "Λεπτομέρειες συμβάντος"
 
 #: static/app/views/performance/breadcrumb.tsx:128
 msgid "Compare to Baseline"

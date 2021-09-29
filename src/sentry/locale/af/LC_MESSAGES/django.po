@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-29 18:54+0000\n"
-"PO-Revision-Date: 2021-09-29 18:54+0000\n"
+"POT-Creation-Date: 2021-09-29 22:42+0000\n"
+"PO-Revision-Date: 2021-09-29 22:42+0000\n"
 "Last-Translator: Pi Delport <pjdelport@gmail.com>\n"
 "Language-Team: Afrikaans (http://www.transifex.com/getsentry/sentry/language/af/)\n"
 "MIME-Version: 1.0\n"
@@ -10640,7 +10640,7 @@ msgstr ""
 
 #: static/app/routes.tsx:1543
 msgid "Queue"
-msgstr "Tou"
+msgstr ""
 
 #: static/app/routes.tsx:1549
 msgid "Quotas"
@@ -16337,7 +16337,7 @@ msgstr ""
 
 #: static/app/views/performance/breadcrumb.tsx:123
 msgid "Event Details"
-msgstr "Geval Besonderhede"
+msgstr ""
 
 #: static/app/views/performance/breadcrumb.tsx:128
 msgid "Compare to Baseline"

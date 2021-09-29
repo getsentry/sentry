@@ -12,8 +12,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-29 18:54+0000\n"
-"PO-Revision-Date: 2021-09-29 18:54+0000\n"
+"POT-Creation-Date: 2021-09-29 22:42+0000\n"
+"PO-Revision-Date: 2021-09-29 22:42+0000\n"
 "Last-Translator: Alexander Shopov <ash@kambanaria.org>\n"
 "Language-Team: Bulgarian (http://www.transifex.com/getsentry/sentry/language/bg/)\n"
 "MIME-Version: 1.0\n"
@@ -2062,7 +2062,7 @@ msgstr ""
 #: templates/sentry/integrations/jira-issue.html:75
 #: templates/sentry/integrations/jira-issue.html:104
 msgid "Date:"
-msgstr ""
+msgstr "Дата:"
 
 #: templates/sentry/integrations/jira-issue.html:85
 #: templates/sentry/integrations/jira-issue.html:114
@@ -12596,7 +12596,7 @@ msgstr "Моето правило"
 
 #: static/app/views/alerts/issueRuleEditor/index.tsx:65
 msgid "1 week"
-msgstr ""
+msgstr "1 седмица"
 
 #: static/app/views/alerts/issueRuleEditor/index.tsx:655
 msgid "Set conditions"
@@ -13507,7 +13507,7 @@ msgstr ""
 #: static/app/views/dashboardsV2/manage/index.tsx:34
 #: static/app/views/eventsV2/landing.tsx:40
 msgid "Recently Viewed"
-msgstr ""
+msgstr "Гледани наскоро"
 
 #: static/app/views/dashboardsV2/title.tsx:30
 msgid "Please set a title for this dashboard"
@@ -14323,7 +14323,7 @@ msgstr ""
 
 #: static/app/views/integrationPipeline/awsLambdaProjectSelect.tsx:52
 msgid "Select a project"
-msgstr ""
+msgstr "Избор на процес"
 
 #: static/app/views/integrationPipeline/awsLambdaProjectSelect.tsx:61
 msgid "Currently only supports Node and Python Lambda functions"

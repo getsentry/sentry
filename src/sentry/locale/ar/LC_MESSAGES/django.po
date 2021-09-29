@@ -13,9 +13,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-29 18:54+0000\n"
-"PO-Revision-Date: 2021-09-29 18:54+0000\n"
-"Last-Translator: Ibrahim AshShohail <ibra.sho@gmail.com>\n"
+"POT-Creation-Date: 2021-09-29 22:42+0000\n"
+"PO-Revision-Date: 2021-09-29 22:42+0000\n"
+"Last-Translator: Billy Vong <billy@sentry.io>\n"
 "Language-Team: Arabic (http://www.transifex.com/getsentry/sentry/language/ar/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1475,7 +1475,7 @@ msgstr ""
 
 #: models/savedsearch.py:28 static/app/views/issueList/utils.tsx:136
 msgid "Date Added"
-msgstr "تاريخ الإضافة"
+msgstr ""
 
 #: models/user.py:106
 msgid "username"
@@ -7674,7 +7674,7 @@ msgstr ""
 #: static/app/components/modals/debugFileCustomRepository/appStoreConnect/index.tsx:559
 #: static/app/components/modals/suggestProjectModal.tsx:94
 msgid "Back"
-msgstr "عودة"
+msgstr ""
 
 #: static/app/components/modals/debugFileCustomRepository/appStoreConnect/index.tsx:572
 #: static/app/views/organizationIntegrations/integrationServerlessRow.tsx:110
@@ -9184,7 +9184,7 @@ msgstr "تفاصيل المشروع"
 
 #: static/app/components/searchBar.tsx:116
 msgid "Clear"
-msgstr "مسح"
+msgstr ""
 
 #: static/app/components/searchSyntax/parser.tsx:618
 msgid "Invalid duration. Expected number followed by duration unit suffix"
@@ -9427,7 +9427,7 @@ msgstr ""
 
 #: static/app/components/similarScoreCard.tsx:14
 msgid "Exception Type"
-msgstr "نوع الخطأ"
+msgstr ""
 
 #: static/app/components/similarScoreCard.tsx:8
 #: static/app/components/similarScoreCard.tsx:15
@@ -9661,7 +9661,7 @@ msgstr ""
 
 #: static/app/components/teams/createTeamForm.tsx:53
 msgid "Team Name"
-msgstr "اسم الفريق"
+msgstr ""
 
 #: static/app/components/teams/createTeamForm.tsx:54
 msgid "e.g. operations, web-frontend, desktop"
@@ -11026,7 +11026,7 @@ msgstr ""
 
 #: static/app/routes.tsx:590
 msgid "Configuration"
-msgstr "إعدادات"
+msgstr ""
 
 #: static/app/routes.tsx:625
 #: static/app/views/settings/organizationApiKeys/organizationApiKeyDetails.tsx:73

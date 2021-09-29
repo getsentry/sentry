@@ -16,9 +16,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-29 18:54+0000\n"
-"PO-Revision-Date: 2021-09-29 18:54+0000\n"
-"Last-Translator: Billy Vong <billy@sentry.io>\n"
+"POT-Creation-Date: 2021-09-29 22:42+0000\n"
+"PO-Revision-Date: 2021-09-29 22:42+0000\n"
+"Last-Translator: Cihad GÜNDOĞDU <cihadgundogdu@gmail.com>\n"
 "Language-Team: Turkish (http://www.transifex.com/getsentry/sentry/language/tr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1462,7 +1462,7 @@ msgstr ""
 
 #: models/savedsearch.py:28 static/app/views/issueList/utils.tsx:136
 msgid "Date Added"
-msgstr ""
+msgstr "Eklenme tarihi"
 
 #: models/user.py:106
 msgid "username"
@@ -2066,7 +2066,7 @@ msgstr ""
 #: templates/sentry/integrations/jira-issue.html:75
 #: templates/sentry/integrations/jira-issue.html:104
 msgid "Date:"
-msgstr ""
+msgstr "Tarih:"
 
 #: templates/sentry/integrations/jira-issue.html:85
 #: templates/sentry/integrations/jira-issue.html:114
@@ -9310,7 +9310,7 @@ msgstr ""
 
 #: static/app/components/similarScoreCard.tsx:14
 msgid "Exception Type"
-msgstr ""
+msgstr "Hata Tipi"
 
 #: static/app/components/similarScoreCard.tsx:8
 #: static/app/components/similarScoreCard.tsx:15
@@ -10648,7 +10648,7 @@ msgstr "Organizasyonlar"
 
 #: static/app/routes.tsx:1543
 msgid "Queue"
-msgstr ""
+msgstr "Sıra"
 
 #: static/app/routes.tsx:1549
 msgid "Quotas"
@@ -10656,7 +10656,7 @@ msgstr ""
 
 #: static/app/routes.tsx:1572
 msgid "Mail"
-msgstr ""
+msgstr "E Posta"
 
 #: static/app/routes.tsx:1590
 msgid "Warnings"
@@ -10885,7 +10885,7 @@ msgstr ""
 
 #: static/app/routes.tsx:590
 msgid "Configuration"
-msgstr ""
+msgstr "Ayar"
 
 #: static/app/routes.tsx:625
 #: static/app/views/settings/organizationApiKeys/organizationApiKeyDetails.tsx:73
@@ -11659,7 +11659,7 @@ msgstr "Kabul edildi"
 #: static/app/views/organizationStats/usageStatsOrg.tsx:364
 #: static/app/views/organizationStats/usageStatsProjects.tsx:226
 msgid "Dropped"
-msgstr ""
+msgstr "Düşürüldü"
 
 #: static/app/views/admin/adminOverview/index.tsx:17
 msgid "System Overview"
@@ -12600,7 +12600,7 @@ msgstr ""
 
 #: static/app/views/alerts/issueRuleEditor/index.tsx:65
 msgid "1 week"
-msgstr ""
+msgstr "1 hafta"
 
 #: static/app/views/alerts/issueRuleEditor/index.tsx:655
 msgid "Set conditions"
@@ -16345,7 +16345,7 @@ msgstr ""
 
 #: static/app/views/performance/breadcrumb.tsx:123
 msgid "Event Details"
-msgstr ""
+msgstr "Olay Detayları"
 
 #: static/app/views/performance/breadcrumb.tsx:128
 msgid "Compare to Baseline"
@@ -16764,7 +16764,7 @@ msgstr ""
 #: static/app/views/performance/onboarding.tsx:35
 #: static/app/views/releases/list/releasePromo.tsx:26
 msgid "Setup"
-msgstr ""
+msgstr "Kurulum"
 
 #: static/app/views/performance/onboarding.tsx:41
 msgid "Track Application Metrics"

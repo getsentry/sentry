@@ -63,9 +63,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-29 18:54+0000\n"
-"PO-Revision-Date: 2021-09-29 18:54+0000\n"
-"Last-Translator: Billy Vong <billy@sentry.io>\n"
+"POT-Creation-Date: 2021-09-29 22:42+0000\n"
+"PO-Revision-Date: 2021-09-29 22:42+0000\n"
+"Last-Translator: 759b81c7bb2252a11f36c89344f31007\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/getsentry/sentry/language/zh_CN/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2109,7 +2109,7 @@ msgstr ""
 #: templates/sentry/integrations/jira-issue.html:75
 #: templates/sentry/integrations/jira-issue.html:104
 msgid "Date:"
-msgstr ""
+msgstr "日期："
 
 #: templates/sentry/integrations/jira-issue.html:85
 #: templates/sentry/integrations/jira-issue.html:114
@@ -6358,7 +6358,7 @@ msgstr ""
 #: static/app/components/events/interfaces/frame/line.tsx:193
 #: static/app/components/events/interfaces/frame/lineV2/expander.tsx:36
 msgid "Toggle Context"
-msgstr ""
+msgstr "显示/隐藏上下文"
 
 #: static/app/components/events/interfaces/frame/line.tsx:233
 #: static/app/components/events/interfaces/frame/lineV2/leadHint.tsx:20
@@ -7639,12 +7639,12 @@ msgstr ""
 #: static/app/components/modals/debugFileCustomRepository/appStoreConnect/index.tsx:559
 #: static/app/components/modals/suggestProjectModal.tsx:94
 msgid "Back"
-msgstr ""
+msgstr "返回"
 
 #: static/app/components/modals/debugFileCustomRepository/appStoreConnect/index.tsx:572
 #: static/app/views/organizationIntegrations/integrationServerlessRow.tsx:110
 msgid "Update"
-msgstr ""
+msgstr "更新"
 
 #: static/app/components/modals/debugFileCustomRepository/appStoreConnect/index.tsx:573
 #: static/app/views/issueList/createSavedSearchModal.tsx:115
@@ -7925,7 +7925,7 @@ msgstr ""
 
 #: static/app/components/modals/featureTourModal.tsx:62
 msgid "Done"
-msgstr ""
+msgstr "完成"
 
 #: static/app/components/modals/helpSearchModal.tsx:24
 msgid "Search for documentation, FAQs, blog posts..."
@@ -7978,7 +7978,7 @@ msgstr ""
 #: static/app/components/modals/inviteMembersModal/index.tsx:315
 #, python-format
 msgid "Send invites (%s)"
-msgstr ""
+msgstr "发送邀请 (%s)"
 
 #: static/app/components/modals/inviteMembersModal/index.tsx:315
 #: static/app/components/modals/inviteMembersModal/index.tsx:324
@@ -9094,7 +9094,7 @@ msgstr "项目详细信息"
 
 #: static/app/components/searchBar.tsx:116
 msgid "Clear"
-msgstr ""
+msgstr "清空"
 
 #: static/app/components/searchSyntax/parser.tsx:618
 msgid "Invalid duration. Expected number followed by duration unit suffix"
@@ -9532,7 +9532,7 @@ msgstr "没有最近数据可用"
 #: static/app/components/tagsTable.tsx:24
 #: static/app/views/organizationGroupDetails/groupTagValues.tsx:231
 msgid "Tag Details"
-msgstr ""
+msgstr "标签详情"
 
 #: static/app/components/tagsTable.tsx:85
 msgid "This tag is in the current filter conditions"
@@ -10645,7 +10645,7 @@ msgstr ""
 
 #: static/app/routes.tsx:1519
 msgid "Buffer"
-msgstr ""
+msgstr "缓冲"
 
 #: static/app/routes.tsx:1525 static/app/views/admin/adminRelays.tsx:85
 msgid "Relays"
@@ -10667,7 +10667,7 @@ msgstr ""
 
 #: static/app/routes.tsx:1572
 msgid "Mail"
-msgstr ""
+msgstr "邮件"
 
 #: static/app/routes.tsx:1590
 msgid "Warnings"
@@ -10896,7 +10896,7 @@ msgstr ""
 
 #: static/app/routes.tsx:590
 msgid "Configuration"
-msgstr ""
+msgstr "配置"
 
 #: static/app/routes.tsx:625
 #: static/app/views/settings/organizationApiKeys/organizationApiKeyDetails.tsx:73
@@ -11662,7 +11662,7 @@ msgstr "已接受"
 #: static/app/views/organizationStats/usageStatsOrg.tsx:364
 #: static/app/views/organizationStats/usageStatsProjects.tsx:226
 msgid "Dropped"
-msgstr ""
+msgstr "减少"
 
 #: static/app/views/admin/adminOverview/index.tsx:17
 msgid "System Overview"
@@ -12603,7 +12603,7 @@ msgstr "我的规则名"
 
 #: static/app/views/alerts/issueRuleEditor/index.tsx:65
 msgid "1 week"
-msgstr ""
+msgstr "1 周"
 
 #: static/app/views/alerts/issueRuleEditor/index.tsx:655
 msgid "Set conditions"
@@ -12728,7 +12728,7 @@ msgstr ""
 
 #: static/app/views/alerts/issueRuleEditor/ticketRuleModal.tsx:132
 msgid "Apply Changes"
-msgstr ""
+msgstr "应用更改"
 
 #: static/app/views/alerts/issueRuleEditor/ticketRuleModal.tsx:179
 msgid ""
@@ -13513,7 +13513,7 @@ msgstr ""
 #: static/app/views/dashboardsV2/manage/index.tsx:34
 #: static/app/views/eventsV2/landing.tsx:40
 msgid "Recently Viewed"
-msgstr ""
+msgstr "近期查看的"
 
 #: static/app/views/dashboardsV2/title.tsx:30
 msgid "Please set a title for this dashboard"
@@ -14326,7 +14326,7 @@ msgstr ""
 
 #: static/app/views/integrationPipeline/awsLambdaProjectSelect.tsx:52
 msgid "Select a project"
-msgstr ""
+msgstr "选择项目"
 
 #: static/app/views/integrationPipeline/awsLambdaProjectSelect.tsx:61
 msgid "Currently only supports Node and Python Lambda functions"
@@ -16756,7 +16756,7 @@ msgstr ""
 #: static/app/views/performance/onboarding.tsx:35
 #: static/app/views/releases/list/releasePromo.tsx:26
 msgid "Setup"
-msgstr ""
+msgstr "设置"
 
 #: static/app/views/performance/onboarding.tsx:41
 msgid "Track Application Metrics"
@@ -17062,7 +17062,7 @@ msgstr ""
 #: static/app/views/performance/trends/content.tsx:222
 #: static/app/views/performance/trends/index.tsx:57
 msgid "Trends"
-msgstr ""
+msgstr "趋势"
 
 #: static/app/views/performance/transactionSummary/transactionOverview/charts.tsx:62
 msgid "Span Operation Percentiles"
@@ -17186,7 +17186,7 @@ msgstr ""
 
 #: static/app/views/performance/transactionSummary/transactionOverview/trendChart.tsx:104
 msgid "Trend"
-msgstr ""
+msgstr "趋势"
 
 #: static/app/views/performance/transactionSummary/transactionOverview/trendChart.tsx:108
 msgid "Trends shows the smoothed value of an aggregate over time."
@@ -18126,7 +18126,7 @@ msgstr ""
 #: static/app/views/releases/detail/overview/releaseComparisonChart/index.tsx:841
 #: static/app/views/teamInsights/teamMisery.tsx:75
 msgid "Change"
-msgstr ""
+msgstr "修改"
 
 #: static/app/views/releases/detail/overview/releaseComparisonChart/index.tsx:982
 #, python-format
@@ -18822,7 +18822,7 @@ msgstr "账户详情"
 #: static/app/views/settings/account/accountEmails.tsx:126
 #: static/app/views/settings/account/navigationConfiguration.tsx:36
 msgid "Email Addresses"
-msgstr ""
+msgstr "Email 地址"
 
 #: static/app/views/settings/account/accountEmails.tsx:173
 msgid "Unverified"
@@ -19869,7 +19869,7 @@ msgstr ""
 #: static/app/views/settings/organizationApiKeys/organizationApiKeyDetails.tsx:47
 #: static/app/views/settings/organizationApiKeys/organizationApiKeyDetails.tsx:70
 msgid "Edit API Key"
-msgstr ""
+msgstr "编辑API Key"
 
 #: static/app/views/settings/organizationApiKeys/organizationApiKeysList.tsx:116
 msgid "Remove API Key"
@@ -20461,7 +20461,7 @@ msgstr "搜索成员"
 
 #: static/app/views/settings/organizationMembers/organizationMembersList.tsx:294
 msgid "Pending Members"
-msgstr ""
+msgstr "待审核成员"
 
 #: static/app/views/settings/organizationMembers/organizationMembersList.tsx:338
 msgid "No members found."

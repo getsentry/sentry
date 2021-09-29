@@ -27,9 +27,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-29 18:54+0000\n"
-"PO-Revision-Date: 2021-09-29 18:54+0000\n"
-"Last-Translator: bruno.devpod <bruno.devpod@gmail.com>\n"
+"POT-Creation-Date: 2021-09-29 22:42+0000\n"
+"PO-Revision-Date: 2021-09-29 22:42+0000\n"
+"Last-Translator: Hugo Tácito <hugotacito@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) (http://www.transifex.com/getsentry/sentry/language/pt_BR/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1473,7 +1473,7 @@ msgstr ""
 
 #: models/savedsearch.py:28 static/app/views/issueList/utils.tsx:136
 msgid "Date Added"
-msgstr ""
+msgstr "Data Adicionada"
 
 #: models/user.py:106
 msgid "username"
@@ -2077,7 +2077,7 @@ msgstr ""
 #: templates/sentry/integrations/jira-issue.html:75
 #: templates/sentry/integrations/jira-issue.html:104
 msgid "Date:"
-msgstr ""
+msgstr "Data:"
 
 #: templates/sentry/integrations/jira-issue.html:85
 #: templates/sentry/integrations/jira-issue.html:114
@@ -4644,7 +4644,7 @@ msgstr ""
 
 #: static/app/components/errorRobot.tsx:112
 msgid "Waiting for events…"
-msgstr ""
+msgstr "Esperando por eventos..."
 
 #: static/app/components/errorRobot.tsx:114
 msgid ""
@@ -6332,7 +6332,7 @@ msgstr ""
 #: static/app/components/events/interfaces/frame/line.tsx:193
 #: static/app/components/events/interfaces/frame/lineV2/expander.tsx:36
 msgid "Toggle Context"
-msgstr ""
+msgstr "Alternar Contexto"
 
 #: static/app/components/events/interfaces/frame/line.tsx:233
 #: static/app/components/events/interfaces/frame/lineV2/leadHint.tsx:20
@@ -7053,7 +7053,7 @@ msgstr ""
 
 #: static/app/components/group/inboxBadges/inboxReason.tsx:113
 msgid "Regression"
-msgstr ""
+msgstr "Regressão"
 
 #: static/app/components/group/inboxBadges/inboxReason.tsx:116
 #, python-format
@@ -7620,7 +7620,7 @@ msgstr ""
 #: static/app/components/modals/debugFileCustomRepository/appStoreConnect/index.tsx:559
 #: static/app/components/modals/suggestProjectModal.tsx:94
 msgid "Back"
-msgstr ""
+msgstr "Voltar"
 
 #: static/app/components/modals/debugFileCustomRepository/appStoreConnect/index.tsx:572
 #: static/app/views/organizationIntegrations/integrationServerlessRow.tsx:110
@@ -9086,7 +9086,7 @@ msgstr "Detalhes do Projeto"
 
 #: static/app/components/searchBar.tsx:116
 msgid "Clear"
-msgstr ""
+msgstr "Limpar"
 
 #: static/app/components/searchSyntax/parser.tsx:618
 msgid "Invalid duration. Expected number followed by duration unit suffix"
@@ -9321,7 +9321,7 @@ msgstr ""
 
 #: static/app/components/similarScoreCard.tsx:14
 msgid "Exception Type"
-msgstr ""
+msgstr "Tipo da Exceção"
 
 #: static/app/components/similarScoreCard.tsx:8
 #: static/app/components/similarScoreCard.tsx:15
@@ -9543,7 +9543,7 @@ msgstr ""
 
 #: static/app/components/teams/createTeamForm.tsx:53
 msgid "Team Name"
-msgstr ""
+msgstr "Nome da Equipe"
 
 #: static/app/components/teams/createTeamForm.tsx:54
 msgid "e.g. operations, web-frontend, desktop"
@@ -10659,7 +10659,7 @@ msgstr "Organizações"
 
 #: static/app/routes.tsx:1543
 msgid "Queue"
-msgstr ""
+msgstr "Fila"
 
 #: static/app/routes.tsx:1549
 msgid "Quotas"
@@ -10896,7 +10896,7 @@ msgstr ""
 
 #: static/app/routes.tsx:590
 msgid "Configuration"
-msgstr ""
+msgstr "Configuração"
 
 #: static/app/routes.tsx:625
 #: static/app/views/settings/organizationApiKeys/organizationApiKeyDetails.tsx:73
@@ -12010,7 +12010,7 @@ msgstr ""
 
 #: static/app/views/alerts/details/body.tsx:125
 msgid "Resolution"
-msgstr ""
+msgstr "Resolução"
 
 #: static/app/views/alerts/details/body.tsx:143
 msgid "Custom metric"
@@ -12611,7 +12611,7 @@ msgstr "Meu Nome para Regra"
 
 #: static/app/views/alerts/issueRuleEditor/index.tsx:65
 msgid "1 week"
-msgstr ""
+msgstr "1 semana"
 
 #: static/app/views/alerts/issueRuleEditor/index.tsx:655
 msgid "Set conditions"
@@ -12764,7 +12764,7 @@ msgstr ""
 #: static/app/views/alerts/list/header.tsx:91
 #: static/app/views/alerts/rules/details/timeline.tsx:191
 msgid "History"
-msgstr ""
+msgstr "Histórico"
 
 #: static/app/views/alerts/list/index.tsx:196
 #: static/app/views/alerts/rules/index.tsx:130
@@ -13522,7 +13522,7 @@ msgstr ""
 #: static/app/views/dashboardsV2/manage/index.tsx:34
 #: static/app/views/eventsV2/landing.tsx:40
 msgid "Recently Viewed"
-msgstr ""
+msgstr "Vistos Recentemente"
 
 #: static/app/views/dashboardsV2/title.tsx:30
 msgid "Please set a title for this dashboard"
@@ -14338,7 +14338,7 @@ msgstr ""
 
 #: static/app/views/integrationPipeline/awsLambdaProjectSelect.tsx:52
 msgid "Select a project"
-msgstr ""
+msgstr "Selecione um Projeto"
 
 #: static/app/views/integrationPipeline/awsLambdaProjectSelect.tsx:61
 msgid "Currently only supports Node and Python Lambda functions"
@@ -14554,7 +14554,7 @@ msgstr ""
 #: static/app/views/issueList/savedSearchMenu.tsx:104
 #: static/app/views/issueList/savedSearchTab.tsx:55
 msgid "Saved Searches"
-msgstr ""
+msgstr "Pesquisas Salvas"
 
 #: static/app/views/issueList/savedSearchMenu.tsx:106
 msgid "No saved searches yet."
@@ -16775,7 +16775,7 @@ msgstr "Faça um Tour"
 #: static/app/views/performance/onboarding.tsx:35
 #: static/app/views/releases/list/releasePromo.tsx:26
 msgid "Setup"
-msgstr ""
+msgstr "Configuração"
 
 #: static/app/views/performance/onboarding.tsx:41
 msgid "Track Application Metrics"
@@ -17086,7 +17086,7 @@ msgstr ""
 #: static/app/views/performance/trends/content.tsx:222
 #: static/app/views/performance/trends/index.tsx:57
 msgid "Trends"
-msgstr ""
+msgstr "Tendências"
 
 #: static/app/views/performance/transactionSummary/transactionOverview/charts.tsx:62
 msgid "Span Operation Percentiles"
@@ -18246,7 +18246,7 @@ msgstr[1] ""
 #: static/app/views/releases/detail/releaseActions.tsx:180
 #: static/app/views/releases/detail/releaseActions.tsx:182
 msgid "Restore"
-msgstr ""
+msgstr "Restaurar"
 
 #: static/app/views/releases/detail/releaseActions.tsx:188
 msgid "Archive Release [release]"
@@ -20499,7 +20499,7 @@ msgstr ""
 
 #: static/app/views/settings/organizationMembers/organizationMembersList.tsx:294
 msgid "Pending Members"
-msgstr ""
+msgstr "Membros Pendentes"
 
 #: static/app/views/settings/organizationMembers/organizationMembersList.tsx:338
 msgid "No members found."
