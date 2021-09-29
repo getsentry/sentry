@@ -56,11 +56,11 @@ type Options = {
    */
   limit?: number;
   /**
-   * Slugs of teams to immediately fetch
+   * When provided, fetches specified teams by slug if necessary and only provides those teams.
    */
   slugs?: string[];
   /**
-   * Whether to provide user teams
+   * When true, fetches user's teams if necessary and only provides user's teams (isMember = true).
    */
   provideUserTeams?: boolean;
 };
@@ -158,8 +158,8 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
       return;
     }
 
+    setState({...state, fetching: true});
     try {
-      setState({...state, fetching: true});
       const {results, hasMore, nextCursor} = await fetchTeams(api, orgId, {
         slugs,
         limit,
