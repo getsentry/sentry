@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 import pytz
-from snuba_sdk import BooleanCondition, Column, Condition, Entity, Function, Op, Query
+from snuba_sdk import Column, Condition, Entity, Function, Op, Query
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.query import SelectableExpression
 
@@ -226,8 +226,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     ) -> ReleasesAdoption:
         start = now - timedelta(days=1)
 
-        def _get_common_where(total: bool) -> List[Union[BooleanCondition, Condition]]:
-            where_common: List[Union[BooleanCondition, Condition]] = [
+        def _get_common_where(total: bool) -> List[Condition]:
+            where_common: List[Condition] = [
                 Condition(Column("org_id"), Op.EQ, org_id),
                 filter_projects_by_project_release(project_releases),
                 Condition(Column("timestamp"), Op.GTE, start),
@@ -379,7 +379,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ]
 
         try:
-            where: List[Union[BooleanCondition, Condition]] = [
+            where: List[Condition] = [
                 Condition(Column("org_id"), Op.EQ, org_id),
                 Condition(Column("project_id"), Op.EQ, project_id),
                 Condition(Column(tag_key(org_id, "release")), Op.EQ, tag_value(org_id, release)),
@@ -607,7 +607,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     @staticmethod
     def _get_session_duration_data_for_overview(
-        where: List[Union[BooleanCondition, Condition]], org_id: int
+        where: List[Condition], org_id: int
     ) -> Mapping[Tuple[int, str], Any]:
         """
         Percentiles of session duration
@@ -644,7 +644,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     @staticmethod
     def _get_errored_sessions_for_overview(
-        where: List[Union[BooleanCondition, Condition]], org_id: int
+        where: List[Condition], org_id: int
     ) -> Mapping[Tuple[int, str], int]:
         """
         Count of errored sessions, incl fatal (abnormal, crashed) sessions
@@ -677,7 +677,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     @staticmethod
     def _get_session_by_status_for_overview(
-        where: List[Union[BooleanCondition, Condition]], org_id: int
+        where: List[Condition], org_id: int
     ) -> Mapping[Tuple[int, str, str], int]:
         """
         Counts of init, abnormal and crashed sessions, purpose-built for overview
@@ -722,7 +722,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     @staticmethod
     def _get_users_and_crashed_users_for_overview(
-        where: List[Union[BooleanCondition, Condition]], org_id: int
+        where: List[Condition], org_id: int
     ) -> Mapping[Tuple[int, str, str], int]:
         release_column_name = tag_key(org_id, "release")
         session_status_column_name = tag_key(org_id, "session.status")
@@ -736,20 +736,23 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         # Count of users and crashed users
         rv_users: Dict[Tuple[int, str, str], int] = {}
 
+        # Avoid mutating input parameters here
+        select = aggregates + [Column("value")]
+        where = where + [
+            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")),
+            Condition(
+                Column(session_status_column_name),
+                Op.IN,
+                get_tag_values_list(org_id, ["crashed", "init"]),
+            ),
+        ]
+
         for row in raw_snql_query(
             Query(
                 dataset=Dataset.Metrics.value,
                 match=Entity(EntityKey.MetricsSets.value),
-                select=aggregates + [Column("value")],
-                where=where
-                + [
-                    Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")),
-                    Condition(
-                        Column(session_status_column_name),
-                        Op.IN,
-                        get_tag_values_list(org_id, ["crashed", "init"]),
-                    ),
-                ],
+                select=select,
+                where=where,
                 groupby=aggregates,
             ),
             referrer="release_health.metrics.get_users_and_crashed_users_for_overview",
@@ -765,7 +768,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     @staticmethod
     def _get_health_stats_for_overview(
-        where: List[Union[BooleanCondition, Condition]],
+        where: List[Condition],
         org_id: int,
         health_stats_period: StatsPeriod,
         stat: OverviewStat,
@@ -842,7 +845,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         org_id = self._get_org_id([x for x, _ in project_releases])
 
-        where: List[Union[BooleanCondition, Condition]] = [
+        where: List[Condition] = [
             Condition(Column("org_id"), Op.EQ, org_id),
             filter_projects_by_project_release(project_releases),
             Condition(Column("timestamp"), Op.GTE, summary_start),
@@ -880,15 +883,19 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         fetch_has_health_data_releases = set()
 
+        default_adoption_info: ReleaseAdoption = {
+            "adoption": None,
+            "sessions_adoption": None,
+            "users_24h": None,
+            "project_users_24h": None,
+            "sessions_24h": None,
+            "project_sessions_24h": None,
+        }
+
         for project_id, release in project_releases:
-            adoption_info: ReleaseAdoption = release_adoption.get((project_id, release)) or {
-                "adoption": None,
-                "sessions_adoption": None,
-                "users_24h": None,
-                "project_users_24h": None,
-                "sessions_24h": None,
-                "project_sessions_24h": None,
-            }
+            adoption_info: ReleaseAdoption = (
+                release_adoption.get((project_id, release)) or default_adoption_info
+            )
 
             total_sessions = rv_sessions.get((project_id, release, "init"))
 

@@ -1,10 +1,7 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Mapping, Optional, Sequence, Set, Tuple, TypeVar, Union
+from typing import Mapping, Optional, Sequence, Set, Tuple, TypeVar, Union
 
-if TYPE_CHECKING:
-    from typing_extensions import Literal
-
-from typing_extensions import TypedDict
+from typing_extensions import Literal, TypedDict
 
 from sentry.utils.services import Service
 
@@ -19,19 +16,19 @@ ProjectOrRelease = TypeVar("ProjectOrRelease", ProjectId, ProjectRelease)
 
 
 # taken from sentry.snuba.sessions.STATS_PERIODS
-StatsPeriod = Union[
-    'Literal["1h"]',
-    'Literal["24h"]',
-    'Literal["1d"]',
-    'Literal["48h"]',
-    'Literal["2d"]',
-    'Literal["7d"]',
-    'Literal["14d"]',
-    'Literal["30d"]',
-    'Literal["90d"]',
+StatsPeriod = Literal[
+    "1h",
+    "24h",
+    "1d",
+    "48h",
+    "2d",
+    "7d",
+    "14d",
+    "30d",
+    "90d",
 ]
 
-OverviewStat = Union['Literal["users"]', 'Literal["sessions"]']
+OverviewStat = Literal["users", "sessions"]
 
 
 class CurrentAndPreviousCrashFreeRate(TypedDict):
