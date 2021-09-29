@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
     soft_time_limit=10,
 )  # type: ignore
 def scan_for_suspect_projects() -> None:
+    """Scans and updates the list of projects assigned to the low priority queue."""
     _scan_for_suspect_projects()
 
 
@@ -62,6 +63,10 @@ def _scan_for_suspect_projects() -> None:
     soft_time_limit=10,
 )  # type: ignore
 def compute_lpq_eligibility(project_id: int) -> None:
+    """
+    Given a project ID, determines whether the project belongs in the low priority queue and
+    removes or assigns it accordingly to the low priority queue.
+    """
     _compute_lpq_eligibility(project_id)
 
 
