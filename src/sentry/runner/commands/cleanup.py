@@ -204,7 +204,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             click.echo(">> Skipping OrganizationMember")
     else:
         expired_threshold = timezone.now() - timedelta(days=days)
-        models.OrganizationMember.delete_expired(expired_threshold)
+        models.OrganizationMember.objects.delete_expired(expired_threshold)
 
     for model in [models.ApiGrant, models.ApiToken]:
         if not silent:

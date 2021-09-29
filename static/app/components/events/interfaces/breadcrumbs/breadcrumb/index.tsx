@@ -1,4 +1,4 @@
-import {memo} from 'react';
+import React, {memo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -13,10 +13,10 @@ import Level from './level';
 import Time from './time';
 import Type from './type';
 
-type Props = {
+type Props = Pick<React.ComponentProps<typeof Data>, 'route' | 'router'> & {
   breadcrumb: Crumb;
   event: Event;
-  orgSlug: Organization['slug'];
+  organization: Organization;
   searchTerm: string;
   relativeTime: string;
   displayRelativeTime: boolean;
@@ -28,7 +28,7 @@ type Props = {
 };
 
 const Breadcrumb = memo(function Breadcrumb({
-  orgSlug,
+  organization,
   event,
   breadcrumb,
   relativeTime,
@@ -37,6 +37,8 @@ const Breadcrumb = memo(function Breadcrumb({
   onLoad,
   scrollbarSize,
   style,
+  route,
+  router,
   ['data-test-id']: dataTestId,
 }: Props) {
   const {type, description, color, level, category, timestamp} = breadcrumb;
@@ -54,9 +56,11 @@ const Breadcrumb = memo(function Breadcrumb({
       <Category category={category} searchTerm={searchTerm} />
       <Data
         event={event}
-        orgSlug={orgSlug}
+        organization={organization}
         breadcrumb={breadcrumb}
         searchTerm={searchTerm}
+        route={route}
+        router={router}
       />
       <div>
         <Level level={level} searchTerm={searchTerm} />
@@ -101,6 +105,7 @@ const Wrapper = styled('div')<{error: boolean; scrollbarSize: number}>`
       :nth-child(5n-2) {
         grid-row: 2/2;
         grid-column: 2/-1;
+        padding-top: 0;
         padding-right: ${space(2)};
       }
 
