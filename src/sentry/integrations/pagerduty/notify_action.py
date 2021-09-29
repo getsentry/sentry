@@ -37,15 +37,21 @@ class PagerDutyNotifyServiceForm(forms.Form):
         cleaned_data = super().clean()
 
         integration_id = cleaned_data.get("account")
+        if integration_id is not None:
+            try:
+                integration_id = int(integration_id)
+            except ValueError:
+                raise forms.ValidationError(_("Invalid account"), code="invalid")
+
         service_id = cleaned_data.get("service")
 
         service = PagerDutyService.objects.get(id=service_id)
 
         # need to make sure that the service actually belongs to that integration - meaning
         # that it belongs under the appropriate account in PagerDuty
-        if not service.organization_integration.integration_id == int(integration_id):
+        if not service.organization_integration.integration_id == integration_id:
             params = {
-                "account": dict(self.fields["account"].choices).get(int(integration_id)),
+                "account": dict(self.fields["account"].choices).get(integration_id),
                 "service": dict(self.fields["service"].choices).get(int(service_id)),
             }
 
