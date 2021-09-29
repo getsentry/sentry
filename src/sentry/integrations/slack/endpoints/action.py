@@ -316,7 +316,6 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
                     self.open_resolve_dialog(data, group, integration)
                     defer_attachment_update = True
         except client.ApiError as e:
-
             if e.status_code == 403:
                 text = UNLINK_IDENTITY_MESSAGE.format(
                     associate_url=build_unlinking_url(

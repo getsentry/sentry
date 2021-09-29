@@ -1,6 +1,7 @@
 from urllib.parse import parse_qs
 
 import responses
+from freezegun import freeze_time
 
 from sentry.api import client
 from sentry.integrations.slack.endpoints.action import (
@@ -24,33 +25,15 @@ from sentry.models import (
 from sentry.testutils import APITestCase
 from sentry.utils import json
 from sentry.utils.compat.mock import patch
+from tests.sentry.integrations.slack import add_identity, install_slack
 
 
 class BaseEventTest(APITestCase):
     def setUp(self):
         super().setUp()
-        self.user = self.create_user(is_superuser=False)
-        self.org = self.create_organization(owner=None)
-        self.team = self.create_team(organization=self.org, members=[self.user])
-
-        self.integration = Integration.objects.create(
-            provider="slack",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
-
-        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
-        self.identity = Identity.objects.create(
-            external_id="slack_id",
-            idp=self.idp,
-            user=self.user,
-            status=IdentityStatus.VALID,
-            scopes=[],
-        )
-
-        self.project1 = self.create_project(organization=self.org)
-        self.group1 = self.create_group(project=self.project1)
+        self.external_id = "slack:1"
+        self.integration = install_slack(self.organization)
+        self.idp = add_identity(self.integration, self.user, self.external_id)
 
         self.trigger_id = "13345224609.738474920.8088930838d88f008e0"
         self.response_url = (
@@ -73,10 +56,10 @@ class BaseEventTest(APITestCase):
     ):
 
         if slack_user is None:
-            slack_user = {"id": self.identity.external_id, "domain": "example"}
+            slack_user = {"id": self.external_id, "domain": "example"}
 
         if callback_id is None:
-            callback_id = json.dumps({"issue": self.group1.id})
+            callback_id = json.dumps({"issue": self.group.id})
 
         if original_message is None:
             original_message = {}
@@ -104,15 +87,14 @@ class BaseEventTest(APITestCase):
 
 
 class StatusActionTest(BaseEventTest):
-    @patch("sentry.integrations.slack.views.sign")
-    def test_ask_linking(self, sign):
-        """Patching out `sign` to prevent flakiness from timestamp mismatch."""
-        sign.return_value = "signed_parameters"
+    @freeze_time("2021-01-14T12:27:28.303Z")
+    def test_ask_linking(self):
+        """Freezing time to prevent flakiness from timestamp mismatch."""
 
         resp = self.post_webhook(slack_user={"id": "invalid-id", "domain": "example"})
 
         associate_url = build_linking_url(
-            self.integration, self.org, "invalid-id", "C065W1189", self.response_url
+            self.integration, self.organization, "invalid-id", "C065W1189", self.response_url
         )
 
         assert resp.status_code == 200, resp.content
@@ -123,35 +105,35 @@ class StatusActionTest(BaseEventTest):
         status_action = {"name": "status", "value": "ignored", "type": "button"}
 
         resp = self.post_webhook(action_data=[status_action])
-        self.group1 = Group.objects.get(id=self.group1.id)
+        self.group = Group.objects.get(id=self.group.id)
 
         assert resp.status_code == 200, resp.content
-        assert self.group1.get_status() == GroupStatus.IGNORED
+        assert self.group.get_status() == GroupStatus.IGNORED
 
-        expect_status = f"*Issue ignored by <@{self.identity.external_id}>*"
+        expect_status = f"*Issue ignored by <@{self.external_id}>*"
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
     def test_ignore_issue_with_additional_user_auth(self):
         """
         Ensure that we can act as a user even when the organization has SSO enabled
         """
-        auth_idp = AuthProvider.objects.create(organization=self.org, provider="dummy")
+        auth_idp = AuthProvider.objects.create(organization=self.organization, provider="dummy")
         AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
 
         status_action = {"name": "status", "value": "ignored", "type": "button"}
 
         resp = self.post_webhook(action_data=[status_action])
-        self.group1 = Group.objects.get(id=self.group1.id)
+        self.group = Group.objects.get(id=self.group.id)
 
         assert resp.status_code == 200, resp.content
-        assert self.group1.get_status() == GroupStatus.IGNORED
+        assert self.group.get_status() == GroupStatus.IGNORED
 
-        expect_status = f"*Issue ignored by <@{self.identity.external_id}>*"
+        expect_status = f"*Issue ignored by <@{self.external_id}>*"
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_issue(self):
         user2 = self.create_user(is_superuser=False)
-        self.create_member(user=user2, organization=self.org, teams=[self.team])
+        self.create_member(user=user2, organization=self.organization, teams=[self.team])
 
         # Assign to user
         status_action = {
@@ -162,11 +144,9 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_data=[status_action])
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group1, user=user2).exists()
+        assert GroupAssignee.objects.filter(group=self.group, user=user2).exists()
 
-        expect_status = (
-            f"*Issue assigned to {user2.get_display_name()} by <@{self.identity.external_id}>*"
-        )
+        expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
 
         # Assign to team
         status_action = {
@@ -177,15 +157,15 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_data=[status_action])
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group1, team=self.team).exists()
+        assert GroupAssignee.objects.filter(group=self.group, team=self.team).exists()
 
-        expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.identity.external_id}>*"
+        expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
 
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_issue_user_has_identity(self):
         user2 = self.create_user(is_superuser=False)
-        self.create_member(user=user2, organization=self.org, teams=[self.team])
+        self.create_member(user=user2, organization=self.organization, teams=[self.team])
 
         user2_identity = Identity.objects.create(
             external_id="slack_id2",
@@ -203,10 +183,10 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_data=[status_action])
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group1, user=user2).exists()
+        assert GroupAssignee.objects.filter(group=self.group, user=user2).exists()
 
         expect_status = (
-            f"*Issue assigned to <@{user2_identity.external_id}> by <@{self.identity.external_id}>*"
+            f"*Issue assigned to <@{user2_identity.external_id}> by <@{self.external_id}>*"
         )
 
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
@@ -217,11 +197,11 @@ class StatusActionTest(BaseEventTest):
         original_message = {"type": "message"}
 
         resp = self.post_webhook(action_data=[status_action], original_message=original_message)
-        self.group1 = Group.objects.get(id=self.group1.id)
+        self.group = Group.objects.get(id=self.group.id)
 
         assert resp.status_code == 200, resp.content
         assert "attachments" in resp.data
-        assert resp.data["attachments"][0]["title"] == self.group1.title
+        assert resp.data["attachments"][0]["title"] == self.group.title
 
     def test_assign_user_with_multiple_identities(self):
         org2 = self.create_organization(owner=None)
@@ -250,10 +230,10 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_data=[status_action])
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
+        assert GroupAssignee.objects.filter(group=self.group, user=self.user).exists()
 
         expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
-            assignee=self.identity.external_id
+            assignee=self.external_id
         )
 
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
@@ -284,7 +264,7 @@ class StatusActionTest(BaseEventTest):
 
         dialog = json.loads(data["dialog"][0])
         callback_data = json.loads(dialog["callback_id"])
-        assert int(callback_data["issue"]) == self.group1.id
+        assert int(callback_data["issue"]) == self.group.id
         assert callback_data["orig_response_url"] == self.response_url
 
         # Completing the dialog will update the message
@@ -301,14 +281,14 @@ class StatusActionTest(BaseEventTest):
             callback_id=dialog["callback_id"],
             data={"submission": {"resolve_type": "resolved"}},
         )
-        self.group1 = Group.objects.get(id=self.group1.id)
+        self.group = Group.objects.get(id=self.group.id)
 
         assert resp.status_code == 200, resp.content
-        assert self.group1.get_status() == GroupStatus.RESOLVED
+        assert self.group.get_status() == GroupStatus.RESOLVED
 
         update_data = json.loads(responses.calls[1].request.body)
 
-        expect_status = f"*Issue resolved by <@{self.identity.external_id}>*"
+        expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert update_data["text"].endswith(expect_status)
 
     def test_permission_denied(self):
@@ -327,19 +307,20 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(
             action_data=[status_action], slack_user={"id": user2_identity.external_id}
         )
-        self.group1 = Group.objects.get(id=self.group1.id)
+        self.group = Group.objects.get(id=self.group.id)
 
         associate_url = build_unlinking_url(
-            self.integration.id, self.org.id, "slack_id2", "C065W1189", self.response_url
+            self.integration.id, self.organization.id, "slack_id2", "C065W1189", self.response_url
         )
 
         assert resp.status_code == 200, resp.content
         assert resp.data["response_type"] == "ephemeral"
         assert not resp.data["replace_original"]
         assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
-            associate_url=associate_url, user_email=user2.email, org_name=self.org.name
+            associate_url=associate_url, user_email=user2.email, org_name=self.organization.name
         )
 
+    @freeze_time("2021-01-14T12:27:28.303Z")
     @responses.activate
     @patch("sentry.api.client.put")
     def test_handle_submission_fail(self, client_put):
@@ -367,7 +348,7 @@ class StatusActionTest(BaseEventTest):
 
         dialog = json.loads(data["dialog"][0])
         callback_data = json.loads(dialog["callback_id"])
-        assert int(callback_data["issue"]) == self.group1.id
+        assert int(callback_data["issue"]) == self.group.id
         assert callback_data["orig_response_url"] == self.response_url
 
         # Completing the dialog will update the message
@@ -390,15 +371,20 @@ class StatusActionTest(BaseEventTest):
             data={"submission": {"resolve_type": "resolved"}},
         )
 
-        client_put.asser_called()
+        # TODO(mgaeta): `assert_called` is deprecated. Find a replacement.
+        # client_put.assert_called()
 
         associate_url = build_unlinking_url(
-            self.integration.id, self.org.id, "slack_id", "C065W1189", self.response_url
+            self.integration.id,
+            self.organization.id,
+            self.external_id,
+            "C065W1189",
+            self.response_url,
         )
 
         assert resp.status_code == 200, resp.content
         assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
-            associate_url=associate_url, user_email=self.user.email, org_name=self.org.name
+            associate_url=associate_url, user_email=self.user.email, org_name=self.organization.name
         )
 
     @patch(
@@ -422,7 +408,7 @@ class StatusActionTest(BaseEventTest):
     def test_sentry_docs_link_clicked(self, check_signing_secret_mock):
         payload = {
             "team": {"id": "TXXXXXXX1", "domain": "example.com"},
-            "user": {"id": self.identity.external_id, "domain": "example"},
+            "user": {"id": self.external_id, "domain": "example"},
             "type": "block_actions",
             "actions": [{"value": "sentry_docs_link_clicked"}],
         }

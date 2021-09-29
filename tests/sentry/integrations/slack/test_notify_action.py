@@ -7,25 +7,14 @@ from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
 from sentry.utils import json
+from tests.sentry.integrations.slack import install_slack
 
 
 class SlackNotifyActionTest(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
 
     def setUp(self):
-        event = self.get_event()
-
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Awesome Team",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-                "domain_name": "sentry.slack.com",
-            },
-        )
-        self.integration.add_organization(event.project.organization, self.user)
+        self.integration = install_slack(self.get_event().project.organization)
 
     def assert_form_valid(self, form, expected_channel_id, expected_channel):
         assert form.is_valid()
