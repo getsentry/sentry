@@ -2,9 +2,10 @@ import logging
 from collections import defaultdict
 
 from sentry import features
-from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupStatus, Organization
+from sentry.models import ExternalIssue, Group, GroupLink, GroupStatus, Organization
 from sentry.models.useroption import UserOption
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.types.activity import ActivityType
 from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -352,19 +353,6 @@ class IssueSyncMixin(IssueBasicMixin):
         """
         raise NotImplementedError
 
-    def update_group_status(self, groups, status, activity_type):
-        updated = (
-            Group.objects.filter(id__in=[g.id for g in groups])
-            .exclude(status=status)
-            .update(status=status)
-        )
-        if updated:
-            for group in groups:
-                activity = Activity.objects.create(
-                    project=group.project, group=group, type=activity_type
-                )
-                activity.send_notification()
-
     def sync_status_inbound(self, issue_key, data):
         if not self.should_sync("inbound_status"):
             return
@@ -408,9 +396,11 @@ class IssueSyncMixin(IssueBasicMixin):
                 groups_to_resolve.append(group)
 
         if groups_to_resolve:
-            self.update_group_status(groups_to_resolve, GroupStatus.RESOLVED, Activity.SET_RESOLVED)
+            Group.objects.update_group_status(
+                groups_to_resolve, GroupStatus.RESOLVED, ActivityType.SET_RESOLVED
+            )
 
         if groups_to_unresolve:
-            self.update_group_status(
-                groups_to_unresolve, GroupStatus.UNRESOLVED, Activity.SET_UNRESOLVED
+            Group.objects.update_group_status(
+                groups_to_unresolve, GroupStatus.UNRESOLVED, ActivityType.SET_UNRESOLVED
             )

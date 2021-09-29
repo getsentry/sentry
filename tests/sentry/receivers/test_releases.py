@@ -143,7 +143,7 @@ class ResolvedInCommitTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
-        email = UserEmail.get_primary_email(user=user)
+        email = UserEmail.objects.get_primary_email(user=user)
         email.is_verified = True
         email.save()
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
@@ -178,7 +178,7 @@ class ResolvedInCommitTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
-        email = UserEmail.get_primary_email(user=user)
+        email = UserEmail.objects.get_primary_email(user=user)
         email.is_verified = True
         email.save()
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)

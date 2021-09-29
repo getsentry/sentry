@@ -1,9 +1,12 @@
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
+
 from django.conf import settings
 from django.db import models
 from django.db.models import F
 from django.utils import timezone
 
 from sentry.db.models import (
+    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     GzippedDictField,
@@ -12,6 +15,58 @@ from sentry.db.models import (
 )
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, ActivityType
+
+if TYPE_CHECKING:
+    from sentry.models import Group, User
+
+
+class ActivityManager(BaseManager):
+    def get_activities_for_group(self, group: "Group", num: int) -> Sequence["Group"]:
+        activity_items = set()
+        activity = []
+        activity_qs = self.filter(group=group).order_by("-datetime").select_related("user")
+        # we select excess so we can filter dupes
+        for item in activity_qs[: num * 2]:
+            sig = (item.type, item.ident, item.user_id)
+            # TODO: we could just generate a signature (hash(text)) for notes
+            # so there's no special casing
+            if item.type == ActivityType.NOTE.value:
+                activity.append(item)
+            elif sig not in activity_items:
+                activity_items.add(sig)
+                activity.append(item)
+
+        activity.append(
+            Activity(
+                id=0,
+                project=group.project,
+                group=group,
+                type=ActivityType.FIRST_SEEN.value,
+                datetime=group.first_seen,
+            )
+        )
+
+        return activity[:num]
+
+    def create_group_activity(
+        self,
+        group: "Group",
+        type: ActivityType,
+        user: Optional["User"] = None,
+        data: Optional[Mapping[str, Any]] = None,
+        send_notification: bool = True,
+    ) -> "Activity":
+        activity = self.create(
+            project_id=group.project_id,
+            group=group,
+            type=type.value,
+            user=user,
+            data=data,
+        )
+        if send_notification:
+            activity.send_notification()
+
+        return activity
 
 
 class Activity(Model):
@@ -51,6 +106,8 @@ class Activity(Model):
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     datetime = models.DateTimeField(default=timezone.now)
     data = GzippedDictField(null=True)
+
+    objects = ActivityManager()
 
     class Meta:
         app_label = "sentry"
@@ -94,31 +151,3 @@ class Activity(Model):
 
     def send_notification(self):
         activity.send_activity_notifications.delay(self.id)
-
-    @classmethod
-    def get_activities_for_group(cls, group, num):
-        activity_items = set()
-        activity = []
-        activity_qs = cls.objects.filter(group=group).order_by("-datetime").select_related("user")
-        # we select excess so we can filter dupes
-        for item in activity_qs[: num * 2]:
-            sig = (item.type, item.ident, item.user_id)
-            # TODO: we could just generate a signature (hash(text)) for notes
-            # so there's no special casing
-            if item.type == Activity.NOTE:
-                activity.append(item)
-            elif sig not in activity_items:
-                activity_items.add(sig)
-                activity.append(item)
-
-        activity.append(
-            Activity(
-                id=0,
-                project=group.project,
-                group=group,
-                type=Activity.FIRST_SEEN,
-                datetime=group.first_seen,
-            )
-        )
-
-        return activity[:num]

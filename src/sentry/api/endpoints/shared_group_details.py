@@ -28,7 +28,7 @@ class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
 
         """
         try:
-            group = Group.from_share_id(share_id)
+            group = Group.objects.from_share_id(share_id)
         except Group.DoesNotExist:
             raise ResourceDoesNotExist
 

@@ -64,7 +64,7 @@ class UserSubscriptionsEndpoint(UserEndpoint):
             return self.respond(validator.errors, status=400)
 
         result = validator.validated_data
-        email = UserEmail.get_primary_email(user)
+        email = UserEmail.objects.get_primary_email(user)
 
         kwargs = {
             "list_id": result["listId"],
@@ -94,7 +94,7 @@ class UserSubscriptionsEndpoint(UserEndpoint):
             return self.respond(validator.errors, status=400)
 
         result = validator.validated_data
-        email = UserEmail.get_primary_email(user)
+        email = UserEmail.objects.get_primary_email(user)
 
         kwargs = {
             "subscribed": result["subscribed"],

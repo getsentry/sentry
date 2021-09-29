@@ -133,7 +133,7 @@ class IntegrationPipeline(Pipeline):
                 except Identity.DoesNotExist:
                     # The user is linked to a different external_id. It's ok to relink
                     # here because they'll still be able to log in with the new external_id.
-                    identity_model = Identity.update_external_id_and_defaults(
+                    identity_model = Identity.objects.update_external_id_and_defaults(
                         idp, identity["external_id"], self.request.user, identity_data
                     )
                 else:

@@ -7,7 +7,7 @@ from datetime import timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import List, Mapping, Optional, Set
+from typing import List, Mapping, Optional, Sequence, Set
 
 from django.core.cache import cache
 from django.db import models
@@ -29,6 +29,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.eventstore.models import Event
+from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
@@ -295,6 +296,27 @@ class GroupManager(BaseManager):
             project__organization_id__in=integration.organizations.values_list("id", flat=True),
         )
 
+    def update_group_status(
+        self, groups: Sequence["Group"], status: GroupStatus, activity_type: ActivityType
+    ) -> None:
+        """For each groups, update status to `status` and create an Activity."""
+        from sentry.models import Activity
+
+        updated_count = (
+            self.filter(id__in=[g.id for g in groups]).exclude(status=status).update(status=status)
+        )
+        if updated_count:
+            for group in groups:
+                Activity.objects.create_group_activity(group, activity_type)
+
+    def from_share_id(self, share_id: str) -> "Group":
+        if not share_id or len(share_id) != 32:
+            raise Group.DoesNotExist
+
+        from sentry.models import GroupShare
+
+        return self.get(id__in=GroupShare.objects.filter(uuid=share_id).values_list("group_id")[:1])
+
 
 class Group(Model):
     """
@@ -454,17 +476,6 @@ class Group(Model):
         except IndexError:
             # Otherwise it has not been shared yet.
             return None
-
-    @classmethod
-    def from_share_id(cls, share_id):
-        if not share_id or len(share_id) != 32:
-            raise cls.DoesNotExist
-
-        from sentry.models import GroupShare
-
-        return cls.objects.get(
-            id__in=GroupShare.objects.filter(uuid=share_id).values_list("group_id")[:1]
-        )
 
     def get_score(self):
         return type(self).calculate_score(self.times_seen, self.last_seen)

@@ -197,7 +197,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         user = User.objects.create(
             email="Stebe@sentry.io"
         )  # upper case so we can test case sensitivity
-        UserEmail.get_primary_email(user=user)
+        UserEmail.objects.get_primary_email(user=user)
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
         release = Release.objects.create(

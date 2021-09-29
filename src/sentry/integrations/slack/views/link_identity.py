@@ -72,7 +72,7 @@ class SlackLinkIdentityView(BaseView):  # type: ignore
             if not created:
                 identity.update(**defaults)
         except IntegrityError:
-            Identity.reattach(idp, params["slack_id"], request.user, defaults)
+            Identity.objects.reattach(idp, params["slack_id"], request.user, defaults)
 
         send_slack_response(integration, SUCCESS_LINKED_MESSAGE, params, command="link")
 

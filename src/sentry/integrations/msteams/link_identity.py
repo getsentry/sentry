@@ -64,7 +64,7 @@ class MsTeamsLinkIdentityView(BaseView):
             if not created:
                 identity.update(**defaults)
         except IntegrityError:
-            Identity.reattach(idp, params["teams_user_id"], request.user, defaults)
+            Identity.objects.reattach(idp, params["teams_user_id"], request.user, defaults)
 
         card = build_linked_card()
         client = MsTeamsClient(integration)

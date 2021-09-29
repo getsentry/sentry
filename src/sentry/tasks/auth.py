@@ -155,7 +155,7 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
     log_label = "verified email"
 
     def is_compliant(self, member: OrganizationMember) -> bool:
-        return UserEmail.get_primary_email(member.user).is_verified
+        return UserEmail.objects.get_primary_email(member.user).is_verified
 
     def call_to_action(self, org: Organization, user: User, member: OrganizationMember):
         import django.contrib.auth.models
@@ -169,7 +169,7 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
         elif not isinstance(user, User):
             raise TypeError(user)
 
-        email = UserEmail.get_primary_email(user)
+        email = UserEmail.objects.get_primary_email(user)
         email_context = {
             "confirm_url": absolute_uri(
                 reverse("sentry-account-confirm-email", args=[user.id, email.validation_hash])
