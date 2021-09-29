@@ -208,12 +208,16 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         }
 
     def sync_assignee_outbound(
-        self, external_issue: "ExternalIssue", user: User, assign: bool = True, **kwargs: Any
+        self,
+        external_issue: "ExternalIssue",
+        user: Optional["User"],
+        assign: bool = True,
+        **kwargs: Any,
     ) -> None:
         client = self.get_client()
         assignee = None
 
-        if assign is True:
+        if user and assign is True:
             sentry_emails = [email.email.lower() for email in user.get_verified_emails()]
             continuation_token = None
             while True:
@@ -247,7 +251,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
                 "vsts.failed-to-assign",
                 extra={
                     "integration_id": external_issue.integration_id,
-                    "user_id": user.id,
+                    "user_id": user.id if user else None,
                     "issue_key": external_issue.key,
                 },
             )

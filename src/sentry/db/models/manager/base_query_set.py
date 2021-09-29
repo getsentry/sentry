@@ -17,7 +17,9 @@ class BaseQuerySet(QuerySet, abc.ABC):  # type: ignore
         Use read replica for this query. Database router is expected to use the
         `replica=True` hint to make routing decision.
         """
-        return self.using(router.db_for_read(self.model, replica=True))
+        # Explicitly typing to satisfy mypy.
+        query_set: "BaseQuerySet" = self.using(router.db_for_read(self.model, replica=True))
+        return query_set
 
     def defer(self, *args: Any, **kwargs: Any) -> "BaseQuerySet":
         raise NotImplementedError("Use ``values_list`` instead [performance].")
