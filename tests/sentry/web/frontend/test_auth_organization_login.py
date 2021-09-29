@@ -976,7 +976,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
 
     @with_feature("organizations:idp-automatic-migration")
     @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
-    def test_flow_automatically_migrated_without_verified_without_password(
+    def test_flow_verify_and_link_without_password_sends_email(
         self, mock_send_one_time_account_confirm_link
     ):
         # setup a 'previous' identity, such as when we migrated Google from
@@ -1002,9 +1002,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
 
     @with_feature("organizations:idp-automatic-migration")
     @mock.patch("sentry.auth.idpmigration.send_confirm_email")
-    def test_flow_automatically_migrated_without_verified_without_password_and_link_sso_provider(
-        self, send_confirm_email
-    ):
+    def test_flow_verify_and_link_without_password_login_success(self, send_confirm_email):
         assert not self.user.has_usable_password()
         self.create_member(organization=self.organization, user=self.user)
 

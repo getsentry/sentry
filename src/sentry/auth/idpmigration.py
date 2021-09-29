@@ -10,7 +10,7 @@ from sentry.utils import json, redis
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
-REDIS_KEY = "verificationKeyStorage"
+_REDIS_KEY = "verificationKeyStorage"
 _TTL = timedelta(minutes=10)
 
 
@@ -37,7 +37,7 @@ def send_confirm_email(user: User, email: str, verification_key: str) -> None:
 
 
 def get_redis_cluster():
-    return redis.clusters.get("default").get_local_client_for_key(REDIS_KEY)
+    return redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
 
 
 def send_one_time_account_confirm_link(

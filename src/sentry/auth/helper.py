@@ -382,7 +382,7 @@ class AuthIdentityHandler:
 
         return response
 
-    def _check_verification_key(self, identity):
+    def _has_verified_account(self, identity):
         if self.request.session.get("confirm_account_verification_key"):
             verification_value = get_verification_value_from_key(
                 self.request.session["confirm_account_verification_key"]
@@ -428,7 +428,7 @@ class AuthIdentityHandler:
             login_form = None
         # we don't trust all IDP email verification, so users can also confirm via one time email link
 
-        if acting_user and identity.get("email_verified") or self._check_verification_key(identity):
+        if acting_user and identity.get("email_verified") or self._has_verified_account(identity):
             # we only allow this flow to happen if the existing user has
             # membership, otherwise we short circuit because it might be
             # an attempt to hijack membership of another organization
