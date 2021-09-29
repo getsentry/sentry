@@ -29,6 +29,15 @@ def migrate_subscriptions(apps, schema_editor):
                     subscription.subscription_id,
                 )
             except Exception as e:
+                try:
+                    # Delete the subscription we just created to avoid orphans
+                    _delete_from_snuba(
+                        QueryDatasets(subscription.snuba_query.dataset),
+                        subscription_id,
+                    )
+                except Exception as oe:
+                    logging.exception(f"failed to delete orphan {subscription_id}: {oe}")
+
                 logging.exception(f"failed to delete {subscription.subscription_id}: {e}")
                 continue
 
