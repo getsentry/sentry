@@ -38,7 +38,7 @@ function Conditions({conditions, orgSlug, projectId, onDelete, onChange}: Props)
         const displayLegacyBrowsers =
           category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER;
 
-        const isABooleanField =
+        const isBooleanField =
           category === DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
           category === DynamicSamplingInnerName.EVENT_LOCALHOST ||
           category === DynamicSamplingInnerName.EVENT_WEB_CRAWLERS ||
@@ -61,7 +61,7 @@ function Conditions({conditions, orgSlug, projectId, onDelete, onChange}: Props)
               </span>
             </LeftCell>
             <CenterCell>
-              {!isABooleanField &&
+              {!isBooleanField &&
                 (isAutoCompleteField ? (
                   <AutoComplete
                     category={category}
