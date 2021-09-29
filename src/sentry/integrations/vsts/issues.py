@@ -251,7 +251,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
                 "vsts.failed-to-assign",
                 extra={
                     "integration_id": external_issue.integration_id,
-                    "user_id": user.id,
+                    "user_id": user.id if user else None,
                     "issue_key": external_issue.key,
                 },
             )
