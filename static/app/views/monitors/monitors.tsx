@@ -51,8 +51,7 @@ class Monitors extends AsyncView<Props, State> {
   }
 
   handleSearch = (query: string) => {
-    const {location} = this.props;
-    const {router} = this.context;
+    const {location, router} = this.props;
     router.push({
       pathname: location.pathname,
       query: getParams({
