@@ -163,7 +163,6 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         )
 
         for key in keys:
-            print("key: ", key)
             _, timestamp_raw = key.split(key_prefix)
             try:
                 timestamp_bucket = int(timestamp_raw)
@@ -177,7 +176,6 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
                 continue
 
             histogram_raw = self.cluster.hgetall(key)
-            print("histogram: ", histogram_raw)
             histogram = base.BucketedDurations({})
             try:
                 for (duration_raw, count_raw) in histogram_raw.items():
