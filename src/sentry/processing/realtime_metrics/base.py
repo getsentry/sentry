@@ -96,11 +96,10 @@ class RealtimeMetricsStore(Service):  # type: ignore
 
     def add_project_to_lpq(self, project_id: int) -> bool:
         """
-        Moves a project to the low priority queue.
+        Assigns a project to the low priority queue.
 
-        This forces all symbolication events triggered by the specified project to be redirected to
-        the low priority queue, unless the project is manually excluded from the low priority queue
-        via the `store.symbolicate-event-lpq-never` kill switch.
+        This registers an intent to redirect all symbolication events triggered by the specified
+        project to be redirected to the low priority queue.
 
         Returns True if the project was a new addition to the list. Returns False if it was already
         assigned to the low priority queue.
@@ -111,9 +110,7 @@ class RealtimeMetricsStore(Service):  # type: ignore
         """
         Removes a project from the low priority queue.
 
-        This restores the specified project back to the regular queue, unless it has been
-        manually forced into the low priority queue via the `store.symbolicate-event-lpq-always`
-        kill switch.
+        This registers an intent to restore all specified projects back to the regular queue.
 
         Returns True if the project was assigned to the queue prior to its removal. Returns False if
         it wasn't assigned to the queue to begin with.
@@ -124,9 +121,7 @@ class RealtimeMetricsStore(Service):  # type: ignore
         """
         Removes projects from the low priority queue.
 
-        This restores all specified projects back to the regular queue, unless they have been
-        manually forced into the low priority queue via the `store.symbolicate-event-lpq-always`
-        kill switch.
+        This registers an intent to restore all specified projects back to the regular queue.
 
         Returns the number of projects that were actively removed from the queue. Any projects that
         were not assigned to the low priority queue to begin with will be omitted from the return
