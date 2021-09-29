@@ -395,7 +395,7 @@ function BreadcrumbsContainer({
           emptyMessage={getEmptyMessage()}
           breadcrumbs={filteredBySearch}
           event={event}
-          orgSlug={organization.slug}
+          organization={organization}
           onSwitchTimeFormat={handleSwitchTimeFormat}
           displayRelativeTime={displayRelativeTime}
           searchTerm={searchTerm}
