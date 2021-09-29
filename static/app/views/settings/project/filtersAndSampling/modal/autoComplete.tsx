@@ -106,6 +106,7 @@ function AutoComplete({orgSlug, projectId, category, onChange, value}: Props) {
       required
       stacked
       creatable
+      allowClear
     />
   );
 }
