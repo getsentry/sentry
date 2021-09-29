@@ -35,7 +35,7 @@ const CheckboxFancy = styled(
       data-test-id="checkbox-fancy"
       role="checkbox"
       aria-disabled={isDisabled}
-      aria-checked={isChecked}
+      aria-checked={isIndeterminate ? 'mixed' : isChecked}
       className={className}
       onClick={onClick}
     >
