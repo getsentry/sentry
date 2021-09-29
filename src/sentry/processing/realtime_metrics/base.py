@@ -94,22 +94,42 @@ class RealtimeMetricsStore(Service):  # type: ignore
         """
         pass
 
-    def add_project_to_lpq(self, project_id: int) -> None:
+    def add_project_to_lpq(self, project_id: int) -> bool:
         """
         Moves a project to the low priority queue.
 
         This forces all symbolication events triggered by the specified project to be redirected to
         the low priority queue, unless the project is manually excluded from the low priority queue
         via the `store.symbolicate-event-lpq-never` kill switch.
+
+        Returns True if the project was a new addition to the list. Returns False if it was already
+        assigned to the low priority queue.
         """
         pass
 
-    def remove_projects_from_lpq(self, project_ids: Set[int]) -> None:
+    def remove_project_from_lpq(self, project_id: int) -> bool:
+        """
+        Removes a project from the low priority queue.
+
+        This restores the specified project back to the regular queue, unless it has been
+        manually forced into the low priority queue via the `store.symbolicate-event-lpq-always`
+        kill switch.
+
+        Returns True if the project was assigned to the queue prior to its removal. Returns False if
+        it wasn't assigned to the queue to begin with.
+        """
+        pass
+
+    def remove_projects_from_lpq(self, project_ids: Set[int]) -> int:
         """
         Removes projects from the low priority queue.
 
         This restores all specified projects back to the regular queue, unless they have been
         manually forced into the low priority queue via the `store.symbolicate-event-lpq-always`
         kill switch.
+
+        Returns the number of projects that were actively removed from the queue. Any projects that
+        were not assigned to the low priority queue to begin with will be omitted from the return
+        value.
         """
         pass

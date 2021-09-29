@@ -177,6 +177,11 @@ def test_add_project_to_lpq_filled(
     assert in_lpq == {"1", "11"}
 
 
+#
+# remove_projects_from_lpq()
+#
+
+
 def test_remove_projects_from_lpq_unset(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
@@ -252,6 +257,53 @@ def test_remove_projects_from_lpq_no_members(
 
     remaining = redis_cluster.smembers("store.symbolicate-event-lpq-selected")
     assert remaining == {"1"}
+
+
+#
+# remove_project_from_lpq()
+# This literally invokes remove_projects_from_lpq so bare bones tests should be enough
+
+
+def test_remove_project_from_lpq_unset(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+) -> None:
+    store.remove_project_from_lpq(1)
+
+    remaining = redis_cluster.smembers("store.symbolicate-event-lpq-selected")
+    assert remaining == set()
+
+
+def test_remove_project_from_lpq_empty(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+) -> None:
+    redis_cluster.sadd("store.symbolicate-event-lpq-selected", 1)
+    redis_cluster.srem("store.symbolicate-event-lpq-selected", 1)
+
+    store.remove_project_from_lpq(1)
+    remaining = redis_cluster.smembers("store.symbolicate-event-lpq-selected")
+    assert remaining == set()
+
+
+def test_remove_project_from_lpq_only_member(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+) -> None:
+    redis_cluster.sadd("store.symbolicate-event-lpq-selected", 1)
+
+    store.remove_project_from_lpq(1)
+
+    remaining = redis_cluster.smembers("store.symbolicate-event-lpq-selected")
+    assert remaining == set()
+
+
+def test_remove_project_from_lpq_nonmember(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+) -> None:
+    redis_cluster.sadd("store.symbolicate-event-lpq-selected", 11)
+
+    store.remove_projects_from_lpq(1)
+
+    remaining = redis_cluster.smembers("store.symbolicate-event-lpq-selected")
+    assert remaining == {"11"}
 
 
 #

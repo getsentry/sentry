@@ -212,7 +212,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         """
         return {int(project_id) for project_id in self.cluster.smembers(LPQ_MEMBERS_KEY)}
 
-    def add_project_to_lpq(self, project_id: int) -> None:
+    def add_project_to_lpq(self, project_id: int) -> bool:
         """
         Assigns a project to the low priority queue.
 
@@ -224,11 +224,25 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         """
 
         # This returns 0 if project_id was already in the set, 1 if it was added, and throws an
-        # exception if there's a problem so it's fine if we just ignore the return value of this as
-        # the project is always added if this successfully completes.
-        self.cluster.sadd(LPQ_MEMBERS_KEY, project_id)
+        # exception if there's a problem. If this successfully completes then the project is
+        # expected to be in the set.
+        return self.cluster.sadd(LPQ_MEMBERS_KEY, project_id) > 0
 
-    def remove_projects_from_lpq(self, project_ids: Set[int]) -> None:
+    def remove_project_from_lpq(self, project_id: int) -> bool:
+        """
+        Removes a project from the low priority queue.
+
+        This restores the specified project back to the regular queue, unless it has been
+        manually forced into the low priority queue via the `store.symbolicate-event-lpq-always`
+        kill switch.
+
+        This may throw an exception if there is some sort of issue deregistering the projects from
+        the queue.
+        """
+
+        return self.remove_projects_from_lpq([project_id]) > 1
+
+    def remove_projects_from_lpq(self, project_ids: Set[int]) -> int:
         """
         Removes projects from the low priority queue.
 
@@ -238,6 +252,8 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         the queue.
         """
         if len(project_ids) == 0:
-            return
+            return 0
 
-        self.cluster.srem(LPQ_MEMBERS_KEY, *project_ids)
+        # This returns the number of projects removed, and throws an exception if there's a problem.
+        # If this successfully completes then the projects are expected to no longer be in the set.
+        return self.cluster.srem(LPQ_MEMBERS_KEY, *project_ids)
