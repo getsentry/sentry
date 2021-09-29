@@ -54,6 +54,10 @@ describe('TeamInsightsOverview', () => {
         ],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team1.slug}/alerts-triggered/`,
+      body: TestStubs.TeamAlertsTriggered(),
+    });
   });
 
   afterEach(() => {
