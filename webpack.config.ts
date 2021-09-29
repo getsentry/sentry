@@ -101,7 +101,7 @@ if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
     'module:babel-gettext-extractor',
     {
       fileName: 'build/javascript.po',
-      baseDirectory: path.join(__dirname, 'src/sentry'),
+      baseDirectory: path.join(__dirname),
       functionNames: {
         gettext: ['msgid'],
         ngettext: ['msgid', 'msgid_plural', 'count'],
