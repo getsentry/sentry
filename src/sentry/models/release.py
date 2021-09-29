@@ -8,6 +8,7 @@ from typing import List, Mapping, Optional, Sequence, Union
 import sentry_sdk
 from django.db import IntegrityError, models, router
 from django.db.models import Case, F, Func, Q, Subquery, Sum, Value, When
+from django.db.models.signals import pre_save
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -268,7 +269,7 @@ class ReleaseQuerySet(models.QuerySet):
         return self.order_by("-date_added", "-id")
 
     @staticmethod
-    def _massage_semver_cols_into_release_object_data(kwargs):
+    def massage_semver_cols_into_release_object_data(kwargs):
         """
         Helper function that takes kwargs as an argument and massages into it the release semver
         columns (if possible)
@@ -323,15 +324,6 @@ class ReleaseQuerySet(models.QuerySet):
             except ValueError:
                 pass
         return build_number
-
-    def create(self, *args, **kwargs):
-        """
-        Override create method to parse semver release if it follows semver format, and updates the
-        release object that is about to be created with semver columns i.e. major, minor, patch,
-        revision, prerelease, build_code, build_number and package
-        """
-        self._massage_semver_cols_into_release_object_data(kwargs)
-        return super().create(*args, **kwargs)
 
 
 class ReleaseModelManager(BaseManager):
@@ -1159,3 +1151,14 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
     if release_version:
         follows_semver = follows_semver and Release.is_semver_version(release_version)
     return follows_semver
+
+
+def parse_semver_pre_save(instance, **kwargs):
+    if instance.id:
+        return
+    ReleaseQuerySet.massage_semver_cols_into_release_object_data(instance.__dict__)
+
+
+pre_save.connect(
+    parse_semver_pre_save, sender="sentry.Release", dispatch_uid="parse_semver_pre_save"
+)
