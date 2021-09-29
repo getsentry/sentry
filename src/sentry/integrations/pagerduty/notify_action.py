@@ -37,10 +37,11 @@ class PagerDutyNotifyServiceForm(forms.Form):
         cleaned_data = super().clean()
 
         integration_id = cleaned_data.get("account")
-        try:
-            integration_id = int(integration_id)
-        except TypeError:
-            pass
+        if integration_id is not None:
+            try:
+                integration_id = int(integration_id)
+            except ValueError:
+                raise forms.ValidationError(_("Invalid account"), code="invalid")
 
         service_id = cleaned_data.get("service")
 
