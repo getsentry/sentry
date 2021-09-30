@@ -1,1 +1,3 @@
-from .creator import AlertRuleActionCreator  # NOQA
+from .creator import AlertRuleActionCreator
+
+__all__ = ("AlertRuleActionCreator",)

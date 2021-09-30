@@ -22,8 +22,6 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
     # not be validated on the backend. This is tricky to do since the schema form is dynamic, and will
     # be implemented on it's own in the future. Frontend validation is still in place in the mean time.
 
-    # src/sentry/rules/actions/notify_event_sentry_app.py:25: error: Function is missing a type annotation
-
     def get_custom_actions(self, project: Project) -> Sequence[Mapping[str, Any]]:
         action_list = []
         for install in SentryAppInstallation.get_installed_for_org(project.organization_id):

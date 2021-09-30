@@ -1,4 +1,7 @@
+from typing import Mapping, Sequence
+
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
@@ -18,6 +21,25 @@ from sentry.models import (
 from sentry.models.sentryappinstallation import SentryAppInstallation
 from sentry.signals import alert_rule_created
 from sentry.web.decorators import transaction_start
+
+
+def create_alert_rule_actions(
+    actions: Sequence[Mapping[str, str]],
+    rule: Rule,
+    request: Request,
+) -> None:
+    for action in actions:
+        # Only call creator for Sentry Apps with UI Components for alert rules.
+        if not action.get("hasSchemaFormConfig"):
+            continue
+
+        alert_rule_actions.AlertRuleActionCreator.run(
+            install=SentryAppInstallation.objects.get(uuid=action.get("sentryAppInstallationUuid")),
+            fields=action.get("settings"),
+            uri=action.get("uri"),
+            rule=rule,
+            request=request,
+        )
 
 
 class ProjectRulesEndpoint(ProjectEndpoint):
@@ -104,19 +126,8 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             RuleActivity.objects.create(
                 rule=rule, user=request.user, type=RuleActivityType.CREATED.value
             )
-            for action in kwargs.get("actions"):
-                # Only call creator for Sentry Apps with UI Components for alert rules
-                if not action.get("hasSchemaFormConfig"):
-                    continue
-                sentry_app_kwargs = {
-                    "install": SentryAppInstallation.objects.get(
-                        uuid=action.get("sentryAppInstallationUuid")
-                    ),
-                    "fields": action.get("settings"),
-                    "uri": action.get("uri"),
-                    "rule": rule,
-                }
-                alert_rule_actions.AlertRuleActionCreator.run(request=request, **sentry_app_kwargs)
+
+            create_alert_rule_actions(kwargs.get("actions"), rule, request)
 
             self.create_audit_entry(
                 request=request,

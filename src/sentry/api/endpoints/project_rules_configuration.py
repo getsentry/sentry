@@ -2,7 +2,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
+from sentry.constants import MIGRATED_CONDITIONS, SCHEMA_FORM_ACTIONS, TICKET_ACTIONS
 from sentry.rules import rules
 
 
@@ -33,10 +33,9 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             if not can_create_tickets and node.id in TICKET_ACTIONS:
                 continue
 
-            # Create as many of these nodes as there are Sentry Apps with UI Alert Rule components
-            if node.id == "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction":
+            if node.id in SCHEMA_FORM_ACTIONS:
                 custom_actions = node.get_custom_actions(project)
-                if len(custom_actions) != 0:
+                if custom_actions:
                     action_list.extend(custom_actions)
                 continue
 

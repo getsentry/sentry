@@ -255,6 +255,10 @@ TICKET_ACTIONS = frozenset(
     ]
 )
 
+SCHEMA_FORM_ACTIONS = frozenset(
+    ["sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"]
+)
+
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
 HTTP_METHODS = ("GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH")
 
