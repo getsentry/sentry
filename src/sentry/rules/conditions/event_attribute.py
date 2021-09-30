@@ -102,7 +102,7 @@ class EventAttributeCondition(EventCondition):
         if path[0] == "message":
             if len(path) != 1:
                 return []
-            return [event.message]
+            return [event.message, event.search_message]
         elif path[0] == "environment":
             return [event.get_tag("environment")]
 
