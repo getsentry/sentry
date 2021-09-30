@@ -349,10 +349,6 @@ function AppStoreConnect({
   }
 
   async function handleStartSmsAuthentication() {
-    if (!useSms) {
-      setUseSms(true);
-    }
-
     try {
       const response = await api.requestPromise(
         `/projects/${orgSlug}/${projectSlug}/appstoreconnect/requestSms/`,
@@ -361,10 +357,11 @@ function AppStoreConnect({
           data: {sessionContext},
         }
       );
-
+      setUseSms(true);
       setSessionContext(response.sessionContext);
       addSuccessMessage(t("We've sent a SMS code to your phone"));
     } catch {
+      // TODO: use the message from the itunes-sms-blocked-error
       addErrorMessage(t('An error occured while sending the SMS. Please try again'));
     }
   }
