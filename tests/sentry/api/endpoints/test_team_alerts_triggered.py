@@ -48,54 +48,18 @@ class TeamAlertsTriggeredTest(APITestCase):
         response = self.get_success_response(self.team.organization.slug, self.team.slug)
         assert len(response.data) == 90
         for i in range(1, 9):
-            assert (
-                response.data[
-                    str(
-                        before_now(days=i).replace(
-                            hour=0, minute=0, second=0, microsecond=0, tzinfo=None
-                        )
-                    )
-                ]
-                == 1
-            )
+            assert response.data[str(before_now(days=i).date())] == 1
 
         for i in range(10, 90):
-            assert (
-                response.data[
-                    str(
-                        before_now(days=i).replace(
-                            hour=0, minute=0, second=0, microsecond=0, tzinfo=None
-                        )
-                    )
-                ]
-                == 0
-            )
+            assert response.data[str(before_now(days=i).date())] == 0
 
         response = self.get_success_response(
             self.team.organization.slug, self.team.slug, statsPeriod="7d"
         )
         assert len(response.data) == 7
-        assert (
-            response.data[
-                str(
-                    before_now(days=0).replace(
-                        hour=0, minute=0, second=0, microsecond=0, tzinfo=None
-                    )
-                )
-            ]
-            == 0
-        )
+        assert response.data[str(before_now(days=0).date())] == 0
         for i in range(1, 6):
-            assert (
-                response.data[
-                    str(
-                        before_now(days=i).replace(
-                            hour=0, minute=0, second=0, microsecond=0, tzinfo=None
-                        )
-                    )
-                ]
-                == 1
-            )
+            assert response.data[str(before_now(days=i).date())] == 1
 
     def test_not_as_simple(self):
         team_with_user = self.create_team(
@@ -156,26 +120,8 @@ class TeamAlertsTriggeredTest(APITestCase):
         self.login_as(user=self.user)
         response = self.get_success_response(self.team.organization.slug, self.team.slug)
         assert len(response.data) == 90
-        assert (
-            response.data[
-                str(
-                    before_now(days=2).replace(
-                        hour=0, minute=0, second=0, microsecond=0, tzinfo=None
-                    )
-                )
-            ]
-            == 1
-        )
+        assert response.data[str(before_now(days=2).date())] == 1
         # only getting the team owned incident, because the user owned incident is for another project that the team isn't on
         for i in range(0, 90):
             if i != 2:
-                assert (
-                    response.data[
-                        str(
-                            before_now(days=i).replace(
-                                hour=0, minute=0, second=0, microsecond=0, tzinfo=None
-                            )
-                        )
-                    ]
-                    == 0
-                )
+                assert response.data[str(before_now(days=i).date())] == 0
