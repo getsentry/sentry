@@ -2,37 +2,8 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.sentry_app_component import SentryAppAlertRuleActionSerializer
 from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
-from sentry.coreapi import APIError
-from sentry.mediators import sentry_app_components
-from sentry.models import SentryAppComponent, SentryAppInstallation
 from sentry.rules import rules
-
-
-def get_sentry_apps_with_alerts(request, project):
-    action_list = []
-    for install in SentryAppInstallation.get_installed_for_org(project.organization_id):
-        _components = SentryAppComponent.objects.filter(
-            sentry_app_id=install.sentry_app_id, type="alert-rule-action"
-        )
-        for component in _components:
-            try:
-                sentry_app_components.Preparer.run(
-                    component=component, install=install, project=project
-                )
-                action_list.append(
-                    serialize(
-                        component,
-                        request.user,
-                        SentryAppAlertRuleActionSerializer(),
-                        install=install,
-                    )
-                )
-
-            except APIError:
-                continue
 
 
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
