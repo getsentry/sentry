@@ -1,21 +1,14 @@
 module.exports = [
   {
-    path: ['public/app.js'],
-    limit: '500KB',
+    path: ['src/sentry/static/sentry/dist/entrypoints/app.js'],
+    limit: '220KB',
     webpack: false,
     gzip: true,
     brotli: false,
   },
   {
-    path: ['public/vendor.js'],
-    limit: '1.0MB',
-    webpack: false,
-    gzip: true,
-    brotli: false,
-  },
-  {
-    path: ['public/sentry.css'],
-    limit: '50KB',
+    path: ['src/sentry/static/sentry/dist/entrypoints/sentry.css'],
+    limit: '270KB',
     webpack: false,
     gzip: true,
     brotli: false,

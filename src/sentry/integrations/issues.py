@@ -1,10 +1,12 @@
 import logging
 from collections import defaultdict
+from typing import Any, Optional
 
 from sentry import features
-from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupStatus, Organization
+from sentry.models import ExternalIssue, Group, GroupLink, GroupStatus, Organization, User
 from sentry.models.useroption import UserOption
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.types.activity import ActivityType
 from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -298,20 +300,20 @@ class IssueSyncMixin(IssueBasicMixin):
     outbound_assignee_key = None
     inbound_assignee_key = None
 
-    def should_sync(self, attribute):
-        try:
-            key = getattr(self, "%s_key" % attribute)
-        except AttributeError:
-            return False
-
+    def should_sync(self, attribute: str) -> bool:
+        key = getattr(self, f"{attribute}_key", None)
         if key is None:
             return False
+        value: bool = self.org_integration.config.get(key, False)
+        return value
 
-        config = self.org_integration.config
-
-        return config.get(key, False)
-
-    def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
+    def sync_assignee_outbound(
+        self,
+        external_issue: "ExternalIssue",
+        user: Optional["User"],
+        assign: bool = True,
+        **kwargs: Any,
+    ) -> None:
         """
         Propagate a sentry issue's assignee to a linked issue's assignee.
         If assign=True, we're assigning the issue. Otherwise, deassign.
@@ -351,19 +353,6 @@ class IssueSyncMixin(IssueBasicMixin):
         see example above
         """
         raise NotImplementedError
-
-    def update_group_status(self, groups, status, activity_type):
-        updated = (
-            Group.objects.filter(id__in=[g.id for g in groups])
-            .exclude(status=status)
-            .update(status=status)
-        )
-        if updated:
-            for group in groups:
-                activity = Activity.objects.create(
-                    project=group.project, group=group, type=activity_type
-                )
-                activity.send_notification()
 
     def sync_status_inbound(self, issue_key, data):
         if not self.should_sync("inbound_status"):
@@ -408,9 +397,11 @@ class IssueSyncMixin(IssueBasicMixin):
                 groups_to_resolve.append(group)
 
         if groups_to_resolve:
-            self.update_group_status(groups_to_resolve, GroupStatus.RESOLVED, Activity.SET_RESOLVED)
+            Group.objects.update_group_status(
+                groups_to_resolve, GroupStatus.RESOLVED, ActivityType.SET_RESOLVED
+            )
 
         if groups_to_unresolve:
-            self.update_group_status(
-                groups_to_unresolve, GroupStatus.UNRESOLVED, Activity.SET_UNRESOLVED
+            Group.objects.update_group_status(
+                groups_to_unresolve, GroupStatus.UNRESOLVED, ActivityType.SET_UNRESOLVED
             )

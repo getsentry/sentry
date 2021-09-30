@@ -9,7 +9,6 @@ from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions import (
     _make_stats,
-    get_oldest_health_data_for_releases,
     get_project_releases_by_stability,
     get_project_releases_count,
     get_release_health_data_overview,
@@ -135,7 +134,9 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         )
 
     def test_get_oldest_health_data_for_releases(self):
-        data = get_oldest_health_data_for_releases([(self.project.id, self.session_release)])
+        data = self.backend.get_oldest_health_data_for_releases(
+            [(self.project.id, self.session_release)]
+        )
         assert data == {
             (self.project.id, self.session_release): format_timestamp(
                 self.session_started // 3600 * 3600
@@ -273,18 +274,18 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         data = get_project_releases_by_stability(
             [self.project.id], offset=0, limit=100, scope="users", stats_period="24h"
         )
-        assert data == [
+        assert set(data) == {
             (self.project.id, self.session_release),
             (self.project.id, self.session_crashed_release),
-        ]
+        }
 
         data = get_project_releases_by_stability(
             [self.project.id], offset=0, limit=100, scope="crash_free_users", stats_period="24h"
         )
-        assert data == [
+        assert set(data) == {
             (self.project.id, self.session_crashed_release),
             (self.project.id, self.session_release),
-        ]
+        }
 
     def test_get_release_adoption(self):
         data = self.backend.get_release_adoption(
@@ -566,6 +567,70 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         assert data == {
             "sessions_lower_bound": None,
             "sessions_upper_bound": None,
+        }
+
+    def test_basic_release_model_adoptions(self):
+        """
+        Test that the basic (project,release) data is returned
+        """
+        proj_id = self.project.id
+        data = self.backend.get_changed_project_release_model_adoptions([proj_id])
+        assert set(data) == {(proj_id, "foo@1.0.0"), (proj_id, "foo@2.0.0")}
+
+    def test_old_release_model_adoptions(self):
+        """
+        Test that old entries (older that 72 h) are not returned
+        """
+        _100h = 100 * 60 * 60  # 100 hours in seconds
+        proj_id = self.project.id
+        self.store_session(
+            {
+                "session_id": "f6a01ae0-7fa7-44df-afb9-ae32ef1c8102",
+                "distinct_id": "5849e12a-220a-4bda-8c72-4e35391c341f",
+                "status": "crashed",
+                "seq": 0,
+                "release": "foo@3.0.0",
+                "environment": "prod",
+                "retention_days": 90,
+                "org_id": self.project.organization_id,
+                "project_id": proj_id,
+                "duration": 60.0,
+                "errors": 0,
+                "started": self.session_started - _100h,
+                "received": self.received - 3600 * 2,
+            }
+        )
+
+        data = self.backend.get_changed_project_release_model_adoptions([proj_id])
+        assert set(data) == {(proj_id, "foo@1.0.0"), (proj_id, "foo@2.0.0")}
+
+    def test_multi_proj_release_model_adoptions(self):
+        """Test that the api works with multiple projects"""
+        proj_id = self.project.id
+        new_proj_id = proj_id + 1
+        self.store_session(
+            {
+                "session_id": "f6a01ae0-7fa7-44df-afb9-ae32ef1c8102",
+                "distinct_id": "5849e12a-220a-4bda-8c72-4e35391c341f",
+                "status": "crashed",
+                "seq": 0,
+                "release": "foo@3.0.0",
+                "environment": "prod",
+                "retention_days": 90,
+                "org_id": self.project.organization_id,
+                "project_id": new_proj_id,
+                "duration": 60.0,
+                "errors": 0,
+                "started": self.session_started,
+                "received": self.received - 3600 * 2,
+            }
+        )
+
+        data = self.backend.get_changed_project_release_model_adoptions([proj_id, new_proj_id])
+        assert set(data) == {
+            (proj_id, "foo@1.0.0"),
+            (proj_id, "foo@2.0.0"),
+            (new_proj_id, "foo@3.0.0"),
         }
 
 

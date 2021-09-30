@@ -42,7 +42,9 @@ class ProjectPermission(OrganizationPermission):
             if is_active_superuser(request):
                 return True
             elif request.user.is_sentry_app:
-                return SentryApp.check_project_permission_for_sentry_app_user(request.user, project)
+                return SentryApp.objects.check_project_permission_for_sentry_app_user(
+                    request.user, project
+                )
             try:
                 role = (
                     OrganizationMember.objects.filter(
