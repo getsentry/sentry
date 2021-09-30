@@ -1,5 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import GroupTags from 'app/views/organizationGroupDetails/groupTags';
 
@@ -23,7 +23,7 @@ describe('GroupTags', function () {
         params={{orgId: 'org-slug', groupId: group.id}}
         baseUrl={`/organizations/${organization.slug}/issues/${group.id}/`}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     expect(tagsMock).toHaveBeenCalledWith(
