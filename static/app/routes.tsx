@@ -7,6 +7,7 @@ import {
   Route as BaseRoute,
   RouteProps,
 } from 'react-router';
+import memoize from 'lodash/memoize';
 
 import LazyLoad from 'app/components/lazyLoad';
 import {EXPERIMENTAL_SPA} from 'app/constants';
@@ -59,7 +60,7 @@ const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
 const SafeLazyLoad = errorHandler(LazyLoad);
 
-function routes() {
+function buildRoutes() {
   // Read this to understand where to add new routes, how / why the routing
   // tree is structured the way it is, and how the lazy-loading /
   // code-splitting works for pages.
@@ -1934,5 +1935,9 @@ function routes() {
 
   return appRoutes;
 }
+
+// We load routes both when initlaizing the SDK (for routing integrations) and
+// when the app renders Main. Memoize to avoid rebuilding the route tree.
+const routes = memoize(buildRoutes);
 
 export default routes;
