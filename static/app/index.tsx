@@ -1,7 +1,7 @@
 // This is the entry point of Sentry's frontend application. Want to
 // understand how app boots? Read on!
 //
-// 1. Load the `boostrap` and `initializeMain` functions
+// 1. Load the `bootstrap` and `initializeMain` functions
 //
 //   a. Execute and wait for `bootstrap` to complete.
 //
