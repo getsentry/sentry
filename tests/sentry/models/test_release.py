@@ -847,6 +847,43 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_number is None
         assert release.package == "org.example.FooApp"
 
+    def test_parse_release_into_semver_cols_on_pre_save(self):
+        """
+        Test that ensures that calling save on a new Release instance parses version into semver
+        columns
+        """
+        version = "org.example.FooApp@1.0rc1+-2020"
+        release = Release(organization=self.org, version=version)
+        release.save()
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "-2020"
+        assert release.build_number is None
+        assert release.package == "org.example.FooApp"
+
+    def test_does_not_parse_release_into_semver_cols_on_pre_save_for_existing_release(self):
+        """
+        Test that ensures that calling save on an existing Release instance does not re-parse
+        version into semver columns
+        """
+        version = "org.example.FooApp@1.0rc1+-2020"
+        release = Release(organization=self.org, version=version)
+        release.save()
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "-2020"
+        assert release.build_number is None
+        assert release.package == "org.example.FooApp"
+        release.version = "org.example.FooApp@1.0rc1+-1999"
+        release.save()
+        assert release.build_code == "-2020"
+
 
 class ReleaseFilterBySemverTest(TestCase):
     def test_invalid_query(self):
