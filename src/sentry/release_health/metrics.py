@@ -13,6 +13,7 @@ from sentry.release_health.base import (
     OrganizationId,
     ProjectId,
     ProjectOrRelease,
+    ProjectRelease,
     ReleaseAdoption,
     ReleaseHealthBackend,
     ReleaseName,
@@ -606,3 +607,109 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             return reverse_tag_value(organization_id, row.get(release_column_name))  # type: ignore
 
         return {extract_row_info(row) for row in result["data"]}
+
+    def get_changed_project_release_model_adoptions(
+        self,
+        project_ids: Sequence[ProjectId],
+    ) -> Sequence[ProjectRelease]:
+
+        now = datetime.now(pytz.utc)
+        start = now - timedelta(days=3)
+
+        projects_ids = list(project_ids)
+
+        if len(projects_ids) == 0:
+            return []
+
+        org_id = self._get_org_id(project_ids)
+        release_column_name = tag_key(org_id, "release")
+
+        query_cols = [Column("project_id"), Column(release_column_name)]
+        group_by = query_cols
+
+        where_clause = [
+            Condition(Column("org_id"), Op.EQ, org_id),
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, now),
+        ]
+
+        query = Query(
+            dataset=Dataset.Metrics.value,
+            match=Entity("metrics_counters"),
+            select=query_cols,
+            where=where_clause,
+            groupby=group_by,
+        )
+        result = raw_snql_query(
+            query,
+            referrer="release_health.metrics.get_changed_project_release_model_adoptions",
+            use_cache=False,
+        )
+
+        def extract_row_info(row: Mapping[str, Union[OrganizationId, str]]) -> ProjectRelease:
+            return row.get("project_id"), reverse_tag_value(org_id, row.get(release_column_name))  # type: ignore
+
+        return [extract_row_info(row) for row in result["data"]]
+
+    def get_oldest_health_data_for_releases(
+        self,
+        project_releases: Sequence[ProjectRelease],
+    ) -> Mapping[ProjectRelease, str]:
+
+        now = datetime.now(pytz.utc)
+        start = now - timedelta(days=90)
+
+        project_ids: List[ProjectId] = [x[0] for x in project_releases]
+        org_id = self._get_org_id(project_ids)
+        release_column_name = tag_key(org_id, "release")
+        releases = [x[1] for x in project_releases]
+        releases_ids = [
+            release_id
+            for release_id in [try_get_tag_value(org_id, release) for release in releases]
+            if release_id is not None
+        ]
+
+        query_cols = [
+            Column("project_id"),
+            Column(release_column_name),
+            Function("min", [Column("bucketed_time")], "oldest"),
+        ]
+
+        group_by = [
+            Column("project_id"),
+            Column(release_column_name),
+        ]
+
+        where_clause = [
+            Condition(Column("org_id"), Op.EQ, org_id),
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, now),
+            Condition(Column(release_column_name), Op.IN, releases_ids),
+        ]
+
+        query = Query(
+            dataset=Dataset.Metrics.value,
+            match=Entity("metrics_counters"),
+            select=query_cols,
+            where=where_clause,
+            groupby=group_by,
+            granularity=Granularity(3600),
+        )
+        rows = raw_snql_query(
+            query,
+            referrer="release_health.metrics.get_oldest_health_data_for_releases",
+            use_cache=False,
+        )["data"]
+
+        result = {}
+
+        for row in rows:
+            result[row["project_id"], reverse_tag_value(org_id, row[release_column_name])] = row[
+                "oldest"
+            ]
+
+        return result
