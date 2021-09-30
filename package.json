@@ -138,7 +138,7 @@
   "devDependencies": {
     "@babel/plugin-transform-react-jsx-source": "^7.14.5",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.4.2",
-    "@size-limit/preset-small-lib": "^4.10.2",
+    "@size-limit/preset-small-lib": "^5.0.5",
     "@storybook/addon-a11y": "6.3.7",
     "@storybook/addon-actions": "6.3.7",
     "@storybook/addon-essentials": "6.3.7",
@@ -172,7 +172,7 @@
     "react-refresh": "^0.8.3",
     "react-select-event": "5.3.0",
     "react-test-renderer": "17.0.2",
-    "size-limit": "^4.5.6",
+    "size-limit": "^5.0.5",
     "speed-measure-webpack-plugin": "^1.5.0",
     "stylelint": "13.13.1",
     "stylelint-config-prettier": "^8.0.2",
