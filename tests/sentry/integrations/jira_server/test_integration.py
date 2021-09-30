@@ -7,7 +7,7 @@ from sentry.models import Identity, IdentityProvider, Integration, OrganizationI
 from sentry.testutils import IntegrationTestCase
 from sentry.utils import json, jwt
 
-from .testutils import EXAMPLE_PRIVATE_KEY
+from . import EXAMPLE_PRIVATE_KEY
 
 
 class JiraServerIntegrationTest(IntegrationTestCase):
