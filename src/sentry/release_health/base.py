@@ -13,7 +13,8 @@ EnvironmentName = str
 DateString = str
 
 
-SelectFieldName = Literal[
+#: The functions supported by `run_sessions_query`
+SessionsQueryFunction = Literal[
     "sum(session)",
     "count_unique(user)",
     "avg(session.duration)",
@@ -37,7 +38,7 @@ FilterFieldName = Literal["project", "release", "environment"]
 class SessionsQuery(TypedDict):
     org_id: OrganizationId
     project_ids: Sequence[ProjectId]
-    select_fields: Sequence[SelectFieldName]
+    select_fields: Sequence[SessionsQueryFunction]
     filter_query: Mapping[FilterFieldName, str]
     start: datetime
     end: datetime
@@ -49,8 +50,8 @@ SessionsQueryValue = Union[None, float, int]
 
 class SessionsQueryGroup(TypedDict):
     by: Mapping[GroupByFieldName, Union[str, int]]
-    series: Mapping[SelectFieldName, Sequence[SessionsQueryValue]]
-    totals: Mapping[SelectFieldName, SessionsQueryValue]
+    series: Mapping[SessionsQueryFunction, Sequence[SessionsQueryValue]]
+    totals: Mapping[SessionsQueryFunction, SessionsQueryValue]
 
 
 class SessionsQueryResult(TypedDict):

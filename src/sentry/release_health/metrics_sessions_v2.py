@@ -2,6 +2,7 @@
 from the `metrics` dataset instead of `sessions`.
 
 Do not call this module directly. Use the `release_health` service instead. """
+import abc
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -26,15 +27,15 @@ from typing_extensions import Literal, TypedDict
 
 from sentry.release_health.base import (
     GroupByFieldName,
-    SelectFieldName,
+    SessionsQueryFunction,
     SessionsQueryGroup,
     SessionsQueryResult,
     SessionsQueryValue,
 )
 from sentry.sentry_metrics import indexer
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics import TS_COL_GROUP, TS_COL_QUERY, get_intervals
-from sentry.snuba.sessions_v2 import QueryDefinition
+from sentry.snuba.sessions_v2 import QueryDefinition, finite_or_none
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -79,7 +80,27 @@ class _StatusValue:
 
 
 @dataclass(frozen=True)
-class _FlatKey:
+class _DataPointKey:
+    """A key to access a data point in _DataPoints.
+
+    `_fetch_data` collects multiple snuba query results, which return their data
+    in rows. To facilitate the transformation to the desired output format,
+    `_flatten_data` stores all snuba results in a flat key-value-map.
+
+    Example: The snuba query
+
+        MATCH (metrics_distributions) SELECT avg, max BY bucketed_time ...
+
+    would result in data keys
+
+        metric_name=session.duration, column=avg, bucketed_time=<datetime1>
+        metric_name=session.duration, column=max, bucketed_time=<datetime1>
+        metric_name=session.duration, column=avg, bucketed_time=<datetime2>
+        metric_name=session.duration, column=max, bucketed_time=<datetime2>
+        ...
+
+    """
+
     metric_name: str
     raw_session_status: Optional[str] = None
     release: Optional[int] = None
@@ -89,31 +110,34 @@ class _FlatKey:
     project_id: Optional[int] = None
 
 
-_FlatData = MutableMapping[_FlatKey, float]
+_DataPoints = MutableMapping[_DataPointKey, float]
 
 
-class _Field:
-    name: SelectFieldName = "sum(session)"  # need some default
+class _Field(abc.ABC):
+    @abc.abstractmethod
+    def get_name(self) -> SessionsQueryFunction:
+        pass
 
-    def get_values(self, flat_data: _FlatData, key: _FlatKey) -> Sequence[_StatusValue]:
+    def get_values(self, data_points: _DataPoints, key: _DataPointKey) -> Sequence[_StatusValue]:
         """List values by session.status"""
-        return [_StatusValue(None, flat_data[key])]
+        return [_StatusValue(None, data_points[key])]
 
 
 class _UserField(_Field):
-    name: SelectFieldName = "count_unique(user)"
+    def get_name(self) -> SessionsQueryFunction:
+        return "count_unique(user)"
 
-    def get_values(self, flat_data: _FlatData, key: _FlatKey) -> Sequence[_StatusValue]:
+    def get_values(self, data_points: _DataPoints, key: _DataPointKey) -> Sequence[_StatusValue]:
         if key.raw_session_status is None:
-            return [_StatusValue(None, int(flat_data[key]))]
+            return [_StatusValue(None, int(data_points[key]))]
 
         if key.raw_session_status == "init":
             # sessions_v2 always shows all session statuses (even if they have a count of 0),
             # So let's hardcode them here
-            started = int(flat_data[key])
-            abnormal = int(flat_data.get(replace(key, raw_session_status="abnormal"), 0))
-            crashed = int(flat_data.get(replace(key, raw_session_status="crashed"), 0))
-            all_errored = int(flat_data.get(replace(key, raw_session_status="crashed"), 0))
+            started = int(data_points[key])
+            abnormal = int(data_points.get(replace(key, raw_session_status="abnormal"), 0))
+            crashed = int(data_points.get(replace(key, raw_session_status="crashed"), 0))
+            all_errored = int(data_points.get(replace(key, raw_session_status="crashed"), 0))
 
             healthy = max(0, started - all_errored)
             errored = max(0, all_errored - abnormal - crashed)
@@ -125,24 +149,27 @@ class _UserField(_Field):
                 _StatusValue("healthy", healthy),
             ]
 
-        return []  # Everything's been handled above
+        # The "init" branch generates values for all statuses, so nothing
+        # to do here:
+        return []
 
 
 class _SumSessionField(_Field):
-    name: SelectFieldName = "sum(session)"
+    def get_name(self) -> SessionsQueryFunction:
+        return "sum(session)"
 
-    def get_values(self, flat_data: _FlatData, key: _FlatKey) -> Sequence[_StatusValue]:
+    def get_values(self, data_points: _DataPoints, key: _DataPointKey) -> Sequence[_StatusValue]:
         if key.raw_session_status is None:
-            return [_StatusValue(None, int(flat_data[key]))]
+            return [_StatusValue(None, int(data_points[key]))]
 
         if key.raw_session_status == "init":
             # sessions_v2 always shows all session statuses (even if they have a count of 0),
             # So let's hardcode them here
-            started = int(flat_data[key])
-            abnormal = int(flat_data.get(replace(key, raw_session_status="abnormal"), 0))
-            crashed = int(flat_data.get(replace(key, raw_session_status="crashed"), 0))
+            started = int(data_points[key])
+            abnormal = int(data_points.get(replace(key, raw_session_status="abnormal"), 0))
+            crashed = int(data_points.get(replace(key, raw_session_status="crashed"), 0))
             errored_key = replace(key, metric_name="session.error", raw_session_status=None)
-            all_errored = int(flat_data.get(errored_key, 0))
+            all_errored = int(data_points.get(errored_key, 0))
 
             healthy = max(0, started - all_errored)
             errored = max(0, all_errored - abnormal - crashed)
@@ -154,20 +181,25 @@ class _SumSessionField(_Field):
                 _StatusValue("healthy", healthy),
             ]
 
-        return []  # Everything's been handled above
+        # The "init" branch generates values for all statuses, so nothing
+        # to do here:
+        return []
 
 
 class _SessionDurationField(_Field):
-    def __init__(self, name: SelectFieldName, group_by_status: bool) -> None:
-        self.name = name
+    def __init__(self, name: SessionsQueryFunction, group_by_status: bool) -> None:
+        self._name = name
 
         self.group_by_status = group_by_status
 
-    def get_values(self, flat_data: _FlatData, key: _FlatKey) -> Sequence[_StatusValue]:
+    def get_name(self) -> SessionsQueryFunction:
+        return self._name
+
+    def get_values(self, data_points: _DataPoints, key: _DataPointKey) -> Sequence[_StatusValue]:
         # session.duration does not have this tag:
         assert key.raw_session_status is None, key
-        if self.name[:3] == key.column:
-            value = 1000.0 * flat_data[key]  # sessions backend stores milliseconds
+        if self.get_name()[:3] == key.column:
+            value = 1000.0 * data_points[key]  # sessions backend stores milliseconds
             if self.group_by_status:
                 # Only 'healthy' sessions have duration data:
                 return [
@@ -224,7 +256,7 @@ def _fetch_data(
     metric_to_fields: MutableMapping[_MetricName, Sequence[_Field]] = {}
 
     def get_query(
-        entity: str,
+        entity_key: EntityKey,
         metric_id: int,
         columns: Sequence[str],
         series: bool,
@@ -236,14 +268,14 @@ def _fetch_data(
         if series:
             full_groupby.add(Column(TS_COL_GROUP))
 
+        where = conditions + [Condition(Column("metric_id"), Op.EQ, metric_id)] + extra_conditions
+
         return Query(
             dataset=Dataset.Metrics.value,
-            match=Entity(entity),
+            match=Entity(entity_key.value),
             select=[Column(column) for column in columns],
             groupby=list(full_groupby),
-            where=conditions
-            + [Condition(Column("metric_id"), Op.EQ, metric_id)]
-            + extra_conditions,
+            where=where,
             granularity=Granularity(query.rollup),
         )
 
@@ -268,7 +300,7 @@ def _fetch_data(
     }
 
     def get_query_data(
-        entity: str,
+        entity_key: EntityKey,
         metric_name: str,
         metric_id: int,
         columns: Sequence[str],
@@ -283,7 +315,7 @@ def _fetch_data(
 
         for query_type in ("series", "totals"):
             snuba_query = get_query(
-                entity,
+                entity_key,
                 metric_id,
                 columns,
                 series=query_type == "series",
@@ -298,7 +330,7 @@ def _fetch_data(
     if "count_unique(user)" in query.raw_fields:
         metric_id = _resolve(org_id, "user")
         if metric_id is not None:
-            data.extend(get_query_data("metrics_sets", "user", metric_id, ["value"]))
+            data.extend(get_query_data(EntityKey.MetricsSets, "user", metric_id, ["value"]))
             metric_to_fields["user"] = [_UserField()]
 
     duration_fields = [field for field in query.raw_fields if "session.duration" in field]
@@ -307,20 +339,28 @@ def _fetch_data(
         if metric_id is not None:
             columns = {"percentiles" if field[0] == "p" else field[:3] for field in duration_fields}
 
-            data.extend(
-                get_query_data(
-                    "metrics_distributions",
-                    "session.duration",
-                    metric_id,
-                    list(columns),
-                    # This metric does not have the status key
-                    remove_groupby={Column(f"tags[{tag_key_session_status}]")},
-                )
-            )
-            group_by_status = "session.status" in query.raw_groupby
-            metric_to_fields["session.duration"] = [
-                _SessionDurationField(field, group_by_status) for field in duration_fields
+            # sessions_v2 only exposes healthy session's durations
+            healthy = _resolve(org_id, "exited")
+            extra_conditions = [
+                Condition(Column(f"tags[{tag_key_session_status}]"), Op.EQ, healthy)
             ]
+            remove_groupby = {Column(f"tags[{tag_key_session_status}]")}
+
+            if tag_key_session_status is not None and healthy is not None:
+                data.extend(
+                    get_query_data(
+                        EntityKey.MetricsDistributions,
+                        "session.duration",
+                        metric_id,
+                        list(columns),
+                        extra_conditions=extra_conditions,
+                        remove_groupby=remove_groupby,
+                    )
+                )
+                group_by_status = "session.status" in query.raw_groupby
+                metric_to_fields["session.duration"] = [
+                    _SessionDurationField(field, group_by_status) for field in duration_fields
+                ]
 
     if "sum(session)" in query.raw_fields:
         metric_id = _resolve(org_id, "session")
@@ -329,14 +369,18 @@ def _fetch_data(
                 # We need session counters grouped by status, as well as the number of errored sessions
 
                 # 1 session counters
-                data.extend(get_query_data("metrics_counters", "session", metric_id, ["value"]))
+                data.extend(
+                    get_query_data(EntityKey.MetricsCounters, "session", metric_id, ["value"])
+                )
 
                 # 2: session.error
                 error_metric_id = _resolve(org_id, "session.error")
                 if error_metric_id is not None:
                     groupby.pop("session.status")
                     data.extend(
-                        get_query_data("metrics_sets", "session.error", error_metric_id, ["value"])
+                        get_query_data(
+                            EntityKey.MetricsSets, "session.error", error_metric_id, ["value"]
+                        )
                     )
             else:
                 # Simply count the number of started sessions:
@@ -347,7 +391,11 @@ def _fetch_data(
                     ]
                     data.extend(
                         get_query_data(
-                            "metrics_counters", "session", metric_id, ["value"], extra_conditions
+                            EntityKey.MetricsCounters,
+                            "session",
+                            metric_id,
+                            ["value"],
+                            extra_conditions,
                         )
                     )
 
@@ -356,9 +404,9 @@ def _fetch_data(
     return data, metric_to_fields
 
 
-def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _FlatData:
+def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _DataPoints:
     """Unite snuba data from multiple queries into a single key-value map for easier access"""
-    flat_data = {}
+    data_points = {}
 
     # It greatly simplifies code if we just assume that these two tags exist:
     # TODO: Can we get away with that assumption?
@@ -374,7 +422,7 @@ def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _FlatData:
             raw_session_status = row.pop(f"tags[{tag_key_session_status}]", None)
             if raw_session_status is not None:
                 raw_session_status = _reverse_resolve_ensured(org_id, raw_session_status)
-            flat_key = _FlatKey(
+            flat_key = _DataPointKey(
                 metric_name=metric_name,
                 raw_session_status=raw_session_status,
                 release=row.pop(f"tags[{tag_key_release}]", None),
@@ -389,16 +437,16 @@ def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _FlatData:
                 percentiles = row.pop("percentiles")
                 for i, percentile in enumerate(["p50", "p75", "p90", "p95", "p99"]):
                     percentile_key = replace(flat_key, column=percentile)
-                    flat_data[percentile_key] = percentiles[i]
+                    data_points[percentile_key] = percentiles[i]
 
             # Remaining data are simple columns:
             for key in list(row.keys()):
                 assert key in ("avg", "max", "value")
-                flat_data[replace(flat_key, column=key)] = row.pop(key)
+                data_points[replace(flat_key, column=key)] = row.pop(key)
 
             assert row == {}
 
-    return flat_data
+    return data_points
 
 
 def run_sessions_query(
@@ -409,19 +457,19 @@ def run_sessions_query(
 
     data, metric_to_fields = _fetch_data(org_id, query)
 
-    flat_data = _flatten_data(org_id, data)
+    data_points = _flatten_data(org_id, data)
 
     intervals = list(get_intervals(query))
     timestamp_index = {timestamp.isoformat(): index for index, timestamp in enumerate(intervals)}
 
-    def default_for(field: SelectFieldName) -> SessionsQueryValue:
+    def default_for(field: SessionsQueryFunction) -> SessionsQueryValue:
         return 0 if field in ("sum(session)", "count_unique(user)") else None
 
     GroupKey = Tuple[Tuple[GroupByFieldName, Union[str, int]]]
 
     class Group(TypedDict):
-        series: MutableMapping[SelectFieldName, List[SessionsQueryValue]]
-        totals: MutableMapping[SelectFieldName, SessionsQueryValue]
+        series: MutableMapping[SessionsQueryFunction, List[SessionsQueryValue]]
+        totals: MutableMapping[SessionsQueryFunction, SessionsQueryValue]
 
     groups: MutableMapping[GroupKey, Group] = defaultdict(
         lambda: {
@@ -430,7 +478,7 @@ def run_sessions_query(
         }
     )
 
-    for key in flat_data.keys():
+    for key in data_points.keys():
         try:
             fields = metric_to_fields[key.metric_name]
         except KeyError:
@@ -448,18 +496,22 @@ def run_sessions_query(
         assert fields
 
         for field in fields:
-            for status_value in field.get_values(flat_data, key):
+            for status_value in field.get_values(data_points, key):
                 if status_value.session_status is not None:
                     by["session.status"] = status_value.session_status
 
                 group_key: GroupKey = tuple(sorted(by.items()))
                 group = groups[group_key]
 
+                value = status_value.value
+                if value is not None:
+                    value = finite_or_none(value)
+
                 if key.bucketed_time is None:
-                    group["totals"][field.name] = status_value.value
+                    group["totals"][field.get_name()] = value
                 else:
                     index = timestamp_index[key.bucketed_time]
-                    group["series"][field.name][index] = status_value.value
+                    group["series"][field.get_name()][index] = value
 
     groups_as_list: List[SessionsQueryGroup] = [
         {
@@ -484,7 +536,7 @@ def run_sessions_query(
 
 def _get_filter_conditions(org_id: int, conditions: Sequence[Condition]) -> Any:
     """Translate given conditions to snql"""
-    dummy_entity = "metrics_sets"
+    dummy_entity = EntityKey.MetricsSets.value
     filter_conditions = json_to_snql(
         {"selected_columns": ["value"], "conditions": conditions}, entity=dummy_entity
     ).where

@@ -22,7 +22,7 @@ from sentry.snuba.sessions import (
     _get_release_sessions_time_bounds,
     get_current_and_previous_crash_free_rates,
 )
-from sentry.snuba.sessions_v2 import QueryDefinition, massage_sessions_result, run_sessions_query
+from sentry.snuba.sessions_v2 import QueryDefinition, _run_sessions_query, massage_sessions_result
 
 
 class SessionsReleaseHealthBackend(ReleaseHealthBackend):
@@ -65,7 +65,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         span_op: str,
     ) -> SessionsQueryResult:
         with sentry_sdk.start_span(op=span_op, description="run_sessions_query"):
-            totals, series = run_sessions_query(query)
+            totals, series = _run_sessions_query(query)
 
         with sentry_sdk.start_span(op=span_op, description="massage_sessions_results"):
             return massage_sessions_result(query, totals, series)  # type: ignore

@@ -385,7 +385,7 @@ def get_constrained_date_range(
 TS_COL = "bucketed_started"
 
 
-def run_sessions_query(query):
+def _run_sessions_query(query):
     """
     Runs the `query` as defined by [`QueryDefinition`] two times, once for the
     `totals` and again for the actual time-series data grouped by the requested
