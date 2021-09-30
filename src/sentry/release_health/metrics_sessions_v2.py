@@ -17,6 +17,7 @@ from typing import (
     Set,
     Tuple,
     Union,
+    cast,
 )
 
 from snuba_sdk import Column, Condition, Entity, Op, Query
@@ -79,6 +80,13 @@ class _StatusValue:
     value: Union[None, float, int]
 
 
+_MetricName = Literal["session", "session.duration", "session.error", "user"]
+
+
+#: Name of a column returned by snuba
+_Column = Literal["value", "avg", "max", "p50", "p75", "p90", "p95", "p99"]
+
+
 @dataclass(frozen=True)
 class _DataPointKey:
     """A key to access a data point in _DataPoints.
@@ -101,19 +109,21 @@ class _DataPointKey:
 
     """
 
-    metric_name: str
+    metric_name: _MetricName
     raw_session_status: Optional[str] = None
     release: Optional[int] = None
     environment: Optional[int] = None
     bucketed_time: Optional[datetime] = None
-    column: Literal["value", "avg", "max", "p50", "p75", "p90", "p95", "p99"] = "value"
+    column: _Column = "value"
     project_id: Optional[int] = None
 
 
 _DataPoints = MutableMapping[_DataPointKey, float]
+_SnubaData = Sequence[MutableMapping[str, Any]]
+_SnubaDataByMetric = Sequence[Tuple[_MetricName, _SnubaData]]
 
 
-class _Field(abc.ABC):
+class _OutputField(abc.ABC):
     @abc.abstractmethod
     def get_name(self) -> SessionsQueryFunction:
         pass
@@ -123,7 +133,7 @@ class _Field(abc.ABC):
         return [_StatusValue(None, data_points[key])]
 
 
-class _UserField(_Field):
+class _UserField(_OutputField):
     def get_name(self) -> SessionsQueryFunction:
         return "count_unique(user)"
 
@@ -154,7 +164,7 @@ class _UserField(_Field):
         return []
 
 
-class _SumSessionField(_Field):
+class _SumSessionField(_OutputField):
     def get_name(self) -> SessionsQueryFunction:
         return "sum(session)"
 
@@ -186,9 +196,10 @@ class _SumSessionField(_Field):
         return []
 
 
-class _SessionDurationField(_Field):
-    def __init__(self, name: SessionsQueryFunction, group_by_status: bool) -> None:
+class _SessionDurationField(_OutputField):
+    def __init__(self, name: SessionsQueryFunction, column: _Column, group_by_status: bool) -> None:
         self._name = name
+        self._column = column
 
         self.group_by_status = group_by_status
 
@@ -196,36 +207,26 @@ class _SessionDurationField(_Field):
         return self._name
 
     def get_values(self, data_points: _DataPoints, key: _DataPointKey) -> Sequence[_StatusValue]:
-        # session.duration does not have this tag:
-        assert key.raw_session_status is None, key
-        if self.get_name()[:3] == key.column:
-            value = 1000.0 * data_points[key]  # sessions backend stores milliseconds
-            if self.group_by_status:
-                # Only 'healthy' sessions have duration data:
-                return [
-                    _StatusValue("abnormal", None),
-                    _StatusValue("crashed", None),
-                    _StatusValue("errored", None),
-                    _StatusValue("healthy", value),
-                ]
-            else:
-                return [
-                    _StatusValue(None, value),
-                ]
-
-        return []
-
-
-_MetricName = str
-_SnubaData = Sequence[MutableMapping[str, Any]]
-_MetricToFields = Mapping[_MetricName, Sequence[_Field]]
-_SnubaDataByMetric = Sequence[Tuple[_MetricName, _SnubaData]]
+        assert key.raw_session_status is None, key  # session.duration does not have status tag
+        value = 1000.0 * data_points[key]  # sessions backend stores milliseconds
+        if self.group_by_status:
+            # Only 'healthy' sessions have duration data:
+            return [
+                _StatusValue("abnormal", None),
+                _StatusValue("crashed", None),
+                _StatusValue("errored", None),
+                _StatusValue("healthy", value),
+            ]
+        else:
+            return [
+                _StatusValue(None, value),
+            ]
 
 
 def _fetch_data(
     org_id: int,
     query: QueryDefinition,
-) -> Tuple[_SnubaDataByMetric, _MetricToFields]:
+) -> Tuple[_SnubaDataByMetric, Mapping[Tuple[_MetricName, _Column], _OutputField]]:
     """Build & run necessary snuba queries"""
     conditions = [
         Condition(Column("org_id"), Op.EQ, org_id),
@@ -253,7 +254,9 @@ def _fetch_data(
         groupby["project"] = Column("project_id")
 
     data: List[Tuple[_MetricName, _SnubaData]] = []
-    metric_to_fields: MutableMapping[_MetricName, Sequence[_Field]] = {}
+
+    #: Find the field that needs a specific column in a specific metric
+    metric_to_output_field: MutableMapping[Tuple[_MetricName, _Column], _OutputField] = {}
 
     def get_query(
         entity_key: EntityKey,
@@ -301,7 +304,7 @@ def _fetch_data(
 
     def get_query_data(
         entity_key: EntityKey,
-        metric_name: str,
+        metric_name: _MetricName,
         metric_id: int,
         columns: Sequence[str],
         extra_conditions: Optional[List[Condition]] = None,
@@ -331,13 +334,21 @@ def _fetch_data(
         metric_id = _resolve(org_id, "user")
         if metric_id is not None:
             data.extend(get_query_data(EntityKey.MetricsSets, "user", metric_id, ["value"]))
-            metric_to_fields["user"] = [_UserField()]
+            metric_to_output_field["user", "value"] = _UserField()
 
     duration_fields = [field for field in query.raw_fields if "session.duration" in field]
     if duration_fields:
         metric_id = _resolve(org_id, "session.duration")
         if metric_id is not None:
-            columns = {"percentiles" if field[0] == "p" else field[:3] for field in duration_fields}
+
+            def get_function_name(field: SessionsQueryFunction) -> _Column:
+                return cast(_Column, field[:3])
+
+            def get_column_name(field: SessionsQueryFunction) -> str:
+                """Get the actual snuba column needed by this function"""
+                return "percentiles" if field[0] == "p" else get_function_name(field)
+
+            columns = {get_column_name(field) for field in duration_fields}
 
             # sessions_v2 only exposes healthy session's durations
             healthy = _resolve(org_id, "exited")
@@ -358,9 +369,11 @@ def _fetch_data(
                     )
                 )
                 group_by_status = "session.status" in query.raw_groupby
-                metric_to_fields["session.duration"] = [
-                    _SessionDurationField(field, group_by_status) for field in duration_fields
-                ]
+                for field in duration_fields:
+                    col = get_function_name(field)
+                    metric_to_output_field["session.duration", col] = _SessionDurationField(
+                        field, col, group_by_status
+                    )
 
     if "sum(session)" in query.raw_fields:
         metric_id = _resolve(org_id, "session")
@@ -399,9 +412,9 @@ def _fetch_data(
                         )
                     )
 
-            metric_to_fields["session"] = [_SumSessionField()]
+            metric_to_output_field["session", "value"] = _SumSessionField()
 
-    return data, metric_to_fields
+    return data, metric_to_output_field
 
 
 def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _DataPoints:
@@ -455,7 +468,7 @@ def run_sessions_query(
     span_op: str,
 ) -> SessionsQueryResult:
 
-    data, metric_to_fields = _fetch_data(org_id, query)
+    data, metric_to_output_field = _fetch_data(org_id, query)
 
     data_points = _flatten_data(org_id, data)
 
@@ -480,7 +493,7 @@ def run_sessions_query(
 
     for key in data_points.keys():
         try:
-            fields = metric_to_fields[key.metric_name]
+            output_field = metric_to_output_field[key.metric_name, key.column]
         except KeyError:
             continue  # secondary metric, like session.error
 
@@ -493,25 +506,22 @@ def run_sessions_query(
         if key.project_id is not None:
             by["project"] = key.project_id
 
-        assert fields
+        for status_value in output_field.get_values(data_points, key):
+            if status_value.session_status is not None:
+                by["session.status"] = status_value.session_status
 
-        for field in fields:
-            for status_value in field.get_values(data_points, key):
-                if status_value.session_status is not None:
-                    by["session.status"] = status_value.session_status
+            group_key: GroupKey = tuple(sorted(by.items()))
+            group = groups[group_key]
 
-                group_key: GroupKey = tuple(sorted(by.items()))
-                group = groups[group_key]
+            value = status_value.value
+            if value is not None:
+                value = finite_or_none(value)
 
-                value = status_value.value
-                if value is not None:
-                    value = finite_or_none(value)
-
-                if key.bucketed_time is None:
-                    group["totals"][field.get_name()] = value
-                else:
-                    index = timestamp_index[key.bucketed_time]
-                    group["series"][field.get_name()][index] = value
+            if key.bucketed_time is None:
+                group["totals"][output_field.get_name()] = value
+            else:
+                index = timestamp_index[key.bucketed_time]
+                group["series"][output_field.get_name()][index] = value
 
     groups_as_list: List[SessionsQueryGroup] = [
         {
