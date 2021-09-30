@@ -114,7 +114,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   }
 
   get searchSupportedTags() {
-    if (this.props.dataset) {
+    if (this.props.dataset === Dataset.SESSIONS) {
       return {
         release: {
           key: 'release',
