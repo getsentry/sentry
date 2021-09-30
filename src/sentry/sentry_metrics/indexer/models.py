@@ -1,10 +1,12 @@
+from typing import Any
+
 from django.db import connections, models, router
 
 from sentry.db.models import BaseModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 
 
-class MetricsKeyIndexer(BaseModel):
+class MetricsKeyIndexer(BaseModel):  # type: ignore
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
@@ -20,16 +22,16 @@ class MetricsKeyIndexer(BaseModel):
         ]
 
     @classmethod
-    def get_next_values(cls, num: int):
+    def get_next_values(cls, num: int) -> Any:
         using = router.db_for_write(cls)
         connection = connections[using].cursor()
 
         connection.execute(
-            "SELECT nextval('metricskeyindexer_value') from generate_series(1,%s)", num
+            "SELECT nextval('metricskeyindexer_value') from generate_series(1,%s)", [num]
         )
         return connection.fetchall()
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         if not self.value:
             using = router.db_for_write(self.__class__)
             connection = connections[using].cursor()

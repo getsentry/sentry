@@ -5,6 +5,12 @@ from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
 from sentry.utils.services import Service
 
 
+class Record:
+    organization_id: int
+    key: str
+    value: int
+
+
 class PGStringIndexer(Service):  # type: ignore
     """
     Provides integer IDs for metric names, tag keys and tag values
@@ -13,7 +19,7 @@ class PGStringIndexer(Service):  # type: ignore
 
     __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
-    def _bulk_record(self, org_id: int, unmapped_strings: Set[str]):
+    def _bulk_record(self, org_id: int, unmapped_strings: Set[str]) -> List[Record]:
         records = []
         for string in unmapped_strings:
             obj = MetricsKeyIndexer.objects.create(organization_id=org_id, key=string)
@@ -54,7 +60,7 @@ class PGStringIndexer(Service):  # type: ignore
         Returns None if the entry cannot be found.
         """
         try:
-            record = MetricsKeyIndexer.objects.get(organization_id=org_id, key=string)
+            record: Record = MetricsKeyIndexer.objects.get(organization_id=org_id, key=string)
         except MetricsKeyIndexer.DoesNotExist:
             return None
 
@@ -66,7 +72,7 @@ class PGStringIndexer(Service):  # type: ignore
         Returns None if the entry cannot be found.
         """
         try:
-            record = MetricsKeyIndexer.objects.get(organization_id=org_id, value=id)
+            record: Record = MetricsKeyIndexer.objects.get(organization_id=org_id, value=id)
         except MetricsKeyIndexer.DoesNotExist:
             return None
 
