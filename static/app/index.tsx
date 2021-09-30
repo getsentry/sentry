@@ -45,7 +45,7 @@
 //      specifically for old-style pages rendered as django templates, but
 //      still need React frontend components.
 //
-//      This also includes exporting some globals into the widnow.
+//      This also includes exporting some globals into the window.
 //
 // 4. Once the app is fully initialized we begin rendering React components. To
 //    understand the rendering tree from this point forward it's best to follow
