@@ -127,14 +127,8 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {
-      organization,
-      disabled,
-      onFilterSearch,
-      allowChangeEventTypes,
-      alertType,
-      dataset,
-    } = this.props;
+    const {organization, disabled, onFilterSearch, allowChangeEventTypes, alertType} =
+      this.props;
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] =
@@ -323,7 +317,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                   {...(this.searchSupportedTags
                     ? {supportedTags: this.searchSupportedTags}
                     : {})}
-                  hasRecentSearches={dataset !== Dataset.SESSIONS}
+                  hasRecentSearches={this.props.dataset !== Dataset.SESSIONS}
                 />
               </SearchContainer>
             )}
