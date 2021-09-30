@@ -39,6 +39,7 @@ type Props = {
   projectId: string;
   orgId: string;
   children: ((props: ChildFuncProps) => React.ReactNode) | React.ReactNode;
+  loadingProjects: boolean;
 };
 
 type State = {
@@ -79,8 +80,13 @@ class ProjectContext extends Component<Props, State> {
     };
   }
 
-  componentWillMount() {
-    this.fetchData();
+  componentDidMount() {
+    // Wait for withProjects to fetch projects before making request
+    // Once loaded we can fetchData in componentDidUpdate
+    const {loadingProjects} = this.props;
+    if (!loadingProjects) {
+      this.fetchData();
+    }
   }
 
   componentWillReceiveProps(nextProps: Props) {
