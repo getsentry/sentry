@@ -1,4 +1,5 @@
 import string
+from dataclasses import dataclass
 from datetime import timedelta
 
 from django.urls import reverse
@@ -14,35 +15,13 @@ _REDIS_KEY = "verificationKeyStorage"
 _TTL = timedelta(minutes=10)
 
 
-def send_confirm_email(user: User, email: str, verification_key: str) -> None:
-    context = {
-        "user": user,
-        "url": absolute_uri(
-            reverse(
-                "sentry-idp-email-verification",
-                args=[verification_key],
-            )
-        ),
-        "confirm_email": email,
-        "verification_key": verification_key,
-    }
-    msg = MessageBuilder(
-        subject="{}Confirm Email".format(options.get("mail.subject-prefix")),
-        template="sentry/emails/idp_verification_email.txt",
-        html_template="sentry/emails/idp_verification_email.html",
-        type="user.confirm_email",
-        context=context,
-    )
-    msg.send_async([email])
-
-
-def get_redis_cluster():
-    return redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
-
-
 def send_one_time_account_confirm_link(
-    user: User, org: Organization, email: str, identity_id: str
-) -> str:
+    user: User,
+    org: Organization,
+    provider_name: str,
+    email: str,
+    identity_id: str,
+) -> "AccountConfirmLink":
     """Store and email a verification key for IdP migration.
 
     Create a one-time verification key for a user whose SSO identity
@@ -51,26 +30,71 @@ def send_one_time_account_confirm_link(
     in an email to the associated address.
 
     :param user: the user profile to link
-    :param org: the organization whose SSO provider is being used
+    :param organization: the organization whose SSO provider is being used
+    :param provider_name: a display name for the SSO provider
     :param email: the email address associated with the SSO identity
     :param identity_id: the SSO identity id
     """
-    cluster = get_redis_cluster()
-    member_id = OrganizationMember.objects.get(organization=org, user=user).id
+    link = AccountConfirmLink(user, org, provider_name, email, identity_id)
+    link.store_in_redis()
+    link.send_confirm_email()
+    return link
 
-    verification_code = get_random_string(32, string.ascii_letters + string.digits)
-    verification_key = f"auth:one-time-key:{verification_code}"
-    verification_value = {
-        "user_id": user.id,
-        "email": email,
-        "member_id": member_id,
-        "identity_id": identity_id,
-    }
-    cluster.setex(verification_key, int(_TTL.total_seconds()), json.dumps(verification_value))
 
-    send_confirm_email(user, email, verification_code)
+def get_redis_cluster():
+    return redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
 
-    return verification_code
+
+@dataclass
+class AccountConfirmLink:
+    user: User
+    organization: Organization
+    provider_name: str
+    email: str
+    identity_id: str
+
+    def __post_init__(self):
+        self.verification_code = get_random_string(32, string.ascii_letters + string.digits)
+        self.verification_key = get_redis_key(self.verification_code)
+
+    def send_confirm_email(self) -> None:
+        context = {
+            "user": self.user,
+            "organization": self.organization.name,
+            "provider": self.provider_name,
+            "url": absolute_uri(
+                reverse(
+                    "sentry-idp-email-verification",
+                    args=[self.verification_key],
+                )
+            ),
+            "email": self.email,
+            "verification_key": self.verification_key,
+        }
+        msg = MessageBuilder(
+            subject="{}Confirm Account".format(options.get("mail.subject-prefix")),
+            template="sentry/emails/idp_verification_email.txt",
+            html_template="sentry/emails/idp_verification_email.html",
+            type="user.confirm_email",
+            context=context,
+        )
+        msg.send_async([self.email])
+
+    def store_in_redis(self) -> None:
+        cluster = get_redis_cluster()
+        member_id = OrganizationMember.objects.get(
+            organization=self.organization, user=self.user
+        ).id
+
+        verification_value = {
+            "user_id": self.user.id,
+            "email": self.email,
+            "member_id": member_id,
+            "identity_id": self.identity_id,
+        }
+        cluster.setex(
+            self.verification_key, int(_TTL.total_seconds()), json.dumps(verification_value)
+        )
 
 
 def get_redis_key(verification_key: str) -> str:

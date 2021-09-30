@@ -480,12 +480,9 @@ class AuthIdentityHandler:
         if not op:
             existing_user, template = self._dispatch_to_confirmation(identity)
 
-            # A blank character is needed to prevent the HTML span from collapsing
-            provider_name = self.auth_provider.get_provider().name if self.auth_provider else " "
-
             context = {
                 "identity": identity,
-                "provider": provider_name,
+                "provider": self.provider_name,
                 "identity_display_name": identity.get("name") or identity.get("email"),
                 "identity_identifier": identity.get("email") or identity.get("id"),
                 "existing_user": existing_user or acting_user,
@@ -510,6 +507,11 @@ class AuthIdentityHandler:
             self.request.session["activeorg"] = self.organization.slug
         return self._post_login_redirect()
 
+    @property
+    def provider_name(self):
+        # A blank character is needed to prevent an HTML span from collapsing
+        return self.auth_provider.get_provider().name if self.auth_provider else " "
+
     def _dispatch_to_confirmation(self, identity: Identity) -> Tuple[Optional[User], str]:
         if self.user.is_authenticated:
             return self.user, "auth-confirm-link"
@@ -518,7 +520,11 @@ class AuthIdentityHandler:
             existing_user = self._get_user(identity)
             if existing_user and not existing_user.has_usable_password():
                 send_one_time_account_confirm_link(
-                    existing_user, self.organization, identity["email"], identity["id"]
+                    existing_user,
+                    self.organization,
+                    self.provider_name,
+                    identity["email"],
+                    identity["id"],
                 )
                 return existing_user, "auth-confirm-account"
 
