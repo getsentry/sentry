@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -14,6 +14,7 @@ type Props = {
   expand?: React.ReactNode[];
   expandIcon?: React.ReactNode;
   onExpandIconClick?: () => void;
+  children: React.ReactChild;
 };
 
 type AlertProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
@@ -22,6 +23,11 @@ type AlertThemeProps = {
   backgroundLight: string;
   border: string;
   iconColor: string;
+};
+
+type IconAlignmentStyles = {
+  marginTop?: string;
+  height?: string;
 };
 
 const DEFAULT_TYPE = 'info';
@@ -82,6 +88,15 @@ const alertStyles = ({theme, type = DEFAULT_TYPE, system}: Props & {theme: Theme
   ${system && getSystemAlertColorStyles(theme.alert[type])};
 `;
 
+const IconOuterWrap = styled('div')<{alignmentStyles: IconAlignmentStyles}>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  ${p => p.alignmentStyles.marginTop && `margin-top: ${p.alignmentStyles.marginTop};`}
+  ${p => p.alignmentStyles.height && `height: ${p.alignmentStyles.height};`}
+`;
+
 const StyledTextBlock = styled('span')`
   line-height: 1.5;
   position: relative;
@@ -123,15 +138,51 @@ const Alert = styled(
     ...props
   }: AlertProps) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [iconAlignmentStyles, setIconAlignmentStyles] = useState<IconAlignmentStyles>(
+      {}
+    );
     const showExpand = expand && expand.length;
     const showExpandItems = showExpand && isExpanded;
     const handleOnExpandIconClick = onExpandIconClick ? onExpandIconClick : setIsExpanded;
+    const firstChildRef = useRef(null);
+    const iconRef = useRef(null);
+
+    // Compute special styles to vertically align IconOuterWrap
+    // with the first line of Alert's first child
+    useEffect(() => {
+      if (!firstChildRef?.current) {
+        return;
+      }
+      const firstChildComputedStyle = window.getComputedStyle(firstChildRef.current);
+
+      setIconAlignmentStyles({
+        marginTop: firstChildComputedStyle.getPropertyValue('margin-top'),
+        height: firstChildComputedStyle.getPropertyValue('line-height'),
+      });
+    }, []);
 
     return (
       <div className={classNames(type ? `ref-${type}` : '', className)} {...props}>
         <MessageContainer>
-          {icon && <IconWrapper>{icon}</IconWrapper>}
-          <StyledTextBlock>{children}</StyledTextBlock>
+          {icon && (
+            <IconOuterWrap ref={iconRef} alignmentStyles={iconAlignmentStyles}>
+              <IconWrapper>{icon}</IconWrapper>
+            </IconOuterWrap>
+          )}
+          <StyledTextBlock>
+            {React.Children.map(children, (child, i) => {
+              // Only attach ref to the first child
+              if (i === 0) {
+                if (React.isValidElement(child)) {
+                  return React.cloneElement(child, {
+                    ref: firstChildRef,
+                  });
+                }
+                return <span ref={firstChildRef}>{child}</span>;
+              }
+              return child;
+            })}
+          </StyledTextBlock>
           {showExpand && (
             <div onClick={() => handleOnExpandIconClick(!isExpanded)}>
               {expandIcon || <ExpandIcon isExpanded={isExpanded} />}
