@@ -4,7 +4,7 @@
 
 {% block main %}
     <h3>Confirm Email</h3>
-    <p>Please confirm your email ({{ confirm_email }}) by submitting the following code on the verification page: ({{ verification_key }}). This code will expire in 10 minutes.</p>
-    <!-- below is if we want to add a clickable button to verify -->
-    <!-- <a href="{{ url }}" class="btn">Confirm</a> -->
+    <p>Please confirm your email ({{ confirm_email }}) by clicking the link below. This link will expire in 10 minutes.</p>
+
+    <a href="{{ url }}" class="btn">Confirm</a>
 {% endblock %}
