@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'app/stores/configStore';
 import App from 'app/views/app';
@@ -21,31 +21,55 @@ describe('App', function () {
       url: '/assistant/?v2',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/internal/options/?query=is:required',
+      body: TestStubs.InstallWizard(),
+    });
   });
 
-  it('renders newsletter consent with flag', async function () {
+  it('renders', async function () {
+    const {getByText} = mountWithTheme(
+      <App params={{orgId: 'org-slug'}}>
+        <div>placeholder content</div>
+      </App>
+    );
+
+    expect(getByText('placeholder content')).toBeInTheDocument();
+  });
+
+  it('renders NewsletterConsent', async function () {
     const user = ConfigStore.get('user');
     user.flags.newsletter_consent_prompt = true;
-    // XXX(dcramer): shouldn't need to re-set
-    ConfigStore.set('user', user);
 
-    const wrapper = mountWithTheme(
-      <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>
+    const {getByText} = mountWithTheme(
+      <App params={{orgId: 'org-slug'}}>
+        <div>placeholder content</div>
+      </App>
     );
 
-    expect(wrapper.find('NewsletterConsent')).toHaveLength(1);
+    await waitFor(() => {
+      const node = getByText('Yes, I would like to receive updates via email');
+      return expect(node).toBeInTheDocument();
+    });
+
+    user.flags.newsletter_consent_prompt = false;
   });
 
-  it('does not render newsletter consent without flag', async function () {
-    const user = ConfigStore.get('user');
-    user.flags.newsletter_consent_prompt = false;
-    // XXX(dcramer): shouldn't need to re-set
-    ConfigStore.set('user', user);
+  it('renders InstallWizard', async function () {
+    ConfigStore.get('user').isSuperuser = true;
+    ConfigStore.set('needsUpgrade', true);
+    ConfigStore.set('version', {current: '1.33.7'});
 
-    const wrapper = mountWithTheme(
-      <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>
+    const {getByText} = mountWithTheme(
+      <App params={{orgId: 'org-slug'}}>
+        <div>placeholder content</div>
+      </App>
     );
 
-    expect(wrapper.find('NewsletterConsent')).toHaveLength(0);
+    await waitFor(() => {
+      const node = getByText('Complete setup by filling out the required configuration.');
+      return expect(node).toBeInTheDocument();
+    });
   });
 });
