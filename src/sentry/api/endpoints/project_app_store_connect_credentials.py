@@ -708,7 +708,7 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):  # type: ignore
             return Response({"session_context": ["Invalid client_state"]}, status=400)
 
         try:
-            if data.get("useSms"):
+            if itunes_client.state is itunes_connect.ClientState.SMS_AUTH_REQUESTED:
                 itunes_client.sms_code(data.get("code"))
             else:
                 itunes_client.two_factor_code(data.get("code"))
