@@ -46,9 +46,9 @@ class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):
             project.id: copy.deepcopy(date_series_dict) for project in project_list
         }
         for r in bucketed_issues:
-            date = str(r["bucket"].date())
-            agg_project_counts[r["project"]][date]["total"] += r["count"]
+            bucket = agg_project_counts[r["project"]][str(r["bucket"].date())]
+            bucket["total"] += r["count"]
             if r["status"] != GroupHistoryStatus.UNRESOLVED:
-                agg_project_counts[r["project"]][date]["reviewed"] += r["count"]
+                bucket["reviewed"] += r["count"]
 
         return Response(agg_project_counts)
