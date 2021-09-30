@@ -115,7 +115,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   }
 
   get searchSupportedTags() {
-    if (this.props.dataset) {
+    if (this.props.dataset === Dataset.SESSIONS) {
       return {
         release: {
           key: 'release',
@@ -315,8 +315,10 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                     onFilterSearch(query);
                     onChange(query, {});
                   }}
-                  supportedTags={this.searchSupportedTags}
-                  hasRecentSearches={false}
+                  {...(this.searchSupportedTags
+                    ? {supportedTags: this.searchSupportedTags}
+                    : {})}
+                  hasRecentSearches={this.props.dataset !== Dataset.SESSIONS}
                 />
               </SearchContainer>
             )}
