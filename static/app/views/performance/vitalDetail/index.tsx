@@ -5,7 +5,7 @@ import isEqual from 'lodash/isEqual';
 
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
@@ -109,7 +109,7 @@ class VitalDetail extends Component<Props, State> {
         <PerformanceEventViewProvider value={{eventView: this.state.eventView}}>
           <GlobalSelectionHeader>
             <StyledPageContent>
-              <LightWeightNoProjectMessage organization={organization}>
+              <NoProjectMessage organization={organization}>
                 <VitalDetailContent
                   location={location}
                   organization={organization}
@@ -117,7 +117,7 @@ class VitalDetail extends Component<Props, State> {
                   router={router}
                   vitalName={vitalName || WebVital.LCP}
                 />
-              </LightWeightNoProjectMessage>
+              </NoProjectMessage>
             </StyledPageContent>
           </GlobalSelectionHeader>
         </PerformanceEventViewProvider>
