@@ -25,6 +25,7 @@ class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):
         start = start.date() + timedelta(days=1)
         bucketed_issues = (
             GroupHistory.objects.filter(
+                organization_id=team.organization_id,
                 status__in=[GroupHistoryStatus.UNRESOLVED] + ACTIONED_STATUSES,
                 project__in=project_list,
                 date_added__gte=start,

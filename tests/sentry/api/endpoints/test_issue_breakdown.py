@@ -18,58 +18,45 @@ class TeamIssueBreakdownTest(APITestCase):
         group1 = self.create_group(checksum="a" * 32, project=project1, times_seen=10)
         group2 = self.create_group(checksum="b" * 32, project=project2, times_seen=5)
 
-        gh1 = GroupHistory.objects.create(
+        GroupHistory.objects.create(
             organization=self.organization,
             group=group1,
             project=project1,
             actor=self.user.actor,
             date_added=before_now(days=5),
             status=GroupHistoryStatus.UNRESOLVED,
-            prev_history=None,
-            prev_history_date=None,
         )
-
         GroupHistory.objects.create(
             organization=self.organization,
             group=group1,
             project=project1,
             actor=self.user.actor,
             status=GroupHistoryStatus.RESOLVED,
-            prev_history=gh1,
-            prev_history_date=gh1.date_added,
             date_added=before_now(days=2),
         )
-
         GroupHistory.objects.create(
             organization=self.organization,
             group=group1,
             project=project1,
             actor=self.user.actor,
             status=GroupHistoryStatus.REGRESSED,
-            prev_history=gh1,
-            prev_history_date=gh1.date_added,
             date_added=before_now(days=2),
         )
-
-        gh2 = GroupHistory.objects.create(
+        GroupHistory.objects.create(
             organization=self.organization,
             group=group2,
             project=project2,
             actor=self.user.actor,
             date_added=before_now(days=10),
             status=GroupHistoryStatus.UNRESOLVED,
-            prev_history=None,
-            prev_history_date=None,
         )
-        gh2 = GroupHistory.objects.create(
+        GroupHistory.objects.create(
             organization=self.organization,
             group=group2,
             project=project2,
             actor=self.user.actor,
             date_added=before_now(days=1),
             status=GroupHistoryStatus.UNRESOLVED,
-            prev_history=None,
-            prev_history_date=None,
         )
 
         GroupHistory.objects.create(
@@ -78,8 +65,6 @@ class TeamIssueBreakdownTest(APITestCase):
             project=project2,
             actor=self.user.actor,
             status=GroupHistoryStatus.RESOLVED,
-            prev_history=gh2,
-            prev_history_date=gh2.date_added,
         )
         GroupHistory.objects.create(
             organization=self.organization,
@@ -87,8 +72,6 @@ class TeamIssueBreakdownTest(APITestCase):
             project=project2,
             actor=self.user.actor,
             status=GroupHistoryStatus.RESOLVED,
-            prev_history=gh2,
-            prev_history_date=gh2.date_added,
         )
         GroupHistory.objects.create(
             organization=self.organization,
@@ -96,8 +79,6 @@ class TeamIssueBreakdownTest(APITestCase):
             project=project2,
             actor=self.user.actor,
             status=GroupHistoryStatus.IGNORED,
-            prev_history=gh2,
-            prev_history_date=gh2.date_added,
         )
         today = str(now().date())
         yesterday = str((now() - timedelta(days=1)).date())
@@ -121,15 +102,13 @@ class TeamIssueBreakdownTest(APITestCase):
         assert response.data[project2.id][two_days_ago]["reviewed"] == 0
         assert response.data[project2.id][two_days_ago]["total"] == 0
 
-        gh2 = GroupHistory.objects.create(
+        GroupHistory.objects.create(
             organization=self.organization,
             group=group1,
             project=project1,
             actor=self.user.actor,
             date_added=before_now(days=1),
             status=GroupHistoryStatus.UNRESOLVED,
-            prev_history=None,
-            prev_history_date=None,
         )
         GroupHistory.objects.create(
             organization=self.organization,
@@ -137,8 +116,6 @@ class TeamIssueBreakdownTest(APITestCase):
             project=project2,
             actor=self.user.actor,
             status=GroupHistoryStatus.RESOLVED,
-            prev_history=gh2,
-            prev_history_date=gh2.date_added,
         )
 
         # making sure it doesnt bork anything
@@ -148,8 +125,6 @@ class TeamIssueBreakdownTest(APITestCase):
             project=project2,
             actor=self.user.actor,
             status=GroupHistoryStatus.ASSIGNED,
-            prev_history=gh2,
-            prev_history_date=gh2.date_added,
         )
 
         response = self.get_success_response(self.team.organization.slug, self.team.slug)
