@@ -21,27 +21,39 @@ def send_one_time_account_confirm_link(
     provider_name: str,
     email: str,
     identity_id: str,
-) -> str:
-    return AccountConfirmLink(user, org, provider_name, email, identity_id).send_one_time_link()
+) -> "AccountConfirmLink":
+    """Store and email a verification key for IdP migration.
 
+    Create a one-time verification key for a user whose SSO identity
+    has been deleted, presumably because the parent organization has
+    switched identity providers. Store the key in Redis and send it
+    in an email to the associated address.
 
-@dataclass
-class AccountConfirmLink:
-    """
     :param user: the user profile to link
     :param organization: the organization whose SSO provider is being used
     :param provider_name: a display name for the SSO provider
     :param email: the email address associated with the SSO identity
     :param identity_id: the SSO identity id
     """
+    link = AccountConfirmLink(user, org, provider_name, email, identity_id)
+    link.store_in_redis()
+    link.send_confirm_email()
+    return link
 
+
+@dataclass
+class AccountConfirmLink:
     user: User
     organization: Organization
     provider_name: str
     email: str
     identity_id: str
 
-    def send_confirm_email(self, verification_key: str) -> None:
+    def __post_init__(self):
+        self.verification_code = get_random_string(32, string.ascii_letters + string.digits)
+        self.verification_key = get_redis_key(self.verification_code)
+
+    def send_confirm_email(self) -> None:
         context = {
             "user": self.user,
             "organization": self.organization.name,
@@ -49,11 +61,11 @@ class AccountConfirmLink:
             "url": absolute_uri(
                 reverse(
                     "sentry-idp-email-verification",
-                    args=[verification_key],
+                    args=[self.verification_key],
                 )
             ),
             "email": self.email,
-            "verification_key": verification_key,
+            "verification_key": self.verification_key,
         }
         msg = MessageBuilder(
             subject="{}Confirm Account".format(options.get("mail.subject-prefix")),
@@ -64,33 +76,20 @@ class AccountConfirmLink:
         )
         msg.send_async([self.email])
 
-    def send_one_time_link(self) -> str:
-        """Store and email a verification key for IdP migration.
-
-        Create a one-time verification key for a user whose SSO identity
-        has been deleted, presumably because the parent organization has
-        switched identity providers. Store the key in Redis and send it
-        in an email to the associated address.
-        """
+    def store_in_redis(self) -> None:
         cluster = redis.clusters.get("default").get_local_client_for_key(_REDIS_KEY)
         member_id = OrganizationMember.objects.get(
             organization=self.organization, user=self.user
         ).id
 
-        verification_code = get_random_string(32, string.ascii_letters + string.digits)
-        verification_key = f"auth:one-time-key:{verification_code}"
         verification_value = {
             "user_id": self.user.id,
             "email": self.email,
             "member_id": member_id,
             "identity_id": self.identity_id,
         }
-        cluster.hmset(verification_key, verification_value)
-        cluster.expire(verification_key, int(_TTL.total_seconds()))
-
-        self.send_confirm_email(verification_code)
-
-        return verification_code
+        cluster.hmset(self.verification_key, verification_value)
+        cluster.expire(self.verification_key, int(_TTL.total_seconds()))
 
 
 def get_redis_key(verification_key: str) -> str:
