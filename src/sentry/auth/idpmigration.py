@@ -65,11 +65,11 @@ class AccountConfirmLink:
             "url": absolute_uri(
                 reverse(
                     "sentry-idp-email-verification",
-                    args=[self.verification_key],
+                    args=[self.verification_code],
                 )
             ),
             "email": self.email,
-            "verification_key": self.verification_key,
+            "verification_key": self.verification_code,
         }
         msg = MessageBuilder(
             subject="{}Confirm Account".format(options.get("mail.subject-prefix")),
