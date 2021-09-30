@@ -1090,7 +1090,7 @@ class Release(Model):
                 organization_id=self.organization_id, release=self
             ).delete()
 
-            self.authors = 0
+            self.authors = []
             self.commit_count = 0
             self.last_commit_id = None
             self.save()

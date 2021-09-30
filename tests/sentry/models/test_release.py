@@ -1175,15 +1175,28 @@ class ClearCommitsTestCase(TestCase):
         group = self.create_group(project=project)
 
         repo = Repository.objects.create(organization_id=org.id, name="test/repo")
+
+        author = CommitAuthor.objects.create(
+            name="foo bar baz", email="foo@example.com", organization_id=org.id
+        )
+
+        author2 = CommitAuthor.objects.create(
+            name="foo bar boo", email="baroo@example.com", organization_id=org.id
+        )
+
         commit = Commit.objects.create(
             organization_id=org.id,
             repository_id=repo.id,
+            author=author,
+            date_added="2019-03-01 12:00:00",
             message="fixes %s" % (group.qualified_short_id),
             key="alksdflskdfjsldkfajsflkslk",
         )
         commit2 = Commit.objects.create(
             organization_id=org.id,
             repository_id=repo.id,
+            author=author2,
+            date_added="2019-03-01 12:02:00",
             message="i fixed something",
             key="lskfslknsdkcsnlkdflksfdkls",
         )
@@ -1201,7 +1214,7 @@ class ClearCommitsTestCase(TestCase):
         assert ReleaseCommit.objects.filter(commit=commit2, release=release).exists()
 
         assert release.commit_count == 2
-        assert release.authors == []
+        assert release.authors == [str(author.id), str(author2.id)]
         assert release.last_commit_id == commit.id
 
         assert ReleaseHeadCommit.objects.filter(
@@ -1215,6 +1228,10 @@ class ClearCommitsTestCase(TestCase):
         assert not ReleaseHeadCommit.objects.filter(
             release_id=release.id, commit_id=commit.id, repository_id=repo.id
         ).exists()
+
+        assert release.commit_count == 0
+        assert release.authors == []
+        assert not release.last_commit_id
 
         # Commits should still exist
         assert Commit.objects.filter(
