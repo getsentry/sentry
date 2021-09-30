@@ -402,6 +402,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             )
 
     def validate_event_types(self, event_types):
+        if self.initial_data.get("dataset") == Dataset.Sessions.value:
+            return []
         try:
             return [SnubaQueryEventType.EventType[event_type.upper()] for event_type in event_types]
         except KeyError:
