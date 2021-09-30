@@ -152,7 +152,7 @@ function Onboarding({organization, project, api}: Props) {
             }
           }}
         >
-          {t('Create Sample Transaction')}
+          {t('View Sample Transaction')}
         </Button>
       </ButtonList>
       <FeatureTourModal
