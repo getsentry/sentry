@@ -66,12 +66,16 @@
 //                                 details for the org, projects, and teams.
 
 async function app() {
-  const [{bootstrap}, {initializeMain}] = await Promise.all([
-    import('app/bootstrap'),
-    import('app/bootstrap/initializeMain'),
-  ]);
-  const data = await bootstrap();
-  initializeMain(data);
+  // We won't need initalizeMainImport until we complete bootstrapping.
+  // Initaite the fetch, just don't await it until we need it.
+  const initalizeMainImport = import('app/bootstrap/initializeMain');
+  const bootstrapImport = import('app/bootstrap');
+
+  const {bootstrap} = await bootstrapImport;
+  const config = await bootstrap();
+
+  const {initializeMain} = await initalizeMainImport;
+  initializeMain(config);
 }
 
 app();
