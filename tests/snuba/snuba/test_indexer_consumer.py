@@ -7,7 +7,6 @@ import pytest
 from confluent_kafka import Consumer, Producer
 from confluent_kafka.admin import AdminClient
 from django.conf import settings
-from django.db import connection
 from django.test import override_settings
 
 from sentry.sentry_metrics.indexer.indexer_consumer import (
@@ -37,26 +36,12 @@ payload = {
 }
 
 
-class MetricsIndexerTestCase(TestCase):
-    def _create_sequence(self):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "CREATE SEQUENCE metricskeyindexer_value OWNED BY sentry_metricskeyindexer.value"
-            )
-
-    def _drop_sequence(self):
-        with connection.cursor() as cursor:
-            cursor.execute("DROP SEQUENCE IF EXISTS metricskeyindexer_value")
-
-
-class MetricsIndexerWorkerTest(MetricsIndexerTestCase):
+class MetricsIndexerWorkerTest(TestCase):
     def setUp(self):
         super().setUp()
-        self._create_sequence()
 
     def tearDown(self):
         super().tearDown()
-        self._drop_sequence()
 
     def test_without_exception(self):
         self.assert_metrics_indexer_worker()
@@ -99,7 +84,7 @@ class MetricsIndexerWorkerTest(MetricsIndexerTestCase):
             )
 
 
-class MetricsIndexerConsumerTest(MetricsIndexerTestCase):
+class MetricsIndexerConsumerTest(TestCase):
     def _get_producer(self, topic):
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
         conf = {
@@ -129,13 +114,10 @@ class MetricsIndexerConsumerTest(MetricsIndexerTestCase):
         self.admin_client = AdminClient(cluster_options)
         wait_for_topics(self.admin_client, [self.snuba_topic])
 
-        self._create_sequence()
-
     def tearDown(self):
         super().tearDown()
         self.override_settings_cm.__exit__(None, None, None)
         self.admin_client.delete_topics([self.ingest_topic, self.snuba_topic])
-        self._drop_sequence()
 
     @pytest.mark.django_db
     def test_metrics_consumer(self):

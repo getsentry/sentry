@@ -7,8 +7,8 @@ from sentry.utils.services import Service
 
 class Record:
     organization_id: int
-    key: str
-    value: int
+    string: str
+    id: int
 
 
 class PGStringIndexer(Service):  # type: ignore
@@ -22,24 +22,24 @@ class PGStringIndexer(Service):  # type: ignore
     def _bulk_record(self, org_id: int, unmapped_strings: Set[str]) -> List[Record]:
         records = []
         for string in unmapped_strings:
-            obj = MetricsKeyIndexer.objects.create(organization_id=org_id, key=string)
+            obj = MetricsKeyIndexer.objects.create(organization_id=org_id, string=string)
             records.append(obj)
         return records
 
     def bulk_record(self, org_id: int, strings: List[str]) -> Dict[str, int]:
         # first look up to see if we have any of the values
-        records = MetricsKeyIndexer.objects.filter(organization_id=org_id, key__in=strings)
+        records = MetricsKeyIndexer.objects.filter(organization_id=org_id, string__in=strings)
         result = defaultdict(int)
 
         for record in records:
-            result[record.key] = record.value
+            result[record.string] = record.id
 
         # find the unmapped strings
         unmapped = set(strings).difference(result.keys())
         new_mapped = self._bulk_record(org_id, unmapped)
 
         for new in new_mapped:
-            result[new.key] = new.value
+            result[new.string] = new.id
 
         return result
 
@@ -60,11 +60,11 @@ class PGStringIndexer(Service):  # type: ignore
         Returns None if the entry cannot be found.
         """
         try:
-            record: Record = MetricsKeyIndexer.objects.get(organization_id=org_id, key=string)
+            record: Record = MetricsKeyIndexer.objects.get(organization_id=org_id, string=string)
         except MetricsKeyIndexer.DoesNotExist:
             return None
 
-        return record.value
+        return record.id
 
     def reverse_resolve(self, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
@@ -72,8 +72,8 @@ class PGStringIndexer(Service):  # type: ignore
         Returns None if the entry cannot be found.
         """
         try:
-            record: Record = MetricsKeyIndexer.objects.get(organization_id=org_id, value=id)
+            record: Record = MetricsKeyIndexer.objects.get(organization_id=org_id, id=id)
         except MetricsKeyIndexer.DoesNotExist:
             return None
 
-        return record.key
+        return record.string
