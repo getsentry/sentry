@@ -9,7 +9,6 @@ from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions import (
     _make_stats,
-    get_oldest_health_data_for_releases,
     get_project_releases_by_stability,
     get_project_releases_count,
     get_release_health_data_overview,
@@ -135,7 +134,9 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         )
 
     def test_get_oldest_health_data_for_releases(self):
-        data = get_oldest_health_data_for_releases([(self.project.id, self.session_release)])
+        data = self.backend.get_oldest_health_data_for_releases(
+            [(self.project.id, self.session_release)]
+        )
         assert data == {
             (self.project.id, self.session_release): format_timestamp(
                 self.session_started // 3600 * 3600

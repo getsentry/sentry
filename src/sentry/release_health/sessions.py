@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Sequence, Set, Tuple
+from typing import Mapping, Optional, Sequence, Set, Tuple
 
 from sentry.release_health.base import (
     CurrentAndPreviousCrashFreeRates,
@@ -17,6 +17,7 @@ from sentry.snuba.sessions import (
     _check_has_health_data,
     _check_releases_have_health_data,
     _get_changed_project_release_model_adoptions,
+    _get_oldest_health_data_for_releases,
     _get_release_adoption,
     _get_release_sessions_time_bounds,
     get_current_and_previous_crash_free_rates,
@@ -93,3 +94,9 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         project_ids: Sequence[ProjectId],
     ) -> Sequence[ProjectRelease]:
         return _get_changed_project_release_model_adoptions(project_ids)  # type: ignore
+
+    def get_oldest_health_data_for_releases(
+        self,
+        project_releases: Sequence[ProjectRelease],
+    ) -> Mapping[ProjectRelease, str]:
+        return _get_oldest_health_data_for_releases(project_releases)  # type: ignore

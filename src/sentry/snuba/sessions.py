@@ -50,7 +50,7 @@ def _get_changed_project_release_model_adoptions(project_ids):
     return rv
 
 
-def get_oldest_health_data_for_releases(project_releases):
+def _get_oldest_health_data_for_releases(project_releases):
     """Returns the oldest health data we have observed in a release
     in 90 days.  This is used for backfilling.
     """
