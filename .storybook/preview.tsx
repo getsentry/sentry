@@ -126,6 +126,8 @@ addParameters({
      */
     storySort: {
       order: [
+        'Getting Started',
+        'Changelog',
         'Core',
         ['Overview'],
         'Assets',

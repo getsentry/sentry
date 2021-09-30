@@ -1,8 +1,8 @@
-import StylesVariantsComponets from '../../images/overview-styles-variants-components.svg';
+import StylesVariantsComponents from './styles-variants-components.svg';
 
-<Meta title="Core/Overview" />
+<Meta title="Getting Started" />
 
-# Overview
+# Getting Started
 
 👋 Hello there! You've arrived at Sentry's Design System guidebook. Here, you will find a detailed account of our UI system, including interactive examples and recommended use cases. We want to have appropriate and consistent use of our components, so that's why this guidebook exists!
 
@@ -44,6 +44,48 @@ Sentry's UI system has three fundamental building blocks: styles, variants, and 
 **Components** are flexible, reusable UI elements such as buttons, dialogs, and badges. A component can adopt one of many variants, and one or more styles. For example, a button can adopt a `primary` or `secondary` variant. It can also use one or more additional styles if the variant definitions are not enough.
 
 <img
-  src={StylesVariantsComponets}
+  src={StylesVariantsComponents}
   alt="Diagram with three columns: Styles, Variants, and Components"
+/>
+
+---
+
+## Updates
+
+Check out the Changelog page for the latest updates.
+
+<DocsLinks
+  links={[
+    {
+      img: {
+        src: require('docs-ui/images/changelog-link-preview.svg'),
+        alt: 'Outline of list with bullet points',
+      },
+      title: 'Changelog',
+      desc: 'Latest updates to the design and component system',
+      kind: 'Changelog',
+      story: 'Page',
+    },
+  ]}
+/>
+
+---
+
+<h2 className="hide-from-toc">Read on</h2>
+
+Start reading now with these foundational topics.
+
+<DocsLinks
+  links={[
+    {
+      img: {
+        src: require('docs-ui/images/typography-link-preview.svg'),
+        alt: 'Text sample of characters "A", "z", "0", and "9" with grid lines in the background',
+      },
+      title: 'Typography',
+      desc: 'The type system with text styling rules',
+      kind: 'Core/Typography',
+      story: 'Page',
+    },
+  ]}
 />
