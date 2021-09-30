@@ -137,8 +137,9 @@ const StyledPanelHeader = styled(PanelHeader)`
   text-transform: none;
 `;
 
-const TagHeading = styled('div')`
+const TagHeading = styled('h5')`
   font-size: ${p => p.theme.fontSizeLarge};
+  margin-bottom: 0;
 `;
 
 const UnstyledUnorderedList = styled('ul')`
