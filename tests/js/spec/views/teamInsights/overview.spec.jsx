@@ -88,7 +88,7 @@ describe('TeamInsightsOverview', () => {
       expect(wrapper.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     });
 
-    expect(wrapper.getByText('Team: frontend')).toBeInTheDocument();
+    expect(wrapper.getByText('frontend')).toBeInTheDocument();
     expect(wrapper.getByText('Key transaction')).toBeInTheDocument();
   });
 
@@ -98,7 +98,7 @@ describe('TeamInsightsOverview', () => {
       expect(wrapper.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     });
 
-    fireEvent.click(wrapper.getByText('Team: frontend'));
+    fireEvent.click(wrapper.getByText('frontend'));
     expect(wrapper.getByText('backend')).toBeInTheDocument();
     fireEvent.click(wrapper.getByText('backend'));
     expect(mockRouter.push).toHaveBeenCalledWith({query: {team: team2.id}});
