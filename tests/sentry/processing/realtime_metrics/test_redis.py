@@ -43,6 +43,7 @@ def store(config: Dict[str, Any]) -> RedisRealtimeMetricsStore:
 
 def test_default() -> None:
     realtime_metrics.increment_project_event_counter(17, 1234)
+    realtime_metrics.increment_project_duration_counter(17, 1234, 55)
 
 
 def test_increment_project_event_counter_simple(

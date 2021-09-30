@@ -2,6 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import chunk from 'lodash/chunk';
 import maxBy from 'lodash/maxBy';
+import minBy from 'lodash/minBy';
 
 import {fetchTotalCount} from 'app/actionCreators/events';
 import {Client} from 'app/api';
@@ -120,6 +121,7 @@ const SESSION_AGGREGATE_TO_FIELD = {
 };
 
 const TIME_WINDOW_TO_SESSION_INTERVAL = {
+  [TimeWindow.THIRTY_MINUTES]: '30m',
   [TimeWindow.ONE_HOUR]: '1h',
   [TimeWindow.TWO_HOURS]: '2h',
   [TimeWindow.FOUR_HOURS]: '4h',
@@ -172,9 +174,10 @@ class TriggersChart extends React.PureComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {query, environment, timeWindow, aggregate} = this.props;
+    const {query, environment, timeWindow, aggregate, projects} = this.props;
     const {statsPeriod} = this.state;
     if (
+      prevProps.projects !== projects ||
       prevProps.environment !== environment ||
       prevProps.query !== query ||
       prevProps.timeWindow !== timeWindow ||
@@ -189,6 +192,19 @@ class TriggersChart extends React.PureComponent<Props, State> {
     }
   }
 
+  get availableTimePeriods() {
+    // We need to special case sessions, because sub-hour windows are available
+    // only when time period is six hours or less (backend limitation)
+    if (isSessionAggregate(this.props.aggregate)) {
+      return {
+        ...AVAILABLE_TIME_PERIODS,
+        [TimeWindow.THIRTY_MINUTES]: [TimePeriod.SIX_HOURS],
+      };
+    }
+
+    return AVAILABLE_TIME_PERIODS;
+  }
+
   handleStatsPeriodChange = (timePeriod: string) => {
     this.setState({statsPeriod: timePeriod as TimePeriod});
   };
@@ -196,7 +212,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
   getStatsPeriod = () => {
     const {statsPeriod} = this.state;
     const {timeWindow} = this.props;
-    const statsPeriodOptions = AVAILABLE_TIME_PERIODS[timeWindow];
+    const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = statsPeriodOptions.includes(statsPeriod)
       ? statsPeriod
       : statsPeriodOptions[0];
@@ -272,16 +288,11 @@ class TriggersChart extends React.PureComponent<Props, State> {
     }
   }
 
-  renderChart(
-    data: Series[] = [],
-    isLoading: boolean,
-    isReloading: boolean,
-    maxValue?: number
-  ) {
+  renderChart(timeseriesData: Series[] = [], isLoading: boolean, isReloading: boolean) {
     const {triggers, resolveThreshold, thresholdType, header, timeWindow, aggregate} =
       this.props;
     const {statsPeriod, totalCount} = this.state;
-    const statsPeriodOptions = AVAILABLE_TIME_PERIODS[timeWindow];
+    const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = this.getStatsPeriod();
     return (
       <React.Fragment>
@@ -292,8 +303,9 @@ class TriggersChart extends React.PureComponent<Props, State> {
         ) : (
           <ThresholdsChart
             period={statsPeriod}
-            maxValue={maxValue}
-            data={data}
+            minValue={minBy(timeseriesData[0]?.data, ({value}) => value)?.value}
+            maxValue={maxBy(timeseriesData[0]?.data, ({value}) => value)?.value}
+            data={timeseriesData}
             triggers={triggers}
             resolveThreshold={resolveThreshold}
             thresholdType={thresholdType}
@@ -334,12 +346,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
     const period = this.getStatsPeriod();
 
     return isSessionAggregate(aggregate) ? (
-      this.renderChart(
-        sessionTimeSeries ?? undefined,
-        sessionsLoading,
-        sessionsReloading,
-        100
-      )
+      this.renderChart(sessionTimeSeries ?? undefined, sessionsLoading, sessionsReloading)
     ) : (
       <Feature features={['metric-alert-builder-aggregate']} organization={organization}>
         {({hasFeature}) => {
@@ -358,10 +365,8 @@ class TriggersChart extends React.PureComponent<Props, State> {
               partial={false}
             >
               {({loading, reloading, timeseriesData}) => {
-                let maxValue: SeriesDataUnit | undefined;
                 let timeseriesLength: number | undefined;
                 if (timeseriesData?.[0]?.data !== undefined) {
-                  maxValue = maxBy(timeseriesData[0].data, ({value}) => value);
                   timeseriesLength = timeseriesData[0].data.length;
                   if (hasFeature && timeseriesLength > 600) {
                     const avgData: SeriesDataUnit[] = [];
@@ -394,12 +399,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
                   }
                 }
 
-                return this.renderChart(
-                  timeseriesData,
-                  loading,
-                  reloading,
-                  maxValue?.value
-                );
+                return this.renderChart(timeseriesData, loading, reloading);
               }}
             </EventsRequest>
           );

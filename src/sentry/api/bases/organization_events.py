@@ -16,6 +16,7 @@ from sentry.discover.arithmetic import ArithmeticError, is_equation, strip_equat
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization, Team
 from sentry.models.group import Group
+from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.filter import get_filter
 from sentry.snuba import discover
@@ -162,9 +163,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 ),
             ):
                 sentry_sdk.set_tag("query.error_reason", "Timeout")
-                raise ParseError(
-                    detail="Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
-                )
+                raise ParseError(detail=TIMEOUT_ERROR_MESSAGE)
             elif isinstance(error, (snuba.UnqualifiedQueryError)):
                 sentry_sdk.set_tag("query.error_reason", str(error))
                 raise ParseError(detail=str(error))

@@ -890,6 +890,10 @@ SENTRY_FEATURES = {
     "organizations:app-store-connect-multiple": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
+    # Enable the linked event feature in the issue details breadcrumb.
+    "organizations:breadcrumb-linked-event": False,
+    # Enable change alerts for an org
+    "organizations:change-alerts": False,
     # Enable unfurling charts using the Chartcuterie service
     "organizations:chart-unfurls": False,
     # Enable alerting based on crash free sessions/users
@@ -2384,3 +2388,6 @@ DEMO_DATA_QUICK_GEN_PARAMS = {}
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []
+
+# Sentry post process forwarder use batching consumer
+SENTRY_POST_PROCESS_FORWARDER_BATCHING = False

@@ -1,6 +1,7 @@
 import logging
 import re
 from operator import attrgetter
+from typing import Any, Optional
 
 from django.conf import settings
 from django.urls import reverse
@@ -15,7 +16,13 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.issues import IssueSyncMixin
-from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration, User
+from sentry.models import (
+    ExternalIssue,
+    IntegrationExternalProject,
+    Organization,
+    OrganizationIntegration,
+    User,
+)
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiUnauthorized,
@@ -359,7 +366,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def create_comment_attribution(self, user_id, comment_text):
         user = User.objects.get(id=user_id)
-        attribution = "%s wrote:\n\n" % user.name
+        attribution = f"{user.name} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
     def update_comment(self, issue_id, user_id, group_note):
@@ -827,14 +834,20 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # Immediately fetch and return the created issue.
         return self.get_issue(issue_key)
 
-    def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
+    def sync_assignee_outbound(
+        self,
+        external_issue: "ExternalIssue",
+        user: Optional["User"],
+        assign: bool = True,
+        **kwargs: Any,
+    ) -> None:
         """
         Propagate a sentry issue's assignee to a jira issue's assignee
         """
         client = self.get_client()
 
         jira_user = None
-        if assign:
+        if user and assign:
             for ue in user.emails.filter(is_verified=True):
                 try:
                     possible_users = client.search_users_for_issue(external_issue.key, ue.email)
@@ -873,7 +886,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 extra={
                     "organization_id": external_issue.organization_id,
                     "integration_id": external_issue.integration_id,
-                    "user_id": user.id,
+                    "user_id": user.id if user else None,
                     "issue_key": external_issue.key,
                 },
             )

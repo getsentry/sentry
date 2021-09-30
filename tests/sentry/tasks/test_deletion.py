@@ -1,49 +1,23 @@
-from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
+from datetime import timedelta
+from unittest.mock import Mock
 from uuid import uuid4
-
-import pytest
 
 from sentry import nodestore
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
-from sentry.exceptions import DeleteAborted
 from sentry.models import (
-    ApiApplication,
-    ApiApplicationStatus,
-    ApiGrant,
-    ApiToken,
-    Commit,
-    CommitAuthor,
-    Environment,
     Group,
     GroupAssignee,
     GroupHash,
     GroupMeta,
     GroupRedirect,
     GroupStatus,
-    Organization,
-    OrganizationStatus,
-    Project,
-    Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
     Repository,
     ScheduledDeletion,
     Team,
 )
-from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.signals import pending_delete
-from sentry.tasks.deletion import (
-    delete_api_application,
-    delete_groups,
-    delete_organization,
-    delete_repository,
-    generic_delete,
-    reattempt_deletions,
-    revoke_api_tokens,
-    run_scheduled_deletions,
-)
+from sentry.tasks.deletion import delete_groups, reattempt_deletions, run_scheduled_deletions
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -163,55 +137,6 @@ class ReattemptDeletionsTest(TestCase):
         assert schedule.in_progress is True
 
 
-class DeleteOrganizationTest(TestCase):
-    def test_simple(self):
-        org = self.create_organization(name="test", status=OrganizationStatus.PENDING_DELETION)
-        user = self.create_user()
-        self.create_team(organization=org, name="test1")
-        self.create_team(organization=org, name="test2")
-        release = Release.objects.create(version="a" * 32, organization_id=org.id)
-        repo = Repository.objects.create(organization_id=org.id, name=org.name, provider="dummy")
-        commit_author = CommitAuthor.objects.create(
-            organization_id=org.id, name="foo", email="foo@example.com"
-        )
-        commit = Commit.objects.create(
-            repository_id=repo.id, organization_id=org.id, author=commit_author, key="a" * 40
-        )
-        ReleaseCommit.objects.create(
-            organization_id=org.id, release=release, commit=commit, order=0
-        )
-
-        env = Environment.objects.create(organization_id=org.id, project_id=4, name="foo")
-        release_env = ReleaseEnvironment.objects.create(
-            organization_id=org.id, project_id=4, release_id=release.id, environment_id=env.id
-        )
-
-        with self.tasks():
-            with patch.object(DummyRepositoryProvider, "delete_repository") as mock_delete_repo:
-                delete_organization(object_id=org.id, actor_id=user.id)
-                assert mock_delete_repo.call_count == 1
-
-        assert not Organization.objects.filter(id=org.id).exists()
-        assert not Environment.objects.filter(id=env.id).exists()
-        assert not ReleaseEnvironment.objects.filter(id=release_env.id).exists()
-        assert not Repository.objects.filter(id=repo.id).exists()
-        assert not ReleaseCommit.objects.filter(organization_id=org.id).exists()
-        assert not Release.objects.filter(organization_id=org.id).exists()
-        assert not CommitAuthor.objects.filter(id=commit_author.id).exists()
-        assert not Commit.objects.filter(id=commit.id).exists()
-
-    def test_cancels_without_pending_status(self):
-        org = self.create_organization(name="test", status=OrganizationStatus.VISIBLE)
-        self.create_team(organization=org, name="test1")
-        self.create_team(organization=org, name="test2")
-
-        with self.assertRaises(DeleteAborted):
-            with self.tasks():
-                delete_organization(object_id=org.id)
-
-        assert Organization.objects.filter(id=org.id).exists()
-
-
 class DeleteGroupTest(TestCase):
     def test_simple(self):
         event_id = "a" * 32
@@ -258,123 +183,3 @@ class DeleteGroupTest(TestCase):
         assert not Group.objects.filter(id=group.id).exists()
         assert not nodestore.get(node_id)
         assert not nodestore.get(node_id_2)
-
-
-class DeleteApplicationTest(TestCase):
-    def test_simple(self):
-        app = ApiApplication.objects.create(
-            owner=self.user, status=ApiApplicationStatus.pending_deletion
-        )
-        ApiToken.objects.create(application=app, user=self.user, scopes=0)
-        ApiGrant.objects.create(
-            application=app, user=self.user, scopes=0, redirect_uri="http://example.com"
-        )
-
-        with self.tasks():
-            delete_api_application(object_id=app.id)
-
-        assert not ApiApplication.objects.filter(id=app.id).exists()
-        assert not ApiGrant.objects.filter(application=app).exists()
-        assert not ApiToken.objects.filter(application=app).exists()
-
-
-class RevokeApiTokensTest(TestCase):
-    def test_basic(self):
-        app = ApiApplication.objects.create(owner=self.user)
-        token1 = ApiToken.objects.create(
-            application=app, user=self.create_user("bar@example.com"), scopes=0
-        )
-        token2 = ApiToken.objects.create(
-            application=app, user=self.create_user("foo@example.com"), scopes=0
-        )
-
-        with self.tasks():
-            revoke_api_tokens(object_id=app.id)
-
-        assert not ApiToken.objects.filter(id=token1.id).exists()
-        assert not ApiToken.objects.filter(id=token2.id).exists()
-
-    def test_with_timestamp(self):
-        cutoff = datetime(2017, 1, 1)
-        app = ApiApplication.objects.create(owner=self.user)
-        token1 = ApiToken.objects.create(
-            application=app, user=self.create_user("bar@example.com"), scopes=0, date_added=cutoff
-        )
-        token2 = ApiToken.objects.create(
-            application=app,
-            user=self.create_user("foo@example.com"),
-            scopes=0,
-            date_added=cutoff + timedelta(days=1),
-        )
-
-        with self.tasks():
-            revoke_api_tokens(object_id=app.id, timestamp=cutoff)
-
-        assert not ApiToken.objects.filter(id=token1.id).exists()
-        assert ApiToken.objects.filter(id=token2.id).exists()
-
-
-class GenericDeleteTest(TestCase):
-    def test_does_not_delete_visible(self):
-        project = self.create_project(status=ObjectStatus.VISIBLE)
-
-        with self.tasks():
-            with pytest.raises(DeleteAborted):
-                generic_delete("sentry", "project", object_id=project.id)
-
-        project = Project.objects.get(id=project.id)
-        assert project.status == ObjectStatus.VISIBLE
-
-    def test_deletes(self):
-        project = self.create_project(status=ObjectStatus.PENDING_DELETION)
-
-        with self.tasks():
-            generic_delete("sentry", "project", object_id=project.id)
-
-        assert not Project.objects.filter(id=project.id).exists()
-
-
-class DeleteRepoTest(TestCase):
-    def test_does_not_delete_visible(self):
-        org = self.create_organization()
-        repo = Repository.objects.create(
-            status=ObjectStatus.VISIBLE,
-            provider="dummy",
-            organization_id=org.id,
-            name="example/example",
-        )
-
-        with self.tasks():
-            with pytest.raises(DeleteAborted):
-                delete_repository(object_id=repo.id)
-
-        repo = Repository.objects.get(id=repo.id)
-        assert repo.status == ObjectStatus.VISIBLE
-
-    def test_deletes(self):
-        org = self.create_organization()
-        repo = Repository.objects.create(
-            status=ObjectStatus.PENDING_DELETION,
-            organization_id=org.id,
-            provider="dummy",
-            name="example/example",
-        )
-        repo2 = Repository.objects.create(
-            status=ObjectStatus.PENDING_DELETION,
-            organization_id=org.id,
-            provider="dummy",
-            name="example/example2",
-        )
-        commit = Commit.objects.create(
-            repository_id=repo.id, organization_id=org.id, key="1234abcd"
-        )
-        commit2 = Commit.objects.create(
-            repository_id=repo2.id, organization_id=org.id, key="1234abcd"
-        )
-
-        with self.tasks():
-            delete_repository(object_id=repo.id)
-
-        assert not Repository.objects.filter(id=repo.id).exists()
-        assert not Commit.objects.filter(id=commit.id).exists()
-        assert Commit.objects.filter(id=commit2.id).exists()
