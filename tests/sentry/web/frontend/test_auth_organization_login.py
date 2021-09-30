@@ -600,7 +600,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
     def test_flow_automatically_migrated_without_verified_without_password(
         self, mock_send_one_time_account_confirm_link
     ):
-        AuthProvider.objects.create(organization=self.organization, provider="dummy")
+        provider = AuthProvider.objects.create(organization=self.organization, provider="dummy")
 
         # setup a 'previous' identity, such as when we migrated Google from
         # the old idents to the new
@@ -620,6 +620,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         mock_send_one_time_account_confirm_link.assert_called_with(
             user,
             self.organization,
+            provider.get_provider().name,
             "bar@example.com",
             MigratingIdentityId(id="bar@example.com", legacy_id=None),
         )
