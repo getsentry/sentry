@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -200,6 +200,8 @@ class DeleteOrganizationTest(TransactionTestCase):
             name="rule with environment",
             threshold_period=1,
             snuba_query=snuba_query,
+            # This status is hidden from the default finder.
+            status=AlertRuleStatus.SNAPSHOT.value,
         )
 
         org.update(status=OrganizationStatus.PENDING_DELETION)
