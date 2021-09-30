@@ -83,8 +83,12 @@ class _StatusValue:
 _MetricName = Literal["session", "session.duration", "session.error", "user"]
 
 
-#: Name of a column returned by snuba
-_Column = Literal["value", "avg", "max", "p50", "p75", "p90", "p95", "p99"]
+#: Actual column name in snuba
+_SnubaColumnName = Literal["value", "avg", "max", "percentiles"]
+
+#: "Virtual" column name, almost the same as _SnubaColumnName,
+#: but "percentiles" is expanded into multiple columns later on
+_VirtualColumnName = Literal["value", "avg", "max", "p50", "p75", "p90", "p95", "p99"]
 
 
 @dataclass(frozen=True)
@@ -114,7 +118,7 @@ class _DataPointKey:
     release: Optional[int] = None
     environment: Optional[int] = None
     bucketed_time: Optional[datetime] = None
-    column: _Column = "value"
+    column: _VirtualColumnName = "value"
     project_id: Optional[int] = None
 
 
@@ -197,7 +201,9 @@ class _SumSessionField(_OutputField):
 
 
 class _SessionDurationField(_OutputField):
-    def __init__(self, name: SessionsQueryFunction, column: _Column, group_by_status: bool) -> None:
+    def __init__(
+        self, name: SessionsQueryFunction, column: _VirtualColumnName, group_by_status: bool
+    ) -> None:
         self._name = name
         self._column = column
 
@@ -226,7 +232,7 @@ class _SessionDurationField(_OutputField):
 def _fetch_data(
     org_id: int,
     query: QueryDefinition,
-) -> Tuple[_SnubaDataByMetric, Mapping[Tuple[_MetricName, _Column], _OutputField]]:
+) -> Tuple[_SnubaDataByMetric, Mapping[Tuple[_MetricName, _VirtualColumnName], _OutputField]]:
     """Build & run necessary snuba queries"""
     conditions = [
         Condition(Column("org_id"), Op.EQ, org_id),
@@ -256,7 +262,9 @@ def _fetch_data(
     data: List[Tuple[_MetricName, _SnubaData]] = []
 
     #: Find the field that needs a specific column in a specific metric
-    metric_to_output_field: MutableMapping[Tuple[_MetricName, _Column], _OutputField] = {}
+    metric_to_output_field: MutableMapping[
+        Tuple[_MetricName, _VirtualColumnName], _OutputField
+    ] = {}
 
     def get_query(
         entity_key: EntityKey,
@@ -341,14 +349,18 @@ def _fetch_data(
         metric_id = _resolve(org_id, "session.duration")
         if metric_id is not None:
 
-            def get_function_name(field: SessionsQueryFunction) -> _Column:
-                return cast(_Column, field[:3])
+            def get_virtual_column(field: SessionsQueryFunction) -> _VirtualColumnName:
+                return cast(_VirtualColumnName, field[:3])
 
-            def get_column_name(field: SessionsQueryFunction) -> str:
+            def get_snuba_column(field: SessionsQueryFunction) -> _SnubaColumnName:
                 """Get the actual snuba column needed by this function"""
-                return "percentiles" if field[0] == "p" else get_function_name(field)
+                virtual_column = get_virtual_column(field)
+                if virtual_column in ("p50", "p75", "p90", "p95", "p99"):
+                    return "percentiles"
 
-            columns = {get_column_name(field) for field in duration_fields}
+                return cast(_SnubaColumnName, virtual_column)
+
+            snuba_columns = {get_snuba_column(field) for field in duration_fields}
 
             # sessions_v2 only exposes healthy session's durations
             healthy = _resolve(org_id, "exited")
@@ -363,14 +375,14 @@ def _fetch_data(
                         EntityKey.MetricsDistributions,
                         "session.duration",
                         metric_id,
-                        list(columns),
+                        list(snuba_columns),
                         extra_conditions=extra_conditions,
                         remove_groupby=remove_groupby,
                     )
                 )
                 group_by_status = "session.status" in query.raw_groupby
                 for field in duration_fields:
-                    col = get_function_name(field)
+                    col = get_virtual_column(field)
                     metric_to_output_field["session.duration", col] = _SessionDurationField(
                         field, col, group_by_status
                     )
