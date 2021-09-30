@@ -15,7 +15,7 @@
 //      - SPA mode loads client-config via a HTTP request.
 //      - Django rendered mode loads client-config from a window global.
 //
-// 2. Once the app has been boostrapped with the client-config data we can
+// 2. Once the app has been bootstrapped with the client-config data we can
 //    initialize the app.
 //
 //   a. The locale module will be initialized using `initializeLocale`. See this
