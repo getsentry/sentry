@@ -14,11 +14,11 @@ import AsyncView from 'app/views/asyncView';
 
 import {getForm, getOptionDefault, getOptionField} from '../options';
 
-type Props = {
+type Props = AsyncView['props'] & {
   onConfigured: () => void;
-} & AsyncView['props'];
+};
 
-type State = {} & AsyncView['state'];
+type State = AsyncView['state'];
 
 export default class InstallWizard extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
