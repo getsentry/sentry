@@ -23,7 +23,7 @@ from sentry.signals import alert_rule_created
 from sentry.web.decorators import transaction_start
 
 
-def create_alert_rule_actions(
+def trigger_alert_rule_action_creators(
     actions: Sequence[Mapping[str, str]],
     rule: Rule,
     request: Request,
@@ -127,7 +127,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 rule=rule, user=request.user, type=RuleActivityType.CREATED.value
             )
 
-            create_alert_rule_actions(kwargs.get("actions"), rule, request)
+            trigger_alert_rule_action_creators(kwargs.get("actions"), rule, request)
 
             self.create_audit_entry(
                 request=request,
