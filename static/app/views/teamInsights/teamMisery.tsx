@@ -137,11 +137,24 @@ function TeamMiseryWrapper({
   start,
   end,
 }: Props) {
+  if (projects.length === 0) {
+    return (
+      <TeamMisery
+        isLoading={false}
+        organization={organization}
+        location={location}
+        projects={[]}
+        period={period}
+        periodTableData={{data: []}}
+        weekTableData={{data: []}}
+      />
+    );
+  }
+
   const commonEventView = {
     id: undefined,
     query: 'transaction.duration:<15m team_key_transaction:true',
-    // Empty array selects all projects for a user
-    projects: projects.length > 0 ? projects.map(project => Number(project.id)) : [-2],
+    projects: projects.map(project => Number(project.id)),
     version: 2 as SavedQueryVersions,
     orderby: '-tpm',
     fields: [
