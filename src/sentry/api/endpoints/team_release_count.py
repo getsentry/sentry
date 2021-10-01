@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.db.models import Count
 from django.db.models.functions import TruncDay
+from django.utils.timezone import now
 from rest_framework.response import Response
 
 from sentry.api.base import EnvironmentMixin
@@ -20,7 +21,21 @@ class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
         end = end.date() + timedelta(days=1)
         start = start.date() + timedelta(days=1)
 
-        bucketed_releases = (
+        per_project_average_releases = (
+            Release.objects.filter(
+                id__in=ReleaseProject.objects.filter(project__in=project_list).values("release_id"),
+                date_added__gte=now() - timedelta(days=90),
+                date_added__lte=now(),
+            )
+            .values("projects")
+            .annotate(count=Count("id"))
+        )
+        # TODO: Also need "this week" count for each project. Should i just bucket by week and average in python?
+        project_avgs = {}
+        for row in per_project_average_releases:
+            project_avgs[row["projects"]] = row["count"] / 12
+
+        bucketed_total_releases = (
             Release.objects.filter(
                 id__in=ReleaseProject.objects.filter(project__in=project_list).values("release_id"),
                 date_added__gte=start,
@@ -28,17 +43,16 @@ class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
             )
             .annotate(bucket=TruncDay("date_added"))
             .order_by("bucket")
-            .values("projects", "bucket")
+            .values("bucket")
             .annotate(count=Count("id"))
         )
 
-        current_day, time_series_dict = start, {}
+        current_day, agg_project_counts = start, {}
         while current_day < end:
-            time_series_dict[str(current_day)] = 0
+            agg_project_counts[str(current_day)] = 0
             current_day += timedelta(days=1)
 
-        agg_project_counts = {project.id: time_series_dict.copy() for project in project_list}
-        for bucket in bucketed_releases:
-            agg_project_counts[bucket["projects"]][str(bucket["bucket"].date())] = bucket["count"]
+        for bucket in bucketed_total_releases:
+            agg_project_counts[str(bucket["bucket"].date())] = bucket["count"]
 
-        return Response(agg_project_counts)
+        return Response({"release_counts": agg_project_counts, "project_avgs": project_avgs})
