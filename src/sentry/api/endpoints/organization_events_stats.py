@@ -1,4 +1,4 @@
-from typing import Dict, Sequence, Set, cast
+from typing import Dict, Sequence, Set
 
 import sentry_sdk
 from rest_framework.request import Request
@@ -34,18 +34,12 @@ ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type: ignore
     def has_chart_interpolation(self, organization: Organization, request: Request) -> bool:
-        return cast(
-            bool,
-            features.has(
-                "organizations:performance-chart-interpolation", organization, actor=request.user
-            ),
+        return features.has(
+            "organizations:performance-chart-interpolation", organization, actor=request.user
         )
 
     def has_top_events(self, organization: Organization, request: Request) -> bool:
-        return cast(
-            bool,
-            features.has("organizations:discover-top-events", organization, actor=request.user),
-        )
+        return features.has("organizations:discover-top-events", organization, actor=request.user)
 
     def get(self, request: Request, organization: Organization) -> Response:
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:

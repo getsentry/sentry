@@ -36,11 +36,9 @@ def resolve_axis_column(column: str, index: int = 0) -> str:
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):  # type: ignore
     def has_feature(self, organization: Organization, request: Request) -> bool:
-        return cast(
-            bool,
-            features.has("organizations:discover-basic", organization, actor=request.user)
-            or features.has("organizations:performance-view", organization, actor=request.user),
-        )
+        return features.has(
+            "organizations:discover-basic", organization, actor=request.user
+        ) or features.has("organizations:performance-view", organization, actor=request.user)
 
     def get_equation_list(self, organization: Organization, request: Request) -> Sequence[str]:
         """equations have a prefix so that they can be easily included alongside our existing fields"""
@@ -209,14 +207,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         else:
             base_url = base_url + "?"
 
-        return cast(
-            str,
-            LINK_HEADER.format(
-                uri=base_url,
-                cursor=str(cursor),
-                name=name,
-                has_results="true" if bool(cursor) else "false",
-            ),
+        return cast(str, LINK_HEADER).format(
+            uri=base_url,
+            cursor=str(cursor),
+            name=name,
+            has_results="true" if bool(cursor) else "false",
         )
 
     def handle_results_with_meta(
@@ -313,11 +308,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 except InvalidSearchQuery:
                     sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))
                     date_range = params["end"] - params["start"]
-                    rollup = int(
-                        parse_stats_period(
-                            get_interval_from_range(date_range, False)
-                        ).total_seconds()
-                    )
+                    stats_period = parse_stats_period(get_interval_from_range(date_range, False))
+                    rollup = int(stats_period.total_seconds()) if stats_period is not None else 3600
+
                 # Backwards compatibility for incidents which uses the old
                 # column aliases as it straddles both versions of events/discover.
                 # We will need these aliases until discover2 flags are enabled for all
@@ -414,9 +407,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
 class KeyTransactionBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization: Organization, request: Request) -> bool:
-        return cast(
-            bool, features.has("organizations:performance-view", organization, actor=request.user)
-        )
+        return features.has("organizations:performance-view", organization, actor=request.user)
 
     def get_project(self, request: Request, organization: Organization) -> Project:
         projects = self.get_projects(request, organization)
