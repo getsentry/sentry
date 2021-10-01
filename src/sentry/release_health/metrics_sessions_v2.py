@@ -151,7 +151,7 @@ class _UserField(_OutputField):
             started = int(data_points[key])
             abnormal = int(data_points.get(replace(key, raw_session_status="abnormal"), 0))
             crashed = int(data_points.get(replace(key, raw_session_status="crashed"), 0))
-            all_errored = int(data_points.get(replace(key, raw_session_status="crashed"), 0))
+            all_errored = int(data_points.get(replace(key, raw_session_status="errored"), 0))
 
             healthy = max(0, started - all_errored)
             errored = max(0, all_errored - abnormal - crashed)
@@ -490,7 +490,7 @@ def run_sessions_query(
     def default_for(field: SessionsQueryFunction) -> SessionsQueryValue:
         return 0 if field in ("sum(session)", "count_unique(user)") else None
 
-    GroupKey = Tuple[Tuple[GroupByFieldName, Union[str, int]]]
+    GroupKey = Tuple[Tuple[GroupByFieldName, Union[str, int]], ...]
 
     class Group(TypedDict):
         series: MutableMapping[SessionsQueryFunction, List[SessionsQueryValue]]
