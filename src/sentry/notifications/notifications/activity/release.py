@@ -79,6 +79,7 @@ class ReleaseActivityNotification(ActivityNotification):
             "repos": self.repos,
             "setup_repo_link": absolute_uri(f"/organizations/{self.organization.slug}/repos/"),
             "text_description": f"Version {self.version_parsed} was deployed to {self.environment}",
+            "version_parsed": self.version_parsed,
         }
 
     def get_projects(self, recipient: Union["Team", "User"]) -> Set[Project]:
