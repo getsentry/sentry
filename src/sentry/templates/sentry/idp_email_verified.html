@@ -8,5 +8,7 @@
         Your email has been confirmed. Click the button below to log in to your Sentry account.
     </p>
 
-    <a href="{{ url }}" class="btn">Continue</a>
+    <form class="form-stacked" action="" method="post"> {% csrf_token %}
+        <a href="{{ url }}" class="btn" type="submit">Continue</a>
+    </form>
 {% endblock %}
