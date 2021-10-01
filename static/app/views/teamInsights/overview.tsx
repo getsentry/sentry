@@ -24,7 +24,6 @@ import withTeamsForUser from 'app/utils/withTeamsForUser';
 import DescriptionCard from './descriptionCard';
 import HeaderTabs from './headerTabs';
 import TeamAlertsTriggered from './teamAlertsTriggered';
-import TeamDropdown from './teamDropdown';
 import TeamMisery from './teamMisery';
 import TeamStability from './teamStability';
 
