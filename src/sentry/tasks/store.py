@@ -84,7 +84,7 @@ def submit_process(
     )
 
 
-def should_demote_symbolication(project_id):
+def should_demote_symbolication(project_id: int) -> bool:
     """
     Determines whether a project's symbolication events should be pushed to the low priority queue.
     """
