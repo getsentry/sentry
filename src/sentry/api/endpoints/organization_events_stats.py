@@ -1,6 +1,8 @@
-from typing import Dict, Sequence, Set
+from datetime import datetime, timedelta
+from typing import Dict, Optional, Sequence, Set
 
 import sentry_sdk
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -65,6 +67,13 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 elif top_events <= 0:
                     return Response({"detail": "If topEvents needs to be at least 1"}, status=400)
 
+            comparison_delta = None
+            if "comparisonDelta" in request.GET:
+                try:
+                    comparison_delta = timedelta(seconds=int(request.GET["comparisonDelta"]))
+                except ValueError:
+                    return Response({"detail": "comparisonDelta must be an integer"}, status=400)
+
             # The partial parameter determines whether or not partial buckets are allowed.
             # The last bucket of the time series can potentially be a partial bucket when
             # the start of the bucket does not align with the rollup.
@@ -83,6 +92,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             params: Dict[str, str],
             rollup: int,
             zerofill_results: bool,
+            comparison_delta: Optional[datetime],
         ) -> SnubaTSResult:
             if top_events > 0:
                 return discover.top_events_timeseries(
@@ -107,19 +117,24 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 rollup=rollup,
                 referrer="api.organization-event-stats",
                 zerofill_results=zerofill_results,
+                comparison_delta=comparison_delta,
             )
 
-        return Response(
-            self.get_event_stats_data(
-                request,
-                organization,
-                get_event_stats,
-                top_events,
-                allow_partial_buckets=allow_partial_buckets,
-                zerofill_results=not (
-                    request.GET.get("withoutZerofill") == "1"
-                    and self.has_chart_interpolation(organization, request)
+        try:
+            return Response(
+                self.get_event_stats_data(
+                    request,
+                    organization,
+                    get_event_stats,
+                    top_events,
+                    allow_partial_buckets=allow_partial_buckets,
+                    zerofill_results=not (
+                        request.GET.get("withoutZerofill") == "1"
+                        and self.has_chart_interpolation(organization, request)
+                    ),
+                    comparison_delta=comparison_delta,
                 ),
-            ),
-            status=200,
-        )
+                status=200,
+            )
+        except ValidationError:
+            return Response({"detail": "Comparison period is outside retention window"}, status=400)
