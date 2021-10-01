@@ -41,6 +41,7 @@ describe('TeamInsightsContainer', () => {
     expect(wrapper.getByText('test')).toBeTruthy();
   });
   it('shows message for users with no teams', () => {
+    ProjectsStore.loadInitialData([]);
     // @ts-expect-error
     const organization = TestStubs.Organization({features: ['team-insights']});
     // @ts-expect-error
