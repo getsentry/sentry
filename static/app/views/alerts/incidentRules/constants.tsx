@@ -16,6 +16,7 @@ import {
   isSessionAggregate,
 } from 'app/views/alerts/utils';
 import {AlertType, WizardRuleTemplate} from 'app/views/alerts/wizard/options';
+import {t} from 'app/locale';
 
 export const DEFAULT_AGGREGATE = 'count()';
 export const DEFAULT_TRANSACTION_AGGREGATE = 'p95(transaction.duration)';
@@ -62,6 +63,16 @@ const allAggregations: AggregationKey[] = [
   'apdex',
   'count',
 ];
+
+
+export const COMPARISON_DELTA_OPTIONS = [
+  {value: 5, label: t('Compared to 5 minuntes ago')}, // 5 minutes
+  {value: 15, label: t('Compared to 15 minutes ago')}, // 15 minutes
+  {value: 60, label: t('Compared to one hour ago')}, // one hour
+  {value: 1440, label: t('Compared to one day ago')}, // one day
+  {value: 10080, label: t('Compared to one week ago')}, // one week
+  {value: 43200, label: t('Compared to one month ago')}, // 30 days
+]
 
 export function getWizardAlertFieldConfig(
   alertType: AlertType,

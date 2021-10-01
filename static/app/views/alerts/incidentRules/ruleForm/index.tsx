@@ -2,12 +2,7 @@ import * as React from 'react';
 import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {
-  addErrorMessage,
-  addSuccessMessage,
-  clearIndicators,
-  Indicator,
-} from 'app/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage, clearIndicators, Indicator,} from 'app/actionCreators/indicator';
 import {fetchOrganizationTags} from 'app/actionCreators/tags';
 import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -31,11 +26,14 @@ import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
+import SelectControl from 'app/components/forms/selectControl';
+import Feature from 'app/components/acl/feature';
 
 import {addOrUpdateRule} from '../actions';
-import {createDefaultTrigger} from '../constants';
+import {createDefaultTrigger, COMPARISON_DELTA_OPTIONS} from '../constants';
 import RuleConditionsForm from '../ruleConditionsForm';
 import {
+  AlertRuleComparisonType,
   AlertRuleThresholdType,
   Dataset,
   EventTypes,
@@ -70,6 +68,8 @@ type State = {
   triggers: Trigger[];
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
   thresholdType: UnsavedIncidentRule['thresholdType'];
+  comparisonType: AlertRuleComparisonType;
+  comparisonDelta?: number;
   projects: Project[];
   triggerErrors: Map<number, {[fieldName: string]: string}>;
 
@@ -119,6 +119,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
       thresholdType: rule.thresholdType,
+      comparisonDelta: rule.comparisonDelta,
+      comparisonType: AlertRuleComparisonType.COUNT,
       projects: [this.props.project],
       owner: rule.owner,
     };
@@ -428,7 +430,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     const {organization, params, rule, onSubmitSuccess, location, sessionId} = this.props;
     const {ruleId} = this.props.params;
-    const {resolveThreshold, triggers, thresholdType, uuid} = this.state;
+    const {resolveThreshold, triggers, thresholdType, comparisonDelta, uuid} = this.state;
 
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -465,6 +467,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           triggers: sanitizedTriggers,
           resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
           thresholdType,
+          comparisonDelta,
         },
         {
           referrer: location?.query?.referrer,
@@ -552,6 +555,14 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     });
   };
 
+  handleComparisonTypeChange = ({value}) => {
+    this.setState({comparisonType: value});
+  };
+
+  handleComparisonDeltaChange = ({value}) => {
+    this.setState({comparisonDelta: value});
+  };
+
   handleDeleteRule = async () => {
     const {params} = this.props;
     const {orgId, projectId, ruleId} = params;
@@ -600,6 +611,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       aggregate,
       environment,
       thresholdType,
+      comparisonDelta,
+      comparisonType,
       resolveThreshold,
       loading,
       eventTypes,
@@ -651,6 +664,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         aggregate={aggregate}
         resolveThreshold={resolveThreshold}
         thresholdType={thresholdType}
+        comparisonDelta={comparisonDelta}
+        comparisonType={comparisonType}
         currentProject={params.projectId}
         organization={organization}
         ruleId={ruleId}
@@ -664,6 +679,25 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const ruleNameOwnerForm = (hasAccess: boolean) => (
       <RuleNameOwnerForm disabled={!hasAccess || !canEdit} project={project} />
     );
+
+    const comparisonTypeForm = () => (
+      <StyledSelectControl
+        value={comparisonType}
+        onChange={this.handleComparisonTypeChange}
+        options={[
+          {value: AlertRuleComparisonType.COUNT, label: 'Count'},
+          {value: AlertRuleComparisonType.CHANGE, label: 'Percentage Change'},
+        ]}
+      />
+    );
+
+    const comparisonDeltaForm = () => (
+      <StyledSelectControl
+        value={comparisonDelta}
+        onChange={this.handleComparisonDeltaChange}
+        options={COMPARISON_DELTA_OPTIONS}
+      />
+    )
 
     return (
       <Access access={['alerts:write']}>
@@ -719,6 +753,24 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 alertType={isCustomMetric ? 'custom' : alertType}
                 dataset={dataset}
               />
+              <Feature features={['organizations:change-alerts']} organization={organization}>
+                <ComparisonListItem>
+                  <ComparisonContainer>
+                    <span>{t('Select comparison type')}</span>
+                    {comparisonType === AlertRuleComparisonType.CHANGE && <span>
+                      {t('Select comparison interval')}
+                    </span>}
+                </ComparisonContainer>
+                </ComparisonListItem>
+                <ComparisonContainer>
+                  <ComparisonControlContainer>
+                    {comparisonTypeForm()}
+                  </ComparisonControlContainer>
+                  {comparisonType === AlertRuleComparisonType.CHANGE && <ComparisonControlContainer>
+                    {comparisonDeltaForm()}
+                  </ComparisonControlContainer>}
+                </ComparisonContainer>
+              </Feature>
               <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
               {triggerForm(hasAccess)}
               <StyledListItem>{t('Add a rule name and team')}</StyledListItem>
@@ -740,6 +792,10 @@ const AlertListItem = styled(StyledListItem)`
   margin-top: 0;
 `;
 
+const ComparisonListItem = styled(StyledListItem)`
+  margin-top: 0;
+`;
+
 const ChartHeader = styled('div')`
   padding: ${space(3)} ${space(3)} 0 ${space(3)};
 `;
@@ -755,6 +811,26 @@ const AlertInfo = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-weight: normal;
   color: ${p => p.theme.subText};
+`;
+
+const ComparisonContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+`;
+
+const ComparisonControlContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${space(4)};
+
+  &:nth-of-type(2) {
+    margin-left: ${space(1.5)};     
+  }
+`
+const StyledSelectControl = styled(SelectControl)`
+  flex: 1;
 `;
 
 export default RuleFormContainer;
