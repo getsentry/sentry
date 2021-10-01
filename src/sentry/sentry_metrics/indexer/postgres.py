@@ -20,11 +20,10 @@ class PGStringIndexer(Service):  # type: ignore
     __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
     def _bulk_record(self, org_id: int, unmapped_strings: Set[str]) -> List[Record]:
-        records = []
-        for string in unmapped_strings:
-            obj = MetricsKeyIndexer.objects.create(organization_id=org_id, string=string)
-            records.append(obj)
-        return records
+        records = [
+            MetricsKeyIndexer(organization_id=org_id, string=string) for string in unmapped_strings
+        ]
+        return MetricsKeyIndexer.objects.bulk_create(records)
 
     def bulk_record(self, org_id: int, strings: List[str]) -> Dict[str, int]:
         # first look up to see if we have any of the values
