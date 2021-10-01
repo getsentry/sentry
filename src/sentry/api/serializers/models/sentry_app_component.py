@@ -18,14 +18,22 @@ class SentryAppComponentSerializer(Serializer):
 
 
 class SentryAppAlertRuleActionSerializer(Serializer):
-    def serialize(self, obj, attrs, user, install, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs):
+        event_action = kwargs.get("event_action")
+        if not event_action:
+            raise AssertionError("Requires event_action keyword argument of type EventAction")
+
+        install = kwargs.get("install")
+        if not install:
+            raise AssertionError("Requires install keyword argument of type SentryAppInstallation")
+
         return {
-            "id": f"sentry.sentryapp.{obj.sentry_app.slug}",
-            "uuid": str(obj.uuid),
+            "id": f"{event_action.id}",
+            "enabled": event_action.is_enabled(),
+            "actionType": event_action.actionType,
+            "service": obj.sentry_app.slug,
             "sentryAppInstallationUuid": f"{install.uuid}",
-            "actionType": "sentryapp",
             "prompt": f"{obj.sentry_app.name}",
-            "enabled": True,
             "label": f"{obj.schema.get('title', obj.sentry_app.name)} with these ",
             "formFields": obj.schema.get("settings", {}),
         }
