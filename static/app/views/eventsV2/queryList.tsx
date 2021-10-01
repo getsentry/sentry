@@ -249,6 +249,7 @@ class QueryList extends React.Component<Props> {
               eventView={eventView}
               organization={organization}
               referrer={referrer}
+              yAxis={savedQuery.yAxis}
             />
           )}
           renderContextMenu={() => (
