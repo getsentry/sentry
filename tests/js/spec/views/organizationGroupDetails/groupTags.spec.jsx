@@ -1,5 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import GroupTags from 'app/views/organizationGroupDetails/groupTags';
 
@@ -18,12 +18,11 @@ describe('GroupTags', function () {
     const wrapper = mountWithTheme(
       <GroupTags
         group={group}
-        query={{}}
         environments={['dev']}
-        params={{orgId: 'org-slug', groupId: group.id}}
+        location={{}}
         baseUrl={`/organizations/${organization.slug}/issues/${group.id}/`}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     expect(tagsMock).toHaveBeenCalledWith(
@@ -33,7 +32,11 @@ describe('GroupTags', function () {
       })
     );
 
-    wrapper.find('li[data-test-id="user"] Link').first().simulate('click', {button: 0});
+    const headers = wrapper.getAllByRole('heading').map(header => header.innerHTML);
+    // Check headers have been sorted alphabetically
+    expect(headers).toEqual(['browser', 'device', 'environment', 'url', 'user']);
+
+    fireEvent.click(wrapper.getByText('david'));
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/1/events/',
