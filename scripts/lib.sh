@@ -129,6 +129,12 @@ install-py-dev() {
     # This helps when getsentry calls into this script
     cd "${HERE}/.." || exit
     echo "--> Installing Sentry (for development)"
+    if query-apple-m1; then
+        # This installs pyscopg-binary2 since there's no arm64 wheel
+        # This saves having to install postgresql on the Developer's machine + using flags
+        # https://github.com/psycopg/psycopg2/issues/1286
+        pip install https://storage.googleapis.com/python-arm64-wheels/psycopg2_binary-2.8.6-cp38-cp38-macosx_11_0_arm64.whl
+    fi
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
@@ -254,16 +260,6 @@ reset-db() {
     drop-db
     create-db
     apply-migrations
-}
-
-prerequisites() {
-    brew update -q && brew bundle -q
-    if query-apple-m1; then
-        # psycopg2-binary does not have an arm64 wheel, thus, we need to build it locally
-        # by installing postgresql
-        # See details: https://github.com/psycopg/psycopg2/issues/1286
-        brew install postgresql
-    fi
 }
 
 direnv-help() {

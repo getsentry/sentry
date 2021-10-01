@@ -51,7 +51,7 @@ jobs:
         # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
         continue-on-error: true
         run: |
-          make prerequisites
+          brew bundle -q
 
       - name: Setup Python ${{ matrix.python-version }}
         uses: ./.github/actions/setup-python
