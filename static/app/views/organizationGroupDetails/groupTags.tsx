@@ -1,12 +1,16 @@
 import * as React from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
+import Button from 'app/components/button';
 import Count from 'app/components/count';
 import DeviceName from 'app/components/deviceName';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import ExternalLink from 'app/components/links/externalLink';
+import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import Version from 'app/components/version';
 import {t, tct} from 'app/locale';
@@ -19,7 +23,7 @@ type Props = AsyncComponent['props'] & {
   baseUrl: string;
   group: Group;
   environments: string[];
-};
+} & RouteComponentProps<{}, {}>;
 
 type State = AsyncComponent['state'] & {
   tagList: null | TagWithTopValues[];
@@ -53,7 +57,7 @@ class GroupTags extends AsyncComponent<Props, State> {
   }
 
   renderTags() {
-    const {baseUrl} = this.props;
+    const {baseUrl, location} = this.props;
     const {tagList} = this.state;
 
     const alphabeticalTags = (tagList ?? []).sort((a, b) => a.key.localeCompare(b.key));
@@ -65,12 +69,15 @@ class GroupTags extends AsyncComponent<Props, State> {
             <Panel>
               <StyledPanelHeader hasButtons>
                 <TagHeading>{tag.key}</TagHeading>
-                <GlobalSelectionLink
-                  className="btn btn-default btn-sm"
-                  to={`${baseUrl}tags/${tag.key}/`}
+                <Button
+                  size="small"
+                  to={{
+                    pathname: `${baseUrl}tags/${tag.key}/`,
+                    query: extractSelectionParameters(location.query),
+                  }}
                 >
                   {t('More Details')}
-                </GlobalSelectionLink>
+                </Button>
               </StyledPanelHeader>
               <PanelBody withPadding>
                 <UnstyledUnorderedList>
@@ -118,7 +125,7 @@ class GroupTags extends AsyncComponent<Props, State> {
             'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
             {
               link: (
-                <a href="https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags" />
+                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags" />
               ),
             }
           )}

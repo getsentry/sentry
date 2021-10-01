@@ -19,6 +19,7 @@ describe('GroupTags', function () {
       <GroupTags
         group={group}
         environments={['dev']}
+        location={{}}
         baseUrl={`/organizations/${organization.slug}/issues/${group.id}/`}
       />,
       {context: routerContext}
