@@ -70,13 +70,13 @@ class ReleaseActivityNotification(ActivityNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         return {
             **self.get_base_context(),
-            "commit_count": len(self.commit_list),
             "author_count": len(self.email_list),
-            "file_count": CommitFileChange.objects.get_count_for_commits(self.commit_list),
-            "repos": self.repos,
-            "release": self.release,
+            "commit_count": len(self.commit_list),
             "deploy": self.deploy,
             "environment": self.environment,
+            "file_count": CommitFileChange.objects.get_count_for_commits(self.commit_list),
+            "release": self.release,
+            "repos": self.repos,
             "setup_repo_link": absolute_uri(f"/organizations/{self.organization.slug}/repos/"),
             "text_description": f"Version {self.version_parsed} was deployed to {self.environment}",
         }
