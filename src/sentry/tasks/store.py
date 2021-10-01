@@ -106,7 +106,7 @@ def should_demote_symbolication(project_id: int) -> bool:
     elif always_lowpri:
         return True
     else:
-        return project_id in realtime_metrics.get_lpq_projects()
+        return realtime_metrics.is_lpq_project(project_id)
 
 
 def submit_symbolicate(is_low_priority, from_reprocessing, cache_key, event_id, start_time, data):

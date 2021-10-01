@@ -11,6 +11,7 @@ class RealtimeMetricsStore(Service):  # type: ignore
         "increment_project_duration_counter",
         "validate",
         "get_lpq_projects",
+        "is_lpq_project",
         "add_project_to_lpq",
         "remove_projects_from_lpq",
     )
@@ -41,6 +42,14 @@ class RealtimeMetricsStore(Service):  # type: ignore
         Fetches the list of projects that are currently using the low priority queue.
 
         Returns a list of project IDs.
+        """
+        pass
+
+    def is_lpq_project(self, project_id: int) -> bool:
+        """
+        Checks whether the given project is currently using the low priority queue.
+
+        Returns a bool.
         """
         pass
 

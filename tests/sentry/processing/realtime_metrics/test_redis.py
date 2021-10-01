@@ -137,6 +137,26 @@ def test_get_lpq_projects_filled(
     assert in_lpq == set([1])
 
 
+def test_is_lpq_project_unset(store: RedisRealtimeMetricsStore) -> None:
+    assert not store.is_lpq_project(1)
+
+
+def test_is_lpq_project_empty(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+) -> None:
+    redis_cluster.sadd("store.symbolicate-event-lpq-selected", 1)
+    redis_cluster.srem("store.symbolicate-event-lpq-selected", 1)
+
+    assert not store.is_lpq_project(1)
+
+
+def test_is_lpq_project_filled(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+) -> None:
+    redis_cluster.sadd("store.symbolicate-event-lpq-selected", 1)
+    assert store.is_lpq_project(1)
+
+
 def test_add_project_to_lpq_unset(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
