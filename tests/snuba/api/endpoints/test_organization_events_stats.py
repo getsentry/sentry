@@ -1155,6 +1155,35 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
 
+    @mock.patch(
+        "sentry.snuba.discover.raw_query",
+        side_effect=[{"data": [{"group_id": 1}], "meta": []}, {"data": [], "meta": []}],
+    )
+    def test_top_events_with_issue_check_query_conditions(self, mock_query):
+        """ "Intentionally separate from test_top_events_with_issue
+
+        This is to test against a bug where the condition for issues wasn't included and we'd be missing data for
+        the interval since we'd cap out the max rows. This was not caught by the previous test since the results
+        would still be correct given the smaller interval & lack of data
+        """
+        with self.feature(self.enabled_features):
+            self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "issue"],
+                    "topEvents": 5,
+                    "query": "!event.type:transaction",
+                },
+                format="json",
+            )
+
+        assert ["group_id", "IN", [1]] in mock_query.mock_calls[1].kwargs["conditions"]
+
     def test_top_events_with_functions(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
