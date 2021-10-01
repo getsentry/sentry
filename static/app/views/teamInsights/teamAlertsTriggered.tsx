@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import moment from 'moment';
+import chunk from 'lodash/chunk';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import BarChart from 'app/components/charts/barChart';
@@ -72,6 +72,20 @@ class TeamIssues extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {alertsTriggered} = this.state;
+    const data = Object.entries(alertsTriggered ?? {})
+      .map(([bucket, count]) => ({
+        value: count,
+        name: new Date(bucket).getTime(),
+      }))
+      .sort((a, b) => a.name - b.name);
+
+    // Convert from days to 7 day groups
+    const seriesData = chunk(data, 7).map(week => {
+      return {
+        name: week[0].name,
+        value: week.reduce((total, currentData) => total + currentData.value, 0),
+      };
+    });
 
     return (
       <ChartWrapper>
@@ -79,24 +93,17 @@ class TeamIssues extends AsyncComponent<Props, State> {
           <BarChart
             style={{height: 190}}
             isGroupedByDate
+            useShortDate
+            period="7d"
             legend={{right: 0, top: 0}}
             yAxis={{minInterval: 1}}
             xAxis={{
               type: 'time',
-              axisTick: {
-                alignWithLabel: true,
-              },
-              axisLabel: {
-                formatter: (value: number) => moment(new Date(value)).format('MMM D'),
-              },
             }}
             series={[
               {
                 seriesName: t('Alerts Triggered'),
-                data: Object.entries(alertsTriggered).map(([bucket, count]) => ({
-                  value: count,
-                  name: bucket,
-                })),
+                data: seriesData,
               },
             ].reverse()}
           />
