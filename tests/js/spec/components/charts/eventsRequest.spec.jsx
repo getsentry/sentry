@@ -200,6 +200,87 @@ describe('EventsRequest', function () {
       );
     });
 
+    it('expands multiple periods in query if `includePrevious`', async function () {
+      doEventsRequest.mockImplementation(() =>
+        Promise.resolve({
+          'count()': {
+            data: [
+              [
+                new Date(),
+                [
+                  {...COUNT_OBJ, count: 321},
+                  {...COUNT_OBJ, count: 79},
+                ],
+              ],
+              [new Date(), [COUNT_OBJ]],
+            ],
+          },
+          'failure_count()': {
+            data: [
+              [
+                new Date(),
+                [
+                  {...COUNT_OBJ, count: 421},
+                  {...COUNT_OBJ, count: 79},
+                ],
+              ],
+              [new Date(), [COUNT_OBJ]],
+            ],
+          },
+        })
+      );
+      const multiYOptions = {
+        yAxis: ['count()', 'failure_count()'],
+        previousSeriesNames: ['previous count()', 'previous failure_count()'],
+      };
+      wrapper = mountWithTheme(
+        <EventsRequest {...DEFAULTS} {...multiYOptions} includePrevious>
+          {mock}
+        </EventsRequest>
+      );
+
+      await tick();
+      wrapper.update();
+
+      // actionCreator handles expanding the period when calling the API
+      expect(doEventsRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          period: '24h',
+        })
+      );
+
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          loading: false,
+          yAxis: ['count()', 'failure_count()'],
+          previousSeriesNames: ['previous count()', 'previous failure_count()'],
+          results: [
+            expect.objectContaining({
+              data: [expect.objectContaining({name: expect.anything(), value: 123})],
+              seriesName: 'count()',
+            }),
+            expect.objectContaining({
+              data: [expect.objectContaining({name: expect.anything(), value: 123})],
+              seriesName: 'failure_count()',
+            }),
+          ],
+          previousTimeseriesData: [
+            expect.objectContaining({
+              data: [expect.objectContaining({name: expect.anything(), value: 400})],
+              seriesName: 'previous count()',
+              stack: 'previous',
+            }),
+            expect.objectContaining({
+              data: [expect.objectContaining({name: expect.anything(), value: 500})],
+              seriesName: 'previous failure_count()',
+              stack: 'previous',
+            }),
+          ],
+        })
+      );
+    });
+
     it('aggregates counts per timestamp only when `includeTimeAggregation` prop is true', async function () {
       doEventsRequest.mockImplementation(() =>
         Promise.resolve({

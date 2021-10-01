@@ -508,11 +508,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             showLegend={showLegend}
             releaseSeries={releaseSeries || []}
             timeseriesData={seriesData ?? []}
-            previousTimeseriesData={
-              previousTimeseriesData && !Array.isArray(previousTimeseriesData)
-                ? [previousTimeseriesData]
-                : previousTimeseriesData
-            }
+            previousTimeseriesData={previousTimeseriesData}
             currentSeriesNames={currentSeriesNames}
             previousSeriesNames={previousSeriesNames}
             seriesTransformer={seriesTransformer}
