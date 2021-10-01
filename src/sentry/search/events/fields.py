@@ -928,7 +928,7 @@ def is_function(field: str) -> Optional[Match[str]]:
     return None
 
 
-def get_function_alias(field):
+def get_function_alias(field: str) -> str:
     match = FUNCTION_PATTERN.search(field)
     if match is None:
         return field
@@ -940,7 +940,7 @@ def get_function_alias(field):
     return get_function_alias_with_columns(function, columns)
 
 
-def get_function_alias_with_columns(function_name, columns):
+def get_function_alias_with_columns(function_name, columns) -> str:
     columns = re.sub(r"[^\w]", "_", "_".join(str(col) for col in columns))
     return f"{function_name}_{columns}".rstrip("_")
 

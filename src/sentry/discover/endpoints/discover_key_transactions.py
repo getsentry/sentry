@@ -28,7 +28,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
     def get(self, request, organization):
-        if not self.has_feature(request, organization):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         transaction_name = request.GET.get("transaction")
@@ -48,7 +48,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
     def post(self, request, organization):
         """Create a Key Transaction"""
-        if not self.has_feature(request, organization):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         project = self.get_project(request, organization)
@@ -103,7 +103,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
     def delete(self, request, organization):
         """Remove a Key transaction for a user"""
-        if not self.has_feature(request, organization):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         project = self.get_project(request, organization)
@@ -134,7 +134,7 @@ class KeyTransactionListEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
     def get(self, request, organization):
-        if not self.has_feature(request, organization):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         try:
