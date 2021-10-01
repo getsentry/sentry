@@ -252,6 +252,8 @@ function RuleModal({
                   conditions={conditions}
                   onDelete={handleDeleteCondition}
                   onChange={handleChangeCondition}
+                  orgSlug={organization.slug}
+                  projectId={project.id}
                 />
               )}
             </PanelBody>

@@ -63,16 +63,16 @@ export function getInnerNameLabel(name: DynamicSamplingInnerName) {
     case DynamicSamplingInnerName.EVENT_WEB_CRAWLERS:
       return t('Web Crawlers');
     case DynamicSamplingInnerName.EVENT_LEGACY_BROWSER:
-      return t('Legacy Browsers');
+      return t('Legacy Browser');
     case DynamicSamplingInnerName.EVENT_TRANSACTION:
     case DynamicSamplingInnerName.TRACE_TRANSACTION:
-      return t('Transactions');
+      return t('Transaction');
     case DynamicSamplingInnerName.EVENT_ERROR_MESSAGES:
-      return t('Error Messages');
+      return t('Error Message');
     case DynamicSamplingInnerName.EVENT_CSP:
       return t('Content Security Policy');
     case DynamicSamplingInnerName.EVENT_IP_ADDRESSES:
-      return t('IP Addresses');
+      return t('IP Address');
     default: {
       Sentry.captureException(new Error('Unknown dynamic sampling condition inner name'));
       return null; // this shall never happen

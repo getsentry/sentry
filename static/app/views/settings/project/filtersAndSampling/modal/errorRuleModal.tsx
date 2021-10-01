@@ -69,18 +69,18 @@ function ErrorRuleModal({rule, errorRules, transactionRules, ...props}: Props) {
       title={rule ? t('Edit Error Sampling Rule') : t('Add Error Sampling Rule')}
       emptyMessage={t('Apply sampling rate to all errors')}
       conditionCategories={[
-        [DynamicSamplingInnerName.EVENT_RELEASE, t('Releases')],
-        [DynamicSamplingInnerName.EVENT_ENVIRONMENT, t('Environments')],
+        [DynamicSamplingInnerName.EVENT_RELEASE, t('Release')],
+        [DynamicSamplingInnerName.EVENT_ENVIRONMENT, t('Environment')],
         [DynamicSamplingInnerName.EVENT_USER_ID, t('User Id')],
         [DynamicSamplingInnerName.EVENT_USER_SEGMENT, t('User Segment')],
         [DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS, t('Browser Extensions')],
         [DynamicSamplingInnerName.EVENT_LOCALHOST, t('Localhost')],
-        [DynamicSamplingInnerName.EVENT_LEGACY_BROWSER, t('Legacy Browsers')],
+        [DynamicSamplingInnerName.EVENT_LEGACY_BROWSER, t('Legacy Browser')],
         [DynamicSamplingInnerName.EVENT_WEB_CRAWLERS, t('Web Crawlers')],
-        [DynamicSamplingInnerName.EVENT_IP_ADDRESSES, t('IP Addresses')],
+        [DynamicSamplingInnerName.EVENT_IP_ADDRESSES, t('IP Address')],
         [DynamicSamplingInnerName.EVENT_CSP, t('Content Security Policy')],
-        [DynamicSamplingInnerName.EVENT_ERROR_MESSAGES, t('Error Messages')],
-        [DynamicSamplingInnerName.EVENT_TRANSACTION, t('Transactions')],
+        [DynamicSamplingInnerName.EVENT_ERROR_MESSAGES, t('Error Message')],
+        [DynamicSamplingInnerName.EVENT_TRANSACTION, t('Transaction')],
       ]}
       rule={rule}
       onSubmit={handleSubmit}

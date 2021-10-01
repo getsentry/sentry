@@ -11,6 +11,7 @@ import TextareaField from 'app/views/settings/components/forms/textareaField';
 
 import {getInnerNameLabel} from '../utils';
 
+import AutoComplete from './autoComplete';
 import LegacyBrowsers from './legacyBrowsers';
 import {getMatchFieldPlaceholder} from './utils';
 
@@ -20,7 +21,7 @@ type Condition = {
   legacyBrowsers?: Array<LegacyBrowser>;
 };
 
-type Props = {
+type Props = Pick<React.ComponentProps<typeof AutoComplete>, 'orgSlug' | 'projectId'> & {
   conditions: Condition[];
   onDelete: (index: number) => void;
   onChange: <T extends keyof Condition>(
@@ -30,18 +31,26 @@ type Props = {
   ) => void;
 };
 
-function Conditions({conditions, onDelete, onChange}: Props) {
+function Conditions({conditions, orgSlug, projectId, onDelete, onChange}: Props) {
   return (
     <Fragment>
       {conditions.map(({category, match, legacyBrowsers}, index) => {
         const displayLegacyBrowsers =
           category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER;
 
-        const isABooleanField =
+        const isBooleanField =
           category === DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
           category === DynamicSamplingInnerName.EVENT_LOCALHOST ||
           category === DynamicSamplingInnerName.EVENT_WEB_CRAWLERS ||
           displayLegacyBrowsers;
+
+        const isAutoCompleteField =
+          category === DynamicSamplingInnerName.EVENT_ENVIRONMENT ||
+          category === DynamicSamplingInnerName.EVENT_RELEASE ||
+          category === DynamicSamplingInnerName.EVENT_TRANSACTION ||
+          category === DynamicSamplingInnerName.TRACE_ENVIRONMENT ||
+          category === DynamicSamplingInnerName.TRACE_RELEASE ||
+          category === DynamicSamplingInnerName.TRACE_TRANSACTION;
 
         return (
           <ConditionWrapper key={index}>
@@ -52,21 +61,30 @@ function Conditions({conditions, onDelete, onChange}: Props) {
               </span>
             </LeftCell>
             <CenterCell>
-              {!isABooleanField && (
-                <StyledTextareaField
-                  name="match"
-                  value={match}
-                  onChange={value => onChange(index, 'match', value)}
-                  placeholder={getMatchFieldPlaceholder(category)}
-                  inline={false}
-                  rows={1}
-                  autosize
-                  hideControlState
-                  flexibleControlStateSize
-                  required
-                  stacked
-                />
-              )}
+              {!isBooleanField &&
+                (isAutoCompleteField ? (
+                  <AutoComplete
+                    category={category}
+                    orgSlug={orgSlug}
+                    projectId={projectId}
+                    value={match}
+                    onChange={value => onChange(index, 'match', value)}
+                  />
+                ) : (
+                  <StyledTextareaField
+                    name="match"
+                    value={match}
+                    onChange={value => onChange(index, 'match', value)}
+                    placeholder={getMatchFieldPlaceholder(category)}
+                    inline={false}
+                    rows={1}
+                    autosize
+                    hideControlState
+                    flexibleControlStateSize
+                    required
+                    stacked
+                  />
+                ))}
             </CenterCell>
             <RightCell>
               <Button
@@ -94,7 +112,7 @@ export default Conditions;
 
 const ConditionWrapper = styled('div')`
   display: grid;
-  grid-template-columns: 1fr max-content;
+  grid-template-columns: 1fr minmax(0, 1fr);
   align-items: flex-start;
   padding: ${space(1)} ${space(2)};
   :not(:last-child) {
@@ -102,7 +120,7 @@ const ConditionWrapper = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 0.6fr 1fr max-content;
+    grid-template-columns: 0.6fr minmax(0, 1fr) max-content;
   }
 `;
 
