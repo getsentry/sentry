@@ -2,7 +2,10 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.sentry_app_component import SentryAppAlertRuleActionSerializer
 from sentry.constants import MIGRATED_CONDITIONS, SCHEMA_FORM_ACTIONS, TICKET_ACTIONS
+from sentry.models import SentryAppInstallation
 from sentry.rules import rules
 
 
@@ -71,6 +74,20 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 filter_list.append(context)
             elif rule_type.startswith("action/"):
                 action_list.append(context)
+
+        for install in SentryAppInstallation.get_installed_for_org(project.organization_id).filter(
+            sentry_app__is_alertable=True
+        ):
+            component = install.prepare_sentry_app_components("alert-rule-action", project)
+            if component:
+                action_list.append(
+                    serialize(
+                        component,
+                        request.user,
+                        SentryAppAlertRuleActionSerializer(),
+                        install=install,
+                    )
+                )
 
         context = {"actions": action_list, "conditions": condition_list, "filters": filter_list}
 
