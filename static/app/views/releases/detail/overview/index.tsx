@@ -9,7 +9,7 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import {DateTimeObject} from 'app/components/charts/utils';
 import DateTime from 'app/components/dateTime';
-import PerformanceCardList from 'app/components/discover/performanceCardList';
+import PerformanceCardTable from 'app/components/discover/performanceCardTable';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
 import {Body, Main, Side} from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -526,9 +526,12 @@ class ReleaseOverview extends AsyncView<Props> {
                       {hasDiscover &&
                       hasReleaseComparison &&
                       hasReleaseComparisonPerformance ? (
-                        <PerformanceCardList
+                        <PerformanceCardTable
                           organization={organization}
                           project={project}
+                          isLoading={loading}
+                          // TODO(kelly): hardcoding this until I have data
+                          isEmpty={false}
                         />
                       ) : (
                         <TransactionsList

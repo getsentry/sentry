@@ -27,6 +27,8 @@ const MOBILE_PLATFORMS: string[] = [...mobile];
 type Props = {
   organization: Organization;
   project: ReleaseProject;
+  isLoading: boolean;
+  isEmpty: boolean;
 };
 
 class PerformanceCardTable extends React.PureComponent<Props> {
@@ -365,7 +367,7 @@ class PerformanceCardTable extends React.PureComponent<Props> {
   }
 
   render() {
-    const {project, organization} = this.props;
+    const {project, organization, isLoading, isEmpty} = this.props;
     // Custom set the height so we don't have layout shift when results are loaded.
     const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
 
@@ -387,7 +389,7 @@ class PerformanceCardTable extends React.PureComponent<Props> {
     return (
       <Fragment>
         <HeadCellContainer>{title}</HeadCellContainer>
-        {title.includes('Unknown') ? (
+        {title.includes(t('Unknown')) ? (
           <StyledAlert type="warning" icon={<IconWarning size="md" />} system>
             For more performance metrics, specify which platform this project is using in{' '}
             <Link to={`/settings/${organization.slug}/projects/${project.slug}/`}>
@@ -396,6 +398,8 @@ class PerformanceCardTable extends React.PureComponent<Props> {
           </StyledAlert>
         ) : null}
         <StyledPanelTable
+          isLoading={isLoading}
+          isEmpty={isEmpty}
           emptyMessage={t('No transactions found')}
           headers={[
             <Cell key="description" align="left">
@@ -425,9 +429,9 @@ class PerformanceCardTable extends React.PureComponent<Props> {
 const HeadCellContainer = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   padding: ${space(2)};
-  border-top: 1px solid ${p => p.theme.gray200};
-  border-left: 1px solid ${p => p.theme.gray200};
-  border-right: 1px solid ${p => p.theme.gray200};
+  border-top: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.border};
   border-top-left-radius: ${p => p.theme.borderRadius};
   border-top-right-radius: ${p => p.theme.borderRadius};
 `;
@@ -435,7 +439,7 @@ const HeadCellContainer = styled('div')`
 const StyledPanelTable = styled(PanelTable)<{disableTopBorder: boolean}>`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-  border-top: ${p => (p.disableTopBorder ? 'none' : `1px solid ${p.theme.gray200}`)};
+  border-top: ${p => (p.disableTopBorder ? 'none' : `1px solid ${p.theme.border}`)};
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     grid-template-columns: min-content 1fr 1fr 1fr;
   }
@@ -476,9 +480,9 @@ const Cell = styled('div')<{align: 'left' | 'right'}>`
 `;
 
 const StyledAlert = styled(Alert)`
-  border-top: 1px solid ${p => p.theme.gray200};
-  border-right: 1px solid ${p => p.theme.gray200};
-  border-left: 1px solid ${p => p.theme.gray200};
+  border-top: 1px solid ${p => p.theme.border};
+  border-right: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.border};
   margin-bottom: 0;
 `;
 
