@@ -217,10 +217,7 @@ def test_errors_post_process_forwarder_false_headers(
 
 
 @pytest.mark.django_db
-@patch("sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task")
-def test_errors_post_process_forwarder_true_headers(
-    dispatch_post_process_group_task, kafka_message_with_transaction_header_true
-):
+def test_errors_post_process_forwarder_true_headers(kafka_message_with_transaction_header_true):
     """
     Tests that the errors post process forwarder's process_message returns None
     when the header "transaction_forwarder" is set to True.
@@ -234,9 +231,8 @@ def test_errors_post_process_forwarder_true_headers(
 
 
 @pytest.mark.django_db
-@patch("sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task")
 def test_transactions_post_process_forwarder_missing_headers(
-    dispatch_post_process_group_task, kafka_message_without_transaction_header
+    kafka_message_without_transaction_header,
 ):
     """
     Tests that the transactions post process forwarder's process_message returns None
@@ -250,9 +246,8 @@ def test_transactions_post_process_forwarder_missing_headers(
 
 
 @pytest.mark.django_db
-@patch("sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task")
 def test_transactions_post_process_forwarder_false_headers(
-    dispatch_post_process_group_task, kafka_message_with_transaction_header_false
+    kafka_message_with_transaction_header_false,
 ):
     """
     Tests that the transactions post process forwarder's process_message returns None
