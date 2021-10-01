@@ -5665,6 +5665,101 @@ class TimeseriesQueryTest(TimeseriesBase):
         assert "count_unique_user" in keys
         assert "time" in keys
 
+    def test_comparison_aggregate_function_invalid(self):
+        with pytest.raises(
+            InvalidSearchQuery, match="Only one column can be selected for comparison queries"
+        ):
+            discover.timeseries_query(
+                selected_columns=["count()", "count_unique(user)"],
+                query="",
+                params={
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=2),
+                    "project_id": [self.project.id],
+                },
+                rollup=3600,
+                comparison_delta=timedelta(days=1),
+            )
+
+    def test_comparison_aggregate_function(self):
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "user": {"id": 1},
+            },
+            project_id=self.project.id,
+        )
+
+        result = discover.timeseries_query(
+            selected_columns=["count()"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+            comparison_delta=timedelta(days=1),
+        )
+        assert len(result.data["data"]) == 3
+        # Values should all be 0, since there is no comparison period data at all.
+        assert [0, 0, 0] == [val["count"] for val in result.data["data"] if "count" in val]
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=1)),
+                "user": {"id": 1},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=1, minutes=2)),
+                "user": {"id": 2},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=2, minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+
+        result = discover.timeseries_query(
+            selected_columns=["count()"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2, minutes=1),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+            comparison_delta=timedelta(days=1),
+        )
+        assert len(result.data["data"]) == 3
+        # In the second bucket we have 3 events in the current period and 2 in the comparison, so
+        # we get a result of 50% increase
+        assert [0, 50, 0] == [val["count"] for val in result.data["data"] if "count" in val]
+
+        result = discover.timeseries_query(
+            selected_columns=["count_unique(user)"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2, minutes=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+            comparison_delta=timedelta(days=1),
+        )
+        assert len(result.data["data"]) == 3
+        # In the second bucket we have 1 unique user in the current period and 2 in the comparison, so
+        # we get a result of -50%
+        assert [0, -50, 0] == [
+            val["count_unique_user"] for val in result.data["data"] if "count_unique_user" in val
+        ]
+
     def test_count_miserable(self):
         event_data = load_data("transaction")
         # Half of duration so we don't get weird rounding differences when comparing the results
