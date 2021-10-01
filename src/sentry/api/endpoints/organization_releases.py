@@ -42,7 +42,6 @@ from sentry.search.events.filter import handle_operator_negation, parse_semver
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
     STATS_PERIODS,
-    get_oldest_health_data_for_releases,
     get_project_releases_by_stability,
     get_project_releases_count,
 )
@@ -182,7 +181,7 @@ def debounce_update_release_health_data(organization, project_ids):
             to_upsert.append(key)
 
     if to_upsert:
-        dates = get_oldest_health_data_for_releases(to_upsert)
+        dates = release_health.get_oldest_health_data_for_releases(to_upsert)
 
         for project_id, version in to_upsert:
             project = projects.get(project_id)

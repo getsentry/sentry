@@ -262,8 +262,8 @@ export function sortProjects(projects: Array<Project>): Array<Project> {
 }
 
 // build actorIds
-export const buildUserId = id => `user:${id}`;
-export const buildTeamId = id => `team:${id}`;
+export const buildUserId = (id: string) => `user:${id}`;
+export const buildTeamId = (id: string) => `team:${id}`;
 
 /**
  * Removes the organization / project scope prefix on feature names.
@@ -331,6 +331,6 @@ export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
 export const isFunction = (value: any): value is Function => typeof value === 'function';
 
 // NOTE: only escapes a " if it's not already escaped
-export function escapeDoubleQuotes(str) {
+export function escapeDoubleQuotes(str: string) {
   return str.replace(/\\([\s\S])|(")/g, '\\$1$2');
 }

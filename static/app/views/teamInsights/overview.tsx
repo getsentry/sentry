@@ -22,6 +22,7 @@ import withTeamsForUser from 'app/utils/withTeamsForUser';
 
 import DescriptionCard from './descriptionCard';
 import HeaderTabs from './headerTabs';
+import TeamAlertsTriggered from './teamAlertsTriggered';
 import TeamDropdown from './teamDropdown';
 import TeamMisery from './teamMisery';
 import TeamStability from './teamStability';
@@ -221,6 +222,22 @@ function TeamInsightsOverview({
               <TeamMisery
                 organization={organization}
                 projects={projects}
+                period={period}
+                start={start?.toString()}
+                end={end?.toString()}
+                location={location}
+              />
+            </DescriptionCard>
+
+            <DescriptionCard
+              title={t('Metric Alerts Triggered')}
+              description={t(
+                'These are the alerts triggered from the Alert Rules your team created.'
+              )}
+            >
+              <TeamAlertsTriggered
+                organization={organization}
+                teamSlug={currentTeam!.slug}
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}

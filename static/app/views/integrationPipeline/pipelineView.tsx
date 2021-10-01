@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import Indicators from 'app/components/indicators';
-import ThemeAndStyleProvider from 'app/themeAndStyleProvider';
+import ThemeAndStyleProvider from 'app/components/themeAndStyleProvider';
 
 import AwsLambdaCloudformation from './awsLambdaCloudformation';
 import AwsLambdaFailureDetails from './awsLambdaFailureDetails';
