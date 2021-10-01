@@ -11,7 +11,7 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.discover.models import KeyTransaction, TeamKeyTransaction
+from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, ProjectTeam, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import (
@@ -30,7 +30,6 @@ from sentry.search.events.constants import (
     FUNCTION_PATTERN,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
-    KEY_TRANSACTION_ALIAS,
     MEASUREMENTS_FRAMES_FROZEN_RATE,
     MEASUREMENTS_FRAMES_SLOW_RATE,
     MEASUREMENTS_STALL_PERCENTAGE,
@@ -101,50 +100,6 @@ class PseudoField:
         assert (
             self.expression is None or self.expression_fn is None
         ), f"{self.name}: only one of expression, expression_fn is allowed"
-
-
-def key_transaction_expression(user_id, organization_id, project_ids):
-    """
-    This function may be called multiple times, making for repeated data bases queries.
-    Lifting the query higher to earlier in the call stack will require a lot more changes
-    as there are numerous entry points. So we will leave the duplicate query alone for now.
-    """
-    if user_id is None or organization_id is None or project_ids is None:
-        raise InvalidSearchQuery("Missing necessary meta for key transaction field.")
-
-    key_transactions = (
-        KeyTransaction.objects.filter(
-            owner_id=user_id,
-            organization_id=organization_id,
-            project_id__in=project_ids,
-        )
-        .order_by("transaction", "project_id")
-        .values("project_id", "transaction")
-    )
-
-    # if there are no key transactions, the value should always be 0
-    if not len(key_transactions):
-        return ["toInt64", [0]]
-
-    return [
-        "has",
-        [
-            [
-                "array",
-                [
-                    [
-                        "tuple",
-                        [
-                            ["toUInt64", [transaction["project_id"]]],
-                            "'{}'".format(transaction["transaction"]),
-                        ],
-                    ]
-                    for transaction in key_transactions
-                ],
-            ],
-            ["tuple", ["project_id", "transaction"]],
-        ],
-    ]
 
 
 def project_threshold_config_expression(organization_id, project_ids):
@@ -411,18 +366,6 @@ FIELD_ALIASES = {
             USER_DISPLAY_ALIAS,
             expression=["coalesce", ["user.email", "user.username", "user.ip"]],
         ),
-        # the key transaction field is intentially not added to the discover/fields list yet
-        # because there needs to be some work on the front end to integrate this into discover
-        PseudoField(
-            KEY_TRANSACTION_ALIAS,
-            KEY_TRANSACTION_ALIAS,
-            expression_fn=lambda params: key_transaction_expression(
-                params.get("user_id"),
-                params.get("organization_id"),
-                params.get("project_id"),
-            ),
-            result_type="boolean",
-        ),
         PseudoField(
             PROJECT_THRESHOLD_CONFIG_ALIAS,
             PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -431,6 +374,8 @@ FIELD_ALIASES = {
                 params.get("project_id"),
             ),
         ),
+        # the team key transaction field is intentially not added to the discover/fields list yet
+        # because there needs to be some work on the front end to integrate this into discover
         PseudoField(
             TEAM_KEY_TRANSACTION_ALIAS,
             TEAM_KEY_TRANSACTION_ALIAS,

@@ -717,7 +717,6 @@ export const TRACING_FIELDS = [
   'user_misery',
   'eps',
   'epm',
-  'key_transaction',
   'team_key_transaction',
   ...Object.keys(MEASUREMENTS),
   ...SPAN_OP_BREAKDOWN_FIELDS,
