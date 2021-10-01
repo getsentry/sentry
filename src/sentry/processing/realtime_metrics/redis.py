@@ -1,9 +1,13 @@
 import datetime
+from typing import Set
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
 
 from . import base
+
+# redis key for entry storing current list of LPQ members
+LPQ_MEMBERS_KEY = "store.symbolicate-event-lpq-selected"
 
 
 class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
@@ -80,3 +84,41 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
             pipeline.hincrby(key, duration, 1)
             pipeline.pexpire(key, self._histogram_ttl)
             pipeline.execute()
+
+    def get_lpq_projects(self) -> Set[int]:
+        """
+        Fetches the list of projects that are currently using the low priority queue.
+
+        Returns a list of project IDs.
+        """
+        return {int(project_id) for project_id in self.cluster.smembers(LPQ_MEMBERS_KEY)}
+
+    def add_project_to_lpq(self, project_id: int) -> None:
+        """
+        Assigns a project to the low priority queue.
+
+        This registers an intent to redirect all symbolication events triggered by the specified
+        project to be redirected to the low priority queue.
+
+        This may throw an exception if there is some sort of issue registering the project with the
+        queue.
+        """
+
+        # This returns 0 if project_id was already in the set, 1 if it was added, and throws an
+        # exception if there's a problem so it's fine if we just ignore the return value of this as
+        # the project is always added if this successfully completes.
+        self.cluster.sadd(LPQ_MEMBERS_KEY, project_id)
+
+    def remove_projects_from_lpq(self, project_ids: Set[int]) -> None:
+        """
+        Removes projects from the low priority queue.
+
+        This registers an intent to restore all specified projects back to the regular queue.
+
+        This may throw an exception if there is some sort of issue deregistering the projects from
+        the queue.
+        """
+        if len(project_ids) == 0:
+            return
+
+        self.cluster.srem(LPQ_MEMBERS_KEY, *project_ids)
