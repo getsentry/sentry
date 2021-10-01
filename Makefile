@@ -43,14 +43,20 @@ compile-locale:
 	./bin/find-good-catalogs src/sentry/locale/catalogs.json
 	cd src/sentry && sentry django compilemessages
 
-locale: merge-locale-catalogs compile-locale
-
-sync-transifex: merge-locale-catalogs
+install-transifex:
 	$(PIP) install transifex-client
+
+push-transifex: merge-locale-catalogs install-transifex
 	tx push -s
+
+pull-transifex: install-transifex
 	tx pull -a
 
-update-transifex: sync-transifex compile-locale
+# Update transifex with new strings that need to be translated
+update-transifex: push-transifex
+
+# Pulls new translations from transifex and compiles for usage
+update-local-locales: pull-transifex compile-locale
 
 build-chartcuterie-config:
 	@echo "--> Building chartcuterie config module"
