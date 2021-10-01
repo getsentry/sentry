@@ -7,7 +7,7 @@ import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {IconAdd} from 'app/icons';
@@ -191,7 +191,7 @@ class ManageDashboards extends AsyncView<Props, State> {
       >
         <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
           <StyledPageContent>
-            <LightWeightNoProjectMessage organization={organization}>
+            <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
                   {t('Dashboards')}
@@ -210,7 +210,7 @@ class ManageDashboards extends AsyncView<Props, State> {
                 {this.renderActions()}
                 {this.renderDashboards()}
               </PageContent>
-            </LightWeightNoProjectMessage>
+            </NoProjectMessage>
           </StyledPageContent>
         </SentryDocumentTitle>
       </Feature>

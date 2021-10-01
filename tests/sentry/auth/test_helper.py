@@ -325,7 +325,13 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
 
         with self.feature("organizations:idp-automatic-migration"):
             context = self._test_simple(mock_render, "sentry/auth-confirm-account.html")
-        mock_create_key.assert_called_with(existing_user, self.organization, self.email, "1234")
+        mock_create_key.assert_called_with(
+            existing_user,
+            self.organization,
+            self.auth_provider.get_provider().name,
+            self.email,
+            "1234",
+        )
         assert context["existing_user"] == existing_user
         assert "login_form" in context
 

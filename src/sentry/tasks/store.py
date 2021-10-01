@@ -249,7 +249,10 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     event_id = data["event_id"]
 
-    from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
+    from_reprocessing = (
+        symbolicate_task is symbolicate_event_from_reprocessing
+        or symbolicate_task is symbolicate_event_from_reprocessing_low_priority
+    )
 
     def _continue_to_process_event():
         process_task = process_event_from_reprocessing if from_reprocessing else process_event

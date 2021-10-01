@@ -283,8 +283,14 @@ def post_process_group(
         if not is_reprocessed:
             # we process snoozes before rules as it might create a regression
             # but not if it's new because you can't immediately snooze a new group
+            has_reappeared = not is_new
             try:
-                has_reappeared = False if is_new else process_snoozes(event.group)
+                if has_reappeared:
+                    has_reappeared = process_snoozes(event.group)
+            except Exception:
+                logger.exception("Failed to process snoozes for group")
+
+            try:
                 if not has_reappeared:  # If true, we added the .UNIGNORED reason already
                     if is_new:
                         add_group_to_inbox(event.group, GroupInboxReason.NEW)
