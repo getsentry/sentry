@@ -37,11 +37,15 @@ class RealtimeMetricsStore(Service):  # type: ignore
     """A service for storing metrics about incoming requests within a given time window."""
 
     __all__ = (
+        "validate",
         "increment_project_event_counter",
         "increment_project_duration_counter",
-        "validate",
+        "projects",
+        "get_counts_for_project",
+        "get_durations_for_project",
         "get_lpq_projects",
         "add_project_to_lpq",
+        "remove_project_from_lpq",
         "remove_projects_from_lpq",
     )
 
@@ -106,6 +110,7 @@ class RealtimeMetricsStore(Service):  # type: ignore
         """
         raise NotImplementedError
 
+    # TODO(flub): See if this can be removed
     def remove_project_from_lpq(self, project_id: int) -> bool:
         """
         Removes a project from the low priority queue.
