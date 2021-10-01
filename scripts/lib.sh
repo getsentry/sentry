@@ -89,6 +89,12 @@ install-py-dev() {
     # This helps when getsentry calls into this script
     cd "${HERE}/.." || exit
     echo "--> Installing Sentry (for development)"
+    if query-apple-m1; then
+        # This installs pyscopg-binary2 since there's no arm64 wheel
+        # This saves having to install postgresql on the Developer's machine + using flags
+        # https://github.com/psycopg/psycopg2/issues/1286
+        pip install "https://00f74ba44b452e1c23899a4da635741177076521a3-apidata.googleusercontent.com/download/storage/v1/b/python-arm64-wheels/o/psycopg2_binary-2.8.6-cp38-cp38-macosx_11_0_arm64.whl?jk=AFshE3Vt2Xe9K9fArum71YgGqh0FgN35Vgk22IWH9HUhpCctxi4wU1pT1M1WAHQ45P7fAkyKyzwSc1emL9RduXFqmKcu4oSLYsVG5WQCuWMXreMwYTsJpe1XMFVEK5cDkz80qtUTI-IlpSGXSQ6ZSxL_3pDhCZynw0cdfOQv6Ei9lHiZSCD-D06jg8IBvYssAh6hhdtuDQY8VoUQSO-i_fdb6-tYkw1Vjf5c1E2OhcYntjUawORukrjVbPlrU4QVRWwT3Hr62ZTH8D6qzvbTG6isE6oNOlIlkSvmoqVmNpn3U4zDYuNUI5G62wP1QC-6_uKe9vpZ75mQwsaJuOp3104UZi6ApZgLsmQRHhEr06Avzzh0rQpk3aENPiol8Yn-kAn1R8Vh4MHzVVbIltM5Fk9qb_ivGw9dSIAjHOcn0RXHwbd_R7oKucgAGHrCbmL1BxuZUzU58UFDA6tLuFgNVX316uZ-e2-euzd5-RQ3LAQxvkt6h0AHCXIa7Gqk4VUiT2EQ_dRYddmmDS2vARFUwS8bgMQcADTercuW9VoqjtpmI9DiOapBKqW3R7EeUmY2Xg24_lN5CsmAAnzU_tvhC6plCP34RZhRodZeEzCA_y6SgXkqqBLjYOfY4l6SOSMF_bq4xGS0B-XlWRpiH22SFGI846rPLOklaNT2u0Pu-ae15H0-RoY_OwlcfJ6zEIrk4mRzeToEnrAv0a6BTUN8ffsQapXg0TptFXTbnM3LNSTu1zL6pchCj3YEYO1wJgKu98Qz_nWEa043F4f0WnQ-SVI2m1OsHzeEwX1tt4ZjQ9FUw5RBKxjbeKvchE5Ni7IeUsfTV4ixVxsbf992CbwXfPEyzYYADNr5a3N08uLPWV_H-gI8mo-8h0qE6dTef4t_MFuB9QJkOSn8oed9_rl-hNxa1Exd6KCTBqTJ5KlgWUDJLpcmx8W4ZfkzHva7kDwH4ej6ES3-_SNK9yPCccSYXbBFzW8SciWgxXjZQzImflZ-fA4VclZ4_s1bF3YdN09aSPY1&isca=1"
+    fi
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
@@ -214,16 +220,6 @@ reset-db() {
     drop-db
     create-db
     apply-migrations
-}
-
-prerequisites() {
-    brew update -q && brew bundle -q
-    if query-apple-m1; then
-        # psycopg2-binary does not have an arm64 wheel, thus, we need to build it locally
-        # by installing postgresql
-        # See details: https://github.com/psycopg/psycopg2/issues/1286
-        brew install postgresql
-    fi
 }
 
 direnv-help() {
