@@ -22,7 +22,7 @@ from sentry.models import (
     debugfile,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.utils import json, sdk
+from sentry.utils import json, metrics, sdk
 from sentry.utils.appleconnect import itunes_connect
 
 logger = logging.getLogger(__name__)
@@ -57,7 +57,12 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
         itunes_client = client.itunes_client()
     except itunes_connect.SessionExpiredError:
         logger.debug("No valid iTunes session, can not download dSYMs")
+        metrics.incr(
+            "sentry.tasks.app_store_connect.itunes_session.needed", tags={"valid": "false"}
+        )
         return
+    else:
+        metrics.incr("sentry.tasks.app_store_connect.itunes_session.needed", tags={"valid": "true"})
     for i, (build, build_state) in enumerate(builds):
         with sdk.configure_scope() as scope:
             scope.set_context("dsym_downloads", {"total": len(builds), "completed": i})
@@ -215,5 +220,6 @@ def inner_refresh_all_builds() -> None:
                                 "config_id": source_id,
                             }
                         )
+                        metrics.incr("sentry.tasks.app_store_connect.refresh_count")
             except Exception:
                 logger.exception("Failed to refresh AppStoreConnect builds")
