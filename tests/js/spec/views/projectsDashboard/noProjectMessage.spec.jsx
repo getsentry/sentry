@@ -1,11 +1,34 @@
+import {Component} from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import NoProjectMessage from 'app/components/noProjectMessage';
 import ConfigStore from 'app/stores/configStore';
+import ProjectsStore from 'app/stores/projectsStore';
 
 describe('NoProjectMessage', function () {
+  beforeEach(function () {
+    ProjectsStore.reset();
+  });
+
   const org = TestStubs.Organization();
+
+  it('renders', async function () {
+    const project1 = TestStubs.Project();
+    const project2 = TestStubs.Project();
+    const organization = TestStubs.Organization({slug: 'org-slug'});
+    delete organization.projects;
+    ProjectsStore.loadInitialData([project1, project2]);
+    const wrapper = mountWithTheme(
+      <NoProjectMessage organization={organization}>{null}</NoProjectMessage>,
+      TestStubs.routerContext()
+    );
+    expect(wrapper.prop('children')).toBe(null);
+    expect(wrapper.find('NoProjectMessage').exists()).toBe(true);
+  });
+
   it('shows "Create Project" button when there are no projects', function () {
+    ProjectsStore.loadInitialData([]);
     const wrapper = mountWithTheme(
       <NoProjectMessage organization={org} />,
       TestStubs.routerContext()
@@ -16,6 +39,7 @@ describe('NoProjectMessage', function () {
   });
 
   it('"Create Project" is disabled when no access to `project:write`', function () {
+    ProjectsStore.loadInitialData([]);
     const wrapper = mountWithTheme(
       <NoProjectMessage organization={TestStubs.Organization({access: []})} />,
       TestStubs.routerContext()
@@ -34,22 +58,18 @@ describe('NoProjectMessage', function () {
   });
 
   it('has a "Join a Team" button when no projects but org has projects', function () {
+    ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]);
     const wrapper = mountWithTheme(
-      <NoProjectMessage
-        organization={org}
-        projects={[TestStubs.Project({hasAccess: false})]}
-      />,
+      <NoProjectMessage organization={org} />,
       TestStubs.routerContext()
     );
     expect(wrapper.find('Button[to="/settings/org-slug/teams/"]')).toHaveLength(1);
   });
 
   it('has a disabled "Join a Team" button if no access to `team:read`', function () {
+    ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]);
     const wrapper = mountWithTheme(
-      <NoProjectMessage
-        organization={{...org, access: []}}
-        projects={[TestStubs.Project({hasAccess: false})]}
-      />,
+      <NoProjectMessage organization={{...org, access: []}} />,
       TestStubs.routerContext()
     );
     expect(wrapper.find('Button[to="/settings/org-slug/teams/"]').prop('disabled')).toBe(
@@ -57,47 +77,59 @@ describe('NoProjectMessage', function () {
     );
   });
 
-  it('handles projects from props', function () {
-    const lightWeightOrg = TestStubs.Organization();
-    delete lightWeightOrg.projects;
-
-    const wrapper = mountWithTheme(
-      <NoProjectMessage projects={[]} organization={lightWeightOrg} />,
-      TestStubs.routerContext()
-    );
-    expect(
-      wrapper.find('Button[to="/organizations/org-slug/projects/new/"]')
-    ).toHaveLength(1);
-  });
-
-  it('handles loading projects from props', function () {
-    const lightWeightOrg = TestStubs.Organization();
-    delete lightWeightOrg.projects;
-
-    const child = <div>child</div>;
-
-    const wrapper = mountWithTheme(
-      <NoProjectMessage projects={[]} loadingProjects organization={lightWeightOrg}>
-        {child}
-      </NoProjectMessage>,
-      TestStubs.routerContext()
-    );
-    // ensure loading projects causes children to render
-    expect(wrapper.find('div')).toHaveLength(1);
-  });
-
   it('shows empty message to superusers that are not members', function () {
+    ProjectsStore.loadInitialData([
+      TestStubs.Project({hasAccess: true, isMember: false}),
+    ]);
     ConfigStore.config.user = {isSuperuser: true};
     const wrapper = mountWithTheme(
-      <NoProjectMessage
-        organization={org}
-        projects={[TestStubs.Project({hasAccess: true, isMember: false})]}
-        superuserNeedsToBeProjectMember
-      >
+      <NoProjectMessage organization={org} superuserNeedsToBeProjectMember>
         {null}
       </NoProjectMessage>,
       TestStubs.routerContext()
     );
     expect(wrapper.find('HelpMessage')).toHaveLength(1);
+  });
+
+  it('does not remount when the projects store loads', async function () {
+    const mount = jest.fn();
+    const unmount = jest.fn();
+    class MockComponent extends Component {
+      componentWillMount() {
+        mount();
+      }
+      componentWillUnmount() {
+        unmount();
+      }
+      render() {
+        return <div>children</div>;
+      }
+    }
+
+    const project1 = TestStubs.Project();
+    const project2 = TestStubs.Project();
+    const organization = TestStubs.Organization({slug: 'org-slug'});
+    delete organization.projects;
+    const wrapper = mountWithTheme(
+      <NoProjectMessage organization={organization}>
+        <MockComponent />
+      </NoProjectMessage>,
+      TestStubs.routerContext()
+    );
+
+    // verify MockComponent is mounted once
+    expect(mount).toHaveBeenCalledTimes(1);
+    expect(wrapper.find('NoProjectMessage')).toHaveLength(1);
+    expect(wrapper.find('NoProjectMessage').prop('loadingProjects')).toEqual(true);
+    ProjectsStore.loadInitialData([project1, project2]);
+    // await for trigger from projects store to resolve
+    await tick();
+    wrapper.update();
+
+    // verify MockComponent is not unmounted and is still mounted once
+    expect(unmount).toHaveBeenCalledTimes(0);
+    expect(mount).toHaveBeenCalledTimes(1);
+    expect(wrapper.find('NoProjectMessage')).toHaveLength(1);
+    expect(wrapper.find('NoProjectMessage').prop('loadingProjects')).toEqual(false);
   });
 });

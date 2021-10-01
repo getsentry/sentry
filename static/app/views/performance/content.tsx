@@ -9,7 +9,7 @@ import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import PageHeading from 'app/components/pageHeading';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -211,7 +211,7 @@ class PerformanceContent extends Component<Props, State> {
 
     return (
       <PageContent>
-        <LightWeightNoProjectMessage organization={organization}>
+        <NoProjectMessage organization={organization}>
           <PageHeader>
             <PageHeading>{t('Performance')}</PageHeading>
             {!showOnboarding && (
@@ -248,7 +248,7 @@ class PerformanceContent extends Component<Props, State> {
               handleSearch={this.handleSearch}
             />
           )}
-        </LightWeightNoProjectMessage>
+        </NoProjectMessage>
       </PageContent>
     );
   }

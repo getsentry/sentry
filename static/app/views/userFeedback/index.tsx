@@ -7,8 +7,8 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import CompactIssue from 'app/components/issues/compactIssue';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
@@ -119,7 +119,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
     return (
       <GlobalSelectionHeader>
         <PageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
             <div data-test-id="user-feedback">
               <Header>
                 <PageHeading>{t('User Feedback')}</PageHeading>
@@ -139,7 +139,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
               {this.renderStreamBody()}
               <Pagination pageLinks={reportListPageLinks} />
             </div>
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
     );

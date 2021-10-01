@@ -67,11 +67,7 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
 
   if (showEmptyMessage) {
     return (
-      <NoProjectMessage
-        organization={organization}
-        projects={projects}
-        superuserNeedsToBeProjectMember
-      />
+      <NoProjectMessage organization={organization} superuserNeedsToBeProjectMember />
     );
   }
 

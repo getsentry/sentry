@@ -10,7 +10,7 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Switch from 'app/components/switchButton';
@@ -290,7 +290,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       >
         <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
           <StyledPageContent>
-            <LightWeightNoProjectMessage organization={organization}>
+            <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
                   <GuideAnchor target="discover_landing_header">
@@ -315,7 +315,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                 {this.renderActions()}
                 {this.renderComponent()}
               </PageContent>
-            </LightWeightNoProjectMessage>
+            </NoProjectMessage>
           </StyledPageContent>
         </SentryDocumentTitle>
       </Feature>

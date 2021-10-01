@@ -15,8 +15,8 @@ import GlobalEventProcessingAlert from 'app/components/globalEventProcessingAler
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import IdBadge from 'app/components/idBadge';
 import * as Layout from 'app/components/layouts/thirds';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import LoadingError from 'app/components/loadingError';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
 import TextOverflow from 'app/components/textOverflow';
@@ -240,7 +240,7 @@ class ProjectDetail extends AsyncView<Props, State> {
         skipLoadLastUsed
         onUpdateProjects={this.handleProjectChange}
       >
-        <LightWeightNoProjectMessage organization={organization}>
+        <NoProjectMessage organization={organization}>
           <StyledPageContent>
             <Layout.Header>
               <Layout.HeaderContent>
@@ -370,7 +370,7 @@ class ProjectDetail extends AsyncView<Props, State> {
               </Layout.Side>
             </Layout.Body>
           </StyledPageContent>
-        </LightWeightNoProjectMessage>
+        </NoProjectMessage>
       </GlobalSelectionHeader>
     );
   }

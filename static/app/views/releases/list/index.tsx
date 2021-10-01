@@ -9,9 +9,9 @@ import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import PageHeading from 'app/components/pageHeading';
@@ -544,7 +544,7 @@ class ReleasesList extends AsyncView<Props, State> {
         )}
       >
         <PageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
             <PageHeader>
               <PageHeading>{t('Releases')}</PageHeading>
             </PageHeader>
@@ -608,7 +608,7 @@ class ReleasesList extends AsyncView<Props, State> {
             {error
               ? super.renderError(new Error('Unable to load all required endpoints'))
               : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
     );
