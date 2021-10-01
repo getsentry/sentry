@@ -386,13 +386,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ]
 
             if environments is not None:
-                env_filter = [
-                    x
-                    for x in [
-                        try_get_string_index(org_id, environment) for environment in environments
-                    ]
-                    if x is not None
-                ]
+                env_filter = get_tag_values_list(org_id, environments)
                 if not env_filter:
                     raise MetricIndexNotFound()
 
@@ -528,11 +522,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         if includes_releases:
             releases = [x[1] for x in projects_list]  # type: ignore
             release_column_name = tag_key(org_id, "release")
-            releases_ids = [
-                release_id
-                for release_id in [try_get_string_index(org_id, release) for release in releases]
-                if release_id is not None
-            ]
+            releases_ids = get_tag_values_list(org_id, releases)
             where_clause.append(Condition(Column(release_column_name), Op.IN, releases_ids))
             column_names = ["project_id", release_column_name]
 
@@ -620,7 +610,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         start: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> Callable[[datetime], CrashFreeBreakdown]:
-        def dummy_fn(end: datetime) -> CrashFreeBreakdown:
+        def generate_defaults(end: datetime) -> CrashFreeBreakdown:
             """Function to use if querying snuba is not necessary"""
             return {
                 "crash_free_sessions": None,
@@ -638,7 +628,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             status_key = tag_key(org_id, "session.status")
         except MetricIndexNotFound:
             # No need to query snuba if any of these is missing
-            return dummy_fn
+            return generate_defaults
 
         environment_values = None
         if environments is not None:
@@ -646,19 +636,23 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         if environment_values == []:
             # No need to query snuba with an empty list
-            return dummy_fn
+            return generate_defaults
+
+        status_init = tag_value(org_id, "init")
+        status_crashed = tag_value(org_id, "crashed")
 
         conditions = [
             Condition(Column("org_id"), Op.EQ, org_id),
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column(release_key), Op.EQ, release_value),
             Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column(status_key), Op.IN, [status_init, status_crashed]),
         ]
         if environment_values is not None:
             conditions.append(Condition(Column(environment_key), Op.IN, environment_values))
 
         def query_stats(end: datetime) -> CrashFreeBreakdown:
-            def _get_data(entity: EntityKey, metric_name: str) -> Tuple[int, int]:
+            def _get_data(entity_key: EntityKey, metric_name: str) -> Tuple[int, int]:
                 total = 0
                 crashed = 0
                 metric_id = try_get_string_index(org_id, metric_name)
@@ -670,7 +664,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     data = raw_snql_query(
                         Query(
                             dataset=Dataset.Metrics.value,
-                            match=Entity(entity.value),
+                            match=Entity(entity_key.value),
                             select=[Column("value")],
                             where=where,
                             groupby=[Column(status_key)],
@@ -678,9 +672,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                         referrer="release_health.metrics.crash-free-breakdown.session",
                     )["data"]
                     for row in data:
-                        if row[status_key] == tag_value(org_id, "init"):
+                        if row[status_key] == status_init:
                             total = int(row["value"])
-                        elif row[status_key] == tag_value(org_id, "crashed"):
+                        elif row[status_key] == status_crashed:
                             crashed = int(row["value"])
 
                 return total, crashed
@@ -727,13 +721,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             timedelta(days=30),
         ):
             try:
-                item_start = start + offset
-                if item_start > now:
-                    if last is None or (item_start - last).days > 1:
+                end = start + offset
+                if end > now:
+                    if last is None or (end - last).days > 1:
                         rv.append(query_fn(now))
                     break
-                rv.append(query_fn(item_start))
-                last = item_start
+                rv.append(query_fn(end))
+                last = end
             except QueryOutsideRetentionError:
                 # cannot query for these
                 pass

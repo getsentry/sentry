@@ -71,6 +71,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "check_has_health_data",
         "get_release_sessions_time_bounds",
         "check_releases_have_health_data",
+        "get_crash_free_breakdown",
     )
 
     def get_current_and_previous_crash_free_rates(
@@ -192,4 +193,5 @@ class ReleaseHealthBackend(Service):  # type: ignore
         start: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> Sequence[CrashFreeBreakdown]:
+        """Get stats about crash free sessions and stats for the last 1, 2, 7, 14 and 30 days"""
         raise NotImplementedError()

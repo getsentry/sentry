@@ -16,9 +16,9 @@ from sentry.release_health.base import (
 from sentry.snuba.sessions import (
     _check_has_health_data,
     _check_releases_have_health_data,
+    _get_crash_free_breakdown,
     _get_release_adoption,
     _get_release_sessions_time_bounds,
-    get_crash_free_breakdown,
     get_current_and_previous_crash_free_rates,
 )
 
@@ -95,6 +95,6 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         start: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> Sequence[CrashFreeBreakdown]:
-        return get_crash_free_breakdown(  # type: ignore
+        return _get_crash_free_breakdown(  # type: ignore
             project_id=project_id, release=release, start=start, environments=environments
         )
