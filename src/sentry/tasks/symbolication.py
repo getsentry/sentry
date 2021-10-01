@@ -6,7 +6,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry import options
-from sentry.eventstore.processing import event_processing_store
+from sentry.eventstore import processing
 from sentry.killswitches import killswitch_matches_context
 from sentry.processing import realtime_metrics
 from sentry.tasks.base import instrumented_task
@@ -68,7 +68,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     from sentry.tasks.store import _do_process_event, process_event, process_event_from_reprocessing
 
     if data is None:
-        data = event_processing_store.get(cache_key)
+        data = processing.event_processing_store.get(cache_key)
 
     if data is None:
         metrics.incr(
@@ -215,7 +215,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
         data = dict(data.items())
 
     if has_changed:
-        cache_key = event_processing_store.store(data)
+        cache_key = processing.event_processing_store.store(data)
 
     return _continue_to_process_event()
 

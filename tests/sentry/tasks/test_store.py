@@ -10,10 +10,9 @@ from sentry.tasks.store import (
     preprocess_event,
     process_event,
     save_event,
-    should_demote_symbolication,
-    symbolicate_event,
     time_synthetic_monitoring_event,
 )
+from sentry.tasks.symbolication import should_demote_symbolication, symbolicate_event
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.compat import mock
 
@@ -59,13 +58,13 @@ def mock_process_event():
 
 @pytest.fixture
 def mock_symbolicate_event():
-    with mock.patch("sentry.tasks.store.symbolicate_event") as m:
+    with mock.patch("sentry.tasks.symbolication.symbolicate_event") as m:
         yield m
 
 
 @pytest.fixture
 def mock_symbolicate_event_low_priority():
-    with mock.patch("sentry.tasks.store.symbolicate_event_low_priority") as m:
+    with mock.patch("sentry.tasks.symbolication.symbolicate_event_low_priority") as m:
         yield m
 
 
@@ -77,7 +76,7 @@ def mock_get_symbolication_function():
 
 @pytest.fixture
 def mock_event_processing_store():
-    with mock.patch("sentry.tasks.store.event_processing_store") as m:
+    with mock.patch("sentry.eventstore.processing.event_processing_store") as m:
         yield m
 
 

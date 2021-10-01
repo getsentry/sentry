@@ -11,7 +11,7 @@ from sentry import options, reprocessing, reprocessing2
 from sentry.attachments import attachment_cache
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
-from sentry.eventstore.processing import event_processing_store
+from sentry.eventstore import processing
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Activity, Organization, Project, ProjectOption
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
@@ -99,7 +99,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
     )
 
     if cache_key and data is None:
-        data = event_processing_store.get(cache_key)
+        data = processing.event_processing_store.get(cache_key)
 
     if data is None:
         metrics.incr("events.failed", tags={"reason": "cache", "stage": "pre"}, skip_internal=False)
@@ -226,7 +226,7 @@ def _do_process_event(
     from sentry.plugins.base import plugins
 
     if data is None:
-        data = event_processing_store.get(cache_key)
+        data = processing.event_processing_store.get(cache_key)
 
     if data is None:
         metrics.incr(
@@ -376,7 +376,7 @@ def _do_process_event(
             _do_preprocess_event(cache_key, data, start_time, event_id, process_task, project)
             return
 
-        cache_key = event_processing_store.store(data)
+        cache_key = processing.event_processing_store.store(data)
 
     return _continue_to_save_event()
 
@@ -511,7 +511,7 @@ def create_failed_event(
     # from the last processing step because we do not want any
     # modifications to take place.
     delete_raw_event(project_id, event_id)
-    data = event_processing_store.get(cache_key)
+    data = processing.event_processing_store.get(cache_key)
 
     if data is None:
         metrics.incr("events.failed", tags={"reason": "cache", "stage": "raw"}, skip_internal=False)
@@ -537,7 +537,7 @@ def create_failed_event(
             data=issue["data"],
         )
 
-    event_processing_store.delete_by_key(cache_key)
+    processing.event_processing_store.delete_by_key(cache_key)
 
     return True
 
@@ -557,7 +557,7 @@ def _do_save_event(
 
     if cache_key and data is None:
         with metrics.timer("tasks.store.do_save_event.get_cache") as metric_tags:
-            data = event_processing_store.get(cache_key)
+            data = processing.event_processing_store.get(cache_key)
             if data is not None:
                 metric_tags["event_type"] = event_type = data.get("type") or "none"
 
@@ -620,12 +620,12 @@ def _do_save_event(
                 if isinstance(data, CANONICAL_TYPES):
                     data = dict(data.items())
                 with metrics.timer("tasks.store.do_save_event.write_processing_cache"):
-                    event_processing_store.store(data)
+                    processing.event_processing_store.store(data)
         except HashDiscarded:
             # Delete the event payload from cache since it won't show up in post-processing.
             if cache_key:
                 with metrics.timer("tasks.store.do_save_event.delete_cache"):
-                    event_processing_store.delete_by_key(cache_key)
+                    processing.event_processing_store.delete_by_key(cache_key)
 
         finally:
             reprocessing2.mark_event_reprocessed(data)
