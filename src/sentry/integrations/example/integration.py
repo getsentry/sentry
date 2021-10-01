@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 
 from django.http import HttpResponse
 
@@ -9,7 +9,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.issues import IssueSyncMixin
+from sentry.integrations.issues import IssueSyncMixin, ResolveSyncAction
 from sentry.mediators.plugins import Migrator
 from sentry.models import ExternalIssue, User
 from sentry.pipeline import PipelineView
@@ -141,14 +141,15 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def sync_status_outbound(self, external_issue, is_resolved, project_id):
         pass
 
-    def should_unresolve(self, data):
-        return data["status"]["category"] != "done"
-
-    def should_resolve(self, data):
-        return data["status"]["category"] == "done"
+    def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
+        category = data["status"]["category"]
+        return ResolveSyncAction.from_resolve_unresolve(
+            should_resolve=category == "done",
+            should_unresolve=category != "done",
+        )
 
     def get_issue_display_name(self, external_issue):
-        return "display name: %s" % external_issue.key
+        return f"display name: {external_issue.key}"
 
     def get_stacktrace_link(self, repo, path, default, version):
         pass
