@@ -32,6 +32,30 @@ type Props = {
 };
 
 class PerformanceCardTable extends React.PureComponent<Props> {
+  userMiseryField() {
+    return (
+      <UserMiseryPanelItem>
+        <StyledUserMisery
+          bars={10}
+          barHeight={20}
+          miseryLimit={1000}
+          totalUsers={500}
+          userMisery={300}
+          miserableUsers={200}
+        />
+      </UserMiseryPanelItem>
+    );
+  }
+
+  sectionField(field: JSX.Element[]) {
+    return (
+      <StyledPanelItem>
+        <TitleSpace />
+        {field}
+      </StyledPanelItem>
+    );
+  }
+
   renderFrontendPerformance() {
     const vitals = [WebVital.FCP, WebVital.FID, WebVital.LCP, WebVital.CLS];
     const webVitalTitles = vitals.map(vital => {
@@ -57,6 +81,16 @@ class PerformanceCardTable extends React.PureComponent<Props> {
       );
     });
 
+    const columnData = () => {
+      return (
+        <div>
+          {this.userMiseryField()}
+          {this.sectionField(field)}
+          {this.sectionField(field)}
+        </div>
+      );
+    };
+
     return (
       <Fragment>
         <div>
@@ -74,66 +108,15 @@ class PerformanceCardTable extends React.PureComponent<Props> {
         <div>
           {/* Table All Releases column */}
           {/* TODO(kelly): placeholder data. will need to add user misery data in follow-up pr */}
-          <UserMiseryPanelItem>
-            <StyledUserMisery
-              bars={10}
-              barHeight={20}
-              miseryLimit={1000}
-              totalUsers={500}
-              userMisery={300}
-              miserableUsers={200}
-            />
-          </UserMiseryPanelItem>
-          <StyledPanelItem>
-            <TitleSpace />
-            {field}
-          </StyledPanelItem>
-          <StyledPanelItem>
-            <TitleSpace />
-            {field}
-          </StyledPanelItem>
+          {columnData()}
         </div>
         <div>
           {/* Table This Release column */}
-          <UserMiseryPanelItem>
-            <StyledUserMisery
-              bars={10}
-              barHeight={20}
-              miseryLimit={1000}
-              totalUsers={500}
-              userMisery={300}
-              miserableUsers={200}
-            />
-          </UserMiseryPanelItem>
-          <StyledPanelItem>
-            <TitleSpace />
-            {field}
-          </StyledPanelItem>
-          <StyledPanelItem>
-            <TitleSpace />
-            {field}
-          </StyledPanelItem>
+          {columnData()}
         </div>
         <div>
           {/* Table Change column */}
-          <UserMiseryPanelItem>
-            <StyledUserMisery
-              bars={10}
-              barHeight={20}
-              miseryLimit={1000}
-              totalUsers={500}
-              userMisery={300}
-              miserableUsers={200}
-            />
-          </UserMiseryPanelItem>
-          <StyledPanelItem>
-            <TitleSpace />
-            {field}
-          </StyledPanelItem>
-          <StyledPanelItem>
-            <TitleSpace />
-            {field}
-          </StyledPanelItem>
+          {columnData()}
         </div>
       </Fragment>
     );
@@ -164,6 +147,16 @@ class PerformanceCardTable extends React.PureComponent<Props> {
       );
     });
 
+    const columnData = () => {
+      return (
+        <div>
+          {this.userMiseryField()}
+          <StyledPanelItem>{apdexField}</StyledPanelItem>
+          {this.sectionField(field)}
+        </div>
+      );
+    };
+
     return (
       <Fragment>
         <div>
@@ -180,57 +173,15 @@ class PerformanceCardTable extends React.PureComponent<Props> {
         <div>
           {/* Table All Releases column */}
           {/* TODO(kelly): placeholder data. will need to add user misery data in follow-up pr */}
-          <UserMiseryPanelItem>
-            <StyledUserMisery
-              bars={10}
-              barHeight={20}
-              miseryLimit={1000}
-              totalUsers={500}
-              userMisery={300}
-              miserableUsers={200}
-            />
-          </UserMiseryPanelItem>
-          <StyledPanelItem>{apdexField}</StyledPanelItem>
-          <StyledPanelItem>
-            <TitleSpace />
-            {field}
-          </StyledPanelItem>
+          {columnData()}
         </div>
         <div>
           {/* Table This Release column */}
-          <UserMiseryPanelItem>
-            <StyledUserMisery
-              bars={10}
-              barHeight={20}
-              miseryLimit={1000}
-              totalUsers={500}
-              userMisery={300}
-              miserableUsers={200}
-            />
-          </UserMiseryPanelItem>
-          <StyledPanelItem>{apdexField}</StyledPanelItem>
-          <StyledPanelItem>
-            <TitleSpace />
-            {field}
-          </StyledPanelItem>
+          {columnData()}
         </div>
         <div>
           {/* Table Change column */}
-          <UserMiseryPanelItem>
-            <StyledUserMisery
-              bars={10}
-              barHeight={20}
-              miseryLimit={1000}
-              totalUsers={500}
-              userMisery={300}
-              miserableUsers={200}
-            />
-          </UserMiseryPanelItem>
-          <StyledPanelItem>{apdexField}</StyledPanelItem>
-          <StyledPanelItem>
-            <TitleSpace />
-            {field}
-          </StyledPanelItem>
+          {columnData()}
         </div>
       </Fragment>
     );
@@ -262,6 +213,15 @@ class PerformanceCardTable extends React.PureComponent<Props> {
       return <StyledPanelItem key={vital}>{mobileField}</StyledPanelItem>;
     });
 
+    const columnData = () => {
+      return (
+        <div>
+          {this.userMiseryField()}
+          {field}
+        </div>
+      );
+    };
+
     return (
       <Fragment>
         <div>
@@ -272,45 +232,15 @@ class PerformanceCardTable extends React.PureComponent<Props> {
         <div>
           {/* Table All Releases column */}
           {/* TODO(kelly): placeholder data. will need to add user misery data in follow-up pr */}
-          <UserMiseryPanelItem>
-            <StyledUserMisery
-              bars={10}
-              barHeight={20}
-              miseryLimit={1000}
-              totalUsers={500}
-              userMisery={300}
-              miserableUsers={200}
-            />
-          </UserMiseryPanelItem>
-          {field}
+          {columnData()}
         </div>
         <div>
           {/* Table This Release column */}
-          <UserMiseryPanelItem>
-            <StyledUserMisery
-              bars={10}
-              barHeight={20}
-              miseryLimit={1000}
-              totalUsers={500}
-              userMisery={300}
-              miserableUsers={200}
-            />
-          </UserMiseryPanelItem>
-          {field}
+          {columnData()}
         </div>
         <div>
           {/* Table Change column */}
-          <UserMiseryPanelItem>
-            <StyledUserMisery
-              bars={10}
-              barHeight={20}
-              miseryLimit={1000}
-              totalUsers={500}
-              userMisery={300}
-              miserableUsers={200}
-            />
-          </UserMiseryPanelItem>
-          {field}
+          {columnData()}
         </div>
       </Fragment>
     );
@@ -325,42 +255,15 @@ class PerformanceCardTable extends React.PureComponent<Props> {
         </div>
         <div>
           {/* TODO(kelly): placeholder data. will need to add user misery data in follow-up pr */}
-          <UserMiseryPanelItem>
-            <StyledUserMisery
-              bars={10}
-              barHeight={20}
-              miseryLimit={1000}
-              totalUsers={500}
-              userMisery={300}
-              miserableUsers={200}
-            />
-          </UserMiseryPanelItem>
+          {this.userMiseryField()}
         </div>
         <div>
           {/* Table All Releases column */}
-          <UserMiseryPanelItem>
-            <StyledUserMisery
-              bars={10}
-              barHeight={20}
-              miseryLimit={1000}
-              totalUsers={500}
-              userMisery={300}
-              miserableUsers={200}
-            />
-          </UserMiseryPanelItem>
+          {this.userMiseryField()}
         </div>
         <div>
           {/* Table This Release column */}
-          <UserMiseryPanelItem>
-            <StyledUserMisery
-              bars={10}
-              barHeight={20}
-              miseryLimit={1000}
-              totalUsers={500}
-              userMisery={300}
-              miserableUsers={200}
-            />
-          </UserMiseryPanelItem>
+          {this.userMiseryField()}
         </div>
       </Fragment>
     );
