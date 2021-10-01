@@ -161,7 +161,7 @@ class VstsWebhookWorkItemTest(APITestCase):
         # Change so that state is changing from unresolved to resolved
         work_item = self.set_workitem_state("Active", "Resolved")
 
-        with self.feature("organizations:integrations-issue-sync"):
+        with self.feature("organizations:integrations-issue-sync"), self.tasks():
             resp = self.client.post(
                 absolute_uri("/extensions/vsts/issue-updated/"),
                 data=work_item,
@@ -194,7 +194,7 @@ class VstsWebhookWorkItemTest(APITestCase):
         # Change so that state is changing from resolved to unresolved
         work_item = self.set_workitem_state("Resolved", "Active")
 
-        with self.feature("organizations:integrations-issue-sync"):
+        with self.feature("organizations:integrations-issue-sync"), self.tasks():
             resp = self.client.post(
                 absolute_uri("/extensions/vsts/issue-updated/"),
                 data=work_item,
