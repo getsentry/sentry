@@ -173,6 +173,7 @@ class TeamStability extends AsyncComponent<Props, State> {
 
     return (
       <StyledPanelTable
+        isEmpty={projects.length === 0}
         headers={[
           t('Project'),
           <RightAligned key="last">{tct('Last [period]', {period})}</RightAligned>,
