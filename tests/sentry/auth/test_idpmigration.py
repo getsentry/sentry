@@ -33,10 +33,7 @@ class IDPMigrationTests(TestCase):
             args=[verification_key],
         )
         response = self.client.get(path)
-        assert (
-            self.client.session["confirm_account_verification_key"]
-            == f"auth:one-time-key:{verification_key}"
-        )
+        assert self.client.session["confirm_account_verification_key"] == verification_key
         assert response.status_code == 302
         assert response.templates[0].name == "sentry/idp_email_verified.html"
 
