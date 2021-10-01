@@ -6,6 +6,7 @@ from typing import Any, Generator, Mapping, Optional, Sequence
 
 from sentry import options
 from sentry.eventstream.kafka.protocol import (
+    decode_bool,
     get_task_kwargs_for_message,
     get_task_kwargs_for_message_from_headers,
 )
@@ -21,6 +22,7 @@ _DURATION_METRIC = "eventstream.duration"
 _CONCURRENCY_METRIC = "eventstream.concurrency"
 _MESSAGES_METRIC = "eventstream.messages"
 _CONCURRENCY_OPTION = "post-process-forwarder:concurrency"
+_TRANSACTION_FORWARDER_HEADER = "transaction_forwarder"
 
 
 @contextmanager
@@ -114,7 +116,7 @@ class PostProcessForwarderWorker(AbstractBatchWorker):
         """
         return self.__executor.submit(_get_task_kwargs_and_dispatch, message)
 
-    def flush_batch(self, batch: Sequence[Future]) -> None:
+    def flush_batch(self, batch: Optional[Sequence[Future]]) -> None:
         """
         For all work which was submitted to the thread pool executor, we need to ensure that if an exception was
         raised, then we raise it in the main thread. This is needed so that processing can be stopped in such
@@ -140,3 +142,44 @@ class PostProcessForwarderWorker(AbstractBatchWorker):
 
     def shutdown(self) -> None:
         self.__executor.shutdown()
+
+
+class ErrorsPostProcessForwarderWorker(PostProcessForwarderWorker):
+    """
+    ErrorsPostProcessForwarderWorker will processes messages only in the following scenarios:
+    1. _TRANSACTION_FORWARDER_HEADER is missing from the kafka headers. This is a backward compatibility
+    use case. There can be messages in the queue which do not have this header. Those messages should be
+    handled by the errors post process forwarder
+    2. _TRANSACTION_FORWARDER_HEADER is False in the kafka headers.
+    """
+
+    def process_message(self, message: Message) -> Optional[Future]:
+        headers = {header: value for header, value in message.headers()}
+
+        # Backwards-compatibility case for messages missing header.
+        if _TRANSACTION_FORWARDER_HEADER not in headers:
+            return super().process_message(message)
+
+        if decode_bool(headers.get(_TRANSACTION_FORWARDER_HEADER)) is False:
+            return super().process_message(message)
+
+        return None
+
+
+class TransactionsPostProcessForwarderWorker(PostProcessForwarderWorker):
+    """
+    TransactionsPostProcessForwarderWorker will processes messages only in the following scenarios:
+    1. _TRANSACTION_FORWARDER_HEADER is True in the kafka headers.
+    """
+
+    def process_message(self, message: Message) -> Optional[Future]:
+        headers = {header: value for header, value in message.headers()}
+
+        # Backwards-compatibility for messages missing headers.
+        if _TRANSACTION_FORWARDER_HEADER not in headers:
+            return None
+
+        if decode_bool(headers.get(_TRANSACTION_FORWARDER_HEADER)) is True:
+            return super().process_message(message)
+
+        return None
