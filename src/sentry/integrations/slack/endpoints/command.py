@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
 from django.http import HttpResponse
 from rest_framework import status
@@ -10,7 +10,13 @@ from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestEr
 from sentry.integrations.slack.requests.command import SlackCommandRequest
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
-from sentry.models import ExternalActor, IdentityProvider, Organization, OrganizationMember
+from sentry.models import (
+    ExternalActor,
+    Identity,
+    IdentityProvider,
+    Organization,
+    OrganizationMember,
+)
 from sentry.types.integrations import ExternalProviders
 
 from .base import SlackDMEndpoint
@@ -47,6 +53,14 @@ def is_team_linked_to_channel(organization: Organization, slack_request: SlackRe
     ).exists()
 
 
+def get_identity(slack_request: SlackRequest) -> Optional[Identity]:
+    try:
+        identity = slack_request.get_identity()
+    except IdentityProvider.DoesNotExist:
+        identity = None
+    return identity
+
+
 class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
@@ -72,10 +86,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
         if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
             return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
 
-        try:
-            identity = slack_request.get_identity()
-        except IdentityProvider.DoesNotExist:
-            identity = None
+        identity = get_identity(slack_request)
         if not identity:
             return self.reply(slack_request, LINK_USER_FIRST_MESSAGE)
 
@@ -106,10 +117,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
         if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
             return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
 
-        try:
-            identity = slack_request.get_identity()
-        except IdentityProvider.DoesNotExist:
-            identity = None
+        identity = get_identity(slack_request)
         if not identity:
             return self.reply(slack_request, LINK_USER_FIRST_MESSAGE)
 
