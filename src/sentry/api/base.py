@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 import sentry_sdk
 from django.conf import settings
+from django.db import connection
 from django.http import HttpResponse
 from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
@@ -192,6 +193,8 @@ class Endpoint(APIView):
                 path=self.request.path,
                 caller_ip=self.request.META.get("REMOTE_ADDR"),
                 user_agent=self.request.META.get("HTTP_USER_AGENT"),
+                db_queries=len(connection.queries),
+                db_query_time=sum(float(query["time"]) for query in connection.queries),
             )
             api_access_logger.info("api.access", extra=log_metrics)
         except Exception:
