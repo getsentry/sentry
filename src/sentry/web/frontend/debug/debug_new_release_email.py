@@ -2,6 +2,7 @@ import datetime
 
 import pytz
 from django.views.generic import View
+from sentry_relay import parse_release
 
 from sentry.models import Commit, CommitAuthor, Deploy, Organization, Project, Release, User
 from sentry.notifications.types import GroupSubscriptionReason
@@ -19,9 +20,11 @@ class DebugNewReleaseEmailView(View):
             Project(id=2, organization=org, slug="another-project", name="Another Project"),
             Project(id=3, organization=org, slug="yet-another-project", name="Yet Another Project"),
         ]
+        version = "6c998f755f304593a4713abd123eaf8833a2de5e"
+        version_parsed = parse_release(version)["description"]
         release = Release(
             organization_id=org.id,
-            version="6c998f755f304593a4713abd123eaf8833a2de5e",
+            version=version,
             date_added=datetime.datetime(2016, 10, 12, 15, 39, tzinfo=pytz.utc),
         )
 
@@ -106,5 +109,6 @@ class DebugNewReleaseEmailView(View):
                 "release": release,
                 "repos": repos,
                 "setup_repo_link": absolute_uri(f"/organizations/{org.slug}/repos/"),
+                "version_parsed": version_parsed,
             },
         ).render(request)
