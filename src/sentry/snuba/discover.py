@@ -613,18 +613,24 @@ def top_events_timeseries(
                 {
                     event.get(alias)
                     for event in top_events["data"]
-                    if field in event and not isinstance(event.get(field), list)
+                    if (field in event or alias in event) and not isinstance(event.get(field), list)
                 }
             )
             if values:
                 if field in FIELD_ALIASES:
                     # Fallback to the alias if for whatever reason we can't find it
                     resolved_field = alias
-                    # Search selected columns for the resolved version of the alias
-                    for column in snuba_filter.selected_columns:
-                        if isinstance(column, list) and column[-1] == field:
-                            resolved_field = column
-                            break
+                    # Issue needs special handling since its aliased uniquely
+                    if field == "issue":
+                        resolved_field = "group_id"
+                    else:
+                        # Search selected columns for the resolved version of the alias
+                        for column in snuba_filter.selected_columns:
+                            if isinstance(column, list) and (
+                                column[-1] == field or column[-1] == alias
+                            ):
+                                resolved_field = column
+                                break
                 else:
                     resolved_field = resolve_discover_column(field)
 
