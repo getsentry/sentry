@@ -785,7 +785,7 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 20 * 60},
     },
     "check-symbolicator-lpq-project-eligibility": {
-        "task": "sentry.tasks.symbolicator.scan_for_suspect_projects",
+        "task": "sentry.tasks.low_priority_symbolication.scan_for_suspect_projects",
         "schedule": timedelta(seconds=10),
         "options": {"expires": 10},
     },
