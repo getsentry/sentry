@@ -76,7 +76,7 @@ def _update_lpq_eligibility(project_id: int) -> None:
         if was_added:
             logger.warning("Moved project to symbolicator's low priority queue: %s", project_id)
     elif not is_eligible:
-        was_removed = realtime_metrics.remove_project_from_lpq(project_id)
+        was_removed = realtime_metrics.remove_projects_from_lpq(set([project_id]))
         if was_removed:
             logger.warning("Moved project out of symbolicator's low priority queue: %s", project_id)
 

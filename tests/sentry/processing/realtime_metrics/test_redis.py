@@ -4,13 +4,13 @@ from typing import TYPE_CHECKING, Any, Dict
 
 import pytest
 
-from sentry.processing import realtime_metrics  # type: ignore
-from sentry.processing.realtime_metrics.base import (  # type: ignore
+from sentry.processing import realtime_metrics
+from sentry.processing.realtime_metrics.base import (
     BucketedCount,
     BucketedDurations,
     DurationHistogram,
 )
-from sentry.processing.realtime_metrics.redis import RedisRealtimeMetricsStore  # type: ignore
+from sentry.processing.realtime_metrics.redis import RedisRealtimeMetricsStore
 from sentry.utils import redis
 
 if TYPE_CHECKING:
@@ -289,62 +289,11 @@ def test_remove_projects_from_lpq_no_members(
 ) -> None:
     redis_cluster.sadd("store.symbolicate-event-lpq-selected", 1)
 
-    removed = store.remove_projects_from_lpq({})
+    removed = store.remove_projects_from_lpq(set())
     assert removed == 0
 
     remaining = redis_cluster.smembers("store.symbolicate-event-lpq-selected")
     assert remaining == {"1"}
-
-
-#
-# remove_project_from_lpq()
-# This literally invokes remove_projects_from_lpq so bare bones tests should be enough
-
-
-def test_remove_project_from_lpq_unset(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
-) -> None:
-    removed = store.remove_project_from_lpq(1)
-    assert not removed
-
-    remaining = redis_cluster.smembers("store.symbolicate-event-lpq-selected")
-    assert remaining == set()
-
-
-def test_remove_project_from_lpq_empty(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
-) -> None:
-    redis_cluster.sadd("store.symbolicate-event-lpq-selected", 1)
-    redis_cluster.srem("store.symbolicate-event-lpq-selected", 1)
-
-    removed = store.remove_project_from_lpq(1)
-    assert not removed
-    remaining = redis_cluster.smembers("store.symbolicate-event-lpq-selected")
-    assert remaining == set()
-
-
-def test_remove_project_from_lpq_only_member(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
-) -> None:
-    redis_cluster.sadd("store.symbolicate-event-lpq-selected", 1)
-
-    removed = store.remove_project_from_lpq(1)
-    assert removed
-
-    remaining = redis_cluster.smembers("store.symbolicate-event-lpq-selected")
-    assert remaining == set()
-
-
-def test_remove_project_from_lpq_nonmember(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
-) -> None:
-    redis_cluster.sadd("store.symbolicate-event-lpq-selected", 11)
-
-    removed = store.remove_project_from_lpq(1)
-    assert not removed
-
-    remaining = redis_cluster.smembers("store.symbolicate-event-lpq-selected")
-    assert remaining == {"11"}
 
 
 #
