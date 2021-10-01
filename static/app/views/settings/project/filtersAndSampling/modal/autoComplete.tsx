@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {components, ContainerProps, MultiValueProps, OptionProps} from 'react-select';
+import {components, MultiValueProps, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -11,6 +11,9 @@ import useApi from 'app/utils/useApi';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
 import {getMatchFieldPlaceholder} from './utils';
+
+// react-select doesn't seem to expose ContainerProps
+type ContainerProps = React.ComponentProps<typeof components.SelectContainer>;
 
 type Tag = {
   value: string;
@@ -119,13 +122,15 @@ function AutoComplete({orgSlug, projectId, category, onChange, value}: Props) {
         }),
       }}
       components={{
-        SelectContainer: (containerProps: ContainerProps<{}>) => (
+        SelectContainer: (containerProps: ContainerProps) => (
           <components.SelectContainer
             {...containerProps}
-            innerProps={{
-              ...containerProps.innerProps,
-              'data-test-id': `autocomplete-${key}`,
-            }}
+            innerProps={
+              {
+                ...containerProps.innerProps,
+                'data-test-id': `autocomplete-${key}`,
+              } as ContainerProps['innerProps']
+            }
           />
         ),
         MultiValue: (multiValueProps: MultiValueProps<{}>) => (
@@ -137,7 +142,12 @@ function AutoComplete({orgSlug, projectId, category, onChange, value}: Props) {
         Option: (optionProps: OptionProps<{}>) => (
           <components.Option
             {...optionProps}
-            innerProps={{...optionProps.innerProps, 'data-test-id': 'option'}}
+            innerProps={
+              {
+                ...optionProps.innerProps,
+                'data-test-id': 'option',
+              } as OptionProps<{}>['innerProps']
+            }
           />
         ),
       }}
