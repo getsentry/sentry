@@ -2204,8 +2204,10 @@ class SnQLFunction(DiscoverFunction):
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
-    def __init__(self, dataset: Dataset, params: ParamsType):
-        super().__init__(dataset, params)
+    def __init__(
+        self, dataset: Dataset, params: ParamsType, functions_acl: Optional[List[str]] = None
+    ):
+        super().__init__(dataset, params, functions_acl)
 
         self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
             # NOTE: `ISSUE_ALIAS` simply maps to the id, meaning that post processing

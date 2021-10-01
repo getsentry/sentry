@@ -26,12 +26,10 @@ class QueryBuilder(QueryFilter):
         limit: int = 50,
         offset: Optional[int] = 0,
     ):
-        super().__init__(dataset, params)
+        super().__init__(dataset, params, functions_acl)
 
         # TODO: implement this in `resolve_select`
         self.auto_aggregations = auto_aggregations
-
-        self.functions_acl = functions_acl
 
         self.limit = Limit(limit)
         self.offset = Offset(0 if offset is None else offset)
