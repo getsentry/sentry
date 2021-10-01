@@ -235,6 +235,7 @@ def query(
             orderby=orderby,
             auto_aggregations=auto_aggregations,
             use_aggregate_conditions=use_aggregate_conditions,
+            functions_acl=functions_acl,
             limit=limit,
             offset=offset,
         )

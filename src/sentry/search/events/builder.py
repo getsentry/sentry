@@ -22,6 +22,7 @@ class QueryBuilder(QueryFilter):
         orderby: Optional[List[str]] = None,
         auto_aggregations: bool = False,
         use_aggregate_conditions: bool = False,
+        functions_acl: Optional[List[str]] = None,
         limit: int = 50,
         offset: Optional[int] = 0,
     ):
@@ -29,6 +30,8 @@ class QueryBuilder(QueryFilter):
 
         # TODO: implement this in `resolve_select`
         self.auto_aggregations = auto_aggregations
+
+        self.functions_acl = functions_acl
 
         self.limit = Limit(limit)
         self.offset = Offset(0 if offset is None else offset)
