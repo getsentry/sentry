@@ -87,7 +87,7 @@ def test_get_lpq_projects_filled(
 ) -> None:
     redis_cluster.sadd("store.symbolicate-event-lpq-selected", 1)
     in_lpq = store.get_lpq_projects()
-    assert in_lpq == set([1])
+    assert in_lpq == {1}
 
 
 def test_add_project_to_lpq_unset(
