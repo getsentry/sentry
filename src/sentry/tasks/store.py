@@ -85,7 +85,7 @@ def submit_save_event(
     cache_key: Optional[str],
     event_id: Optional[str],
     start_time: Optional[int],
-    data: Optional[Event],
+    data: Optional[Any],
 ) -> None:
     if cache_key:
         data = None
@@ -103,7 +103,7 @@ def submit_save_event(
 
 def _do_preprocess_event(
     cache_key: Optional[str],
-    data: Optional[Event],
+    data: Optional[Any],
     start_time: Optional[int],
     event_id: Optional[str],
     process_task: Any,
@@ -176,7 +176,7 @@ def _do_preprocess_event(
 )
 def preprocess_event(
     cache_key: Optional[str] = None,
-    data: Optional[Event] = None,
+    data: Optional[Any] = None,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project: Optional[Project] = None,
@@ -199,7 +199,7 @@ def preprocess_event(
 )
 def preprocess_event_from_reprocessing(
     cache_key: Optional[str] = None,
-    data: Optional[Event] = None,
+    data: Optional[Any] = None,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project: Optional[Project] = None,
@@ -243,7 +243,7 @@ def _do_process_event(
     start_time: Optional[int],
     event_id: Optional[str],
     process_task: Any,
-    data: Optional[Event] = None,
+    data: Optional[Any] = None,
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
 ) -> None:
@@ -584,7 +584,7 @@ def create_failed_event(
 
 def _do_save_event(
     cache_key: Optional[str] = None,
-    data: Optional[Event] = None,
+    data: Optional[Any] = None,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project_id: Optional[int] = None,
@@ -692,9 +692,7 @@ def _do_save_event(
             time_synthetic_monitoring_event(data, project_id, start_time)
 
 
-def time_synthetic_monitoring_event(
-    data: Event, project_id: int, start_time: Optional[int]
-) -> bool:
+def time_synthetic_monitoring_event(data: Any, project_id: int, start_time: Optional[int]) -> bool:
     """
     For special events produced by the recurring synthetic monitoring
     functions, emit timing metrics for:
@@ -750,7 +748,7 @@ def time_synthetic_monitoring_event(
 )
 def save_event(
     cache_key: Optional[str] = None,
-    data: Optional[Event] = None,
+    data: Optional[Any] = None,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project_id: Optional[int] = None,
