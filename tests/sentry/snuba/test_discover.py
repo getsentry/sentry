@@ -2871,7 +2871,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         for t, ev in enumerate(events):
             val = ev[0] * 32
             for i in range(ev[1]):
-                data = load_data("transaction", timestamp=before_now(seconds=3 * t + 1))
+                data = load_data("transaction", timestamp=self.now - timedelta(seconds=3 * t + 1))
                 data["transaction"] = f"{val}"
                 self.store_event(data=data, project_id=self.project.id)
 
@@ -2879,8 +2879,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             results = discover.query(
                 selected_columns=["transaction", "count()"],
                 query="event.type:transaction AND (timestamp:<{} OR timestamp:>{})".format(
-                    iso_format(before_now(seconds=5)),
-                    iso_format(before_now(seconds=3)),
+                    iso_format(self.now - timedelta(seconds=5)),
+                    iso_format(self.now - timedelta(seconds=3)),
                 ),
                 params={
                     "project_id": [self.project.id],
