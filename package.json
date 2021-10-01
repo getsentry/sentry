@@ -147,7 +147,7 @@
     "@storybook/addons": "6.3.7",
     "@storybook/builder-webpack5": "6.3.7",
     "@storybook/manager-webpack5": "6.3.7",
-    "@storybook/react": "6.3.7",
+    "@storybook/react": "6.3.9",
     "@storybook/theming": "6.3.7",
     "@visual-snapshot/jest": "5.0.0",
     "@wojtekmaj/enzyme-adapter-react-17": "0.6.1",
