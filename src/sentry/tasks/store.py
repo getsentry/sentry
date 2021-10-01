@@ -87,6 +87,13 @@ def submit_process(
 def should_demote_symbolication(project_id: int) -> bool:
     """
     Determines whether a project's symbolication events should be pushed to the low priority queue.
+
+    The decision is made based on three factors, in order:
+        1. is the store.symbolicate-event-lpq-never killswitch set for the project? -> normal queue
+        2. is the store.symbolicate-event-lpq-always killswitch set for the project? -> low priority queue
+        3. has the project been selected for the lpq according to realtime_metrics? -> low priority queue
+
+    Note that 3 is gated behind the config setting SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE.
     """
     always_lowpri = killswitch_matches_context(
         "store.symbolicate-event-lpq-always",
@@ -106,7 +113,9 @@ def should_demote_symbolication(project_id: int) -> bool:
     elif always_lowpri:
         return True
     else:
-        return realtime_metrics.is_lpq_project(project_id)
+        return settings.SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE and realtime_metrics.is_lpq_project(
+            project_id
+        )
 
 
 def submit_symbolicate(is_low_priority, from_reprocessing, cache_key, event_id, start_time, data):
