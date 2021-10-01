@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
 from sentry.utils.services import Service
@@ -19,7 +19,7 @@ class PGStringIndexer(Service):  # type: ignore
 
     __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
-    def _bulk_record(self, org_id: int, unmapped_strings: Set[str]) -> List[Record]:
+    def _bulk_record(self, org_id: int, unmapped_strings: Set[str]) -> Any:
         records = [
             MetricsKeyIndexer(organization_id=org_id, string=string) for string in unmapped_strings
         ]
