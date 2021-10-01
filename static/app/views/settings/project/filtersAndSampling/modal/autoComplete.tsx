@@ -1,9 +1,10 @@
 import {useEffect, useState} from 'react';
+import {components, ContainerProps, MultiValueProps, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {fetchTagValues} from 'app/actionCreators/tags';
-import {tct} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {DynamicSamplingInnerName} from 'app/types/dynamicSampling';
 import useApi from 'app/utils/useApi';
@@ -56,9 +57,28 @@ function AutoComplete({orgSlug, projectId, category, onChange, value}: Props) {
     }
   }
 
-  async function tagValueLoader() {
-    const key = getTagKey();
+  function getAriaLabel() {
+    switch (category) {
+      case DynamicSamplingInnerName.TRACE_RELEASE:
+      case DynamicSamplingInnerName.EVENT_RELEASE:
+        return t('Search or add a release');
+      case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
+      case DynamicSamplingInnerName.EVENT_ENVIRONMENT:
+        return t('Search or add an environment');
+      case DynamicSamplingInnerName.TRACE_TRANSACTION:
+      case DynamicSamplingInnerName.EVENT_TRANSACTION:
+        return t('Search or add a transaction');
+      default:
+        Sentry.captureException(
+          new Error('Unknown dynamic sampling condition inner name')
+        );
+        return ''; // this shall never happen
+    }
+  }
 
+  const key = getTagKey();
+
+  async function tagValueLoader() {
     if (!key) {
       return;
     }
@@ -83,7 +103,7 @@ function AutoComplete({orgSlug, projectId, category, onChange, value}: Props) {
   return (
     <StyledSelectField
       name="match"
-      multiple
+      aria-label={getAriaLabel()}
       options={[...createdOptions, ...tagValues].map(tagValue => ({
         value: tagValue.value,
         label: tagValue.value,
@@ -98,9 +118,33 @@ function AutoComplete({orgSlug, projectId, category, onChange, value}: Props) {
           wordBreak: 'break-all',
         }),
       }}
+      components={{
+        SelectContainer: (containerProps: ContainerProps<{}>) => (
+          <components.SelectContainer
+            {...containerProps}
+            innerProps={{
+              ...containerProps.innerProps,
+              'data-test-id': `autocomplete-${key}`,
+            }}
+          />
+        ),
+        MultiValue: (multiValueProps: MultiValueProps<{}>) => (
+          <components.MultiValue
+            {...multiValueProps}
+            innerProps={{...multiValueProps.innerProps, 'data-test-id': 'multivalue'}}
+          />
+        ),
+        Option: (optionProps: OptionProps<{}>) => (
+          <components.Option
+            {...optionProps}
+            innerProps={{...optionProps.innerProps, 'data-test-id': 'option'}}
+          />
+        ),
+      }}
       formatCreateLabel={label => tct('Add "[newLabel]"', {newLabel: label})}
       placeholder={getMatchFieldPlaceholder(category)}
       inline={false}
+      multiple
       hideControlState
       flexibleControlStateSize
       required
