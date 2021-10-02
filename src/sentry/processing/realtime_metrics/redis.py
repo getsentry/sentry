@@ -208,20 +208,6 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         # expected to be in the set.
         return int(self.cluster.sadd(LPQ_MEMBERS_KEY, project_id)) > 0
 
-    def remove_project_from_lpq(self, project_id: int) -> bool:
-        """
-        Removes a project from the low priority queue.
-
-        This restores the specified project back to the regular queue, unless it has been
-        manually forced into the low priority queue via the `store.symbolicate-event-lpq-always`
-        kill switch.
-
-        This may throw an exception if there is some sort of issue deregistering the projects from
-        the queue.
-        """
-
-        return self.remove_projects_from_lpq({project_id}) > 0
-
     def remove_projects_from_lpq(self, project_ids: Set[int]) -> int:
         """
         Removes projects from the low priority queue.

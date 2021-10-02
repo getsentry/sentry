@@ -37,9 +37,12 @@ class RealtimeMetricsStore(Service):  # type: ignore
     """A service for storing metrics about incoming requests within a given time window."""
 
     __all__ = (
+        "validate",
         "increment_project_event_counter",
         "increment_project_duration_counter",
-        "validate",
+        "projects",
+        "get_counts_for_project",
+        "get_durations_for_project",
         "get_lpq_projects",
         "add_project_to_lpq",
         "remove_projects_from_lpq",
@@ -103,17 +106,6 @@ class RealtimeMetricsStore(Service):  # type: ignore
 
         Returns True if the project was a new addition to the list. Returns False if it was already
         assigned to the low priority queue.
-        """
-        raise NotImplementedError
-
-    def remove_project_from_lpq(self, project_id: int) -> bool:
-        """
-        Removes a project from the low priority queue.
-
-        This registers an intent to restore all specified projects back to the regular queue.
-
-        Returns True if the project was assigned to the queue prior to its removal. Returns False if
-        it wasn't assigned to the queue to begin with.
         """
         raise NotImplementedError
 
