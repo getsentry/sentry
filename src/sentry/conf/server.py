@@ -562,6 +562,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
+    "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.members",
     "sentry.tasks.merge",
     "sentry.tasks.releasemonitor",
@@ -638,6 +639,10 @@ CELERY_QUEUES = [
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
+    Queue(
+        "symbolications.compute_low_priority_projects",
+        routing_key="symbolications.compute_low_priority_projects",
+    ),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
 ]
@@ -778,6 +783,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.snuba.tasks.subscription_checker",
         "schedule": timedelta(minutes=20),
         "options": {"expires": 20 * 60},
+    },
+    "check-symbolicator-lpq-project-eligibility": {
+        "task": "sentry.tasks.low_priority_symbolication.scan_for_suspect_projects",
+        "schedule": timedelta(seconds=10),
+        "options": {"expires": 10},
     },
 }
 
