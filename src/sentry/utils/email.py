@@ -446,17 +446,23 @@ def get_connection(fail_silently=False):
     )
 
 
-def send_mail(subject, message, from_email, recipient_list, fail_silently=False, **kwargs):
+def send_mail(
+    subject, message, from_email, recipient_list, fail_silently=False, headers=None, **kwargs
+):
     """
     Wrapper that forces sending mail through our connection.
     Uses EmailMessage class which has more options than the simple send_mail
     """
+    if headers is None:
+        headers = {}
+
     email = mail.EmailMessage(
         subject,
         message,
         from_email,
         recipient_list,
         connection=get_connection(fail_silently=fail_silently),
+        headers=headers,
         **kwargs,
     )
     return email.send(fail_silently=fail_silently)
