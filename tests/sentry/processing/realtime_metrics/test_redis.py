@@ -12,6 +12,7 @@ from sentry.processing.realtime_metrics.base import (
 )
 from sentry.processing.realtime_metrics.redis import RedisRealtimeMetricsStore
 from sentry.utils import redis
+from sentry.utils.compat import mock
 
 if TYPE_CHECKING:
     from typing import Callable
@@ -20,6 +21,12 @@ if TYPE_CHECKING:
         ...
 
     pytest.fixture = _fixture
+
+
+@pytest.fixture
+def mock_time():  # type: ignore
+    with mock.patch("time.time") as m:
+        yield m
 
 
 @pytest.fixture
@@ -44,6 +51,11 @@ def redis_cluster(config: Dict[str, Any]) -> redis._RedisCluster:
 @pytest.fixture
 def store(config: Dict[str, Any]) -> RedisRealtimeMetricsStore:
     return RedisRealtimeMetricsStore(**config)
+
+
+@pytest.fixture
+def empty_histogram() -> Dict[int, int]:
+    return {duration: 0 for duration in range(0, 600, 10)}
 
 
 def test_default() -> None:
@@ -380,13 +392,15 @@ def test_projects_mixed_buckets(
 #
 
 
-def test_get_counts_for_project_unset(store: RedisRealtimeMetricsStore) -> None:
+def test_get_counts_for_project_unset(store: RedisRealtimeMetricsStore, mock_time) -> None:
+    mock_time.return_value = 113.0
     counts = store.get_counts_for_project(42)
-    assert list(counts) == []
+
+    assert list(counts) == [BucketedCount(timestamp=110, count=0)]
 
 
 def test_get_counts_for_project_empty(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster, mock_time
 ) -> None:
     redis_cluster.set(
         "symbolicate_event_low_priority:counter:10:42:111",
@@ -394,76 +408,88 @@ def test_get_counts_for_project_empty(
     )
     redis_cluster.delete("symbolicate_event_low_priority:counter:10:42:111")
 
+    mock_time.return_value = 113.0
     counts = store.get_counts_for_project(42)
-    assert list(counts) == []
+
+    assert list(counts) == [BucketedCount(timestamp=110, count=0)]
 
 
 def test_get_counts_for_project_no_matching_keys(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster, mock_time
 ) -> None:
     redis_cluster.set("symbolicate_event_low_priority:counter:10:53:111", 0)
 
+    mock_time.return_value = 113.0
     counts = store.get_counts_for_project(42)
-    assert list(counts) == []
+
+    assert list(counts) == [BucketedCount(timestamp=110, count=0)]
 
 
 def test_get_counts_for_project_negative_key(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster, mock_time
 ) -> None:
-    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:-111", 0)
+    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:-110", 0)
 
+    mock_time.return_value = -103.0
     counts = store.get_counts_for_project(42)
+
     assert list(counts) == [
-        BucketedCount(timestamp=-111, count=0),
+        BucketedCount(timestamp=-110, count=0),
     ]
 
 
 def test_get_counts_for_project_negative_count(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster, mock_time
 ) -> None:
-    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:111", -10)
+    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:110", -10)
 
+    mock_time.return_value = 113.0
     counts = store.get_counts_for_project(42)
+
     assert list(counts) == [
-        BucketedCount(timestamp=111, count=-10),
+        BucketedCount(timestamp=110, count=-10),
     ]
 
 
 def test_get_counts_for_project_multiple_projects(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster, mock_time
 ) -> None:
-    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:111", 0)
-    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:222", 0)
-    redis_cluster.set("symbolicate_event_low_priority:counter:10:53:111", 0)
+    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:110", 0)
+    redis_cluster.set("symbolicate_event_low_priority:counter:10:53:110", 0)
 
+    mock_time.return_value = 113.0
     counts = store.get_counts_for_project(42)
+
     assert list(counts) == [
-        BucketedCount(timestamp=111, count=0),
-        BucketedCount(timestamp=222, count=0),
+        BucketedCount(timestamp=110, count=0),
     ]
 
 
 def test_get_counts_for_project_multi_metric(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster, mock_time
 ) -> None:
-    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:111", 0)
-    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:222:0", 0, 123)
+    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:110", 0)
+    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:110:0", 0, 123)
 
+    mock_time.return_value = 113.0
     counts = store.get_counts_for_project(42)
+
     assert list(counts) == [
-        BucketedCount(timestamp=111, count=0),
+        BucketedCount(timestamp=110, count=0),
     ]
 
 
 def test_get_counts_for_project_different_buckets(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster, mock_time
 ) -> None:
-    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:111", 0)
-    redis_cluster.set("symbolicate_event_low_priority:counter:5:42:111", 0)
+    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:110", 0)
+    redis_cluster.set("symbolicate_event_low_priority:counter:5:42:110", 0)
 
+    mock_time.return_value = 113.0
     counts = store.get_counts_for_project(42)
+
     assert list(counts) == [
-        BucketedCount(timestamp=111, count=0),
+        BucketedCount(timestamp=110, count=0),
     ]
 
 
@@ -472,13 +498,19 @@ def test_get_counts_for_project_different_buckets(
 #
 
 
-def test_get_durations_for_project_unset(store: RedisRealtimeMetricsStore) -> None:
+def test_get_durations_for_project_unset(
+    store: RedisRealtimeMetricsStore, mock_time, empty_histogram
+) -> None:
+    mock_time.return_value = 113.0
     counts = store.get_durations_for_project(42)
-    assert list(counts) == []
+
+    assert list(counts) == [
+        DurationHistogram(timestamp=110, histogram=BucketedDurations(empty_histogram))
+    ]
 
 
 def test_get_durations_for_project_empty(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster, mock_time, empty_histogram
 ) -> None:
     redis_cluster.hset(
         "symbolicate_event_low_priority:histogram:10:42:111",
@@ -487,82 +519,117 @@ def test_get_durations_for_project_empty(
     )
     redis_cluster.delete("symbolicate_event_low_priority:histogram:10:42:111")
 
+    mock_time.return_value = 113.0
     counts = store.get_durations_for_project(42)
-    assert list(counts) == []
+
+    assert list(counts) == [
+        DurationHistogram(timestamp=110, histogram=BucketedDurations(empty_histogram))
+    ]
 
 
 def test_get_durations_for_project_no_matching_keys(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster, mock_time, empty_histogram
 ) -> None:
     redis_cluster.hset("symbolicate_event_low_priority:histogram:10:53:111", 0, 123)
 
+    mock_time.return_value = 113.0
     counts = store.get_durations_for_project(42)
-    assert list(counts) == []
+
+    assert list(counts) == [
+        DurationHistogram(timestamp=110, histogram=BucketedDurations(empty_histogram))
+    ]
 
 
 def test_get_durations_for_project_negative_timestamp(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster, mock_time, empty_histogram
 ) -> None:
-    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:-111", 0, 123)
+    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:-110", 0, 123)
 
+    mock_time.return_value = -103.0
     counts = store.get_durations_for_project(42)
+    histogram = empty_histogram
+    histogram[0] = 123
+
     assert list(counts) == [
-        DurationHistogram(timestamp=-111, histogram=BucketedDurations({0: 123}))
+        DurationHistogram(timestamp=-110, histogram=BucketedDurations(histogram))
     ]
 
 
 def test_get_durations_for_project_negative_duration(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster, mock_time, empty_histogram
 ) -> None:
-    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:111", -20, 123)
+    mock_time.return_value = 113.0
+    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:110", -20, 123)
 
+    histogram = empty_histogram
+    histogram[-20] = 123
     counts = store.get_durations_for_project(42)
+
     assert list(counts) == [
-        DurationHistogram(timestamp=111, histogram=BucketedDurations({-20: 123}))
+        DurationHistogram(timestamp=110, histogram=BucketedDurations(histogram))
     ]
 
 
 def test_get_durations_for_project_negative_count(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster, mock_time, empty_histogram
 ) -> None:
-    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:111", 0, -123)
+    mock_time.return_value = 113.0
+    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:110", 0, -123)
 
     counts = store.get_durations_for_project(42)
+    histogram = empty_histogram
+    histogram[0] = -123
+
     assert list(counts) == [
-        DurationHistogram(timestamp=111, histogram=BucketedDurations({0: -123}))
+        DurationHistogram(timestamp=110, histogram=BucketedDurations(histogram))
     ]
 
 
 def test_get_durations_for_project_multi_key_multi_durations(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster, mock_time, empty_histogram
 ) -> None:
-    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:111", 0, 123)
-    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:111", 10, 456)
-    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:222", 20, 123)
-    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:53:111", 0, 123)
+    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:110", 0, 123)
+    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:110", 10, 456)
+    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:53:110", 0, 123)
 
+    mock_time.return_value = 113.0
     counts = store.get_durations_for_project(42)
+    histogram = empty_histogram
+    histogram[0] = 123
+    histogram[10] = 456
+
     assert list(counts) == [
-        DurationHistogram(timestamp=111, histogram=BucketedDurations({0: 123, 10: 456})),
-        DurationHistogram(timestamp=222, histogram=BucketedDurations({20: 123})),
+        DurationHistogram(timestamp=110, histogram=BucketedDurations(histogram)),
     ]
 
 
 def test_get_durations_for_project_multi_metric(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster, mock_time, empty_histogram
 ) -> None:
-    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:111", 0)
-    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:222", 0, 123)
+    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:110", 0)
+    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:220", 0, 123)
 
+    mock_time.return_value = 225.7
     counts = store.get_durations_for_project(42)
-    assert list(counts) == [DurationHistogram(timestamp=222, histogram=BucketedDurations({0: 123}))]
+    histogram = empty_histogram
+    histogram[0] = 123
+
+    assert list(counts) == [
+        DurationHistogram(timestamp=220, histogram=BucketedDurations(histogram))
+    ]
 
 
 def test_get_durations_for_project_different_buckets(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster, mock_time, empty_histogram
 ) -> None:
-    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:111", 0, 123)
-    redis_cluster.hset("symbolicate_event_low_priority:histogram:5:42:111", 20, 456)
+    redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:110", 0, 123)
+    redis_cluster.hset("symbolicate_event_low_priority:histogram:5:42:110", 20, 456)
 
+    mock_time.return_value = 113.0
     counts = store.get_durations_for_project(42)
-    assert list(counts) == [DurationHistogram(timestamp=111, histogram=BucketedDurations({0: 123}))]
+    histogram = empty_histogram
+    histogram[0] = 123
+
+    assert list(counts) == [
+        DurationHistogram(timestamp=110, histogram=BucketedDurations(histogram))
+    ]

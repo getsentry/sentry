@@ -1,5 +1,6 @@
 import datetime
 import logging
+import time
 from itertools import chain
 from typing import Iterable, Set
 
@@ -38,9 +39,9 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         self.cluster = redis.redis_clusters.get(cluster)
         self._counter_bucket_size = counter_bucket_size
-        self._counter_ttl = int(counter_ttl / datetime.timedelta(milliseconds=1))
+        self._counter_ttl = counter_ttl
         self._histogram_bucket_size = histogram_bucket_size
-        self._histogram_ttl = int(histogram_ttl / datetime.timedelta(milliseconds=1))
+        self._histogram_ttl = histogram_ttl
         self._prefix = "symbolicate_event_low_priority"
 
     def validate(self) -> None:
@@ -65,14 +66,13 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         in seconds since the UNIX epoch (i.e., as returned by time.time()).
         """
 
-        if self._counter_bucket_size > 1:
-            timestamp -= timestamp % self._counter_bucket_size
+        timestamp -= timestamp % self._counter_bucket_size
 
         key = f"{self._counter_key_prefix()}:{project_id}:{timestamp}"
 
         with self.cluster.pipeline() as pipeline:
             pipeline.incr(key)
-            pipeline.pexpire(key, self._counter_ttl)
+            pipeline.pexpire(key, int(self._counter_ttl / datetime.timedelta(milliseconds=1)))
             pipeline.execute()
 
     def increment_project_duration_counter(
@@ -84,15 +84,14 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         Calling this increments the counter of the current time-window bucket with "timestamp" providing
         the time of the event in seconds since the UNIX epoch and "duration" the processing time in seconds.
         """
-        if self._histogram_bucket_size > 1:
-            timestamp -= timestamp % self._histogram_bucket_size
+        timestamp -= timestamp % self._histogram_bucket_size
 
         key = f"{self._histogram_key_prefix()}:{project_id}:{timestamp}"
         duration -= duration % 10
 
         with self.cluster.pipeline() as pipeline:
             pipeline.hincrby(key, duration, 1)
-            pipeline.pexpire(key, self._histogram_ttl)
+            pipeline.pexpire(key, int(self._histogram_ttl / datetime.timedelta(milliseconds=1)))
             pipeline.execute()
 
     def projects(self) -> Iterable[int]:
@@ -132,20 +131,20 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         This may throw an exception if there is some sort of issue fetching counts from the redis
         store.
         """
-        key_prefix = f"{self._counter_key_prefix()}:{project_id}:"
+        bucket_size = self._counter_bucket_size
+        now = int(time.time())
+        now_timestamp = now - now % bucket_size
 
-        keys = sorted(
-            self.cluster.scan_iter(
-                match=key_prefix + "*",
-            )
-        )
+        first_timestamp = int(now - self._counter_ttl / datetime.timedelta(seconds=1))
+        first_timestamp = first_timestamp - first_timestamp % bucket_size
+
+        timestamps = range(first_timestamp, now_timestamp + bucket_size, bucket_size)
+        keys = [f"{self._counter_key_prefix()}:{project_id}:{ts}" for ts in timestamps]
+
         counts = self.cluster.mget(keys)
-        for key, count_raw in zip(keys, counts):
-            _, timestamp_raw = key.split(key_prefix)
-
-            timestamp_bucket = int(timestamp_raw)
-            count = int(count_raw)
-            yield base.BucketedCount(timestamp=timestamp_bucket, count=count)
+        for ts, count_raw in zip(timestamps, counts):
+            count = int(count_raw) if count_raw else 0
+            yield base.BucketedCount(timestamp=ts, count=count)
 
     def get_durations_for_project(self, project_id: int) -> Iterable[base.DurationHistogram]:
         """
@@ -164,22 +163,28 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         This may throw an exception if there is some sort of issue fetching durations from the redis
         store.
         """
-        key_prefix = f"{self._histogram_key_prefix()}:{project_id}:"
-        keys = sorted(
-            self.cluster.scan_iter(
-                match=key_prefix + "*",
-            )
-        )
+        bucket_size = self._histogram_bucket_size
+        now = int(time.time())
+        now_timestamp = now - now % bucket_size
 
-        for key in keys:
-            _, timestamp_raw = key.split(key_prefix)
-            timestamp_bucket = int(timestamp_raw)
+        first_timestamp = int(now - self._histogram_ttl / datetime.timedelta(seconds=1))
+        first_timestamp = first_timestamp - first_timestamp % bucket_size
 
-            histogram_raw = self.cluster.hgetall(key)
-            histogram = base.BucketedDurations(
-                {int(duration): int(count) for duration, count in histogram_raw.items()}
+        timestamps = range(first_timestamp, now_timestamp + bucket_size, bucket_size)
+        durations = range(0, 600, 10)
+
+        for timestamp in timestamps:
+            histogram_redis = self.cluster.hgetall(
+                f"{self._histogram_key_prefix()}:{project_id}:{timestamp}"
             )
-            yield base.DurationHistogram(timestamp=timestamp_bucket, histogram=histogram)
+            histogram_redis = {
+                int(duration): int(count) for duration, count in histogram_redis.items()
+            }
+            histogram = {duration: 0 for duration in durations}
+            histogram.update(histogram_redis)
+            yield base.DurationHistogram(
+                timestamp=timestamp, histogram=base.BucketedDurations(histogram)
+            )
 
     def get_lpq_projects(self) -> Set[int]:
         """
