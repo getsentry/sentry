@@ -70,7 +70,7 @@ ${red}${bold}
 ERROR: You have explicitly set a non-recommended Python version (${SENTRY_PYTHON_VERSION}),
 but it doesn't match the value of python's version: ${python_version}
 You should create a new ${SENTRY_PYTHON_VERSION} virtualenv by running  "rm -rf ${venv_name} && direnv allow".
-    ${reset}
+${reset}
 EOF
             return 1
         fi
