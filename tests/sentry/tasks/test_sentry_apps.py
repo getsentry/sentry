@@ -177,6 +177,40 @@ class TestSendAlertEvent(TestCase):
         assert requests[0]["response_code"] == 200
         assert requests[0]["event_type"] == "event_alert.triggered"
 
+    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
+    def test_send_alert_event_with_additional_payload(self, safe_urlopen):
+        event = self.store_event(data={}, project_id=self.project.id)
+        settings = {
+            "alert_prefix": "[Not Good]",
+            "channel": "#ignored-errors",
+            "best_emoji": ":fire:",
+        }
+        rule_future = RuleFuture(
+            rule=self.rule,
+            kwargs={"sentry_app": self.sentry_app, "schema_defined_settings": settings},
+        )
+
+        with self.tasks():
+            notify_sentry_app(event, [rule_future])
+
+        payload = json.loads(faux(safe_urlopen).kwargs["data"])
+
+        assert payload["action"] == "triggered"
+        assert payload["data"]["triggered_rule"] == self.rule.label
+        assert payload["data"]["issue_alert"] == {
+            "id": self.rule.id,
+            "title": self.rule.label,
+            "sentry_app_id": self.sentry_app.id,
+            "settings": settings,
+        }
+
+        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        requests = buffer.get_requests()
+
+        assert len(requests) == 1
+        assert requests[0]["response_code"] == 200
+        assert requests[0]["event_type"] == "event_alert.triggered"
+
 
 @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
 class TestProcessResourceChange(TestCase):

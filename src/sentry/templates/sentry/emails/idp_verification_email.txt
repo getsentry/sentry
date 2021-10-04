@@ -1,5 +1,7 @@
-Please confirm your email ({{ confirm_email }}) by submitting the following code on the verification page: ({{ verification_key }}).
+Sentry received a login attempt for {{ organization }} authenticated by {{ provider }}, with the credentials {{ email }}.
 
-This code will expire in 10 minutes.
+If this was you, and you wish to associate your existing Sentry account to the new {{ provider }} identity for {{ email }}, please click the link below.
 
-If you did not make this request, you may simply ignore this email.
+This authentication link will expire in 10 minutes.
+
+{{ url|safe }}
