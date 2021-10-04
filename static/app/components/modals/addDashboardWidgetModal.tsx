@@ -54,8 +54,8 @@ export type DashboardWidgetModalOptions = {
   onAddWidget?: (data: Widget) => void;
   widget?: Widget;
   onUpdateWidget?: (nextWidget: Widget) => void;
-  defaultQuery?: string;
-  defaultTitle?: string;
+  defaultWidgetQuery?: WidgetQuery;
+  defaultTableColumns?: readonly string[];
   fromDiscover?: boolean;
   start?: DateString;
   end?: DateString;
@@ -83,6 +83,7 @@ type State = {
   errors?: Record<string, any>;
   dashboards: SelectValue<string>[];
   selectedDashboard?: SelectValue<string>;
+  userHasModified: boolean;
 };
 
 const newQuery = {
@@ -95,17 +96,18 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    const {widget, defaultQuery, defaultTitle, fromDiscover} = props;
+    const {widget, defaultWidgetQuery, fromDiscover} = props;
 
     if (!widget) {
       this.state = {
-        title: defaultTitle ?? '',
+        title: defaultWidgetQuery?.name ?? '',
         displayType: DisplayType.LINE,
         interval: '5m',
-        queries: [{...newQuery, ...(defaultQuery ? {conditions: defaultQuery} : {})}],
+        queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...newQuery}],
         errors: undefined,
         loading: !!fromDiscover,
         dashboards: [],
+        userHasModified: false,
       };
       return;
     }
@@ -118,6 +120,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       errors: undefined,
       loading: false,
       dashboards: [],
+      userHasModified: false,
     };
   }
 
@@ -226,13 +229,29 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   };
 
   handleFieldChange = (field: string) => (value: string) => {
+    const {defaultWidgetQuery, defaultTableColumns} = this.props;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
 
       if (field === 'displayType') {
         const displayType = value as Widget['displayType'];
-        set(newState, 'queries', normalizeQueries(displayType, prevState.queries));
+        const normalized = normalizeQueries(displayType, prevState.queries);
+
+        // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
+        if (defaultWidgetQuery && defaultTableColumns && !prevState.userHasModified) {
+          if (displayType === DisplayType.TABLE) {
+            normalized.forEach(query => {
+              query.fields = [...defaultTableColumns];
+            });
+          } else {
+            normalized.forEach(query => {
+              query.fields = [...defaultWidgetQuery.fields];
+            });
+          }
+        }
+
+        set(newState, 'queries', normalized);
       }
 
       return {...newState, errors: undefined};
@@ -243,6 +262,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, `queries.${index}`, widgetQuery);
+      set(newState, 'userHasModified', true);
 
       return {...newState, errors: undefined};
     });
