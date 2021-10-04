@@ -81,7 +81,7 @@ class ProjectManager(BaseManager):
             try:
                 team = team_list[team_list.index(team)]
             except ValueError:
-                logging.info("User does not have access to team: %s", team.id)
+                logging.info(f"User does not have access to team: {team.id}")
                 return []
 
         base_qs = self.filter(teams=team, status=ProjectStatus.VISIBLE)
@@ -353,7 +353,7 @@ class Project(Model, PendingDeletionMixin):
             return security_token
 
     def get_lock_key(self):
-        return "project_token:%s" % self.id
+        return f"project_token:{self.id}"
 
     def copy_settings_from(self, project_id):
         """

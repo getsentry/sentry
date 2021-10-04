@@ -112,7 +112,7 @@ class GroupAssigneeManager(BaseManager):
             assignee_type = "team"
             other_type = "user"
         else:
-            raise AssertionError("Invalid type to assign to: %r" % type(assigned_to))
+            raise AssertionError(f"Invalid type to assign to: {type(assigned_to)}")
 
         now = timezone.now()
         assignee, created = GroupAssignee.objects.get_or_create(
