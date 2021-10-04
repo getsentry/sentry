@@ -48,10 +48,15 @@ query-apple-m1() {
 }
 
 get-pyenv-version() {
+    if [[ -n "$SENTRY_PYTHON_VERSION" ]]; then
+        echo "${SENTRY_PYTHON_VERSION}"
+        return 0
+    fi
+
     local PYENV_VERSION
     PYENV_VERSION=3.6.13
     if query-apple-m1; then
-        PYENV_VERSION=3.8.11
+        PYENV_VERSION=3.8.12
     fi
     echo "${PYENV_VERSION}"
 }
@@ -62,7 +67,7 @@ query-valid-python-version() {
         if [ "$python_version" != "$SENTRY_PYTHON_VERSION" ]; then
             cat <<EOF
     ${red}${bold}
-You have explicitly set a non-recommended Python version (${SENTRY_PYTHON_VERSION}),
+ERROR: You have explicitly set a non-recommended Python version (${SENTRY_PYTHON_VERSION}),
 but it doesn't match the value of python's version: ${python_version}
 You should create a new ${SENTRY_PYTHON_VERSION} virtualenv by running  "rm -rf ${venv_name} && direnv allow".
     ${reset}
@@ -87,7 +92,7 @@ EOF
         if [ "$minor" -ne 8 ] || [ "$patch" -lt 10 ]; then
             cat <<EOF
 ${red}${bold}
-WARNING! You're running a virtualenv with Python ${python_version}.
+ERROR: You're running a virtualenv with Python ${python_version}.
 On Apple M1 machines, we only support >= 3.8.10 < 3.9.
 Either run "rm -rf ${venv_name} && direnv allow" to
 OR set SENTRY_PYTHON_VERSION=${python_version} to an `.env` file to bypass this check."
@@ -97,7 +102,7 @@ EOF
     elif [ "$minor" -ne 6 ] && [ "$minor" -ne 8 ]; then
         cat <<EOF
 ${red}${bold}
-WARNING! You're running a virtualenv with Python ${python_version}.
+ERROR: You're running a virtualenv with Python ${python_version}.
 We only support 3.6 or 3.8.
 Either run "rm -rf ${venv_name} && direnv allow" to
 OR set SENTRY_PYTHON_VERSION=${python_version} to an .env file to bypass this check."
