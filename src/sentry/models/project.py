@@ -1,14 +1,14 @@
 import logging
 import warnings
 from collections import defaultdict
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
 from uuid import uuid1
 
 import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.db.models import QuerySet
-from django.db.models.signals import post_delete, post_save, pre_delete
+from django.db.models.signals import pre_delete
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
@@ -26,7 +26,6 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.tasks.code_owners import update_code_owners_schema
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
@@ -34,45 +33,10 @@ from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.retries import TimedRetryPolicy
 
 if TYPE_CHECKING:
-    from sentry.models import Team
+    from sentry.models import User
 
 # TODO(dcramer): pull in enum library
 ProjectStatus = ObjectStatus
-
-
-class ProjectTeamManager(BaseManager):
-    def get_for_teams_with_org_cache(self, teams: Sequence["Team"]) -> Sequence["ProjectTeam"]:
-        project_teams = (
-            self.filter(team__in=teams, project__status=ProjectStatus.VISIBLE)
-            .order_by("project__name", "project__slug")
-            .select_related("project")
-        )
-
-        # TODO(dcramer): we should query in bulk for ones we're missing here
-        orgs = {i.organization_id: i.organization for i in teams}
-
-        for project_team in project_teams:
-            project_team.project.set_cached_field_value(
-                "organization", orgs[project_team.project.organization_id]
-            )
-
-        return project_teams
-
-
-class ProjectTeam(Model):
-    __include_in_export__ = True
-
-    project = FlexibleForeignKey("sentry.Project")
-    team = FlexibleForeignKey("sentry.Team")
-
-    objects = ProjectTeamManager()
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_projectteam"
-        unique_together = (("project", "team"),)
-
-    __repr__ = sane_repr("project_id", "team_id")
 
 
 class ProjectManager(BaseManager):
@@ -119,6 +83,8 @@ class ProjectManager(BaseManager):
 
 
 class Project(Model, PendingDeletionMixin):
+    from sentry.models.projectteam import ProjectTeam
+
     """
     Projects are permission based namespaces which generally
     are the top level entry point for all data.
@@ -347,6 +313,8 @@ class Project(Model, PendingDeletionMixin):
             self.add_team(team)
 
     def add_team(self, team):
+        from sentry.models.projectteam import ProjectTeam
+
         try:
             with transaction.atomic():
                 ProjectTeam.objects.create(project=self, team=team)
@@ -358,6 +326,7 @@ class Project(Model, PendingDeletionMixin):
     def remove_team(self, team):
         from sentry.incidents.models import AlertRule
         from sentry.models import Rule
+        from sentry.models.projectteam import ProjectTeam
 
         ProjectTeam.objects.filter(project=self, team=team).delete()
         AlertRule.objects.fetch_for_project(self).filter(owner_id=team.actor_id).update(owner=None)
@@ -388,7 +357,13 @@ class Project(Model, PendingDeletionMixin):
         Returns True if the settings have successfully been copied over
         Returns False otherwise
         """
-        from sentry.models import EnvironmentProject, ProjectOption, ProjectOwnership, Rule
+        from sentry.models import (
+            EnvironmentProject,
+            ProjectOption,
+            ProjectOwnership,
+            ProjectTeam,
+            Rule,
+        )
 
         model_list = [EnvironmentProject, ProjectOwnership, ProjectTeam, Rule]
 
@@ -437,23 +412,3 @@ class Project(Model, PendingDeletionMixin):
 
 
 pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)
-post_save.connect(
-    lambda instance, **kwargs: update_code_owners_schema.apply_async(
-        kwargs={
-            "organization": instance.project.organization,
-            "projects": [instance.project],
-        }
-    ),
-    sender=ProjectTeam,
-    weak=False,
-)
-post_delete.connect(
-    lambda instance, **kwargs: update_code_owners_schema.apply_async(
-        kwargs={
-            "organization": instance.project.organization,
-            "projects": [instance.project],
-        }
-    ),
-    sender=ProjectTeam,
-    weak=False,
-)
