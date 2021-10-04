@@ -101,10 +101,6 @@ from sentry.utils.safe import get_path, set_path
 
 logger = logging.getLogger("sentry.reprocessing")
 
-_REDIS_SYNC_TTL = 3600 * 24
-
-_REDIS_REMAINING_EVENTS_BUF_SIZE = 500
-
 
 # Group-related models are only a few per-group and are migrated at
 # once.
@@ -377,9 +373,12 @@ def buffered_handle_remaining_events(
             key,
             *(f"{to_timestamp(datetime)};{event_id}" for datetime, event_id in datetime_to_event),
         )
-        client.expire(key, _REDIS_SYNC_TTL)
+        client.expire(key, settings.SENTRY_REPROCESSING_SYNC_TTL)
 
-    if force_flush_batch or client.llen(key) > _REDIS_REMAINING_EVENTS_BUF_SIZE:
+    if (
+        force_flush_batch
+        or client.llen(key) > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE
+    ):
         event_ids_batch = []
         min_datetime = None
         max_datetime = None
@@ -513,10 +512,10 @@ def start_group_reprocessing(
     date_created = new_activity.datetime
 
     client = _get_sync_redis_client()
-    client.setex(_get_sync_counter_key(group_id), _REDIS_SYNC_TTL, sync_count)
+    client.setex(_get_sync_counter_key(group_id), settings.SENTRY_REPROCESSING_SYNC_TTL, sync_count)
     client.setex(
         _get_info_reprocessed_key(group_id),
-        _REDIS_SYNC_TTL,
+        settings.SENTRY_REPROCESSING_SYNC_TTL,
         json.dumps(
             {"dateCreated": date_created, "syncCount": sync_count, "totalEvents": event_count}
         ),

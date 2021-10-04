@@ -1,23 +1,13 @@
-import logging
 import time
 
 import sentry_sdk
+from django.conf import settings
 from django.db import transaction
 
 from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.query import celery_run_batch_query
-
-# We have observed that the p95 of process_event is around 10s (p50 = 400ms),
-# so we need to make sure that the amount of events we process in
-# reprocess_group stays within its time_limit and soft_time_limit
-#
-# chunk_size         soft_time_limit
-# 10         * 10 <= 110
-GROUP_REPROCESSING_CHUNK_SIZE = 10
-
-nodestore_stats_logger = logging.getLogger("sentry.nodestore.stats")
 
 
 @instrumented_task(
@@ -60,7 +50,7 @@ def reprocess_group(
 
     query_state, events = celery_run_batch_query(
         filter=eventstore.Filter(project_ids=[project_id], group_ids=[group_id]),
-        batch_size=GROUP_REPROCESSING_CHUNK_SIZE,
+        batch_size=settings.SENTRY_REPROCESSING_PAGE_SIZE,
         state=query_state,
         referrer="reprocessing2.reprocess_group",
     )
@@ -103,7 +93,7 @@ def reprocess_group(
 
         remaining_event_ids.append((event.datetime, event.event_id))
 
-    # len(remaining_event_ids) is upper-bounded by GROUP_REPROCESSING_CHUNK_SIZE
+    # len(remaining_event_ids) is upper-bounded by settings.SENTRY_REPROCESSING_PAGE_SIZE
     if remaining_event_ids:
         buffered_handle_remaining_events(
             project_id=project_id,
