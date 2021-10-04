@@ -62,4 +62,8 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
 
     def after(self, event: Event, state: str) -> Any:
         sentry_app = self.get_sentry_app(event)
-        yield self.future(notify_sentry_app, sentry_app=sentry_app)
+        yield self.future(
+            notify_sentry_app,
+            sentry_app=sentry_app,
+            schema_defined_settings=self.get_option("settings"),
+        )
