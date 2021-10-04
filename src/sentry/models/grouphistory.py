@@ -15,8 +15,17 @@ class GroupHistoryStatus:
     UNASSIGNED = 6
     REGRESSED = 7
     DELETED = 8
-    DELETED_AND_DISCADED = 9
+    DELETED_AND_DISCARDED = 9
     REVIEWED = 10
+
+
+ACTIONED_STATUSES = [
+    GroupHistoryStatus.RESOLVED,
+    GroupHistoryStatus.IGNORED,
+    GroupHistoryStatus.REVIEWED,
+    GroupHistoryStatus.DELETED,
+    GroupHistoryStatus.DELETED_AND_DISCARDED,
+]
 
 
 class GroupHistory(Model):
@@ -48,7 +57,7 @@ class GroupHistory(Model):
             (GroupHistoryStatus.ASSIGNED, _("Assigned")),
             (GroupHistoryStatus.UNASSIGNED, _("Unassigned")),
             (GroupHistoryStatus.DELETED, _("Deleted")),
-            (GroupHistoryStatus.DELETED_AND_DISCADED, _("Deleted and Discarded")),
+            (GroupHistoryStatus.DELETED_AND_DISCARDED, _("Deleted and Discarded")),
             (GroupHistoryStatus.REVIEWED, _("Reviewed")),
         ),
     )

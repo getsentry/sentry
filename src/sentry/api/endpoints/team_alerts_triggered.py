@@ -16,8 +16,8 @@ from sentry.incidents.models import (
 from sentry.models import Project
 
 
-class TeamAlertsTriggeredEndpoint(TeamEndpoint, EnvironmentMixin):
-    def get(self, request, team):
+class TeamAlertsTriggeredEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
+    def get(self, request, team) -> Response:
         """
         Return a time-bucketed (by day) count of triggered alerts owned by a given team.
         """
