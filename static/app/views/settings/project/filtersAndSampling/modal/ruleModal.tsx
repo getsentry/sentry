@@ -252,6 +252,8 @@ function RuleModal({
                   conditions={conditions}
                   onDelete={handleDeleteCondition}
                   onChange={handleChangeCondition}
+                  orgSlug={organization.slug}
+                  projectId={project.id}
                 />
               )}
             </PanelBody>
@@ -279,6 +281,7 @@ function RuleModal({
           <Button
             priority="primary"
             onClick={() => onSubmit({conditions, sampleRate, submitRules})}
+            title={submitDisabled ? t('Required fields must be filled out') : undefined}
             disabled={submitDisabled}
           >
             {t('Save Rule')}

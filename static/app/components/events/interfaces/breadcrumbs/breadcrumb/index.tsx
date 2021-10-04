@@ -1,79 +1,146 @@
-import {Fragment, memo} from 'react';
+import React, {memo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
-import {BreadcrumbsWithDetails, BreadcrumbType} from 'app/types/breadcrumbs';
+import {Organization} from 'app/types';
+import {BreadcrumbType, Crumb} from 'app/types/breadcrumbs';
 import {Event} from 'app/types/event';
-
-import {GridCell, GridCellLeft} from '../styles';
 
 import Category from './category';
 import Data from './data';
-import Icon from './icon';
 import Level from './level';
 import Time from './time';
+import Type from './type';
 
-type Props = {
-  breadcrumb: BreadcrumbsWithDetails[0];
+type Props = Pick<React.ComponentProps<typeof Data>, 'route' | 'router'> & {
+  breadcrumb: Crumb;
   event: Event;
-  orgId: string | null;
+  organization: Organization;
   searchTerm: string;
-  isLastItem: boolean;
   relativeTime: string;
   displayRelativeTime: boolean;
+  style: React.CSSProperties;
+  onLoad: () => void;
+  ['data-test-id']: string;
+  scrollbarSize: number;
   height?: string;
 };
 
 const Breadcrumb = memo(function Breadcrumb({
-  orgId,
+  organization,
   event,
   breadcrumb,
   relativeTime,
   displayRelativeTime,
   searchTerm,
-  isLastItem,
-  height,
+  onLoad,
+  scrollbarSize,
+  style,
+  route,
+  router,
+  ['data-test-id']: dataTestId,
 }: Props) {
-  const hasError = breadcrumb.type === BreadcrumbType.ERROR;
+  const {type, description, color, level, category, timestamp} = breadcrumb;
+  const error = breadcrumb.type === BreadcrumbType.ERROR;
 
   return (
-    <Fragment>
-      <GridCellLeft hasError={hasError} isLastItem={isLastItem}>
-        <Tooltip title={breadcrumb.description}>
-          <Icon icon={breadcrumb.icon} color={breadcrumb.color} />
-        </Tooltip>
-      </GridCellLeft>
-      <GridCellCategory hasError={hasError} isLastItem={isLastItem}>
-        <Category category={breadcrumb?.category} searchTerm={searchTerm} />
-      </GridCellCategory>
-      <GridCell hasError={hasError} isLastItem={isLastItem} height={height}>
-        <Data
-          event={event}
-          orgId={orgId}
-          breadcrumb={breadcrumb}
-          searchTerm={searchTerm}
-        />
-      </GridCell>
-      <GridCell hasError={hasError} isLastItem={isLastItem}>
-        <Level level={breadcrumb.level} searchTerm={searchTerm} />
-      </GridCell>
-      <GridCell hasError={hasError} isLastItem={isLastItem}>
-        <Time
-          timestamp={breadcrumb?.timestamp}
-          relativeTime={relativeTime}
-          displayRelativeTime={displayRelativeTime}
-          searchTerm={searchTerm}
-        />
-      </GridCell>
-    </Fragment>
+    <Wrapper
+      style={style}
+      error={error}
+      onLoad={onLoad}
+      data-test-id={dataTestId}
+      scrollbarSize={scrollbarSize}
+    >
+      <Type type={type} color={color} description={description} error={error} />
+      <Category category={category} searchTerm={searchTerm} />
+      <Data
+        event={event}
+        organization={organization}
+        breadcrumb={breadcrumb}
+        searchTerm={searchTerm}
+        route={route}
+        router={router}
+      />
+      <div>
+        <Level level={level} searchTerm={searchTerm} />
+      </div>
+      <Time
+        timestamp={timestamp}
+        relativeTime={relativeTime}
+        displayRelativeTime={displayRelativeTime}
+        searchTerm={searchTerm}
+      />
+    </Wrapper>
   );
 });
 
 export default Breadcrumb;
 
-const GridCellCategory = styled(GridCell)`
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    padding-left: ${space(1)};
+const Wrapper = styled('div')<{error: boolean; scrollbarSize: number}>`
+  display: grid;
+  grid-template-columns: 64px 140px 1fr 106px 100px ${p => p.scrollbarSize}px;
+
+  > * {
+    padding: ${space(1)} ${space(2)};
   }
+
+  @media (max-width: ${props => props.theme.breakpoints[0]}) {
+    grid-template-rows: repeat(2, auto);
+    grid-template-columns: max-content 1fr 74px 82px ${p => p.scrollbarSize}px;
+
+    > * {
+      padding: ${space(1)};
+
+      /* Type */
+      :nth-child(5n-4) {
+        grid-row: 1/-1;
+        padding-right: 0;
+        padding-left: 0;
+        margin-left: ${space(2)};
+        margin-right: ${space(1)};
+      }
+
+      /* Data */
+      :nth-child(5n-2) {
+        grid-row: 2/2;
+        grid-column: 2/-1;
+        padding-top: 0;
+        padding-right: ${space(2)};
+      }
+
+      /* Level */
+      :nth-child(5n-1) {
+        padding-right: 0;
+        display: flex;
+        justify-content: flex-end;
+        align-items: flex-start;
+      }
+
+      /* Time */
+      :nth-child(5n) {
+        padding: ${space(1)} ${space(2)};
+      }
+    }
+  }
+
+  word-break: break-all;
+  white-space: pre-wrap;
+  :not(:last-child) {
+    border-bottom: 1px solid ${p => (p.error ? p.theme.red300 : p.theme.innerBorder)};
+  }
+
+  ${p =>
+    p.error &&
+    css`
+      :after {
+        content: '';
+        position: absolute;
+        top: -1px;
+        left: 0;
+        height: 1px;
+        width: 100%;
+        background: ${p.theme.red300};
+      }
+    `}
 `;

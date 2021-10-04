@@ -7,27 +7,24 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import ErrorBoundary from 'app/components/errorBoundary';
 import EventDataSection from 'app/components/events/eventDataSection';
-import {IconWarning} from 'app/icons/iconWarning';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {
-  Breadcrumb,
   BreadcrumbLevelType,
-  BreadcrumbsWithDetails,
   BreadcrumbType,
+  Crumb,
+  RawCrumb,
 } from 'app/types/breadcrumbs';
 import {EntryType, Event} from 'app/types/event';
 import {defined} from 'app/utils';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import SearchBarAction from '../searchBarAction';
 import SearchBarActionFilter from '../searchBarAction/searchBarActionFilter';
 
-import Icon from './breadcrumb/icon';
 import Level from './breadcrumb/level';
-import List from './list';
-import {aroundContentStyle} from './styles';
+import Type from './breadcrumb/type';
+import Breadcrumbs from './breadcrumbs';
 import {transformCrumbs} from './utils';
 
 type FilterOptions = React.ComponentProps<typeof SearchBarActionFilter>['options'];
@@ -40,26 +37,33 @@ type FilterTypes = {
   levels: BreadcrumbLevelType[];
 };
 
-type Props = {
+type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   event: Event;
   organization: Organization;
   type: string;
   data: {
-    values: Array<Breadcrumb>;
+    values: Array<RawCrumb>;
   };
 };
 
 type State = {
   searchTerm: string;
-  breadcrumbs: BreadcrumbsWithDetails;
-  filteredByFilter: BreadcrumbsWithDetails;
-  filteredBySearch: BreadcrumbsWithDetails;
+  breadcrumbs: Crumb[];
+  filteredByFilter: Crumb[];
+  filteredBySearch: Crumb[];
   filterOptions: FilterOptions;
   displayRelativeTime: boolean;
   relativeTime?: string;
 };
 
-function Breadcrumbs({data, event, organization, type: eventType}: Props) {
+function BreadcrumbsContainer({
+  data,
+  event,
+  organization,
+  type: eventType,
+  route,
+  router,
+}: Props) {
   const [state, setState] = useState<State>({
     searchTerm: '',
     breadcrumbs: [],
@@ -97,7 +101,7 @@ function Breadcrumbs({data, event, organization, type: eventType}: Props) {
 
     setState({
       ...state,
-      relativeTime: transformedCrumbs[transformedCrumbs.length - 1]?.timestamp,
+      relativeTime: transformedCrumbs[transformedCrumbs.length - 1].timestamp,
       breadcrumbs: transformedCrumbs,
       filteredByFilter: transformedCrumbs,
       filteredBySearch: transformedCrumbs,
@@ -132,7 +136,7 @@ function Breadcrumbs({data, event, organization, type: eventType}: Props) {
       if (foundFilterType === -1) {
         filterTypes.push({
           id: breadcrumb.type,
-          symbol: <Icon {...omit(breadcrumb, 'description')} size="xs" />,
+          symbol: <Type type={breadcrumb.type} color={breadcrumb.color} />,
           isChecked: false,
           description: breadcrumb.description,
           levels: breadcrumb?.level ? [breadcrumb.level] : [],
@@ -173,7 +177,7 @@ function Breadcrumbs({data, event, organization, type: eventType}: Props) {
     return filterLevels;
   }
 
-  function filterBySearch(newSearchTerm: string, crumbs: BreadcrumbsWithDetails) {
+  function filterBySearch(newSearchTerm: string, crumbs: Crumb[]) {
     if (!newSearchTerm.trim()) {
       return crumbs;
     }
@@ -251,7 +255,7 @@ function Breadcrumbs({data, event, organization, type: eventType}: Props) {
     return match[1];
   }
 
-  function getVirtualCrumb(): Breadcrumb | undefined {
+  function getVirtualCrumb(): RawCrumb | undefined {
     const exception = event.entries.find(entry => entry.type === EntryType.EXCEPTION);
 
     if (!exception && !event.message) {
@@ -335,36 +339,32 @@ function Breadcrumbs({data, event, organization, type: eventType}: Props) {
   }
 
   function getEmptyMessage() {
+    if (!!filteredBySearch.length) {
+      return {};
+    }
+
     if (searchTerm && !filteredBySearch.length) {
       const hasActiveFilter = Object.values(filterOptions)
         .flatMap(filterOption => filterOption)
         .find(filterOption => filterOption.isChecked);
 
-      return (
-        <StyledEmptyMessage
-          icon={<IconWarning size="xl" />}
-          action={
-            hasActiveFilter ? (
-              <Button onClick={handleResetFilter} priority="primary">
-                {t('Reset filter')}
-              </Button>
-            ) : (
-              <Button onClick={handleResetSearchBar} priority="primary">
-                {t('Clear search bar')}
-              </Button>
-            )
-          }
-        >
-          {t('Sorry, no breadcrumbs match your search query')}
-        </StyledEmptyMessage>
-      );
+      return {
+        emptyMessage: t('Sorry, no breadcrumbs match your search query'),
+        emptyAction: hasActiveFilter ? (
+          <Button onClick={handleResetFilter} priority="primary">
+            {t('Reset filter')}
+          </Button>
+        ) : (
+          <Button onClick={handleResetSearchBar} priority="primary">
+            {t('Clear search bar')}
+          </Button>
+        ),
+      };
     }
 
-    return (
-      <StyledEmptyMessage icon={<IconWarning size="xl" />}>
-        {t('There are no breadcrumbs to be displayed')}
-      </StyledEmptyMessage>
-    );
+    return {
+      emptyMessage: t('There are no breadcrumbs to be displayed'),
+    };
   }
 
   return (
@@ -388,33 +388,28 @@ function Breadcrumbs({data, event, organization, type: eventType}: Props) {
       wrapTitle={false}
       isCentered
     >
-      {!!filteredBySearch.length ? (
-        <ErrorBoundary>
-          <List
-            breadcrumbs={filteredBySearch}
-            event={event}
-            orgId={organization.slug}
-            onSwitchTimeFormat={handleSwitchTimeFormat}
-            displayRelativeTime={displayRelativeTime}
-            searchTerm={searchTerm}
-            relativeTime={relativeTime!} // relativeTime has to be always available, as the last item timestamp is the event created time
-          />
-        </ErrorBoundary>
-      ) : (
-        getEmptyMessage()
-      )}
+      <ErrorBoundary>
+        <Breadcrumbs
+          router={router}
+          route={route}
+          emptyMessage={getEmptyMessage()}
+          breadcrumbs={filteredBySearch}
+          event={event}
+          organization={organization}
+          onSwitchTimeFormat={handleSwitchTimeFormat}
+          displayRelativeTime={displayRelativeTime}
+          searchTerm={searchTerm}
+          relativeTime={relativeTime!} // relativeTime has to be always available, as the last item timestamp is the event created time
+        />
+      </ErrorBoundary>
     </StyledEventDataSection>
   );
 }
 
-export default Breadcrumbs;
+export default BreadcrumbsContainer;
 
 const StyledEventDataSection = styled(EventDataSection)`
   margin-bottom: ${space(3)};
-`;
-
-const StyledEmptyMessage = styled(EmptyMessage)`
-  ${aroundContentStyle};
 `;
 
 const StyledSearchBarAction = styled(SearchBarAction)`

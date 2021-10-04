@@ -51,8 +51,7 @@ class Monitors extends AsyncView<Props, State> {
   }
 
   handleSearch = (query: string) => {
-    const {location} = this.props;
-    const {router} = this.context;
+    const {location, router} = this.props;
     router.push({
       pathname: location.pathname,
       query: getParams({
@@ -97,7 +96,7 @@ class Monitors extends AsyncView<Props, State> {
                   {monitor.name}
                 </StyledLink>
                 {monitor.nextCheckIn ? (
-                  <TimeSince date={monitor.lastCheckIn} />
+                  <StyledTimeSince date={monitor.lastCheckIn} />
                 ) : (
                   t('n/a')
                 )}
@@ -138,6 +137,10 @@ const PanelItemCentered = styled(PanelItem)`
 const StyledLink = styled(Link)`
   flex: 1;
   padding: ${space(2)};
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  font-variant-numeric: tabular-nums;
 `;
 
 export default withRouter(withOrganization(Monitors));

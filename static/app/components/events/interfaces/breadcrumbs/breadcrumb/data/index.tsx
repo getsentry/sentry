@@ -1,37 +1,61 @@
-import {Breadcrumb, BreadcrumbType} from 'app/types/breadcrumbs';
+import {Organization} from 'app/types';
+import {BreadcrumbType, RawCrumb} from 'app/types/breadcrumbs';
 import {Event} from 'app/types/event';
 
 import Default from './default';
 import Exception from './exception';
 import Http from './http';
+import LinkedEvent from './linkedEvent';
 
-type Props = {
+type Props = Pick<React.ComponentProps<typeof LinkedEvent>, 'route' | 'router'> & {
   searchTerm: string;
-  breadcrumb: Breadcrumb;
+  breadcrumb: RawCrumb;
   event: Event;
-  orgId: string | null;
+  organization: Organization;
 };
 
-const Data = ({breadcrumb, event, orgId, searchTerm}: Props) => {
+function Data({breadcrumb, event, organization, searchTerm, route, router}: Props) {
+  const orgSlug = organization.slug;
+
+  const linkedEvent =
+    !!organization.features?.includes('breadcrumb-linked-event') &&
+    breadcrumb.event_id ? (
+      <LinkedEvent
+        orgSlug={orgSlug}
+        eventId={breadcrumb.event_id}
+        route={route}
+        router={router}
+      />
+    ) : undefined;
+
   if (breadcrumb.type === BreadcrumbType.HTTP) {
-    return <Http breadcrumb={breadcrumb} searchTerm={searchTerm} />;
+    return (
+      <Http breadcrumb={breadcrumb} searchTerm={searchTerm} linkedEvent={linkedEvent} />
+    );
   }
 
   if (
     breadcrumb.type === BreadcrumbType.WARNING ||
     breadcrumb.type === BreadcrumbType.ERROR
   ) {
-    return <Exception breadcrumb={breadcrumb} searchTerm={searchTerm} />;
+    return (
+      <Exception
+        breadcrumb={breadcrumb}
+        searchTerm={searchTerm}
+        linkedEvent={linkedEvent}
+      />
+    );
   }
 
   return (
     <Default
       event={event}
-      orgId={orgId}
+      orgSlug={orgSlug}
       breadcrumb={breadcrumb}
       searchTerm={searchTerm}
+      linkedEvent={linkedEvent}
     />
   );
-};
+}
 
 export default Data;

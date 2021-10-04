@@ -22,6 +22,7 @@ import {Series} from 'app/types/echarts';
 import {defined} from 'app/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {aggregateMultiPlotType, getEquation, isEquation} from 'app/utils/discover/fields';
+import {decodeList} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
 
 import EventsRequest from './eventsRequest';
@@ -38,10 +39,10 @@ type ChartProps = {
     xAxis?: EChartOption.XAxis;
     yAxis?: EChartOption.YAxis;
   };
-  currentSeriesName?: string;
+  currentSeriesNames: string[];
   releaseSeries?: Series[];
+  previousSeriesNames: string[];
   previousTimeseriesData?: Series | null;
-  previousSeriesName?: string;
   /**
    * A callback to allow for post-processing of the series data.
    * Can be used to rename series or even insert a new series.
@@ -65,6 +66,7 @@ type ChartProps = {
   height?: number;
   timeframe?: {start: number; end: number};
   topEvents?: number;
+  referrer?: string;
 };
 
 type State = {
@@ -159,8 +161,8 @@ class Chart extends React.Component<ChartProps, State> {
       showLegend,
       legendOptions,
       chartOptions: chartOptionsProp,
-      currentSeriesName,
-      previousSeriesName,
+      currentSeriesNames,
+      previousSeriesNames,
       seriesTransformer,
       previousSeriesTransformer,
       colors,
@@ -171,7 +173,10 @@ class Chart extends React.Component<ChartProps, State> {
     } = this.props;
     const {seriesSelection} = this.state;
 
-    const data = [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous')];
+    const data = [
+      ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
+      ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')]),
+    ];
 
     const releasesLegend = t('Releases');
 
@@ -254,7 +259,6 @@ class Chart extends React.Component<ChartProps, State> {
     };
 
     const Component = this.getChartComponent();
-
     return (
       <Component
         {...props}
@@ -291,7 +295,7 @@ export type EventsChartProps = {
   /**
    * The aggregate/metric to plot.
    */
-  yAxis: string;
+  yAxis: string | string[];
   /**
    * Relative datetime expression. eg. 14d
    */
@@ -360,10 +364,20 @@ export type EventsChartProps = {
    * Whether or not to zerofill results
    */
   withoutZerofill?: boolean;
+  /**
+   * Name of the series
+   */
+  currentSeriesName?: string;
+  /**
+   * Name of the previous series
+   */
+  previousSeriesName?: string;
+  /**
+   * A unique name for what's triggering this request, see organization_events_stats for an allowlist
+   */
+  referrer?: string;
 } & Pick<
   ChartProps,
-  | 'currentSeriesName'
-  | 'previousSeriesName'
   | 'seriesTransformer'
   | 'previousSeriesTransformer'
   | 'showLegend'
@@ -389,7 +403,11 @@ type ChartDataProps = {
 
 class EventsChart extends React.Component<EventsChartProps> {
   isStacked() {
-    return typeof this.props.topEvents === 'number' && this.props.topEvents > 0;
+    const {topEvents, yAxis} = this.props;
+    return (
+      (typeof topEvents === 'number' && topEvents > 0) ||
+      (Array.isArray(yAxis) && yAxis.length > 1)
+    );
   }
 
   render() {
@@ -431,16 +449,23 @@ class EventsChart extends React.Component<EventsChartProps> {
       withoutZerofill,
       ...props
     } = this.props;
+
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !disablePrevious && !start && !end;
 
-    let yAxisLabel = yAxis && isEquation(yAxis) ? getEquation(yAxis) : yAxis;
-    if (yAxisLabel && yAxisLabel.length > 60) {
-      yAxisLabel = yAxisLabel.substr(0, 60) + '...';
-    }
-    const previousSeriesName =
-      previousName ?? (yAxisLabel ? t('previous %s', yAxisLabel) : undefined);
-    const currentSeriesName = currentName ?? yAxisLabel;
+    const yAxisArray = decodeList(yAxis);
+    const yAxisSeriesNames = yAxisArray.map(name => {
+      let yAxisLabel = name && isEquation(name) ? getEquation(name) : name;
+      if (yAxisLabel && yAxisLabel.length > 60) {
+        yAxisLabel = yAxisLabel.substr(0, 60) + '...';
+      }
+      return yAxisLabel;
+    });
+
+    const previousSeriesName = previousName
+      ? [previousName]
+      : yAxisSeriesNames.map(name => t('previous %s', name));
+    const currentSeriesName = currentName ? [currentName] : yAxisSeriesNames;
 
     const intervalVal = showDaily ? '1d' : interval || getInterval(this.props, 'high');
 
@@ -482,12 +507,12 @@ class EventsChart extends React.Component<EventsChartProps> {
             releaseSeries={releaseSeries || []}
             timeseriesData={seriesData ?? []}
             previousTimeseriesData={previousTimeseriesData}
-            currentSeriesName={currentSeriesName}
-            previousSeriesName={previousSeriesName}
+            currentSeriesNames={currentSeriesName}
+            previousSeriesNames={previousSeriesName}
             seriesTransformer={seriesTransformer}
             previousSeriesTransformer={previousSeriesTransformer}
             stacked={this.isStacked()}
-            yAxis={yAxis}
+            yAxis={yAxisArray[0]}
             showDaily={showDaily}
             colors={colors}
             legendOptions={legendOptions}
@@ -543,8 +568,8 @@ class EventsChart extends React.Component<EventsChartProps> {
             interval={intervalVal}
             query={query}
             includePrevious={includePrevious}
-            currentSeriesName={currentSeriesName}
-            previousSeriesName={previousSeriesName}
+            currentSeriesName={currentSeriesName[0]}
+            previousSeriesName={previousSeriesName[0]}
             yAxis={yAxis}
             field={field}
             orderby={orderby}
@@ -554,12 +579,12 @@ class EventsChart extends React.Component<EventsChartProps> {
             // Cannot do interpolation when stacking series
             withoutZerofill={withoutZerofill && !this.isStacked()}
           >
-            {eventData =>
-              chartImplementation({
+            {eventData => {
+              return chartImplementation({
                 ...eventData,
                 zoomRenderProps,
-              })
-            }
+              });
+            }}
           </EventsRequest>
         )}
       </ChartZoom>

@@ -132,6 +132,7 @@ class TrendChart extends Component<Props> {
               currentSeriesName={trendDisplay}
               partial
               withoutZerofill={withoutZerofill}
+              referrer="api.performance.transaction-summary.trends-chart"
             >
               {({errored, loading, reloading, timeseriesData, timeframe}) => {
                 if (errored) {

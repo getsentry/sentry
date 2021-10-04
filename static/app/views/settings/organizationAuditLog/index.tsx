@@ -1,7 +1,7 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {t} from 'app/locale';
-import {LightWeightOrganization} from 'app/types';
+import {Organization} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
@@ -64,7 +64,7 @@ const EVENT_TYPES = [
 
 type Props = RouteComponentProps<{orgId: string}, {}> &
   AsyncView['props'] & {
-    organization: LightWeightOrganization;
+    organization: Organization;
   };
 
 type State = AsyncView['state'];

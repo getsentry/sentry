@@ -20,18 +20,18 @@ import {
 
 describe('Filters and Sampling', function () {
   const commonConditionCategories = [
-    'Releases',
-    'Environments',
+    'Release',
+    'Environment',
     'User Id',
     'User Segment',
     'Browser Extensions',
     'Localhost',
-    'Legacy Browsers',
+    'Legacy Browser',
     'Web Crawlers',
-    'IP Addresses',
+    'IP Address',
     'Content Security Policy',
-    'Error Messages',
-    'Transactions',
+    'Error Message',
+    'Transaction',
   ];
 
   // @ts-expect-error
@@ -56,13 +56,13 @@ describe('Filters and Sampling', function () {
   }
 
   async function renderModal(
-    screen: BoundFunctions<{findByRole: FindByRole}>,
+    screen2: BoundFunctions<{findByRole: FindByRole}>,
     actionElement: HTMLElement,
     takeScreenshot = false
   ) {
     // Open Modal
     fireEvent.click(actionElement);
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen2.findByRole('dialog');
     expect(dialog).toBeInTheDocument();
 
     if (takeScreenshot) {
@@ -340,6 +340,13 @@ describe('Filters and Sampling', function () {
         }),
       });
 
+      // @ts-expect-error
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/release/values/',
+        method: 'GET',
+        body: [{value: '[I3].[0-9]'}],
+      });
+
       const component = renderComponent();
       const {queryAllByText, queryByText, getByText, queryAllByLabelText} = component;
 
@@ -364,13 +371,14 @@ describe('Filters and Sampling', function () {
       expect(modal.queryByText('Tracing')).toBeFalsy();
 
       // Release Field
-      const releaseField = modal.getByPlaceholderText(
-        'ex. 1* or [I3].[0-9].* (Multiline)'
-      );
+      await modal.findByTestId('autocomplete-release');
+      const releaseField = modal.getByTestId('autocomplete-release');
       expect(releaseField).toBeTruthy();
 
       // Release field is not empty
-      expect(releaseField).toHaveValue('1*');
+      const releaseFieldValues = within(releaseField).queryAllByTestId('multivalue');
+      expect(releaseFieldValues).toHaveLength(1);
+      expect(releaseFieldValues[0].textContent).toEqual('1*');
 
       // Button is enabled - meaning the form is valid
       const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
@@ -384,28 +392,57 @@ describe('Filters and Sampling', function () {
       // Sample rate is not empty
       expect(sampleRateField).toHaveValue(10);
 
+      const releaseFieldInput = within(releaseField).getByLabelText(
+        'Search or add a release'
+      );
+
       // Clear release field
-      fireEvent.change(releaseField, {target: {value: ''}});
+      fireEvent.keyDown(releaseFieldInput, {key: 'Backspace'});
 
-      expect(saveRuleButton).toBeDisabled();
+      // Release field is now empty
+      const newReleaseFieldValues = within(
+        modal.getByTestId('autocomplete-release')
+      ).queryAllByTestId('multivalue');
+      expect(newReleaseFieldValues).toHaveLength(0);
 
-      // Add new value to the release field
-      fireEvent.change(releaseField, {target: {value: '[I3].[0-9]'}});
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
-      expect(saveRuleButton).toBeEnabled();
+      // Type into realease field
+      fireEvent.change(
+        within(modal.getByTestId('autocomplete-release')).getByLabelText(
+          'Search or add a release'
+        ),
+        {
+          target: {value: '[I3].[0-9]'},
+        }
+      );
+
+      // Autocomplete suggests options
+      const autocompleteOptions = within(
+        modal.getByTestId('autocomplete-release')
+      ).queryAllByTestId('option');
+      expect(autocompleteOptions).toHaveLength(1);
+      expect(autocompleteOptions[0].textContent).toEqual('[I3].[0-9]');
+
+      // Click on the suggested option
+      fireEvent.click(autocompleteOptions[0]);
+
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
 
       // Clear sample rate field
       fireEvent.change(sampleRateField, {target: {value: null}});
 
-      expect(saveRuleButton).toBeDisabled();
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Update sample rate field
       fireEvent.change(sampleRateField, {target: {value: 50}});
 
-      expect(saveRuleButton).toBeEnabled();
+      // Save button is now enabled
+      const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+      expect(saveRuleButtonEnabled).toBeEnabled();
 
       // Click on save button
-      fireEvent.click(saveRuleButton);
+      fireEvent.click(saveRuleButtonEnabled);
 
       // Modal will close
       await waitForElementToBeRemoved(() => getByText('Edit Error Sampling Rule'));
@@ -425,7 +462,7 @@ describe('Filters and Sampling', function () {
       expect(getByText('50%')).toBeTruthy();
     });
 
-    it('transaction rule', async function () {
+    it('transaction trace rule', async function () {
       // @ts-expect-error
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
@@ -514,6 +551,13 @@ describe('Filters and Sampling', function () {
         }),
       });
 
+      // @ts-expect-error
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/release/values/',
+        method: 'GET',
+        body: [{value: '[0-9]'}],
+      });
+
       const component = renderComponent();
       const {queryAllByText, queryByText, getByText, queryAllByLabelText} = component;
 
@@ -539,13 +583,14 @@ describe('Filters and Sampling', function () {
       expect(modal.getByRole('checkbox')).toBeChecked();
 
       // Release Field
-      const releaseField = modal.getByPlaceholderText(
-        'ex. 1* or [I3].[0-9].* (Multiline)'
-      );
+      await modal.findByTestId('autocomplete-release');
+      const releaseField = modal.getByTestId('autocomplete-release');
       expect(releaseField).toBeTruthy();
 
       // Release field is not empty
-      expect(releaseField).toHaveValue('1.2.3');
+      const releaseFieldValues = within(releaseField).queryAllByTestId('multivalue');
+      expect(releaseFieldValues).toHaveLength(1);
+      expect(releaseFieldValues[0].textContent).toEqual('1.2.3');
 
       // Button is enabled - meaning the form is valid
       const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
@@ -559,28 +604,57 @@ describe('Filters and Sampling', function () {
       // Sample rate is not empty
       expect(sampleRateField).toHaveValue(20);
 
+      const releaseFieldInput = within(releaseField).getByLabelText(
+        'Search or add a release'
+      );
+
       // Clear release field
-      fireEvent.change(releaseField, {target: {value: ''}});
+      fireEvent.keyDown(releaseFieldInput, {key: 'Backspace'});
 
-      expect(saveRuleButton).toBeDisabled();
+      // Release field is now empty
+      const newReleaseFieldValues = within(
+        modal.getByTestId('autocomplete-release')
+      ).queryAllByTestId('multivalue');
+      expect(newReleaseFieldValues).toHaveLength(0);
 
-      // Add new value to the release field
-      fireEvent.change(releaseField, {target: {value: '[0-9]'}});
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
-      expect(saveRuleButton).toBeEnabled();
+      // Type into realease field
+      fireEvent.change(
+        within(modal.getByTestId('autocomplete-release')).getByLabelText(
+          'Search or add a release'
+        ),
+        {
+          target: {value: '[0-9]'},
+        }
+      );
+
+      // Autocomplete suggests options
+      const autocompleteOptions = within(
+        modal.getByTestId('autocomplete-release')
+      ).queryAllByTestId('option');
+      expect(autocompleteOptions).toHaveLength(1);
+      expect(autocompleteOptions[0].textContent).toEqual('[0-9]');
+
+      // Click on the suggested option
+      fireEvent.click(autocompleteOptions[0]);
+
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
 
       // Clear sample rate field
       fireEvent.change(sampleRateField, {target: {value: null}});
 
-      expect(saveRuleButton).toBeDisabled();
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
 
       // Update sample rate field
       fireEvent.change(sampleRateField, {target: {value: 60}});
 
-      expect(saveRuleButton).toBeEnabled();
+      // Save button is now enabled
+      const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+      expect(saveRuleButtonEnabled).toBeEnabled();
 
       // Click on save button
-      fireEvent.click(saveRuleButton);
+      fireEvent.click(saveRuleButtonEnabled);
 
       // Modal will close
       await waitForElementToBeRemoved(() => getByText('Edit Transaction Sampling Rule'));
@@ -589,6 +663,217 @@ describe('Filters and Sampling', function () {
       expect(errorRules).toHaveLength(1);
 
       expect(getByText('Transaction traces')).toBeTruthy();
+      expect(queryAllByText('Release')).toHaveLength(2);
+
+      // Old values
+      expect(queryByText('1.2.3')).toBeFalsy();
+      expect(queryByText('20%')).toBeFalsy();
+
+      // New values
+      expect(getByText('[0-9]')).toBeTruthy();
+      expect(getByText('60%')).toBeTruthy();
+    });
+
+    it('individual transaction rule', async function () {
+      // @ts-expect-error
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/',
+        method: 'GET',
+        // @ts-expect-error
+        body: TestStubs.Project({
+          dynamicSampling: {
+            rules: [
+              {
+                sampleRate: 0.1,
+                type: 'error',
+                condition: {
+                  op: 'and',
+                  inner: [
+                    {
+                      op: 'glob',
+                      name: 'event.release',
+                      value: ['1*'],
+                    },
+                  ],
+                },
+                id: 39,
+              },
+              {
+                sampleRate: 0.2,
+                type: 'transaction',
+                condition: {
+                  op: 'and',
+                  inner: [
+                    {
+                      op: 'glob',
+                      name: 'event.release',
+                      value: ['1.2.3'],
+                    },
+                  ],
+                },
+                id: 40,
+              },
+            ],
+            next_id: 43,
+          },
+        }),
+      });
+
+      // @ts-expect-error
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/',
+        method: 'PUT',
+        // @ts-expect-error
+        body: TestStubs.Project({
+          dynamicSampling: {
+            rules: [
+              {
+                sampleRate: 0.1,
+                type: 'error',
+                condition: {
+                  op: 'and',
+                  inner: [
+                    {
+                      op: 'glob',
+                      name: 'event.release',
+                      value: ['1*'],
+                    },
+                  ],
+                },
+                id: 44,
+              },
+              {
+                sampleRate: 0.6,
+                type: 'transaction',
+                condition: {
+                  op: 'and',
+                  inner: [
+                    {
+                      op: 'glob',
+                      name: 'event.release',
+                      value: ['[0-9]'],
+                    },
+                  ],
+                },
+                id: 45,
+              },
+            ],
+            next_id: 43,
+          },
+        }),
+      });
+
+      // @ts-expect-error
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/release/values/',
+        method: 'GET',
+        body: [{value: '[0-9]'}],
+      });
+
+      const component = renderComponent();
+      const {queryAllByText, queryByText, getByText, queryAllByLabelText} = component;
+
+      // Error rules container
+      expect(queryByText('There are no error rules to display')).toBeFalsy();
+      const errorRules = queryAllByText('Errors only');
+      expect(errorRules).toHaveLength(1);
+
+      // Transaction traces and individual transactions rules container
+      expect(queryByText('There are no transaction rules to display')).toBeFalsy();
+      const transactionTraceRules = queryAllByText('Individual transactions');
+      expect(transactionTraceRules).toHaveLength(1);
+
+      const editRuleButtons = queryAllByLabelText('Edit Rule');
+      expect(editRuleButtons).toHaveLength(2);
+
+      // Open rule modal - edit transaction rule
+      const modal = await renderModal(component, editRuleButtons[1]);
+
+      // Modal content
+      expect(modal.getByText('Edit Transaction Sampling Rule')).toBeTruthy();
+      expect(modal.queryByText('Tracing')).toBeTruthy();
+      expect(modal.getByRole('checkbox')).not.toBeChecked();
+
+      // Release Field
+      await modal.findByTestId('autocomplete-release');
+      const releaseField = modal.getByTestId('autocomplete-release');
+      expect(releaseField).toBeTruthy();
+
+      // Release field is not empty
+      const releaseFieldValues = within(releaseField).queryAllByTestId('multivalue');
+      expect(releaseFieldValues).toHaveLength(1);
+
+      // Button is enabled - meaning the form is valid
+      const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
+      expect(saveRuleButton).toBeTruthy();
+      expect(saveRuleButton).toBeEnabled();
+
+      // Sample rate field
+      const sampleRateField = modal.getByPlaceholderText('\u0025');
+      expect(sampleRateField).toBeTruthy();
+
+      // Sample rate is not empty
+      expect(sampleRateField).toHaveValue(20);
+
+      const releaseFieldInput = within(releaseField).getByLabelText(
+        'Search or add a release'
+      );
+
+      // Clear release field
+      fireEvent.keyDown(releaseFieldInput, {key: 'Backspace'});
+
+      // Release field is now empty
+      const newReleaseFieldValues = within(
+        modal.getByTestId('autocomplete-release')
+      ).queryAllByTestId('multivalue');
+      expect(newReleaseFieldValues).toHaveLength(0);
+
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
+
+      // Type into realease field
+      fireEvent.change(
+        within(modal.getByTestId('autocomplete-release')).getByLabelText(
+          'Search or add a release'
+        ),
+        {
+          target: {value: '[0-9]'},
+        }
+      );
+
+      // Autocomplete suggests options
+      const autocompleteOptions = within(
+        modal.getByTestId('autocomplete-release')
+      ).queryAllByTestId('option');
+      expect(autocompleteOptions).toHaveLength(1);
+      expect(autocompleteOptions[0].textContent).toEqual('[0-9]');
+
+      // Click on the suggested option
+      fireEvent.click(autocompleteOptions[0]);
+
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeEnabled();
+
+      // Clear sample rate field
+      fireEvent.change(sampleRateField, {target: {value: null}});
+
+      expect(modal.getByRole('button', {name: 'Save Rule'})).toBeDisabled();
+
+      // Update sample rate field
+      fireEvent.change(sampleRateField, {target: {value: 60}});
+
+      // Save button is now enabled
+      const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+      expect(saveRuleButtonEnabled).toBeEnabled();
+
+      // Click on save button
+      fireEvent.click(saveRuleButtonEnabled);
+
+      // Modal will close
+      await waitForElementToBeRemoved(() => getByText('Edit Transaction Sampling Rule'));
+
+      // Error rules panel is updated
+      expect(errorRules).toHaveLength(1);
+
+      expect(getByText('Individual transactions')).toBeTruthy();
       expect(queryAllByText('Release')).toHaveLength(2);
 
       // Old values
@@ -718,123 +1003,6 @@ describe('Filters and Sampling', function () {
       // There is still one transaction rule
       expect(transactionTraceRules).toHaveLength(1);
     });
-
-    it('transaction rule', async function () {
-      // @ts-expect-error
-      MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/',
-        method: 'GET',
-        // @ts-expect-error
-        body: TestStubs.Project({
-          dynamicSampling: {
-            rules: [
-              {
-                sampleRate: 0.2,
-                type: 'error',
-                condition: {
-                  op: 'and',
-                  inner: [
-                    {
-                      op: 'glob',
-                      name: 'event.release',
-                      value: ['1.2.3'],
-                    },
-                  ],
-                },
-                id: 39,
-              },
-              {
-                sampleRate: 0.2,
-                type: 'trace',
-                condition: {
-                  op: 'and',
-                  inner: [
-                    {
-                      op: 'glob',
-                      name: 'trace.release',
-                      value: ['1.2.3'],
-                    },
-                  ],
-                },
-                id: 40,
-              },
-            ],
-            next_id: 43,
-          },
-        }),
-      });
-
-      // @ts-expect-error
-      MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/',
-        method: 'PUT',
-        // @ts-expect-error
-        body: TestStubs.Project({
-          dynamicSampling: {
-            rules: [
-              {
-                sampleRate: 0.2,
-                type: 'error',
-                condition: {
-                  op: 'and',
-                  inner: [
-                    {
-                      op: 'glob',
-                      name: 'event.release',
-                      value: ['1.2.3'],
-                    },
-                  ],
-                },
-                id: 39,
-              },
-            ],
-            next_id: 43,
-          },
-        }),
-      });
-
-      const component = renderComponent();
-      const {queryAllByText, queryByText, getByText, queryAllByLabelText} = component;
-
-      // Error rules container
-      expect(queryByText('There are no error rules to display')).toBeFalsy();
-      const errorRules = queryAllByText('Errors only');
-      expect(errorRules).toHaveLength(1);
-
-      // Transaction traces and individual transactions rules container
-      expect(queryByText('There are no transaction rules to display')).toBeFalsy();
-      const transactionTraceRules = queryAllByText('Transaction traces');
-      expect(transactionTraceRules).toHaveLength(1);
-
-      const deleteRuleButtons = queryAllByLabelText('Delete Rule');
-      expect(deleteRuleButtons).toHaveLength(2);
-
-      // Open deletion confirmation modal - delete transaction rule
-      const modal = await renderModal(component, deleteRuleButtons[1]);
-
-      expect(
-        modal.getByText('Are you sure you wish to delete this dynamic sampling rule?')
-      ).toBeTruthy();
-
-      const modalActionButtons = modal.queryAllByRole('button');
-      expect(modalActionButtons).toHaveLength(2);
-      expect(modalActionButtons[0].textContent).toEqual('Cancel');
-      expect(modalActionButtons[1].textContent).toEqual('Confirm');
-
-      // Confirm deletion
-      fireEvent.click(modalActionButtons[1]);
-
-      // Confirmation modal will close
-      await waitForElementToBeRemoved(() =>
-        getByText('Are you sure you wish to delete this dynamic sampling rule?')
-      );
-
-      // Transaction rules panel is updated
-      expect(queryByText('There are no transaction rules to display')).toBeTruthy();
-
-      // There is still one transaction rule
-      expect(errorRules).toHaveLength(1);
-    });
   });
 
   describe('error rule modal', function () {
@@ -923,6 +1091,13 @@ describe('Filters and Sampling', function () {
           }),
       });
 
+      // @ts-expect-error
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/release/values/',
+        method: 'GET',
+        body: [{value: '1.2.3'}],
+      });
+
       const component = renderComponent();
       const {getByText, queryByText, queryAllByText} = component;
 
@@ -943,13 +1118,26 @@ describe('Filters and Sampling', function () {
       fireEvent.click(conditionOptions[0]);
 
       // Release Field
-      const releaseField = modal.getByPlaceholderText(
-        'ex. 1* or [I3].[0-9].* (Multiline)'
-      );
+      await modal.findByTestId('autocomplete-release');
+      const releaseField = modal.getByTestId('autocomplete-release');
       expect(releaseField).toBeTruthy();
 
-      // Fill release field
-      fireEvent.change(releaseField, {target: {value: '1.2.3'}});
+      // Release field is empty
+      const releaseFieldValues = within(releaseField).queryAllByTestId('multivalue');
+      expect(releaseFieldValues).toHaveLength(0);
+
+      // Type into realease field
+      fireEvent.change(within(releaseField).getByLabelText('Search or add a release'), {
+        target: {value: '1.2.3'},
+      });
+
+      // Autocomplete suggests options
+      const autocompleteOptions = within(releaseField).queryAllByTestId('option');
+      expect(autocompleteOptions).toHaveLength(1);
+      expect(autocompleteOptions[0].textContent).toEqual('1.2.3');
+
+      // Click on the suggested option
+      fireEvent.click(autocompleteOptions[0]);
 
       // Button is still disabled
       const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
@@ -961,10 +1149,12 @@ describe('Filters and Sampling', function () {
       expect(sampleRateField).toBeTruthy();
       fireEvent.change(sampleRateField, {target: {value: 20}});
 
-      expect(saveRuleButton).toBeEnabled();
+      // Save button is now enabled
+      const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+      expect(saveRuleButtonEnabled).toBeEnabled();
 
       // Click on save button
-      fireEvent.click(saveRuleButton);
+      fireEvent.click(saveRuleButtonEnabled);
 
       // Modal will close
       await waitForElementToBeRemoved(() => getByText('Add Error Sampling Rule'));
@@ -981,11 +1171,11 @@ describe('Filters and Sampling', function () {
 
   describe('transaction rule modal', function () {
     const conditionTracingCategories = [
-      'Releases',
-      'Environments',
+      'Release',
+      'Environment',
       'User Id',
       'User Segment',
-      'Transactions',
+      'Transaction',
     ];
 
     it('renders modal', async function () {
@@ -1049,7 +1239,7 @@ describe('Filters and Sampling', function () {
         );
       }
 
-      // Uncheck tracing checkbox
+      // Unchecked tracing checkbox
       fireEvent.click(modal.getByRole('checkbox'));
 
       // Click on 'Add condition'
@@ -1102,11 +1292,21 @@ describe('Filters and Sampling', function () {
             }),
         });
 
+        // @ts-expect-error
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/tags/release/values/',
+          method: 'GET',
+          body: [{value: '1.2.3'}],
+        });
+
         const component = renderComponent();
         const {getByText, queryByText, queryAllByText} = component;
 
         // Open Modal
         const modal = await renderModal(component, getByText('Add transaction rule'));
+
+        // Checked tracing checkbox
+        expect(modal.getByRole('checkbox')).toBeChecked();
 
         // Click on 'Add condition'
         fireEvent.click(modal.getByText('Add Condition'));
@@ -1122,13 +1322,28 @@ describe('Filters and Sampling', function () {
         fireEvent.click(conditionOptions[0]);
 
         // Release Field
-        const releaseField = modal.getByPlaceholderText(
-          'ex. 1* or [I3].[0-9].* (Multiline)'
-        );
+        await modal.findByTestId('autocomplete-release');
+        const releaseField = modal.getByTestId('autocomplete-release');
         expect(releaseField).toBeTruthy();
 
-        // Fill release field
-        fireEvent.change(releaseField, {target: {value: '1.2.3'}});
+        // Release field is empty
+        const releaseFieldValues = within(releaseField).queryAllByTestId('multivalue');
+        expect(releaseFieldValues).toHaveLength(0);
+
+        // Type into realease field
+        fireEvent.change(within(releaseField).getByLabelText('Search or add a release'), {
+          target: {value: '1.2.3'},
+        });
+
+        // Autocomplete suggests options
+        const autocompleteOptions = within(
+          modal.getByTestId('autocomplete-release')
+        ).queryAllByTestId('option');
+        expect(autocompleteOptions).toHaveLength(1);
+        expect(autocompleteOptions[0].textContent).toEqual('1.2.3');
+
+        // Click on the suggested option
+        fireEvent.click(autocompleteOptions[0]);
 
         // Button is still disabled
         const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
@@ -1140,10 +1355,12 @@ describe('Filters and Sampling', function () {
         expect(sampleRateField).toBeTruthy();
         fireEvent.change(sampleRateField, {target: {value: 20}});
 
-        expect(saveRuleButton).toBeEnabled();
+        // Save button is now enabled
+        const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+        expect(saveRuleButtonEnabled).toBeEnabled();
 
         // Click on save button
-        fireEvent.click(saveRuleButton);
+        fireEvent.click(saveRuleButtonEnabled);
 
         // Modal will close
         await waitForElementToBeRemoved(() => getByText('Add Transaction Sampling Rule'));
@@ -1189,13 +1406,20 @@ describe('Filters and Sampling', function () {
               }),
           });
 
+          // @ts-expect-error
+          MockApiClient.addMockResponse({
+            url: '/organizations/org-slug/tags/release/values/',
+            method: 'GET',
+            body: [{value: '1.2.3'}],
+          });
+
           const component = renderComponent();
           const {getByText, queryByText, queryAllByText, findByTestId} = component;
 
           // Open Modal
           const modal = await renderModal(component, getByText('Add transaction rule'));
 
-          // Uncheck tracing checkbox
+          // Unchecked tracing checkbox
           fireEvent.click(modal.getByRole('checkbox'));
 
           // Click on 'Add condition'
@@ -1212,13 +1436,31 @@ describe('Filters and Sampling', function () {
           fireEvent.click(conditionOptions[0]);
 
           // Release Field
-          const releaseField = modal.getByPlaceholderText(
-            'ex. 1* or [I3].[0-9].* (Multiline)'
-          );
+          await modal.findByTestId('autocomplete-release');
+          const releaseField = modal.getByTestId('autocomplete-release');
           expect(releaseField).toBeTruthy();
 
-          // Fill release field
-          fireEvent.change(releaseField, {target: {value: '1.2.3'}});
+          // Release field is empty
+          const releaseFieldValues = within(releaseField).queryAllByTestId('multivalue');
+          expect(releaseFieldValues).toHaveLength(0);
+
+          // Type into realease field
+          fireEvent.change(
+            within(releaseField).getByLabelText('Search or add a release'),
+            {
+              target: {value: '1.2.3'},
+            }
+          );
+
+          // Autocomplete suggests options
+          const autocompleteOptions = within(
+            modal.getByTestId('autocomplete-release')
+          ).queryAllByTestId('option');
+          expect(autocompleteOptions).toHaveLength(1);
+          expect(autocompleteOptions[0].textContent).toEqual('1.2.3');
+
+          // Click on the suggested option
+          fireEvent.click(autocompleteOptions[0]);
 
           // Button is still disabled
           const saveRuleButton = modal.getByRole('button', {name: 'Save Rule'});
@@ -1230,10 +1472,12 @@ describe('Filters and Sampling', function () {
           expect(sampleRateField).toBeTruthy();
           fireEvent.change(sampleRateField, {target: {value: 20}});
 
-          expect(saveRuleButton).toBeEnabled();
+          // Save button is now enabled
+          const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+          expect(saveRuleButtonEnabled).toBeEnabled();
 
           // Click on save button
-          fireEvent.click(saveRuleButton);
+          fireEvent.click(saveRuleButtonEnabled);
 
           // Modal will close
           await waitForElementToBeRemoved(() =>
@@ -1294,9 +1538,16 @@ describe('Filters and Sampling', function () {
 
           // Open Modal
           const modal = await renderModal(component, getByText('Add transaction rule'));
+          const checkedCheckbox = modal.getByRole('checkbox');
+
+          // Checked tracing checkbox
+          expect(checkedCheckbox).toBeChecked();
 
           // Uncheck tracing checkbox
-          fireEvent.click(modal.getByRole('checkbox'));
+          fireEvent.click(checkedCheckbox);
+
+          // Unched tracing checkbox
+          expect(checkedCheckbox).not.toBeChecked();
 
           // Click on 'Add condition'
           fireEvent.click(modal.getByText('Add Condition'));
@@ -1353,10 +1604,11 @@ describe('Filters and Sampling', function () {
           fireEvent.change(sampleRateField, {target: {value: 20}});
 
           // Save button is now enabled
-          expect(saveRuleButton).toBeEnabled();
+          const saveRuleButtonEnabled = modal.getByRole('button', {name: 'Save Rule'});
+          expect(saveRuleButtonEnabled).toBeEnabled();
 
           // Click on save button
-          fireEvent.click(saveRuleButton);
+          fireEvent.click(saveRuleButtonEnabled);
 
           // Modal will close
           await waitForElementToBeRemoved(() =>
@@ -1367,7 +1619,7 @@ describe('Filters and Sampling', function () {
           expect(queryByText('There are no transaction rules to display')).toBeFalsy();
           const individualTransactionRules = queryAllByText('Individual transactions');
           expect(individualTransactionRules).toHaveLength(1);
-          expect(getByText('Legacy Browsers')).toBeTruthy();
+          expect(getByText('Legacy Browser')).toBeTruthy();
           for (const legacyBrowser of legacyBrowsers) {
             const {title} = LEGACY_BROWSER_LIST[legacyBrowser];
             expect(getByText(title)).toBeTruthy();

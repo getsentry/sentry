@@ -11,7 +11,7 @@ type Props = {
 function Summary({kvData, children}: Props) {
   if (!kvData || !Object.keys(kvData).length) {
     if (!children) {
-      return null;
+      return <div />;
     }
 
     return (
@@ -34,21 +34,18 @@ function Summary({kvData, children}: Props) {
 export default Summary;
 
 const Wrapper = styled('div')`
-  max-height: 100%;
-  height: 100%;
   word-break: break-all;
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};
   display: grid;
   grid-gap: ${space(0.5)};
+  overflow: hidden;
 `;
 
 const ContextDataWrapper = styled('div')`
   padding: ${space(1)};
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
-  max-height: 100%;
-  height: 100%;
   overflow: hidden;
 
   pre {
@@ -62,10 +59,11 @@ const ContextDataWrapper = styled('div')`
 `;
 
 const StyledCode = styled('code')`
-  line-height: 26px;
-  color: inherit;
   font-size: inherit;
   white-space: pre-wrap;
   background: none;
   padding: 0;
+  > * {
+    vertical-align: middle;
+  }
 `;

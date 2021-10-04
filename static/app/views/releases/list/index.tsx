@@ -9,9 +9,9 @@ import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import PageHeading from 'app/components/pageHeading';
@@ -40,6 +40,7 @@ import Projects from 'app/utils/projects';
 import routeTitleGen from 'app/utils/routeTitle';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
+import withProjects from 'app/utils/withProjects';
 import AsyncView from 'app/views/asyncView';
 
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
@@ -79,9 +80,7 @@ const supportedTags = {
 };
 
 export const isProjectMobileForReleases = (projectPlatform: PlatformKey) =>
-  (
-    [...mobile, ...desktop, 'java-android', 'cocoa-objc', 'cocoa-swift'] as string[]
-  ).includes(projectPlatform);
+  ([...mobile, ...desktop] as string[]).includes(projectPlatform);
 
 type RouteParams = {
   orgId: string;
@@ -89,6 +88,7 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
+  projects: Project[];
   selection: GlobalSelection;
 };
 
@@ -208,11 +208,11 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   getSelectedProject(): Project | undefined {
-    const {selection, organization} = this.props;
+    const {selection, projects} = this.props;
 
     const selectedProjectId =
       selection.projects && selection.projects.length === 1 && selection.projects[0];
-    return organization.projects?.find(p => p.id === `${selectedProjectId}`);
+    return projects?.find(p => p.id === `${selectedProjectId}`);
   }
 
   async fetchSessionsExistence() {
@@ -544,7 +544,7 @@ class ReleasesList extends AsyncView<Props, State> {
         )}
       >
         <PageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
             <PageHeader>
               <PageHeading>{t('Releases')}</PageHeading>
             </PageHeader>
@@ -608,7 +608,7 @@ class ReleasesList extends AsyncView<Props, State> {
             {error
               ? super.renderError(new Error('Unable to load all required endpoints'))
               : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
     );
@@ -693,5 +693,5 @@ const DropdownsWrapper = styled('div')`
   }
 `;
 
-export default withOrganization(withGlobalSelection(ReleasesList));
+export default withProjects(withOrganization(withGlobalSelection(ReleasesList)));
 export {ReleasesList};

@@ -6,20 +6,23 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 
+import ProjectsStore from 'app/stores/projectsStore';
 import {DashboardState} from 'app/views/dashboardsV2/types';
+import * as types from 'app/views/dashboardsV2/types';
 import ViewEditDashboard from 'app/views/dashboardsV2/view';
 
 describe('Dashboards > Detail', function () {
   const organization = TestStubs.Organization({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
-    projects: [TestStubs.Project()],
   });
+  const projects = [TestStubs.Project()];
 
   describe('prebuilt dashboards', function () {
     let wrapper;
     let initialData, mockVisit;
 
     beforeEach(function () {
+      ProjectsStore.loadInitialData(projects);
       initialData = initializeOrg({organization});
 
       MockApiClient.addMockResponse({
@@ -223,8 +226,16 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         body: [
-          TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'}),
-          TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
+          TestStubs.Dashboard([], {
+            id: 'default-overview',
+            title: 'Default',
+            widgetDisplay: ['area'],
+          }),
+          TestStubs.Dashboard([], {
+            id: '1',
+            title: 'Custom Errors',
+            widgetDisplay: ['area'],
+          }),
         ],
       });
       MockApiClient.addMockResponse({
@@ -333,6 +344,50 @@ describe('Dashboards > Detail', function () {
       const modal = await mountGlobalModal();
 
       expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
+    });
+
+    it('shows add wiget option', async function () {
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Enter edit mode.
+      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+      wrapper.update();
+      expect(wrapper.find('AddWidget').exists()).toBe(true);
+
+      wrapper.unmount();
+    });
+
+    it('hides add widget option', async function () {
+      types.MAX_WIDGETS = 1;
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Enter edit mode.
+      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+      wrapper.update();
+      expect(wrapper.find('AddWidget').exists()).toBe(false);
+
+      wrapper.unmount();
     });
 
     it('hides and shows breadcrumbs based on feature', async function () {

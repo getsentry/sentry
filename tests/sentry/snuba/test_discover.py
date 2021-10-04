@@ -2457,6 +2457,18 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             params={"project_id": [self.project.id], "organization_id": self.organization.id},
         )
         assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2}
+        result = discover.query(
+            selected_columns=["id"],
+            query=f"!{SEMVER_ALIAS}:1.2.3",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert {r["id"] for r in result["data"]} == {
+            self.event.event_id,
+            release_2_e_1,
+            release_2_e_2,
+            release_3_e_1,
+            release_3_e_2,
+        }
 
     def test_release_stage_condition(self):
         replaced_release = self.create_release(
@@ -2859,7 +2871,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         for t, ev in enumerate(events):
             val = ev[0] * 32
             for i in range(ev[1]):
-                data = load_data("transaction", timestamp=before_now(seconds=3 * t + 1))
+                data = load_data("transaction", timestamp=self.now - timedelta(seconds=3 * t + 1))
                 data["transaction"] = f"{val}"
                 self.store_event(data=data, project_id=self.project.id)
 
@@ -2867,8 +2879,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             results = discover.query(
                 selected_columns=["transaction", "count()"],
                 query="event.type:transaction AND (timestamp:<{} OR timestamp:>{})".format(
-                    iso_format(before_now(seconds=5)),
-                    iso_format(before_now(seconds=3)),
+                    iso_format(self.now - timedelta(seconds=5)),
+                    iso_format(self.now - timedelta(seconds=3)),
                 ),
                 params={
                     "project_id": [self.project.id],
@@ -5653,6 +5665,101 @@ class TimeseriesQueryTest(TimeseriesBase):
         assert "count_unique_user" in keys
         assert "time" in keys
 
+    def test_comparison_aggregate_function_invalid(self):
+        with pytest.raises(
+            InvalidSearchQuery, match="Only one column can be selected for comparison queries"
+        ):
+            discover.timeseries_query(
+                selected_columns=["count()", "count_unique(user)"],
+                query="",
+                params={
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=2),
+                    "project_id": [self.project.id],
+                },
+                rollup=3600,
+                comparison_delta=timedelta(days=1),
+            )
+
+    def test_comparison_aggregate_function(self):
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "user": {"id": 1},
+            },
+            project_id=self.project.id,
+        )
+
+        result = discover.timeseries_query(
+            selected_columns=["count()"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+            comparison_delta=timedelta(days=1),
+        )
+        assert len(result.data["data"]) == 3
+        # Values should all be 0, since there is no comparison period data at all.
+        assert [0, 0, 0] == [val["count"] for val in result.data["data"] if "count" in val]
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=1)),
+                "user": {"id": 1},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=1, minutes=2)),
+                "user": {"id": 2},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=2, minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+
+        result = discover.timeseries_query(
+            selected_columns=["count()"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2, minutes=1),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+            comparison_delta=timedelta(days=1),
+        )
+        assert len(result.data["data"]) == 3
+        # In the second bucket we have 3 events in the current period and 2 in the comparison, so
+        # we get a result of 50% increase
+        assert [0, 50, 0] == [val["count"] for val in result.data["data"] if "count" in val]
+
+        result = discover.timeseries_query(
+            selected_columns=["count_unique(user)"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2, minutes=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+            comparison_delta=timedelta(days=1),
+        )
+        assert len(result.data["data"]) == 3
+        # In the second bucket we have 1 unique user in the current period and 2 in the comparison, so
+        # we get a result of -50%
+        assert [0, -50, 0] == [
+            val["count_unique_user"] for val in result.data["data"] if "count_unique_user" in val
+        ]
+
     def test_count_miserable(self):
         event_data = load_data("transaction")
         # Half of duration so we don't get weird rounding differences when comparing the results
@@ -5941,6 +6048,8 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
             limit=10000,
             organization=self.organization,
         )
+        to_hour = ["toStartOfHour", ["timestamp"], "timestamp.to_hour"]
+        to_day = ["toStartOfDay", ["timestamp"], "timestamp.to_day"]
         mock_query.assert_called_with(
             aggregations=[["count", None, "count"]],
             conditions=[
@@ -5952,26 +6061,26 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
                 ],
                 [
                     [
-                        "timestamp.to_day",
+                        to_day,
                         "=",
                         iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
                     ],
                     [
-                        "timestamp.to_day",
+                        to_day,
                         "=",
                         iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
                     ],
                 ],
                 [
-                    ["timestamp.to_hour", "=", iso_format(timestamp1.replace(minute=0, second=0))],
-                    ["timestamp.to_hour", "=", iso_format(timestamp2.replace(minute=0, second=0))],
+                    [to_hour, "=", iso_format(timestamp1.replace(minute=0, second=0))],
+                    [to_hour, "=", iso_format(timestamp2.replace(minute=0, second=0))],
                 ],
             ],
             filter_keys={"project_id": [self.project.id]},
             selected_columns=[
                 "timestamp",
-                ["toStartOfDay", ["timestamp"], "timestamp.to_day"],
-                ["toStartOfHour", ["timestamp"], "timestamp.to_hour"],
+                to_day,
+                to_hour,
             ],
             start=start,
             end=end,

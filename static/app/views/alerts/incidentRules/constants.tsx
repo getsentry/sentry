@@ -6,12 +6,14 @@ import {
   Dataset,
   Datasource,
   EventTypes,
+  TimeWindow,
   Trigger,
   UnsavedIncidentRule,
 } from 'app/views/alerts/incidentRules/types';
 import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
   getQueryDatasource,
+  isSessionAggregate,
 } from 'app/views/alerts/utils';
 import {AlertType, WizardRuleTemplate} from 'app/views/alerts/wizard/options';
 
@@ -106,7 +108,9 @@ export function createDefaultTrigger(label: 'critical' | 'warning'): Trigger {
   };
 }
 
-export function createDefaultRule(): UnsavedIncidentRule {
+export function createDefaultRule(
+  defaultRuleOptions: Partial<UnsavedIncidentRule> = {}
+): UnsavedIncidentRule {
   return {
     dataset: Dataset.ERRORS,
     eventTypes: [EventTypes.ERROR],
@@ -118,6 +122,7 @@ export function createDefaultRule(): UnsavedIncidentRule {
     environment: null,
     resolveThreshold: '',
     thresholdType: AlertRuleThresholdType.ABOVE,
+    ...defaultRuleOptions,
   };
 }
 
@@ -145,10 +150,18 @@ export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRu
 export function createRuleFromWizardTemplate(
   wizardTemplate: WizardRuleTemplate
 ): UnsavedIncidentRule {
-  const {eventTypes, ...aggregateDataset} = wizardTemplate;
+  const {eventTypes, aggregate, dataset} = wizardTemplate;
+  const defaultRuleOptions: Partial<UnsavedIncidentRule> = {};
+
+  if (isSessionAggregate(aggregate)) {
+    defaultRuleOptions.thresholdType = AlertRuleThresholdType.BELOW;
+    defaultRuleOptions.timeWindow = TimeWindow.ONE_HOUR;
+  }
+
   return {
-    ...createDefaultRule(),
+    ...createDefaultRule(defaultRuleOptions),
     eventTypes: [eventTypes],
-    ...aggregateDataset,
+    aggregate,
+    dataset,
   };
 }

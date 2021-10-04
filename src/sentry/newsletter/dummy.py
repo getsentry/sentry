@@ -27,7 +27,7 @@ class NewsletterSubscription:
         self.list_name = list_name
         # is the email address verified?
         self.verified = (
-            UserEmail.get_primary_email(user).is_verified if verified is None else verified
+            UserEmail.objects.get_primary_email(user).is_verified if verified is None else verified
         )
         # are they subscribed to ``list_id``
         self.subscribed = subscribed

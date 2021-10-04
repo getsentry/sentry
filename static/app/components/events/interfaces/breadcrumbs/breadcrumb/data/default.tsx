@@ -2,7 +2,7 @@ import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import Highlight from 'app/components/highlight';
 import Link from 'app/components/links/link';
-import {Project} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from 'app/types/breadcrumbs';
 import {Event} from 'app/types/event';
 import {eventDetailsRoute, generateEventSlug} from 'app/utils/discover/urls';
@@ -14,27 +14,34 @@ type Props = {
   searchTerm: string;
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
   event: Event;
-  orgId: string | null;
+  orgSlug: Organization['slug'];
+  linkedEvent?: React.ReactElement;
 };
 
-const Default = ({breadcrumb, event, orgId, searchTerm}: Props) => (
-  <Summary kvData={breadcrumb.data}>
-    {breadcrumb?.message && (
-      <AnnotatedText
-        value={
-          <FormatMessage
-            searchTerm={searchTerm}
-            event={event}
-            orgId={orgId}
-            breadcrumb={breadcrumb}
-            message={breadcrumb.message}
-          />
-        }
-        meta={getMeta(breadcrumb, 'message')}
-      />
-    )}
-  </Summary>
-);
+function Default({breadcrumb, event, orgSlug, searchTerm, linkedEvent}: Props) {
+  const {message} = breadcrumb;
+  return (
+    <Summary kvData={breadcrumb.data}>
+      {linkedEvent}
+      {message && (
+        <AnnotatedText
+          value={
+            <FormatMessage
+              searchTerm={searchTerm}
+              event={event}
+              orgSlug={orgSlug}
+              breadcrumb={breadcrumb}
+              message={message}
+            />
+          }
+          meta={getMeta(breadcrumb, 'message')}
+        />
+      )}
+    </Summary>
+  );
+}
+
+export default Default;
 
 function isEventId(maybeEventId: string): boolean {
   // maybeEventId is an event id if it's a hex string of 32 characters long
@@ -48,7 +55,7 @@ const FormatMessage = withProjects(function FormatMessageInner({
   breadcrumb,
   projects,
   loadingProjects,
-  orgId,
+  orgSlug,
 }: {
   searchTerm: string;
   event: Event;
@@ -56,12 +63,11 @@ const FormatMessage = withProjects(function FormatMessageInner({
   loadingProjects: boolean;
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
   message: string;
-  orgId: string | null;
+  orgSlug: Organization['slug'];
 }) {
   const content = <Highlight text={searchTerm}>{message}</Highlight>;
   if (
     !loadingProjects &&
-    typeof orgId === 'string' &&
     breadcrumb.category === 'sentry.transaction' &&
     isEventId(message)
   ) {
@@ -76,10 +82,8 @@ const FormatMessage = withProjects(function FormatMessageInner({
     const projectSlug = maybeProject.slug;
     const eventSlug = generateEventSlug({project: projectSlug, id: message});
 
-    return <Link to={eventDetailsRoute({orgSlug: orgId, eventSlug})}>{content}</Link>;
+    return <Link to={eventDetailsRoute({orgSlug, eventSlug})}>{content}</Link>;
   }
 
   return content;
 });
-
-export default Default;

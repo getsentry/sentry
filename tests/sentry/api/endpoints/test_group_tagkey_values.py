@@ -53,6 +53,37 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
         assert response.data[0]["email"] == "foo@example.com"
         assert response.data[0]["value"] == "id:1"
 
+    def test_tag_value_with_backslash(self):
+        project = self.create_project()
+        event = self.store_event(
+            data={
+                "message": "minidumpC:\\Users\\test",
+                "user": {
+                    "id": 1,
+                    "email": "foo@example.com",
+                    "username": "foo",
+                    "ip_address": "127.0.0.1",
+                },
+                "timestamp": iso_format(before_now(seconds=5)),
+                "tags": {"message": "minidumpC:\\Users\\test"},
+            },
+            project_id=project.id,
+        )
+        group = event.group
+
+        self.login_as(user=self.user)
+
+        url = (
+            f"/api/0/issues/{group.id}/tags/message/values/?query=minidumpC%3A%5C%5CUsers%5C%5Ctest"
+        )
+
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+        assert response.data[0]["value"] == "minidumpC:\\Users\\test"
+
     def test_count_sort(self):
         project = self.create_project()
         event = self.store_event(

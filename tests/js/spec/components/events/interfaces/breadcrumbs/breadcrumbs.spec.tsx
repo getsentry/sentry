@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 import {findAllByTextContent} from 'sentry-test/utils';
 
@@ -7,9 +8,12 @@ import {EntryType} from 'app/types/event';
 
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
+  const {router} = initializeOrg();
 
   beforeEach(() => {
     props = {
+      route: {},
+      router,
       // @ts-expect-error
       organization: TestStubs.Organization(),
       // @ts-expect-error
@@ -96,7 +100,7 @@ describe('Breadcrumbs', () => {
 
       // breadcrumbs + filter item
       // TODO(Priscila): Filter should not render in the dom if not open
-      expect(await findAllByTextContent(component, 'warning')).toHaveLength(6);
+      expect(await findAllByTextContent(component, 'Warning')).toHaveLength(6);
     });
 
     it('should filter crumbs based on crumb category', async function () {

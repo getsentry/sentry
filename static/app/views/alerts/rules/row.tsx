@@ -230,7 +230,7 @@ class RuleListRow extends React.Component<Props, State> {
 
         {!hasAlertList && <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>}
         <FlexCenter>
-          <DateTime
+          <StyledDateTime
             date={getDynamicText({
               value: rule.dateCreated,
               fixed: new Date('2021-04-20'),
@@ -387,9 +387,14 @@ const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
 `;
 
+const StyledDateTime = styled(DateTime)`
+  font-variant-numeric: tabular-nums;
+`;
+
 const TriggerText = styled('div')`
   margin-left: ${space(1)};
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

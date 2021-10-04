@@ -4,9 +4,9 @@ import NavigationActions from 'app/actions/navigationActions';
 import OrganizationActions from 'app/actions/organizationActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
 import ProjectActions from 'app/actions/projectActions';
-import {LightWeightOrganization, Organization, Project} from 'app/types';
+import {Organization, Project} from 'app/types';
 
-type OrgTypes = LightWeightOrganization | Organization | null;
+type OrgTypes = Organization | null;
 
 type State = {
   project: Project | null;

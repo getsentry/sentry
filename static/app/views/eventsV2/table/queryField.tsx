@@ -2,7 +2,6 @@ import {CSSProperties} from 'react';
 import * as React from 'react';
 import {components, OptionProps, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import cloneDeep from 'lodash/cloneDeep';
 
 import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
@@ -18,6 +17,7 @@ import {
   AggregationKey,
   Column,
   ColumnType,
+  DEPRECATED_FIELDS,
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'app/utils/discover/fields';
@@ -103,30 +103,18 @@ type OptionType = {
 class QueryField extends React.Component<Props> {
   FieldSelectComponents = {
     Option: ({label, data, ...props}: OptionProps<OptionType>) => {
-      if (!data.value) {
-        Sentry.withScope(scope => {
-          scope.setExtra('data', data);
-          Sentry.captureException(new Error('Value missing from field option data'));
-        });
-      }
       return (
         <components.Option label={label} data={data} {...props}>
           <span data-test-id="label">{label}</span>
-          {this.renderTag(data.value.kind)}
+          {data.value && this.renderTag(data.value.kind, label)}
         </components.Option>
       );
     },
     SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => {
-      if (!data.value) {
-        Sentry.withScope(scope => {
-          scope.setExtra('data', data);
-          Sentry.captureException(new Error('Value missing from field option data'));
-        });
-      }
       return (
         <components.SingleValue data={data} {...props}>
           <span data-test-id="label">{data.label}</span>
-          {this.renderTag(data.value.kind)}
+          {data.value && this.renderTag(data.value.kind, data.label)}
         </components.SingleValue>
       );
     },
@@ -512,7 +500,7 @@ class QueryField extends React.Component<Props> {
     return inputs;
   }
 
-  renderTag(kind) {
+  renderTag(kind: FieldValueKind, label: string) {
     const {shouldRenderTag} = this.props;
     if (shouldRenderTag === false) {
       return null;
@@ -536,7 +524,7 @@ class QueryField extends React.Component<Props> {
         tagType = 'warning';
         break;
       case FieldValueKind.FIELD:
-        text = kind;
+        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : kind;
         tagType = 'highlight';
         break;
       default:

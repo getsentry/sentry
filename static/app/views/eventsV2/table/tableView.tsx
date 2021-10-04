@@ -33,6 +33,7 @@ import {
 } from 'app/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
+import {decodeList} from 'app/utils/queryString';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
 import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
@@ -193,6 +194,8 @@ class TableView extends React.Component<TableViewProps> {
 
       const nextEventView = eventView.sortOnField(field, tableMeta);
       const queryStringObject = nextEventView.generateQueryStringObject();
+      // Need to pull yAxis from location since eventView only stores 1 yAxis field at time
+      queryStringObject.yAxis = decodeList(location.query.yAxis);
 
       return {
         ...location,
@@ -241,9 +244,14 @@ class TableView extends React.Component<TableViewProps> {
     const isTopEvents =
       display === DisplayModes.TOP5 || display === DisplayModes.DAILYTOP5;
 
-    const count = Math.min(tableData?.data?.length ?? TOP_N, TOP_N);
+    const topEvents = eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
+    const count = Math.min(tableData?.data?.length ?? topEvents, topEvents);
 
     let cell = fieldRenderer(dataRow, {organization, location});
+
+    const hasOther =
+      organization.features.includes('discover-top-events') &&
+      (tableData?.data?.length ?? 0) > TOP_N;
 
     if (columnKey === 'id') {
       const eventSlug = generateEventSlug(dataRow);
@@ -303,8 +311,9 @@ class TableView extends React.Component<TableViewProps> {
 
     return (
       <React.Fragment>
-        {isFirstPage && isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
-          <TopResultsIndicator count={count} index={rowIndex} />
+        {isFirstPage && isTopEvents && rowIndex < topEvents && columnIndex === 0 ? (
+          // Add one if we need to include Other in the series
+          <TopResultsIndicator count={count + (hasOther ? 1 : 0)} index={rowIndex} />
         ) : null}
         <CellAction
           column={column}
@@ -427,7 +436,7 @@ class TableView extends React.Component<TableViewProps> {
   };
 
   handleUpdateColumns = (columns: Column[]): void => {
-    const {organization, eventView} = this.props;
+    const {organization, eventView, location} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -437,7 +446,13 @@ class TableView extends React.Component<TableViewProps> {
     });
 
     const nextView = eventView.withColumns(columns);
-    browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
+    const resultsViewUrlTarget = nextView.getResultsViewUrlTarget(organization.slug);
+    // Need to pull yAxis from location since eventView only stores 1 yAxis field at time
+    const previousYAxis = decodeList(location.query.yAxis);
+    resultsViewUrlTarget.query.yAxis = previousYAxis.filter(yAxis =>
+      nextView.getYAxisOptions().find(({value}) => value === yAxis)
+    );
+    browserHistory.push(resultsViewUrlTarget);
   };
 
   renderHeaderButtons = () => {

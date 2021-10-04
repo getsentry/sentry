@@ -106,7 +106,7 @@ class ProjectCodeOwners(DefaultFieldsModel):
                 if project in projects:
                     users_dict[external_actor.external_name] = user.email
                 else:
-                    users_without_access.append(f"{user.username}")
+                    users_without_access.append(f"{user.get_display_name()}")
             elif type == "team":
                 team = external_actor.actor.resolve()
                 # make sure the sentry team has access to the project
@@ -133,7 +133,8 @@ class ProjectCodeOwners(DefaultFieldsModel):
     @classmethod
     def merge_code_owners_list(self, code_owners_list):
         """
-        Merge list of code_owners into a single code_owners object concating all the rules. We assume schema version is constant.
+        Merge list of code_owners into a single code_owners object concatenating
+        all the rules. We assume schema version is constant.
         """
         merged_code_owners = None
         for code_owners in code_owners_list:

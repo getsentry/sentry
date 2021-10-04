@@ -12,6 +12,7 @@ import withConfig from 'app/utils/withConfig';
 import ThresholdControl from 'app/views/alerts/incidentRules/triggers/thresholdControl';
 import Field from 'app/views/settings/components/forms/field';
 
+import {isSessionAggregate} from '../../utils';
 import {
   AlertRuleThresholdType,
   ThresholdControlValue,
@@ -135,6 +136,30 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
     onResolveThresholdChange(trigger.alertThreshold);
   };
 
+  getThresholdUnits(aggregate: string) {
+    if (aggregate.includes('duration') || aggregate.includes('measurements')) {
+      return 'ms';
+    }
+
+    if (isSessionAggregate(aggregate)) {
+      return '%';
+    }
+
+    return '';
+  }
+
+  getCriticalThresholdPlaceholder(aggregate: string) {
+    if (aggregate.includes('failure_rate')) {
+      return '0.05';
+    }
+
+    if (isSessionAggregate(aggregate)) {
+      return '97';
+    }
+
+    return '300';
+  }
+
   render() {
     const {
       api,
@@ -156,12 +181,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       actions: [],
     };
 
-    const thresholdUnits =
-      aggregate.includes('duration') || aggregate.includes('measurements')
-        ? 'ms'
-        : aggregate.includes('failure_rate')
-        ? '%'
-        : '';
+    const thresholdUnits = this.getThresholdUnits(aggregate);
 
     return (
       <React.Fragment>
@@ -197,7 +217,11 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
                   {isCritical ? t('Critical') : t('Warning')}
                 </React.Fragment>
               }
-              placeholder={isCritical ? `300${thresholdUnits}` : t('None')}
+              placeholder={
+                isCritical
+                  ? `${this.getCriticalThresholdPlaceholder(aggregate)}${thresholdUnits}`
+                  : t('None')
+              }
               onChange={this.handleChangeTrigger(index)}
               onThresholdTypeChange={onThresholdTypeChange}
             />
