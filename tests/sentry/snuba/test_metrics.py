@@ -40,7 +40,7 @@ class MetricsSnubaTest(TestCase):
         self.indexer = self._set_metrics()
 
     def _set_metrics(self):
-        return PGStringIndexer().bulk_record(org_id=self.organization.id, strings=list(_STRINGS))
+        return PGStringIndexer().bulk_record(strings=list(_STRINGS))
 
     @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
     @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)

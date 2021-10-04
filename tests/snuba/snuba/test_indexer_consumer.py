@@ -64,12 +64,10 @@ class MetricsIndexerWorkerTest(TestCase):
 
         parsed = metrics_worker.process_message(mock_message)
         assert parsed["tags"] == {
-            PGStringIndexer()
-            .resolve(org_id=1, string=k): PGStringIndexer()
-            .resolve(org_id=1, string=str(v))
+            PGStringIndexer().resolve(string=k): PGStringIndexer().resolve(string=str(v))
             for k, v in payload["tags"].items()
         }
-        assert parsed["metric_id"] == PGStringIndexer().resolve(org_id=1, string=payload["name"])
+        assert parsed["metric_id"] == PGStringIndexer().resolve(string=payload["name"])
 
         if with_exception:
             with pytest.raises(Exception, match="didn't get all the callbacks: 1 left"):
@@ -171,9 +169,7 @@ class MetricsIndexerConsumerTest(TestCase):
         # finally test the payload of the translated message
         parsed = json.loads(translated_msg.value(), use_rapid_json=True)
         assert parsed["tags"] == {
-            str(PGStringIndexer().resolve(org_id=1, string=k)): PGStringIndexer().resolve(
-                org_id=1, string=str(v)
-            )
+            str(PGStringIndexer().resolve(string=k)): PGStringIndexer().resolve(string=str(v))
             for k, v in payload["tags"].items()
         }
-        assert parsed["metric_id"] == PGStringIndexer().resolve(org_id=1, string=payload["name"])
+        assert parsed["metric_id"] == PGStringIndexer().resolve(string=payload["name"])

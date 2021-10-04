@@ -40,32 +40,32 @@ def get_tag_values_list(org_id: int, values: Sequence[str]) -> Sequence[int]:
 
 
 def metric_id(org_id: int, name: str) -> int:
-    index = indexer.resolve(org_id, name)  # type: ignore
+    index = indexer.resolve(name)  # type: ignore
     if index is None:
         raise MetricIndexNotFound(name)
     return index  # type: ignore
 
 
 def tag_key(org_id: int, name: str) -> str:
-    index = indexer.resolve(org_id, name)  # type: ignore
+    index = indexer.resolve(name)  # type: ignore
     if index is None:
         raise MetricIndexNotFound(name)
     return f"tags[{index}]"
 
 
 def tag_value(org_id: int, name: str) -> int:
-    index = indexer.resolve(org_id, name)  # type: ignore
+    index = indexer.resolve(name)  # type: ignore
     if index is None:
         raise MetricIndexNotFound(name)
     return index  # type: ignore
 
 
 def try_get_string_index(org_id: int, name: str) -> Optional[int]:
-    return indexer.resolve(org_id, name)  # type: ignore
+    return indexer.resolve(name)  # type: ignore
 
 
 def reverse_tag_value(org_id: int, index: int) -> str:
-    str_value = indexer.reverse_resolve(org_id, index)  # type: ignore
+    str_value = indexer.reverse_resolve(index)  # type: ignore
     # If the value can't be reversed it's very likely a real programming bug
     # instead of something to be caught down: We probably got back a value from
     # Snuba that's not in the indexer => partial data loss
@@ -239,6 +239,16 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ]
 
             if environments is not None:
+<<<<<<< HEAD
+=======
+                environment_tag_values = []
+
+                for environment in environments:
+                    value = indexer.resolve(environment)  # type: ignore
+                    if value is not None:
+                        environment_tag_values.append(value)
+
+>>>>>>> c3777289e8 (update table: remove org_id, add date_added)
                 where_common.append(
                     Condition(
                         Column(tag_key(org_id, "environment")),
@@ -248,7 +258,22 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 )
 
             if not total:
+<<<<<<< HEAD
                 where_common.append(filter_releases_by_project_release(org_id, project_releases))
+=======
+                release_tag_values = []
+
+                for _, release in project_releases:
+                    value = indexer.resolve(release)  # type: ignore
+                    if value is not None:
+                        # We should not append the value if it hasn't been
+                        # observed before.
+                        release_tag_values.append(value)
+
+                where_common.append(
+                    Condition(Column(tag_key(org_id, "release")), Op.IN, release_tag_values)
+                )
+>>>>>>> c3777289e8 (update table: remove org_id, add date_added)
 
             return where_common
 
@@ -338,7 +363,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rv = {}
 
         for project_id, release in project_releases:
-            release_tag_value = indexer.resolve(org_id, release)  # type: ignore
+            release_tag_value = indexer.resolve(release)  # type: ignore
             if release_tag_value is None:
                 # Don't emit empty releases -- for exact compatibility with
                 # sessions table backend.

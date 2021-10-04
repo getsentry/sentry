@@ -1,22 +1,22 @@
 from typing import Any
 
 from django.db import connections, models, router
+from django.utils import timezone
 
 from sentry.db.models import Model
-from sentry.db.models.fields.bounded import BoundedBigIntegerField
 
 
 class MetricsKeyIndexer(Model):  # type: ignore
     __include_in_export__ = False
 
-    organization_id = BoundedBigIntegerField()
     string = models.CharField(max_length=200)
+    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = "sentry_metricskeyindexer"
         app_label = "sentry"
         constraints = [
-            models.UniqueConstraint(fields=["organization_id", "string"], name="unique_org_string"),
+            models.UniqueConstraint(fields=["string"], name="unique_string"),
         ]
 
     @classmethod
