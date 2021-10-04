@@ -14,10 +14,11 @@ type Props = {
   projects: Project[];
 };
 
-class IssueListContainer extends Component<Props> {
-  state: {
-    showSampleEventBanner: boolean;
-  } = {
+type State = {
+  showSampleEventBanner: boolean;
+};
+class IssueListContainer extends Component<Props, State> {
+  state: State = {
     showSampleEventBanner: false,
   };
 
