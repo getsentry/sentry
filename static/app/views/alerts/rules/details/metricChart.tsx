@@ -14,6 +14,7 @@ import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
+import SessionsRequest from 'app/components/charts/sessionsRequest';
 import {SectionHeading} from 'app/components/charts/styles';
 import {
   parseStatsPeriod,
@@ -28,14 +29,16 @@ import space from 'app/styles/space';
 import {AvatarProject, DateString, Organization, Project} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import {getUtcDateString} from 'app/utils/dates';
+import {getCrashFreeRateSeries} from 'app/utils/sessions';
 import theme from 'app/utils/theme';
 import {alertDetailsLink} from 'app/views/alerts/details';
 import {makeDefaultCta} from 'app/views/alerts/incidentRules/incidentRulePresets';
-import {IncidentRule} from 'app/views/alerts/incidentRules/types';
+import {Dataset, IncidentRule} from 'app/views/alerts/incidentRules/types';
 import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
+import {SESSION_AGGREGATE_TO_FIELD} from '../../utils';
 
 import {TimePeriodType} from './constants';
 
@@ -207,8 +210,8 @@ class MetricChart extends React.PureComponent<Props, State> {
     }
 
     const seriesData = data[0].data;
-    const seriesStart = seriesData[0].name as number;
-    const seriesEnd = seriesData[seriesData.length - 1].name as number;
+    const seriesStart = moment(seriesData[0].name).valueOf();
+    const seriesEnd = moment(seriesData[seriesData.length - 1].name).valueOf();
     const ruleChanged = moment(dateModified).valueOf();
 
     if (ruleChanged < seriesStart) {
@@ -332,8 +335,8 @@ class MetricChart extends React.PureComponent<Props, State> {
       (currMax, coord) => Math.max(currMax, coord.value),
       0
     );
-    const firstPoint = Number(dataArr[0].name);
-    const lastPoint = dataArr[dataArr.length - 1].name as number;
+    const firstPoint = moment(dataArr[0].name).valueOf();
+    const lastPoint = moment(dataArr[dataArr.length - 1].name).valueOf();
     const totalDuration = lastPoint - firstPoint;
     let criticalDuration = 0;
     let warningDuration = 0;
@@ -570,41 +573,69 @@ class MetricChart extends React.PureComponent<Props, State> {
 
   render() {
     const {api, rule, organization, timePeriod, projects, interval, query} = this.props;
+    const {aggregate, timeWindow, environment, dataset} = rule;
 
     // If the chart duration isn't as long as the rollup duration the events-stats
     // endpoint will return an invalid timeseriesData data set
     const viableStartDate = getUtcDateString(
       moment.min(
         moment.utc(timePeriod.start),
-        moment.utc(timePeriod.end).subtract(rule.timeWindow, 'minutes')
+        moment.utc(timePeriod.end).subtract(timeWindow, 'minutes')
       )
     );
 
     const viableEndDate = getUtcDateString(
-      moment.utc(timePeriod.end).add(rule.timeWindow, 'minutes')
+      moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    return (
+    return dataset === Dataset.SESSIONS ? (
+      <SessionsRequest
+        api={api}
+        organization={organization}
+        project={projects.filter(p => p.id).map(p => Number(p.id))}
+        environment={environment ? [environment] : undefined}
+        start={viableStartDate}
+        end={viableEndDate}
+        query={query}
+        interval={interval}
+        field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
+        groupBy={['session.status']}
+      >
+        {({loading, response}) =>
+          this.renderChart(loading, [
+            {
+              seriesName:
+                AlertWizardAlertNames[
+                  getAlertTypeFromAggregateDataset({aggregate, dataset: Dataset.SESSIONS})
+                ],
+              data: getCrashFreeRateSeries(
+                response?.groups,
+                response?.intervals,
+                SESSION_AGGREGATE_TO_FIELD[aggregate]
+              ),
+            },
+          ])
+        }
+      </SessionsRequest>
+    ) : (
       <EventsRequest
         api={api}
         organization={organization}
         query={query}
-        environment={rule.environment ? [rule.environment] : undefined}
+        environment={environment ? [environment] : undefined}
         project={(projects as Project[])
           .filter(p => p && p.slug)
           .map(project => Number(project.id))}
         interval={interval}
         start={viableStartDate}
         end={viableEndDate}
-        yAxis={rule.aggregate}
+        yAxis={aggregate}
         includePrevious={false}
-        currentSeriesName={rule.aggregate}
+        currentSeriesName={aggregate}
         partial={false}
         referrer="api.alerts.alert-rule-chart"
       >
-        {({loading, timeseriesData}) => {
-          return this.renderChart(loading, timeseriesData);
-        }}
+        {({loading, timeseriesData}) => this.renderChart(loading, timeseriesData)}
       </EventsRequest>
     );
   }
