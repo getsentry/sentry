@@ -48,7 +48,7 @@ query-apple-m1() {
 }
 
 get-pyenv-version() {
-    if [[ -n "$SENTRY_PYTHON_VERSION" ]]; then
+    if [[ -n "${SENTRY_PYTHON_VERSION:-}" ]]; then
         echo "${SENTRY_PYTHON_VERSION}"
         return 0
     fi
@@ -62,7 +62,7 @@ get-pyenv-version() {
 }
 
 query-valid-python-version() {
-    if [[ -n "$SENTRY_PYTHON_VERSION" ]]; then
+    if [[ -n "${SENTRY_PYTHON_VERSION:-}" ]]; then
         python_version=$(python3 -V 2>&1 | awk '{print $2}')
         if [ "$python_version" != "$SENTRY_PYTHON_VERSION" ]; then
             cat <<EOF
