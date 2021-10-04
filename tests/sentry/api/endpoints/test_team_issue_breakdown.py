@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.utils import timezone
 from django.utils.timezone import now
 from freezegun import freeze_time
 
@@ -80,9 +81,21 @@ class TeamIssueBreakdownTest(APITestCase):
             actor=self.user.actor,
             status=GroupHistoryStatus.IGNORED,
         )
-        today = str(now().date())
-        yesterday = str((now() - timedelta(days=1)).date())
-        two_days_ago = str((now() - timedelta(days=2)).date())
+        today = str(
+            now()
+            .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+            .isoformat()
+        )
+        yesterday = str(
+            (now() - timedelta(days=1))
+            .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+            .isoformat()
+        )
+        two_days_ago = str(
+            (now() - timedelta(days=2))
+            .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+            .isoformat()
+        )
         self.login_as(user=self.user)
         response = self.get_success_response(
             self.team.organization.slug, self.team.slug, statsPeriod="7d"
@@ -129,6 +142,7 @@ class TeamIssueBreakdownTest(APITestCase):
 
         response = self.get_success_response(self.team.organization.slug, self.team.slug)
         assert len(response.data) == 2
+        print("data:", response.data)
 
         assert response.data[project1.id][today]["reviewed"] == 0
         assert response.data[project1.id][today]["total"] == 0
