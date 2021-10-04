@@ -716,27 +716,27 @@ def top_events_timeseries(
                     other_conditions.append([resolved_field, "NOT IN", values])
 
     with sentry_sdk.start_span(op="discover.discover", description="top_events.snuba_query"):
-        result = raw_query(
-            aggregations=snuba_filter.aggregations,
-            conditions=snuba_filter.conditions,
-            filter_keys=snuba_filter.filter_keys,
-            selected_columns=snuba_filter.selected_columns,
-            start=snuba_filter.start,
-            end=snuba_filter.end,
-            rollup=rollup,
-            orderby=["time"] + snuba_filter.groupby,
-            groupby=["time"] + snuba_filter.groupby,
-            dataset=Dataset.Discover,
-            limit=10000,
-            referrer=referrer,
-        )
-        if len(top_events["data"]) == limit and len(result.get("data", [])) and include_other:
-            other_result = raw_query(
-                aggregations=snuba_filter.aggregations,
-                conditions=original_conditions + [other_conditions],
-                filter_keys=snuba_filter.filter_keys,
+        top_5_query = {
+            "aggregations": snuba_filter.aggregations,
+            "conditions": snuba_filter.conditions,
+            "filter_keys": snuba_filter.filter_keys,
+            "selected_columns": snuba_filter.selected_columns,
+            "start": snuba_filter.start,
+            "end": snuba_filter.end,
+            "rollup": rollup,
+            "orderby": ["time"] + snuba_filter.groupby,
+            "groupby": ["time"] + snuba_filter.groupby,
+            "dataset": Dataset.Discover,
+            "limit": 10000,
+            "referrer": referrer,
+        }
+        if len(top_events["data"]) == limit and include_other:
+            other_query = {
+                "aggregations": snuba_filter.aggregations,
+                "conditions": original_conditions + [other_conditions],
+                "filter_keys": snuba_filter.filter_keys,
                 # Hack cause equations on aggregates have to go in selected columns instead of aggregations
-                selected_columns=[
+                "selected_columns": [
                     column
                     for column in snuba_filter.selected_columns
                     # Check that the column is a list with 3 items, and the alias in the third item is an equation
@@ -744,16 +744,21 @@ def top_events_timeseries(
                     and len(column) == 3
                     and column[-1].startswith("equation[")
                 ],
-                start=snuba_filter.start,
-                end=snuba_filter.end,
-                rollup=rollup,
-                orderby=["time"],
-                groupby=["time"],
-                dataset=Dataset.Discover,
-                limit=10000,
-                referrer=referrer + ".other",
+                "start": snuba_filter.start,
+                "end": snuba_filter.end,
+                "rollup": rollup,
+                "orderby": ["time"],
+                "groupby": ["time"],
+                "dataset": Dataset.Discover,
+                "limit": 10000,
+                "referrer": referrer + ".other",
+            }
+            result, other_result = bulk_raw_query(
+                [SnubaQueryParams(**top_5_query), SnubaQueryParams(**other_query)],
+                referrer=referrer,
             )
         else:
+            result = raw_query(**top_5_query)
             other_result = {"data": []}
 
     if (
