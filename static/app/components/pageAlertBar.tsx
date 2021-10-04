@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-const AlertBar = styled('div')`
+const PageAlertBar = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -10,4 +10,4 @@ const AlertBar = styled('div')`
   font-size: 14px;
 `;
 
-export default AlertBar;
+export default PageAlertBar;

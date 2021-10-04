@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import AlertBar from 'app/components/alertBar';
 import Button from 'app/components/button';
+import PageAlertBar from 'app/components/pageAlertBar';
 import {IconLightning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -16,7 +16,7 @@ export default function FinishSetupAlert({
   project: Project;
 }) {
   return (
-    <AlertBar>
+    <PageAlertBar>
       <IconLightning />
       <TextWrapper>
         {t(
@@ -38,7 +38,7 @@ export default function FinishSetupAlert({
       >
         {t('Get Started')}
       </Button>
-    </AlertBar>
+    </PageAlertBar>
   );
 }
 

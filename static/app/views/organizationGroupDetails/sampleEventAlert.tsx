@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import AlertBar from 'app/components/alertBar';
 import Button from 'app/components/button';
+import PageAlertBar from 'app/components/pageAlertBar';
 import {IconLightning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -31,7 +31,7 @@ function SampleEventAlert({
     return null;
   }
   return (
-    <AlertBar>
+    <PageAlertBar>
       <IconLightning />
       <TextWrapper>
         {t(
@@ -53,7 +53,7 @@ function SampleEventAlert({
       >
         {t('Get Started')}
       </Button>
-    </AlertBar>
+    </PageAlertBar>
   );
 }
 
