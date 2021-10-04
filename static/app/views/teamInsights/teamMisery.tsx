@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -40,7 +41,7 @@ function TeamMisery({
   const miseryRenderer =
     periodTableData?.meta && getFieldRenderer('user_misery', periodTableData.meta);
 
-  function renderTrend(periodScore: number, weekScore?: number) {
+  function renderChange(periodScore: number, weekScore?: number) {
     if (weekScore === undefined) {
       return '\u2014';
     }
@@ -48,22 +49,32 @@ function TeamMisery({
     const trend = (periodScore - weekScore) * 100;
     const val = Math.round(Math.abs(trend));
 
+    if (val === 0) {
+      return (
+        <SubText>
+          {`0\u0025 `}
+          {t('change')}
+        </SubText>
+      );
+    }
+
     return (
-      <SubText color={trend >= 0 ? 'green300' : 'red300'}>
+      <TrendText color={trend >= 0 ? 'green300' : 'red300'}>
         {`${val}\u0025 `}
         {trend >= 0 ? t('better') : t('worse')}
-      </SubText>
+      </TrendText>
     );
   }
 
   return (
     <StyledPanelTable
+      isEmpty={projects.length === 0 || periodTableData?.data.length === 0}
       headers={[
         t('Key transaction'),
         t('Project'),
         tct('Last [period]', {period}),
         t('This Week'),
-        <RightAligned key="diff">{t('Difference')}</RightAligned>,
+        <RightAligned key="change">{t('Change')}</RightAligned>,
       ]}
       isLoading={isLoading}
     >
@@ -97,7 +108,7 @@ function TeamMisery({
             <div>{periodMisery}</div>
             <div>{weekMisery ?? '\u2014'}</div>
             <ScoreWrapper>
-              {renderTrend(
+              {renderChange(
                 dataRow.user_misery as number,
                 weekRow?.user_misery as undefined | number
               )}
@@ -126,6 +137,20 @@ function TeamMiseryWrapper({
   start,
   end,
 }: Props) {
+  if (projects.length === 0) {
+    return (
+      <TeamMisery
+        isLoading={false}
+        organization={organization}
+        location={location}
+        projects={[]}
+        period={period}
+        periodTableData={{data: []}}
+        weekTableData={{data: []}}
+      />
+    );
+  }
+
   const commonEventView = {
     id: undefined,
     query: 'transaction.duration:<15m team_key_transaction:true',
@@ -186,7 +211,7 @@ function TeamMiseryWrapper({
 
 export default TeamMiseryWrapper;
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   grid-template-columns: 1fr 0.5fr 112px 112px 0.25fr;
   font-size: ${p => p.theme.fontSizeMedium};
   white-space: nowrap;
@@ -197,6 +222,14 @@ const StyledPanelTable = styled(PanelTable)`
   & > div {
     padding: ${space(1)} ${space(2)};
   }
+
+  ${p =>
+    p.isEmpty &&
+    css`
+      & > div:last-child {
+        padding: 48px ${space(2)};
+      }
+    `}
 `;
 
 const ProjectBadgeContainer = styled('div')`
@@ -222,7 +255,10 @@ const ScoreWrapper = styled('div')`
   text-align: right;
 `;
 
-const SubText = styled('div')<{color: Color}>`
-  font-size: ${p => p.theme.fontSizeMedium};
+const SubText = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+const TrendText = styled('div')<{color: Color}>`
   color: ${p => p.theme[p.color]};
 `;

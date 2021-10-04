@@ -10,16 +10,17 @@ import PageHeading from 'app/components/pageHeading';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
-import {LightWeightOrganization, Organization, Project} from 'app/types';
+import {Organization, Project} from 'app/types';
+import withProjects from 'app/utils/withProjects';
 
 type Props = React.PropsWithChildren<{
-  organization: LightWeightOrganization | Organization;
-  projects?: Project[];
-  loadingProjects?: boolean;
+  organization: Organization;
+  projects: Project[];
+  loadingProjects: boolean;
   superuserNeedsToBeProjectMember?: boolean;
 }>;
 
-export default function NoProjectMessage({
+function NoProjectMessage({
   children,
   organization,
   projects,
@@ -127,3 +128,5 @@ const Content = styled(Flex)`
 const Actions = styled(ButtonBar)`
   width: fit-content;
 `;
+
+export default withProjects(NoProjectMessage);

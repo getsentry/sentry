@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import * as globalSelection from 'app/actionCreators/globalSelection';
 import ProjectsStore from 'app/stores/projectsStore';
+import {OrganizationContext} from 'app/views/organizationContext';
 import PerformanceContent from 'app/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
 import {vitalAbbreviations} from 'app/views/performance/vitalDetail/utils';
@@ -539,10 +540,12 @@ describe('Performance > Content', function () {
     ]);
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <OrganizationContext.Provider value={data.organization}>
+        <PerformanceContent
+          organization={data.organization}
+          location={data.router.location}
+        />
+      </OrganizationContext.Provider>,
       data.routerContext
     );
 

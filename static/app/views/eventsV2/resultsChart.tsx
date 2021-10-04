@@ -53,6 +53,7 @@ class ResultsChart extends Component<ResultsChartProps> {
     const hasConnectDiscoverAndDashboards = organization.features.includes(
       'connect-discover-and-dashboards'
     );
+    const hasTopEvents = organization.features.includes('discover-top-events');
 
     const globalSelection = eventView.getGlobalSelection();
     const start = globalSelection.datetime.start
@@ -71,6 +72,9 @@ class ResultsChart extends Component<ResultsChartProps> {
     const isPeriod = display === DisplayModes.DEFAULT || display === DisplayModes.TOP5;
     const isDaily = display === DisplayModes.DAILYTOP5 || display === DisplayModes.DAILY;
     const isPrevious = display === DisplayModes.PREVIOUS;
+    const referrer = `api.discover.${display}-chart`;
+    const topEvents =
+      hasTopEvents && eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
 
     return (
       <Fragment>
@@ -93,7 +97,7 @@ class ResultsChart extends Component<ResultsChartProps> {
               field={isTopEvents ? apiPayload.field : undefined}
               interval={eventView.interval}
               showDaily={isDaily}
-              topEvents={isTopEvents ? TOP_N : undefined}
+              topEvents={isTopEvents ? topEvents : undefined}
               orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
               utc={utc === 'true'}
               confirmedQuery={confirmedQuery}
@@ -101,6 +105,7 @@ class ResultsChart extends Component<ResultsChartProps> {
               chartComponent={
                 hasConnectDiscoverAndDashboards && !isDaily ? AreaChart : undefined
               }
+              referrer={referrer}
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -123,6 +128,7 @@ type ContainerProps = {
   total: number | null;
   onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
+  onTopEventsChange: (value: string) => void;
 };
 
 class ResultsChartContainer extends Component<ContainerProps> {
@@ -149,6 +155,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
       total,
       onAxisChange,
       onDisplayChange,
+      onTopEventsChange,
       organization,
       confirmedQuery,
       yAxis,
@@ -158,6 +165,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
     const hasConnectDiscoverAndDashboards = organization.features.includes(
       'connect-discover-and-dashboards'
     );
+    const hasTopEvents = organization.features.includes('discover-top-events');
     const displayOptions = eventView
       .getDisplayOptions()
       .filter(opt => {
@@ -188,6 +196,18 @@ class ResultsChartContainer extends Component<ContainerProps> {
             ),
           };
         }
+        if (hasTopEvents && DisplayModes.TOP5 === opt.value) {
+          return {
+            value: opt.value,
+            label: 'Top Period',
+          };
+        }
+        if (hasTopEvents && DisplayModes.DAILYTOP5 === opt.value) {
+          return {
+            value: opt.value,
+            label: 'Top Daily',
+          };
+        }
         return opt;
       });
 
@@ -215,6 +235,8 @@ class ResultsChartContainer extends Component<ContainerProps> {
           displayOptions={displayOptions}
           displayMode={eventView.getDisplayMode()}
           onDisplayChange={onDisplayChange}
+          onTopEventsChange={onTopEventsChange}
+          topEvents={eventView.topEvents ?? TOP_N.toString()}
         />
       </StyledPanel>
     );

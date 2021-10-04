@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Set, Tuple, TypeVar
+from typing import Mapping, Optional, Sequence, Set, Tuple, TypeVar, Union
 
 from typing_extensions import TypedDict
 
@@ -9,9 +9,9 @@ ProjectId = int
 OrganizationId = int
 ReleaseName = str
 EnvironmentName = str
+FormattedIsoTime = str
 
 ProjectRelease = Tuple[ProjectId, ReleaseName]
-
 ProjectOrRelease = TypeVar("ProjectOrRelease", ProjectId, ProjectRelease)
 
 
@@ -21,6 +21,19 @@ class CurrentAndPreviousCrashFreeRate(TypedDict):
 
 
 CurrentAndPreviousCrashFreeRates = Mapping[ProjectId, CurrentAndPreviousCrashFreeRate]
+
+
+class _TimeBounds(TypedDict):
+    sessions_lower_bound: FormattedIsoTime
+    sessions_upper_bound: FormattedIsoTime
+
+
+class _NoTimeBounds(TypedDict):
+    sessions_lower_bound: None
+    sessions_upper_bound: None
+
+
+ReleaseSessionsTimeBounds = Union[_TimeBounds, _NoTimeBounds]
 
 
 class ReleaseAdoption(TypedDict):
@@ -41,6 +54,14 @@ class ReleaseAdoption(TypedDict):
 ReleasesAdoption = Mapping[Tuple[ProjectId, ReleaseName], ReleaseAdoption]
 
 
+class CrashFreeBreakdown(TypedDict):
+    date: datetime
+    total_users: int
+    crash_free_users: Optional[float]
+    total_sessions: int
+    crash_free_sessions: Optional[float]
+
+
 class ReleaseHealthBackend(Service):  # type: ignore
     """Abstraction layer for all release health related queries"""
 
@@ -48,7 +69,11 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "get_current_and_previous_crash_free_rates",
         "get_release_adoption",
         "check_has_health_data",
+        "get_release_sessions_time_bounds",
         "check_releases_have_health_data",
+        "get_crash_free_breakdown",
+        "get_changed_project_release_model_adoptions",
+        "get_oldest_health_data_for_releases",
     )
 
     def get_current_and_previous_crash_free_rates(
@@ -114,6 +139,28 @@ class ReleaseHealthBackend(Service):  # type: ignore
 
         raise NotImplementedError()
 
+    def get_release_sessions_time_bounds(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        org_id: OrganizationId,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> ReleaseSessionsTimeBounds:
+        """
+        Get the sessions time bounds in terms of when the first session started and
+        when the last session started according to a specific (project_id, org_id, release, environments)
+        combination
+        Inputs:
+            * project_id
+            * release
+            * org_id: Organisation Id
+            * environments
+        Return:
+            Dictionary with two keys "sessions_lower_bound" and "sessions_upper_bound" that
+        correspond to when the first session occurred and when the last session occurred respectively
+        """
+        raise NotImplementedError()
+
     def check_has_health_data(
         self, projects_list: Sequence[ProjectOrRelease]
     ) -> Set[ProjectOrRelease]:
@@ -135,8 +182,34 @@ class ReleaseHealthBackend(Service):  # type: ignore
         start: datetime,
         end: datetime,
     ) -> Set[ReleaseName]:
-
         """
         Returns a set of all release versions that have health data within a given period of time.
+        """
+        raise NotImplementedError()
+
+    def get_crash_free_breakdown(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        start: datetime,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> Sequence[CrashFreeBreakdown]:
+        """Get stats about crash free sessions and stats for the last 1, 2, 7, 14 and 30 days"""
+
+    def get_changed_project_release_model_adoptions(
+        self,
+        project_ids: Sequence[ProjectId],
+    ) -> Sequence[ProjectRelease]:
+        """
+        Returns a sequence of tuples (ProjectId, ReleaseName) with the
+        releases seen in the last 72 hours for the requested projects.
+        """
+        raise NotImplementedError()
+
+    def get_oldest_health_data_for_releases(
+        self, project_releases: Sequence[ProjectRelease]
+    ) -> Mapping[ProjectRelease, str]:
+        """Returns the oldest health data we have observed in a release
+        in 90 days.  This is used for backfilling.
         """
         raise NotImplementedError()

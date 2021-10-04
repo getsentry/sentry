@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
@@ -142,9 +142,9 @@ class TraceSummary extends Component<Props> {
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
         <StyledPageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
             {this.renderContent()}
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </StyledPageContent>
       </SentryDocumentTitle>
     );

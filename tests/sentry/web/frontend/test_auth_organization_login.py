@@ -5,6 +5,7 @@ from django.urls import reverse
 from exam import fixture
 
 from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
+from sentry.auth.provider import MigratingIdentityId
 from sentry.models import (
     AuthIdentity,
     AuthProvider,
@@ -595,11 +596,11 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.context["existing_user"] is None
 
     @with_feature("organizations:idp-automatic-migration")
-    @mock.patch("sentry.auth.helper.create_verification_key")
+    @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
     def test_flow_automatically_migrated_without_verified_without_password(
-        self, mock_create_verification_key
+        self, mock_send_one_time_account_confirm_link
     ):
-        AuthProvider.objects.create(organization=self.organization, provider="dummy")
+        provider = AuthProvider.objects.create(organization=self.organization, provider="dummy")
 
         # setup a 'previous' identity, such as when we migrated Google from
         # the old idents to the new
@@ -616,7 +617,13 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         path = reverse("sentry-auth-sso")
 
         resp = self.client.post(path, {"email": "bar@example.com"})
-        mock_create_verification_key.assert_called_with(user, self.organization, "bar@example.com")
+        mock_send_one_time_account_confirm_link.assert_called_with(
+            user,
+            self.organization,
+            provider.get_provider().name,
+            "bar@example.com",
+            MigratingIdentityId(id="bar@example.com", legacy_id=None),
+        )
         self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")
         assert resp.status_code == 200
         assert resp.context["existing_user"] == user

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {browserHistory} from 'react-router';
+import {components, OptionProps} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -15,7 +16,7 @@ import ButtonBar from 'app/components/buttonBar';
 import WidgetQueriesForm from 'app/components/dashboards/widgetQueriesForm';
 import SelectControl from 'app/components/forms/selectControl';
 import {PanelAlert} from 'app/components/panels';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
   DateString,
@@ -35,6 +36,7 @@ import {
   DashboardDetails,
   DashboardListItem,
   DisplayType,
+  MAX_WIDGETS,
   Widget,
   WidgetQuery,
 } from 'app/views/dashboardsV2/types';
@@ -46,6 +48,8 @@ import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
+
+import Tooltip from '../tooltip';
 
 export type DashboardWidgetModalOptions = {
   organization: Organization;
@@ -81,7 +85,7 @@ type State = {
   queries: Widget['queries'];
   loading: boolean;
   errors?: Record<string, any>;
-  dashboards: SelectValue<string>[];
+  dashboards: DashboardListItem[];
   selectedDashboard?: SelectValue<string>;
 };
 
@@ -179,8 +183,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     if (
       !selectedDashboard ||
       !(
-        dashboards.find(({label, value}) => {
-          return label === selectedDashboard?.label && value === selectedDashboard?.value;
+        dashboards.find(({title, id}) => {
+          return title === selectedDashboard?.label && id === selectedDashboard?.value;
         }) || selectedDashboard.value === 'new'
       )
     ) {
@@ -288,10 +292,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     );
 
     try {
-      const response = await promise;
-      const dashboards = response.map(({id, title}) => {
-        return {label: title, value: id};
-      });
+      const dashboards = await promise;
       this.setState({
         dashboards,
       });
@@ -311,6 +312,13 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   }
   renderDashboardSelector() {
     const {errors, loading, dashboards} = this.state;
+    const dashboardOptions = dashboards.map(d => {
+      return {
+        label: d.title,
+        value: d.id,
+        isDisabled: d.widgetDisplay.length >= MAX_WIDGETS,
+      };
+    });
     return (
       <React.Fragment>
         <p>
@@ -329,9 +337,30 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         >
           <SelectControl
             name="dashboard"
-            options={[{label: t('+ Create New Dashboard'), value: 'new'}, ...dashboards]}
+            options={[
+              {label: t('+ Create New Dashboard'), value: 'new'},
+              ...dashboardOptions,
+            ]}
             onChange={(option: SelectValue<string>) => this.handleDashboardChange(option)}
             disabled={loading}
+            components={{
+              Option: ({label, data, ...optionProps}: OptionProps<any>) => (
+                <Tooltip
+                  disabled={!!!data.isDisabled}
+                  title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                    maxWidgets: MAX_WIDGETS,
+                  })}
+                  containerDisplayMode="block"
+                  position="right"
+                >
+                  <components.Option
+                    label={label}
+                    data={data}
+                    {...(optionProps as any)}
+                  />
+                </Tooltip>
+              ),
+            }}
           />
         </Field>
       </React.Fragment>

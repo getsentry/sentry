@@ -173,6 +173,7 @@ class TeamStability extends AsyncComponent<Props, State> {
 
     return (
       <StyledPanelTable
+        isEmpty={projects.length === 0}
         headers={[
           t('Project'),
           <RightAligned key="last">{tct('Last [period]', {period})}</RightAligned>,
@@ -221,7 +222,6 @@ const PaddedIconArrow = styled(IconArrow)`
 `;
 
 const SubText = styled('div')<{color: Color}>`
-  font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme[p.color]};
 `;
 

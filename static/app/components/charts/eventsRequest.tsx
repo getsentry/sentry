@@ -41,7 +41,7 @@ type LoadingStatus = {
 // Chart format for multiple series.
 type MultiSeriesResults = Series[];
 
-type RenderProps = LoadingStatus & TimeSeriesData & {results?: MultiSeriesResults};
+export type RenderProps = LoadingStatus & TimeSeriesData & {results?: MultiSeriesResults};
 
 type DefaultProps = {
   /**
@@ -163,13 +163,19 @@ type EventsRequestPartialProps = {
    * Whether or not to zerofill results
    */
   withoutZerofill?: boolean;
+  /**
+   * A unique name for what's triggering this request, see organization_events_stats for an allowlist
+   */
+  referrer?: string;
 };
 
 type TimeAggregationProps =
   | {includeTimeAggregation: true; timeAggregationSeriesName: string}
   | {includeTimeAggregation?: false; timeAggregationSeriesName?: undefined};
 
-type EventsRequestProps = DefaultProps & TimeAggregationProps & EventsRequestPartialProps;
+export type EventsRequestProps = DefaultProps &
+  TimeAggregationProps &
+  EventsRequestPartialProps;
 
 type EventsRequestState = {
   reloading: boolean;

@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import DocumentTitle from 'react-document-title';
 
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import GroupStore from 'app/stores/groupStore';
 import {Organization, Project} from 'app/types';
@@ -33,9 +33,7 @@ class IssueListContainer extends Component<Props> {
         <React.Fragment>
           {this.state.showSampleEventBanner && <SampleEventAlert />}
           <GlobalSelectionHeader>
-            <LightWeightNoProjectMessage organization={organization}>
-              {children}
-            </LightWeightNoProjectMessage>
+            <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
           </GlobalSelectionHeader>
         </React.Fragment>
       </DocumentTitle>

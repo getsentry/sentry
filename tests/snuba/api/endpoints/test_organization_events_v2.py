@@ -22,6 +22,7 @@ from sentry.search.events.constants import (
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
+    TIMEOUT_ERROR_MESSAGE,
 )
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
@@ -144,10 +145,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
         response = self.do_request(query)
         assert response.status_code == 400, response.content
-        assert (
-            response.data["detail"]
-            == "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
-        )
+        assert response.data["detail"] == TIMEOUT_ERROR_MESSAGE
 
         mock_query.side_effect = QueryExecutionError("test")
 
@@ -1011,6 +1009,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert {r["id"] for r in response.data["data"]} == {
             release_2_e_1,
+        }
+        query = {"field": ["id"], "query": f"!{SEMVER_BUILD_ALIAS}:124"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
         }
 
     def test_aliased_fields(self):
