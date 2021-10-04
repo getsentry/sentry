@@ -115,7 +115,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 query=query,
                 params=params,
                 rollup=rollup,
-                referrer="api.organization-event-stats",
+                referrer=referrer,
                 zerofill_results=zerofill_results,
                 comparison_delta=comparison_delta,
             )
