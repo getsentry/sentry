@@ -68,6 +68,7 @@ export type GrowthEventParameters = {
   };
   'growth.sample_error_onboarding_link_clicked': {
     project_id: string;
+    platform?: string;
   };
   'growth.issue_open_in_discover_btn_clicked': {};
 };
