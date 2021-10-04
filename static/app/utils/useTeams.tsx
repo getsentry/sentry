@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
 import {fetchUserTeams} from 'app/actionCreators/teams';
@@ -134,6 +134,15 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
     fetchError: null,
   });
 
+  const slugsRef = useRef<Set<string>>(new Set(slugs));
+  if (
+    slugs &&
+    (slugs.length !== slugsRef.current.size ||
+      slugs.some(slug => !slugsRef.current.has(slug)))
+  ) {
+    slugsRef.current = new Set(slugs);
+  }
+
   async function loadUserTeams() {
     const orgId = organization?.slug;
     if (orgId === undefined) {
@@ -154,14 +163,21 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
 
   async function loadTeamsBySlug() {
     const orgId = organization?.slug;
-    if (orgId === undefined) {
+    if (orgId === undefined || !slugs) {
+      return;
+    }
+
+    const storeSlugs = store.teams.map(t => t.slug);
+    const slugsNotInStore = slugs.filter(slug => !storeSlugs.includes(slug));
+
+    if (slugsNotInStore.length === 0) {
       return;
     }
 
     setState({...state, fetching: true});
     try {
       const {results, hasMore, nextCursor} = await fetchTeams(api, orgId, {
-        slugs,
+        slugs: slugsNotInStore,
         limit,
       });
 
@@ -229,17 +245,17 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   }
 
   useEffect(() => {
+    // Load specified team slugs
     if (slugs) {
-      const teamsInStore = store.teams.filter(t => slugs.includes(t.slug));
+      loadTeamsBySlug();
+      return;
+    }
 
-      // Only fetch the slugs if they do not exist in the store already
-      if (teamsInStore.length !== slugs.length) {
-        loadTeamsBySlug();
-      }
-    } else if (provideUserTeams && !store.loadedUserTeams) {
+    // Load user teams
+    if (provideUserTeams && !store.loadedUserTeams) {
       loadUserTeams();
     }
-  }, [JSON.stringify(slugs), provideUserTeams]);
+  }, [slugsRef.current, provideUserTeams]);
 
   let filteredTeams = store.teams;
   if (slugs) {
