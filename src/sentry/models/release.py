@@ -1079,6 +1079,25 @@ class Release(Model):
         counts = get_artifact_counts([self.id])
         return counts.get(self.id, 0)
 
+    def clear_commits(self):
+        """
+        Delete all release-specific commit data associated to this release. We will not delete the Commit model values because other releases may use these commits.
+        """
+        with sentry_sdk.start_span(op="clear_commits"):
+            from sentry.models import ReleaseCommit, ReleaseHeadCommit
+
+            ReleaseHeadCommit.objects.get(
+                organization_id=self.organization_id, release=self
+            ).delete()
+            ReleaseCommit.objects.filter(
+                organization_id=self.organization_id, release=self
+            ).delete()
+
+            self.authors = []
+            self.commit_count = 0
+            self.last_commit_id = None
+            self.save()
+
 
 def get_artifact_counts(release_ids: List[int]) -> Mapping[int, int]:
     """Get artifact count grouped by IDs"""
