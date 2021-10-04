@@ -3,8 +3,8 @@ import logging
 from collections import defaultdict
 from typing import Any, Mapping, Optional
 
-from sentry import features
-from sentry.models import ExternalIssue, GroupLink, Organization, User
+from sentry.integrations.utils import where_should_sync
+from sentry.models import ExternalIssue, GroupLink, User
 from sentry.models.useroption import UserOption
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import sync_status_inbound as sync_status_inbound_task
@@ -367,17 +367,8 @@ class IssueSyncMixin(IssueBasicMixin):
         """
         raise NotImplementedError
 
-    def should_sync_status_inbound(self) -> bool:
-        if not self.should_sync("inbound_status"):
-            return False
-
-        organization = Organization.objects.get(id=self.organization_id)
-        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
-
-        return has_issue_sync
-
     def sync_status_inbound(self, issue_key: str, data: Mapping[str, Any]) -> None:
-        if not self.should_sync_status_inbound():
+        if not where_should_sync(self.model, "inbound_status", self.organization_id):
             return
 
         sync_status_inbound_task.apply_async(
