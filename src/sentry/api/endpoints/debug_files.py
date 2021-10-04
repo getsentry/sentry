@@ -433,7 +433,12 @@ class SourceMapsEndpoint(ProjectEndpoint):
         def serialize_results(results):
             file_count_map = get_artifact_counts([r["id"] for r in results])
             return serialize(
-                [expose_release(r, file_count_map.get(r["id"], 0)) for r in results], request.user
+                [
+                    expose_release(r, file_count_map[r["id"]])
+                    for r in results
+                    if r["id"] in file_count_map
+                ],
+                request.user,
             )
 
         return self.paginate(
