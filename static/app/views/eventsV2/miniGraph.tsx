@@ -197,10 +197,10 @@ class MiniGraph extends React.Component<Props> {
 
           const hasOther = topEvents && topEvents + 1 === allSeries.length;
           const chartColors = allSeries.length
-            ? [...theme.charts.getColorPalette(allSeries.length - 2)]
+            ? [...theme.charts.getColorPalette(allSeries.length - 2 - (hasOther ? 1 : 0))]
             : undefined;
           if (chartColors && chartColors.length && hasOther) {
-            chartColors[chartColors.length - 1] = theme.charts.other;
+            chartColors.push(theme.charts.other);
           }
           const chartOptions = {
             colors: chartColors,

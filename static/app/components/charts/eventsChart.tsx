@@ -226,11 +226,11 @@ class Chart extends React.Component<ChartProps, State> {
     }
     const chartColors = timeseriesData.length
       ? colors?.slice(0, series.length) ?? [
-          ...theme.charts.getColorPalette(timeseriesData.length - 2),
+          ...theme.charts.getColorPalette(timeseriesData.length - 2 - (hasOther ? 1 : 0)),
         ]
       : undefined;
     if (chartColors && chartColors.length && hasOther) {
-      chartColors[chartColors.length - 1] = theme.charts.other;
+      chartColors.push(theme.charts.other);
     }
     const chartOptions = {
       colors: chartColors,

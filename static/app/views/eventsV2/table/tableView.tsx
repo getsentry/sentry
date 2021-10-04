@@ -248,10 +248,6 @@ class TableView extends React.Component<TableViewProps> {
 
     let cell = fieldRenderer(dataRow, {organization, location});
 
-    const hasOther =
-      organization.features.includes('discover-top-events') &&
-      (tableData?.data?.length ?? 0) > TOP_N;
-
     if (columnKey === 'id') {
       const eventSlug = generateEventSlug(dataRow);
 
@@ -312,7 +308,7 @@ class TableView extends React.Component<TableViewProps> {
       <React.Fragment>
         {isFirstPage && isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
           // Add one if we need to include Other in the series
-          <TopResultsIndicator count={count + (hasOther ? 1 : 0)} index={rowIndex} />
+          <TopResultsIndicator count={count} index={rowIndex} />
         ) : null}
         <CellAction
           column={column}
