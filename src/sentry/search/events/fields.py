@@ -53,6 +53,7 @@ from sentry.search.utils import InvalidQuery, parse_duration
 from sentry.utils.compat import zip
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import (
+    SESSIONS_SNUBA_MAP,
     Dataset,
     get_json_type,
     is_duration_measurement,
@@ -1338,6 +1339,16 @@ class StringArrayColumn(ColumnArg):
         raise InvalidFunctionArgument(f"{value} is not a valid string array column")
 
 
+class SessionColumnArg(ColumnArg):
+    # XXX(ahmed): hack to get this to work with crash rate alerts over the sessions dataset until
+    # we deprecate the logic that is tightly coupled with the events dataset. At which point,
+    # we will just rely on dataset specific logic and refactor this class out
+    def normalize(self, value: str, _) -> str:
+        if value in SESSIONS_SNUBA_MAP:
+            return value
+        raise InvalidFunctionArgument(f"{value} is not a valid sessions dataset column")
+
+
 def with_default(default, argument):
     argument.has_default = True
     argument.get_default = lambda *_: default
@@ -2145,6 +2156,12 @@ FUNCTIONS = {
                     ArgValue("that"),
                 ],
             ],
+        ),
+        DiscoverFunction(
+            "identity",
+            required_args=[SessionColumnArg("column")],
+            aggregate=["identity", ArgValue("column"), None],
+            private=True,
         ),
     ]
 }
