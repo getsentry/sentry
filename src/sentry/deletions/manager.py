@@ -13,6 +13,10 @@ class DeletionTaskManager:
     def get(self, task=None, **kwargs):
         if task is None:
             model = kwargs.get("model")
+            if model.__name__ == "DiscoverSavedQuery":
+                import logging
+
+                logging.info("task mappings when DiscoverSavedQuery is accessed %s", self.tasks)
             try:
                 task = self.tasks[model]
             except KeyError:
