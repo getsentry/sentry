@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.api.serializers.models.plugin import SHADOW_DEPRECATED_PLUGINS, PluginSerializer
 from sentry.constants import ObjectStatus
 from sentry.models import Project, ProjectOption
 from sentry.plugins.base import plugins
@@ -33,6 +33,11 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
         # if no plugins were specified, grab all plugins but limit by those that have the ability to be configured
         if not desired_plugins:
             desired_plugins = list(plugins.plugin_that_can_be_configured())
+
+        # True if only one plugin is desired, and it has been shadow deprecated
+        is_shadow_deprecated_detailed_view = (
+            len(desired_plugins) == 1 and desired_plugins[0].slug in SHADOW_DEPRECATED_PLUGINS
+        )
 
         # `keys_to_check` are the ProjectOption keys that tell us if a plugin is enabled (e.g. `plugin:enabled`) or are
         # configured properly, meaning they have the required information - plugin.required_field - needed for the
@@ -114,10 +119,10 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
                 )
             # sort by the projectSlug
             serialized_plugin["projectList"].sort(key=lambda x: x["projectSlug"])
-
             serialized_plugins.append(serialized_plugin)
 
-        if not serialized_plugins:
+        # Organization does have features to override shadow deprecation
+        if not serialized_plugins and is_shadow_deprecated_detailed_view:
             raise Http404
 
         return Response(serialized_plugins)
