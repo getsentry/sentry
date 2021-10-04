@@ -9,7 +9,6 @@ from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions import (
     _make_stats,
-    get_project_releases_by_stability,
     get_project_releases_count,
     get_release_health_data_overview,
 )
@@ -227,7 +226,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         )
 
         for scope in "sessions", "users":
-            data = get_project_releases_by_stability(
+            data = self.backend.get_project_releases_by_stability(
                 [self.project.id], offset=0, limit=100, scope=scope, stats_period="24h"
             )
 
@@ -242,7 +241,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         according to the chosen crash_free sort option
         """
         for scope in "crash_free_sessions", "crash_free_users":
-            data = get_project_releases_by_stability(
+            data = self.backend.get_project_releases_by_stability(
                 [self.project.id], offset=0, limit=100, scope=scope, stats_period="24h"
             )
             assert data == [
@@ -271,7 +270,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "received": self.received,
             }
         )
-        data = get_project_releases_by_stability(
+        data = self.backend.get_project_releases_by_stability(
             [self.project.id], offset=0, limit=100, scope="users", stats_period="24h"
         )
         assert set(data) == {
@@ -279,7 +278,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             (self.project.id, self.session_crashed_release),
         }
 
-        data = get_project_releases_by_stability(
+        data = self.backend.get_project_releases_by_stability(
             [self.project.id], offset=0, limit=100, scope="crash_free_users", stats_period="24h"
         )
         assert set(data) == {
