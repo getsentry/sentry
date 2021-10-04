@@ -7,6 +7,7 @@ from sentry.tasks.integrations import sync_assignee_outbound
 
 if TYPE_CHECKING:
     from sentry.models import Group, Integration, Organization
+    from sentry.models import Group, GroupLink, Integration, Organization, Project, User
 
 
 def where_should_sync(
@@ -59,10 +60,10 @@ def sync_group_assignee_inbound(
     logger = logging.getLogger(f"sentry.integrations.{integration.provider}")
 
     orgs_with_sync_enabled = where_should_sync(integration, "inbound_assignee")
-    affected_groups = (
-        Group.objects.get_groups_by_external_issue(integration, external_issue_key)
-        .filter(project__organization__in=orgs_with_sync_enabled)
-        .select_related("project")
+    affected_groups = Group.objects.get_groups_by_external_issue(
+        integration,
+        orgs_with_sync_enabled,
+        external_issue_key,
     )
     if not affected_groups:
         return []
@@ -79,8 +80,9 @@ def sync_group_assignee_inbound(
     groups_assigned = []
     for group in affected_groups:
         user_id = get_user_id(projects_by_user, group)
-        if user_id:
-            GroupAssignee.objects.assign(group, users_by_id.get(user_id))
+        user = users_by_id.get(user_id)
+        if user:
+            GroupAssignee.objects.assign(group, user)
             groups_assigned.append(group)
         else:
             logger.info(
