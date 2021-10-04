@@ -148,18 +148,15 @@ class SentryAppInstallation(ParanoidModel):
         from sentry.models import SentryAppComponent
 
         try:
-            component = SentryAppComponent.objects.filter(
+            component = SentryAppComponent.objects.get(
                 sentry_app_id=self.sentry_app_id, type=component_type
             )
-
-            try:
-                sentry_app_components.Preparer.run(
-                    component=component, install=self, project=project
-                )
-                return component
-            except APIError:
-                # TODO(nisanthan): For now, skip showing the UI Component if the API requests fail
-                return None
-
         except SentryAppComponent.DoesNotExist:
+            return None
+
+        try:
+            sentry_app_components.Preparer.run(component=component, install=self, project=project)
+            return component
+        except APIError:
+            # TODO(nisanthan): For now, skip showing the UI Component if the API requests fail
             return None

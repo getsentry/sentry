@@ -242,9 +242,9 @@ def check_only_one_of_each_element(instance):
     found = {}
     for element in instance["elements"]:
         if element["type"]:
-            found[element["type"]] = found.get(element["type"], 0) + 1
-
-            if found[element["type"]] > 1:
+            if element["type"] not in found:
+                found[element["type"]] = 1
+            else:
                 raise SchemaValidationError(f"Multiple elements of type: {element['type']}")
 
 
