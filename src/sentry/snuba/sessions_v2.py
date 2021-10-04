@@ -306,6 +306,10 @@ def get_constrained_date_range(
 ) -> Tuple[datetime, datetime, int]:
     interval = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval is None else interval.total_seconds())
+    stats_period = int(parse_stats_period(params.get("statsPeriod")).total_seconds())
+
+    if interval > stats_period:
+        raise InvalidParams("The interval can not exceed the date range.")
 
     smallest_interval = ONE_MINUTE if allow_minute_resolution else ONE_HOUR
     if interval % smallest_interval != 0 or interval < smallest_interval:
