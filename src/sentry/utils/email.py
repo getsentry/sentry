@@ -454,7 +454,11 @@ def send_mail(
     Uses EmailMessage class which has more options than the simple send_mail
     """
     if headers is None:
-        headers = {}
+        headers = {
+            "X-Auto-Response-Suppress": "All",
+            "Precedence": "bulk",
+            "Auto-Submitted": "auto-generated",
+        }
 
     email = mail.EmailMessage(
         subject,
