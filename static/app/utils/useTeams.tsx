@@ -134,13 +134,19 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
     fetchError: null,
   });
 
-  const slugsRef = useRef(new Set(slugs));
-  if (
-    slugs &&
-    (slugs.length !== slugsRef.current.size ||
-      slugs.some(slug => !slugsRef.current.has(slug)))
-  ) {
-    slugsRef.current = new Set(slugs);
+  const slugsRef = useRef<Set<string> | null>(null);
+  // Only initialize slugsRef.current once and modify it when we receive new slugs determined through set equality
+  if (slugs !== undefined) {
+    if (slugsRef.current === null) {
+      slugsRef.current = new Set(slugs);
+    }
+
+    if (
+      slugs.length !== slugsRef.current.size ||
+      slugs.some(slug => !slugsRef.current?.has(slug))
+    ) {
+      slugsRef.current = new Set(slugs);
+    }
   }
 
   async function loadUserTeams() {
