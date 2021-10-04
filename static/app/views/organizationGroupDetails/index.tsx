@@ -8,6 +8,7 @@ import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
 import GroupDetails from './groupDetails';
+import SampleEventAlert from './sampleEventAlert';
 
 type Props = {
   selection: GlobalSelection;
@@ -27,13 +28,16 @@ class OrganizationGroupDetails extends React.Component<Props> {
 
   render() {
     const {selection, ...props} = this.props;
-
     return (
-      <GroupDetails
-        key={`${this.props.params.groupId}-envs:${selection.environments.join(',')}`}
-        environments={selection.environments}
-        {...props}
-      />
+      <React.Fragment>
+        <SampleEventAlert />
+
+        <GroupDetails
+          key={`${this.props.params.groupId}-envs:${selection.environments.join(',')}`}
+          environments={selection.environments}
+          {...props}
+        />
+      </React.Fragment>
     );
   }
 }

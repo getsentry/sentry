@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
+import PageAlertBar from 'app/components/pageAlertBar';
 import {IconLightning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -15,7 +16,7 @@ export default function FinishSetupAlert({
   project: Project;
 }) {
   return (
-    <AlertBar>
+    <PageAlertBar>
       <IconLightning />
       <TextWrapper>
         {t(
@@ -37,19 +38,9 @@ export default function FinishSetupAlert({
       >
         {t('Get Started')}
       </Button>
-    </AlertBar>
+    </PageAlertBar>
   );
 }
-
-const AlertBar = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${p => p.theme.headerBackground};
-  background-color: ${p => p.theme.bannerBackground};
-  padding: 6px 30px;
-  font-size: 14px;
-`;
 
 const TextWrapper = styled('span')`
   margin: 0 ${space(1)};
