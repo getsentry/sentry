@@ -1655,6 +1655,7 @@ export type NewQuery = {
   // Graph
   yAxis?: string[];
   display?: string;
+  topEvents?: string;
 
   teams?: Readonly<('myteams' | number)[]>;
 };

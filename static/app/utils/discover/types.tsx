@@ -11,6 +11,8 @@ export enum DisplayModes {
   DAILYTOP5 = 'dailytop5',
 }
 
+export const TOP_EVENT_MODES: string[] = [DisplayModes.TOP5, DisplayModes.DAILYTOP5];
+
 export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.DEFAULT, label: t('Total Period')},
   {value: DisplayModes.PREVIOUS, label: t('Previous Period')},
