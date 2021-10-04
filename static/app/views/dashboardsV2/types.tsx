@@ -1,5 +1,8 @@
 import {User} from 'app/types';
 
+// Max widgets we are currently willing to allow
+// to limit the load on snuba, somewhat arbitrary
+// limit that can be lowered if necessary.
 export const MAX_WIDGETS = 30;
 
 export enum DisplayType {
