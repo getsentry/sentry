@@ -196,8 +196,9 @@ def handle_remaining_events(
     if old_group_id is not None:
         from sentry.reprocessing2 import mark_event_reprocessed
 
-        for _ in event_ids:
-            mark_event_reprocessed(group_id=old_group_id, project_id=project_id)
+        mark_event_reprocessed(
+            group_id=old_group_id, project_id=project_id, num_events=len(event_ids)
+        )
 
 
 @instrumented_task(
