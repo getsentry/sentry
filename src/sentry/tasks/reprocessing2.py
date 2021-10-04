@@ -66,11 +66,6 @@ def reprocess_group(
     )
 
     if not events:
-        # Need to delay this until we have enqueued all events and stopped
-        # iterating over the batch query, if we take care of this in
-        # finish_reprocessing it won't work, as for small max_events
-        # finish_reprocessing may execute sooner than the last reprocess_group
-        # iteration.
         buffered_handle_remaining_events(
             project_id=project_id,
             old_group_id=group_id,
