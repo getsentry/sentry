@@ -1,9 +1,13 @@
 from django.utils.text import slugify
 
+from sentry import features
 from sentry.api.serializers import Serializer
 from sentry.models import ProjectOption
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
+
+# Dict with the plugin_name as the key, and enabling_feature_name as the value
+DEPRECATED_PLUGINS = {"teamwork": "organizations:integrations-ignore-teamwork-deprecation"}
 
 
 class PluginSerializer(Serializer):
@@ -64,7 +68,15 @@ class PluginSerializer(Serializer):
         if obj.author:
             d["author"] = {"name": str(obj.author), "url": str(obj.author_url)}
 
-        d["isHidden"] = d.get("enabled", False) is False and obj.is_hidden()
+        d["isDeprecated"] = obj.slug in DEPRECATED_PLUGINS
+
+        d["isHidden"] = (
+            not features.has(
+                DEPRECATED_PLUGINS.get(obj.slug), getattr(self.project, "organization", None)
+            )
+            if d["isDeprecated"]
+            else d.get("enabled", False) is False and obj.is_hidden()
+        )
 
         if obj.description:
             d["description"] = str(obj.description)

@@ -1,3 +1,4 @@
+from django.http.response import Http404
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -83,6 +84,8 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
         serialized_plugins = []
         for plugin in desired_plugins:
             serialized_plugin = serialize(plugin, request.user, PluginSerializer())
+            if serialized_plugin["isDeprecated"] and serialized_plugin["isHidden"]:
+                raise Http404
 
             serialized_plugin["projectList"] = []
 
