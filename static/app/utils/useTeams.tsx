@@ -134,7 +134,7 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
     fetchError: null,
   });
 
-  const slugsRef = useRef<Set<string>>(new Set(slugs));
+  const slugsRef = useRef(new Set(slugs));
   if (
     slugs &&
     (slugs.length !== slugsRef.current.size ||
