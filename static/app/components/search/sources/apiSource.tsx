@@ -7,16 +7,16 @@ import flatten from 'lodash/flatten';
 import {Client, ResponseMeta} from 'app/api';
 import {t} from 'app/locale';
 import {
-  Group,
+  EventIdResponse,
   IntegrationProvider,
   Member,
   Organization,
   PluginWithProjectList,
   Project,
   SentryApp,
+  ShortIdResponse,
   Team,
 } from 'app/types';
-import {Event} from 'app/types/event';
 import {defined} from 'app/utils';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {singleLineRenderer as markedSingleLine} from 'app/utils/marked';
@@ -24,24 +24,6 @@ import withLatestContext from 'app/utils/withLatestContext';
 import {documentIntegrationList} from 'app/views/organizationIntegrations/constants';
 
 import {ChildProps, Result, ResultItem} from './types';
-
-// Response from ShortIdLookupEndpoint
-type ShortIdResponse = {
-  organizationSlug: string;
-  projectSlug: string;
-  groupId: string;
-  group: Group;
-  shortId: string;
-};
-
-// Response from EventIdLookupEndpoint
-type EventIdResponse = {
-  organizationSlug: string;
-  projectSlug: string;
-  groupId: string;
-  eventId: string;
-  event: Event;
-};
 
 // event ids must have string length of 32
 const shouldSearchEventIds = (query?: string) =>

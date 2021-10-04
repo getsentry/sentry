@@ -150,6 +150,21 @@ class BatchingKafkaConsumer:
     * Supports an optional "dead letter topic" where messages that raise an exception during
       `process_message` are sent so as not to block the pipeline.
 
+    A note on commit_on_shutdown parameter
+    If the process_message method of the worker provided to BatchingKafkaConsumer just works
+    with in memory stuff and does not influence/modify any external systems, then its ok to
+    keep the flag to False. But if the process_message method of the worker influences/modifies
+    any external systems then its necessary to set it to True to avoid duplicate work on the
+    external systems.
+    Example:
+        1. Worker process which deserializes the message and extracts a few needed parameters
+        can leave the commit_on_shutdown flag to False. This is ok since the next consumer which
+        picks up the work will rebuild its state from the messages which have not been committed.
+        2. Worker process which sends tasks to celery based on the message needs to set
+        commit_on_shutdown to True to avoid duplicate work.
+    This is different than the note below since crash scenarios are harder to handle and its ok for
+    duplicates to occur in crash cases.
+
     NOTE: This does not eliminate the possibility of duplicates if the consumer process
     crashes between writing to its backend and commiting Kafka offsets. This should eliminate
     the possibility of *losing* data though. An "exactly once" consumer would need to store
@@ -184,6 +199,7 @@ class BatchingKafkaConsumer:
         queued_min_messages=DEFAULT_QUEUED_MIN_MESSAGES,
         metrics_sample_rates=None,
         metrics_default_tags=None,
+        commit_on_shutdown: bool = False,
     ):
         assert isinstance(worker, AbstractBatchWorker)
         self.worker = worker
@@ -196,6 +212,7 @@ class BatchingKafkaConsumer:
         )
         self.__metrics_default_tags = metrics_default_tags or {}
         self.group_id = group_id
+        self.commit_on_shutdown = commit_on_shutdown
 
         self.shutdown = False
 
@@ -367,14 +384,20 @@ class BatchingKafkaConsumer:
     def _shutdown(self):
         logger.debug("Stopping")
 
-        # drop in-memory events, letting the next consumer take over where we left off
-        self._reset_batch()
+        if self.commit_on_shutdown:
+            self._flush(force=True)
+        else:
+            # drop in-memory events, letting the next consumer take over where we left off
+            self._reset_batch()
 
         # tell the consumer to shutdown, and close the consumer
         logger.debug("Stopping worker")
         self.worker.shutdown()
         logger.debug("Stopping consumer")
         self.consumer.close()
+        if self.dead_letter_topic:
+            logger.debug("Stopping producer")
+            self.producer.close()
         logger.debug("Stopped")
 
     def _reset_batch(self):

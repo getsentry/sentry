@@ -2,7 +2,7 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
@@ -24,7 +24,7 @@ class EventDetails extends Component<Props> {
   };
 
   render() {
-    const {organization, location, params} = this.props;
+    const {organization, location, params, router, route} = this.props;
     const documentTitle = t('Performance Details');
     const eventSlug = this.getEventSlug();
     const projectSlug = eventSlug.split(':')[0];
@@ -36,7 +36,7 @@ class EventDetails extends Component<Props> {
         projectSlug={projectSlug}
       >
         <StyledPageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
             <Projects orgId={organization.slug} slugs={[projectSlug]}>
               {({projects}) => {
                 if (projects.length === 0) {
@@ -55,8 +55,10 @@ class EventDetails extends Component<Props> {
               location={location}
               params={params}
               eventSlug={eventSlug}
+              router={router}
+              route={route}
             />
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </StyledPageContent>
       </SentryDocumentTitle>
     );
