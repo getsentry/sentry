@@ -1399,7 +1399,7 @@ class SessionColumnArg(ColumnArg):
     # XXX(ahmed): hack to get this to work with crash rate alerts over the sessions dataset until
     # we deprecate the logic that is tightly coupled with the events dataset. At which point,
     # we will just rely on dataset specific logic and refactor this class out
-    def normalize(self, value: str, _) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         if value in SESSIONS_SNUBA_MAP:
             return value
         raise InvalidFunctionArgument(f"{value} is not a valid sessions dataset column")
