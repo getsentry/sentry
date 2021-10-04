@@ -23,6 +23,7 @@ from sentry.release_health.base import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.sessions import get_rollup_starts_and_buckets
 from sentry.utils.snuba import QueryOutsideRetentionError, raw_snql_query
 
 
@@ -840,3 +841,63 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ]
 
         return result
+
+    def get_project_releases_count(
+        self,
+        organization_id: OrganizationId,
+        project_ids: Sequence[ProjectId],
+        scope: str,
+        stats_period: Optional[str] = None,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> int:
+
+        if stats_period is None:
+            stats_period = "24h"
+
+        # Special rule that we support sorting by the last 24h only.
+        if scope.endswith("_24h"):
+            stats_period = "24h"
+
+        _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
+        where = [
+            Condition(Column("timestamp"), Op.GTE, stats_start),
+            Condition(Column("timestamp"), Op.LT, datetime.now()),
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("org_id"), Op.EQ, organization_id),
+        ]
+        release_column_name = tag_key(organization_id, "release")
+
+        if environments is not None:
+            environment_column_name = tag_key(organization_id, "environment")
+
+            environment_values = get_tag_values_list(organization_id, environments)
+            where.append(Condition(Column(environment_column_name), Op.IN, environment_values))
+
+        having = []
+
+        # Filter out releases with zero users when sorting by either `users` or `crash_free_users`
+        if scope in ["users", "crash_free_users"]:
+            having.append(Condition(Column("value"), Op.GT, 0))
+            match = Entity("metrics_sets")
+        else:
+            match = Entity("metrics_counters")
+
+        query_columns = [
+            Function(
+                "uniqExact", [Column(release_column_name), Column("project_id")], alias="count"
+            )
+        ]
+
+        query = Query(
+            dataset=Dataset.Metrics.value,
+            match=match,
+            select=query_columns,
+            where=where,
+            having=having,
+        )
+
+        rows = raw_snql_query(
+            query, referrer="release_health.metrics.sessions.get_project_releases_count"
+        )["data"]
+
+        return rows[0]["count"] if rows else 0

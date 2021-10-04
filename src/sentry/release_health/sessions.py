@@ -20,6 +20,7 @@ from sentry.snuba.sessions import (
     _get_changed_project_release_model_adoptions,
     _get_crash_free_breakdown,
     _get_oldest_health_data_for_releases,
+    _get_project_releases_count,
     _get_release_adoption,
     _get_release_sessions_time_bounds,
     get_current_and_previous_crash_free_rates,
@@ -113,3 +114,15 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         project_releases: Sequence[ProjectRelease],
     ) -> Mapping[ProjectRelease, str]:
         return _get_oldest_health_data_for_releases(project_releases)  # type: ignore
+
+    def get_project_releases_count(
+        self,
+        organization_id: OrganizationId,
+        project_ids: Sequence[ProjectId],
+        scope: str,
+        stats_period: Optional[str] = None,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> int:
+        return _get_project_releases_count(
+            organization_id, project_ids, scope, stats_period, environments
+        )

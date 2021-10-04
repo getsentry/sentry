@@ -74,6 +74,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "get_crash_free_breakdown",
         "get_changed_project_release_model_adoptions",
         "get_oldest_health_data_for_releases",
+        "get_project_releases_count",
     )
 
     def get_current_and_previous_crash_free_rates(
@@ -211,5 +212,18 @@ class ReleaseHealthBackend(Service):  # type: ignore
     ) -> Mapping[ProjectRelease, str]:
         """Returns the oldest health data we have observed in a release
         in 90 days.  This is used for backfilling.
+        """
+        raise NotImplementedError()
+
+    def get_project_releases_count(
+        self,
+        organization_id: OrganizationId,
+        project_ids: Sequence[ProjectId],
+        scope: str,
+        stats_period: Optional[str] = None,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> int:
+        """
+        Fetches the total count of releases/project combinations
         """
         raise NotImplementedError()
