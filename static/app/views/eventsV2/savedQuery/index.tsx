@@ -227,10 +227,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   handleAddDashboardWidget = () => {
     const {organization, eventView, savedQuery, yAxis} = this.props;
     const defaultWidgetQuery: WidgetQuery = {
-      name:
-        savedQuery?.name ??
-        (eventView.name !== 'All Events' ? eventView.name : undefined) ??
-        '',
+      name: '',
       fields: yAxis ?? ['count()'],
       conditions: eventView.query,
       orderby: '',
@@ -241,6 +238,9 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       fromDiscover: true,
       defaultWidgetQuery,
       defaultTableColumns: eventView.fields.map(({field}) => field),
+      defaultTitle:
+        savedQuery?.name ??
+        (eventView.name !== 'All Events' ? eventView.name : undefined),
     });
   };
 
