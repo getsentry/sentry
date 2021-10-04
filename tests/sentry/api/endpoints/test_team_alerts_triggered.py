@@ -1,3 +1,4 @@
+from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.incidents.models import (
@@ -51,9 +52,9 @@ class TeamAlertsTriggeredTest(APITestCase):
             assert (
                 response.data[
                     str(
-                        before_now(days=i).replace(
-                            hour=0, minute=0, second=0, microsecond=0, tzinfo=None
-                        )
+                        before_now(days=i)
+                        .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+                        .isoformat()
                     )
                 ]
                 == 1
@@ -63,9 +64,9 @@ class TeamAlertsTriggeredTest(APITestCase):
             assert (
                 response.data[
                     str(
-                        before_now(days=i).replace(
-                            hour=0, minute=0, second=0, microsecond=0, tzinfo=None
-                        )
+                        before_now(days=i)
+                        .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+                        .isoformat()
                     )
                 ]
                 == 0
@@ -78,9 +79,9 @@ class TeamAlertsTriggeredTest(APITestCase):
         assert (
             response.data[
                 str(
-                    before_now(days=0).replace(
-                        hour=0, minute=0, second=0, microsecond=0, tzinfo=None
-                    )
+                    before_now(days=0)
+                    .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+                    .isoformat()
                 )
             ]
             == 0
@@ -89,9 +90,9 @@ class TeamAlertsTriggeredTest(APITestCase):
             assert (
                 response.data[
                     str(
-                        before_now(days=i).replace(
-                            hour=0, minute=0, second=0, microsecond=0, tzinfo=None
-                        )
+                        before_now(days=i)
+                        .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+                        .isoformat()
                     )
                 ]
                 == 1
@@ -159,9 +160,9 @@ class TeamAlertsTriggeredTest(APITestCase):
         assert (
             response.data[
                 str(
-                    before_now(days=2).replace(
-                        hour=0, minute=0, second=0, microsecond=0, tzinfo=None
-                    )
+                    before_now(days=2)
+                    .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+                    .isoformat()
                 )
             ]
             == 1
@@ -172,9 +173,9 @@ class TeamAlertsTriggeredTest(APITestCase):
                 assert (
                     response.data[
                         str(
-                            before_now(days=i).replace(
-                                hour=0, minute=0, second=0, microsecond=0, tzinfo=None
-                            )
+                            before_now(days=i)
+                            .replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+                            .isoformat()
                         )
                     ]
                     == 0
