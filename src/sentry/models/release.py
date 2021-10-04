@@ -8,6 +8,7 @@ from typing import List, Mapping, Optional, Sequence, Union
 import sentry_sdk
 from django.db import IntegrityError, models, router
 from django.db.models import Case, F, Func, Q, Subquery, Sum, Value, When
+from django.db.models.signals import pre_save
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -118,6 +119,7 @@ class SemverFilter:
     operator: str
     version_parts: Sequence[Union[int, str]]
     package: Optional[str] = None
+    negated: bool = False
 
 
 class ReleaseQuerySet(models.QuerySet):
@@ -145,6 +147,7 @@ class ReleaseQuerySet(models.QuerySet):
         operator: str,
         build: str,
         project_ids: Optional[Sequence[int]] = None,
+        negated: bool = False,
     ) -> models.QuerySet:
         """
         Filters released by build. If the passed `build` is a numeric string, we'll filter on
@@ -153,6 +156,7 @@ class ReleaseQuerySet(models.QuerySet):
         wildcard only at the end of this string, so that we can filter efficiently via the index.
         """
         qs = self.filter(organization_id=organization_id)
+        query_func = "exclude" if negated else "filter"
 
         if project_ids:
             qs = qs.filter(
@@ -162,12 +166,12 @@ class ReleaseQuerySet(models.QuerySet):
             )
 
         if build.isnumeric() and validate_bigint(int(build)):
-            qs = qs.filter(**{f"build_number__{operator}": int(build)})
+            qs = getattr(qs, query_func)(**{f"build_number__{operator}": int(build)})
         else:
             if not build or build.endswith("*"):
-                qs = qs.filter(build_code__startswith=build[:-1])
+                qs = getattr(qs, query_func)(build_code__startswith=build[:-1])
             else:
-                qs = qs.filter(build_code=build)
+                qs = getattr(qs, query_func)(build_code=build)
 
         return qs
 
@@ -189,8 +193,10 @@ class ReleaseQuerySet(models.QuerySet):
         Typically we build a `SemverFilter` via `sentry.search.events.filter.parse_semver`
         """
         qs = self.filter(organization_id=organization_id).annotate_prerelease_column()
+        query_func = "exclude" if semver_filter.negated else "filter"
+
         if semver_filter.package:
-            qs = qs.filter(package=semver_filter.package)
+            qs = getattr(qs, query_func)(package=semver_filter.package)
         if project_ids:
             qs = qs.filter(
                 id__in=ReleaseProject.objects.filter(project_id__in=project_ids).values_list(
@@ -209,7 +215,8 @@ class ReleaseQuerySet(models.QuerySet):
             cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
             qs = qs.annotate(
                 semver=Func(*(F(col) for col in cols), function="ROW", output_field=ArrayField())
-            ).filter(**{f"semver__{semver_filter.operator}": filter_func})
+            )
+            qs = getattr(qs, query_func)(**{f"semver__{semver_filter.operator}": filter_func})
         return qs
 
     def filter_by_stage(
@@ -262,7 +269,7 @@ class ReleaseQuerySet(models.QuerySet):
         return self.order_by("-date_added", "-id")
 
     @staticmethod
-    def _massage_semver_cols_into_release_object_data(kwargs):
+    def massage_semver_cols_into_release_object_data(kwargs):
         """
         Helper function that takes kwargs as an argument and massages into it the release semver
         columns (if possible)
@@ -318,15 +325,6 @@ class ReleaseQuerySet(models.QuerySet):
                 pass
         return build_number
 
-    def create(self, *args, **kwargs):
-        """
-        Override create method to parse semver release if it follows semver format, and updates the
-        release object that is about to be created with semver columns i.e. major, minor, patch,
-        revision, prerelease, build_code, build_number and package
-        """
-        self._massage_semver_cols_into_release_object_data(kwargs)
-        return super().create(*args, **kwargs)
-
 
 class ReleaseModelManager(BaseManager):
     def get_queryset(self):
@@ -344,9 +342,14 @@ class ReleaseModelManager(BaseManager):
         operator: str,
         build: str,
         project_ids: Optional[Sequence[int]] = None,
+        negated: bool = False,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_semver_build(
-            organization_id, operator, build, project_ids
+            organization_id,
+            operator,
+            build,
+            project_ids,
+            negated=negated,
         )
 
     def filter_by_semver(
@@ -1043,8 +1046,8 @@ class Release(Model):
         """Deletes a release if possible or raises a `UnsafeReleaseDeletion`
         exception.
         """
+        from sentry import release_health
         from sentry.models import Group, ReleaseFile
-        from sentry.snuba.sessions import check_has_health_data
 
         # we don't want to remove the first_release metadata on the Group, and
         # while people might want to kill a release (maybe to remove files),
@@ -1057,7 +1060,7 @@ class Release(Model):
         # We would need to be able to delete this data from snuba which we
         # can't do yet.
         project_ids = list(self.projects.values_list("id").all())
-        if check_has_health_data([(p[0], self.version) for p in project_ids]):
+        if release_health.check_has_health_data([(p[0], self.version) for p in project_ids]):
             raise UnsafeReleaseDeletion(ERR_RELEASE_HEALTH_DATA)
 
         # TODO(dcramer): this needs to happen in the queue as it could be a long
@@ -1148,3 +1151,14 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
     if release_version:
         follows_semver = follows_semver and Release.is_semver_version(release_version)
     return follows_semver
+
+
+def parse_semver_pre_save(instance, **kwargs):
+    if instance.id:
+        return
+    ReleaseQuerySet.massage_semver_cols_into_release_object_data(instance.__dict__)
+
+
+pre_save.connect(
+    parse_semver_pre_save, sender="sentry.Release", dispatch_uid="parse_semver_pre_save"
+)

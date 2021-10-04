@@ -10,16 +10,17 @@ import PageHeading from 'app/components/pageHeading';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
-import {LightWeightOrganization, Organization, Project} from 'app/types';
+import {Organization, Project} from 'app/types';
+import withProjects from 'app/utils/withProjects';
 
 type Props = React.PropsWithChildren<{
-  organization: LightWeightOrganization | Organization;
-  projects?: Project[];
-  loadingProjects?: boolean;
+  organization: Organization;
+  projects: Project[];
+  loadingProjects: boolean;
   superuserNeedsToBeProjectMember?: boolean;
 }>;
 
-export default function NoProjectMessage({
+function NoProjectMessage({
   children,
   organization,
   projects,
@@ -30,21 +31,13 @@ export default function NoProjectMessage({
   const canCreateProject = organization.access.includes('project:write');
   const canJoinTeam = organization.access.includes('team:read');
 
-  let orgHasProjects = false;
-  let hasProjectAccess = false;
+  const {isSuperuser} = ConfigStore.get('user');
 
-  if ('projects' in organization) {
-    const {isSuperuser} = ConfigStore.get('user');
-
-    orgHasProjects = organization.projects.length > 0;
-    hasProjectAccess =
-      isSuperuser && !superuserNeedsToBeProjectMember
-        ? organization.projects.some(p => p.hasAccess)
-        : organization.projects.some(p => p.isMember && p.hasAccess);
-  } else {
-    hasProjectAccess = projects ? projects.length > 0 : false;
-    orgHasProjects = hasProjectAccess;
-  }
+  const orgHasProjects = !!projects?.length;
+  const hasProjectAccess =
+    isSuperuser && !superuserNeedsToBeProjectMember
+      ? !!projects?.some(p => p.hasAccess)
+      : !!projects?.some(p => p.isMember && p.hasAccess);
 
   if (hasProjectAccess || loadingProjects) {
     return <Fragment>{children}</Fragment>;
@@ -135,3 +128,5 @@ const Content = styled(Flex)`
 const Actions = styled(ButtonBar)`
   width: fit-content;
 `;
+
+export default withProjects(NoProjectMessage);

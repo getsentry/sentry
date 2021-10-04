@@ -65,7 +65,7 @@ export type DiscoverQueryProps = BaseDiscoverQueryProps & {
 type InnerRequestProps<P> = DiscoverQueryProps & P;
 type OuterRequestProps<P> = DiscoverQueryPropsWithContext & P;
 
-type ReactProps<T> = {
+export type ReactProps<T> = {
   children?: (props: GenericChildrenProps<T>) => React.ReactNode;
 };
 
@@ -121,8 +121,8 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
   }
 
   componentDidUpdate(prevProps: Props<T, P>) {
-    // Reload data if we aren't already loading,
-    const refetchCondition = !this.state.isLoading && this._shouldRefetchData(prevProps);
+    // Reload data if the payload changes
+    const refetchCondition = this._shouldRefetchData(prevProps);
 
     // or if we've moved from an invalid view state to a valid one,
     const eventViewValidation =
@@ -198,6 +198,9 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
     }
 
     beforeFetch?.(api);
+
+    // clear any inflight requests since they are now stale
+    api.clear();
 
     try {
       const [data, , resp] = await doDiscoverQuery<T>(api, url, apiPayload);

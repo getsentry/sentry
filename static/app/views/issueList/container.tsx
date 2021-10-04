@@ -1,35 +1,16 @@
 import {Component} from 'react';
 import DocumentTitle from 'react-document-title';
 
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {Organization} from 'app/types';
-import {metric} from 'app/utils/analytics';
-import withOrganization, {isLightweightOrganization} from 'app/utils/withOrganization';
+import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
   organization: Organization;
 };
 
 class IssueListContainer extends Component<Props> {
-  componentDidMount() {
-    // Setup here as render() may be expensive
-    this.startMetricCollection();
-  }
-
-  /**
-   * The user can (1) land on IssueList as the first page as they enter Sentry,
-   * or (2) navigate into IssueList with the stores preloaded with data.
-   *
-   * Case (1) will be slower and we can easily identify it as it uses the
-   * lightweight organization
-   */
-  startMetricCollection() {
-    const isLightWeight: boolean = isLightweightOrganization(this.props.organization);
-    const startType: string = isLightWeight ? 'cold-start' : 'warm-start';
-    metric.mark({name: 'page-issue-list-start', data: {start_type: startType}});
-  }
-
   getTitle() {
     return `Issues - ${this.props.organization.slug} - Sentry`;
   }
@@ -40,9 +21,7 @@ class IssueListContainer extends Component<Props> {
     return (
       <DocumentTitle title={this.getTitle()}>
         <GlobalSelectionHeader>
-          <LightWeightNoProjectMessage organization={organization}>
-            {children}
-          </LightWeightNoProjectMessage>
+          <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
         </GlobalSelectionHeader>
       </DocumentTitle>
     );

@@ -20,7 +20,7 @@ import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import OrganizationStore from 'app/stores/organizationStore';
 import space from 'app/styles/space';
-import {LightWeightOrganization, Organization} from 'app/types';
+import {Organization} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
@@ -28,20 +28,14 @@ import RequestError from 'app/utils/requestError/requestError';
 import withApi from 'app/utils/withApi';
 import withOrganizations from 'app/utils/withOrganizations';
 
-const defaultProps = {
-  detailed: true,
-};
-
-type Props = {
+type Props = RouteComponentProps<{orgId: string}, {}> & {
   api: Client;
   routes: PlainRoute[];
   includeSidebar: boolean;
   useLastOrganization: boolean;
   organizationsLoading: boolean;
   organizations: Organization[];
-  detailed: boolean;
-} & typeof defaultProps &
-  RouteComponentProps<{orgId: string}, {}>;
+};
 
 type State = {
   organization: Organization | null;
@@ -57,9 +51,8 @@ type State = {
   };
 };
 
-const OrganizationContext = createContext<Organization | LightWeightOrganization | null>(
-  null
-);
+const OrganizationContext = createContext<Organization | null>(null);
+
 class OrganizationContextContainer extends React.Component<Props, State> {
   static getDerivedStateFromProps(props: Readonly<Props>, prevState: State): State {
     const {prevProps} = prevState;
@@ -149,22 +142,14 @@ class OrganizationContextContainer extends React.Component<Props, State> {
   }
 
   static isOrgStorePopulatedCorrectly(props: Props) {
-    const {detailed} = props;
     const {organization, dirty} = OrganizationStore.get();
 
-    return (
-      !dirty &&
-      organization &&
-      !OrganizationContextContainer.isOrgChanging(props) &&
-      (!detailed || (detailed && organization.projects))
-    );
+    return !dirty && organization && !OrganizationContextContainer.isOrgChanging(props);
   }
 
   static childContextTypes = {
     organization: SentryTypes.Organization,
   };
-
-  static defaultProps = defaultProps;
 
   constructor(props: Props) {
     super(props);
@@ -217,7 +202,7 @@ class OrganizationContextContainer extends React.Component<Props, State> {
       this.props.api,
       OrganizationContextContainer.getOrganizationSlug(this.props),
       true,
-      true
+      false
     );
   }
 
@@ -227,11 +212,8 @@ class OrganizationContextContainer extends React.Component<Props, State> {
     if (!OrganizationContextContainer.getOrganizationSlug(this.props)) {
       return this.props.organizationsLoading;
     }
-    // The following loading logic exists because we could either be waiting for
-    // the whole organization object to come in or just the teams and projects.
-    const {loading, error, organization} = this.state;
-    const {detailed} = this.props;
-    return loading || (!error && detailed && (!organization || !organization.projects));
+
+    return this.state.loading;
   }
 
   fetchData(isInitialFetch = false) {
@@ -247,7 +229,6 @@ class OrganizationContextContainer extends React.Component<Props, State> {
     fetchOrganizationDetails(
       this.props.api,
       OrganizationContextContainer.getOrganizationSlug(this.props),
-      this.props.detailed,
       !OrganizationContextContainer.isOrgChanging(this.props), // if true, will preserve a lightweight org that was fetched,
       isInitialFetch
     );
@@ -383,6 +364,7 @@ class OrganizationContextContainer extends React.Component<Props, State> {
 export default withApi(
   withOrganizations(Sentry.withProfiler(OrganizationContextContainer))
 );
+
 export {OrganizationContextContainer as OrganizationLegacyContext, OrganizationContext};
 
 const ErrorWrapper = styled('div')`

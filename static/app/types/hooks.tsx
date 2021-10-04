@@ -5,14 +5,7 @@ import {ChildrenRenderFn} from 'app/components/acl/feature';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRange/selectorItems';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
-import {
-  IntegrationProvider,
-  LightWeightOrganization,
-  Member,
-  Organization,
-  Project,
-  User,
-} from 'app/types';
+import {IntegrationProvider, Member, Organization, Project, User} from 'app/types';
 import {ExperimentKey} from 'app/types/experiments';
 import {NavigationItem, NavigationSection} from 'app/views/settings/types';
 
@@ -48,7 +41,6 @@ export type RouteHooks = {
   'routes:admin': RoutesHook;
   'routes:api': RoutesHook;
   'routes:organization': RoutesHook;
-  'routes:organization-root': RoutesHook;
 };
 
 /**
@@ -276,7 +268,7 @@ type AnalyticsTrackEventV2 = (
      */
     eventName: string | null;
 
-    organization: LightWeightOrganization | null;
+    organization: Organization | null;
     /**
      * Arbitrary data to track
      */

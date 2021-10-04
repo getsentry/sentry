@@ -1,11 +1,11 @@
 import html
 import re
-from typing import Any, List, Mapping
+from typing import Any, List, Mapping, Optional
 from urllib.parse import urlparse
 
 from django.http.request import HttpRequest, QueryDict
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api import client
 from sentry.charts import generate_chart
 from sentry.charts.types import ChartType
@@ -30,7 +30,10 @@ TOP_N = 5
 
 
 def unfurl_discover(
-    data: HttpRequest, integration: Integration, links: List[UnfurlableUrl]
+    data: HttpRequest,
+    integration: Integration,
+    links: List[UnfurlableUrl],
+    user: Optional["User"],
 ) -> UnfurledUrl:
     orgs_by_slug = {org.slug: org for org in integration.organizations.all()}
     unfurls = {}
@@ -47,13 +50,6 @@ def unfurl_discover(
 
         params = link.args["query"]
         query_id = params.get("id", None)
-
-        user_id = params.get("user", None)
-        user = (
-            User.objects.get(id=user_id, sentry_orgmember_set__organization=org)
-            if user_id
-            else None
-        )
 
         saved_query = {}
         if query_id:
@@ -135,6 +131,13 @@ def unfurl_discover(
             title=link.args["query"].get("name", "Dashboards query"),
             chart_url=url,
         )
+
+    analytics.record(
+        "integrations.slack.chart_unfurl",
+        organization_id=integration.organizations.all()[0].id,
+        user_id=user.id if user else None,
+        unfurls_count=len(unfurls),
+    )
 
     return unfurls
 

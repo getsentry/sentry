@@ -313,6 +313,12 @@ def cron(**options):
     help="How many messages to process (may or may not result in an enqueued task) before committing offsets.",
 )
 @click.option(
+    "--commit-batch-timeout-ms",
+    default=5000,
+    type=int,
+    help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
+)
+@click.option(
     "--initial-offset-reset",
     default="latest",
     type=click.Choice(["earliest", "latest"]),
@@ -330,6 +336,7 @@ def post_process_forwarder(**options):
             commit_log_topic=options["commit_log_topic"],
             synchronize_commit_group=options["synchronize_commit_group"],
             commit_batch_size=options["commit_batch_size"],
+            commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
             initial_offset_reset=options["initial_offset_reset"],
         )
     except ForwarderNotRequired:
@@ -503,3 +510,20 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
         ingest_consumer_types=",".join(sorted(consumer_types)), _all_threads=True
     ):
         get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options).run()
+
+
+@run.command("metrics-consumer")
+@log_options()
+@click.option(
+    "--group_id",
+    default="metrics-consumer",
+    help="Consumer group to track metric indexer offsets. ",
+)
+@click.option("--topic", default="ingest-metrics", help="Topic to get subscription updates from.")
+@batching_kafka_options("metrics-consumer")
+@configuration
+def metrics_consumer(**options):
+
+    from sentry.sentry_metrics.indexer.indexer_consumer import get_metrics_consumer
+
+    get_metrics_consumer(**options).run()

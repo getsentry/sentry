@@ -7,6 +7,7 @@ import pytest
 from django.urls import reverse
 from pytz import utc
 
+from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba.discover import OTHER_KEY
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -16,6 +17,8 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
+    endpoint = "sentry-api-0-organization-events-stats"
+
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
@@ -736,7 +739,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
         assert mock_query.call_count == 1
 
-    def test_invalid_interval(self):
+    @mock.patch("sentry.snuba.discover.bulk_raw_query", return_value=[{"data": []}])
+    def test_invalid_interval(self, mock_query):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
@@ -749,7 +753,10 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     "yAxis": "count()",
                 },
             )
-        assert response.status_code == 400
+        assert response.status_code == 200
+        assert mock_query.call_count == 1
+        # Should've reset to the default for 24h
+        assert mock_query.mock_calls[0].args[0][0].rollup == 300
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
@@ -763,8 +770,10 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     "yAxis": "count()",
                 },
             )
-        assert response.status_code == 400
-        assert "zero duration" in response.data["detail"]
+        assert response.status_code == 200
+        assert mock_query.call_count == 2
+        # Should've reset to the default for 24h
+        assert mock_query.mock_calls[0].args[0][0].rollup == 300
 
     def test_out_of_retention(self):
         with self.options({"system.event-retention-days": 10}):
@@ -861,6 +870,61 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             ]
             assert response.data["start"] == parse_date.parse(start).timestamp()
             assert response.data["end"] == parse_date.parse(end).timestamp()
+
+    def test_comparison(self):
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(days=-1, minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(days=-1, minutes=2)),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=1, minutes=1)),
+            },
+            project_id=self.project2.id,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            start=iso_format(self.day_ago),
+            end=iso_format(self.day_ago + timedelta(hours=2)),
+            interval="1h",
+            comparisonDelta=int(timedelta(days=1).total_seconds()),
+        )
+
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": -50}],
+            [{"count": 100}],
+        ]
+
+    def test_comparison_invalid(self):
+        response = self.get_error_response(
+            self.organization.slug,
+            start=iso_format(self.day_ago),
+            end=iso_format(self.day_ago + timedelta(hours=2)),
+            interval="1h",
+            comparisonDelta="17h",
+        )
+        assert response.data["detail"] == "comparisonDelta must be an integer"
+
+        start = before_now(days=85)
+        end = start + timedelta(days=7)
+        with self.options({"system.event-retention-days": 90}):
+            response = self.get_error_response(
+                self.organization.slug,
+                start=iso_format(start),
+                end=iso_format(end),
+                interval="1h",
+                comparisonDelta=int(timedelta(days=7).total_seconds()),
+            )
+            assert response.data["detail"] == "Comparison period is outside retention window"
 
 
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
@@ -1060,7 +1124,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             "field": ["count()", "message", "user.email"],
         }
         with self.feature(self.enabled_features):
-            data["topEvents"] = 50
+            data["topEvents"] = MAX_TOP_EVENTS + 1
             response = self.client.get(self.url, data, format="json")
             assert response.status_code == 400
 
@@ -1147,6 +1211,35 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         other = data["Other"]
         assert other["order"] == 5
         assert [{"count": 1}] in [attrs for _, attrs in other["data"]]
+
+    @mock.patch(
+        "sentry.snuba.discover.raw_query",
+        side_effect=[{"data": [{"group_id": 1}], "meta": []}, {"data": [], "meta": []}],
+    )
+    def test_top_events_with_issue_check_query_conditions(self, mock_query):
+        """ "Intentionally separate from test_top_events_with_issue
+
+        This is to test against a bug where the condition for issues wasn't included and we'd be missing data for
+        the interval since we'd cap out the max rows. This was not caught by the previous test since the results
+        would still be correct given the smaller interval & lack of data
+        """
+        with self.feature(self.enabled_features):
+            self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "issue"],
+                    "topEvents": 5,
+                    "query": "!event.type:transaction",
+                },
+                format="json",
+            )
+
+        assert ["group_id", "IN", [1]] in mock_query.mock_calls[1].kwargs["conditions"]
 
     def test_top_events_with_functions(self):
         with self.feature(self.enabled_features):
@@ -1534,6 +1627,41 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             [{"count": 0}],
         ]
 
+    def test_top_events_with_user_display(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["message", "user.display", "count()"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 6
+
+        for index, event in enumerate(self.events[:5]):
+            message = event.message or event.transaction
+            user = self.event_data[index]["data"]["user"]
+            results = data[
+                ",".join([message, user.get("email", None) or user.get("ip_address", "None")])
+            ]
+            assert results["order"] == index
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for _, attrs in results["data"]
+            ]
+
+        other = data["Other"]
+        assert other["order"] == 5
+        assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
+
     @pytest.mark.skip(reason="A query with group_id will not return transactions")
     def test_top_events_none_filter(self):
         """When a field is None in one of the top events, make sure we filter by it
@@ -1766,7 +1894,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 0.03}] in [attrs for _, attrs in other["data"]]
 
-    def test_invalid_interval(self):
+    @mock.patch("sentry.snuba.discover.bulk_raw_query", return_value=[{"data": [], "meta": []}])
+    @mock.patch("sentry.snuba.discover.raw_query", return_value={"data": [], "meta": []})
+    def test_invalid_interval(self, mock_raw_query, mock_bulk_query):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
@@ -1782,6 +1912,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 200
+        assert mock_bulk_query.call_count == 1
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
@@ -1798,7 +1929,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "topEvents": 2,
                 },
             )
-        assert response.status_code == 400
+        assert response.status_code == 200
+        assert mock_raw_query.call_count == 2
+        # Should've reset to the default for between 1 and 24h
+        assert mock_raw_query.mock_calls[1].kwargs["rollup"] == 300
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
@@ -1816,6 +1950,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 200
+        assert mock_raw_query.call_count == 4
+        # Should've left the interval alone since we're just below the limit
+        assert mock_raw_query.mock_calls[3].kwargs["rollup"] == 1
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
@@ -1828,10 +1965,13 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "query": "",
                     "interval": "0d",
                     "yAxis": "count()",
+                    "topEvents": 5,
                 },
             )
-        assert response.status_code == 400
-        assert "zero duration" in response.data["detail"]
+        assert response.status_code == 200
+        assert mock_raw_query.call_count == 6
+        # Should've default to 24h's default of 5m
+        assert mock_raw_query.mock_calls[5].kwargs["rollup"] == 300
 
     def test_top_events_timestamp_fields(self):
         with self.feature("organizations:discover-basic"):

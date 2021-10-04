@@ -1,8 +1,8 @@
-import {ApiForm, BooleanField, TextField} from 'app/components/forms';
 import NarrowLayout from 'app/components/narrowLayout';
 import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import AsyncView from 'app/views/asyncView';
+import {ApiForm, CheckboxField, TextField} from 'app/views/settings/components/forms';
 
 export default class OrganizationCreate extends AsyncView {
   onSubmitSuccess = data => {
@@ -45,11 +45,14 @@ export default class OrganizationCreate extends AsyncView {
             name="name"
             label={t('Organization Name')}
             placeholder={t('e.g. My Company')}
+            inline={false}
+            flexibleControlStateSize
+            stacked
             required
           />
 
           {termsUrl && privacyUrl && (
-            <BooleanField
+            <CheckboxField
               name="agreeTerms"
               label={tct(
                 'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
@@ -58,6 +61,8 @@ export default class OrganizationCreate extends AsyncView {
                   privacyLink: <a href={privacyUrl} />,
                 }
               )}
+              inline={false}
+              stacked
               required
             />
           )}

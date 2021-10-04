@@ -12,6 +12,7 @@ import {
   EventTypes,
   IncidentRule,
   SavedIncidentRule,
+  SessionsAggregate,
 } from 'app/views/alerts/incidentRules/types';
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
@@ -155,7 +156,7 @@ export function getIncidentDiscoverUrl(opts: {
     id: undefined,
     name: (incident && incident.title) || '',
     orderby: `-${getAggregateAlias(incident.alertRule.aggregate)}`,
-    yAxis: incident.alertRule.aggregate,
+    yAxis: incident.alertRule.aggregate ? [incident.alertRule.aggregate] : undefined,
     query: incident?.discoverQuery ?? '',
     projects: projects
       .filter(({slug}) => incident.projects.includes(slug))
@@ -268,4 +269,8 @@ export function getQueryDatasource(
   }
 
   return null;
+}
+
+export function isSessionAggregate(aggregate: string) {
+  return Object.values(SessionsAggregate).includes(aggregate as SessionsAggregate);
 }

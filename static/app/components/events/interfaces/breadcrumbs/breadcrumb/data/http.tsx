@@ -13,9 +13,10 @@ import Summary from './summary';
 type Props = {
   searchTerm: string;
   breadcrumb: BreadcrumbTypeHTTP;
+  linkedEvent?: React.ReactElement;
 };
 
-const Http = ({breadcrumb, searchTerm}: Props) => {
+function Http({breadcrumb, searchTerm, linkedEvent}: Props) {
   const {data} = breadcrumb;
 
   const renderUrl = (url: any) => {
@@ -41,6 +42,7 @@ const Http = ({breadcrumb, searchTerm}: Props) => {
 
   return (
     <Summary kvData={omit(data, ['method', 'url', 'status_code'])}>
+      {linkedEvent}
       {data?.method && (
         <AnnotatedText
           value={
@@ -67,6 +69,6 @@ const Http = ({breadcrumb, searchTerm}: Props) => {
       )}
     </Summary>
   );
-};
+}
 
 export default Http;

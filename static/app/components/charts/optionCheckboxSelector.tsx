@@ -1,4 +1,4 @@
-import {Component, createRef, Fragment} from 'react';
+import {Component, createRef, Fragment, MouseEvent} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -57,6 +57,10 @@ class OptionCheckboxSelector extends Component<Props, State> {
   }
 
   constructNewSelected(value: string) {
+    return [value];
+  }
+
+  selectCheckbox(value: string) {
     const {selected} = this.props;
     // Cannot have no option selected
     if (selected.length === 1 && selected[0] === value) {
@@ -68,6 +72,20 @@ class OptionCheckboxSelector extends Component<Props, State> {
       return selected.filter(selectedValue => selectedValue !== value);
     }
     return [...selected, value];
+  }
+
+  shouldBeDisabled(value: string) {
+    const {selected} = this.props;
+    // Y-Axis is capped at 3 fields
+    return selected.length > 2 && !selected.includes(value);
+  }
+
+  handleCheckboxClick(event: MouseEvent, value: string) {
+    const {onChange} = this.props;
+    event.stopPropagation();
+    if (!this.shouldBeDisabled(value)) {
+      onChange(this.selectCheckbox(value));
+    }
   }
 
   menuContainerRef = createRef<HTMLDivElement>();
@@ -101,8 +119,7 @@ class OptionCheckboxSelector extends Component<Props, State> {
                   blendCorner
                 >
                   {options.map(opt => {
-                    // Y-Axis is capped at 3 fields
-                    const disabled = selected.length > 2 && !selected.includes(opt.value);
+                    const disabled = this.shouldBeDisabled(opt.value);
                     return (
                       <StyledDropdownItem
                         key={opt.value}
@@ -110,11 +127,16 @@ class OptionCheckboxSelector extends Component<Props, State> {
                           onChange(this.constructNewSelected(eventKey))
                         }
                         eventKey={opt.value}
-                        disabled={disabled}
                         data-test-id={`option-${opt.value}`}
                         isChecked={selected.includes(opt.value)}
                       >
-                        <StyledTooltip
+                        <StyledTruncate
+                          isActive={false}
+                          value={String(opt.label)}
+                          maxLength={60}
+                          expandDirection="left"
+                        />
+                        <Tooltip
                           title={
                             disabled
                               ? t(
@@ -123,14 +145,13 @@ class OptionCheckboxSelector extends Component<Props, State> {
                               : undefined
                           }
                         >
-                          <StyledTruncate
-                            isActive={false}
-                            value={String(opt.label)}
-                            maxLength={60}
-                            expandDirection="left"
+                          <CheckboxFancy
+                            className={opt.value}
+                            isChecked={selected.includes(opt.value)}
+                            isDisabled={disabled}
+                            onClick={event => this.handleCheckboxClick(event, opt.value)}
                           />
-                        </StyledTooltip>
-                        <CheckboxFancy isChecked={selected.includes(opt.value)} />
+                        </Tooltip>
                       </StyledDropdownItem>
                     );
                   })}
@@ -196,11 +217,6 @@ const StyledDropdownItem = styled(DropdownItem)<{isChecked?: boolean}>`
   &:hover ${CheckboxFancy} {
     opacity: 1;
   }
-`;
-
-const StyledTooltip = styled(Tooltip)`
-  flex: auto;
-  margin-right: ${space(2)};
 `;
 
 export default OptionCheckboxSelector;

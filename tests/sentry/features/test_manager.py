@@ -13,7 +13,10 @@ class MockBatchHandler(features.BatchFeatureHandler):
     features = frozenset(["auth:register", "organizations:feature", "projects:feature"])
 
     def has(
-        self, feature: Feature, actor: User
+        self,
+        feature: Feature,
+        actor: User,
+        skip_entity: Optional[bool] = False,
     ) -> Union[Optional[bool], Mapping[str, Optional[bool]]]:
         return {feature.name: True}
 
@@ -114,6 +117,11 @@ class FeatureManagerTest(TestCase):
 
         # The feature isn't registered, so it should try checking the entity_handler
         assert manager.has("organizations:unregistered-feature", test_org)
+        assert len(entity_handler.has.mock_calls) == 1
+        assert len(registered_handler.mock_calls) == 1
+
+        # The feature isn't registered, but lets skip the entity_handler
+        manager.has("organizations:unregistered-feature", test_org, skip_entity=True)
         assert len(entity_handler.has.mock_calls) == 1
         assert len(registered_handler.mock_calls) == 1
 
