@@ -4,8 +4,10 @@ description: 'Handles uploading coverage/test artifacts to codecov'
 runs:
   using: "composite"
   steps:
+    - shell: bash
+      run: ls .artifacts
     - name: Upload to codecov
       uses: codecov/codecov-action@v2
       with:
-        directory: .artifacts
+        directory: .artifacts/coverage
         verbose: true
