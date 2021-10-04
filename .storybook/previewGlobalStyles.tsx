@@ -61,6 +61,10 @@ const styles = (theme: Theme) => css`
     color: ${theme.gray500};
     margin: ${space(2)} 0;
   }
+  .sbdocs.small {
+    font-size: 0.875rem;
+    color: ${theme.gray300};
+  }
 
   /** Links */
   .sbdocs.sbdocs-a {

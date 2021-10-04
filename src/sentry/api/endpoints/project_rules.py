@@ -1,11 +1,14 @@
+from typing import Mapping, Sequence
+
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import RuleSerializer
 from sentry.integrations.slack import tasks
-from sentry.mediators import project_rules
+from sentry.mediators import alert_rule_actions, project_rules
 from sentry.models import (
     AuditLogEntryEvent,
     Rule,
@@ -15,8 +18,28 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.models.sentryappinstallation import SentryAppInstallation
 from sentry.signals import alert_rule_created
 from sentry.web.decorators import transaction_start
+
+
+def trigger_alert_rule_action_creators(
+    actions: Sequence[Mapping[str, str]],
+    rule: Rule,
+    request: Request,
+) -> None:
+    for action in actions:
+        # Only call creator for Sentry Apps with UI Components for alert rules.
+        if not action.get("hasSchemaFormConfig"):
+            continue
+
+        alert_rule_actions.AlertRuleActionCreator.run(
+            install=SentryAppInstallation.objects.get(uuid=action.get("sentryAppInstallationUuid")),
+            fields=action.get("settings"),
+            uri=action.get("uri"),
+            rule=rule,
+            request=request,
+        )
 
 
 class ProjectRulesEndpoint(ProjectEndpoint):
@@ -103,6 +126,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             RuleActivity.objects.create(
                 rule=rule, user=request.user, type=RuleActivityType.CREATED.value
             )
+
+            trigger_alert_rule_action_creators(kwargs.get("actions"), rule, request)
+
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,

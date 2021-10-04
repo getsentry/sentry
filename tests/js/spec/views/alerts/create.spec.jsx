@@ -197,6 +197,7 @@ describe('ProjectAlertsCreate', function () {
       await selectEvent.select(getByText('Add optional condition...'), [
         'A new issue is created',
       ]);
+
       fireEvent.click(getByLabelText('Delete Node'));
 
       expect(trackAnalyticsEvent).toHaveBeenCalledWith({
@@ -212,6 +213,7 @@ describe('ProjectAlertsCreate', function () {
       await selectEvent.select(getByText('Add optional filter...'), [
         'The issue is {comparison_type} than {value} {time}',
       ]);
+
       fireEvent.click(getByLabelText('Delete Node'));
 
       // Add an action and remove it

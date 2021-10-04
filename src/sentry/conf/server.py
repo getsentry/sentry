@@ -562,6 +562,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
+    "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.members",
     "sentry.tasks.merge",
     "sentry.tasks.releasemonitor",
@@ -638,6 +639,10 @@ CELERY_QUEUES = [
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
+    Queue(
+        "symbolications.compute_low_priority_projects",
+        routing_key="symbolications.compute_low_priority_projects",
+    ),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
 ]
@@ -779,6 +784,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=20),
         "options": {"expires": 20 * 60},
     },
+    "check-symbolicator-lpq-project-eligibility": {
+        "task": "sentry.tasks.low_priority_symbolication.scan_for_suspect_projects",
+        "schedule": timedelta(seconds=10),
+        "options": {"expires": 10},
+    },
 }
 
 BGTASKS = {
@@ -890,6 +900,10 @@ SENTRY_FEATURES = {
     "organizations:app-store-connect-multiple": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
+    # Enable the linked event feature in the issue details breadcrumb.
+    "organizations:breadcrumb-linked-event": False,
+    # Enable change alerts for an org
+    "organizations:change-alerts": False,
     # Enable unfurling charts using the Chartcuterie service
     "organizations:chart-unfurls": False,
     # Enable alerting based on crash free sessions/users
@@ -2161,9 +2175,11 @@ KAFKA_EVENTS = "events"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
+KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
     "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
+    "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
 }
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
@@ -2181,6 +2197,10 @@ KAFKA_TOPICS = {
     KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {
         "cluster": "default",
         "topic": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
+    },
+    KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {
+        "cluster": "default",
+        "topic": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
     },
     # Topic for receiving simple events (error events without attachments) from Relay
     KAFKA_INGEST_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_EVENTS},
@@ -2317,6 +2337,41 @@ SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
 
 SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
 
+# Which backend to use for RealtimeMetricsStore.
+#
+# Currently, only redis is supported.
+SENTRY_REALTIME_METRICS_BACKEND = (
+    "sentry.processing.realtime_metrics.redis.RedisRealtimeMetricsStore"
+)
+SENTRY_REALTIME_METRICS_OPTIONS = {
+    # The redis cluster used for the realtime store redis backend.
+    "cluster": "default",
+    # The bucket size of the counter.
+    #
+    # The size (in seconds) of the buckets that events are sorted into.
+    "counter_bucket_size": 10,
+    # Number of seconds to keep symbolicate_event rates per project.
+    #
+    # symbolicate_event tasks report the rates of events per project to redis
+    # so that projects that exceed a reasonable rate can be sent to the low
+    # priority queue. This setting determines how long we keep these rates
+    # around.
+    # Note that the time is counted after the last time a counter is incremented.
+    "counter_ttl": timedelta(seconds=300),
+    # The bucket size of the histogram.
+    #
+    # The size (in seconds) of the buckets that events are sorted into.
+    "histogram_bucket_size": 10,
+    # Number of seconds to keep symbolicate_event durations per project.
+    #
+    # symbolicate_event tasks report the processing durations of events per project to redis
+    # so that projects that exceed a reasonable duration can be sent to the low
+    # priority queue. This setting determines how long we keep these duration values
+    # around.
+    # Note that the time is counted after the last time a counter is incremented.
+    "histogram_ttl": timedelta(seconds=900),
+}
+
 # XXX(meredith): Temporary metrics indexer
 SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
 
@@ -2349,3 +2404,6 @@ DEMO_DATA_QUICK_GEN_PARAMS = {}
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []
+
+# Sentry post process forwarder use batching consumer
+SENTRY_POST_PROCESS_FORWARDER_BATCHING = False
