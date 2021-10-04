@@ -1,4 +1,4 @@
-import {Experiments, ExperimentType} from 'app/types/experiments';
+import {Experiments} from 'app/types/experiments';
 
 /**
  * This is the value an experiment will have when the unit of assignment
@@ -12,16 +12,6 @@ export const unassignedValue = -1;
 /**
  * Frontend experiment configuration object
  */
-export const experimentList = [
-  {
-    key: 'DefaultBusinessForFreeOrgsExperiment',
-    type: ExperimentType.Organization,
-    parameter: 'exposed',
-    assignments: [0, 1],
-  },
-] as const;
+export const experimentList = [] as const;
 
-export const experimentConfig = experimentList.reduce(
-  (acc, exp) => ({...acc, [exp.key]: exp}),
-  {}
-) as Experiments;
+export const experimentConfig = {} as Experiments;
