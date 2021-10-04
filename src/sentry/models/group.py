@@ -35,7 +35,7 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
-    from sentry.models import Integration, Group, Organization
+    from sentry.models import Integration, Organization, Team, User
 
 logger = logging.getLogger(__name__)
 
@@ -610,3 +610,18 @@ class Group(Model):
                 id__in=group_ids, project_id__in=project_ids, project__organization=organization
             )
         }
+
+    def get_assignee(self) -> Optional[Union["Team", "User"]]:
+        from sentry.models import GroupAssignee
+
+        try:
+            group_assignee = GroupAssignee.objects.get(group=self)
+        except GroupAssignee.DoesNotExist:
+            return None
+
+        assigned_actor = group_assignee.assigned_actor()
+
+        try:
+            return assigned_actor.resolve()
+        except assigned_actor.type.DoesNotExist:
+            return None
