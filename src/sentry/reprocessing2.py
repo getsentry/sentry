@@ -103,7 +103,7 @@ logger = logging.getLogger("sentry.reprocessing")
 
 _REDIS_SYNC_TTL = 3600 * 24
 
-_REDIS_REMAINING_EVENTS_BUF_SIZE = 1000
+_REDIS_REMAINING_EVENTS_BUF_SIZE = 500
 
 
 # Group-related models are only a few per-group and are migrated at
