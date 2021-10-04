@@ -199,6 +199,42 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter.conditions == []
         assert snuba_filter.aggregations == [["uniq", "user", "count_unique_user"]]
 
+    def test_simple_sessions(self):
+        snuba_filter = build_snuba_filter(
+            dataset=QueryDatasets.SESSIONS,
+            query="",
+            aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+            environment=None,
+            event_types=[],
+        )
+        assert snuba_filter
+        assert snuba_filter.aggregations == [
+            [
+                "if(greater(sessions,0),divide(sessions_crashed,sessions),null)",
+                None,
+                "_crash_rate_alert_aggregate",
+            ],
+            ["identity", "sessions", "_total_count"],
+        ]
+
+    def test_simple_users(self):
+        snuba_filter = build_snuba_filter(
+            dataset=QueryDatasets.SESSIONS,
+            query="",
+            aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+            environment=None,
+            event_types=[],
+        )
+        assert snuba_filter
+        assert snuba_filter.aggregations == [
+            [
+                "if(greater(users,0),divide(users_crashed,users),null)",
+                None,
+                "_crash_rate_alert_aggregate",
+            ],
+            ["identity", "users", "_total_count"],
+        ]
+
     def test_aliased_query_events(self):
         snuba_filter = build_snuba_filter(
             QueryDatasets.EVENTS, "release:latest", "count_unique(user)", None, None
@@ -209,6 +245,52 @@ class BuildSnubaFilterTest(TestCase):
             ["tags[sentry:release]", "=", "latest"],
         ]
         assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
+
+    def test_query_and_environment_sessions(self):
+        env = self.create_environment(self.project, name="development")
+        snuba_filter = build_snuba_filter(
+            dataset=QueryDatasets.SESSIONS,
+            query="release:ahmed@12.2",
+            aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+            environment=env,
+            event_types=[],
+        )
+        assert snuba_filter
+        assert snuba_filter.aggregations == [
+            [
+                "if(greater(sessions,0),divide(sessions_crashed,sessions),null)",
+                None,
+                "_crash_rate_alert_aggregate",
+            ],
+            ["identity", "sessions", "_total_count"],
+        ]
+        assert snuba_filter.conditions == [
+            ["release", "=", "ahmed@12.2"],
+            ["environment", "=", "development"],
+        ]
+
+    def test_query_and_environment_users(self):
+        env = self.create_environment(self.project, name="development")
+        snuba_filter = build_snuba_filter(
+            dataset=QueryDatasets.SESSIONS,
+            query="release:ahmed@12.2",
+            aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+            environment=env,
+            event_types=[],
+        )
+        assert snuba_filter
+        assert snuba_filter.aggregations == [
+            [
+                "if(greater(users,0),divide(users_crashed,users),null)",
+                None,
+                "_crash_rate_alert_aggregate",
+            ],
+            ["identity", "users", "_total_count"],
+        ]
+        assert snuba_filter.conditions == [
+            ["release", "=", "ahmed@12.2"],
+            ["environment", "=", "development"],
+        ]
 
     def test_aliased_query_transactions(self):
         snuba_filter = build_snuba_filter(
@@ -356,6 +438,15 @@ class TestApplyDatasetQueryConditions(TestCase):
                 QueryDatasets.TRANSACTIONS,
                 "release:123",
                 [SnubaQueryEventType.EventType.TRANSACTION],
+                False,
+            )
+            == "release:123"
+        )
+        assert (
+            apply_dataset_query_conditions(
+                QueryDatasets.SESSIONS,
+                "release:123",
+                [],
                 False,
             )
             == "release:123"

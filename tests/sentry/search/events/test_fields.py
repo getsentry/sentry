@@ -169,6 +169,7 @@ def test_get_json_meta_type(field_alias, snuba_type, function, expected):
             r'to_other(release,"asdf @ \"qwer: (3,2)")',
             ("to_other", ["release", r'"asdf @ \"qwer: (3,2)"'], None),
         ),
+        ("identity(sessions)", ("identity", ["sessions"], None)),
     ],
 )
 def test_parse_function(function, expected):
@@ -360,14 +361,15 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
 
     def test_aggregate_function_expansion(self):
-        fields = ["count_unique(user)", "count(id)", "min(timestamp)"]
-        result = resolve_field_list(fields, eventstore.Filter())
+        fields = ["count_unique(user)", "count(id)", "min(timestamp)", "identity(sessions)"]
+        result = resolve_field_list(fields, eventstore.Filter(), functions_acl=["identity"])
         # Automatic fields should be inserted, count() should have its column dropped.
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["uniq", "user", "count_unique_user"],
             ["count", None, "count_id"],
             ["min", "timestamp", "min_timestamp"],
+            ["identity", "sessions", "identity_sessions"],
         ]
         assert result["groupby"] == []
 

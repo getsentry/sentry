@@ -575,3 +575,6 @@ ALERTS_MEMBER_WRITE_DEFAULT = True
 
 # Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
 DataCategory = sentry_relay.DataCategory
+
+CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"
+CRASH_RATE_ALERT_AGGREGATE_ALIAS = "_crash_rate_alert_aggregate"
