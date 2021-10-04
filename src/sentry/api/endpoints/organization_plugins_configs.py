@@ -85,7 +85,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
         for plugin in desired_plugins:
             serialized_plugin = serialize(plugin, request.user, PluginSerializer())
             if serialized_plugin["isDeprecated"] and serialized_plugin["isHidden"]:
-                raise Http404
+                continue
 
             serialized_plugin["projectList"] = []
 
@@ -114,6 +114,10 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
                 )
             # sort by the projectSlug
             serialized_plugin["projectList"].sort(key=lambda x: x["projectSlug"])
+
             serialized_plugins.append(serialized_plugin)
+
+        if not serialized_plugins:
+            raise Http404
 
         return Response(serialized_plugins)
