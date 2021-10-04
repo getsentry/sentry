@@ -241,6 +241,9 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('passes yAxis from the savedQuery to MiniGraph', function () {
+    const featuredOrganization = TestStubs.Organization({
+      features: ['connect-discover-and-dashboards', 'dashboards-edit'],
+    });
     const yAxis = ['count()', 'failure_count()'];
     const savedQueryWithMultiYAxis = {
       ...savedQueries.slice(1)[0],
@@ -248,7 +251,7 @@ describe('EventsV2 > QueryList', function () {
     };
     const wrapper = mountWithTheme(
       <QueryList
-        organization={organization}
+        organization={featuredOrganization}
         savedQueries={[savedQueryWithMultiYAxis]}
         pageLinks=""
         onQueryChange={queryChangeMock}

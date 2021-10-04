@@ -18,7 +18,7 @@ import {Series} from 'app/types/echarts';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {axisLabelFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
-import {aggregateMultiPlotType, PlotType} from 'app/utils/discover/fields';
+import {PlotType} from 'app/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
@@ -87,8 +87,6 @@ class MiniGraph extends React.Component<Props> {
 
   getChartType({
     showDaily,
-    yAxis,
-    timeseriesData,
   }: {
     showDaily: boolean;
     yAxis: string;
@@ -96,16 +94,6 @@ class MiniGraph extends React.Component<Props> {
   }): PlotType {
     if (showDaily) {
       return 'bar';
-    }
-    if (timeseriesData.length > 1) {
-      switch (aggregateMultiPlotType(yAxis)) {
-        case 'line':
-          return 'line';
-        case 'area':
-          return 'area';
-        default:
-          throw new Error(`Unknown multi plot type for ${yAxis}`);
-      }
     }
     return 'area';
   }
