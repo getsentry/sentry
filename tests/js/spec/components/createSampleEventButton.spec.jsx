@@ -69,7 +69,7 @@ describe('CreateSampleEventButton', function () {
     ).toBe(false);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
-      `/organizations/${org.slug}/issues/${groupID}/`
+      `/organizations/${org.slug}/issues/${groupID}/?project=${project.id}`
     );
   });
 
@@ -115,7 +115,7 @@ describe('CreateSampleEventButton', function () {
     await Promise.resolve();
 
     expect(browserHistory.push).toHaveBeenCalledWith(
-      `/organizations/${org.slug}/issues/${groupID}/`
+      `/organizations/${org.slug}/issues/${groupID}/?project=${project.id}`
     );
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith(
