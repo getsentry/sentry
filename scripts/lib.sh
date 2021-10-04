@@ -66,7 +66,7 @@ query-valid-python-version() {
         python_version=$(python3 -V 2>&1 | awk '{print $2}')
         if [ "$python_version" != "$SENTRY_PYTHON_VERSION" ]; then
             cat <<EOF
-    ${red}${bold}
+${red}${bold}
 ERROR: You have explicitly set a non-recommended Python version (${SENTRY_PYTHON_VERSION}),
 but it doesn't match the value of python's version: ${python_version}
 You should create a new ${SENTRY_PYTHON_VERSION} virtualenv by running  "rm -rf ${venv_name} && direnv allow".
