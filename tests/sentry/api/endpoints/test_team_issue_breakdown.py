@@ -142,7 +142,6 @@ class TeamIssueBreakdownTest(APITestCase):
 
         response = self.get_success_response(self.team.organization.slug, self.team.slug)
         assert len(response.data) == 2
-        print("data:", response.data)
 
         assert response.data[project1.id][today]["reviewed"] == 0
         assert response.data[project1.id][today]["total"] == 0
