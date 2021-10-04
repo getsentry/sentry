@@ -1,15 +1,16 @@
 import logging
+from typing import Optional, Union
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
-from sentry.models.activity import Activity
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_assigned
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
+
 
 def sync_group_assignee_inbound(integration, email, external_issue_key, assign=True):
     """
@@ -18,7 +19,7 @@ def sync_group_assignee_inbound(integration, email, external_issue_key, assign=T
     Returns a list of groups that were successfully assigned.
     """
     from sentry import features
-    from sentry.models import Group, User, UserEmail
+    from sentry.models import Group, Project, User, UserEmail
 
     logger = logging.getLogger("sentry.integrations.%s" % integration.provider)
 
@@ -55,7 +56,7 @@ def sync_group_assignee_inbound(integration, email, external_issue_key, assign=T
         )
     }
 
-    projects_by_user = get_user_project_ids(list(users.values()))
+    projects_by_user = Project.objects.get_by_users(users)
 
     groups_assigned = []
     for group in affected_groups:
@@ -97,9 +98,14 @@ def sync_group_assignee_outbound(group, user_id, assign=True):
 
 
 class GroupAssigneeManager(BaseManager):
-    def assign(self, group, assigned_to, acting_user=None):
+    def assign(
+        self,
+        group: "Group",
+        assigned_to: Union["Team", "User"],
+        acting_user: Optional["User"] = None,
+    ):
         from sentry import features
-        from sentry.models import GroupSubscription, Team, User
+        from sentry.models import Activity, GroupSubscription, Team, User
 
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned
@@ -155,6 +161,7 @@ class GroupAssigneeManager(BaseManager):
 
     def deassign(self, group, acting_user=None):
         from sentry import features
+        from sentry.models import Activity
 
         affected = GroupAssignee.objects.filter(group=group)[:1].count()
         GroupAssignee.objects.filter(group=group).delete()
@@ -203,7 +210,8 @@ class GroupAssignee(Model):
         ), "Must have Team or User, not both"
         super().save(*args, **kwargs)
 
-    def assigned_actor_id(self):
+    def assigned_actor_id(self) -> str:
+        # TODO(mgaeta): Create migration for GroupAssignee to use the Actor model.
         if self.user:
             return f"user:{self.user_id}"
 
@@ -212,7 +220,7 @@ class GroupAssignee(Model):
 
         raise NotImplementedError("Unknown Assignee")
 
-    def assigned_actor(self):
+    def assigned_actor(self) -> "ActorTuple":
         from sentry.models import ActorTuple
 
         return ActorTuple.from_actor_identifier(self.assigned_actor_id())
