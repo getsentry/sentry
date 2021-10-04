@@ -96,13 +96,11 @@ install_pyenv() {
 
     if query-apple-m1; then
       pyenv install --skip-existing "${PYENV_VERSION}"
-    elif query-big-sur; then
+    elif query-big-sur && [ "${PYENV_VERSION}" = 3.6.10 ]; then
       # TODO(joshuarli): Can be removed when 3.6 is removed.
-      if [ "${PYENV_VERSION}" = 3.6.10 ]; then
-          curl -sSL https://github.com/python/cpython/commit/8ea6353.patch | \
-          cat | \
-          pyenv install --skip-existing --patch "${PYENV_VERSION}"
-      fi
+      curl -sSL https://github.com/python/cpython/commit/8ea6353.patch | \
+      cat | \
+      pyenv install --skip-existing --patch "${PYENV_VERSION}"
     else
       pyenv install --skip-existing "${PYENV_VERSION}"
     fi
