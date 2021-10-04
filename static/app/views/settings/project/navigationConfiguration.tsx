@@ -11,13 +11,15 @@ type ConfigParams = {
 const pathPrefix = '/settings/:orgId/projects/:projectId';
 
 // Object with the pluginId as the key, and enablingFeature as the value
-const DEPRECATED_PLUGINS = {
+const SHADOW_DEPRECATED_PLUGINS = {
   teamwork: 'integrations-ignore-teamwork-deprecation',
 };
 
 const canViewPlugin = (pluginId: string, organization?: Organization) => {
-  const isDeprecated = DEPRECATED_PLUGINS.hasOwnProperty(pluginId);
-  const hasFeature = organization?.features?.includes(DEPRECATED_PLUGINS[pluginId]);
+  const isDeprecated = SHADOW_DEPRECATED_PLUGINS.hasOwnProperty(pluginId);
+  const hasFeature = organization?.features?.includes(
+    SHADOW_DEPRECATED_PLUGINS[pluginId]
+  );
   return isDeprecated ? hasFeature : true;
 };
 

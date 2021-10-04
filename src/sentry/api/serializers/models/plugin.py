@@ -7,7 +7,7 @@ from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
 # Dict with the plugin_name as the key, and enabling_feature_name as the value
-DEPRECATED_PLUGINS = {"teamwork": "organizations:integrations-ignore-teamwork-deprecation"}
+SHADOW_DEPRECATED_PLUGINS = {"teamwork": "organizations:integrations-ignore-teamwork-deprecation"}
 
 
 class PluginSerializer(Serializer):
@@ -68,11 +68,14 @@ class PluginSerializer(Serializer):
         if obj.author:
             d["author"] = {"name": str(obj.author), "url": str(obj.author_url)}
 
-        d["isDeprecated"] = obj.slug in DEPRECATED_PLUGINS
+        # TODO(Leander): Convert this field to:
+        # d["isDeprecated"] = obj.slug in SHADOW_DEPRECATED_PLUGINS or datetime.today() > deprecation_date
+        # but we are late on deprecating right now
+        d["isDeprecated"] = obj.slug in SHADOW_DEPRECATED_PLUGINS
 
         d["isHidden"] = (
             not features.has(
-                DEPRECATED_PLUGINS.get(obj.slug), getattr(self.project, "organization", None)
+                SHADOW_DEPRECATED_PLUGINS.get(obj.slug), getattr(self.project, "organization", None)
             )
             if d["isDeprecated"]
             else d.get("enabled", False) is False and obj.is_hidden()
@@ -124,7 +127,19 @@ def serialize_field(project, plugin, field):
         "readonly": field.get("readonly", False),
         "defaultValue": field.get("default"),
         "value": None,
+        # TODO(Leander): Convert this field to:
+        # "isDeprecated": obj.slug in SHADOW_DEPRECATED_PLUGINS or datetime.today() > deprecation_date
+        # but we are late on deprecating right now
+        "isDeprecated": plugin.slug in SHADOW_DEPRECATED_PLUGINS,
     }
+
+    data["isHidden"] = (
+        not features.has(
+            SHADOW_DEPRECATED_PLUGINS.get(plugin.slug), getattr(project, "organization", None)
+        )
+        if data["isDeprecated"]
+        else plugin.is_hidden()
+    )
     if field.get("type") != "secret":
         data["value"] = plugin.get_option(field["name"], project)
     else:
