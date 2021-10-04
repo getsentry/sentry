@@ -121,14 +121,14 @@ class GroupAssigneeManager(BaseManager):
             raise AssertionError(f"Invalid type to assign to: {type(assigned_to)}")
 
         now = timezone.now()
-        assignee, created = GroupAssignee.objects.get_or_create(
+        assignee, created = self.get_or_create(
             group=group,
             defaults={"project": group.project, assignee_type: assigned_to, "date_added": now},
         )
 
         if not created:
             affected = (
-                GroupAssignee.objects.filter(group=group)
+                self.filter(group=group)
                 .exclude(**{assignee_type: assigned_to})
                 .update(**{assignee_type: assigned_to, other_type: None, "date_added": now})
             )
@@ -163,8 +163,8 @@ class GroupAssigneeManager(BaseManager):
         from sentry import features
         from sentry.models import Activity
 
-        affected = GroupAssignee.objects.filter(group=group)[:1].count()
-        GroupAssignee.objects.filter(group=group).delete()
+        affected = self.filter(group=group)[:1].count()
+        self.filter(group=group).delete()
 
         if affected > 0:
             activity = Activity.objects.create(

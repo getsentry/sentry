@@ -292,8 +292,7 @@ class GroupManager(BaseManager):
         external_issue_key: str
     ) -> QuerySet:
         from sentry.models import ExternalIssue, GroupLink
-
-        return Group.objects.filter(
+        return self.filter(
             id__in=GroupLink.objects.filter(
                 linked_id__in=ExternalIssue.objects.filter(
                     key=external_issue_key,
