@@ -244,7 +244,8 @@ class TableView extends React.Component<TableViewProps> {
     const isTopEvents =
       display === DisplayModes.TOP5 || display === DisplayModes.DAILYTOP5;
 
-    const count = Math.min(tableData?.data?.length ?? TOP_N, TOP_N);
+    const topEvents = eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
+    const count = Math.min(tableData?.data?.length ?? topEvents, topEvents);
 
     let cell = fieldRenderer(dataRow, {organization, location});
 
@@ -310,7 +311,7 @@ class TableView extends React.Component<TableViewProps> {
 
     return (
       <React.Fragment>
-        {isFirstPage && isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
+        {isFirstPage && isTopEvents && rowIndex < topEvents && columnIndex === 0 ? (
           // Add one if we need to include Other in the series
           <TopResultsIndicator count={count + (hasOther ? 1 : 0)} index={rowIndex} />
         ) : null}

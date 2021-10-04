@@ -2,11 +2,12 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {getOptionByLabel, selectByLabel} from 'sentry-test/select-new';
+import {getOptionByLabel, openMenu, selectByLabel} from 'sentry-test/select-new';
 
 import AddDashboardWidgetModal from 'app/components/modals/addDashboardWidgetModal';
 import {t} from 'app/locale';
 import TagStore from 'app/stores/tagStore';
+import * as types from 'app/views/dashboardsV2/types';
 
 const stubEl = props => <div>{props.children}</div>;
 
@@ -97,7 +98,13 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
-      body: [{id: '1', title: t('Test Dashboard')}],
+      body: [
+        TestStubs.Dashboard([], {
+          id: '1',
+          title: 'Test Dashboard',
+          widgetDisplay: ['area'],
+        }),
+      ],
     });
   });
 
@@ -109,6 +116,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     const wrapper = mountModal({initialData, fromDiscover: true});
     // @ts-expect-error
     await tick();
+    await wrapper.update();
     selectDashboard(wrapper, {label: t('+ Create New Dashboard'), value: 'new'});
     await clickSubmit(wrapper);
     expect(browserHistory.push).toHaveBeenCalledWith(
@@ -123,6 +131,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     const wrapper = mountModal({initialData, fromDiscover: true});
     // @ts-expect-error
     await tick();
+    await wrapper.update();
     selectDashboard(wrapper, {label: t('Test Dashboard'), value: '1'});
     await clickSubmit(wrapper);
     expect(browserHistory.push).toHaveBeenCalledWith(
@@ -130,6 +139,22 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         pathname: '/organizations/org-slug/dashboard/1/',
       })
     );
+    wrapper.unmount();
+  });
+
+  it('disables dashboards with max widgets', async function () {
+    types.MAX_WIDGETS = 1;
+    const wrapper = mountModal({initialData, fromDiscover: true});
+    // @ts-expect-error
+    await tick();
+    await wrapper.update();
+    openMenu(wrapper, {name: 'dashboard', control: true});
+
+    const input = wrapper.find('SelectControl[name="dashboard"]');
+    expect(input.find('Option Option')).toHaveLength(2);
+    expect(input.find('Option Option').at(0).props().isDisabled).toBe(false);
+    expect(input.find('Option Option').at(1).props().isDisabled).toBe(true);
+
     wrapper.unmount();
   });
 

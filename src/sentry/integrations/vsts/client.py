@@ -274,7 +274,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):  # type: ignore
                 "consumerInputs": {
                     "url": absolute_uri("/extensions/vsts/issue-updated/"),
                     "resourceDetailsToSend": "all",
-                    "httpHeaders": "shared-secret:%s" % shared_secret,
+                    "httpHeaders": f"shared-secret:{shared_secret}",
                 },
             },
         )

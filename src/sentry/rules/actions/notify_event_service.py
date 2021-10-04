@@ -1,5 +1,5 @@
 """
-Used for notifying a *specific* plugin
+Used for notifying a *specific* plugin/sentry app with a generic webhook payload
 """
 
 import logging

@@ -54,6 +54,14 @@ class ReleaseAdoption(TypedDict):
 ReleasesAdoption = Mapping[Tuple[ProjectId, ReleaseName], ReleaseAdoption]
 
 
+class CrashFreeBreakdown(TypedDict):
+    date: datetime
+    total_users: int
+    crash_free_users: Optional[float]
+    total_sessions: int
+    crash_free_sessions: Optional[float]
+
+
 class ReleaseHealthBackend(Service):  # type: ignore
     """Abstraction layer for all release health related queries"""
 
@@ -63,6 +71,9 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "check_has_health_data",
         "get_release_sessions_time_bounds",
         "check_releases_have_health_data",
+        "get_crash_free_breakdown",
+        "get_changed_project_release_model_adoptions",
+        "get_oldest_health_data_for_releases",
     )
 
     def get_current_and_previous_crash_free_rates(
@@ -171,8 +182,34 @@ class ReleaseHealthBackend(Service):  # type: ignore
         start: datetime,
         end: datetime,
     ) -> Set[ReleaseName]:
-
         """
         Returns a set of all release versions that have health data within a given period of time.
+        """
+        raise NotImplementedError()
+
+    def get_crash_free_breakdown(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        start: datetime,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> Sequence[CrashFreeBreakdown]:
+        """Get stats about crash free sessions and stats for the last 1, 2, 7, 14 and 30 days"""
+
+    def get_changed_project_release_model_adoptions(
+        self,
+        project_ids: Sequence[ProjectId],
+    ) -> Sequence[ProjectRelease]:
+        """
+        Returns a sequence of tuples (ProjectId, ReleaseName) with the
+        releases seen in the last 72 hours for the requested projects.
+        """
+        raise NotImplementedError()
+
+    def get_oldest_health_data_for_releases(
+        self, project_releases: Sequence[ProjectRelease]
+    ) -> Mapping[ProjectRelease, str]:
+        """Returns the oldest health data we have observed in a release
+        in 90 days.  This is used for backfilling.
         """
         raise NotImplementedError()

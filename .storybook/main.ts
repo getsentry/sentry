@@ -10,7 +10,7 @@ import babelConfig from '../babel.config';
 const toPath = (p: string) => path.join(process.cwd(), p);
 
 const config: StorybookConfig = {
-  stories: ['../docs-ui/stories/*/*.stories.*'],
+  stories: ['../docs-ui/stories/**/*.stories.*'],
   core: {
     builder: 'webpack5',
   },
