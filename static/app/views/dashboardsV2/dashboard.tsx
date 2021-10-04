@@ -18,7 +18,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, Widget} from './types';
+import {DashboardDetails, MAX_WIDGETS, Widget} from './types';
 
 type Props = {
   api: Client;
@@ -225,7 +225,7 @@ class Dashboard extends Component<Props> {
         <WidgetContainer>
           <SortableContext items={items} strategy={rectSortingStrategy}>
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
-            {isEditing && (
+            {isEditing && widgets.length < MAX_WIDGETS && (
               <AddWidget
                 orgFeatures={organization.features}
                 onAddWidget={this.handleStartAdd}
