@@ -500,7 +500,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       newWrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['count_unique', '', undefined, undefined]},
+        {kind: 'function', function: ['count_unique', 'user', undefined, undefined]},
         {kind: 'function', function: ['count', '', undefined, undefined]},
         {kind: 'equation', field: 'count() - count()'},
       ]);
@@ -534,8 +534,11 @@ describe('EventsV2 -> ColumnEditModal', function () {
       newWrapper.find('Button[priority="primary"]').simulate('click');
       // With the way the parser works only tokens up to the error will be updated
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['count_unique', '', undefined, undefined]},
-        {kind: 'equation', field: 'count_unique() - count_unique() arst count() '},
+        {kind: 'function', function: ['count_unique', 'user', undefined, undefined]},
+        {
+          kind: 'equation',
+          field: 'count_unique(user) - count_unique(user) arst count() ',
+        },
       ]);
     });
   });
