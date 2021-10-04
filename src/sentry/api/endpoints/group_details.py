@@ -66,7 +66,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             for action in (
                 safe_execute(plugin.get_actions, request, group, _with_transaction=False) or ()
             ):
-
                 action_list.append(action)
 
         return action_list
@@ -76,7 +75,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         plugin_issues = []
         for plugin in plugins.for_project(project, version=1):
-            if isinstance(plugin, IssueTrackingPlugin2) and plugin.is_enabled:
+            if isinstance(plugin, IssueTrackingPlugin2):
                 plugin_issues = safe_execute(
                     plugin.plugin_issues, request, group, plugin_issues, _with_transaction=False
                 )
