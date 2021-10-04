@@ -22,10 +22,6 @@ class IssueListContainer extends Component<Props, State> {
     showSampleEventBanner: false,
   };
 
-  getTitle() {
-    return `Issues - ${this.props.organization.slug} - Sentry`;
-  }
-
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
   render() {
     const {organization, children} = this.props;
@@ -49,6 +45,10 @@ class IssueListContainer extends Component<Props, State> {
 
   componentWillUnmount() {
     callIfFunction(this.listener);
+  }
+
+  getTitle() {
+    return `Issues - ${this.props.organization.slug} - Sentry`;
   }
 }
 export default withOrganization(IssueListContainer);
