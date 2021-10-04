@@ -95,12 +95,15 @@ from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.utils import json, snuba
 from sentry.utils.cache import cache_key_for_event
+from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import get_path, set_path
 
 logger = logging.getLogger("sentry.reprocessing")
 
 _REDIS_SYNC_TTL = 3600 * 24
+
+_REDIS_REMAINING_EVENTS_BUF_SIZE = 1000
 
 
 # Group-related models are only a few per-group and are migrated at
@@ -347,7 +350,72 @@ def _get_info_reprocessed_key(group_id):
     return f"re2:info:{group_id}"
 
 
-def mark_event_reprocessed(data=None, group_id=None, project_id=None):
+def buffered_handle_remaining_events(
+    project_id,
+    old_group_id,
+    new_group_id,
+    datetime_to_event,
+    remaining_events,
+    force_flush_batch=False,
+):
+    """
+    A quick-and-dirty wrapper around `handle_remaining_events` that batches up
+    event IDs in Redis. We need this because Snuba cannot handle many tiny messages and prefers big ones instead.
+
+    Best performance is achieved when timestamps are close together. Luckily we
+    happen to iterate through events ordered by timestamp.
+
+    Ideally we'd have batching implemented via a service like buffers, but for
+    more than counters.
+    """
+
+    client = _get_sync_redis_client()
+    key = f"re2:remaining:{project_id}:{old_group_id}"
+
+    if datetime_to_event:
+        client.lpush(
+            key,
+            *(f"{to_timestamp(datetime)};{event_id}" for datetime, event_id in datetime_to_event),
+        )
+        client.expire(key, _REDIS_SYNC_TTL)
+
+    if force_flush_batch or client.llen(key) > _REDIS_REMAINING_EVENTS_BUF_SIZE:
+        event_ids_batch = []
+        min_datetime = None
+        max_datetime = None
+
+        # TODO: Redis 6 introduces LPOP with <count> argument, use here?
+        while True:
+            row = client.lpop(key)
+            if row is None:
+                break
+
+            datetime_raw, event_id = row.split(";")
+            datetime = to_datetime(float(datetime_raw))
+
+            assert datetime is not None
+
+            if min_datetime is None or datetime < min_datetime:
+                min_datetime = datetime
+            if max_datetime is None or datetime > max_datetime:
+                max_datetime = datetime
+
+            event_ids_batch.append(event_id)
+
+        from sentry.tasks.reprocessing2 import handle_remaining_events
+
+        handle_remaining_events.delay(
+            project_id=project_id,
+            old_group_id=old_group_id,
+            new_group_id=new_group_id,
+            event_ids=event_ids_batch,
+            remaining_events=remaining_events,
+            from_timestamp=min_datetime,
+            to_timestamp=max_datetime,
+        )
+
+
+def mark_event_reprocessed(data=None, group_id=None, project_id=None, num_events=1):
     """
     This function is supposed to be unconditionally called when an event has
     finished reprocessing, regardless of whether it has been saved or not.
@@ -362,7 +430,7 @@ def mark_event_reprocessed(data=None, group_id=None, project_id=None):
         project_id = data["project"]
 
     key = _get_sync_counter_key(group_id)
-    if _get_sync_redis_client().decr(key) == 0:
+    if _get_sync_redis_client().decrby(key, num_events) == 0:
         from sentry.tasks.reprocessing2 import finish_reprocessing
 
         finish_reprocessing.delay(project_id=project_id, group_id=group_id)
@@ -417,7 +485,7 @@ def start_group_reprocessing(
 
     # Get event counts of issue (for all environments etc). This was copypasted
     # and simplified from groupserializer.
-    event_count = snuba.aliased_query(
+    event_count = sync_count = snuba.aliased_query(
         aggregations=[["count()", "", "times_seen"]],  # select
         dataset=snuba.Dataset.Events,  # from
         conditions=[["group_id", "=", group_id], ["project_id", "=", project_id]],  # where
@@ -425,7 +493,7 @@ def start_group_reprocessing(
     )["data"][0]["times_seen"]
 
     if max_events is not None:
-        event_count = min(event_count, max_events)
+        event_count = min(max_events, event_count)
 
     # Create activity on *old* group as that will serve the landing page for our
     # reprocessing status
@@ -445,11 +513,13 @@ def start_group_reprocessing(
     date_created = new_activity.datetime
 
     client = _get_sync_redis_client()
-    client.setex(_get_sync_counter_key(group_id), _REDIS_SYNC_TTL, event_count)
+    client.setex(_get_sync_counter_key(group_id), _REDIS_SYNC_TTL, sync_count)
     client.setex(
         _get_info_reprocessed_key(group_id),
         _REDIS_SYNC_TTL,
-        json.dumps({"dateCreated": date_created, "totalEvents": event_count}),
+        json.dumps(
+            {"dateCreated": date_created, "syncCount": sync_count, "totalEvents": event_count}
+        ),
     )
 
     return new_group.id
@@ -473,4 +543,10 @@ def get_progress(group_id):
     if info is None:
         logger.error("reprocessing2.missing_info")
         return 0, None
-    return int(pending), json.loads(info)
+
+    info = json.loads(info)
+    # Our internal sync counters are counting over *all* events, but the
+    # progressbar in the frontend goes until max_events. Advance progressbar
+    # proportionally.
+    pending = int(pending) * (info["totalEvents"] / info.get("syncCount", 1))
+    return pending, info

@@ -39,8 +39,8 @@ def reprocess_group(
     sentry_sdk.set_tag("project", project_id)
     from sentry.reprocessing2 import (
         CannotReprocess,
+        buffered_handle_remaining_events,
         logger,
-        mark_event_reprocessed,
         reprocess_event,
         start_group_reprocessing,
     )
@@ -71,12 +71,18 @@ def reprocess_group(
         # finish_reprocessing it won't work, as for small max_events
         # finish_reprocessing may execute sooner than the last reprocess_group
         # iteration.
-        eventstream.exclude_groups(project_id, [group_id])
+        buffered_handle_remaining_events(
+            project_id=project_id,
+            old_group_id=group_id,
+            new_group_id=new_group_id,
+            datetime_to_event=[],
+            remaining_events=remaining_events,
+            force_flush_batch=True,
+        )
+
         return
 
     remaining_event_ids = []
-    remaining_events_min_datetime = None
-    remaining_events_max_datetime = None
 
     for event in events:
         if max_events is None or max_events > 0:
@@ -97,30 +103,19 @@ def reprocess_group(
 
                     continue
 
-            # In case of errors while kicking off reprocessing, mark the event
-            # as reprocessed such that progressbar advances and the
-            # finish_reprocessing task is still correctly spawned.
-            mark_event_reprocessed(group_id=group_id, project_id=project_id)
-
         # In case of errors while kicking off reprocessing or if max_events has
         # been exceeded, do the default action.
 
-        if remaining_events_min_datetime is None or remaining_events_min_datetime > event.datetime:
-            remaining_events_min_datetime = event.datetime
-        if remaining_events_max_datetime is None or remaining_events_max_datetime < event.datetime:
-            remaining_events_max_datetime = event.datetime
-
-        remaining_event_ids.append(event.event_id)
+        remaining_event_ids.append((event.datetime, event.event_id))
 
     # len(remaining_event_ids) is upper-bounded by GROUP_REPROCESSING_CHUNK_SIZE
     if remaining_event_ids:
-        handle_remaining_events.delay(
+        buffered_handle_remaining_events(
             project_id=project_id,
+            old_group_id=group_id,
             new_group_id=new_group_id,
-            event_ids=remaining_event_ids,
+            datetime_to_event=remaining_event_ids,
             remaining_events=remaining_events,
-            from_timestamp=remaining_events_min_datetime,
-            to_timestamp=remaining_events_max_datetime,
         )
 
     reprocess_group.delay(
@@ -142,7 +137,13 @@ def reprocess_group(
 )
 @retry
 def handle_remaining_events(
-    project_id, new_group_id, event_ids, remaining_events, from_timestamp, to_timestamp
+    project_id,
+    new_group_id,
+    event_ids,
+    remaining_events,
+    from_timestamp,
+    to_timestamp,
+    old_group_id=None,
 ):
     """
     Delete or merge/move associated per-event data: nodestore, event
@@ -192,6 +193,12 @@ def handle_remaining_events(
     else:
         raise ValueError(f"Invalid value for remaining_events: {remaining_events}")
 
+    if old_group_id is not None:
+        from sentry.reprocessing2 import mark_event_reprocessed
+
+        for _ in event_ids:
+            mark_event_reprocessed(group_id=old_group_id, project_id=project_id)
+
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.finish_reprocessing",
@@ -224,6 +231,8 @@ def finish_reprocessing(project_id, group_id):
         # All the associated models (groupassignee and eventattachments) should
         # have moved to a successor group that may be deleted independently.
         group.delete()
+
+    eventstream.exclude_groups(project_id, [group_id])
 
     from sentry import similarity
 
