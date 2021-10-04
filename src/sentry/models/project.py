@@ -40,6 +40,17 @@ ProjectStatus = ObjectStatus
 
 
 class ProjectManager(BaseManager):
+    def get_by_users(self, users: Iterable["User"]) -> Mapping["User", Iterable["Project"]]:
+        """Given a list of users, return a mapping of each user to the projects they are a member of."""
+        project_rows = self.filter(
+            projectteam__team__organizationmemberteam__organizationmember__user__in=users
+        ).values_list("id", "projectteam__team__organizationmemberteam__organizationmember__user")
+
+        projects_by_user_id = defaultdict(set)
+        for project_id, user_id in project_rows:
+            projects_by_user_id[user_id].add(project_id)
+        return projects_by_user_id
+
     def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
         """Returns the QuerySet of all projects that a set of Users have access to."""
         from sentry.models import ProjectStatus

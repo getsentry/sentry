@@ -1,5 +1,4 @@
 import logging
-from collections import defaultdict
 
 from django.conf import settings
 from django.db import models
@@ -11,33 +10,6 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_assigned
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
-
-
-def get_user_project_ids(users):
-    """
-    Given a list of users, return a dict where keys are user_ids
-    and values are a set of the project_ids the user is a member of
-    """
-    from sentry.models import OrganizationMemberTeam, ProjectTeam
-
-    user_teams = list(
-        OrganizationMemberTeam.objects.filter(
-            organizationmember__user__in=users, is_active=True
-        ).values("organizationmember__user", "team")
-    )
-
-    # team_id to list of projects
-    projects_by_team = defaultdict(set)
-    for tp in ProjectTeam.objects.filter(team__in=[ut["team"] for ut in user_teams]):
-        projects_by_team[tp.team_id].add(tp.project_id)
-
-    # user_id to projects
-    projects_by_user = defaultdict(set)
-    for ut in user_teams:
-        projects_by_user[ut["organizationmember__user"]].update(projects_by_team[ut["team"]])
-
-    return projects_by_user
-
 
 def sync_group_assignee_inbound(integration, email, external_issue_key, assign=True):
     """
