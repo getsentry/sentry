@@ -110,14 +110,6 @@ describe('SentryAppRuleModal', function () {
       changeInputValue(descriptionInput, 'v');
       changeInputValue(channelInput, 'v');
       selectByValue(wrapper, 'valor', {name: 'channel', control: true});
-
-      MockApiClient.addMockResponse({
-        // TODO(leander): Replace with real endpoint for alert rule actions
-        url: '/404/',
-        method: 'POST',
-        body: {it: 'worked'},
-      });
-
       submitSuccess(wrapper);
     });
   });

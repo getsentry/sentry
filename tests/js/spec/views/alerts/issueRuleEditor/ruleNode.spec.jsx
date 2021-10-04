@@ -1,6 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {getSelector, openMenu, selectByValue} from 'sentry-test/select-new';
 
+import ModalActions from 'app/actions/modalActions';
 import RuleNode from 'app/views/alerts/issueRuleEditor/ruleNode';
 
 describe('RuleNode', function () {
@@ -58,8 +59,31 @@ describe('RuleNode', function () {
   // TODO: Add this node and test if it implements correctly (e.g. Jira Tickets)
   // const ticketNode = {actionType: 'ticket'};
 
-  // TODO(Leander): Add this node and test if it implements correctly (e.g. Integrations w/ Alert Rule UI)
-  // const sentryAppNode = {actionType: 'sentryapp'}
+  const sentryAppNode = {
+    id: 'sentry.rules.schema_form_mock',
+    label: 'Configure SentryApp with these',
+    enabled: true,
+    actionType: 'sentryapp',
+    sentryAppInstallationUuid: '1027',
+    formFields: {
+      exampleStringField: {
+        type: 'string',
+        placeholder: 'placeholder',
+      },
+      exampleNumberField: {
+        type: 'number',
+        placeholder: 100,
+      },
+      exampleStringChoiceField: {
+        type: 'choice',
+        choices: [
+          ['value1', 'label1'],
+          ['value2', 'label2'],
+          ['value3', 'label3'],
+        ],
+      },
+    },
+  };
 
   const createWrapper = node => {
     project = TestStubs.Project();
@@ -182,6 +206,13 @@ describe('RuleNode', function () {
   });
 
   it('renders sentry apps with schema forms correctly', async function () {
-    //   TODO(Leander)
+    wrapper = createWrapper(sentryAppNode);
+    const openModal = jest.spyOn(ModalActions, 'openModal');
+
+    expect(wrapper.text()).toEqual(sentryAppNode.label + 'Settings');
+    expect(wrapper.find('button[aria-label="Settings"]').exists()).toEqual(true);
+    wrapper.find('button[aria-label="Settings"]').simulate('click');
+
+    expect(openModal).toHaveBeenCalled();
   });
 });

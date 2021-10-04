@@ -23,25 +23,38 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
             }
         ]
     }
+    schema_data = {"title": "foo", "description": "bar"}
 
     def test_applies_correctly_for_sentry_apps(self):
         event = self.get_event()
 
-        self.create_sentry_app(
+        self.app = self.create_sentry_app(
             organization=event.organization,
             name="Test Application",
             is_alertable=True,
             schema=self.schema,
         )
 
-        rule = self.get_rule()
+        self.install = self.create_sentry_app_installation(
+            slug="test-application", organization=event.organization
+        )
+
+        rule = self.get_rule(
+            data={
+                "sentryAppInstallationUuid": self.install.uuid,
+                "settings": self.schema_data,
+            }
+        )
+
         assert rule.id == SENTRY_APP_ALERT_ACTION
 
         futures = list(rule.after(event=event, state=self.get_state()))
         assert len(futures) == 1
         assert futures[0].callback is notify_sentry_app
+        assert futures[0].kwargs["sentry_app"].id == self.app.id
+        assert futures[0].kwargs["schema_defined_settings"] == self.schema_data
 
-    def test_sentry_app_installed(self):
+    def test_sentry_app_actions(self):
         event = self.get_event()
 
         self.project = self.create_project(organization=event.organization)
@@ -60,7 +73,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         rule = self.get_rule(
             data={
                 "sentryAppInstallationUuid": self.install.uuid,
-                "settings": {"title": "foo", "description": "bar"},
+                "settings": self.schema_data,
             }
         )
 

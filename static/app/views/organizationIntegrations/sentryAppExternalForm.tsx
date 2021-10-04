@@ -114,15 +114,6 @@ export class SentryAppExternalForm extends Component<Props, State> {
       this.debouncedOptionLoad(field, input, resolve);
     });
 
-  getSubmitEndpoint() {
-    const {sentryAppInstallationUuid, element} = this.props;
-    if (element === 'alert-rule-action') {
-      // TODO(leander): Send request to the correct endpoint
-      return '/404/';
-    }
-    return `/sentry-app-installations/${sentryAppInstallationUuid}/external-issue-actions/`;
-  }
-
   getElementText = () => {
     const {element} = this.props;
     switch (element) {

@@ -81,12 +81,16 @@ def _webhook_event_data(event, group_id, project_id):
 
 @instrumented_task(name="sentry.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
 @retry(**RETRY_OPTIONS)
-def send_alert_event(event, rule, sentry_app_id):
+def send_alert_event(
+    event, rule, sentry_app_id, additional_payload_key=None, additional_payload=None
+):
     """
     When an incident alert is triggered, send incident data to the SentryApp's webhook.
     :param event: The `Event` for which to build a payload.
     :param rule: The AlertRule that was triggered.
     :param sentry_app_id: The SentryApp to notify.
+    :param additional_payload_key: The key used to attach additional data to the webhook payload
+    :param additional_payload: The extra data attached to the payload body at the key specified by `additional_payload_key`.
     :return:
     """
     group = event.group
@@ -119,6 +123,10 @@ def send_alert_event(event, rule, sentry_app_id):
     event_context = _webhook_event_data(event, group.id, project.id)
 
     data = {"event": event_context, "triggered_rule": rule}
+
+    # Attach extra payload to the webhook
+    if additional_payload_key and additional_payload:
+        data[additional_payload_key] = additional_payload
 
     request_data = AppPlatformEvent(
         resource="event_alert", action="triggered", install=install, data=data
@@ -288,8 +296,23 @@ def notify_sentry_app(event, futures):
         if not f.kwargs.get("sentry_app"):
             continue
 
+        extra_kwargs = {
+            "additional_payload_key": None,
+            "additional_payload": None,
+        }
+        # If the future comes from a rule with a UI component form in the schema, append the issue alert payload
+        settings = f.kwargs.get("schema_defined_settings")
+        if settings:
+            extra_kwargs["additional_payload_key"] = "issue_alert"
+            extra_kwargs["additional_payload"] = {
+                "id": f.rule.id,
+                "title": f.rule.label,
+                "sentry_app_id": f.kwargs["sentry_app"].id,
+                "settings": settings,
+            }
+
         send_alert_event.delay(
-            event=event, rule=f.rule.label, sentry_app_id=f.kwargs["sentry_app"].id
+            event=event, rule=f.rule.label, sentry_app_id=f.kwargs["sentry_app"].id, **extra_kwargs
         )
 
 
