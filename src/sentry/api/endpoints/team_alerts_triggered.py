@@ -24,8 +24,8 @@ class TeamAlertsTriggeredEndpoint(TeamEndpoint, EnvironmentMixin):
         project_list = Project.objects.get_for_team_ids([team.id])
         owner_ids = [team.actor_id] + list(team.member_set.values_list("user__actor_id", flat=True))
         start, end = get_date_range_from_params(request.GET)
-        end = end.date() + timedelta(days=1)
-        start = start.date() + timedelta(days=1)
+        end = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        start = start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
 
         bucketed_alert_counts = (
             IncidentActivity.objects.filter(
@@ -53,10 +53,10 @@ class TeamAlertsTriggeredEndpoint(TeamEndpoint, EnvironmentMixin):
             .annotate(count=Count("id"))
         )
 
-        counts = {str(r["bucket"].date()): r["count"] for r in bucketed_alert_counts}
+        counts = {str(r["bucket"].isoformat()): r["count"] for r in bucketed_alert_counts}
         current_day = start
         while current_day < end:
-            counts.setdefault(str(current_day), 0)
+            counts.setdefault(str(current_day.isoformat()), 0)
             current_day += timedelta(days=1)
 
         return Response(counts)
