@@ -162,7 +162,7 @@ const Controls = styled('div')<{expanded: boolean}>`
   display: flex;
   justify-content: space-between;
   border-top: 1px solid ${p => p.theme.innerBorder};
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   padding: ${space(0.5)} ${space(1)};
   ${p => p.expanded && `border-bottom: 1px solid ${p.theme.innerBorder}`};
 
@@ -193,6 +193,7 @@ const Collapse = styled('span')`
 const MergedEventList = styled('div')`
   overflow: hidden;
   border: none;
+  background-color: ${p => p.theme.background};
 `;
 
 const EventDetails = styled('div')`
