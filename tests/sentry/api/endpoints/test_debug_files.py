@@ -345,6 +345,15 @@ class DebugFilesUploadTest(APITestCase):
         assert response.status_code == 204
         assert not ReleaseFile.objects.filter(release_id=release.id).exists()
 
+        # Check if still listed:
+        url = reverse(
+            "sentry-api-0-source-maps",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.data == []
+
     def test_source_maps_release_archive(self):
         project = self.create_project(name="foo")
 
