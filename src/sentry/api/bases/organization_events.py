@@ -1,14 +1,15 @@
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, Generator, Optional, Sequence, Union, cast
 
 import sentry_sdk
+from django.utils import timezone
 from django.utils.http import urlquote
-from rest_framework.exceptions import APIException, ParseError
+from rest_framework.exceptions import APIException, ParseError, ValidationError
 from rest_framework.request import Request
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
-from sentry import features
+from sentry import features, quotas
 from sentry.api.base import LINK_HEADER
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.helpers.teams import get_teams
@@ -272,13 +273,16 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         self,
         request: Request,
         organization: Organization,
-        get_event_stats: Callable[[Sequence[str], str, Dict[str, str], int, bool], SnubaTSResult],
+        get_event_stats: Callable[
+            [Sequence[str], str, Dict[str, str], int, bool, Optional[timedelta]], SnubaTSResult
+        ],
         top_events: int = 0,
         query_column: str = "count()",
         params: Optional[Dict[str, Any]] = None,
         query: Optional[str] = None,
         allow_partial_buckets: bool = False,
         zerofill_results: bool = True,
+        comparison_delta: Optional[timedelta] = None,
     ) -> Dict[str, Any]:
         with self.handle_query_errors():
             with sentry_sdk.start_span(
@@ -311,6 +315,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     stats_period = parse_stats_period(get_interval_from_range(date_range, False))
                     rollup = int(stats_period.total_seconds()) if stats_period is not None else 3600
 
+                if comparison_delta is not None:
+                    retention = quotas.get_event_retention(organization=organization)
+                    comparison_start = params["start"] - comparison_delta
+                    if retention and comparison_start < timezone.now() - timedelta(days=retention):
+                        raise ValidationError("Comparison period is outside your retention window")
+
                 # Backwards compatibility for incidents which uses the old
                 # column aliases as it straddles both versions of events/discover.
                 # We will need these aliases until discover2 flags are enabled for all
@@ -327,7 +337,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
                 query_columns = [column_map.get(column, column) for column in columns]
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
-                result = get_event_stats(query_columns, query, params, rollup, zerofill_results)
+                result = get_event_stats(
+                    query_columns, query, params, rollup, zerofill_results, comparison_delta
+                )
 
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 

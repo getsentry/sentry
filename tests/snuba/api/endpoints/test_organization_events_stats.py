@@ -17,6 +17,8 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
+    endpoint = "sentry-api-0-organization-events-stats"
+
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
@@ -868,6 +870,61 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             ]
             assert response.data["start"] == parse_date.parse(start).timestamp()
             assert response.data["end"] == parse_date.parse(end).timestamp()
+
+    def test_comparison(self):
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(days=-1, minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(days=-1, minutes=2)),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=1, minutes=1)),
+            },
+            project_id=self.project2.id,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            start=iso_format(self.day_ago),
+            end=iso_format(self.day_ago + timedelta(hours=2)),
+            interval="1h",
+            comparisonDelta=int(timedelta(days=1).total_seconds()),
+        )
+
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": -50}],
+            [{"count": 100}],
+        ]
+
+    def test_comparison_invalid(self):
+        response = self.get_error_response(
+            self.organization.slug,
+            start=iso_format(self.day_ago),
+            end=iso_format(self.day_ago + timedelta(hours=2)),
+            interval="1h",
+            comparisonDelta="17h",
+        )
+        assert response.data["detail"] == "comparisonDelta must be an integer"
+
+        start = before_now(days=85)
+        end = start + timedelta(days=7)
+        with self.options({"system.event-retention-days": 90}):
+            response = self.get_error_response(
+                self.organization.slug,
+                start=iso_format(start),
+                end=iso_format(end),
+                interval="1h",
+                comparisonDelta=int(timedelta(days=7).total_seconds()),
+            )
+            assert response.data["detail"] == "Comparison period is outside retention window"
 
 
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
