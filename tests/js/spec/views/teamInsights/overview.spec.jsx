@@ -69,6 +69,10 @@ describe('TeamInsightsOverview', () => {
       url: `/teams/org-slug/${team1.slug}/alerts-triggered/`,
       body: TestStubs.TeamAlertsTriggered(),
     });
+    MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team1.slug}/time-to-resolution/`,
+      body: TestStubs.TeamResolutionTime(),
+    });
     act(() => void TeamStore.loadInitialData([team1, team2]));
   });
 

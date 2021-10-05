@@ -25,6 +25,7 @@ import DescriptionCard from './descriptionCard';
 import HeaderTabs from './headerTabs';
 import TeamAlertsTriggered from './teamAlertsTriggered';
 import TeamMisery from './teamMisery';
+import TeamResolutionTime from './teamResolutionTime';
 import TeamStability from './teamStability';
 
 const INSIGHTS_DEFAULT_STATS_PERIOD = '8w';
@@ -238,6 +239,24 @@ function TeamInsightsOverview({
               )}
             >
               <TeamAlertsTriggered
+                organization={organization}
+                teamSlug={currentTeam!.slug}
+                period={period}
+                start={start?.toString()}
+                end={end?.toString()}
+                location={location}
+              />
+            </DescriptionCard>
+
+            <SectionTitle>{t('Team Activity')}</SectionTitle>
+            <DescriptionCard
+              title={t('Time to Resolution')}
+              description={t(
+                `This shows the mean time it took for issues to be resolved by your team.
+                 If issues took a long time to resolve, this could be a problem that your team needs to fix.`
+              )}
+            >
+              <TeamResolutionTime
                 organization={organization}
                 teamSlug={currentTeam!.slug}
                 period={period}
