@@ -38,7 +38,7 @@ def _scan_for_suspect_projects() -> None:
 
     for project_id in realtime_metrics.projects():
         suspect_projects.add(project_id)
-        update_lpq_eligibility.apply_async(project_id=project_id, cutoff=now)
+        update_lpq_eligibility.delay(project_id=project_id, cutoff=now)
 
     # Prune projects we definitely know shouldn't be in the queue any more.
     # `update_lpq_eligibility` should handle removing suspect projects from the list if it turns
