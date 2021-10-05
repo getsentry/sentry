@@ -800,7 +800,6 @@ const defaultConfig: SearchConfig = {
     'error.handled',
     'error.unhandled',
     'stack.in_app',
-    'key_transaction',
     'team_key_transaction',
   ]),
   allowBoolean: true,

@@ -4,7 +4,7 @@ from ..base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation
 class ProjectDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry import models
-        from sentry.discover.models import DiscoverSavedQueryProject, KeyTransaction
+        from sentry.discover.models import DiscoverSavedQueryProject
         from sentry.incidents.models import IncidentProject
         from sentry.snuba.models import QuerySubscription
 
@@ -44,7 +44,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.UserReport,
             models.ProjectTransactionThreshold,
             DiscoverSavedQueryProject,
-            KeyTransaction,
             IncidentProject,
             QuerySubscription,
         )

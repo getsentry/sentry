@@ -98,7 +98,6 @@ class Filter:
         return {
             "start": self.start,
             "end": self.end,
-            # needed for the key transaction column
             "user_id": self.user_id,
             "organization_id": self.organization_id,
             # needed for the team key transaction column

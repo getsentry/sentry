@@ -39,7 +39,6 @@ import {
 } from 'app/views/performance/transactionSummary/filter';
 
 import ArrayValue from './arrayValue';
-import KeyTransactionField from './keyTransactionField';
 import {
   BarContainer,
   Container,
@@ -207,7 +206,6 @@ type SpecialFields = {
   'error.handled': SpecialField;
   issue: SpecialField;
   release: SpecialField;
-  key_transaction: SpecialField;
   team_key_transaction: SpecialField;
   'trend_percentage()': SpecialField;
   'timestamp.to_hour': SpecialField;
@@ -383,19 +381,6 @@ const SPECIAL_FIELDS: SpecialFields = {
       const value = Array.isArray(values) ? values.slice(-1)[0] : values;
       return <Container>{[1, null].includes(value) ? 'true' : 'false'}</Container>;
     },
-  },
-  key_transaction: {
-    sortField: null,
-    renderFunc: (data, {organization}) => (
-      <Container>
-        <KeyTransactionField
-          isKeyTransaction={(data.key_transaction ?? 0) !== 0}
-          organization={organization}
-          projectSlug={data.project}
-          transactionName={data.transaction}
-        />
-      </Container>
-    ),
   },
   team_key_transaction: {
     sortField: null,

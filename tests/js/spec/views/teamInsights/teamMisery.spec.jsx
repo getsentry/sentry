@@ -18,7 +18,6 @@ describe('TeamMisery', () => {
         },
         data: [
           {
-            key_transaction: 1,
             transaction: '/apple/cart',
             project: project.slug,
             tpm: 30,
@@ -28,7 +27,6 @@ describe('TeamMisery', () => {
             project_threshold_config: ['duration', 300],
           },
           {
-            key_transaction: 0,
             transaction: '/apple/checkout',
             project: project.slug,
             tpm: 30,
