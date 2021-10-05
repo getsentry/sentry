@@ -7,6 +7,7 @@ import moment from 'moment';
 
 import {Client} from 'app/api';
 import {DateTimeObject} from 'app/components/charts/utils';
+import TeamSelector from 'app/components/forms/teamSelector';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -23,7 +24,6 @@ import withTeamsForUser from 'app/utils/withTeamsForUser';
 import DescriptionCard from './descriptionCard';
 import HeaderTabs from './headerTabs';
 import TeamAlertsTriggered from './teamAlertsTriggered';
-import TeamDropdown from './teamDropdown';
 import TeamMisery from './teamMisery';
 import TeamStability from './teamStability';
 
@@ -174,10 +174,12 @@ function TeamInsightsOverview({
         {!loadingTeams && (
           <Layout.Main fullWidth>
             <ControlsWrapper>
-              <TeamDropdown
-                teams={teams}
-                selectedTeam={currentTeamId}
-                handleChangeTeam={handleChangeTeam}
+              <TeamSelector
+                name="select-team"
+                value={currentTeam?.slug}
+                isLoading={loadingTeams}
+                onChange={choice => handleChangeTeam(choice.actor.id)}
+                teamFilter={filterTeam => filterTeam.isMember}
               />
               <StyledPageTimeRangeSelector
                 organization={organization}
@@ -230,9 +232,9 @@ function TeamInsightsOverview({
             </DescriptionCard>
 
             <DescriptionCard
-              title={t('Alerts Triggered')}
+              title={t('Metric Alerts Triggered')}
               description={t(
-                'This shows the alerts triggered from the alert rules that your team owns and breaks it down by those alerts that were seen by your team and those that weren’t.'
+                'These are the alerts triggered from the Alert Rules your team created.'
               )}
             >
               <TeamAlertsTriggered
@@ -275,7 +277,8 @@ const StyledLayoutTitle = styled(Layout.Title)`
 `;
 
 const ControlsWrapper = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: 0.5fr 1fr;
   align-items: center;
   gap: ${space(1)};
   margin-bottom: ${space(2)};

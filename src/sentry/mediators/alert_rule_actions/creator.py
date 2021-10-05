@@ -17,7 +17,7 @@ class AlertRuleActionCreator(Mediator):
         self.rule.save()
 
     def _make_external_request(self):
-        self.response = external_requests.AlerRuleActionRequester.run(
+        self.response = external_requests.AlertRuleActionRequester.run(
             install=self.install,
             uri=self.uri,
             fields=self.fields,

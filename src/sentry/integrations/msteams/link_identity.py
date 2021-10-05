@@ -4,7 +4,9 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 
+from sentry.integrations.utils import get_identity_or_404
 from sentry.models import Identity, IdentityStatus
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.decorators import transaction_start
@@ -13,7 +15,6 @@ from sentry.web.helpers import render_to_response
 
 from .card_builder import build_linked_card
 from .client import MsTeamsClient
-from .utils import get_identity
 
 
 def build_linking_url(integration, organization, teams_user_id, team_id, tenant_id):
@@ -42,8 +43,11 @@ class MsTeamsLinkIdentityView(BaseView):
                 request=request,
             )
 
-        organization, integration, idp = get_identity(
-            request.user, params["organization_id"], params["integration_id"]
+        organization, integration, idp = get_identity_or_404(
+            ExternalProviders.MSTEAMS,
+            request.user,
+            integration_id=params["integration_id"],
+            organization_id=params["organization_id"],
         )
 
         if request.method != "POST":
