@@ -33,7 +33,6 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
         )
 
         features = {feature: True for feature in FEATURE_NAME}
-        features["organizations:alert-details-redesign"] = False
         with self.feature(features):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading-indicator")
