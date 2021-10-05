@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry.api.bases.user import OrganizationUserPermission, UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import Authenticator
 from sentry.security import capture_security_activity
 
@@ -121,6 +122,21 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 send_email=True,
             )
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+        if not is_active_superuser(request):
+            # if the user's organization requires 2fa,
+            # don't delete the last auth method
+            enrolled_methods = Authenticator.objects.all_interfaces_for_user(
+                user, ignore_backup=True
+            )
+            last_2fa_method = len(enrolled_methods) == 1
+            require_2fa = user.get_orgs_require_2fa().exists()
+
+            if require_2fa and last_2fa_method:
+                return Response(
+                    {"detail": "Cannot delete authenticator because organization requires 2FA"},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
         with transaction.atomic():
             authenticator.delete()
