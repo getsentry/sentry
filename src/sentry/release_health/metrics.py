@@ -900,4 +900,5 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             query, referrer="release_health.metrics.sessions.get_project_releases_count"
         )["data"]
 
-        return rows[0]["count"] if rows else 0  # type: ignore
+        ret_val: int = rows[0]["count"] if rows else 0
+        return ret_val
