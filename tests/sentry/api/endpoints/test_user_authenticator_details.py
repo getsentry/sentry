@@ -318,6 +318,29 @@ class UserAuthenticatorDetailsTest(APITestCase):
         assert email_log.info.call_count == 0
 
     @mock.patch("sentry.utils.email.logger")
+    def test_require_2fa__can_delete_last_auth_superuser(self, email_log):
+        self._require_2fa_for_organization()
+
+        user = self.create_user(email="a@example.com", is_superuser=True)
+        self.login_as(user=user)
+        # enroll in one auth method
+        interface = TotpInterface()
+        interface.enroll(user)
+        auth = interface.authenticator
+
+        url = reverse(
+            "sentry-api-0-user-authenticator-details",
+            kwargs={"user_id": user.id, "auth_id": auth.id},
+        )
+
+        resp = self.client.delete(url, format="json")
+        assert resp.status_code == 204
+
+        assert not Authenticator.objects.filter(id=auth.id).exists()
+
+        assert email_log.info.call_count == 1
+
+    @mock.patch("sentry.utils.email.logger")
     def test_require_2fa__delete_with_multiple_auth__ok(self, email_log):
         self._require_2fa_for_organization()
 
