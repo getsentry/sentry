@@ -45,7 +45,7 @@ def store(config: Dict[str, Any]) -> RedisRealtimeMetricsStore:
 
 
 def empty_histogram() -> BucketedDurations:
-    return {duration: 0 for duration in range(0, 600, 10)}
+    return BucketedDurations({duration: 0 for duration in range(0, 600, 10)})
 
 
 def test_default() -> None:
