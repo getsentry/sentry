@@ -11,7 +11,6 @@ from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.nodes import Node
 
 from sentry.search.events.constants import (
-    KEY_TRANSACTION_ALIAS,
     OPERATOR_NEGATION_MAP,
     SEARCH_MAP,
     SEMVER_ALIAS,
@@ -1033,7 +1032,6 @@ default_config = SearchConfig(
         "error.handled",
         "error.unhandled",
         "stack.in_app",
-        KEY_TRANSACTION_ALIAS,
         TEAM_KEY_TRANSACTION_ALIAS,
     },
 )
