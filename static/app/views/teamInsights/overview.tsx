@@ -24,6 +24,7 @@ import withTeamsForUser from 'app/utils/withTeamsForUser';
 import DescriptionCard from './descriptionCard';
 import HeaderTabs from './headerTabs';
 import TeamAlertsTriggered from './teamAlertsTriggered';
+import TeamIssuesReviewed from './teamIssuesReviewed';
 import TeamMisery from './teamMisery';
 import TeamResolutionTime from './teamResolutionTime';
 import TeamStability from './teamStability';
@@ -249,6 +250,22 @@ function TeamInsightsOverview({
             </DescriptionCard>
 
             <SectionTitle>{t('Team Activity')}</SectionTitle>
+            <DescriptionCard
+              title={t('Issues Reviewed')}
+              description={t(
+                'Issues that were triaged by your team taking an action on them such as resolving, ignoring, marking as reviewed, or deleting.'
+              )}
+            >
+              <TeamIssuesReviewed
+                organization={organization}
+                projects={projects}
+                teamSlug={currentTeam!.slug}
+                period={period}
+                start={start?.toString()}
+                end={end?.toString()}
+                location={location}
+              />
+            </DescriptionCard>
             <DescriptionCard
               title={t('Time to Resolution')}
               description={t(

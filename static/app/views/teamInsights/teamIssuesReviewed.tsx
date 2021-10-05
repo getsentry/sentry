@@ -1,18 +1,21 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import chunk from 'lodash/chunk';
 import isEqual from 'lodash/isEqual';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import BarChart from 'app/components/charts/barChart';
 import {DateTimeObject} from 'app/components/charts/utils';
+import IdBadge from 'app/components/idBadge';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import PanelTable from 'app/components/panels/panelTable';
 import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {Series, SeriesDataUnit} from 'app/types/echarts';
+import {SeriesDataUnit} from 'app/types/echarts';
+import {formatPercentage} from 'app/utils/formatters';
+
+import {convertDaySeriesToWeeks} from './utils';
 
 type IssuesBreakdown = Record<string, Record<string, {reviewed: number; total: number}>>;
 
@@ -26,7 +29,14 @@ type State = AsyncComponent['state'] & {
   issuesBreakdown: IssuesBreakdown | null;
 };
 
-class TeamIssues extends AsyncComponent<Props, State> {
+function convertKeyValueToSeries(data: Record<string, number>): SeriesDataUnit[] {
+  return Object.entries(data).map(([bucket, count]) => ({
+    value: count,
+    name: new Date(bucket).getTime(),
+  }));
+}
+
+class TeamIssuesReviewed extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;
 
   getDefaultState(): State {
@@ -54,7 +64,7 @@ class TeamIssues extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {start, end, period, utc, teamSlug} = this.props;
+    const {start, end, period, utc, teamSlug, projects} = this.props;
 
     if (
       prevProps.start !== start ||
@@ -76,24 +86,41 @@ class TeamIssues extends AsyncComponent<Props, State> {
     const {issuesBreakdown, isLoading} = this.state;
     const {projects} = this.props;
 
-    const reviewedSeries: SeriesDataUnit[] = [];
-    const notReviewedSeries: SeriesDataUnit[] = [];
+    const allReviewedByDay: Record<string, number> = {};
+    const allNotReviewedByDay: Record<string, number> = {};
 
-    const data = Object.entries(issuesBreakdown ?? {})
-      .map(([_, value]) => Object.values(value))
-      .forEach(([bucket, {reviewed, total}]) => {
-        const name = new Date(bucket).getTime();
-        reviewedSeries.push({value: reviewed, name});
-        notReviewedSeries.push({value: total, name});
-      });
-
-    // Convert from days to 7 day groups
-    const seriesData = chunk(data, 7).map(week => {
-      return {
-        name: week[0].name,
-        value: week.reduce((total, currentData) => total + currentData.value, 0),
-      };
+    // Total reviewed & total reviewed keyed by project ID
+    const projectTotals: Record<string, {reviewed: number; total: number}> = {};
+    // Initialize all projects with zero
+    projects.forEach(({id}) => {
+      projectTotals[id] = {reviewed: 0, total: 0};
     });
+
+    if (issuesBreakdown) {
+      // The issues breakdown is split into projectId ->
+      for (const [projectId, entries] of Object.entries(issuesBreakdown)) {
+        for (const [bucket, {reviewed, total}] of Object.entries(entries)) {
+          projectTotals[projectId].reviewed += reviewed;
+          projectTotals[projectId].total += total;
+
+          if (allReviewedByDay[bucket] === undefined) {
+            allReviewedByDay[bucket] = reviewed;
+          } else {
+            allReviewedByDay[bucket] += reviewed;
+          }
+
+          const notReviewed = total - reviewed;
+          if (allNotReviewedByDay[bucket] === undefined) {
+            allNotReviewedByDay[bucket] = notReviewed;
+          } else {
+            allNotReviewedByDay[bucket] += notReviewed;
+          }
+        }
+      }
+    }
+
+    const reviewedSeries = convertKeyValueToSeries(allReviewedByDay);
+    const notReviewedSeries = convertKeyValueToSeries(allNotReviewedByDay);
 
     return (
       <Fragment>
@@ -108,11 +135,11 @@ class TeamIssues extends AsyncComponent<Props, State> {
               series={[
                 {
                   seriesName: t('Reviewed'),
-                  data: reviewedSeries,
+                  data: convertDaySeriesToWeeks(reviewedSeries),
                 },
                 {
                   seriesName: t('Not Reviewed'),
-                  data: notReviewedSeries,
+                  data: convertDaySeriesToWeeks(notReviewedSeries),
                 },
               ]}
             />
@@ -122,23 +149,28 @@ class TeamIssues extends AsyncComponent<Props, State> {
           headers={[t('Project'), t('For Review'), t('Reviewed'), t('% Reviewed')]}
           isLoading={isLoading}
         >
-          {projects.map(project => (
-            <Fragment key={project.id}>
-              <ProjectBadgeContainer>
-                <ProjectBadge avatarSize={18} project={project} />
-              </ProjectBadgeContainer>
-              <div>{'\u2014'}</div>
-              <div>{'\u2014'}</div>
-              <div>{'\u2014'}</div>
-            </Fragment>
-          ))}
+          {projects.map(project => {
+            const {total, reviewed} = projectTotals[project.id];
+            return (
+              <Fragment key={project.id}>
+                <ProjectBadgeContainer>
+                  <ProjectBadge avatarSize={18} project={project} />
+                </ProjectBadgeContainer>
+                <AlignRight>{total}</AlignRight>
+                <AlignRight>{reviewed}</AlignRight>
+                <AlignRight>
+                  {total === 0 ? '\u2014' : formatPercentage(reviewed / total)}
+                </AlignRight>
+              </Fragment>
+            );
+          })}
         </StyledPanelTable>
       </Fragment>
     );
   }
 }
 
-export default TeamIssues;
+export default TeamIssuesReviewed;
 
 const ChartWrapper = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
@@ -150,9 +182,14 @@ const IssuesChartWrapper = styled(ChartWrapper)`
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr;
+  font-size: ${p => p.theme.fontSizeMedium};
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
+
+  & > div {
+    padding: ${space(1)} ${space(2)};
+  }
 `;
 
 const ProjectBadgeContainer = styled('div')`
@@ -161,4 +198,9 @@ const ProjectBadgeContainer = styled('div')`
 
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
+`;
+
+const AlignRight = styled('div')`
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 `;

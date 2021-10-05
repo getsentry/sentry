@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import chunk from 'lodash/chunk';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import BarChart from 'app/components/charts/barChart';
@@ -9,6 +8,8 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+
+import {convertDaySeriesToWeeks} from './utils';
 
 type AlertsTriggered = Record<string, number>;
 
@@ -21,7 +22,7 @@ type State = AsyncComponent['state'] & {
   alertsTriggered: AlertsTriggered | null;
 };
 
-class TeamIssues extends AsyncComponent<Props, State> {
+class TeamAlertsTriggered extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;
 
   getDefaultState(): State {
@@ -72,20 +73,11 @@ class TeamIssues extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {alertsTriggered} = this.state;
-    const data = Object.entries(alertsTriggered ?? {})
-      .map(([bucket, count]) => ({
-        value: count,
-        name: new Date(bucket).getTime(),
-      }))
-      .sort((a, b) => a.name - b.name);
-
-    // Convert from days to 7 day groups
-    const seriesData = chunk(data, 7).map(week => {
-      return {
-        name: week[0].name,
-        value: week.reduce((total, currentData) => total + currentData.value, 0),
-      };
-    });
+    const data = Object.entries(alertsTriggered ?? {}).map(([bucket, count]) => ({
+      value: count,
+      name: new Date(bucket).getTime(),
+    }));
+    const seriesData = convertDaySeriesToWeeks(data);
 
     return (
       <ChartWrapper>
@@ -113,7 +105,7 @@ class TeamIssues extends AsyncComponent<Props, State> {
   }
 }
 
-export default TeamIssues;
+export default TeamAlertsTriggered;
 
 const ChartWrapper = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};

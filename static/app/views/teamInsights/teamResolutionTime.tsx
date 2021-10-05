@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import chunk from 'lodash/chunk';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import BarChart from 'app/components/charts/barChart';
@@ -10,6 +9,8 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {getDuration} from 'app/utils/formatters';
+
+import {convertDaySeriesToWeeks} from './utils';
 
 type TimeToResolution = Record<string, {count: number; avg: number}>;
 
@@ -59,23 +60,11 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {resolutionTime} = this.state;
-    const data = Object.entries(resolutionTime ?? {})
-      .map(([bucket, {avg}]) => ({
-        value: avg,
-        name: new Date(bucket).getTime(),
-      }))
-      .sort((a, b) => a.name - b.name);
-
-    // Convert from days to 7 day groups
-    const seriesData = chunk(data, 7).map(week => {
-      return {
-        name: week[0].name,
-        value: week.reduce(
-          (total, currentData) => total + currentData.value + Math.random() * 40000,
-          0
-        ),
-      };
-    });
+    const data = Object.entries(resolutionTime ?? {}).map(([bucket, {avg}]) => ({
+      value: avg,
+      name: new Date(bucket).getTime(),
+    }));
+    const seriesData = convertDaySeriesToWeeks(data);
 
     return (
       <ChartWrapper>
