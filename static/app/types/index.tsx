@@ -768,10 +768,6 @@ export interface Config {
     upgradeAvailable: boolean;
     latest: string;
   };
-  statuspage?: {
-    id: string;
-    api_host: string;
-  };
   sentryConfig: {
     dsn: string;
     release: string;
@@ -781,6 +777,10 @@ export interface Config {
   apmSampling: number;
   dsn_requests: string;
   demoMode: boolean;
+  statuspage?: {
+    id: string;
+    api_host: string;
+  };
 }
 
 // https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
@@ -1655,6 +1655,7 @@ export type NewQuery = {
   // Graph
   yAxis?: string[];
   display?: string;
+  topEvents?: string;
 
   teams?: Readonly<('myteams' | number)[]>;
 };
@@ -2233,4 +2234,24 @@ export type CodeownersFile = {
   raw: string;
   filepath: string;
   html_url: string;
+};
+
+// Response from ShortIdLookupEndpoint
+// /organizations/${orgId}/shortids/${query}/
+export type ShortIdResponse = {
+  organizationSlug: string;
+  projectSlug: string;
+  groupId: string;
+  group: Group;
+  shortId: string;
+};
+
+// Response from EventIdLookupEndpoint
+// /organizations/${orgSlug}/eventids/${eventId}/
+export type EventIdResponse = {
+  organizationSlug: string;
+  projectSlug: string;
+  groupId: string;
+  eventId: string;
+  event: Event;
 };

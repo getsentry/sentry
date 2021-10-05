@@ -76,10 +76,8 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
             return self.reply(slack_request, NOT_LINKED_MESSAGE)
 
         integration = slack_request.integration
-        organization = integration.organizations.all()[0]
         associate_url = build_unlinking_url(
             integration_id=integration.id,
-            organization_id=organization.id,
             slack_id=slack_request.user_id,
             channel_id=slack_request.channel_id,
             response_url=slack_request.response_url,

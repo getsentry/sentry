@@ -1,8 +1,6 @@
 import logging
-import random
 import signal
-from contextlib import contextmanager
-from typing import Any, Generator, Mapping, Optional, Tuple
+from typing import Any, Mapping, Optional, Tuple
 
 from confluent_kafka import OFFSET_INVALID, TopicPartition
 from django.conf import settings
@@ -10,12 +8,18 @@ from django.utils.functional import cached_property
 
 from sentry import options
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
+from sentry.eventstream.kafka.postprocessworker import (
+    _CONCURRENCY_OPTION,
+    PostProcessForwarderWorker,
+    _sampled_eventstream_timer,
+)
 from sentry.eventstream.kafka.protocol import (
     get_task_kwargs_for_message,
     get_task_kwargs_for_message_from_headers,
 )
 from sentry.eventstream.snuba import SnubaProtocolEventStream
 from sentry.utils import json, kafka, metrics
+from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +151,65 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def requires_post_process_forwarder(self):
         return True
 
-    def run_post_process_forwarder(
+    def _build_consumer(
+        self,
+        consumer_group,
+        commit_log_topic,
+        synchronize_commit_group,
+        commit_batch_size=100,
+        commit_batch_timeout_ms=5000,
+        initial_offset_reset="latest",
+    ):
+        cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
+
+        synchronized_consumer = SynchronizedConsumer(
+            cluster_name=cluster_name,
+            consumer_group=consumer_group,
+            commit_log_topic=commit_log_topic,
+            synchronize_commit_group=synchronize_commit_group,
+            initial_offset_reset=initial_offset_reset,
+        )
+
+        concurrency = options.get(_CONCURRENCY_OPTION)
+        worker = PostProcessForwarderWorker(concurrency=concurrency)
+
+        consumer = BatchingKafkaConsumer(
+            topics=self.topic,
+            worker=worker,
+            max_batch_size=commit_batch_size,
+            max_batch_time=commit_batch_timeout_ms,
+            consumer=synchronized_consumer,
+            commit_on_shutdown=True,
+        )
+        return consumer
+
+    def run_batched_consumer(
+        self,
+        consumer_group,
+        commit_log_topic,
+        synchronize_commit_group,
+        commit_batch_size=100,
+        commit_batch_timeout_ms=5000,
+        initial_offset_reset="latest",
+    ):
+        consumer = self._build_consumer(
+            consumer_group,
+            commit_log_topic,
+            synchronize_commit_group,
+            commit_batch_size,
+            commit_batch_timeout_ms,
+            initial_offset_reset,
+        )
+
+        def handler(signum, frame):
+            consumer.signal_shutdown()
+
+        signal.signal(signal.SIGINT, handler)
+        signal.signal(signal.SIGTERM, handler)
+
+        consumer.run()
+
+    def run_streaming_consumer(
         self,
         consumer_group,
         commit_log_topic,
@@ -155,8 +217,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         commit_batch_size=100,
         initial_offset_reset="latest",
     ):
-        logger.debug("Starting post-process forwarder...")
-
         cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
 
         consumer = SynchronizedConsumer(
@@ -290,13 +350,13 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
             if use_kafka_headers is True:
                 try:
-                    with self.sampled_eventstream_timer(
+                    with _sampled_eventstream_timer(
                         instance="get_task_kwargs_for_message_from_headers"
                     ):
                         task_kwargs = get_task_kwargs_for_message_from_headers(message.headers())
 
                     if task_kwargs is not None:
-                        with self.sampled_eventstream_timer(
+                        with _sampled_eventstream_timer(
                             instance="dispatch_post_process_group_task"
                         ):
                             if task_kwargs["group_id"] is None:
@@ -344,12 +404,33 @@ class KafkaEventStream(SnubaProtocolEventStream):
             with metrics.timer("eventstream.duration", instance="dispatch_post_process_group_task"):
                 self._dispatch_post_process_group_task(**task_kwargs)
 
-    @contextmanager
-    def sampled_eventstream_timer(self, instance: str) -> Generator[None, None, None]:
+    def run_post_process_forwarder(
+        self,
+        consumer_group,
+        commit_log_topic,
+        synchronize_commit_group,
+        commit_batch_size=100,
+        commit_batch_timeout_ms=5000,
+        initial_offset_reset="latest",
+    ):
+        logger.debug("Starting post-process forwarder...")
 
-        record_metric = random.random() < 0.1
-        if record_metric is True:
-            with metrics.timer("eventstream.duration", instance=instance):
-                yield
+        if settings.SENTRY_POST_PROCESS_FORWARDER_BATCHING:
+            logger.info("Starting batching consumer")
+            self.run_batched_consumer(
+                consumer_group,
+                commit_log_topic,
+                synchronize_commit_group,
+                commit_batch_size,
+                commit_batch_timeout_ms,
+                initial_offset_reset,
+            )
         else:
-            yield
+            logger.info("Starting streaming consumer")
+            self.run_streaming_consumer(
+                consumer_group,
+                commit_log_topic,
+                synchronize_commit_group,
+                commit_batch_size,
+                initial_offset_reset,
+            )
