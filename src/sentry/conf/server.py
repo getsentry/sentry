@@ -2357,7 +2357,7 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # priority queue. This setting determines how long we keep these rates
     # around.
     # Note that the time is counted after the last time a counter is incremented.
-    "counter_ttl": timedelta(seconds=300),
+    "counter_ttl": 300,
     # The bucket size of the histogram.
     #
     # The size (in seconds) of the buckets that events are sorted into.
@@ -2369,7 +2369,7 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # priority queue. This setting determines how long we keep these duration values
     # around.
     # Note that the time is counted after the last time a counter is incremented.
-    "histogram_ttl": timedelta(seconds=900),
+    "histogram_ttl": 900,
 }
 
 # XXX(meredith): Temporary metrics indexer
