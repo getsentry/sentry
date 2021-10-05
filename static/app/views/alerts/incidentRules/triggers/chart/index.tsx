@@ -19,22 +19,15 @@ import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project, SessionApiResponse, SessionField} from 'app/types';
+import {Organization, Project, SessionApiResponse} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 import {getCount, getCrashFreeRateSeries} from 'app/utils/sessions';
 import withApi from 'app/utils/withApi';
-import {isSessionAggregate} from 'app/views/alerts/utils';
+import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'app/views/alerts/utils';
 import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 
-import {
-  Dataset,
-  IncidentRule,
-  SessionsAggregate,
-  TimePeriod,
-  TimeWindow,
-  Trigger,
-} from '../../types';
+import {Dataset, IncidentRule, TimePeriod, TimeWindow, Trigger} from '../../types';
 
 import ThresholdsChart from './thresholdsChart';
 
@@ -115,12 +108,8 @@ const AGGREGATE_FUNCTIONS = {
     Math.min(...seriesChunk.map(series => series.value)),
 };
 
-const SESSION_AGGREGATE_TO_FIELD = {
-  [SessionsAggregate.CRASH_FREE_SESSIONS]: SessionField.SESSIONS,
-  [SessionsAggregate.CRASH_FREE_USERS]: SessionField.USERS,
-};
-
 const TIME_WINDOW_TO_SESSION_INTERVAL = {
+  [TimeWindow.THIRTY_MINUTES]: '30m',
   [TimeWindow.ONE_HOUR]: '1h',
   [TimeWindow.TWO_HOURS]: '2h',
   [TimeWindow.FOUR_HOURS]: '4h',
@@ -173,9 +162,10 @@ class TriggersChart extends React.PureComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {query, environment, timeWindow, aggregate} = this.props;
+    const {query, environment, timeWindow, aggregate, projects} = this.props;
     const {statsPeriod} = this.state;
     if (
+      prevProps.projects !== projects ||
       prevProps.environment !== environment ||
       prevProps.query !== query ||
       prevProps.timeWindow !== timeWindow ||
@@ -190,6 +180,19 @@ class TriggersChart extends React.PureComponent<Props, State> {
     }
   }
 
+  get availableTimePeriods() {
+    // We need to special case sessions, because sub-hour windows are available
+    // only when time period is six hours or less (backend limitation)
+    if (isSessionAggregate(this.props.aggregate)) {
+      return {
+        ...AVAILABLE_TIME_PERIODS,
+        [TimeWindow.THIRTY_MINUTES]: [TimePeriod.SIX_HOURS],
+      };
+    }
+
+    return AVAILABLE_TIME_PERIODS;
+  }
+
   handleStatsPeriodChange = (timePeriod: string) => {
     this.setState({statsPeriod: timePeriod as TimePeriod});
   };
@@ -197,7 +200,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
   getStatsPeriod = () => {
     const {statsPeriod} = this.state;
     const {timeWindow} = this.props;
-    const statsPeriodOptions = AVAILABLE_TIME_PERIODS[timeWindow];
+    const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = statsPeriodOptions.includes(statsPeriod)
       ? statsPeriod
       : statsPeriodOptions[0];
@@ -277,7 +280,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
     const {triggers, resolveThreshold, thresholdType, header, timeWindow, aggregate} =
       this.props;
     const {statsPeriod, totalCount} = this.state;
-    const statsPeriodOptions = AVAILABLE_TIME_PERIODS[timeWindow];
+    const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = this.getStatsPeriod();
     return (
       <React.Fragment>

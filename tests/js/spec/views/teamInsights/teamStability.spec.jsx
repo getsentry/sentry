@@ -43,4 +43,12 @@ describe('TeamStability', () => {
 
     expect(wrapper.getAllByText('\u2014')).toHaveLength(3);
   });
+
+  it('should render no projects', async () => {
+    const wrapper = mountWithTheme(
+      <TeamStability projects={[]} organization={TestStubs.Organization()} period="7d" />
+    );
+
+    expect(wrapper.getByText('There are no items to display')).toBeTruthy();
+  });
 });

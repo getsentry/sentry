@@ -1,12 +1,12 @@
 from collections import OrderedDict
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
 
 from django.urls import reverse
 from django.utils.translation import ugettext as _
 from mistune import markdown
 from rest_framework.response import Response
 
-from sentry.integrations.issues import IssueSyncMixin
+from sentry.integrations.issues import IssueSyncMixin, ResolveSyncAction
 from sentry.models import Activity, IntegrationExternalProject, OrganizationIntegration, User
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 
@@ -208,12 +208,16 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         }
 
     def sync_assignee_outbound(
-        self, external_issue: "ExternalIssue", user: User, assign: bool = True, **kwargs: Any
+        self,
+        external_issue: "ExternalIssue",
+        user: Optional["User"],
+        assign: bool = True,
+        **kwargs: Any,
     ) -> None:
         client = self.get_client()
         assignee = None
 
-        if assign is True:
+        if user and assign is True:
             sentry_emails = [email.email.lower() for email in user.get_verified_emails()]
             continuation_token = None
             while True:
@@ -247,7 +251,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
                 "vsts.failed-to-assign",
                 extra={
                     "integration_id": external_issue.integration_id,
-                    "user_id": user.id,
+                    "user_id": user.id if user else None,
                     "issue_key": external_issue.key,
                 },
             )
@@ -306,15 +310,16 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
                 },
             )
 
-    def should_unresolve(self, data: Mapping[str, str]) -> bool:
-        done_states = self.get_done_states(data["project"])
-        return not data["new_state"] in done_states or data["old_state"] is None
+    def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
+        done_states = self._get_done_statuses(data["project"])
+        return ResolveSyncAction.from_resolve_unresolve(
+            should_resolve=(
+                not data["old_state"] in done_states and data["new_state"] in done_states
+            ),
+            should_unresolve=(not data["new_state"] in done_states or data["old_state"] is None),
+        )
 
-    def should_resolve(self, data: Mapping[str, str]) -> bool:
-        done_states = self.get_done_states(data["project"])
-        return not data["old_state"] in done_states and data["new_state"] in done_states
-
-    def get_done_states(self, project: str) -> Sequence[str]:
+    def _get_done_statuses(self, project: str) -> Set[str]:
         client = self.get_client()
         try:
             all_states = client.get_work_item_states(self.instance, project)["value"]
@@ -323,11 +328,8 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
                 "vsts.get-done-states.failed",
                 extra={"integration_id": self.model.id, "exception": err},
             )
-            return []
-        done_states = [
-            state["name"] for state in all_states if state["category"] in self.done_categories
-        ]
-        return done_states
+            return set()
+        return {state["name"] for state in all_states if state["category"] in self.done_categories}
 
     def get_issue_display_name(self, external_issue: "ExternalIssue") -> str:
         return (external_issue.metadata or {}).get("display_name", "")

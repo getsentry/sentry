@@ -1,7 +1,9 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
+from snuba_sdk.column import Column
 from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Limit, Offset
+from snuba_sdk.orderby import LimitBy
 from snuba_sdk.query import Query
 
 from sentry.search.events.fields import InvalidSearchQuery
@@ -22,16 +24,19 @@ class QueryBuilder(QueryFilter):
         orderby: Optional[List[str]] = None,
         auto_aggregations: bool = False,
         use_aggregate_conditions: bool = False,
-        limit: int = 50,
+        limit: Optional[int] = 50,
         offset: Optional[int] = 0,
+        limitby: Optional[Tuple[str, int]] = None,
     ):
         super().__init__(dataset, params)
 
         # TODO: implement this in `resolve_select`
         self.auto_aggregations = auto_aggregations
 
-        self.limit = Limit(limit)
-        self.offset = Offset(0 if offset is None else offset)
+        self.limit = None if limit is None else Limit(limit)
+        self.offset = None if offset is None else Offset(offset)
+
+        self.limitby = self.resolve_limitby(limitby)
 
         self.where, self.having = self.resolve_conditions(
             query, use_aggregate_conditions=use_aggregate_conditions
@@ -46,6 +51,20 @@ class QueryBuilder(QueryFilter):
     @property
     def select(self) -> Optional[List[SelectType]]:
         return self.columns
+
+    def resolve_limitby(self, limitby: Optional[Tuple[str, int]]) -> Optional[LimitBy]:
+        if limitby is None:
+            return None
+
+        column, count = limitby
+        resolved = self.resolve_column(column)
+
+        if isinstance(resolved, Column):
+            return LimitBy(resolved, count)
+
+        # TODO: Limit By can only operate on a `Column`. This has the implication
+        # that non aggregate transforms are not allowed in the order by clause.
+        raise InvalidSearchQuery(f"{column} used in a limit by but is not a column.")
 
     @property
     def groupby(self) -> Optional[List[SelectType]]:
@@ -79,4 +98,5 @@ class QueryBuilder(QueryFilter):
             orderby=self.orderby,
             limit=self.limit,
             offset=self.offset,
+            limitby=self.limitby,
         )

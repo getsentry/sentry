@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-
 import {
   Table,
   TableBody,
@@ -7,7 +6,7 @@ import {
   TableHead,
   TableHeadCell,
   TableRow,
-} from '../../components/table';
+} from 'docs-ui/components/table';
 
 type TypeStyle = {
   fontFamily?: string;

@@ -50,7 +50,7 @@ def _get_changed_project_release_model_adoptions(project_ids):
     return rv
 
 
-def get_oldest_health_data_for_releases(project_releases):
+def _get_oldest_health_data_for_releases(project_releases):
     """Returns the oldest health data we have observed in a release
     in 90 days.  This is used for backfilling.
     """
@@ -480,7 +480,7 @@ def get_release_health_data_overview(
     return rv
 
 
-def get_crash_free_breakdown(project_id, release, start, environments=None):
+def _get_crash_free_breakdown(project_id, release, start, environments=None):
     filter_keys = {"project_id": [project_id]}
     conditions = [["release", "=", release]]
     if environments is not None:

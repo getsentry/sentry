@@ -17,7 +17,7 @@ import Confirm from 'app/components/confirm';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import SearchBar from 'app/components/events/searchBar';
 import * as Layout from 'app/components/layouts/thirds';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -364,6 +364,25 @@ class Results extends React.Component<Props, State> {
     }
   };
 
+  handleTopEventsChange = (value: string) => {
+    const {router, location} = this.props;
+
+    const newQuery = {
+      ...location.query,
+      topEvents: value,
+    };
+
+    router.push({
+      pathname: location.pathname,
+      query: newQuery,
+    });
+
+    // Treat display changing like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
+  };
+
   getDocumentTitle(): string {
     const {organization} = this.props;
     const {eventView} = this.state;
@@ -462,7 +481,7 @@ class Results extends React.Component<Props, State> {
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
         <StyledPageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
             <ResultsHeader
               errorCode={errorCode}
               organization={organization}
@@ -491,6 +510,7 @@ class Results extends React.Component<Props, State> {
                   location={location}
                   onAxisChange={this.handleYAxisChange}
                   onDisplayChange={this.handleDisplayChange}
+                  onTopEventsChange={this.handleTopEventsChange}
                   total={totalValues}
                   confirmedQuery={confirmedQuery}
                   yAxis={yAxisArray}
@@ -534,7 +554,7 @@ class Results extends React.Component<Props, State> {
                 {this.setOpenFunction}
               </Confirm>
             </Layout.Body>
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </StyledPageContent>
       </SentryDocumentTitle>
     );
