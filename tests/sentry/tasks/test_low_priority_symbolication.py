@@ -40,6 +40,8 @@ STORE = create_store()
 
 def reset_store() -> None:
     STORE = create_store()
+    # TODO: i am bad at python
+    STORE
 
 
 class TestScanForSuspectProjects(TestCase):
