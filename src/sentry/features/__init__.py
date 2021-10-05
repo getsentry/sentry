@@ -119,7 +119,6 @@ default_manager.add("organizations:performance-tag-explorer", OrganizationFeatur
 default_manager.add("organizations:performance-tag-page", OrganizationFeature, True)
 default_manager.add("organizations:performance-events-page", OrganizationFeature, True)
 default_manager.add("organizations:performance-chart-interpolation", OrganizationFeature, True)
-default_manager.add("organizations:performance-suspect-spans-ingestion", OrganizationFeature)
 default_manager.add("organizations:performance-suspect-spans-view", OrganizationFeature, True)
 default_manager.add("organizations:performance-view", OrganizationFeature)
 default_manager.add("organizations:prompt-dashboards", OrganizationFeature)
@@ -169,6 +168,7 @@ default_manager.add("projects:similarity-indexing", ProjectFeature)
 default_manager.add("projects:similarity-indexing-v2", ProjectFeature)
 default_manager.add("projects:similarity-view", ProjectFeature)
 default_manager.add("projects:similarity-view-v2", ProjectFeature)
+default_manager.add("projects:performance-suspect-spans-ingestion", ProjectFeature)
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature)
