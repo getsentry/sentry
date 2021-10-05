@@ -3003,6 +3003,30 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     use_aggregate_conditions=True,
                 )
 
+    def test_sum_array_combinator(self):
+        data = load_data("transaction", timestamp=before_now(seconds=3))
+        data["measurements"] = {
+            "fp": {"value": 1000},
+            "fcp": {"value": 1000},
+            "lcp": {"value": 1000},
+        }
+        self.store_event(data=data, project_id=self.project.id)
+
+        results = discover.query(
+            selected_columns=["sumArray(measurements_value)"],
+            query="",
+            params={
+                "project_id": [self.project.id],
+                "start": self.two_min_ago,
+                "end": self.now,
+            },
+            # make sure to opt in to gain access to the function
+            functions_acl=["sumArray"],
+            # -Array combinator is only supported in SnQL
+            use_snql=True,
+        )
+        assert results["data"][0]["sumArray_measurements_value"] == 3000.0
+
     def test_any_function(self):
         data = load_data("transaction", timestamp=before_now(seconds=3))
         data["transaction"] = "a" * 32

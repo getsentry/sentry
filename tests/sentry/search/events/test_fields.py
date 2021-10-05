@@ -13,6 +13,7 @@ from sentry.search.events.fields import (
     QueryFields,
     get_json_meta_type,
     parse_arguments,
+    parse_combinator,
     parse_function,
     resolve_field_list,
 )
@@ -193,6 +194,19 @@ def test_parse_function(function, expected):
 )
 def test_parse_arguments(function, columns, result):
     assert parse_arguments(function, columns) == result
+
+
+@pytest.mark.parametrize(
+    "function, expected",
+    [
+        pytest.param("func", ("func", None), id="no combinators"),
+        pytest.param("funcArray", ("func", "Array"), id="-Array combinator"),
+        pytest.param("funcarray", ("funcarray", None), id="is case sensitive"),
+        pytest.param("func_array", ("func_array", None), id="does not accept snake case"),
+    ],
+)
+def test_parse_combinator(function, expected):
+    assert parse_combinator(function) == expected
 
 
 class ResolveFieldListTest(unittest.TestCase):

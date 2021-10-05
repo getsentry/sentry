@@ -849,8 +849,8 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
         return ResolvedFunction(details, addition, None)
 
 
-def resolve_combinator(function: str) -> Tuple[str, Optional[str]]:
-    for combinator in [ArrayJoinCombinator]:
+def parse_combinator(function: str) -> Tuple[str, Optional[str]]:
+    for combinator in [ArrayCombinator]:
         kind = combinator.kind
         if function.endswith(kind):
             return function[: -len(kind)], kind
@@ -957,7 +957,7 @@ class Combinator:
         raise NotImplementedError(f"{self.kind} combinator needs to implement `is_applicable`")
 
 
-class ArrayJoinCombinator(Combinator):
+class ArrayCombinator(Combinator):
     kind = "Array"
 
     def __init__(self, column_name: str, array_columns: Set[str]):
@@ -974,7 +974,7 @@ class ArrayJoinCombinator(Combinator):
         return self.column_name == column_name
 
 
-class SnQLArrayJoinCombinator(ArrayJoinCombinator):
+class SnQLArrayCombinator(ArrayCombinator):
     def apply(self, value: Any) -> Any:
         return Function("arrayJoin", [value])
 
@@ -1592,12 +1592,18 @@ class DiscoverFunction:
             result_type is None or result_type in RESULT_TYPES
         ), f"{self.name}: result type {result_type} not one of {list(RESULT_TYPES)}"
 
-    def is_accessible(self, acl=None):
-        if not self.private:
+    def is_accessible(
+        self,
+        acl: Optional[List[str]] = None,
+        combinator: Optional[str] = None,
+    ) -> bool:
+        # Combinator support is private by default.
+        if not self.private and combinator is None:
             return True
         elif not acl:
             return False
-        return self.name in acl
+        name = self.name if combinator is None else f"{self.name}{combinator}"
+        return name in acl
 
     def find_combinator(self, kind: Optional[str]) -> Optional[Combinator]:
         if kind is None or self.combinators is None:
@@ -2645,7 +2651,7 @@ class QueryFields(QueryBase):
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
                     combinators=[
-                        SnQLArrayJoinCombinator(
+                        SnQLArrayCombinator(
                             "column", {"measurements_value", "span_op_breakdowns_value"}
                         )
                     ],
@@ -2863,7 +2869,7 @@ class QueryFields(QueryBase):
         name, combinator_name, arguments, alias = self.parse_function(match)
         snql_function = self.function_converter[name]
 
-        if not snql_function.is_accessible(self.functions_acl):
+        if not snql_function.is_accessible(self.functions_acl, combinator_name):
             raise InvalidSearchQuery(f"{snql_function.name}: no access to private function")
 
         combinator = snql_function.find_combinator(combinator_name)
@@ -2897,7 +2903,7 @@ class QueryFields(QueryBase):
         and alias out
         """
         raw_function = match.group("function")
-        function, combinator = resolve_combinator(raw_function)
+        function, combinator = parse_combinator(raw_function)
 
         if not self.is_function(function):
             raise InvalidSearchQuery(f"{function} is not a valid function")
