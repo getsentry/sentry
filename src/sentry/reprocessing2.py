@@ -415,19 +415,13 @@ def buffered_handle_remaining_events(
         )
 
 
-def get_remaining_event_ids_from_redis(key):
+def pop_remaining_event_ids_from_redis(key):
     client = _get_sync_redis_client()
     event_ids_batch = []
     min_datetime = None
     max_datetime = None
 
-    # TODO: Redis 6 introduces LPOP with <count> argument, use here? Can't get
-    # the entire list otherwise.
-    while True:
-        row = client.lpop(key)
-        if row is None:
-            break
-
+    for row in client.lrange(key, 0, -1):
         datetime_raw, event_id = row.split(";")
         datetime = to_datetime(float(datetime_raw))
 
@@ -439,6 +433,8 @@ def get_remaining_event_ids_from_redis(key):
             max_datetime = datetime
 
         event_ids_batch.append(event_id)
+
+    client.delete(key)
 
     return event_ids_batch, min_datetime, max_datetime
 
