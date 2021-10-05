@@ -52,7 +52,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         if self._counter_ttl <= 0:
             raise InvalidConfiguration("counter ttl must be at least 1")
-            
+
         if self._histogram_ttl <= 0:
             raise InvalidConfiguration("histogram ttl must be at least 1")
 
@@ -205,6 +205,12 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         store.
         """
         return {int(project_id) for project_id in self.cluster.smembers(LPQ_MEMBERS_KEY)}
+
+    def is_lpq_project(self, project_id: int) -> bool:
+        """
+        Checks whether the given project is currently using the low priority queue.
+        """
+        return bool(self.cluster.sismember(LPQ_MEMBERS_KEY, project_id))
 
     def add_project_to_lpq(self, project_id: int) -> bool:
         """
