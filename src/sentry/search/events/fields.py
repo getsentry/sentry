@@ -2243,8 +2243,10 @@ class SnQLFunction(DiscoverFunction):
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
-    def __init__(self, dataset: Dataset, params: ParamsType):
-        super().__init__(dataset, params)
+    def __init__(
+        self, dataset: Dataset, params: ParamsType, functions_acl: Optional[List[str]] = None
+    ):
+        super().__init__(dataset, params, functions_acl)
 
         self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
             # NOTE: `ISSUE_ALIAS` simply maps to the id, meaning that post processing
@@ -2702,8 +2704,16 @@ class QueryFields(QueryBase):
                     ),
                     default_result_type="number",
                 ),
+                SnQLFunction(
+                    "array_join",
+                    required_args=[StringArrayColumn("column")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "arrayJoin", [args["column"]], alias
+                    ),
+                    default_result_type="string",
+                    private=True,
+                ),
                 # TODO: implement these
-                SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("percentage", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("t_test", snql_aggregate=self._resolve_unimplemented_function),
@@ -2852,6 +2862,9 @@ class QueryFields(QueryBase):
 
         name, combinator_name, arguments, alias = self.parse_function(match)
         snql_function = self.function_converter[name]
+
+        if not snql_function.is_accessible(self.functions_acl):
+            raise InvalidSearchQuery(f"{snql_function.name}: no access to private function")
 
         combinator = snql_function.find_combinator(combinator_name)
 
