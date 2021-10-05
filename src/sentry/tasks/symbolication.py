@@ -9,6 +9,7 @@ from django.conf import settings
 from sentry import options
 from sentry.eventstore import processing
 from sentry.killswitches import killswitch_matches_context
+from sentry.models import Project
 from sentry.processing import realtime_metrics  # type: ignore
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -49,6 +50,7 @@ def should_demote_symbolication(project_id: int) -> bool:
 
 
 def submit_symbolicate(
+    project: Optional[Project],
     from_reprocessing: bool,
     cache_key: Optional[str],
     event_id: Optional[str],
@@ -60,6 +62,7 @@ def submit_symbolicate(
 
 
 def submit_symbolicate_low_priority(
+    project: Optional[Project],
     from_reprocessing: bool,
     cache_key: Optional[str],
     event_id: Optional[str],
@@ -253,6 +256,7 @@ def symbolicate_event(
     cache_key: Optional[str],
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
+    **kwargs: Any,
 ) -> None:
     """
     Handles event symbolication using the external service: symbolicator.
@@ -280,6 +284,7 @@ def symbolicate_event_low_priority(
     cache_key: Optional[str],
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
+    **kwargs: Any,
 ) -> None:
     """
     Handles event symbolication using the external service: symbolicator.
@@ -310,6 +315,7 @@ def symbolicate_event_from_reprocessing(
     cache_key: Optional[str],
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
+    **kwargs: Any,
 ) -> None:
     return _do_symbolicate_event(
         cache_key=cache_key,
@@ -330,6 +336,7 @@ def symbolicate_event_from_reprocessing_low_priority(
     cache_key: Optional[str],
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
+    **kwargs: Any,
 ) -> None:
     return _do_symbolicate_event(
         cache_key=cache_key,

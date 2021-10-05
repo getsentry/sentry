@@ -64,6 +64,7 @@ def _should_process_inner(data: CanonicalKeyDict) -> bool:
 
 
 def submit_process(
+    project: Optional[Project],
     from_reprocessing: bool,
     cache_key: Optional[str],
     event_id: Optional[str],
@@ -147,6 +148,7 @@ def _do_preprocess_event(
         is_low_priority = should_demote_symbolication(project_id)
         task = submit_symbolicate_low_priority if is_low_priority else submit_symbolicate
         task(
+            project,
             from_reprocessing,
             cache_key,
             event_id,
@@ -157,6 +159,7 @@ def _do_preprocess_event(
 
     if should_process(data):
         submit_process(
+            project,
             from_reprocessing,
             cache_key,
             event_id,
@@ -180,6 +183,7 @@ def preprocess_event(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project: Optional[Project] = None,
+    **kwargs: Any,
 ) -> None:
     return _do_preprocess_event(
         cache_key=cache_key,
@@ -203,6 +207,7 @@ def preprocess_event_from_reprocessing(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project: Optional[Project] = None,
+    **kwargs: Any,
 ) -> None:
     return _do_preprocess_event(
         cache_key=cache_key,
@@ -416,6 +421,7 @@ def process_event(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     data_has_changed: bool = False,
+    **kwargs: Any,
 ) -> None:
     """
     Handles event processing (for those events that need it)
@@ -447,6 +453,7 @@ def process_event_from_reprocessing(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     data_has_changed: bool = False,
+    **kwargs: Any,
 ) -> None:
     return _do_process_event(
         cache_key=cache_key,
@@ -588,6 +595,7 @@ def _do_save_event(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project_id: Optional[int] = None,
+    **kwargs: Any,
 ) -> None:
     """
     Saves an event to the database.
@@ -752,5 +760,6 @@ def save_event(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project_id: Optional[int] = None,
+    **kwargs: Any,
 ) -> None:
-    _do_save_event(cache_key, data, start_time, event_id, project_id)
+    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
