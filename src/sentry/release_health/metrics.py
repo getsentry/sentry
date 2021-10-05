@@ -40,32 +40,32 @@ def get_tag_values_list(org_id: int, values: Sequence[str]) -> Sequence[int]:
 
 
 def metric_id(org_id: int, name: str) -> int:
-    index = indexer.resolve(org_id, name)  # type: ignore
+    index = indexer.resolve(name)  # type: ignore
     if index is None:
         raise MetricIndexNotFound(name)
     return index  # type: ignore
 
 
 def tag_key(org_id: int, name: str) -> str:
-    index = indexer.resolve(org_id, name)  # type: ignore
+    index = indexer.resolve(name)  # type: ignore
     if index is None:
         raise MetricIndexNotFound(name)
     return f"tags[{index}]"
 
 
 def tag_value(org_id: int, name: str) -> int:
-    index = indexer.resolve(org_id, name)  # type: ignore
+    index = indexer.resolve(name)  # type: ignore
     if index is None:
         raise MetricIndexNotFound(name)
     return index  # type: ignore
 
 
 def try_get_string_index(org_id: int, name: str) -> Optional[int]:
-    return indexer.resolve(org_id, name)  # type: ignore
+    return indexer.resolve(name)  # type: ignore
 
 
 def reverse_tag_value(org_id: int, index: int) -> str:
-    str_value = indexer.reverse_resolve(org_id, index)  # type: ignore
+    str_value = indexer.reverse_resolve(index)  # type: ignore
     # If the value can't be reversed it's very likely a real programming bug
     # instead of something to be caught down: We probably got back a value from
     # Snuba that's not in the indexer => partial data loss
@@ -338,7 +338,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rv = {}
 
         for project_id, release in project_releases:
-            release_tag_value = indexer.resolve(org_id, release)  # type: ignore
+            release_tag_value = indexer.resolve(release)  # type: ignore
             if release_tag_value is None:
                 # Don't emit empty releases -- for exact compatibility with
                 # sessions table backend.
