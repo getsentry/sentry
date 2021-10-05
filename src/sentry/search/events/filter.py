@@ -1037,8 +1037,10 @@ ParsedTerms = Sequence[ParsedTerm]
 class QueryFilter(QueryFields):
     """Filter logic for a snql query"""
 
-    def __init__(self, dataset: Dataset, params: ParamsType):
-        super().__init__(dataset, params)
+    def __init__(
+        self, dataset: Dataset, params: ParamsType, functions_acl: Optional[List[str]] = None
+    ):
+        super().__init__(dataset, params, functions_acl)
 
         self.search_filter_converter: Mapping[
             str, Callable[[SearchFilter], Optional[WhereType]]

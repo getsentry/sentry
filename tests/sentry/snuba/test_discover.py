@@ -2937,14 +2937,49 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["transaction"] == "a" * 32
         assert data[0]["count"] == 1
 
-    def test_access_to_private_functions(self):
-        # using private functions directly without access should error
-        with pytest.raises(InvalidSearchQuery, match="array_join: no access to private function"):
-            discover.query(
-                selected_columns=["array_join(tags.key)"],
+    def test_array_join(self):
+        data = load_data("transaction", timestamp=before_now(seconds=3))
+        data["measurements"] = {
+            "fp": {"value": 1000},
+            "fcp": {"value": 1000},
+            "lcp": {"value": 1000},
+        }
+        self.store_event(data=data, project_id=self.project.id)
+
+        for use_snql in [False, True]:
+            results = discover.query(
+                selected_columns=["array_join(measurements_key)"],
                 query="",
-                params={"project_id": [self.project.id]},
+                params={
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                functions_acl=["array_join"],
+                use_snql=use_snql,
             )
+            assert {"fcp", "fp", "lcp"} == {
+                row["array_join_measurements_key"] for row in results["data"]
+            }
+
+    def test_access_to_private_functions(self):
+        for use_snql in [False, True]:
+            # using private functions directly without access should error
+            with pytest.raises(
+                InvalidSearchQuery, match="array_join: no access to private function"
+            ):
+                discover.query(
+                    selected_columns=["array_join(tags.key)"],
+                    query="",
+                    params={
+                        "project_id": [self.project.id],
+                        "start": self.two_min_ago,
+                        "end": self.now,
+                    },
+                    use_snql=use_snql,
+                )
+
+        # TODO: test the following with `use_snql=True` once histogram is using snql
 
         # using private functions in an aggregation without access should error
         with pytest.raises(InvalidSearchQuery, match="histogram: no access to private function"):
