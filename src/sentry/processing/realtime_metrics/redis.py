@@ -195,8 +195,6 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
     def is_lpq_project(self, project_id: int) -> bool:
         """
         Checks whether the given project is currently using the low priority queue.
-
-        Returns a bool.
         """
         return bool(self.cluster.sismember(LPQ_MEMBERS_KEY, project_id))
 

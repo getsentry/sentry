@@ -100,8 +100,6 @@ class RealtimeMetricsStore(Service):  # type: ignore
     def is_lpq_project(self, project_id: int) -> bool:
         """
         Checks whether the given project is currently using the low priority queue.
-
-        Returns a bool.
         """
         raise NotImplementedError
 
