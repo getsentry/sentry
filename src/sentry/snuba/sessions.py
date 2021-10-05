@@ -355,7 +355,7 @@ def extract_duration_quantiles(raw_stats):
         }
 
 
-def get_release_health_data_overview(
+def _get_release_health_data_overview(
     project_releases,
     environments=None,
     summary_stats_period=None,
