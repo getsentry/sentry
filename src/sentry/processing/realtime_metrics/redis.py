@@ -21,9 +21,9 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         self,
         cluster: str,
         counter_bucket_size: int,
-        counter_ttl: datetime.timedelta,
+        counter_ttl: int,
         histogram_bucket_size: int,
-        histogram_ttl: datetime.timedelta,
+        histogram_ttl: int,
     ) -> None:
         """Creates a RedisRealtimeMetricsStore.
 
@@ -50,6 +50,12 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         if self._histogram_bucket_size <= 0:
             raise InvalidConfiguration("histogram bucket size must be at least 1")
 
+        if self._counter_ttl <= 0:
+            raise InvalidConfiguration("counter ttl must be at least 1")
+            
+        if self._histogram_ttl <= 0:
+            raise InvalidConfiguration("histogram ttl must be at least 1")
+
     def _counter_key_prefix(self) -> str:
         return f"{self._prefix}:counter:{self._counter_bucket_size}"
 
@@ -71,7 +77,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         with self.cluster.pipeline() as pipeline:
             pipeline.incr(key)
-            pipeline.pexpire(key, int(self._counter_ttl / datetime.timedelta(milliseconds=1)))
+            pipeline.expire(key, self._counter_ttl + self.counter_bucket_size)
             pipeline.execute()
 
     def increment_project_duration_counter(
@@ -90,7 +96,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         with self.cluster.pipeline() as pipeline:
             pipeline.hincrby(key, duration, 1)
-            pipeline.pexpire(key, int(self._histogram_ttl / datetime.timedelta(milliseconds=1)))
+            pipeline.expire(key, self._histogram_ttl + self.histogram_bucket_size)
             pipeline.execute()
 
     def projects(self) -> Iterable[int]:
@@ -137,7 +143,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         bucket_size = self._counter_bucket_size
         now_bucket = timestamp - timestamp % bucket_size
 
-        first_bucket = int(timestamp - self._counter_ttl.total_seconds())
+        first_bucket = timestamp - self._counter_ttl
         first_bucket = first_bucket - first_bucket % bucket_size
 
         buckets = range(first_bucket, now_bucket + bucket_size, bucket_size)
@@ -173,7 +179,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         bucket_size = self._histogram_bucket_size
         now_bucket = timestamp - timestamp % bucket_size
 
-        first_bucket = int(timestamp - self._histogram_ttl.total_seconds())
+        first_bucket = timestamp - self._histogram_ttl
         first_bucket = first_bucket - first_bucket % bucket_size
 
         buckets = range(first_bucket, now_bucket + bucket_size, bucket_size)

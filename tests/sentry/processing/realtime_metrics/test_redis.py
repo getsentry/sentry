@@ -27,9 +27,9 @@ def config() -> Dict[str, Any]:
     return {
         "cluster": "default",
         "counter_bucket_size": 10,
-        "counter_ttl": datetime.timedelta(milliseconds=400),
+        "counter_ttl": 1,
         "histogram_bucket_size": 10,
-        "histogram_ttl": datetime.timedelta(milliseconds=400),
+        "histogram_ttl": 1,
     }
 
 
@@ -62,28 +62,13 @@ def test_default() -> None:
 #
 
 
-def test_increment_project_event_counter_simple(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
-) -> None:
-    store.increment_project_event_counter(17, 1147)
-    assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140") == "1"
-    time.sleep(0.5)
-    assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140") is None
-
-
 def test_increment_project_event_counter_same_bucket(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     store.increment_project_event_counter(17, 1147)
-    time.sleep(0.2)
     store.increment_project_event_counter(17, 1149)
+
     assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140") == "2"
-    time.sleep(0.3)
-    # the second insert should have refreshed the ttl
-    assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140") == "2"
-    time.sleep(0.2)
-    # it should have expired by now
-    assert redis_cluster.get("symbolicate_event_low_priority:counter:10:17:1140") is None
 
 
 def test_increment_project_event_counter_different_buckets(
@@ -101,28 +86,14 @@ def test_increment_project_event_counter_different_buckets(
 #
 
 
-def test_increment_project_duration_counter_simple(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
-) -> None:
-    store.increment_project_duration_counter(17, 1147, 15)
-    assert redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1140", "10") == "1"
-    time.sleep(0.5)
-    assert redis_cluster.get("symbolicate_event_low_priority:histogram:10:17:1140") is None
-
 
 def test_increment_project_duration_counter_same_bucket(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     store.increment_project_duration_counter(17, 1147, 15)
-    time.sleep(0.2)
     store.increment_project_duration_counter(17, 1149, 19)
+
     assert redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1140", "10") == "2"
-    time.sleep(0.3)
-    # the second insert should have refreshed the ttl
-    assert redis_cluster.hget("symbolicate_event_low_priority:histogram:10:17:1140", "10") == "2"
-    time.sleep(0.2)
-    # it should have expired by now
-    assert redis_cluster.get("symbolicate_event_low_priority:histogram:10:17:1140") is None
 
 
 def test_increment_project_duration_counter_different_buckets(
@@ -389,7 +360,7 @@ def test_get_counts_for_project_unset(store: RedisRealtimeMetricsStore) -> None:
 
     assert list(counts) == [BucketedCount(timestamp=110, count=0)]
 
-    store._counter_ttl = datetime.timedelta(seconds=20)
+    store._counter_ttl = 20
 
     counts = store.get_counts_for_project(42, 113)
 
@@ -413,7 +384,7 @@ def test_get_counts_for_project_empty(
 
     assert list(counts) == [BucketedCount(timestamp=110, count=0)]
 
-    store._counter_ttl = datetime.timedelta(seconds=20)
+    store._counter_ttl = 20
 
     counts = store.get_counts_for_project(42, 113)
 
@@ -500,7 +471,7 @@ def test_get_counts_for_project_different_buckets(
 def test_get_counts_for_projects_with_gap(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
-    store._counter_ttl = datetime.timedelta(seconds=40)
+    store._counter_ttl = 40
     redis_cluster.set("symbolicate_event_low_priority:counter:10:42:110", 3)
     redis_cluster.set("symbolicate_event_low_priority:counter:10:42:150", 17)
 
@@ -527,7 +498,7 @@ def test_get_durations_for_project_unset(store: RedisRealtimeMetricsStore) -> No
         DurationHistogram(timestamp=110, histogram=BucketedDurations(empty_histogram()))
     ]
 
-    store._histogram_ttl = datetime.timedelta(seconds=20)
+    store._histogram_ttl = 20
 
     durations = store.get_durations_for_project(42, 113)
 
@@ -555,7 +526,7 @@ def test_get_durations_for_project_empty(
         DurationHistogram(timestamp=110, histogram=BucketedDurations(empty_histogram()))
     ]
 
-    store._histogram_ttl = datetime.timedelta(seconds=20)
+    store._histogram_ttl = 20
 
     durations = store.get_durations_for_project(42, 113)
 
@@ -683,7 +654,7 @@ def test_get_durations_for_project_different_buckets(
 def test_get_durations_for_projects_with_gap(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
-    store._histogram_ttl = datetime.timedelta(seconds=40)
+    store._histogram_ttl = 40
     redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:110", 20, 3)
     redis_cluster.hset("symbolicate_event_low_priority:histogram:10:42:150", 30, 17)
 
