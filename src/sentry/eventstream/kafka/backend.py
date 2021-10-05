@@ -73,8 +73,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         send_new_headers = options.get("eventstream:kafka-headers")
 
         if send_new_headers is True:
-            # TODO: Change transaction_forwarder to be intelligent once transaction post process forwarder
-            #       is implemented and caught up with current events post process forwarder.
             return strip_none_values(
                 {
                     "Received-Timestamp": str(received_timestamp),
