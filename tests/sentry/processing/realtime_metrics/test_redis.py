@@ -44,7 +44,7 @@ def store(config: Dict[str, Any]) -> RedisRealtimeMetricsStore:
     return RedisRealtimeMetricsStore(**config)
 
 
-def empty_histogram() -> Dict[int, int]:
+def empty_histogram() -> BucketedDurations:
     return {duration: 0 for duration in range(0, 600, 10)}
 
 
