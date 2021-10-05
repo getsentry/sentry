@@ -380,18 +380,16 @@ def buffered_handle_remaining_events(
     # contain {}.
     key = f"re2:remaining:{{{project_id}:{old_group_id}}}"
 
-    llen = None
-
     if datetime_to_event:
         llen = client.lpush(
             key,
             *(f"{to_timestamp(datetime)};{event_id}" for datetime, event_id in datetime_to_event),
         )
         client.expire(key, settings.SENTRY_REPROCESSING_SYNC_TTL)
+    else:
+        llen = client.llen(key)
 
-    MAX_LLEN = settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE
-
-    if force_flush_batch or (llen is not None and llen > MAX_LLEN) or client.llen(key) > MAX_LLEN:
+    if force_flush_batch or llen > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE:
         new_key = f"{key}:{uuid.uuid4().hex}"
 
         try:
