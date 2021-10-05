@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import chunk from 'lodash/chunk';
+import isEqual from 'lodash/isEqual';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import BarChart from 'app/components/charts/barChart';
@@ -10,17 +11,19 @@ import PanelTable from 'app/components/panels/panelTable';
 import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
+import {Series, SeriesDataUnit} from 'app/types/echarts';
 
-type AlertsTriggered = Record<string, number>;
+type IssuesBreakdown = Record<string, Record<string, {reviewed: number; total: number}>>;
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
+  projects: Project[];
   teamSlug: string;
 } & DateTimeObject;
 
 type State = AsyncComponent['state'] & {
-  alertsTriggered: AlertsTriggered | null;
+  issuesBreakdown: IssuesBreakdown | null;
 };
 
 class TeamIssues extends AsyncComponent<Props, State> {
@@ -29,7 +32,7 @@ class TeamIssues extends AsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
-      alertsTriggered: null,
+      issuesBreakdown: null,
     };
   }
 
@@ -39,8 +42,8 @@ class TeamIssues extends AsyncComponent<Props, State> {
 
     return [
       [
-        'alertsTriggered',
-        `/teams/${organization.slug}/${teamSlug}/alerts-triggered/`,
+        'issuesBreakdown',
+        `/teams/${organization.slug}/${teamSlug}/issue-breakdown/`,
         {
           query: {
             ...getParams(datetime),
@@ -58,7 +61,8 @@ class TeamIssues extends AsyncComponent<Props, State> {
       prevProps.end !== end ||
       prevProps.period !== period ||
       prevProps.utc !== utc ||
-      prevProps.teamSlug !== teamSlug
+      prevProps.teamSlug !== teamSlug ||
+      !isEqual(prevProps.projects, projects)
     ) {
       this.remountComponent();
     }
@@ -69,13 +73,19 @@ class TeamIssues extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {alertsTriggered} = this.state;
-    const data = Object.entries(alertsTriggered ?? {})
-      .map(([bucket, count]) => ({
-        value: count,
-        name: new Date(bucket).getTime(),
-      }))
-      .sort((a, b) => a.name - b.name);
+    const {issuesBreakdown, isLoading} = this.state;
+    const {projects} = this.props;
+
+    const reviewedSeries: SeriesDataUnit[] = [];
+    const notReviewedSeries: SeriesDataUnit[] = [];
+
+    const data = Object.entries(issuesBreakdown ?? {})
+      .map(([_, value]) => Object.values(value))
+      .forEach(([bucket, {reviewed, total}]) => {
+        const name = new Date(bucket).getTime();
+        reviewedSeries.push({value: reviewed, name});
+        notReviewedSeries.push({value: total, name});
+      });
 
     // Convert from days to 7 day groups
     const seriesData = chunk(data, 7).map(week => {
@@ -98,11 +108,11 @@ class TeamIssues extends AsyncComponent<Props, State> {
               series={[
                 {
                   seriesName: t('Reviewed'),
-                  data: seriesData,
+                  data: reviewedSeries,
                 },
                 {
                   seriesName: t('Not Reviewed'),
-                  data: seriesData,
+                  data: notReviewedSeries,
                 },
               ]}
             />
