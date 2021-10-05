@@ -375,4 +375,4 @@ register("subscriptions-query.sample-rate", default=0.01)
 # removed once it is fully rolled out.
 register("symbolicate-event.low-priority.metrics.submission-rate", default=0.0)
 
-register("performance:suspect-spans-ingestion-projects", default={})
+register("performance.suspect-spans-ingestion-projects", default={})
