@@ -246,7 +246,7 @@ class QueryList extends React.Component<Props> {
           renderGraph={() => (
             <Feature
               organization={organization}
-              features={['connect-discover-and-dashboards', 'dashboards-edit']}
+              features={['connect-discover-and-dashboards']}
             >
               {({hasFeature}) => (
                 <MiniGraph
