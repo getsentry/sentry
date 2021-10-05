@@ -124,11 +124,14 @@ def reprocess_group(
 def handle_remaining_events(
     project_id,
     new_group_id,
-    event_ids,
     remaining_events,
-    from_timestamp,
-    to_timestamp,
+    # TODO(markus): Should be mandatory arguments.
+    event_ids_redis_key=None,
     old_group_id=None,
+    # TODO(markus): Deprecated arguments, can remove in next version.
+    event_ids=None,
+    from_timestamp=None,
+    to_timestamp=None,
 ):
     """
     Delete or merge/move associated per-event data: nodestore, event
@@ -144,7 +147,12 @@ def handle_remaining_events(
 
     from sentry import buffer
     from sentry.models.group import Group
-    from sentry.reprocessing2 import EVENT_MODELS_TO_MIGRATE
+    from sentry.reprocessing2 import EVENT_MODELS_TO_MIGRATE, get_remaining_event_ids_from_redis
+
+    if event_ids_redis_key is not None:
+        event_ids, from_timestamp, to_timestamp = get_remaining_event_ids_from_redis(
+            event_ids_redis_key
+        )
 
     assert remaining_events in ("delete", "keep")
 

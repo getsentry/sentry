@@ -79,9 +79,12 @@ instead of group deletion is:
 
 import hashlib
 import logging
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
+
+import redis
 
 if TYPE_CHECKING:
     from typing_extensions import Literal
@@ -369,40 +372,37 @@ def buffered_handle_remaining_events(
     """
 
     client = _get_sync_redis_client()
-    key = f"re2:remaining:{project_id}:{old_group_id}"
+    # We explicitly cluster by only project_id and group_id here such that our
+    # RENAME command later succeeds.
+    #
+    # We also use legacy string formatting here because new-style Python
+    # formatting is quite confusing when the output string is supposed to
+    # contain {}.
+    key = f"re2:remaining:{{{project_id}:{old_group_id}}}"
+
+    llen = None
 
     if datetime_to_event:
-        client.lpush(
+        llen = client.lpush(
             key,
             *(f"{to_timestamp(datetime)};{event_id}" for datetime, event_id in datetime_to_event),
         )
         client.expire(key, settings.SENTRY_REPROCESSING_SYNC_TTL)
 
-    if (
-        force_flush_batch
-        or client.llen(key) > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE
-    ):
-        event_ids_batch = []
-        min_datetime = None
-        max_datetime = None
+    MAX_LLEN = settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE
 
-        # TODO: Redis 6 introduces LPOP with <count> argument, use here?
-        while True:
-            row = client.lpop(key)
-            if row is None:
-                break
+    if force_flush_batch or (llen is not None and llen > MAX_LLEN) or client.llen(key) > MAX_LLEN:
+        new_key = f"{key}:{uuid.uuid4().hex}"
 
-            datetime_raw, event_id = row.split(";")
-            datetime = to_datetime(float(datetime_raw))
-
-            assert datetime is not None
-
-            if min_datetime is None or datetime < min_datetime:
-                min_datetime = datetime
-            if max_datetime is None or datetime > max_datetime:
-                max_datetime = datetime
-
-            event_ids_batch.append(event_id)
+        try:
+            # Rename `key` to a new temp key that is passed to celery task. We
+            # use `renamenx` instead of `rename` only to detect UUID collisions.
+            assert client.renamenx(key, new_key), "UUID collision for new_key?"
+        except redis.exceptions.ResponseError:
+            # `key` does not exist in Redis. `ResponseError` is a bit too broad
+            # but it seems we'd have to do string matching on error message
+            # otherwise.
+            return
 
         from sentry.tasks.reprocessing2 import handle_remaining_events
 
@@ -410,11 +410,37 @@ def buffered_handle_remaining_events(
             project_id=project_id,
             old_group_id=old_group_id,
             new_group_id=new_group_id,
-            event_ids=event_ids_batch,
             remaining_events=remaining_events,
-            from_timestamp=min_datetime,
-            to_timestamp=max_datetime,
+            event_ids_redis_key=new_key,
         )
+
+
+def get_remaining_event_ids_from_redis(key):
+    client = _get_sync_redis_client()
+    event_ids_batch = []
+    min_datetime = None
+    max_datetime = None
+
+    # TODO: Redis 6 introduces LPOP with <count> argument, use here? Can't get
+    # the entire list otherwise.
+    while True:
+        row = client.lpop(key)
+        if row is None:
+            break
+
+        datetime_raw, event_id = row.split(";")
+        datetime = to_datetime(float(datetime_raw))
+
+        assert datetime is not None
+
+        if min_datetime is None or datetime < min_datetime:
+            min_datetime = datetime
+        if max_datetime is None or datetime > max_datetime:
+            max_datetime = datetime
+
+        event_ids_batch.append(event_id)
+
+    return event_ids_batch, min_datetime, max_datetime
 
 
 def mark_event_reprocessed(data=None, group_id=None, project_id=None, num_events=1):
