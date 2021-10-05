@@ -86,7 +86,6 @@ def test_increment_project_event_counter_different_buckets(
 #
 
 
-
 def test_increment_project_duration_counter_same_bucket(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
