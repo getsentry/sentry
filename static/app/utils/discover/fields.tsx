@@ -969,6 +969,10 @@ export function isAggregateField(field: string): boolean {
   return parseFunction(field) !== null;
 }
 
+export function isAggregateFieldOrEquation(field: string): boolean {
+  return isAggregateField(field) || isAggregateEquation(field);
+}
+
 export function getAggregateFields(fields: string[]): string[] {
   return fields.filter(field => isAggregateField(field) || isAggregateEquation(field));
 }

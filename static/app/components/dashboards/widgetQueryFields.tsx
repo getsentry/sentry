@@ -8,9 +8,9 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {
   aggregateFunctionOutputType,
-  explodeField,
   generateFieldAsString,
-  getAggregateFields,
+  isAggregateEquation,
+  isAggregateField,
   isLegalYAxisType,
   QueryFieldValue,
 } from 'app/utils/discover/fields';
@@ -30,11 +30,11 @@ type Props = {
   /**
    * The field list for the widget.
    */
-  fields: string[];
+  fields: QueryFieldValue[];
   /**
    * Fired when fields are added/removed/modified/reordered.
    */
-  onChange: (fields: string[]) => void;
+  onChange: (fields: QueryFieldValue[]) => void;
   /**
    * Any errors that need to be rendered.
    */
@@ -56,7 +56,20 @@ function WidgetQueryFields({
   function handleAdd(event: React.MouseEvent) {
     event.preventDefault();
 
-    const newFields = [...fields, ''];
+    const newFields = [
+      ...fields,
+      {kind: FieldValueKind.FIELD, field: ''} as QueryFieldValue,
+    ];
+    onChange(newFields);
+  }
+
+  function handleAddEquation(event: React.MouseEvent) {
+    event.preventDefault();
+
+    const newFields = [
+      ...fields,
+      {kind: FieldValueKind.EQUATION, field: ''} as QueryFieldValue,
+    ];
     onChange(newFields);
   }
 
@@ -70,28 +83,33 @@ function WidgetQueryFields({
 
   function handleChangeField(value: QueryFieldValue, fieldIndex: number) {
     const newFields = [...fields];
-    newFields[fieldIndex] = generateFieldAsString(value);
+    newFields[fieldIndex] = value;
     onChange(newFields);
   }
 
+  function getAggregateFields(): QueryFieldValue[] {
+    return fields.filter(field => {
+      const fieldStr = generateFieldAsString(field);
+      return isAggregateField(fieldStr) || isAggregateEquation(fieldStr);
+    });
+  }
+
   function handleTopNChangeField(value: QueryFieldValue, fieldIndex: number) {
-    const aggregateFields = getAggregateFields(fields);
+    const aggregateFields = getAggregateFields();
     const otherFields = fields.filter(field => !!!aggregateFields.includes(field));
-    aggregateFields[fieldIndex] = generateFieldAsString(value);
+    aggregateFields[fieldIndex] = value;
     const newFields = [...otherFields, ...aggregateFields];
     onChange(newFields);
   }
 
   function handleTopNColumnChange(columns: QueryFieldValue[]) {
-    const aggregateFields = getAggregateFields(fields);
-    const otherFields = columns.map(generateFieldAsString);
-    const newFields = [...otherFields, ...aggregateFields];
+    const aggregateFields = getAggregateFields();
+    const newFields = [...columns, ...aggregateFields];
     onChange(newFields);
   }
 
   function handleColumnChange(columns: QueryFieldValue[]) {
-    const newFields = columns.map(generateFieldAsString);
-    onChange(newFields);
+    onChange(columns);
   }
 
   if (displayType === 'table') {
@@ -107,7 +125,7 @@ function WidgetQueryFields({
         required
       >
         <StyledColumnEditCollection
-          columns={fields.map(field => explodeField({field}))}
+          columns={fields}
           onChange={handleColumnChange}
           fieldOptions={fieldOptions}
           organization={organization}
@@ -168,9 +186,9 @@ function WidgetQueryFields({
   };
 
   if (displayType === 'top_n') {
-    const aggregateFields = getAggregateFields(fields);
+    const aggregateFields = getAggregateFields();
     const otherFields = fields.filter(field => !!!aggregateFields.includes(field));
-    const fieldValue = explodeField({field: aggregateFields[0]});
+    const fieldValue = aggregateFields[0];
 
     return (
       <React.Fragment>
@@ -185,7 +203,7 @@ function WidgetQueryFields({
           required
         >
           <StyledColumnEditCollection
-            columns={otherFields.map(field => explodeField({field}))}
+            columns={otherFields}
             onChange={handleTopNColumnChange}
             fieldOptions={fieldOptions}
             organization={organization}
@@ -232,15 +250,15 @@ function WidgetQueryFields({
       stacked
     >
       {fields.map((field, i) => {
-        const fieldValue = explodeField({field});
         return (
           <QueryFieldWrapper key={`${field}:${i}`}>
             <QueryField
-              fieldValue={fieldValue}
+              fieldValue={field}
               fieldOptions={fieldOptions}
               onChange={value => handleChangeField(value, i)}
               filterPrimaryOptions={filterPrimaryOptions}
-              filterAggregateParameters={filterAggregateParameters(fieldValue)}
+              filterAggregateParameters={filterAggregateParameters(field)}
+              otherColumns={fields}
             />
             {fields.length > 1 && (
               <Button
@@ -256,11 +274,19 @@ function WidgetQueryFields({
         );
       })}
       {!hideAddYAxisButton && (
-        <div>
+        <Actions>
           <Button size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
             {t('Add Overlay')}
           </Button>
-        </div>
+          <Button
+            size="small"
+            label={t('Add an Equation')}
+            onClick={handleAddEquation}
+            icon={<IconAdd isCircled size="xs" />}
+          >
+            {t('Add an Equation')}
+          </Button>
+        </Actions>
       )}
     </Field>
   );
@@ -278,6 +304,14 @@ export const QueryFieldWrapper = styled('div')`
 
   > * + * {
     margin-left: ${space(1)};
+  }
+`;
+
+const Actions = styled('div')`
+  grid-column: 2 / 3;
+
+  & button {
+    margin-right: ${space(1)};
   }
 `;
 

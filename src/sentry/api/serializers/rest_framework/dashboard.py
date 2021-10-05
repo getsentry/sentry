@@ -4,6 +4,7 @@ from django.db.models import Max
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.discover.arithmetic import is_equation, resolve_equation_list, strip_equation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Dashboard,
@@ -39,6 +40,15 @@ def validate_id(self, value):
         raise serializers.ValidationError("Invalid ID format. Must be a numeric string")
 
 
+def get_equation_list(fields):
+    """equations have a prefix so that they can be easily included alongside our existing fields"""
+    return [strip_equation(field) for field in fields if is_equation(field)]
+
+
+def get_field_list(fields):
+    return [field for field in fields if not is_equation(field)]
+
+
 class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
@@ -66,6 +76,13 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         conditions = self._get_attr(data, "conditions", "")
         fields = self._get_attr(data, "fields", []).copy()
         orderby = self._get_attr(data, "orderby", "")
+        equations = get_equation_list(fields)
+        fields = get_field_list(fields)
+        if equations is not None:
+            resolved_equations, _ = resolve_equation_list(equations, fields)
+        else:
+            resolved_equations = []
+
         try:
             # When using the eps/epm functions, they require an interval argument
             # or to provide the start/end so that the interval can be computed.
@@ -85,7 +102,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         if orderby:
             snuba_filter.orderby = get_function_alias(orderby)
         try:
-            resolve_field_list(fields, snuba_filter)
+            resolve_field_list(fields, snuba_filter, resolved_equations=resolved_equations)
         except InvalidSearchQuery as err:
             raise serializers.ValidationError({"fields": f"Invalid fields: {err}"})
         return data
