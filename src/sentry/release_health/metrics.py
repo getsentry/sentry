@@ -73,10 +73,6 @@ def reverse_tag_value(org_id: int, index: int) -> str:
     return str_value  # type: ignore
 
 
-def get_tag_values_list(org_id: int, values: Sequence[str]) -> Sequence[int]:
-    return [x for x in [try_get_tag_value(org_id, x) for x in values] if x is not None]
-
-
 def filter_projects_by_project_release(project_releases: Sequence[ProjectRelease]) -> Condition:
     return Condition(Column("project_id"), Op.IN, list(x for x, _ in project_releases))
 
@@ -957,6 +953,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 rv[key]["has_health_data"] = key in has_health_data  # type: ignore
 
         return rv
+
     def _get_crash_free_breakdown_fn(
         self,
         org_id: int,
