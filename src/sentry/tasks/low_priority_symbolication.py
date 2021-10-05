@@ -8,8 +8,11 @@ This has three major tasks, executed in the following general order:
 3. Remove some specified project from the LPQ.
 """
 
+import datetime
 import logging
 from typing import Iterable
+
+import pytz
 
 from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.base import BucketedCount, DurationHistogram
@@ -31,10 +34,11 @@ def scan_for_suspect_projects() -> None:
 
 def _scan_for_suspect_projects() -> None:
     suspect_projects = set()
+    now = int(datetime.datetime.now(tz=pytz.utc).timestamp())
 
     for project_id in realtime_metrics.projects():
         suspect_projects.add(project_id)
-        update_lpq_eligibility.apply_async(project_id=project_id)
+        update_lpq_eligibility.apply_async(project_id=project_id, cutoff=now)
 
     # Prune projects we definitely know shouldn't be in the queue any more.
     # `update_lpq_eligibility` should handle removing suspect projects from the list if it turns
@@ -57,17 +61,23 @@ def _scan_for_suspect_projects() -> None:
     ignore_result=True,
     soft_time_limit=10,
 )
-def update_lpq_eligibility(project_id: int) -> None:
+def update_lpq_eligibility(project_id: int, cutoff: int) -> None:
     """
     Given a project ID, determines whether the project belongs in the low priority queue and
     removes or assigns it accordingly to the low priority queue.
+
+    `cutoff` is a posix timestamp that specifies an end time for the historical data this method
+    should consider when calculating a project's eligibility. In other words, only data recorded
+    before `cutoff` should be considered.
     """
-    _update_lpq_eligibility(project_id)
+    _update_lpq_eligibility(project_id, cutoff)
 
 
-def _update_lpq_eligibility(project_id: int) -> None:
-    counts = realtime_metrics.get_counts_for_project(project_id)
-    durations = realtime_metrics.get_durations_for_project(project_id)
+def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
+    # TODO: It may be a good idea to figure out how to debounce especially if this is
+    # executing more than 10s after cutoff.
+    counts = realtime_metrics.get_counts_for_project(project_id, cutoff)
+    durations = realtime_metrics.get_durations_for_project(project_id, cutoff)
 
     is_eligible = calculation_magic(counts, durations)
 
