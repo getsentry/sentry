@@ -3,7 +3,7 @@ import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
 import TeamResolutionTime from 'app/views/teamInsights/teamResolutionTime';
 
 describe('TeamResolutionTime', () => {
-  it('should render graph of alerts triggered', async () => {
+  it('should render graph of issue time to resolution', async () => {
     const team = TestStubs.Team();
     const organization = TestStubs.Organization();
     const timeToResolutionApi = MockApiClient.addMockResponse({
