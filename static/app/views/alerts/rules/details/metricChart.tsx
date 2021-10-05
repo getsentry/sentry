@@ -38,7 +38,11 @@ import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
-import {SESSION_AGGREGATE_TO_FIELD} from '../../utils';
+import {
+  alertAxisFormatter,
+  alertTooltipValueFormatter,
+  SESSION_AGGREGATE_TO_FIELD,
+} from '../../utils';
 
 import {TimePeriodType} from './constants';
 
@@ -499,11 +503,17 @@ class MetricChart extends React.PureComponent<Props, State> {
                   top: space(2),
                   bottom: 0,
                 }}
-                yAxis={
-                  maxThresholdValue > maxSeriesValue
-                    ? {max: maxThresholdValue}
-                    : undefined
-                }
+                yAxis={{
+                  axisLabel: {
+                    formatter: (value: number) =>
+                      alertAxisFormatter(
+                        value,
+                        timeseriesData[0].seriesName,
+                        rule.aggregate
+                      ),
+                  },
+                  max: maxThresholdValue > maxSeriesValue ? maxThresholdValue : undefined,
+                }}
                 series={[...series, ...areaSeries]}
                 graphic={Graphic({
                   elements: this.getRuleChangeThresholdElements(timeseriesData),
@@ -516,6 +526,11 @@ class MetricChart extends React.PureComponent<Props, State> {
                       : [seriesParams];
                     const {marker, data: pointData, seriesName} = pointSeries[0];
                     const [pointX, pointY] = pointData as [number, number];
+                    const pointYFormatted = alertTooltipValueFormatter(
+                      pointY,
+                      seriesName ?? '',
+                      rule.aggregate
+                    );
                     const isModified =
                       dateModified && pointX <= new Date(dateModified).getTime();
 
@@ -535,8 +550,8 @@ class MetricChart extends React.PureComponent<Props, State> {
                       ? `<strong>${t('Alert Rule Modified')}</strong>`
                       : `${marker} <strong>${seriesName}</strong>`;
                     const value = isModified
-                      ? `${seriesName} ${pointY.toLocaleString()}`
-                      : pointY.toLocaleString();
+                      ? `${seriesName} ${pointYFormatted}`
+                      : pointYFormatted;
 
                     return [
                       `<div class="tooltip-series"><div>`,
