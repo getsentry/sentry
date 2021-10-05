@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from time import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import sentry_sdk
 from django.conf import settings
@@ -86,7 +86,7 @@ def submit_save_event(
     cache_key: Optional[str],
     event_id: Optional[str],
     start_time: Optional[int],
-    data: Optional[Any],
+    data: Optional[processing.Event],
 ) -> None:
     if cache_key:
         data = None
@@ -104,10 +104,10 @@ def submit_save_event(
 
 def _do_preprocess_event(
     cache_key: Optional[str],
-    data: Optional[Any],
+    data: Optional[processing.Event],
     start_time: Optional[int],
     event_id: Optional[str],
-    process_task: Any,
+    process_task: Callable[[Optional[str], Optional[int], Optional[str], bool], None],
     project: Optional[Project],
 ) -> None:
     from sentry.lang.native.processing import should_process_with_symbolicator
@@ -179,11 +179,11 @@ def _do_preprocess_event(
 )
 def preprocess_event(
     cache_key: Optional[str] = None,
-    data: Optional[Any] = None,
+    data: Optional[processing.Event] = None,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project: Optional[Project] = None,
-    **kwargs: Any,
+    **kwargs: Dict[str, Any],
 ) -> None:
     return _do_preprocess_event(
         cache_key=cache_key,
@@ -203,11 +203,11 @@ def preprocess_event(
 )
 def preprocess_event_from_reprocessing(
     cache_key: Optional[str] = None,
-    data: Optional[Any] = None,
+    data: Optional[processing.Event] = None,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project: Optional[Project] = None,
-    **kwargs: Any,
+    **kwargs: Dict[str, Any],
 ) -> None:
     return _do_preprocess_event(
         cache_key=cache_key,
@@ -225,7 +225,9 @@ def preprocess_event_from_reprocessing(
     time_limit=(60 * 5) + 5,
     soft_time_limit=60 * 5,
 )
-def retry_process_event(process_task_name: str, task_kwargs: Any, **kwargs: Any) -> None:
+def retry_process_event(
+    process_task_name: str, task_kwargs: Dict[str, Any], **kwargs: Dict[str, Any]
+) -> None:
     """
     The only purpose of this task is be enqueued with some ETA set. This is
     essentially an implementation of ETAs on top of Celery's existing ETAs, but
@@ -247,8 +249,8 @@ def _do_process_event(
     cache_key: Optional[str],
     start_time: Optional[int],
     event_id: Optional[str],
-    process_task: Any,
-    data: Optional[Any] = None,
+    process_task: Callable[[Optional[str], Optional[int], Optional[str], bool], None],
+    data: Optional[processing.Event] = None,
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
 ) -> None:
@@ -421,7 +423,7 @@ def process_event(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     data_has_changed: bool = False,
-    **kwargs: Any,
+    **kwargs: Dict[str, Any],
 ) -> None:
     """
     Handles event processing (for those events that need it)
@@ -453,7 +455,7 @@ def process_event_from_reprocessing(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     data_has_changed: bool = False,
-    **kwargs: Any,
+    **kwargs: Dict[str, Any],
 ) -> None:
     return _do_process_event(
         cache_key=cache_key,
@@ -495,7 +497,7 @@ def delete_raw_event(
 
 def create_failed_event(
     cache_key: Optional[str],
-    data: Optional[Any],
+    data: Optional[processing.Event],
     project_id: int,
     issues: List[Dict[str, str]],
     event_id: Optional[str],
@@ -591,11 +593,11 @@ def create_failed_event(
 
 def _do_save_event(
     cache_key: Optional[str] = None,
-    data: Optional[Any] = None,
+    data: Optional[processing.Event] = None,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project_id: Optional[int] = None,
-    **kwargs: Any,
+    **kwargs: Dict[str, Any],
 ) -> None:
     """
     Saves an event to the database.
@@ -700,7 +702,9 @@ def _do_save_event(
             time_synthetic_monitoring_event(data, project_id, start_time)
 
 
-def time_synthetic_monitoring_event(data: Any, project_id: int, start_time: Optional[int]) -> bool:
+def time_synthetic_monitoring_event(
+    data: processing.Event, project_id: int, start_time: Optional[int]
+) -> bool:
     """
     For special events produced by the recurring synthetic monitoring
     functions, emit timing metrics for:
@@ -756,10 +760,10 @@ def time_synthetic_monitoring_event(data: Any, project_id: int, start_time: Opti
 )
 def save_event(
     cache_key: Optional[str] = None,
-    data: Optional[Any] = None,
+    data: Optional[processing.Event] = None,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project_id: Optional[int] = None,
-    **kwargs: Any,
+    **kwargs: Dict[str, Any],
 ) -> None:
     _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)

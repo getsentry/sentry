@@ -1,7 +1,7 @@
 import logging
 import random
 from time import sleep, time
-from typing import Any, Optional
+from typing import Any, Callable, Dict, Optional
 
 import sentry_sdk
 from django.conf import settings
@@ -55,7 +55,7 @@ def submit_symbolicate(
     cache_key: Optional[str],
     event_id: Optional[str],
     start_time: Optional[int],
-    data: Optional[Any],
+    data: Optional[processing.Event],
 ) -> None:
     task = symbolicate_event_from_reprocessing if from_reprocessing else symbolicate_event
     task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
@@ -67,7 +67,7 @@ def submit_symbolicate_low_priority(
     cache_key: Optional[str],
     event_id: Optional[str],
     start_time: Optional[int],
-    data: Optional[Any],
+    data: Optional[processing.Event],
 ) -> None:
     task = (
         symbolicate_event_from_reprocessing_low_priority
@@ -81,8 +81,8 @@ def _do_symbolicate_event(
     cache_key: Optional[str],
     start_time: Optional[int],
     event_id: Optional[str],
-    symbolicate_task: Any,
-    data: Optional[Any] = None,
+    symbolicate_task: Callable[[Optional[str], Optional[int], Optional[str]], None],
+    data: Optional[processing.Event] = None,
 ) -> None:
     from sentry.lang.native.processing import get_symbolication_function
     from sentry.tasks.store import _do_process_event, process_event, process_event_from_reprocessing
@@ -256,7 +256,7 @@ def symbolicate_event(
     cache_key: Optional[str],
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
-    **kwargs: Any,
+    **kwargs: Dict[str, Any],
 ) -> None:
     """
     Handles event symbolication using the external service: symbolicator.
@@ -284,7 +284,7 @@ def symbolicate_event_low_priority(
     cache_key: Optional[str],
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
-    **kwargs: Any,
+    **kwargs: Dict[str, Any],
 ) -> None:
     """
     Handles event symbolication using the external service: symbolicator.
@@ -315,7 +315,7 @@ def symbolicate_event_from_reprocessing(
     cache_key: Optional[str],
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
-    **kwargs: Any,
+    **kwargs: Dict[str, Any],
 ) -> None:
     return _do_symbolicate_event(
         cache_key=cache_key,
@@ -336,7 +336,7 @@ def symbolicate_event_from_reprocessing_low_priority(
     cache_key: Optional[str],
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
-    **kwargs: Any,
+    **kwargs: Dict[str, Any],
 ) -> None:
     return _do_symbolicate_event(
         cache_key=cache_key,
