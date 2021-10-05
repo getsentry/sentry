@@ -1,6 +1,7 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
+import {fetchUserTeams} from 'app/actionCreators/teams';
 import TeamActions from 'app/actions/teamActions';
 import {Client} from 'app/api';
 import OrganizationStore from 'app/stores/organizationStore';
@@ -54,6 +55,14 @@ type Options = {
    * Number of teams to return when not using `props.slugs`
    */
   limit?: number;
+  /**
+   * When provided, fetches specified teams by slug if necessary and only provides those teams.
+   */
+  slugs?: string[];
+  /**
+   * When true, fetches user's teams if necessary and only provides user's teams (isMember = true).
+   */
+  provideUserTeams?: boolean;
 };
 
 type FetchTeamOptions = Pick<Options, 'limit'> & {
@@ -112,7 +121,7 @@ async function fetchTeams(
   return {results: data, hasMore, nextCursor};
 }
 
-function useTeams({limit}: Options = {}) {
+function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   const api = useApi();
   const {organization} = useLegacyStore(OrganizationStore);
   const store = useLegacyStore(TeamStore);
@@ -124,6 +133,75 @@ function useTeams({limit}: Options = {}) {
     nextCursor: null,
     fetchError: null,
   });
+
+  const slugsRef = useRef<Set<string> | null>(null);
+  // Only initialize slugsRef.current once and modify it when we receive new slugs determined through set equality
+  if (slugs !== undefined) {
+    if (slugsRef.current === null) {
+      slugsRef.current = new Set(slugs);
+    }
+
+    if (
+      slugs.length !== slugsRef.current.size ||
+      slugs.some(slug => !slugsRef.current?.has(slug))
+    ) {
+      slugsRef.current = new Set(slugs);
+    }
+  }
+
+  async function loadUserTeams() {
+    const orgId = organization?.slug;
+    if (orgId === undefined) {
+      return;
+    }
+
+    setState({...state, fetching: true});
+    try {
+      await fetchUserTeams(api, {orgId});
+
+      setState({...state, fetching: false});
+    } catch (err) {
+      console.error(err); // eslint-disable-line no-console
+
+      setState({...state, fetching: false, fetchError: err});
+    }
+  }
+
+  async function loadTeamsBySlug() {
+    const orgId = organization?.slug;
+    if (orgId === undefined || !slugs) {
+      return;
+    }
+
+    const storeSlugs = store.teams.map(t => t.slug);
+    const slugsNotInStore = slugs.filter(slug => !storeSlugs.includes(slug));
+
+    if (slugsNotInStore.length === 0) {
+      return;
+    }
+
+    setState({...state, fetching: true});
+    try {
+      const {results, hasMore, nextCursor} = await fetchTeams(api, orgId, {
+        slugs: slugsNotInStore,
+        limit,
+      });
+
+      const fetchedTeams = uniqBy([...store.teams, ...results], ({slug}) => slug);
+      TeamActions.loadTeams(fetchedTeams);
+
+      setState({
+        ...state,
+        hasMore,
+        fetching: false,
+        nextCursor,
+      });
+    } catch (err) {
+      console.error(err); // eslint-disable-line no-console
+
+      setState({...state, fetching: false, fetchError: err});
+    }
+  }
 
   async function handleSearch(search: string) {
     const {lastSearch} = state;
@@ -172,8 +250,28 @@ function useTeams({limit}: Options = {}) {
     }
   }
 
+  useEffect(() => {
+    // Load specified team slugs
+    if (slugs) {
+      loadTeamsBySlug();
+      return;
+    }
+
+    // Load user teams
+    if (provideUserTeams && !store.loadedUserTeams) {
+      loadUserTeams();
+    }
+  }, [slugsRef.current, provideUserTeams]);
+
+  let filteredTeams = store.teams;
+  if (slugs) {
+    filteredTeams = filteredTeams.filter(t => slugs.includes(t.slug));
+  } else if (provideUserTeams) {
+    filteredTeams = filteredTeams.filter(t => t.isMember);
+  }
+
   const result: Result = {
-    teams: store.teams,
+    teams: filteredTeams,
     fetching: state.fetching || store.loading,
     fetchError: state.fetchError,
     hasMore: state.hasMore,

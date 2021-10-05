@@ -968,7 +968,13 @@ class SessionMetricsTestCase(SnubaTestCase):
             self._push_metric(session, "set", "user", {"session.status": status}, user)
 
         if status != "ok":  # terminal
-            self._push_metric(session, "distribution", "session.duration", {}, session["duration"])
+            self._push_metric(
+                session,
+                "distribution",
+                "session.duration",
+                {"session.status": status},
+                session["duration"],
+            )
 
     def bulk_store_sessions(self, sessions):
         for session in sessions:
@@ -977,17 +983,17 @@ class SessionMetricsTestCase(SnubaTestCase):
     @classmethod
     def _push_metric(cls, session, type, name, tags, value):
         def metric_id(name):
-            res = indexer.record(session["org_id"], name)
+            res = indexer.record(name)
             assert res is not None, name
             return res
 
         def tag_key(name):
-            res = indexer.record(session["org_id"], name)
+            res = indexer.record(name)
             assert res is not None, name
             return res
 
         def tag_value(name):
-            res = indexer.record(session["org_id"], name)
+            res = indexer.record(name)
             assert res is not None, name
             return res
 
