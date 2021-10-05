@@ -559,7 +559,7 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsTest):
         assert len(responses.calls) >= 1
         data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
         assert (
-            f"This channel will no longer receive issue alert notifications for the {team2.slug} team."
+            f"This channel will no longer receive issue alert notifications for the {self.team.slug} team."
             in data["text"]
         )
 
