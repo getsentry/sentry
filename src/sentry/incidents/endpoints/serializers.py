@@ -73,6 +73,9 @@ dataset_valid_event_types = {
 # TODO(davidenwang): eventually we should pass some form of these to the event_search parser to raise an error
 unsupported_queries = {"release:latest"}
 
+# Allowed time windows (in minutes) for crash rate alerts
+CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS = [30, 60, 120, 240, 720, 1440]
+
 
 class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     """
@@ -399,6 +402,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             )
 
     def validate_event_types(self, event_types):
+        if self.initial_data.get("dataset") == Dataset.Sessions.value:
+            return []
         try:
             return [SnubaQueryEventType.EventType[event_type.upper()] for event_type in event_types]
         except KeyError:
@@ -454,6 +459,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     "Invalid Metric: Please pass a valid function for aggregation"
                 )
 
+            dataset = Dataset(data["dataset"].value)
+            self._validate_time_window(dataset, data.get("time_window"))
+
             try:
                 raw_query(
                     aggregations=snuba_filter.aggregations,
@@ -462,7 +470,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     conditions=snuba_filter.conditions,
                     filter_keys=snuba_filter.filter_keys,
                     having=snuba_filter.having,
-                    dataset=Dataset(data["dataset"].value),
+                    dataset=dataset,
                     limit=1,
                     referrer="alertruleserializer.test_query",
                 )
@@ -483,7 +491,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
         event_types = data.get("event_types")
 
-        valid_event_types = dataset_valid_event_types[data["dataset"]]
+        valid_event_types = dataset_valid_event_types.get(data["dataset"], set())
         if event_types and set(event_types) - valid_event_types:
             raise serializers.ValidationError(
                 "Invalid event types for this dataset. Valid event types are %s"
@@ -530,6 +538,16 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             data["resolve_threshold"] = translator(resolve_threshold)
         for trigger in triggers:
             trigger["alert_threshold"] = translator(trigger["alert_threshold"])
+
+    @staticmethod
+    def _validate_time_window(dataset, time_window):
+        if dataset == Dataset.Sessions:
+            # Validate time window
+            if time_window not in CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS:
+                raise serializers.ValidationError(
+                    "Invalid Time Window: Allowed time windows for crash rate alerts are: "
+                    "30min, 1h, 2h, 4h, 12h and 24h"
+                )
 
     def _validate_trigger_thresholds(self, threshold_type, trigger, resolve_threshold):
         if resolve_threshold is None:

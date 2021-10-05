@@ -1,10 +1,12 @@
 import logging
+import re
 from datetime import timedelta
 
 import sentry_sdk
 from django.utils import timezone
 from snuba_sdk.legacy import json_to_snql
 
+from sentry.constants import CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
 from sentry.snuba.models import QueryDatasets, QuerySubscription
@@ -45,6 +47,9 @@ def apply_dataset_query_conditions(dataset, query, event_types, discover=False):
     need it specified, and `event.type` ends up becoming a tag search.
     """
     if not discover and dataset == QueryDatasets.TRANSACTIONS:
+        return query
+
+    if dataset == QueryDatasets.SESSIONS:
         return query
 
     if event_types:
@@ -169,14 +174,31 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
 
 
 def build_snuba_filter(dataset, query, aggregate, environment, event_types, params=None):
-    resolve_func = (
-        resolve_column(Dataset.Events)
-        if dataset == QueryDatasets.EVENTS
-        else resolve_column(Dataset.Transactions)
-    )
+    resolve_func = {
+        QueryDatasets.EVENTS: resolve_column(Dataset.Events),
+        QueryDatasets.SESSIONS: resolve_column(Dataset.Sessions),
+        QueryDatasets.TRANSACTIONS: resolve_column(Dataset.Transactions),
+    }[dataset]
+
+    functions_acl = None
+
+    aggregations = [aggregate]
+    if dataset == QueryDatasets.SESSIONS:
+        # This aggregation is added to return the total number of sessions in crash
+        # rate alerts that is used to identify if we are below a general minimum alert threshold
+        count_col = re.search(r"(sessions|users)", aggregate)
+        count_col_matched = count_col.group()
+
+        aggregations += [f"identity({count_col_matched}) AS {CRASH_RATE_ALERT_SESSION_COUNT_ALIAS}"]
+        functions_acl = ["identity"]
+
     query = apply_dataset_query_conditions(dataset, query, event_types)
     snuba_filter = get_filter(query, params=params)
-    snuba_filter.update_with(resolve_field_list([aggregate], snuba_filter, auto_fields=False))
+    snuba_filter.update_with(
+        resolve_field_list(
+            aggregations, snuba_filter, auto_fields=False, functions_acl=functions_acl
+        )
+    )
     snuba_filter = resolve_snuba_aliases(snuba_filter, resolve_func)[0]
     if snuba_filter.group_ids:
         snuba_filter.conditions.append(["group_id", "IN", list(map(int, snuba_filter.group_ids))])
@@ -204,6 +226,14 @@ def _create_in_snuba(subscription):
         "time_window": snuba_query.time_window,
         "resolution": snuba_query.resolution,
     }
+
+    if Dataset(snuba_query.dataset) == Dataset.Sessions:
+        body.update(
+            {
+                "organization": subscription.project.organization_id,
+            }
+        )
+
     try:
         metrics.incr("snuba.snql.subscription.create", tags={"dataset": snuba_query.dataset})
         snql_query = json_to_snql(body, snuba_query.dataset)
