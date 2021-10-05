@@ -91,6 +91,7 @@ class ReleaseHealthOverview(TypedDict, total=False):
     duration_p90: Optional[float]
     stats: Mapping[StatsPeriod, ReleaseHealthStats]
 
+
 class CrashFreeBreakdown(TypedDict):
     date: datetime
     total_users: int
