@@ -359,7 +359,7 @@ class TableView extends React.Component<TableViewProps> {
 
   handleCellAction = (dataRow: TableDataRow, column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, organization, projects} = this.props;
+      const {eventView, organization, projects, location} = this.props;
 
       const query = new MutableSearch(eventView.query);
 
@@ -431,7 +431,10 @@ class TableView extends React.Component<TableViewProps> {
       }
       nextView.query = query.formatString();
 
-      browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
+      const target = nextView.getResultsViewUrlTarget(organization.slug);
+      // Get yAxis from location
+      target.query.yAxis = decodeList(location.query.yAxis);
+      browserHistory.push(target);
     };
   };
 

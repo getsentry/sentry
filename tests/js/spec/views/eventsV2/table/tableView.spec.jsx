@@ -138,6 +138,21 @@ describe('TableView > CellActions', function () {
     });
   });
 
+  it('handles add cell action with multiple y axis', function () {
+    location.query.yAxis = ['count()', 'failure_count()'];
+    const wrapper = makeWrapper(initialData, rows, eventView);
+    const menu = openContextMenu(wrapper, 0);
+    menu.find('button[data-test-id="add-to-filter"]').simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: location.pathname,
+      query: expect.objectContaining({
+        query: 'title:"some title"',
+        yAxis: ['count()', 'failure_count()'],
+      }),
+    });
+  });
+
   it('handles exclude cell action on string value', function () {
     const wrapper = makeWrapper(initialData, rows, eventView);
     const menu = openContextMenu(wrapper, 0);
