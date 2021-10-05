@@ -244,12 +244,20 @@ class QueryList extends React.Component<Props> {
             });
           }}
           renderGraph={() => (
-            <MiniGraph
-              location={location}
-              eventView={eventView}
+            <Feature
               organization={organization}
-              referrer={referrer}
-            />
+              features={['connect-discover-and-dashboards']}
+            >
+              {({hasFeature}) => (
+                <MiniGraph
+                  location={location}
+                  eventView={eventView}
+                  organization={organization}
+                  referrer={referrer}
+                  yAxis={hasFeature ? savedQuery.yAxis : undefined}
+                />
+              )}
+            </Feature>
           )}
           renderContextMenu={() => (
             <ContextMenu>
