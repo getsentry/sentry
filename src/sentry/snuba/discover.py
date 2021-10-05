@@ -1,6 +1,9 @@
 import logging
 import math
 from collections import namedtuple
+from copy import deepcopy
+from datetime import timedelta
+from typing import Dict, Optional, Sequence
 
 import sentry_sdk
 
@@ -26,7 +29,9 @@ from sentry.utils.snuba import (
     SNUBA_AND,
     SNUBA_OR,
     Dataset,
+    SnubaQueryParams,
     SnubaTSResult,
+    bulk_raw_query,
     get_array_column_alias,
     get_array_column_field,
     get_measurement_name,
@@ -451,7 +456,15 @@ def get_timeseries_snuba_filter(selected_columns, query, params):
     return snuba_filter, translated_columns
 
 
-def timeseries_query(selected_columns, query, params, rollup, referrer=None, zerofill_results=True):
+def timeseries_query(
+    selected_columns: Sequence[str],
+    query: str,
+    params: Dict[str, str],
+    rollup: int,
+    referrer: Optional[str] = None,
+    zerofill_results: bool = True,
+    comparison_delta: Optional[timedelta] = None,
+):
     """
     High-level API for doing arbitrary user timeseries queries against events.
 
@@ -470,6 +483,9 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None, zer
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
     rollup (int) The bucket width in seconds
     referrer (str|None) A referrer string to help locate the origin of this query.
+    comparison_delta: A timedelta used to convert this into a comparison query. We make a second
+    query time-shifted back by comparison_delta, and compare the results to get the % change for each
+    time bucket. Requires that we only pass
     """
     with sentry_sdk.start_span(
         op="discover.discover", description="timeseries.filter_transform"
@@ -478,7 +494,7 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None, zer
         snuba_filter, _ = get_timeseries_snuba_filter(selected_columns, query, params)
 
     with sentry_sdk.start_span(op="discover.discover", description="timeseries.snuba_query"):
-        result = raw_query(
+        base_query_params = SnubaQueryParams(
             # Hack cause equations on aggregates have to go in selected columns instead of aggregations
             selected_columns=[
                 column
@@ -500,18 +516,44 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None, zer
             limit=10000,
             referrer=referrer,
         )
+        query_params_list = [base_query_params]
+        if comparison_delta:
+            if len(base_query_params.aggregations) != 1:
+                raise InvalidSearchQuery("Only one column can be selected for comparison queries")
+            comp_query_params = deepcopy(base_query_params)
+            comp_query_params.start -= comparison_delta
+            comp_query_params.end -= comparison_delta
+            query_params_list.append(comp_query_params)
+        query_results = bulk_raw_query(query_params_list)
 
     with sentry_sdk.start_span(
         op="discover.discover", description="timeseries.transform_results"
     ) as span:
-        span.set_data("result_count", len(result.get("data", [])))
-        result = (
-            zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
-            if zerofill_results
-            else result["data"]
-        )
+        results = []
+        for query_params, query_results in zip(query_params_list, query_results):
+            span.set_data("result_count", len(query_results.get("data", [])))
+            results.append(
+                zerofill(
+                    query_results["data"], query_params.start, query_params.end, rollup, "time"
+                )
+                if zerofill_results
+                else query_results["data"]
+            )
 
-        return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
+    if len(results) == 2:
+        col_name = base_query_params.aggregations[0][2]
+        # If we have two sets of results then we're doing a comparison queries. Divide the primary
+        # results by the comparison results.
+        for result, cmp_result in zip(results[0], results[1]):
+            result_val, cmp_result_val = result.get(col_name, 0), cmp_result.get(col_name, 0)
+            comparison_value = 0
+            if cmp_result_val:
+                comparison_value = ((result_val / cmp_result_val) - 1) * 100
+            result[col_name] = comparison_value
+
+    results = results[0]
+
+    return SnubaTSResult({"data": results}, snuba_filter.start, snuba_filter.end, rollup)
 
 
 def create_result_key(result_row, fields, issues) -> str:
@@ -614,18 +656,24 @@ def top_events_timeseries(
                 {
                     event.get(alias)
                     for event in top_events["data"]
-                    if field in event and not isinstance(event.get(field), list)
+                    if (field in event or alias in event) and not isinstance(event.get(field), list)
                 }
             )
             if values:
                 if field in FIELD_ALIASES:
                     # Fallback to the alias if for whatever reason we can't find it
                     resolved_field = alias
-                    # Search selected columns for the resolved version of the alias
-                    for column in snuba_filter.selected_columns:
-                        if isinstance(column, list) and column[-1] == field:
-                            resolved_field = column
-                            break
+                    # Issue needs special handling since its aliased uniquely
+                    if field == "issue":
+                        resolved_field = "group_id"
+                    else:
+                        # Search selected columns for the resolved version of the alias
+                        for column in snuba_filter.selected_columns:
+                            if isinstance(column, list) and (
+                                column[-1] == field or column[-1] == alias
+                            ):
+                                resolved_field = column
+                                break
                 else:
                     resolved_field = resolve_discover_column(field)
 
