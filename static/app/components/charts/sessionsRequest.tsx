@@ -32,7 +32,7 @@ type Props = {
   query?: string;
   groupBy?: string[];
   interval?: string;
-  disable?: boolean;
+  disabled?: boolean;
 };
 
 type State = {
@@ -99,9 +99,9 @@ class SessionsRequest extends React.Component<Props, State> {
   }
 
   fetchData = async () => {
-    const {api, disable} = this.props;
+    const {api, disabled} = this.props;
 
-    if (disable) {
+    if (disabled) {
       return;
     }
 
