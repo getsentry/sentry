@@ -576,5 +576,5 @@ def get_progress(group_id):
     # Our internal sync counters are counting over *all* events, but the
     # progressbar in the frontend goes until max_events. Advance progressbar
     # proportionally.
-    pending = int(int(pending) * info["totalEvents"] / float(info.get("syncCount", 1)))
+    pending = int(int(pending) * info["totalEvents"] / float(info.get("syncCount") or 1))
     return pending, info
