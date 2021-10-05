@@ -574,6 +574,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.release_registry",
     "sentry.tasks.reports",
     "sentry.tasks.reprocessing",
+    "sentry.tasks.reprocessing2",
     "sentry.tasks.scheduler",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
