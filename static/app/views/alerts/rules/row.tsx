@@ -22,7 +22,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
-import {Color} from 'app/utils/theme';
+import type {Color} from 'app/utils/theme';
 import {AlertRuleThresholdType} from 'app/views/alerts/incidentRules/types';
 
 import AlertBadge from '../alertBadge';
@@ -95,16 +95,16 @@ class RuleListRow extends React.Component<Props, State> {
     }
 
     const activeIncident = this.activeIncident();
-    const criticalTrigger = rule?.triggers.find(({label}) => label === 'critical');
-    const warningTrigger = rule?.triggers.find(({label}) => label === 'warning');
-    const resolvedTrigger = rule?.resolveThreshold;
+    const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
+    const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
+    const resolvedTrigger = rule.resolveThreshold;
     const trigger =
       activeIncident && rule.latestIncident?.status === IncidentStatus.CRITICAL
         ? criticalTrigger
         : warningTrigger ?? criticalTrigger;
 
     let iconColor: Color = 'green300';
-    let iconDirection;
+    let iconDirection: 'up' | 'down' | undefined;
     let thresholdTypeText =
       activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
         ? t('Above')
@@ -119,15 +119,10 @@ class RuleListRow extends React.Component<Props, State> {
           : 'green300';
       iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'up' : 'down';
     } else {
-      if (!rule?.latestIncident) {
-        // If there's no latest incident, use the Resolved threshold type, which is opposite of Critical
-        iconColor =
-          rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'green300' : 'red300';
-        iconDirection =
-          rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'down' : 'up';
-        thresholdTypeText =
-          rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('Below') : t('Above');
-      }
+      // Use the Resolved threshold type, which is opposite of Critical
+      iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'down' : 'up';
+      thresholdTypeText =
+        rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('Below') : t('Above');
     }
 
     return (
