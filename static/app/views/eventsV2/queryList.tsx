@@ -24,6 +24,7 @@ import EventView from 'app/utils/discover/eventView';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import {decodeList} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
+import {WidgetQuery} from 'app/views/dashboardsV2/types';
 
 import {handleCreateQuery, handleDeleteQuery} from './savedQuery/utils';
 import MiniGraph from './miniGraph';
@@ -93,14 +94,25 @@ class QueryList extends React.Component<Props> {
       const {organization} = this.props;
       event.preventDefault();
       event.stopPropagation();
+
+      const defaultWidgetQuery: WidgetQuery = {
+        name: '',
+        fields: savedQuery?.yAxis ?? ['count()'],
+        conditions: eventView.query,
+        orderby: '',
+      };
+
       openAddDashboardWidgetModal({
         organization,
-        defaultQuery: eventView.query,
         start: eventView.start,
         end: eventView.end,
         statsPeriod: eventView.statsPeriod,
         fromDiscover: true,
-        defaultTitle: savedQuery?.name ?? eventView.name,
+        defaultWidgetQuery,
+        defaultTableColumns: eventView.fields.map(({field}) => field),
+        defaultTitle:
+          savedQuery?.name ??
+          (eventView.name !== 'All Events' ? eventView.name : undefined),
       });
     };
 
