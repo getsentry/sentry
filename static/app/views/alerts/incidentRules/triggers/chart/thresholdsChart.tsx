@@ -2,17 +2,18 @@ import {PureComponent} from 'react';
 import color from 'color';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
-import round from 'lodash/round';
 
 import Graphic from 'app/components/charts/components/graphic';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
-import {defined} from 'app/utils';
-import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import theme from 'app/utils/theme';
-import {isSessionAggregate} from 'app/views/alerts/utils';
+import {
+  alertAxisFormatter,
+  alertTooltipValueFormatter,
+  isSessionAggregate,
+} from 'app/views/alerts/utils';
 
 import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
 
@@ -273,24 +274,6 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
     );
   };
 
-  tooltipValueFormatter = (value: number, seriesName?: string) => {
-    const {aggregate} = this.props;
-    if (isSessionAggregate(aggregate)) {
-      return defined(value) ? `${value}%` : '\u2015';
-    }
-
-    return tooltipFormatter(value, seriesName);
-  };
-
-  axisFormatter = (value: number) => {
-    const {data, aggregate} = this.props;
-    if (isSessionAggregate(aggregate)) {
-      return defined(value) ? `${round(value, 2)}%` : '\u2015';
-    }
-
-    return axisLabelFormatter(value, data.length ? data[0].seriesName : '');
-  };
-
   clampMaxValue(value: number) {
     // When we apply top buffer to the crash free percentage (99.7% * 1.03), it
     // can cross 100%, so we clamp it
@@ -302,7 +285,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
   }
 
   render() {
-    const {data, triggers, period} = this.props;
+    const {data, triggers, period, aggregate} = this.props;
     const dataWithoutRecentBucket: LineChartSeries[] = data?.map(
       ({data: eventData, ...restOfData}) => ({
         ...restOfData,
@@ -326,13 +309,15 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
     const chartOptions = {
       tooltip: {
-        valueFormatter: this.tooltipValueFormatter,
+        valueFormatter: (value: number, seriesName?: string) =>
+          alertTooltipValueFormatter(value, seriesName ?? '', aggregate),
       },
       yAxis: {
         min: this.state.yAxisMin ?? undefined,
         max: this.state.yAxisMax ?? undefined,
         axisLabel: {
-          formatter: this.axisFormatter,
+          formatter: (value: number) =>
+            alertAxisFormatter(value, data[0].seriesName, aggregate),
         },
       },
     };

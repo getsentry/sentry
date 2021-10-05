@@ -1,8 +1,12 @@
+import round from 'lodash/round';
+
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {NewQuery, Project, SessionField} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
+import {defined} from 'app/utils';
 import {getUtcDateString} from 'app/utils/dates';
+import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {PRESET_AGGREGATES} from 'app/views/alerts/incidentRules/presets';
@@ -279,3 +283,23 @@ export const SESSION_AGGREGATE_TO_FIELD = {
   [SessionsAggregate.CRASH_FREE_SESSIONS]: SessionField.SESSIONS,
   [SessionsAggregate.CRASH_FREE_USERS]: SessionField.USERS,
 };
+
+export function alertAxisFormatter(value: number, seriesName: string, aggregate: string) {
+  if (isSessionAggregate(aggregate)) {
+    return defined(value) ? `${round(value, 2)}%` : '\u2015';
+  }
+
+  return axisLabelFormatter(value, seriesName);
+}
+
+export function alertTooltipValueFormatter(
+  value: number,
+  seriesName: string,
+  aggregate: string
+) {
+  if (isSessionAggregate(aggregate)) {
+    return defined(value) ? `${value}%` : '\u2015';
+  }
+
+  return tooltipFormatter(value, seriesName);
+}
