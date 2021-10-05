@@ -203,10 +203,6 @@ class Table extends React.Component<Props, State> {
       );
     }
 
-    if (field.startsWith('key_transaction')) {
-      return rendered;
-    }
-
     if (field.startsWith('team_key_transaction')) {
       return rendered;
     }
@@ -273,30 +269,11 @@ class Table extends React.Component<Props, State> {
 
   renderPrependCellWithData = (tableData: TableData | null, vitalName: WebVital) => {
     const {eventView} = this.props;
-    const keyTransactionColumn = eventView
-      .getColumns()
-      .find((col: TableColumn<React.ReactText>) => col.name === 'key_transaction');
     const teamKeyTransactionColumn = eventView
       .getColumns()
       .find((col: TableColumn<React.ReactText>) => col.name === 'team_key_transaction');
     return (isHeader: boolean, dataRow?: any) => {
-      if (keyTransactionColumn) {
-        if (isHeader) {
-          const star = (
-            <IconStar
-              key="keyTransaction"
-              color="yellow300"
-              isSolid
-              data-test-id="key-transaction-header"
-            />
-          );
-          return [this.renderHeadCell(tableData?.meta, keyTransactionColumn, star)];
-        } else {
-          return [
-            this.renderBodyCell(tableData, keyTransactionColumn, dataRow, vitalName),
-          ];
-        }
-      } else if (teamKeyTransactionColumn) {
+      if (teamKeyTransactionColumn) {
         if (isHeader) {
           const star = (
             <IconStar
@@ -378,10 +355,7 @@ class Table extends React.Component<Props, State> {
       .getColumns()
       // remove key_transactions from the column order as we'll be rendering it
       // via a prepended column
-      .filter(
-        (col: TableColumn<React.ReactText>) =>
-          col.name !== 'key_transaction' && col.name !== 'team_key_transaction'
-      )
+      .filter((col: TableColumn<React.ReactText>) => col.name !== 'team_key_transaction')
       .slice(0, -1)
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {

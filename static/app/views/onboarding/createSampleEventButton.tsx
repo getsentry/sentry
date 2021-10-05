@@ -156,7 +156,7 @@ class CreateSampleEventButton extends React.Component<Props, State> {
     }
 
     browserHistory.push(
-      `/organizations/${organization.slug}/issues/${eventData.groupID}/`
+      `/organizations/${organization.slug}/issues/${eventData.groupID}/?project=${project.id}`
     );
   };
 

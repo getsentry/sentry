@@ -574,6 +574,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.release_registry",
     "sentry.tasks.reports",
     "sentry.tasks.reprocessing",
+    "sentry.tasks.reprocessing2",
     "sentry.tasks.scheduler",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
@@ -1748,9 +1749,7 @@ SENTRY_DEVSERVICES = {
     ),
     "zookeeper": lambda settings, options: (
         {
-            # Upgrading to version 6.x allows zookeeper to run properly on Apple's arm64
-            # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
-            "image": "confluentinc/cp-zookeeper:6.2.0",
+            "image": "confluentinc/cp-zookeeper:5.1.2",
             "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
             "volumes": {"zookeeper": {"bind": "/var/lib/zookeeper"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
@@ -1758,8 +1757,7 @@ SENTRY_DEVSERVICES = {
     ),
     "kafka": lambda settings, options: (
         {
-            # We upgrade to version 6.x to match zookeeper's version (I believe they both release together)
-            "image": "confluentinc/cp-kafka:6.2.0",
+            "image": "confluentinc/cp-kafka:5.1.2",
             "ports": {"9092/tcp": 9092},
             "environment": {
                 "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
@@ -2407,3 +2405,7 @@ INJECTED_SCRIPT_ASSETS = []
 
 # Sentry post process forwarder use batching consumer
 SENTRY_POST_PROCESS_FORWARDER_BATCHING = False
+
+# Whether badly behaving projects will be automatically
+# sent to the low priority queue
+SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
