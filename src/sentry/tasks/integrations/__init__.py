@@ -27,3 +27,14 @@ __all__ = (
     "update_comment",
     "vsts_subscription_check",
 )
+
+from .create_comment import create_comment
+from .kick_off_status_syncs import kick_off_status_syncs
+from .kickoff_vsts_subscription_check import kickoff_vsts_subscription_check
+from .migrate_repo import migrate_repo
+from .sync_assignee_outbound import sync_assignee_outbound
+from .sync_metadata import sync_metadata
+from .sync_status_inbound import sync_status_inbound
+from .sync_status_outbound import sync_status_outbound
+from .update_comment import update_comment
+from .vsts_subscription_check import vsts_subscription_check
