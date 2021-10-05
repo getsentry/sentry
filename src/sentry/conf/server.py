@@ -2405,3 +2405,7 @@ INJECTED_SCRIPT_ASSETS = []
 
 # Sentry post process forwarder use batching consumer
 SENTRY_POST_PROCESS_FORWARDER_BATCHING = False
+
+# Whether badly behaving projects will be automatically
+# sent to the low priority queue
+SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
