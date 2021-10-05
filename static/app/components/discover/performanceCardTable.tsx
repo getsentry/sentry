@@ -288,11 +288,16 @@ class PerformanceCardTable extends React.PureComponent<Props> {
       : MOBILE_PLATFORMS.includes(project.platform as string)
       ? this.renderMobilePerformance()
       : this.renderUnknownPerformance();
+    const isUnknownPlatform = ![
+      ...FRONTEND_PLATFORMS,
+      ...BACKEND_PLATFORMS,
+      ...MOBILE_PLATFORMS,
+    ].includes(project.platform);
 
     return (
       <Fragment>
         <HeadCellContainer>{title}</HeadCellContainer>
-        {title.includes(t('Unknown')) ? (
+        {isUnknownPlatform ? (
           <StyledAlert type="warning" icon={<IconWarning size="md" />} system>
             For more performance metrics, specify which platform this project is using in{' '}
             <Link to={`/settings/${organization.slug}/projects/${project.slug}/`}>
@@ -320,7 +325,7 @@ class PerformanceCardTable extends React.PureComponent<Props> {
           ]}
           disablePadding
           loader={loader}
-          disableTopBorder={title.includes('Unknown')}
+          disableTopBorder={isUnknownPlatform}
         >
           {platformPerformance}
         </StyledPanelTable>

@@ -523,9 +523,7 @@ class ReleaseOverview extends AsyncView<Props> {
                       withChart
                     />
                     <Feature features={['performance-view']}>
-                      {hasDiscover &&
-                      hasReleaseComparison &&
-                      hasReleaseComparisonPerformance ? (
+                      {hasReleaseComparison && hasReleaseComparisonPerformance ? (
                         <PerformanceCardTable
                           organization={organization}
                           project={project}
