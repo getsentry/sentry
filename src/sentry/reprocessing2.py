@@ -80,7 +80,8 @@ instead of group deletion is:
 import hashlib
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, List, Union
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 
 if TYPE_CHECKING:
     from typing_extensions import Literal
@@ -347,19 +348,21 @@ def _get_info_reprocessed_key(group_id):
 
 
 def buffered_handle_remaining_events(
-    project_id,
-    old_group_id,
-    new_group_id,
-    datetime_to_event,
+    project_id: int,
+    old_group_id: int,
+    new_group_id: int,
+    datetime_to_event: List[Tuple[datetime, str]],
     remaining_events,
-    force_flush_batch=False,
+    force_flush_batch: bool = False,
 ):
     """
     A quick-and-dirty wrapper around `handle_remaining_events` that batches up
-    event IDs in Redis. We need this because Snuba cannot handle many tiny messages and prefers big ones instead.
+    event IDs in Redis. We need this because Snuba cannot handle many tiny
+    messages and prefers big ones instead.
 
-    Best performance is achieved when timestamps are close together. Luckily we
-    happen to iterate through events ordered by timestamp.
+    For optimal performance, the datetimes should be close to each other. This
+    "soft" precondition is fulfilled in `reprocess_group` by iterating through
+    events in timestamp order.
 
     Ideally we'd have batching implemented via a service like buffers, but for
     more than counters.
