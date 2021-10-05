@@ -6,7 +6,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import User
-from sentry.security import is_valid_email_address
+from sentry.utils.email.address import is_valid_email_address
 
 
 class CustomTypedChoiceField(TypedChoiceField):
