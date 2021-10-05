@@ -1,6 +1,6 @@
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {NewQuery, Project} from 'app/types';
+import {NewQuery, Project, SessionField} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
@@ -274,3 +274,8 @@ export function getQueryDatasource(
 export function isSessionAggregate(aggregate: string) {
   return Object.values(SessionsAggregate).includes(aggregate as SessionsAggregate);
 }
+
+export const SESSION_AGGREGATE_TO_FIELD = {
+  [SessionsAggregate.CRASH_FREE_SESSIONS]: SessionField.SESSIONS,
+  [SessionsAggregate.CRASH_FREE_USERS]: SessionField.USERS,
+};
