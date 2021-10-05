@@ -11,7 +11,14 @@ import * as types from 'app/views/dashboardsV2/types';
 
 const stubEl = props => <div>{props.children}</div>;
 
-function mountModal({initialData, onAddWidget, onUpdateWidget, widget, fromDiscover}) {
+function mountModal({
+  initialData,
+  onAddWidget,
+  onUpdateWidget,
+  widget,
+  fromDiscover,
+  defaultWidgetQuery,
+}) {
   return mountWithTheme(
     <AddDashboardWidgetModal
       Header={stubEl}
@@ -23,6 +30,7 @@ function mountModal({initialData, onAddWidget, onUpdateWidget, widget, fromDisco
       widget={widget}
       closeModal={() => void 0}
       fromDiscover={fromDiscover}
+      defaultWidgetQuery={defaultWidgetQuery}
     />,
     initialData.routerContext
   );
@@ -863,6 +871,30 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       1
     );
 
+    wrapper.unmount();
+  });
+
+  it('should use defaultWidgetQuery Y-Axis and Conditions if given a defaultWidgetQuery', async function () {
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: () => undefined,
+      onUpdateWidget: () => undefined,
+      widget: undefined,
+      fromDiscover: true,
+      defaultWidgetQuery: {
+        name: '',
+        fields: ['count()', 'failure_count()', 'count_unique(user)'],
+        conditions: 'tag:value',
+        orderby: '',
+      },
+    });
+
+    expect(wrapper.find('SearchBar').props().query).toEqual('tag:value');
+    const queryFields = wrapper.find('QueryField');
+    expect(queryFields.length).toEqual(3);
+    expect(queryFields.at(0).props().fieldValue.function[0]).toEqual('count');
+    expect(queryFields.at(1).props().fieldValue.function[0]).toEqual('failure_count');
+    expect(queryFields.at(2).props().fieldValue.function[0]).toEqual('count_unique');
     wrapper.unmount();
   });
 });
