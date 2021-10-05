@@ -1790,11 +1790,7 @@ SENTRY_DEVSERVICES = {
     ),
     "clickhouse": lambda settings, options: (
         {
-            # altinity provides clickhouse support to other companies
-            # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
-            "image": "altinity/clickhouse-server:21.6.1.6734-testing-arm"
-            if APPLE_ARM64
-            else "yandex/clickhouse-server:20.3.9.70",
+            "image": "yandex/clickhouse-server:20.3.9.70",
             "pull": True,
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
