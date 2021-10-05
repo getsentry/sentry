@@ -88,7 +88,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
 
     if (this.props.dataset === Dataset.SESSIONS) {
       options = pick(TIME_WINDOW_MAP, [
-        // TimeWindow.THIRTY_MINUTES, leaving this option out until we figure out the sub-hour session resolution chart limitations
+        TimeWindow.THIRTY_MINUTES,
         TimeWindow.ONE_HOUR,
         TimeWindow.TWO_HOURS,
         TimeWindow.FOUR_HOURS,
