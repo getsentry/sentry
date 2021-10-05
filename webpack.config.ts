@@ -60,6 +60,7 @@ const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'deve
 const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
 const SENTRY_WEBPACK_PROXY_HOST = env.SENTRY_WEBPACK_PROXY_HOST;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
+const SENTRY_RELEASE_VERSION = env.SENTRY_RELEASE_VERSION;
 
 // Used by sentry devserver runner to force using webpack-dev-server
 const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
@@ -335,6 +336,7 @@ let appConfig: Configuration = {
         DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
         EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
         SPA_DSN: JSON.stringify(SENTRY_SPA_DSN),
+        SENTRY_RELEASE_VERSION: JSON.stringify(SENTRY_RELEASE_VERSION),
       },
     }),
 
