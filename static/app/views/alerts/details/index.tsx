@@ -18,10 +18,10 @@ type Props = {
 
 export const alertDetailsLink = (organization: Organization, incident: Incident) =>
   `/organizations/${organization.slug}/alerts/rules/details/${
-    incident?.alertRule.status === AlertRuleStatus.SNAPSHOT &&
-    incident?.alertRule.originalAlertRuleId
-      ? incident?.alertRule.originalAlertRuleId
-      : incident?.alertRule.id
+    incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
+    incident.alertRule.originalAlertRuleId
+      ? incident.alertRule.originalAlertRuleId
+      : incident.alertRule.id
   }/`;
 
 function IncidentDetails({organization, params}: Props) {
