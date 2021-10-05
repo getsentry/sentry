@@ -602,7 +602,7 @@ const commonTheme = {
     getColorPalette: (length: number) =>
       CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)] as string[],
 
-    other: colors.gray100,
+    other: colors.gray300,
     previousPeriod: colors.gray200,
     symbolSize: 6,
   },
