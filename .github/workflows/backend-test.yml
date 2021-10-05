@@ -10,11 +10,12 @@ jobs:
   test:
     name: backend test
     runs-on: ubuntu-20.04
-    timeout-minutes: 30
+    timeout-minutes: 20
     strategy:
       matrix:
-        python-version: [3.6.13, 3.8.12]
-        instance: [0, 1]
+        # TODO(joshuarli): Add 3.8.12.
+        python-version: [3.6.13]
+        instance: [0, 1, 2]
 
     env:
       MIGRATIONS_TEST_MIGRATE: 1
