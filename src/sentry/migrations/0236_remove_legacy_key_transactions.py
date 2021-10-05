@@ -24,14 +24,12 @@ class Migration(migrations.Migration):
     # transaction.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0235_add_metricskeyindexer_table'),
+        ("sentry", "0235_add_metricskeyindexer_table"),
     ]
 
     operations = [
         migrations.DeleteModel(
-            name='KeyTransaction',
+            name="KeyTransaction",
         ),
     ]
-
