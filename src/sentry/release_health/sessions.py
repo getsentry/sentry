@@ -123,6 +123,6 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         stats_period: Optional[str] = None,
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> int:
-        return _get_project_releases_count(
+        return _get_project_releases_count(  # type: ignore
             organization_id, project_ids, scope, stats_period, environments
         )
