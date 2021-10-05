@@ -77,7 +77,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         with self.cluster.pipeline() as pipeline:
             pipeline.incr(key)
-            pipeline.expire(key, self._counter_ttl + self.counter_bucket_size)
+            pipeline.expire(key, self._counter_ttl + self._counter_bucket_size)
             pipeline.execute()
 
     def increment_project_duration_counter(
@@ -96,7 +96,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         with self.cluster.pipeline() as pipeline:
             pipeline.hincrby(key, duration, 1)
-            pipeline.expire(key, self._histogram_ttl + self.histogram_bucket_size)
+            pipeline.expire(key, self._histogram_ttl + self._histogram_bucket_size)
             pipeline.execute()
 
     def projects(self) -> Iterable[int]:
