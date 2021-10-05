@@ -334,6 +334,7 @@ INSTALLED_APPS = (
     "sentry.analytics.events",
     "sentry.nodestore",
     "sentry.search",
+    "sentry.sentry_metrics.indexer",
     "sentry.snuba",
     "sentry.lang.java.apps.Config",
     "sentry.lang.javascript.apps.Config",
@@ -1085,6 +1086,8 @@ SENTRY_FEATURES = {
     "organizations:release-archives": False,
     # Enable the new release details experience
     "organizations:release-comparison": False,
+    # Enable the release details performance section
+    "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
     # Enable team insights page
