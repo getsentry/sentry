@@ -310,7 +310,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
             timeseriesResults &&
             timeseriesResults.length > 5
           ) {
-            colors[colors.length - 1] = theme.charts.other;
+            colors[colors.length - 1] = theme.chartOther;
           }
 
           // Create a list of series based on the order of the fields,

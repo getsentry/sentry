@@ -230,7 +230,7 @@ class Chart extends React.Component<ChartProps, State> {
         ]
       : undefined;
     if (chartColors && chartColors.length && hasOther) {
-      chartColors.push(theme.charts.other);
+      chartColors.push(theme.chartOther);
     }
     const chartOptions = {
       colors: chartColors,
