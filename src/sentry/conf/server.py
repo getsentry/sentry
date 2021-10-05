@@ -562,6 +562,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
+    "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.members",
     "sentry.tasks.merge",
     "sentry.tasks.releasemonitor",
@@ -573,6 +574,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.release_registry",
     "sentry.tasks.reports",
     "sentry.tasks.reprocessing",
+    "sentry.tasks.reprocessing2",
     "sentry.tasks.scheduler",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
@@ -638,6 +640,10 @@ CELERY_QUEUES = [
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
+    Queue(
+        "symbolications.compute_low_priority_projects",
+        routing_key="symbolications.compute_low_priority_projects",
+    ),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
 ]
@@ -778,6 +784,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.snuba.tasks.subscription_checker",
         "schedule": timedelta(minutes=20),
         "options": {"expires": 20 * 60},
+    },
+    "check-symbolicator-lpq-project-eligibility": {
+        "task": "sentry.tasks.low_priority_symbolication.scan_for_suspect_projects",
+        "schedule": timedelta(seconds=10),
+        "options": {"expires": 10},
     },
 }
 
@@ -1738,9 +1749,7 @@ SENTRY_DEVSERVICES = {
     ),
     "zookeeper": lambda settings, options: (
         {
-            # Upgrading to version 6.x allows zookeeper to run properly on Apple's arm64
-            # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
-            "image": "confluentinc/cp-zookeeper:6.2.0",
+            "image": "confluentinc/cp-zookeeper:5.1.2",
             "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
             "volumes": {"zookeeper": {"bind": "/var/lib/zookeeper"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
@@ -1748,8 +1757,7 @@ SENTRY_DEVSERVICES = {
     ),
     "kafka": lambda settings, options: (
         {
-            # We upgrade to version 6.x to match zookeeper's version (I believe they both release together)
-            "image": "confluentinc/cp-kafka:6.2.0",
+            "image": "confluentinc/cp-kafka:5.1.2",
             "ports": {"9092/tcp": 9092},
             "environment": {
                 "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
@@ -2165,9 +2173,11 @@ KAFKA_EVENTS = "events"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
+KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
     "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
+    "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
 }
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
@@ -2185,6 +2195,10 @@ KAFKA_TOPICS = {
     KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {
         "cluster": "default",
         "topic": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
+    },
+    KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {
+        "cluster": "default",
+        "topic": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
     },
     # Topic for receiving simple events (error events without attachments) from Relay
     KAFKA_INGEST_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_EVENTS},
@@ -2391,3 +2405,7 @@ INJECTED_SCRIPT_ASSETS = []
 
 # Sentry post process forwarder use batching consumer
 SENTRY_POST_PROCESS_FORWARDER_BATCHING = False
+
+# Whether badly behaving projects will be automatically
+# sent to the low priority queue
+SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False

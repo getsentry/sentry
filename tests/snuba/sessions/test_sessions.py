@@ -11,7 +11,6 @@ from sentry.snuba.sessions import (
     _make_stats,
     get_project_releases_by_stability,
     get_project_releases_count,
-    get_release_health_data_overview,
 )
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase
@@ -362,7 +361,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         }
 
     def test_get_release_health_data_overview_users(self):
-        data = get_release_health_data_overview(
+        data = self.backend.get_release_health_data_overview(
             [
                 (self.project.id, self.session_release),
                 (self.project.id, self.session_crashed_release),
@@ -416,7 +415,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         }
 
     def test_get_release_health_data_overview_sessions(self):
-        data = get_release_health_data_overview(
+        data = self.backend.get_release_health_data_overview(
             [
                 (self.project.id, self.session_release),
                 (self.project.id, self.session_crashed_release),
@@ -568,6 +567,101 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             "sessions_lower_bound": None,
             "sessions_upper_bound": None,
         }
+
+    def test_get_crash_free_breakdown(self):
+        start = timezone.now() - timedelta(days=4)
+        data = self.backend.get_crash_free_breakdown(
+            project_id=self.project.id,
+            release=self.session_release,
+            start=start,
+            environments=["prod"],
+        )
+
+        # Last returned date is generated within function, should be close to now:
+        last_date = data[-1].pop("date")
+        assert timezone.now() - last_date < timedelta(seconds=1)
+
+        assert data == [
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": start + timedelta(days=1),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": start + timedelta(days=2),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+            {
+                "crash_free_sessions": 100.0,
+                "crash_free_users": 100.0,
+                "total_sessions": 2,
+                "total_users": 1,
+            },
+        ]
+
+        data = self.backend.get_crash_free_breakdown(
+            project_id=self.project.id,
+            release=self.session_crashed_release,
+            start=start,
+            environments=["prod"],
+        )
+        data[-1].pop("date")
+        assert data == [
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": start + timedelta(days=1),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": start + timedelta(days=2),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+            {
+                "crash_free_sessions": 0.0,
+                "crash_free_users": 0.0,
+                "total_sessions": 1,
+                "total_users": 1,
+            },
+        ]
+        data = self.backend.get_crash_free_breakdown(
+            project_id=self.project.id,
+            release="non-existing",
+            start=start,
+            environments=["prod"],
+        )
+        data[-1].pop("date")
+        assert data == [
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": start + timedelta(days=1),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "date": start + timedelta(days=2),
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+            {
+                "crash_free_sessions": None,
+                "crash_free_users": None,
+                "total_sessions": 0,
+                "total_users": 0,
+            },
+        ]
 
     def test_basic_release_model_adoptions(self):
         """

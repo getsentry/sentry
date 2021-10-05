@@ -355,7 +355,7 @@ def extract_duration_quantiles(raw_stats):
         }
 
 
-def get_release_health_data_overview(
+def _get_release_health_data_overview(
     project_releases,
     environments=None,
     summary_stats_period=None,
@@ -480,7 +480,7 @@ def get_release_health_data_overview(
     return rv
 
 
-def get_crash_free_breakdown(project_id, release, start, environments=None):
+def _get_crash_free_breakdown(project_id, release, start, environments=None):
     filter_keys = {"project_id": [project_id]}
     conditions = [["release", "=", release]]
     if environments is not None:
