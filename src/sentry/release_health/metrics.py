@@ -239,16 +239,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ]
 
             if environments is not None:
-<<<<<<< HEAD
-=======
-                environment_tag_values = []
-
-                for environment in environments:
-                    value = indexer.resolve(environment)  # type: ignore
-                    if value is not None:
-                        environment_tag_values.append(value)
-
->>>>>>> c3777289e8 (update table: remove org_id, add date_added)
                 where_common.append(
                     Condition(
                         Column(tag_key(org_id, "environment")),
@@ -258,22 +248,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 )
 
             if not total:
-<<<<<<< HEAD
                 where_common.append(filter_releases_by_project_release(org_id, project_releases))
-=======
-                release_tag_values = []
-
-                for _, release in project_releases:
-                    value = indexer.resolve(release)  # type: ignore
-                    if value is not None:
-                        # We should not append the value if it hasn't been
-                        # observed before.
-                        release_tag_values.append(value)
-
-                where_common.append(
-                    Condition(Column(tag_key(org_id, "release")), Op.IN, release_tag_values)
-                )
->>>>>>> c3777289e8 (update table: remove org_id, add date_added)
 
             return where_common
 
