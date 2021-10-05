@@ -36,7 +36,6 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
     def process_message(self, message: Any) -> MutableMapping[str, Any]:
         parsed_message: MutableMapping[str, Any] = json.loads(message.value(), use_rapid_json=True)
 
-        org_id = parsed_message["org_id"]
         metric_name = parsed_message["name"]
         tags = parsed_message["tags"]
 
@@ -46,7 +45,7 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
             *tags.values(),
         }
 
-        mapping = indexer.bulk_record(org_id, list(strings))  # type: ignore
+        mapping = indexer.bulk_record(list(strings))  # type: ignore
 
         new_tags = {mapping[k]: mapping[v] for k, v in tags.items()}
 

@@ -18,7 +18,7 @@ jobs:
     env:
       USE_SNUBA: 1
       MIGRATIONS_TEST_MIGRATE: 1
-      USE_REDIS_INDEXER: 1
+      USE_INDEXER: 1
 
     steps:
       - uses: actions/checkout@v2
