@@ -303,3 +303,11 @@ export function alertTooltipValueFormatter(
 
   return tooltipFormatter(value, seriesName);
 }
+
+export const ALERT_CHART_MIN_MAX_BUFFER = 1.03;
+
+export function shouldScaleAlertChart(aggregate: string) {
+  // We want crash free rate charts to be scaled because they are usually too
+  // close to 100% and therefore too fine to see the spikes on 0%-100% scale.
+  return isSessionAggregate(aggregate);
+}
