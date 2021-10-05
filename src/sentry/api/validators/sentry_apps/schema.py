@@ -225,8 +225,7 @@ def check_each_element_for_error(instance):
         found_type = element["type"]
         if found_type not in element_types:
             raise SchemaValidationError(
-                "Element has type '%s'. Type must be one of the following: %s"
-                % (found_type, element_types)
+                f"Element has type '{found_type}'. Type must be one of the following: {element_types}"
             )
         try:
             validate_component(element)
@@ -237,11 +236,24 @@ def check_each_element_for_error(instance):
             )
 
 
+def check_only_one_of_each_element(instance):
+    if "elements" not in instance:
+        return
+    found = {}
+    for element in instance["elements"]:
+        if element["type"]:
+            if element["type"] not in found:
+                found[element["type"]] = 1
+            else:
+                raise SchemaValidationError(f"Multiple elements of type: {element['type']}")
+
+
 def validate_ui_element_schema(instance):
     try:
         # schema validator will catch elements missing
         check_elements_is_array(instance)
         check_each_element_for_error(instance)
+        check_only_one_of_each_element(instance)
     except SchemaValidationError as e:
         raise e
     except Exception as e:

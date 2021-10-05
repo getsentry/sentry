@@ -137,5 +137,26 @@ class SentryAppInstallation(ParanoidModel):
     @classmethod
     def get_installed_for_org(cls, organization_id):
         return cls.objects.filter(
-            organization_id=organization_id, status=SentryAppInstallationStatus.INSTALLED
+            organization_id=organization_id,
+            status=SentryAppInstallationStatus.INSTALLED,
+            date_deleted=None,
         )
+
+    def prepare_sentry_app_components(self, component_type, project=None):
+        from sentry.coreapi import APIError
+        from sentry.mediators import sentry_app_components
+        from sentry.models import SentryAppComponent
+
+        try:
+            component = SentryAppComponent.objects.get(
+                sentry_app_id=self.sentry_app_id, type=component_type
+            )
+        except SentryAppComponent.DoesNotExist:
+            return None
+
+        try:
+            sentry_app_components.Preparer.run(component=component, install=self, project=project)
+            return component
+        except APIError:
+            # TODO(nisanthan): For now, skip showing the UI Component if the API requests fail
+            return None

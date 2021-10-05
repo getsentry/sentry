@@ -9,7 +9,7 @@ from sentry.mediators.external_requests import SelectRequester
 class Preparer(Mediator):
     component = Param("sentry.models.SentryAppComponent")
     install = Param("sentry.models.SentryAppInstallation")
-    project = Param("sentry.models.Project")
+    project = Param("sentry.models.Project", required=False, default=None)
 
     def call(self):
         if self.component.type == "issue-link":

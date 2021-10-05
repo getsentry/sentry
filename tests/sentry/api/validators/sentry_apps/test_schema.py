@@ -108,3 +108,13 @@ class TestSchemaValidation(TestCase):
             "elements": [{"url": "/stacktrace/github/getsentry/sentry", "type": "stacktrace-link"}]
         }
         validate_ui_element_schema(schema)
+
+    @invalid_schema_with_error_message("Multiple elements of type: stacktrace-link")
+    def test_multiple_of_same_element_type(self):
+        schema = {
+            "elements": [
+                {"uri": "/stacktrace/github/getsentry/sentry", "type": "stacktrace-link"},
+                {"uri": "/stacktrace/github/getsentry/sentry", "type": "stacktrace-link"},
+            ]
+        }
+        validate_ui_element_schema(schema)
