@@ -8,12 +8,16 @@ import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
-import {defined} from 'app/utils';
-import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import theme from 'app/utils/theme';
-import {isSessionAggregate} from 'app/views/alerts/utils';
+import {
+  alertAxisFormatter,
+  alertTooltipValueFormatter,
+  isSessionAggregate,
+} from 'app/views/alerts/utils';
 
 import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
+
+const MIN_MAX_BUFFER = 1.03;
 
 type DefaultProps = {
   data: Series[];
@@ -23,14 +27,16 @@ type Props = DefaultProps & {
   triggers: Trigger[];
   resolveThreshold: IncidentRule['resolveThreshold'];
   thresholdType: IncidentRule['thresholdType'];
-  maxValue?: number;
   aggregate: string;
+  maxValue?: number;
+  minValue?: number;
 } & Partial<GlobalSelection['datetime']>;
 
 type State = {
   width: number;
   height: number;
   yAxisMax: number | null;
+  yAxisMin: number | null;
 };
 
 const CHART_GRID = {
@@ -60,7 +66,12 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
     width: -1,
     height: -1,
     yAxisMax: null,
+    yAxisMin: null,
   };
+
+  componentDidMount() {
+    this.handleUpdateChartAxis();
+  }
 
   componentDidUpdate(prevProps: Props) {
     if (
@@ -73,34 +84,48 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
   ref: null | ReactEchartsRef = null;
 
+  get shouldScale() {
+    // We want crash free rate charts to be scaled because they are usually too
+    // close to 100% and therefore too fine to see the spikes on 0%-100% scale.
+    return isSessionAggregate(this.props.aggregate);
+  }
+
   // If we have ref to chart and data, try to update chart axis so that
   // alertThreshold or resolveThreshold is visible in chart
   handleUpdateChartAxis = () => {
     const {triggers, resolveThreshold} = this.props;
     const chartRef = this.ref?.getEchartsInstance?.();
     if (chartRef) {
-      this.updateChartAxis(
-        Math.max(
-          ...flatten(
-            triggers.map(trigger => [trigger.alertThreshold || 0, resolveThreshold || 0])
-          )
-        )
-      );
+      const thresholds = [
+        resolveThreshold || null,
+        ...triggers.map(t => t.alertThreshold || null),
+      ].filter(threshold => threshold !== null) as number[];
+      this.updateChartAxis(Math.min(...thresholds), Math.max(...thresholds));
     }
   };
 
   /**
    * Updates the chart so that yAxis is within bounds of our max value
    */
-  updateChartAxis = debounce((threshold: number) => {
-    const {maxValue} = this.props;
-    if (typeof maxValue !== 'undefined' && threshold > maxValue) {
-      // We need to force update after we set a new yAxis max because `convertToPixel`
-      // can return a negative position (probably because yAxisMax is not synced with chart yet)
-      this.setState({yAxisMax: Math.round(threshold * 1.1)}, this.forceUpdate);
-    } else {
-      this.setState({yAxisMax: null}, this.forceUpdate);
+  updateChartAxis = debounce((minThreshold: number, maxThreshold: number) => {
+    const {minValue, maxValue} = this.props;
+    let yAxisMax =
+      this.shouldScale && maxValue
+        ? this.clampMaxValue(Math.ceil(maxValue * MIN_MAX_BUFFER))
+        : null;
+    let yAxisMin =
+      this.shouldScale && minValue ? Math.floor(minValue / MIN_MAX_BUFFER) : 0;
+
+    if (typeof maxValue === 'number' && maxThreshold > maxValue) {
+      yAxisMax = maxThreshold;
     }
+    if (typeof minValue === 'number' && minThreshold < minValue) {
+      yAxisMin = Math.floor(minThreshold / MIN_MAX_BUFFER);
+    }
+
+    // We need to force update after we set a new yAxis min/max because `convertToPixel`
+    // can return a negative position (probably because yAxisMin/yAxisMax is not synced with chart yet)
+    this.setState({yAxisMax, yAxisMin}, this.forceUpdate);
   }, 150);
 
   /**
@@ -165,7 +190,10 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       return [];
     }
 
-    const yAxisPixelPosition = chartRef.convertToPixel({yAxisIndex: 0}, '0');
+    const yAxisPixelPosition = chartRef.convertToPixel(
+      {yAxisIndex: 0},
+      `${this.state.yAxisMin}`
+    );
     const yAxisPosition = typeof yAxisPixelPosition === 'number' ? yAxisPixelPosition : 0;
     // As the yAxis gets larger we want to start our line/area further to the right
     // Handle case where the graph max is 1 and includes decimals
@@ -246,26 +274,18 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
     );
   };
 
-  tooltipValueFormatter = (value: number, seriesName?: string) => {
-    const {aggregate} = this.props;
-    if (isSessionAggregate(aggregate)) {
-      return defined(value) ? `${value}%` : '\u2015';
+  clampMaxValue(value: number) {
+    // When we apply top buffer to the crash free percentage (99.7% * 1.03), it
+    // can cross 100%, so we clamp it
+    if (isSessionAggregate(this.props.aggregate) && value > 100) {
+      return 100;
     }
 
-    return tooltipFormatter(value, seriesName);
-  };
-
-  axisFormatter = (value: number) => {
-    const {data, aggregate} = this.props;
-    if (isSessionAggregate(aggregate)) {
-      return defined(value) ? `${value}%` : '\u2015';
-    }
-
-    return axisLabelFormatter(value, data.length ? data[0].seriesName : '');
-  };
+    return value;
+  }
 
   render() {
-    const {data, triggers, period} = this.props;
+    const {data, triggers, period, aggregate} = this.props;
     const dataWithoutRecentBucket: LineChartSeries[] = data?.map(
       ({data: eventData, ...restOfData}) => ({
         ...restOfData,
@@ -289,12 +309,15 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
     const chartOptions = {
       tooltip: {
-        valueFormatter: this.tooltipValueFormatter,
+        valueFormatter: (value: number, seriesName?: string) =>
+          alertTooltipValueFormatter(value, seriesName ?? '', aggregate),
       },
       yAxis: {
+        min: this.state.yAxisMin ?? undefined,
         max: this.state.yAxisMax ?? undefined,
         axisLabel: {
-          formatter: this.axisFormatter,
+          formatter: (value: number) =>
+            alertAxisFormatter(value, data[0].seriesName, aggregate),
         },
       },
     };

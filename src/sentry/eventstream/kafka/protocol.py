@@ -99,33 +99,37 @@ def get_task_kwargs_for_message(value):
     return handler(*payload[1:])
 
 
+def decode_str(value: Optional[bytes]) -> str:
+    assert isinstance(value, bytes)
+    return value.decode("utf-8")
+
+
+def decode_optional_str(value: Optional[bytes]) -> Optional[str]:
+    if value is None:
+        return None
+    return decode_str(value)
+
+
+def decode_int(value: Optional[bytes]) -> int:
+    assert isinstance(value, bytes)
+    return int(value)
+
+
+def decode_optional_int(value: Optional[bytes]) -> Optional[int]:
+    if value is None:
+        return None
+    return decode_int(value)
+
+
+def decode_bool(value: bytes) -> bool:
+    return bool(int(decode_str(value)))
+
+
 def get_task_kwargs_for_message_from_headers(headers: Sequence[Tuple[str, Optional[bytes]]]):
     """
     Same as get_task_kwargs_for_message but gets the required information from
     the kafka message headers.
     """
-
-    def decode_str(value: Optional[bytes]) -> str:
-        assert isinstance(value, bytes)
-        return value.decode("utf-8")
-
-    def decode_optional_str(value: Optional[bytes]) -> Optional[str]:
-        if value is None:
-            return None
-        return decode_str(value)
-
-    def decode_int(value: Optional[bytes]) -> int:
-        assert isinstance(value, bytes)
-        return int(value)
-
-    def decode_optional_int(value: Optional[bytes]) -> Optional[int]:
-        if value is None:
-            return None
-        return decode_int(value)
-
-    def decode_bool(value: bytes) -> bool:
-        return bool(int(decode_str(value)))
-
     try:
         header_data = {k: v for k, v in headers}
         version = decode_int(header_data["version"])

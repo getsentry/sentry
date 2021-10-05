@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Mapping, Optional, Sequence, Set, Tuple
 
 from sentry.release_health.base import (
+    CrashFreeBreakdown,
     CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
     OrganizationId,
@@ -19,6 +20,9 @@ from sentry.release_health.base import (
 from sentry.snuba.sessions import (
     _check_has_health_data,
     _check_releases_have_health_data,
+    _get_changed_project_release_model_adoptions,
+    _get_crash_free_breakdown,
+    _get_oldest_health_data_for_releases,
     _get_release_adoption,
     _get_release_health_data_overview,
     _get_release_sessions_time_bounds,
@@ -106,3 +110,26 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
             health_stats_period=health_stats_period,
             stat=stat,
         )
+
+    def get_crash_free_breakdown(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        start: datetime,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> Sequence[CrashFreeBreakdown]:
+        return _get_crash_free_breakdown(  # type: ignore
+            project_id=project_id, release=release, start=start, environments=environments
+        )
+
+    def get_changed_project_release_model_adoptions(
+        self,
+        project_ids: Sequence[ProjectId],
+    ) -> Sequence[ProjectRelease]:
+        return _get_changed_project_release_model_adoptions(project_ids)  # type: ignore
+
+    def get_oldest_health_data_for_releases(
+        self,
+        project_releases: Sequence[ProjectRelease],
+    ) -> Mapping[ProjectRelease, str]:
+        return _get_oldest_health_data_for_releases(project_releases)  # type: ignore
