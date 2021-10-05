@@ -364,7 +364,9 @@ export default class DetailsBody extends React.Component<Props> {
                     projects={projects}
                     interval={this.getInterval()}
                     filter={this.getFilter()}
-                    query={queryWithTypeFilter}
+                    query={
+                      rule.dataset === Dataset.SESSIONS ? query : queryWithTypeFilter
+                    }
                     orgId={orgId}
                     handleZoom={handleZoom}
                   />
