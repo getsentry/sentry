@@ -61,4 +61,48 @@ describe('useTeams', function () {
     expect(mockRequest).toHaveBeenCalled();
     expect(result.current.teams).toEqual([...mockTeams, newTeam2, newTeam3]);
   });
+
+  it('provides only the users teams', async function () {
+    // @ts-expect-error
+    const userTeams = [TestStubs.Team({isMember: true})];
+    // @ts-expect-error
+    const nonUserTeams = [TestStubs.Team({isMember: false})];
+    act(() => void TeamStore.loadInitialData([...userTeams, ...nonUserTeams]));
+
+    const {result} = renderHook(props => useTeams(props), {
+      initialProps: {provideUserTeams: true},
+    });
+    const {teams} = result.current;
+
+    expect(teams.length).toBe(1);
+    expect(teams).toEqual(expect.arrayContaining(userTeams));
+  });
+
+  it('provides only the specified slugs', async function () {
+    act(() => void TeamStore.loadInitialData(mockTeams));
+    // @ts-expect-error
+    const teamFoo = TestStubs.Team({slug: 'foo'});
+    // @ts-expect-error
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      method: 'GET',
+      query: {slug: 'foo'},
+      body: [teamFoo],
+    });
+
+    const {result} = renderHook(props => useTeams(props), {
+      initialProps: {slugs: ['foo']},
+    });
+
+    await act(async () => {
+      // @ts-expect-error
+      await tick();
+    });
+
+    expect(mockRequest).toHaveBeenCalled();
+
+    const {teams} = result.current;
+    expect(teams.length).toBe(1);
+    expect(teams).toEqual(expect.arrayContaining([teamFoo]));
+  });
 });
