@@ -14,8 +14,7 @@ jobs:
     strategy:
       matrix:
         instance: [0, 1]
-        # TODO(joshuarli): Add 3.8.12.
-        python-version: [3.6.13]
+        python-version: [3.6.13, 3.8.12]
     env:
       USE_SNUBA: 1
       MIGRATIONS_TEST_MIGRATE: 1

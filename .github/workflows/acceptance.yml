@@ -147,8 +147,7 @@ jobs:
     strategy:
       matrix:
         instance: [0, 1, 2, 3]
-        # TODO(joshuarli): Add 3.8.12.
-        python-version: [3.6.13]
+        python-version: [3.6.13, 3.8.12]
     env:
       VISUAL_SNAPSHOT_ENABLE: 1
       TEST_GROUP_STRATEGY: roundrobin
@@ -209,8 +208,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        # TODO(joshuarli): Add 3.8.12.
-        python-version: [3.6.13]
+        python-version: [3.6.13, 3.8.12]
         instance: [0]
     env:
       VISUAL_SNAPSHOT_ENABLE: 1

@@ -13,8 +13,7 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        # TODO(joshuarli): Add 3.8.12.
-        python-version: [3.6.13]
+        python-version: [3.6.13, 3.8.12]
         instance: [0, 1, 2]
 
     env:

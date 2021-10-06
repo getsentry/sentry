@@ -12,8 +12,7 @@ jobs:
     timeout-minutes: 12
     strategy:
       matrix:
-        # TODO(joshuarli): Add 3.8.12.
-        python-version: [3.6.13]
+        python-version: [3.6.13, 3.8.12]
     steps:
       - uses: actions/checkout@v2
 
