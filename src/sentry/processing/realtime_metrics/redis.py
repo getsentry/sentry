@@ -1,6 +1,9 @@
 import logging
+from datetime import datetime
 from itertools import chain
 from typing import Iterable, Set
+
+import pytz
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
@@ -62,6 +65,23 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
     def _duration_key_prefix(self) -> str:
         return f"{self._prefix}:duration:{self._duration_bucket_size}"
+
+    def _backoff_key_prefix(self) -> str:
+        return f"{self._prefix}:backoff"
+
+    def _register_backoffs(self, project_ids: Set[int]) -> None:
+        if len(project_ids) == 0:
+            return
+
+        now = datetime.now(pytz.utc).timestamp()
+        pipeline = self.cluster.pipeline()
+
+        for project_id in project_ids:
+            key = f"{self._backoff_key_prefix()}:{project_id}"
+            # Can't use mset because it doesn't allow also specifying an expiry
+            pipeline.set(name=key, value=str(now), ex=5 * 60)
+
+        pipeline.execute()
 
     def increment_project_event_counter(self, project_id: int, timestamp: int) -> None:
         """Increment the event counter for the given project_id.
@@ -221,20 +241,26 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         This registers an intent to redirect all symbolication events triggered by the specified
         project to be redirected to the low priority queue.
 
+        Applies a backoff timer to the project which prevents it from being automatically evicted
+        from the queue while that timer is active.
+
         This may throw an exception if there is some sort of issue registering the project with the
         queue.
         """
 
-        # This returns 0 if project_id was already in the set, 1 if it was added, and throws an
-        # exception if there's a problem. If this successfully completes then the project is
-        # expected to be in the set.
-        return int(self.cluster.sadd(LPQ_MEMBERS_KEY, project_id)) > 0
+        # If this successfully completes then the project is expected to be in the set.
+        was_added = int(self.cluster.sadd(LPQ_MEMBERS_KEY, project_id)) > 0
+        self._register_backoffs({project_id})
+        return was_added
 
     def remove_projects_from_lpq(self, project_ids: Set[int]) -> int:
         """
         Removes projects from the low priority queue.
 
         This registers an intent to restore all specified projects back to the regular queue.
+
+        Applies a backoff timer to the project which prevents it from being automatically assigned
+        to the queue while that timer is active.
 
         This may throw an exception if there is some sort of issue deregistering the projects from
         the queue.
@@ -244,4 +270,29 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         # This returns the number of projects removed, and throws an exception if there's a problem.
         # If this successfully completes then the projects are expected to no longer be in the set.
-        return int(self.cluster.srem(LPQ_MEMBERS_KEY, *project_ids))
+        removed = int(self.cluster.srem(LPQ_MEMBERS_KEY, *project_ids))
+        self._register_backoffs(project_ids)
+        return removed
+
+    def was_recently_moved(self, project_id: int) -> bool:
+        """
+        Returns whether a project is currently in the middle of its backoff timer from having
+        recently moved in or out of the LPQ.
+        """
+        key = f"{self._backoff_key_prefix()}:{project_id}"
+        return self.cluster.get(key) is not None
+
+    def recently_moved_projects(self) -> Set[int]:
+        """
+        Returns a list of projects currently in the middle of their backoff timers from having
+        recently moved in or out of the LPQ.
+        """
+        moved = set()
+
+        for key in self.cluster.scan_iter(
+            match=self._backoff_key_prefix() + ":*",
+        ):
+            _, project_id = key.split(self._backoff_key_prefix() + ":")
+            moved.add(int(project_id))
+
+        return moved

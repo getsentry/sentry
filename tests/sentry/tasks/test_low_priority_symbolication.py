@@ -107,6 +107,27 @@ class TestScanForSuspectProjects:
 
         assert store.get_lpq_projects() == {17}
 
+    def test_remove_recently_moved_project(self, store) -> None:
+        store.add_project_to_lpq(17)
+        assert store.get_lpq_projects() == {17}
+
+        with TaskRunner():
+            _scan_for_suspect_projects()
+
+        assert store.get_lpq_projects() == {17}
+        assert store.was_recently_moved(17)
+
+    def test_add_recently_moved_project(self, store) -> None:
+        store.increment_project_event_counter(17, 0)
+        store.remove_projects_from_lpq([17])
+        assert store.get_lpq_projects() == set()
+
+        with TaskRunner():
+            _scan_for_suspect_projects()
+
+        assert store.get_lpq_projects() == set()
+        assert store.was_recently_moved(17)
+
 
 class UpdateLpqEligibility:
     @pytest.fixture
@@ -189,6 +210,23 @@ class UpdateLpqEligibility:
     def test_not_eligible_not_lpq(self, store) -> None:
         _update_lpq_eligibility(project_id=17, cutoff=10)
         assert store.get_lpq_projects() == set()
+
+    # TODO: Remove patch and update test once calculation_magic is implemented
+    @freeze_time(datetime.fromtimestamp(0))
+    @mock.patch("sentry.tasks.low_priority_symbolication.calculation_magic", lambda x, y: True)
+    def test_is_eligible_recently_moved(self, store) -> None:
+        # Abusing the fact that removing always updates the backoff timer even if it's a noop
+        store.remove_projects_from_lpq({17})
+
+        _update_lpq_eligibility(17, 10)
+        assert store.get_lpq_projects() == set()
+
+    # TODO: Update once calculation_magic is implemented
+    def test_not_eligible_recently_moved(self, store) -> None:
+        store.add_project_to_lpq(17)
+
+        _update_lpq_eligibility(17, 10)
+        assert store.get_lpq_projects() == {17}
 
 
 class TestCalculationMagic(TestCase):

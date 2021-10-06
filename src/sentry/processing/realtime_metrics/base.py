@@ -46,6 +46,8 @@ class RealtimeMetricsStore(Service):  # type: ignore
         "get_lpq_projects",
         "add_project_to_lpq",
         "remove_projects_from_lpq",
+        "was_recently_moved",
+        "recently_moved_projects",
     )
 
     def increment_project_event_counter(self, project_id: int, timestamp: int) -> None:
@@ -121,6 +123,9 @@ class RealtimeMetricsStore(Service):  # type: ignore
         This registers an intent to redirect all symbolication events triggered by the specified
         project to be redirected to the low priority queue.
 
+        Applies a backoff timer to the project which prevents it from being automatically evicted
+        from the queue while that timer is active.
+
         Returns True if the project was a new addition to the list. Returns False if it was already
         assigned to the low priority queue.
         """
@@ -132,8 +137,25 @@ class RealtimeMetricsStore(Service):  # type: ignore
 
         This registers an intent to restore all specified projects back to the regular queue.
 
+        Applies a backoff timer to the project which prevents it from being automatically assigned
+        to the queue while that timer is active.
+
         Returns the number of projects that were actively removed from the queue. Any projects that
         were not assigned to the low priority queue to begin with will be omitted from the return
         value.
+        """
+        raise NotImplementedError
+
+    def was_recently_moved(self, project_id: int) -> bool:
+        """
+        Returns whether a project is currently in the middle of its backoff timer from having
+        recently moved in or out of the LPQ.
+        """
+        raise NotImplementedError
+
+    def recently_moved_projects(self) -> Set[int]:
+        """
+        Returns a list of projects currently in the middle of their backoff timers from having
+        recently moved in or out of the LPQ.
         """
         raise NotImplementedError

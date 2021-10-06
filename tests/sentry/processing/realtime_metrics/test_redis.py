@@ -1,6 +1,8 @@
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict
 
 import pytest
+from freezegun import freeze_time
 
 from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.base import (
@@ -8,7 +10,7 @@ from sentry.processing.realtime_metrics.base import (
     BucketedDurations,
     DurationHistogram,
 )
-from sentry.processing.realtime_metrics.redis import RedisRealtimeMetricsStore
+from sentry.processing.realtime_metrics.redis import LPQ_MEMBERS_KEY, RedisRealtimeMetricsStore
 from sentry.utils import redis
 
 if TYPE_CHECKING:
@@ -686,3 +688,49 @@ def test_get_durations_for_projects_with_gap(
         DurationHistogram(timestamp=140, histogram=empty_histogram()),
         DurationHistogram(timestamp=150, histogram=hist2),
     ]
+
+
+#
+# was_recently_moved()
+#
+
+
+def test_was_recently_moved_noop(store: RedisRealtimeMetricsStore) -> None:
+    store.remove_projects_from_lpq([42])
+    assert store.was_recently_moved(42)
+
+
+def test_was_recently_moved_added(store: RedisRealtimeMetricsStore) -> None:
+    store.add_project_to_lpq(42)
+    assert store.was_recently_moved(42)
+
+
+def test_was_recently_moved_removed(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+) -> None:
+    redis_cluster.sadd(LPQ_MEMBERS_KEY, 42)
+    store.remove_projects_from_lpq([42])
+    assert store.was_recently_moved(42)
+
+
+#
+# recently_moved_projects()
+#
+
+
+def test_recently_moved_projects_noop(store: RedisRealtimeMetricsStore) -> None:
+    store.remove_projects_from_lpq([42])
+    assert store.recently_moved_projects() == {42}
+
+
+def test_recently_moved_projects_added(store: RedisRealtimeMetricsStore) -> None:
+    store.add_project_to_lpq(42)
+    assert store.recently_moved_projects() == {42}
+
+
+def test_recently_moved_projects_removed(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+) -> None:
+    redis_cluster.sadd(LPQ_MEMBERS_KEY, 42)
+    store.remove_projects_from_lpq([42])
+    assert store.recently_moved_projects() == {42}
