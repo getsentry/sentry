@@ -41,6 +41,7 @@ class TestScanForSuspectProjects:
                 "counter_time_window": 0,
                 "duration_bucket_size": 10,
                 "duration_time_window": 0,
+                "backoff_timer": 0,
             },
         )
 
