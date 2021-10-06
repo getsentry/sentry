@@ -308,7 +308,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       `/organizations/${organization.slug}/dashboards/`,
       {
         method: 'GET',
-        query: {sort: 'mydashboards'},
+        query: {sort: 'myDashboardsAndRecentlyViewed'},
       }
     );
 
