@@ -205,7 +205,7 @@ class UnfurlTest(TestCase):
     def test_unfurl_discover_short_url(self, mock_generate_chart):
         query = {
             "fields": ["message", "event.type", "project", "user.display", "count_unique(user)"],
-            "query": "",
+            "query": "message:[first,second]",
             "yAxis": "count_unique(user)",
             "display": "top5",
             "topEvents": 2,
@@ -258,7 +258,7 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count_unique(user)"
         # 2 + 1 cause of Other
-        assert len(chart_data["stats"].keys()) == 3
+        assert len(chart_data["stats"].keys()) == 2
         first_key = list(chart_data["stats"].keys())[0]
         assert len(chart_data["stats"][first_key]["data"]) == 288
 
@@ -266,19 +266,15 @@ class UnfurlTest(TestCase):
     def test_top_events_url_param(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
         self.store_event(
-            data={"message": "first", "fingerprint": ["group2"], "timestamp": min_ago},
+            data={"message": "first", "fingerprint": ["group1"], "timestamp": min_ago},
             project_id=self.project.id,
         )
         self.store_event(
             data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
             project_id=self.project.id,
         )
-        self.store_event(
-            data={"message": "third", "fingerprint": ["group2"], "timestamp": min_ago},
-            project_id=self.project.id,
-        )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=count()&name=All+Events&query=&sort=-count&statsPeriod=24h&display=top5&topEvents=3"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=message&field=event.type&field=count()&name=All+Events&query=message:[first,second]&sort=-count&statsPeriod=24h&display=top5&topEvents=2"
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -306,7 +302,7 @@ class UnfurlTest(TestCase):
         assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOP5_PERIOD
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count()"
-        assert len(chart_data["stats"].keys()) == 4
+        assert len(chart_data["stats"].keys()) == 2
         first_key = list(chart_data["stats"].keys())[0]
         assert len(chart_data["stats"][first_key]["data"]) == 288
 
