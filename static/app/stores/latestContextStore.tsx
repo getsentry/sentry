@@ -18,13 +18,13 @@ type State = {
 
 type LatestContextStoreInterface = {
   state: State;
-  reset: () => void;
-  get: () => State;
-  onSetLastRoute: (route: string) => void;
-  onUpdateOrganization: (organization: OrgTypes) => void;
-  onSetActiveOrganization: (organization: OrgTypes) => void;
-  onSetActiveProject: (project: Project | null) => void;
-  onUpdateProject: (project: Project | null) => void;
+  reset(): void;
+  get(): State;
+  onSetLastRoute(route: string): void;
+  onUpdateOrganization(organization: OrgTypes): void;
+  onSetActiveOrganization(organization: OrgTypes): void;
+  onSetActiveProject(project: Project | null): void;
+  onUpdateProject(project: Project | null): void;
 };
 
 // Keeps track of last usable project/org

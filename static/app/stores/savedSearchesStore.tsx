@@ -11,12 +11,12 @@ type State = {
 };
 
 type SavedSearchesStoreInterface = {
-  reset: () => void;
-  get: () => State;
-  getFilteredSearches: (type: SavedSearchType, id?: string) => SavedSearch[];
-  updateExistingSearch: (id: string, changes: Partial<SavedSearch>) => SavedSearch;
-  findByQuery: (query: string, sort: string) => SavedSearch | undefined;
-  onPinSearch: (type: SavedSearchType, query: string, sort: string) => void;
+  reset(): void;
+  get(): State;
+  getFilteredSearches(type: SavedSearchType, id?: string): SavedSearch[];
+  updateExistingSearch(id: string, changes: Partial<SavedSearch>): SavedSearch;
+  findByQuery(query: string, sort: string): SavedSearch | undefined;
+  onPinSearch(type: SavedSearchType, query: string, sort: string): void;
 };
 
 const savedSearchesStoreConfig: Reflux.StoreDefinition & SavedSearchesStoreInterface = {

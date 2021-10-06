@@ -10,14 +10,14 @@ type Internals = {
 };
 
 type EventStoreInterface = {
-  init: () => void;
-  reset: () => void;
-  loadInitialData: (items: Event[]) => void;
-  add: (items: Event[]) => void;
-  remove: (id: string) => void;
-  get: (id: string) => Event | undefined;
-  getAllItemIds: () => string[];
-  getAllItems: () => Event[];
+  init(): void;
+  reset(): void;
+  loadInitialData(items: Event[]): void;
+  add(items: Event[]): void;
+  remove(id: string): void;
+  get(id: string): Event | undefined;
+  getAllItemIds(): string[];
+  getAllItems(): Event[];
 };
 
 const storeConfig: Reflux.StoreDefinition & Internals & EventStoreInterface = {

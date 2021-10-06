@@ -3,15 +3,17 @@ import Reflux from 'reflux';
 import CommitterActions from 'app/actions/committerActions';
 import {Committer} from 'app/types';
 
-type CommitterStoreInterface = {
-  state: {
-    // Use `getCommitterStoreKey` to generate key
-    [key: string]: {
-      committers?: Committer[];
-      committersLoading?: boolean;
-      committersError?: Error;
-    };
+type State = {
+  // Use `getCommitterStoreKey` to generate key
+  [key: string]: {
+    committers?: Committer[];
+    committersLoading?: boolean;
+    committersError?: Error;
   };
+};
+
+type CommitterStoreInterface = {
+  state: State;
 
   load(orgSlug: string, projectSlug: string, eventId: string): void;
   loadSuccess(

@@ -16,10 +16,10 @@ type Alert = {
 };
 
 type AlertStoreInterface = Reflux.StoreDefinition & {
-  init: () => void;
-  getInitialState: () => Alert[];
-  onAddAlert: (alert: Alert) => void;
-  onCloseAlert: (alert: Alert, duration?: number) => void;
+  init(): void;
+  getInitialState(): Alert[];
+  onAddAlert(alert: Alert): void;
+  onCloseAlert(alert: Alert, duration?: number): void;
 };
 
 type Internals = {

@@ -15,15 +15,15 @@ type State = {
 type TeamStoreInterface = {
   initialized: boolean;
   state: State;
-  reset: () => void;
-  loadInitialData: (items: Team[], hasMore?: boolean | null) => void;
-  onUpdateSuccess: (itemId: string, response: Team) => void;
-  onRemoveSuccess: (slug: string) => void;
-  onCreateSuccess: (team: Team) => void;
-  get: () => State;
-  getAll: () => Team[];
-  getById: (id: string) => Team | null;
-  getBySlug: (slug: string) => Team | null;
+  reset(): void;
+  loadInitialData(items: Team[], hasMore?: boolean | null): void;
+  onUpdateSuccess(itemId: string, response: Team): void;
+  onRemoveSuccess(slug: string): void;
+  onCreateSuccess(team: Team): void;
+  get(): State;
+  getAll(): Team[];
+  getById(id: string): Team | null;
+  getBySlug(slug: string): Team | null;
 };
 
 const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {

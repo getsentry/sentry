@@ -7,14 +7,14 @@ type OrganizationsStoreInterface = {
   state: Organization[];
   loaded: boolean;
 
-  onUpdate: (org: Organization) => void;
-  onChangeSlug: (prev: Organization, next: Organization) => void;
-  onRemoveSuccess: (slug: string) => void;
-  get: (slug: string) => Organization | undefined;
-  getAll: () => Organization[];
-  remove: (slug: string) => void;
-  add: (item: Organization) => void;
-  load: (items: Organization[]) => void;
+  onUpdate(org: Organization): void;
+  onChangeSlug(prev: Organization, next: Organization): void;
+  onRemoveSuccess(slug: string): void;
+  get(slug: string): Organization | undefined;
+  getAll(): Organization[];
+  remove(slug: string): void;
+  add(item: Organization): void;
+  load(items: Organization[]): void;
 };
 
 const organizationsStoreConfig: Reflux.StoreDefinition & OrganizationsStoreInterface = {

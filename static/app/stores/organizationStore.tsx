@@ -18,11 +18,11 @@ type State = {
 };
 
 type OrganizationStoreInterface = {
-  init: () => void;
-  reset: () => void;
-  onUpdate: (org: Organization, options: UpdateOptions) => void;
-  onFetchOrgError: (err: RequestError) => void;
-  get: () => State;
+  init(): void;
+  reset(): void;
+  onUpdate(org: Organization, options: UpdateOptions): void;
+  onFetchOrgError(err: RequestError): void;
+  get(): State;
 };
 
 const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {
