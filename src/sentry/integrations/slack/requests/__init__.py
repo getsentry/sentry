@@ -1,1 +1,3 @@
-from .base import SlackRequest, SlackRequestError  # NOQA
+__all__ = ("SlackRequest", "SlackRequestError")
+
+from .base import SlackRequest, SlackRequestError

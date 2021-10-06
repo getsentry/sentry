@@ -2,7 +2,7 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Callable, List, Mapping, Match, Optional, Sequence, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -2254,6 +2254,7 @@ class QueryFields(QueryBase):
     ):
         super().__init__(dataset, params, functions_acl)
 
+        self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
             # NOTE: `ISSUE_ALIAS` simply maps to the id, meaning that post processing
             # is required to insert the true issue short id into the response.
@@ -2344,6 +2345,7 @@ class QueryFields(QueryBase):
                 ),
                 SnQLFunction(
                     "count",
+                    optional_args=[NullColumn("column")],
                     snql_aggregate=lambda _, alias: Function(
                         "count",
                         [],
@@ -2882,6 +2884,9 @@ class QueryFields(QueryBase):
         combinator_applied = False
 
         arguments = snql_function.format_as_arguments(name, arguments, self.params, combinator)
+
+        self.function_alias_map[alias] = FunctionDetails(function, snql_function, arguments.copy())
+
         for arg in snql_function.args:
             if isinstance(arg, ColumnArg):
                 arguments[arg.name] = self.resolve_column(arguments[arg.name])
