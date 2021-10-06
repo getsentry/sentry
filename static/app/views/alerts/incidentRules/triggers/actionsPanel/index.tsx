@@ -206,6 +206,30 @@ class ActionsPanel extends PureComponent<Props> {
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   };
 
+  /**
+   * Update the Trigger's Action fields from the SentryAppRuleModal together
+   * only after the user clicks "Save Changes".
+   * @param formData Form data
+   */
+  updateParentFromSentryAppRule = (
+    triggerIndex: number,
+    actionIndex: number,
+    formData: {[key: string]: string}
+  ): void => {
+    const {triggers, onChange} = this.props;
+    const {actions} = triggers[triggerIndex];
+    const newAction = {
+      ...actions[actionIndex],
+      ...formData,
+    };
+
+    onChange(
+      triggerIndex,
+      triggers,
+      replaceAtArrayIndex(actions, actionIndex, newAction)
+    );
+  };
+
   render() {
     const {
       availableActions,
@@ -326,8 +350,14 @@ class ActionsPanel extends PureComponent<Props> {
                                 }
                                 config={availableAction.settings!}
                                 appName={availableAction.sentryAppName!}
-                                onSubmitSuccess={() => {}}
-                                resetValues={availableAction}
+                                onSubmitSuccess={this.updateParentFromSentryAppRule.bind(
+                                  this,
+                                  triggerIndex,
+                                  actionIdx
+                                )}
+                                resetValues={
+                                  triggers[triggerIndex].actions[actionIdx] || {}
+                                }
                               />
                             ),
                             {allowClickClose: false}
