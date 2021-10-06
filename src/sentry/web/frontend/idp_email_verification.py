@@ -7,6 +7,7 @@ from sentry.web.helpers import render_to_response
 
 
 class AccountConfirmationView(BaseView):
+    # the user using this endpoint is currently locked out of their account so auth isn't required.
     auth_required = False
 
     def handle(self, request: Request, key: str) -> HttpResponse:
