@@ -186,7 +186,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         with Feature(
             {
                 "organizations:performance-ops-breakdown": True,
-                "organizations:performance-suspect-spans-ingestion": True,
+                "projects:performance-suspect-spans-ingestion": True,
             }
         ):
             event = self.post_and_retrieve_event(event_data)

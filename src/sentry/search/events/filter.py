@@ -29,7 +29,6 @@ from sentry.search.events.constants import (
     ERROR_UNHANDLED_ALIAS,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
-    KEY_TRANSACTION_ALIAS,
     MAX_SEARCH_RELEASES,
     NO_CONVERSION_FIELDS,
     OPERATOR_NEGATION_MAP,
@@ -301,26 +300,6 @@ def _error_handled_filter_converter(
     raise InvalidSearchQuery("Invalid value for error.handled condition. Accepted values are 1, 0")
 
 
-def _key_transaction_filter_converter(
-    search_filter: SearchFilter,
-    name: str,
-    params: Optional[Mapping[str, Union[int, str, datetime]]],
-):
-    value = search_filter.value.value
-    key_transaction_expr = FIELD_ALIASES[KEY_TRANSACTION_ALIAS].get_expression(params)
-
-    if search_filter.value.raw_value == "":
-        operator = "!=" if search_filter.operator == "!=" else "="
-        return [key_transaction_expr, operator, 0]
-    if value in ("1", 1):
-        return [key_transaction_expr, "=", 1]
-    if value in ("0", 0):
-        return [key_transaction_expr, "=", 0]
-    raise InvalidSearchQuery(
-        "Invalid value for key_transaction condition. Accepted values are 1, 0"
-    )
-
-
 def _team_key_transaction_filter_converter(
     search_filter: SearchFilter,
     name: str,
@@ -337,7 +316,7 @@ def _team_key_transaction_filter_converter(
     if value in ("0", 0):
         return [key_transaction_expr, "=", 0]
     raise InvalidSearchQuery(
-        "Invalid value for key_transaction condition. Accepted values are 1, 0"
+        "Invalid value for team_key_transaction condition. Accepted values are 1, 0"
     )
 
 
@@ -596,7 +575,6 @@ key_conversion_map: Mapping[
     USER_DISPLAY_ALIAS: _user_display_filter_converter,
     ERROR_UNHANDLED_ALIAS: _error_unhandled_filter_converter,
     "error.handled": _error_handled_filter_converter,
-    KEY_TRANSACTION_ALIAS: _key_transaction_filter_converter,
     TEAM_KEY_TRANSACTION_ALIAS: _team_key_transaction_filter_converter,
     RELEASE_STAGE_ALIAS: _release_stage_filter_converter,
     SEMVER_ALIAS: _semver_filter_converter,
@@ -1059,8 +1037,10 @@ ParsedTerms = Sequence[ParsedTerm]
 class QueryFilter(QueryFields):
     """Filter logic for a snql query"""
 
-    def __init__(self, dataset: Dataset, params: ParamsType):
-        super().__init__(dataset, params)
+    def __init__(
+        self, dataset: Dataset, params: ParamsType, functions_acl: Optional[List[str]] = None
+    ):
+        super().__init__(dataset, params, functions_acl)
 
         self.search_filter_converter: Mapping[
             str, Callable[[SearchFilter], Optional[WhereType]]
