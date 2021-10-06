@@ -110,8 +110,20 @@ class ThresholdControl extends React.Component<Props, State> {
               name={`${type}ThresholdType`}
               value={thresholdType}
               options={[
-                {value: AlertRuleThresholdType.BELOW, label: comparisonType === AlertRuleComparisonType.COUNT ? t('Below') : t('Lower than')},
-                {value: AlertRuleThresholdType.ABOVE, label: comparisonType === AlertRuleComparisonType.COUNT ? t('Above') : t('Higher than')},
+                {
+                  value: AlertRuleThresholdType.BELOW,
+                  label:
+                    comparisonType === AlertRuleComparisonType.COUNT
+                      ? t('Below')
+                      : t('Lower than'),
+                },
+                {
+                  value: AlertRuleThresholdType.ABOVE,
+                  label:
+                    comparisonType === AlertRuleComparisonType.COUNT
+                      ? t('Above')
+                      : t('Higher than'),
+                },
               ]}
               components={disableThresholdType ? {DropdownIndicator: null} : undefined}
               styles={
@@ -142,9 +154,12 @@ class ThresholdControl extends React.Component<Props, State> {
               />
               <DragContainer>
                 <Tooltip
-                  title={tct('Drag to adjust threshold[break]You can hold shift to fine tune', {
-                    break: <br />,
-                  })}
+                  title={tct(
+                    'Drag to adjust threshold[break]You can hold shift to fine tune',
+                    {
+                      break: <br />,
+                    }
+                  )}
                 >
                   <NumberDragControl step={5} axis="y" onChange={this.handleDragChange} />
                 </Tooltip>
@@ -162,8 +177,9 @@ const Container = styled('div')<{comparisonType: AlertRuleComparisonType}>`
   flex: 1;
   display: flex;
   align-items: center;
-  flex-direction: ${p => p.comparisonType === AlertRuleComparisonType.COUNT ? 'row' : 'row-reverse'};
-  gap: ${p => p.comparisonType === AlertRuleComparisonType.COUNT ? space(1) : space(2)};
+  flex-direction: ${p =>
+    p.comparisonType === AlertRuleComparisonType.COUNT ? 'row' : 'row-reverse'};
+  gap: ${p => (p.comparisonType === AlertRuleComparisonType.COUNT ? space(1) : space(2))};
 `;
 
 const SelectContainer = styled('div')`
@@ -171,7 +187,7 @@ const SelectContainer = styled('div')`
 `;
 
 const ThresholdContainer = styled('div')<{comparisonType: AlertRuleComparisonType}>`
-  flex: ${p => p.comparisonType === AlertRuleComparisonType.COUNT ? '3' : '2'};
+  flex: ${p => (p.comparisonType === AlertRuleComparisonType.COUNT ? '3' : '2')};
   display: flex;
   flex-direction: row;
   align-items: center;
