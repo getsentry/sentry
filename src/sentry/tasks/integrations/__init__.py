@@ -1,6 +1,8 @@
 import logging
 from typing import Any
 
+from django.conf import settings
+
 from sentry import features
 from sentry.models import ExternalIssue, Organization
 
@@ -27,6 +29,20 @@ __all__ = (
     "update_comment",
     "vsts_subscription_check",
 )
+
+_tasks_list = (
+    "create_comment",
+    "kick_off_status_syncs",
+    "kickoff_vsts_subscription_check",
+    "migrate_repo",
+    "sync_assignee_outbound",
+    "sync_metadata",
+    "sync_status_inbound",
+    "sync_status_outbound",
+    "update_comment",
+    "vsts_subscription_check",
+)
+settings.CELERY_IMPORTS += tuple(f"sentry.tasks.integrations.{task}" for task in _tasks_list)
 
 from .create_comment import create_comment
 from .kick_off_status_syncs import kick_off_status_syncs
