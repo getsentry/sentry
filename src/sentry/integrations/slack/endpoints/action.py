@@ -236,18 +236,14 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         # Determine the acting user by slack identity
         try:
-            idp = IdentityProvider.objects.get(type="slack", external_id=slack_request.team_id)
+            identity = slack_request.get_identity()
         except IdentityProvider.DoesNotExist:
-            logger.error("slack.action.invalid-team-id", extra=logging_data)
             return self.respond(status=403)
 
-        try:
-            identity = Identity.objects.select_related("user").get(idp=idp, external_id=user_id)
-        except Identity.DoesNotExist:
+        if not identity:
             associate_url = build_linking_url(
                 integration, group.organization, user_id, channel_id, response_url
             )
-
             return self.respond(
                 {
                     "response_type": "ephemeral",
@@ -268,7 +264,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
                 if e.status_code == 403:
                     text = UNLINK_IDENTITY_MESSAGE.format(
                         associate_url=build_unlinking_url(
-                            integration.id, group.organization.id, user_id, channel_id, response_url
+                            integration.id, user_id, channel_id, response_url
                         ),
                         user_email=identity.user,
                         org_name=group.organization.name,
@@ -316,11 +312,10 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
                     self.open_resolve_dialog(data, group, integration)
                     defer_attachment_update = True
         except client.ApiError as e:
-
             if e.status_code == 403:
                 text = UNLINK_IDENTITY_MESSAGE.format(
                     associate_url=build_unlinking_url(
-                        integration.id, group.organization.id, user_id, channel_id, response_url
+                        integration.id, user_id, channel_id, response_url
                     ),
                     user_email=identity.user,
                     org_name=group.organization.name,

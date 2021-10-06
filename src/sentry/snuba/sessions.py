@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import List, Optional, Set
+from typing import List, Optional, Sequence, Set
 
 import pytz
 from snuba_sdk.column import Column
@@ -50,7 +50,7 @@ def _get_changed_project_release_model_adoptions(project_ids):
     return rv
 
 
-def get_oldest_health_data_for_releases(project_releases):
+def _get_oldest_health_data_for_releases(project_releases):
     """Returns the oldest health data we have observed in a release
     in 90 days.  This is used for backfilling.
     """
@@ -201,12 +201,12 @@ def get_project_releases_by_stability(
     return rv
 
 
-def get_project_releases_count(
+def _get_project_releases_count(
     organization_id: int,
-    project_ids: List[int],
+    project_ids: Sequence[int],
     scope: str,
     stats_period: Optional[str] = None,
-    environments: Optional[str] = None,
+    environments: Optional[Sequence[str]] = None,
 ) -> int:
     """
     Fetches the total count of releases/project combinations
@@ -355,7 +355,7 @@ def extract_duration_quantiles(raw_stats):
         }
 
 
-def get_release_health_data_overview(
+def _get_release_health_data_overview(
     project_releases,
     environments=None,
     summary_stats_period=None,
@@ -422,7 +422,7 @@ def get_release_health_data_overview(
 
     # Add releases without data points
     if missing_releases:
-        # If we're already looking at a 90 day horizont we don't need to
+        # If we're already looking at a 90 day horizon we don't need to
         # fire another query, we can already assume there is no data.
         if summary_stats_period != "90d":
             has_health_data = release_health.check_has_health_data(missing_releases)
@@ -480,7 +480,7 @@ def get_release_health_data_overview(
     return rv
 
 
-def get_crash_free_breakdown(project_id, release, start, environments=None):
+def _get_crash_free_breakdown(project_id, release, start, environments=None):
     filter_keys = {"project_id": [project_id]}
     conditions = [["release", "=", release]]
     if environments is not None:

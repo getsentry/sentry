@@ -7,7 +7,7 @@ import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import * as Layout from 'app/components/layouts/thirds';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {IconFlag} from 'app/icons';
@@ -112,7 +112,7 @@ function PageLayout(props: Props) {
             showProjectSettingsLink
           >
             <StyledPageContent>
-              <LightWeightNoProjectMessage organization={organization}>
+              <NoProjectMessage organization={organization}>
                 <TransactionHeader
                   eventView={eventView}
                   location={location}
@@ -149,7 +149,7 @@ function PageLayout(props: Props) {
                     transactionThresholdMetric={transactionThresholdMetric}
                   />
                 </Layout.Body>
-              </LightWeightNoProjectMessage>
+              </NoProjectMessage>
             </StyledPageContent>
           </GlobalSelectionHeader>
         </PerformanceEventViewProvider>
