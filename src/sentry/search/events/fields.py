@@ -2727,7 +2727,7 @@ class QueryFields(QueryBase):
             for selected_column in self.columns:
                 if isinstance(selected_column, Column) and selected_column == resolved_orderby:
                     validated.append(OrderBy(selected_column, direction))
-                    continue
+                    break
 
                 elif (
                     isinstance(selected_column, AliasedExpression)
@@ -2736,13 +2736,13 @@ class QueryFields(QueryBase):
                     # We cannot directly order by an `AliasedExpression`.
                     # Instead, we order by the column inside.
                     validated.append(OrderBy(selected_column.exp, direction))
-                    continue
+                    break
 
                 elif (
                     isinstance(selected_column, Function) and selected_column.alias == bare_orderby
                 ):
                     validated.append(OrderBy(selected_column, direction))
-                    continue
+                    break
 
         if len(validated) == len(orderby_columns):
             return validated
