@@ -115,7 +115,6 @@ def _do_preprocess_event(
     from sentry.tasks.symbolication import (
         should_demote_symbolication,
         submit_symbolicate,
-        submit_symbolicate_low_priority,
     )
 
     if cache_key and data is None:
@@ -147,9 +146,9 @@ def _do_preprocess_event(
         reprocessing2.backup_unprocessed_event(project=project, data=original_data)
 
         is_low_priority = should_demote_symbolication(project_id)
-        task = submit_symbolicate_low_priority if is_low_priority else submit_symbolicate
-        task(
+        submit_symbolicate(
             project,
+            is_low_priority,
             from_reprocessing,
             cache_key,
             event_id,
