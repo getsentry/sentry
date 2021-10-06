@@ -6,7 +6,7 @@ export enum AlertRuleThresholdType {
 }
 
 export enum AlertRuleComparisonType {
-  COUNT= 'count',
+  COUNT = 'count',
   CHANGE = 'change',
 }
 
