@@ -3,12 +3,65 @@ from typing import Mapping, Optional, Sequence, Set, Tuple, TypeVar, Union
 
 from typing_extensions import Literal, TypedDict
 
+from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils.services import Service
 
 ProjectId = int
 OrganizationId = int
 ReleaseName = str
 EnvironmentName = str
+DateString = str
+
+
+#: The functions supported by `run_sessions_query`
+SessionsQueryFunction = Literal[
+    "sum(session)",
+    "count_unique(user)",
+    "avg(session.duration)",
+    "p50(session.duration)",
+    "p75(session.duration)",
+    "p90(session.duration)",
+    "p95(session.duration)",
+    "p99(session.duration)",
+    "max(session.duration)",
+]
+
+GroupByFieldName = Literal[
+    "project",
+    "release",
+    "environment",
+    "session.status",
+]
+FilterFieldName = Literal["project", "release", "environment"]
+
+
+class SessionsQuery(TypedDict):
+    org_id: OrganizationId
+    project_ids: Sequence[ProjectId]
+    select_fields: Sequence[SessionsQueryFunction]
+    filter_query: Mapping[FilterFieldName, str]
+    start: datetime
+    end: datetime
+    rollup: int  # seconds
+
+
+SessionsQueryValue = Union[None, float, int]
+
+
+class SessionsQueryGroup(TypedDict):
+    by: Mapping[GroupByFieldName, Union[str, int]]
+    series: Mapping[SessionsQueryFunction, Sequence[SessionsQueryValue]]
+    totals: Mapping[SessionsQueryFunction, SessionsQueryValue]
+
+
+class SessionsQueryResult(TypedDict):
+    start: DateString
+    end: DateString
+    intervals: Sequence[DateString]
+    groups: Sequence[SessionsQueryGroup]
+    query: str
+
+
 FormattedIsoTime = str
 
 ProjectRelease = Tuple[ProjectId, ReleaseName]
@@ -109,6 +162,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "check_has_health_data",
         "get_release_sessions_time_bounds",
         "check_releases_have_health_data",
+        "run_sessions_query",
         "get_release_health_data_overview",
         "get_crash_free_breakdown",
         "get_changed_project_release_model_adoptions",
@@ -176,6 +230,18 @@ class ReleaseHealthBackend(Service):  # type: ignore
             that. Omit if you're not sure.
         """
 
+        raise NotImplementedError()
+
+    def run_sessions_query(
+        self,
+        org_id: int,
+        query: QueryDefinition,
+        span_op: str,
+    ) -> SessionsQueryResult:
+        """
+        Runs the `query` as defined by the sessions_v2 [`QueryDefinition`],
+        and returns the resulting timeseries in sessions_v2 format.
+        """
         raise NotImplementedError()
 
     def get_release_sessions_time_bounds(

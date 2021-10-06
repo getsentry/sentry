@@ -11,6 +11,7 @@ from sentry.snuba.metrics import (
     QueryDefinition,
     SnubaQueryBuilder,
     SnubaResultConverter,
+    get_intervals,
 )
 
 
@@ -103,7 +104,7 @@ def test_translate_results(_1, _2):
     )
     query_definition = QueryDefinition(query_params)
 
-    intervals = list(query_definition.get_intervals())
+    intervals = list(get_intervals(query_definition))
     results = {
         "metrics_counters": {
             "totals": {
@@ -277,7 +278,7 @@ def test_translate_results_missing_slots(_1, _2):
         },
     }
 
-    intervals = list(query_definition.get_intervals())
+    intervals = list(get_intervals(query_definition))
     assert SnubaResultConverter(1, query_definition, intervals, results).translate_results() == [
         {
             "by": {},

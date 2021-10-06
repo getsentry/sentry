@@ -1,11 +1,15 @@
 import datetime
+from unittest.mock import patch
 from uuid import uuid4
 
+import pytest
 import pytz
 from django.urls import reverse
 from freezegun import freeze_time
 
+from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.utils.dates import to_timestamp
 
 
@@ -52,11 +56,15 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             "release": "foo@1.0.0",
             "environment": "production",
             "retention_days": 90,
-            "duration": None,
+            "duration": 123.4,
             "errors": 0,
             "started": self.session_started,
             "received": self.received,
         }
+
+        def make_duration(kwargs):
+            """Randomish but deterministic duration"""
+            return float(len(str(kwargs)))
 
         def make_session(project, **kwargs):
             return dict(
@@ -64,6 +72,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 session_id=uuid4().hex,
                 org_id=project.organization_id,
                 project_id=project.id,
+                duration=make_duration(kwargs),
                 **kwargs,
             )
 
@@ -583,3 +592,89 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 "totals": {"count_unique(user)": 0},
             },
         ]
+
+    expected_duration_values = {
+        "avg(session.duration)": 42375.0,
+        "max(session.duration)": 80000.0,
+        "p50(session.duration)": 33500.0,
+        "p75(session.duration)": 53750.0,
+        "p90(session.duration)": 71600.0,
+        "p95(session.duration)": 75800.0,
+        "p99(session.duration)": 79159.99999999999,
+    }
+
+    @freeze_time("2021-01-14T12:27:28.303Z")
+    def test_duration_percentiles(self):
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": [
+                    "avg(session.duration)",
+                    "p50(session.duration)",
+                    "p75(session.duration)",
+                    "p90(session.duration)",
+                    "p95(session.duration)",
+                    "p99(session.duration)",
+                    "max(session.duration)",
+                ],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        expected = self.expected_duration_values
+
+        groups = result_sorted(response.data)["groups"]
+        assert len(groups) == 1, groups
+        group = groups[0]
+
+        assert group["totals"] == pytest.approx(expected)
+        for key, series in group["series"].items():
+            assert series == pytest.approx([expected[key]])
+
+    @freeze_time("2021-01-14T12:27:28.303Z")
+    def test_duration_percentiles_groupby(self):
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": [
+                    "avg(session.duration)",
+                    "p50(session.duration)",
+                    "p75(session.duration)",
+                    "p90(session.duration)",
+                    "p95(session.duration)",
+                    "p99(session.duration)",
+                    "max(session.duration)",
+                ],
+                "groupBy": "session.status",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        expected = self.expected_duration_values
+
+        seen = set()  # Make sure all session statuses are listed
+        for group in result_sorted(response.data)["groups"]:
+            seen.add(group["by"].get("session.status"))
+            if group["by"] == {"session.status": "healthy"}:
+                assert group["totals"] == pytest.approx(expected)
+                for key, series in group["series"].items():
+                    assert series == pytest.approx([expected[key]])
+            else:
+                # Everything's none:
+                assert group["totals"] == {key: None for key in expected}, group["by"]
+                assert group["series"] == {key: [None] for key in expected}
+
+        assert seen == {"abnormal", "crashed", "errored", "healthy"}
+
+
+@patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
+class OrganizationSessionsEndpointMetricsTest(
+    SessionMetricsTestCase, OrganizationSessionsEndpointTest
+):
+    """Repeat with metrics backend"""

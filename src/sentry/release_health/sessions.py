@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Mapping, Optional, Sequence, Set, Tuple
 
+import sentry_sdk
+
 from sentry.release_health.base import (
     CrashFreeBreakdown,
     CurrentAndPreviousCrashFreeRates,
@@ -15,6 +17,7 @@ from sentry.release_health.base import (
     ReleaseName,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
+    SessionsQueryResult,
     StatsPeriod,
 )
 from sentry.snuba.sessions import (
@@ -28,6 +31,7 @@ from sentry.snuba.sessions import (
     _get_release_sessions_time_bounds,
     get_current_and_previous_crash_free_rates,
 )
+from sentry.snuba.sessions_v2 import QueryDefinition, _run_sessions_query, massage_sessions_result
 
 
 class SessionsReleaseHealthBackend(ReleaseHealthBackend):
@@ -62,6 +66,18 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         return _get_release_adoption(  # type: ignore
             project_releases=project_releases, environments=environments, now=now
         )
+
+    def run_sessions_query(
+        self,
+        org_id: int,
+        query: QueryDefinition,
+        span_op: str,
+    ) -> SessionsQueryResult:
+        with sentry_sdk.start_span(op=span_op, description="run_sessions_query"):
+            totals, series = _run_sessions_query(query)
+
+        with sentry_sdk.start_span(op=span_op, description="massage_sessions_results"):
+            return massage_sessions_result(query, totals, series)  # type: ignore
 
     def get_release_sessions_time_bounds(
         self,
