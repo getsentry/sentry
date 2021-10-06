@@ -3,7 +3,9 @@ import Reflux from 'reflux';
 
 import {Config} from 'app/types';
 
-type ConfigStoreInterface = {
+import {CommonStoreInterface} from './types';
+
+type ConfigStoreInterface = CommonStoreInterface<Config> & {
   get<K extends keyof Config>(key: K): Config[K];
   set<K extends keyof Config>(key: K, value: Config[K]): void;
   getConfig(): Config;
@@ -48,10 +50,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & ConfigStoreInterface = {
     this.set('theme', theme);
   },
 
-  getConfig() {
-    return this.config;
-  },
-
   loadInitialData(config): void {
     const shouldUseDarkMode = config.user?.options.theme === 'dark';
 
@@ -68,6 +66,14 @@ const storeConfig: Reflux.StoreDefinition & Internals & ConfigStoreInterface = {
     }
 
     this.trigger(config);
+  },
+
+  getConfig() {
+    return this.config;
+  },
+
+  getState() {
+    return this.config;
   },
 };
 
