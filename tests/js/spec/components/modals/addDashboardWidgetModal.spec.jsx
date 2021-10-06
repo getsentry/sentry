@@ -236,6 +236,37 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     wrapper.unmount();
   });
 
+  it('can add equation fields', async function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+
+    // Click the add button
+    const add = wrapper.find('button[aria-label="Add an Equation"]');
+    add.simulate('click');
+    wrapper.update();
+
+    // Should be another field input.
+    expect(wrapper.find('QueryField')).toHaveLength(2);
+
+    expect(wrapper.find('ArithmeticInput')).toHaveLength(1);
+
+    wrapper
+      .find('QueryFieldWrapper input[name="arithmetic"]')
+      .simulate('change', {target: {value: 'count() + 100'}})
+      .simulate('blur');
+
+    wrapper.update();
+
+    await clickSubmit(wrapper);
+
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['count()', 'equation|count() + 100']);
+    wrapper.unmount();
+  });
+
   it('additional fields get added to new seach filters', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',

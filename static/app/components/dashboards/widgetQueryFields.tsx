@@ -238,6 +238,8 @@ function WidgetQueryFields({
     (['line', 'area', 'stacked_area', 'bar'].includes(displayType) &&
       fields.length === 3);
 
+  const canDelete = fields.filter(field => field.kind !== 'equation').length > 1;
+
   return (
     <Field
       data-test-id="y-axis"
@@ -260,7 +262,7 @@ function WidgetQueryFields({
               filterAggregateParameters={filterAggregateParameters(field)}
               otherColumns={fields}
             />
-            {fields.length > 1 && (
+            {(canDelete || field.kind === 'equation') && (
               <Button
                 size="zero"
                 borderless
