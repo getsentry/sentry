@@ -42,6 +42,7 @@ export default class OrganizationCreate extends AsyncView {
           requireChanges
         >
           <TextField
+            id="organization-name"
             name="name"
             label={t('Organization Name')}
             placeholder={t('e.g. My Company')}
@@ -53,6 +54,7 @@ export default class OrganizationCreate extends AsyncView {
 
           {termsUrl && privacyUrl && (
             <CheckboxField
+              id="agreeTerms"
               name="agreeTerms"
               label={tct(
                 'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
