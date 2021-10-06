@@ -4,7 +4,6 @@ import Reflux from 'reflux';
 import {Config} from 'app/types';
 
 type ConfigStoreInterface = {
-
   get<K extends keyof Config>(key: K): Config[K];
   set<K extends keyof Config>(key: K, value: Config[K]): void;
   getConfig(): Config;
