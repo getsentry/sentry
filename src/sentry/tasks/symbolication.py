@@ -211,9 +211,9 @@ def _do_symbolicate_event(
                             tags={"symbolication_function": symbolication_function_name},
                         )
                         sleep_time = (
-                            min(e.retry_after, SYMBOLICATOR_MAX_RETRY_AFTER)
-                            if e.retry_after
-                            else SYMBOLICATOR_MAX_RETRY_AFTER
+                            SYMBOLICATOR_MAX_RETRY_AFTER
+                            if e.retry_after is None
+                            else min(e.retry_after, SYMBOLICATOR_MAX_RETRY_AFTER)
                         )
                         sleep(sleep_time)
                         continue
