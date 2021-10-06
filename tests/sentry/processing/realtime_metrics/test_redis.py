@@ -1,8 +1,6 @@
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict
 
 import pytest
-from freezegun import freeze_time
 
 from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.base import (
@@ -696,7 +694,7 @@ def test_get_durations_for_projects_with_gap(
 
 
 def test_was_recently_moved_noop(store: RedisRealtimeMetricsStore) -> None:
-    store.remove_projects_from_lpq([42])
+    store.remove_projects_from_lpq({42})
     assert store.was_recently_moved(42)
 
 
@@ -709,7 +707,7 @@ def test_was_recently_moved_removed(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     redis_cluster.sadd(LPQ_MEMBERS_KEY, 42)
-    store.remove_projects_from_lpq([42])
+    store.remove_projects_from_lpq({42})
     assert store.was_recently_moved(42)
 
 
@@ -719,7 +717,7 @@ def test_was_recently_moved_removed(
 
 
 def test_recently_moved_projects_noop(store: RedisRealtimeMetricsStore) -> None:
-    store.remove_projects_from_lpq([42])
+    store.remove_projects_from_lpq({42})
     assert store.recently_moved_projects() == {42}
 
 
@@ -732,5 +730,5 @@ def test_recently_moved_projects_removed(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     redis_cluster.sadd(LPQ_MEMBERS_KEY, 42)
-    store.remove_projects_from_lpq([42])
+    store.remove_projects_from_lpq({42})
     assert store.recently_moved_projects() == {42}
