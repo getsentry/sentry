@@ -238,6 +238,10 @@ class ReleaseHealthBackend(Service):  # type: ignore
         query: QueryDefinition,
         span_op: str,
     ) -> SessionsQueryResult:
+        """
+        Runs the `query` as defined by the sessions_v2 [`QueryDefinition`],
+        and returns the resulting timeseries in sessions_v2 format.
+        """
         raise NotImplementedError()
 
     def get_release_sessions_time_bounds(
