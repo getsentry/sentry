@@ -83,6 +83,8 @@ def submit_symbolicate(
     else:
         task = symbolicate_event_from_reprocessing if from_reprocessing else symbolicate_event
 
+    task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
+
 
 def _do_symbolicate_event(
     cache_key: Optional[str],
