@@ -16,6 +16,7 @@ import {uniqueId} from 'app/utils/guid';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import withOrganization from 'app/utils/withOrganization';
+import ActionSpecificTargetSelector from 'app/views/alerts/incidentRules/triggers/actionsPanel/actionSpecificTargetSelector';
 import ActionTargetSelector from 'app/views/alerts/incidentRules/triggers/actionsPanel/actionTargetSelector';
 import DeleteActionButton from 'app/views/alerts/incidentRules/triggers/actionsPanel/deleteActionButton';
 import {
@@ -123,6 +124,21 @@ class ActionsPanel extends PureComponent<Props> {
     const newAction = {
       ...actions[index],
       targetIdentifier: value,
+    };
+
+    onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
+  }
+
+  handleChangeSpecificTargetIdentifier(
+    triggerIndex: number,
+    index: number,
+    value: string
+  ) {
+    const {triggers, onChange} = this.props;
+    const {actions} = triggers[triggerIndex];
+    const newAction = {
+      ...actions[index],
+      inputChannelId: value,
     };
 
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
@@ -314,6 +330,19 @@ class ActionsPanel extends PureComponent<Props> {
                       disabled={disabled}
                       loading={loading}
                       onChange={this.handleChangeTargetIdentifier.bind(
+                        this,
+                        triggerIndex,
+                        actionIdx
+                      )}
+                      organization={organization}
+                      project={project}
+                    />
+                    <ActionSpecificTargetSelector
+                      action={action}
+                      availableAction={availableAction}
+                      disabled={disabled}
+                      loading={loading}
+                      onChange={this.handleChangeSpecificTargetIdentifier.bind(
                         this,
                         triggerIndex,
                         actionIdx

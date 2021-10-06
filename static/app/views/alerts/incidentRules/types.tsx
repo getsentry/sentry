@@ -238,7 +238,10 @@ type UnsavedAction = {
    * user_id, team_id, SentryApp id, etc
    */
   targetIdentifier: string | null;
-
+  /**
+   * An optional Slack channel or user ID the user can input to avoid rate limiting issues.
+   */
+  inputChannelId: string | null;
   /**
    * The id of the integration, can be null (e.g. email) or undefined (server errors when posting w/ null value)
    */
