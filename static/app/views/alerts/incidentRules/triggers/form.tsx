@@ -35,7 +35,6 @@ type Props = {
   projects: Project[];
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
   thresholdType: UnsavedIncidentRule['thresholdType'];
-  comparisonDelta?: number;
   comparisonType: AlertRuleComparisonType;
   aggregate: UnsavedIncidentRule['aggregate'];
   trigger: Trigger;
@@ -74,7 +73,6 @@ class TriggerForm extends React.PureComponent<Props> {
       isCritical,
       thresholdType,
       comparisonType,
-      comparisonDelta,
       fieldHelp,
       triggerLabel,
       placeholder,
@@ -94,7 +92,6 @@ class TriggerForm extends React.PureComponent<Props> {
           type={trigger.label}
           thresholdType={thresholdType}
           threshold={trigger.alertThreshold}
-          comparisonDelta={comparisonDelta}
           comparisonType={comparisonType}
           placeholder={placeholder}
           onChange={this.handleChangeThreshold}
@@ -181,7 +178,6 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       triggers,
       thresholdType,
       comparisonType,
-      comparisonDelta,
       aggregate,
       resolveThreshold,
       projects,
@@ -212,7 +208,6 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
               trigger={trigger}
               thresholdType={thresholdType}
               comparisonType={comparisonType}
-              comparisonDelta={comparisonDelta}
               aggregate={aggregate}
               resolveThreshold={resolveThreshold}
               organization={organization}
@@ -250,7 +245,6 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           trigger={resolveTrigger}
           // Flip rule thresholdType to opposite
           thresholdType={+!thresholdType}
-          comparisonDelta={comparisonDelta}
           comparisonType={comparisonType}
           aggregate={aggregate}
           resolveThreshold={resolveThreshold}

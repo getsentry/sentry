@@ -18,7 +18,6 @@ type Props = ThresholdControlValue & {
   disabled: boolean;
   disableThresholdType: boolean;
   placeholder: string;
-  comparisonDelta?: number;
   comparisonType: AlertRuleComparisonType;
   onChange: (value: ThresholdControlValue, e: React.FormEvent) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
@@ -91,7 +90,6 @@ class ThresholdControl extends React.Component<Props, State> {
     const {currentValue} = this.state;
     const {
       thresholdType,
-      comparisonDelta,
       comparisonType,
       threshold,
       placeholder,

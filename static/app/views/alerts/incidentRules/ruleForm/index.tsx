@@ -662,7 +662,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         aggregate={aggregate}
         resolveThreshold={resolveThreshold}
         thresholdType={thresholdType}
-        comparisonDelta={comparisonDelta}
         comparisonType={comparisonType}
         currentProject={params.projectId}
         organization={organization}

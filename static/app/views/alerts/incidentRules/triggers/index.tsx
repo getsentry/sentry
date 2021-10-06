@@ -23,7 +23,6 @@ type Props = {
   triggers: Trigger[];
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
   thresholdType: UnsavedIncidentRule['thresholdType'];
-  comparisonDelta?: number;
   comparisonType: AlertRuleComparisonType;
   aggregate: UnsavedIncidentRule['aggregate'];
   currentProject: string;
@@ -100,7 +99,6 @@ class Triggers extends Component<Props> {
       disabled,
       aggregate,
       thresholdType,
-      comparisonDelta,
       comparisonType,
       resolveThreshold,
       onThresholdTypeChange,
@@ -121,7 +119,6 @@ class Triggers extends Component<Props> {
               aggregate={aggregate}
               resolveThreshold={resolveThreshold}
               thresholdType={thresholdType}
-              comparisonDelta={comparisonDelta}
               comparisonType={comparisonType}
               onChange={this.handleChangeTrigger}
               onThresholdTypeChange={onThresholdTypeChange}
