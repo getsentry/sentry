@@ -850,7 +850,7 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
 
 
 def parse_combinator(function: str) -> Tuple[str, Optional[str]]:
-    for combinator in [ArrayCombinator]:
+    for combinator in COMBINATORS:
         kind = combinator.kind
         if function.endswith(kind):
             return function[: -len(kind)], kind
@@ -977,6 +977,9 @@ class ArrayCombinator(Combinator):
 class SnQLArrayCombinator(ArrayCombinator):
     def apply(self, value: Any) -> Any:
         return Function("arrayJoin", [value])
+
+
+COMBINATORS = [ArrayCombinator]
 
 
 class ArgValue:

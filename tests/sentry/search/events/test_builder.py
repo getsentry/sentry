@@ -343,7 +343,7 @@ class QueryBuilderTest(TestCase):
                     selected_columns=[],
                 )
 
-    def test_array_combinatore(self):
+    def test_array_combinator(self):
         query = QueryBuilder(
             Dataset.Discover,
             self.params,

@@ -7,6 +7,7 @@ from snuba_sdk.function import Function
 
 from sentry import eventstore
 from sentry.search.events.fields import (
+    COMBINATORS,
     FUNCTIONS,
     FunctionDetails,
     InvalidSearchQuery,
@@ -1686,3 +1687,12 @@ def test_range_funtions(field, expected):
     fields = resolve_snql_fieldlist([field])
     assert len(fields) == 1
     assert fields[0] == expected
+
+
+@pytest.mark.parametrize("combinator", COMBINATORS)
+def test_combinator_names_are_reserved(combinator):
+    fields = QueryFields(dataset=Dataset.Discover, params={})
+    for function in fields.function_converter:
+        assert not function.endswith(
+            combinator.kind
+        ), f"Cannot name function `{function}` because `-{combinator.kind}` suffix is reserved for combinators"
