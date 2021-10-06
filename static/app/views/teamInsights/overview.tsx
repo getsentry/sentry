@@ -314,10 +314,13 @@ const StyledLayoutTitle = styled(Layout.Title)`
 
 const ControlsWrapper = styled('div')`
   display: grid;
-  grid-template-columns: 0.5fr 1fr;
   align-items: center;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 246px 1fr;
+  }
 `;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
