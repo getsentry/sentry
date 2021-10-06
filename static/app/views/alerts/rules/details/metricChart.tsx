@@ -14,6 +14,7 @@ import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
+import SessionsRequest from 'app/components/charts/sessionsRequest';
 import {SectionHeading} from 'app/components/charts/styles';
 import {
   parseStatsPeriod,
@@ -28,14 +29,23 @@ import space from 'app/styles/space';
 import {AvatarProject, DateString, Organization, Project} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import {getUtcDateString} from 'app/utils/dates';
+import {getCrashFreeRateSeries} from 'app/utils/sessions';
 import theme from 'app/utils/theme';
 import {alertDetailsLink} from 'app/views/alerts/details';
 import {makeDefaultCta} from 'app/views/alerts/incidentRules/incidentRulePresets';
-import {IncidentRule} from 'app/views/alerts/incidentRules/types';
+import {Dataset, IncidentRule} from 'app/views/alerts/incidentRules/types';
 import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
+import {
+  ALERT_CHART_MIN_MAX_BUFFER,
+  alertAxisFormatter,
+  alertTooltipValueFormatter,
+  isSessionAggregate,
+  SESSION_AGGREGATE_TO_FIELD,
+  shouldScaleAlertChart,
+} from '../../utils';
 
 import {TimePeriodType} from './constants';
 
@@ -88,7 +98,8 @@ function createThresholdSeries(lineColor: string, threshold: number): LineChartS
 function createStatusAreaSeries(
   lineColor: string,
   startTime: number,
-  endTime: number
+  endTime: number,
+  yPosition: number
 ): LineChartSeries {
   return {
     seriesName: 'Status Area',
@@ -96,7 +107,7 @@ function createStatusAreaSeries(
     markLine: MarkLine({
       silent: true,
       lineStyle: {color: lineColor, type: 'solid', width: 4},
-      data: [[{coord: [startTime, 0]}, {coord: [endTime, 0]}] as any],
+      data: [[{coord: [startTime, yPosition]}, {coord: [endTime, yPosition]}] as any],
     }),
     data: [],
   };
@@ -207,8 +218,8 @@ class MetricChart extends React.PureComponent<Props, State> {
     }
 
     const seriesData = data[0].data;
-    const seriesStart = seriesData[0].name as number;
-    const seriesEnd = seriesData[seriesData.length - 1].name as number;
+    const seriesStart = moment(seriesData[0].name).valueOf();
+    const seriesEnd = moment(seriesData[seriesData.length - 1].name).valueOf();
     const ruleChanged = moment(dateModified).valueOf();
 
     if (ruleChanged < seriesStart) {
@@ -293,11 +304,13 @@ class MetricChart extends React.PureComponent<Props, State> {
             </StatItem>
           </SummaryStats>
         </ChartSummary>
-        <Feature features={['discover-basic']}>
-          <Button size="small" {...props}>
-            {buttonText}
-          </Button>
-        </Feature>
+        {!isSessionAggregate(rule.aggregate) && (
+          <Feature features={['discover-basic']}>
+            <Button size="small" {...props}>
+              {buttonText}
+            </Button>
+          </Feature>
+        )}
       </ChartActions>
     );
   }
@@ -309,12 +322,13 @@ class MetricChart extends React.PureComponent<Props, State> {
       interval,
       handleZoom,
       filter,
+      query,
       incidents,
       rule,
       organization,
       timePeriod: {start, end},
     } = this.props;
-    const {dateModified, timeWindow} = this.props.rule || {};
+    const {dateModified, timeWindow, aggregate} = rule;
 
     if (loading || !timeseriesData) {
       return this.renderEmpty();
@@ -332,13 +346,30 @@ class MetricChart extends React.PureComponent<Props, State> {
       (currMax, coord) => Math.max(currMax, coord.value),
       0
     );
-    const firstPoint = Number(dataArr[0].name);
-    const lastPoint = dataArr[dataArr.length - 1].name as number;
+    // find the lowest value between chart data points, warning threshold,
+    // critical threshold and then apply some breathing space
+    const minChartValue = shouldScaleAlertChart(aggregate)
+      ? Math.floor(
+          Math.min(
+            dataArr.reduce((currMax, coord) => Math.min(currMax, coord.value), Infinity),
+            typeof warningTrigger?.alertThreshold === 'number'
+              ? warningTrigger.alertThreshold
+              : Infinity,
+            typeof criticalTrigger?.alertThreshold === 'number'
+              ? criticalTrigger.alertThreshold
+              : Infinity
+          ) / ALERT_CHART_MIN_MAX_BUFFER
+        )
+      : 0;
+    const firstPoint = moment(dataArr[0].name).valueOf();
+    const lastPoint = moment(dataArr[dataArr.length - 1].name).valueOf();
     const totalDuration = lastPoint - firstPoint;
     let criticalDuration = 0;
     let warningDuration = 0;
 
-    series.push(createStatusAreaSeries(theme.green300, firstPoint, lastPoint));
+    series.push(
+      createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
+    );
     if (incidents) {
       // select incidents that fall within the graph range
       const periodStart = moment.utc(firstPoint);
@@ -399,7 +430,9 @@ class MetricChart extends React.PureComponent<Props, State> {
           );
           const areaColor = warningTrigger ? theme.yellow300 : theme.red300;
           if (areaEnd > areaStart) {
-            series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
+            series.push(
+              createStatusAreaSeries(areaColor, areaStart, areaEnd, minChartValue)
+            );
 
             if (areaColor === theme.yellow300) {
               warningDuration += Math.abs(areaEnd - areaStart);
@@ -425,7 +458,12 @@ class MetricChart extends React.PureComponent<Props, State> {
                 : theme.yellow300;
             if (statusAreaEnd > statusAreaStart) {
               series.push(
-                createStatusAreaSeries(statusAreaColor, statusAreaStart, statusAreaEnd)
+                createStatusAreaSeries(
+                  statusAreaColor,
+                  statusAreaStart,
+                  statusAreaEnd,
+                  minChartValue
+                )
               );
               if (statusAreaColor === theme.yellow300) {
                 warningDuration += Math.abs(statusAreaEnd - statusAreaStart);
@@ -476,7 +514,7 @@ class MetricChart extends React.PureComponent<Props, State> {
             <ChartTitle>
               {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
             </ChartTitle>
-            {filter}
+            {query ? filter : null}
           </ChartHeader>
           <ChartZoom
             router={router}
@@ -496,11 +534,18 @@ class MetricChart extends React.PureComponent<Props, State> {
                   top: space(2),
                   bottom: 0,
                 }}
-                yAxis={
-                  maxThresholdValue > maxSeriesValue
-                    ? {max: maxThresholdValue}
-                    : undefined
-                }
+                yAxis={{
+                  axisLabel: {
+                    formatter: (value: number) =>
+                      alertAxisFormatter(
+                        value,
+                        timeseriesData[0].seriesName,
+                        rule.aggregate
+                      ),
+                  },
+                  max: maxThresholdValue > maxSeriesValue ? maxThresholdValue : undefined,
+                  min: minChartValue || undefined,
+                }}
                 series={[...series, ...areaSeries]}
                 graphic={Graphic({
                   elements: this.getRuleChangeThresholdElements(timeseriesData),
@@ -513,6 +558,11 @@ class MetricChart extends React.PureComponent<Props, State> {
                       : [seriesParams];
                     const {marker, data: pointData, seriesName} = pointSeries[0];
                     const [pointX, pointY] = pointData as [number, number];
+                    const pointYFormatted = alertTooltipValueFormatter(
+                      pointY,
+                      seriesName ?? '',
+                      rule.aggregate
+                    );
                     const isModified =
                       dateModified && pointX <= new Date(dateModified).getTime();
 
@@ -532,8 +582,8 @@ class MetricChart extends React.PureComponent<Props, State> {
                       ? `<strong>${t('Alert Rule Modified')}</strong>`
                       : `${marker} <strong>${seriesName}</strong>`;
                     const value = isModified
-                      ? `${seriesName} ${pointY.toLocaleString()}`
-                      : pointY.toLocaleString();
+                      ? `${seriesName} ${pointYFormatted}`
+                      : pointYFormatted;
 
                     return [
                       `<div class="tooltip-series"><div>`,
@@ -570,41 +620,69 @@ class MetricChart extends React.PureComponent<Props, State> {
 
   render() {
     const {api, rule, organization, timePeriod, projects, interval, query} = this.props;
+    const {aggregate, timeWindow, environment, dataset} = rule;
 
     // If the chart duration isn't as long as the rollup duration the events-stats
     // endpoint will return an invalid timeseriesData data set
     const viableStartDate = getUtcDateString(
       moment.min(
         moment.utc(timePeriod.start),
-        moment.utc(timePeriod.end).subtract(rule.timeWindow, 'minutes')
+        moment.utc(timePeriod.end).subtract(timeWindow, 'minutes')
       )
     );
 
     const viableEndDate = getUtcDateString(
-      moment.utc(timePeriod.end).add(rule.timeWindow, 'minutes')
+      moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    return (
+    return dataset === Dataset.SESSIONS ? (
+      <SessionsRequest
+        api={api}
+        organization={organization}
+        project={projects.filter(p => p.id).map(p => Number(p.id))}
+        environment={environment ? [environment] : undefined}
+        start={viableStartDate}
+        end={viableEndDate}
+        query={query}
+        interval={interval}
+        field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
+        groupBy={['session.status']}
+      >
+        {({loading, response}) =>
+          this.renderChart(loading, [
+            {
+              seriesName:
+                AlertWizardAlertNames[
+                  getAlertTypeFromAggregateDataset({aggregate, dataset: Dataset.SESSIONS})
+                ],
+              data: getCrashFreeRateSeries(
+                response?.groups,
+                response?.intervals,
+                SESSION_AGGREGATE_TO_FIELD[aggregate]
+              ),
+            },
+          ])
+        }
+      </SessionsRequest>
+    ) : (
       <EventsRequest
         api={api}
         organization={organization}
         query={query}
-        environment={rule.environment ? [rule.environment] : undefined}
+        environment={environment ? [environment] : undefined}
         project={(projects as Project[])
           .filter(p => p && p.slug)
           .map(project => Number(project.id))}
         interval={interval}
         start={viableStartDate}
         end={viableEndDate}
-        yAxis={rule.aggregate}
+        yAxis={aggregate}
         includePrevious={false}
-        currentSeriesName={rule.aggregate}
+        currentSeriesName={aggregate}
         partial={false}
         referrer="api.alerts.alert-rule-chart"
       >
-        {({loading, timeseriesData}) => {
-          return this.renderChart(loading, timeseriesData);
-        }}
+        {({loading, timeseriesData}) => this.renderChart(loading, timeseriesData)}
       </EventsRequest>
     );
   }
