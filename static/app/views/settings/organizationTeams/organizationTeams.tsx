@@ -1,13 +1,22 @@
+import {useState} from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
+import partition from 'lodash/partition';
 
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
-import {AccessRequest, Organization, Team} from 'app/types';
+import space from 'app/styles/space';
+import {AccessRequest, Organization} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
+import useTeams from 'app/utils/useTeams';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 import AllTeamsList from './allTeamsList';
@@ -16,16 +25,12 @@ import OrganizationAccessRequests from './organizationAccessRequests';
 type Props = {
   access: Set<string>;
   features: Set<string>;
-  allTeams: Team[];
-  activeTeams: Team[];
   organization: Organization;
   requestList: AccessRequest[];
   onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 function OrganizationTeams({
-  allTeams,
-  activeTeams,
   organization,
   access,
   features,
@@ -63,9 +68,22 @@ function OrganizationTeams({
     ? recreateRoute(teamRoute, {routes, params, stepBack: -2})
     : '';
 
-  const activeTeamIds = new Set(activeTeams.map(team => team.id));
-  const otherTeams = allTeams.filter(team => !activeTeamIds.has(team.id));
   const title = t('Teams');
+
+  const [teamQuery, setTeamQuery] = useState('');
+  const {initiallyLoaded} = useTeams({
+    provideUserTeams: true,
+  });
+  const {teams, onSearch} = useTeams();
+
+  const debouncedSearch = debounce(onSearch, DEFAULT_DEBOUNCE_DURATION);
+  function handleSearch(query: string) {
+    setTeamQuery(query);
+    debouncedSearch(query);
+  }
+
+  const filteredTeams = teams.filter(team => `#${team.slug}`.includes(teamQuery));
+  const [userTeams, otherTeams] = partition(filteredTeams, team => team.isMember);
 
   return (
     <div data-test-id="team-list">
@@ -77,16 +95,25 @@ function OrganizationTeams({
         requestList={requestList}
         onRemoveAccessRequest={onRemoveAccessRequest}
       />
+      <StyledSearchBar
+        placeholder={t('Search teams')}
+        onChange={handleSearch}
+        query={teamQuery}
+      />
       <Panel>
         <PanelHeader>{t('Your Teams')}</PanelHeader>
         <PanelBody>
-          <AllTeamsList
-            urlPrefix={urlPrefix}
-            organization={organization}
-            teamList={activeTeams}
-            access={access}
-            openMembership={false}
-          />
+          {initiallyLoaded ? (
+            <AllTeamsList
+              urlPrefix={urlPrefix}
+              organization={organization}
+              teamList={userTeams.filter(team => team.slug.includes(teamQuery))}
+              access={access}
+              openMembership={false}
+            />
+          ) : (
+            <LoadingIndicator />
+          )}
         </PanelBody>
       </Panel>
       <Panel>
@@ -106,5 +133,9 @@ function OrganizationTeams({
     </div>
   );
 }
+
+const StyledSearchBar = styled(SearchBar)`
+  margin-bottom: ${space(2)};
+`;
 
 export default OrganizationTeams;
