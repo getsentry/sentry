@@ -130,10 +130,12 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   const {organization} = useLegacyStore(OrganizationStore);
   const store = useLegacyStore(TeamStore);
 
+  // If we need to make a request either for slugs or user teams, set initiallyLoaded to false
+  const initiallyLoaded =
+    slugs || (provideUserTeams && !store.loadedUserTeams) ? false : true;
   const [state, setState] = useState<State>({
+    initiallyLoaded,
     fetching: false,
-    // If we need to make a request either for slugs or user teams, set initiallyLoaded to false
-    initiallyLoaded: slugs || (provideUserTeams && !store.loadedUserTeams) ? false : true,
     hasMore: null,
     lastSearch: null,
     nextCursor: null,

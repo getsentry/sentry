@@ -71,9 +71,7 @@ function OrganizationTeams({
   const title = t('Teams');
 
   const [teamQuery, setTeamQuery] = useState('');
-  const {initiallyLoaded} = useTeams({
-    provideUserTeams: true,
-  });
+  const {initiallyLoaded} = useTeams({provideUserTeams: true});
   const {teams, onSearch} = useTeams();
 
   const debouncedSearch = debounce(onSearch, DEFAULT_DEBOUNCE_DURATION);
@@ -82,7 +80,9 @@ function OrganizationTeams({
     debouncedSearch(query);
   }
 
-  const filteredTeams = teams.filter(team => `#${team.slug}`.includes(teamQuery));
+  const filteredTeams = teams.filter(team =>
+    `#${team.slug}`.toLowerCase().includes(teamQuery.toLowerCase())
+  );
   const [userTeams, otherTeams] = partition(filteredTeams, team => team.isMember);
 
   return (
