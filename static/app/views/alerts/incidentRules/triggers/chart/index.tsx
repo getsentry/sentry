@@ -27,7 +27,14 @@ import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'app/views/alerts/u
 import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 
-import {Dataset, IncidentRule, TimePeriod, TimeWindow, Trigger} from '../../types';
+import {
+  Dataset,
+  IncidentRule,
+  SessionsAggregate,
+  TimePeriod,
+  TimeWindow,
+  Trigger,
+} from '../../types';
 
 import ThresholdsChart from './thresholdsChart';
 
@@ -114,6 +121,11 @@ const TIME_WINDOW_TO_SESSION_INTERVAL = {
   [TimeWindow.TWO_HOURS]: '2h',
   [TimeWindow.FOUR_HOURS]: '4h',
   [TimeWindow.ONE_DAY]: '1d',
+};
+
+const SESSION_AGGREGATE_TO_HEADING = {
+  [SessionsAggregate.CRASH_FREE_SESSIONS]: t('Total Sessions'),
+  [SessionsAggregate.CRASH_FREE_USERS]: t('Total Users'),
 };
 
 /**
@@ -303,7 +315,9 @@ class TriggersChart extends React.PureComponent<Props, State> {
         <ChartControls>
           <InlineContainer>
             <SectionHeading>
-              {isSessionAggregate(aggregate) ? t('Total Sessions') : t('Total Events')}
+              {isSessionAggregate(aggregate)
+                ? SESSION_AGGREGATE_TO_HEADING[aggregate]
+                : t('Total Events')}
             </SectionHeading>
             <SectionValue>
               {totalCount !== null ? totalCount.toLocaleString() : '\u2014'}
