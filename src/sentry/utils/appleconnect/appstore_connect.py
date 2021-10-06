@@ -1,6 +1,7 @@
 import logging
 import time
 from collections import namedtuple
+from http import HTTPStatus
 from typing import Any, Dict, Generator, List, Mapping, Optional, Union
 
 import sentry_sdk
@@ -15,6 +16,18 @@ logger = logging.getLogger(__name__)
 AppConnectCredentials = namedtuple("AppConnectCredentials", ["key_id", "key", "issuer_id"])
 
 REQUEST_TIMEOUT = 15.0
+
+
+class RequestError(Exception):
+    """An error from the response."""
+
+    pass
+
+
+class UnauthorizedError(RequestError):
+    """Unauthorised: invalid, expired or revoked authentication token."""
+
+    pass
 
 
 def _get_authorization_header(
@@ -70,8 +83,25 @@ def _get_appstore_json(
         logger.debug(f"GET {full_url}")
         with sentry_sdk.start_span(op="http", description="AppStoreConnect request"):
             response = session.get(full_url, headers=headers, timeout=REQUEST_TIMEOUT)
+        if response.status_code == HTTPStatus.UNAUTHORIZED:
+            raise UnauthorizedError(full_url, response.status_code, response.text)
         if not response.ok:
-            raise ValueError("Request failed", full_url, response.status_code, response.text)
+            err_info = {
+                "url": full_url,
+                "status_code": response.status_code,
+            }
+            try:
+                err_info["json"] = response.json()
+            except Exception:
+                err_info["text"] = response.text
+
+            with sentry_sdk.configure_scope() as scope:
+                scope.set_extra("http.appconnect.api", err_info)
+
+            if response.status_code == HTTPStatus.UNAUTHORIZED:
+                raise UnauthorizedError(full_url)
+            else:
+                raise RequestError(full_url)
         try:
             return response.json()  # type: ignore
         except Exception as e:
