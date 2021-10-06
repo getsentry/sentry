@@ -10,8 +10,8 @@ from freezegun import freeze_time
 from sentry.snuba.sessions_v2 import (
     InvalidParams,
     QueryDefinition,
-    _get_timestamps,
     get_constrained_date_range,
+    get_timestamps,
     massage_sessions_result,
 )
 
@@ -114,7 +114,7 @@ def test_timestamps():
     query = _make_query("statsPeriod=1d&interval=12h&field=sum(session)")
 
     expected_timestamps = ["2020-12-17T12:00:00Z", "2020-12-18T00:00:00Z"]
-    actual_timestamps = _get_timestamps(query)
+    actual_timestamps = get_timestamps(query)
     assert actual_timestamps == expected_timestamps
 
 
@@ -122,7 +122,7 @@ def test_timestamps():
 def test_hourly_rounded_start():
     query = _make_query("statsPeriod=30m&interval=1m&field=sum(session)")
 
-    actual_timestamps = _get_timestamps(query)
+    actual_timestamps = get_timestamps(query)
 
     assert actual_timestamps[0] == "2021-03-08T09:00:00Z"
     assert actual_timestamps[-1] == "2021-03-08T09:34:00Z"
@@ -132,7 +132,7 @@ def test_hourly_rounded_start():
     # to hours, we extend the start time to 08:00:00.
     query = _make_query("statsPeriod=45m&interval=1m&field=sum(session)")
 
-    actual_timestamps = _get_timestamps(query)
+    actual_timestamps = get_timestamps(query)
 
     assert actual_timestamps[0] == "2021-03-08T08:00:00Z"
     assert actual_timestamps[-1] == "2021-03-08T09:34:00Z"
@@ -171,7 +171,7 @@ def test_rounded_end():
         "2021-02-24T23:00:00Z",
         "2021-02-25T00:00:00Z",
     ]
-    actual_timestamps = _get_timestamps(query)
+    actual_timestamps = get_timestamps(query)
 
     assert len(actual_timestamps) == 25
     assert actual_timestamps == expected_timestamps
