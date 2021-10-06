@@ -1,5 +1,9 @@
 import {User} from 'app/types';
 
+// Max widgets per dashboard we are currently willing
+// to allow to limit the load on snuba from the
+// parallel requests. Somewhat arbitrary
+// limit that can be changed if necessary.
 export const MAX_WIDGETS = 30;
 
 export enum DisplayType {

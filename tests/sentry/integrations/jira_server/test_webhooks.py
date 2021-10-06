@@ -40,7 +40,7 @@ class JiraServerWebhookEndpointTest(APITestCase):
         link_group(self.organization, self.integration, self.group)
 
         with self.tasks():
-            self.get_error_response(self.jwt_token, **EXAMPLE_PAYLOAD, status_code=400)
+            self.get_success_response(self.jwt_token, **EXAMPLE_PAYLOAD)
 
     def test_post_token_missing_id(self):
         integration = self.integration
@@ -102,4 +102,4 @@ class JiraServerWebhookEndpointTest(APITestCase):
         link_group(self.organization, self.integration, group)
 
         with self.tasks():
-            self.get_error_response(self.jwt_token, **EXAMPLE_PAYLOAD, status_code=400)
+            self.get_success_response(self.jwt_token, **EXAMPLE_PAYLOAD)
