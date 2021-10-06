@@ -28,9 +28,16 @@ class RetrySymbolication(Exception):
         self.retry_after = retry_after
 
 
-def should_demote_symbolication(project_id):
+def should_demote_symbolication(project_id: int) -> bool:
     """
     Determines whether a project's symbolication events should be pushed to the low priority queue.
+
+    The decision is made based on three factors, in order:
+        1. is the store.symbolicate-event-lpq-never killswitch set for the project? -> normal queue
+        2. is the store.symbolicate-event-lpq-always killswitch set for the project? -> low priority queue
+        3. has the project been selected for the lpq according to realtime_metrics? -> low priority queue
+
+    Note that 3 is gated behind the config setting SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE.
     """
     always_lowpri = killswitch_matches_context(
         "store.symbolicate-event-lpq-always",
@@ -44,22 +51,27 @@ def should_demote_symbolication(project_id):
             "project_id": project_id,
         },
     )
-    return not never_lowpri and always_lowpri
+
+    if never_lowpri:
+        return False
+    elif always_lowpri:
+        return True
+    else:
+        return settings.SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE and realtime_metrics.is_lpq_project(
+            project_id
+        )
 
 
-def submit_symbolicate(project, from_reprocessing, cache_key, event_id, start_time, data):
-    task = symbolicate_event_from_reprocessing if from_reprocessing else symbolicate_event
-    task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
+def submit_symbolicate(is_low_priority, from_reprocessing, cache_key, event_id, start_time, data):
+    if is_low_priority:
+        task = (
+            symbolicate_event_from_reprocessing_low_priority
+            if from_reprocessing
+            else symbolicate_event_low_priority
+        )
+    else:
+        task = symbolicate_event_from_reprocessing if from_reprocessing else symbolicate_event
 
-
-def submit_symbolicate_low_priority(
-    project, from_reprocessing, cache_key, event_id, start_time, data
-):
-    task = (
-        symbolicate_event_from_reprocessing_low_priority
-        if from_reprocessing
-        else symbolicate_event_low_priority
-    )
     task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
 
 

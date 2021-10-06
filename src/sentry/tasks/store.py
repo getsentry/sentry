@@ -75,6 +75,7 @@ def submit_process(
     )
 
 
+
 def submit_save_event(project_id, from_reprocessing, cache_key, event_id, start_time, data):
     if cache_key:
         data = None
@@ -127,9 +128,8 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
         reprocessing2.backup_unprocessed_event(project=project, data=original_data)
 
         is_low_priority = should_demote_symbolication(project_id)
-        task = submit_symbolicate_low_priority if is_low_priority else submit_symbolicate
-        task(
-            project,
+        submit_symbolicate(
+            is_low_priority,
             from_reprocessing,
             cache_key,
             event_id,

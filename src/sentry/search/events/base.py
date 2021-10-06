@@ -1,4 +1,4 @@
-from typing import List, Mapping, Set
+from typing import List, Mapping, Optional, Set
 
 from django.utils.functional import cached_property
 from snuba_sdk.aliased_expression import AliasedExpression
@@ -12,9 +12,12 @@ from sentry.utils.snuba import Dataset, resolve_column
 
 
 class QueryBase:
-    def __init__(self, dataset: Dataset, params: ParamsType):
-        self.params = params
+    def __init__(
+        self, dataset: Dataset, params: ParamsType, functions_acl: Optional[List[str]] = None
+    ):
         self.dataset = dataset
+        self.params = params
+        self.functions_acl = set() if functions_acl is None else functions_acl
 
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
