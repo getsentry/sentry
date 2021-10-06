@@ -34,8 +34,8 @@ class IDPMigrationTests(TestCase):
         response = self.client.get(path)
 
         assert self.client.session[idpmigration.SSO_VERIFICATION_KEY] == link.verification_code
-        assert response.status_code == 302
-        assert response.templates[0].name == "sentry/idp_email_verified.html"
+        assert response.status_code == 200
+        assert response.templates[0].name == "sentry/idp_account_verified.html"
 
     def test_verify_account_wrong_key(self):
         idpmigration.send_one_time_account_confirm_link(
@@ -46,5 +46,5 @@ class IDPMigrationTests(TestCase):
             args=["d14Ja9N2eQfPfVzcydS6vzcxWecZJG2z2"],
         )
         response = self.client.get(path)
-        assert response.status_code == 302
-        assert response.templates[0].name == "sentry/idp_email_not_verified.html"
+        assert response.status_code == 200
+        assert response.templates[0].name == "sentry/idp_account_not_verified.html"
