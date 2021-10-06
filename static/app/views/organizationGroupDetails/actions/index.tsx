@@ -16,8 +16,9 @@ import ActionButton from 'app/components/actions/button';
 import IgnoreActions from 'app/components/actions/ignore';
 import ResolveActions from 'app/components/actions/resolve';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import DropdownLink from 'app/components/dropdownLink';
 import Tooltip from 'app/components/tooltip';
-import {IconStar} from 'app/icons';
+import {IconEllipsis, IconStar} from 'app/icons';
 import {IconRefresh} from 'app/icons/iconRefresh';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -260,13 +261,6 @@ class Actions extends React.Component<Props, State> {
         >
           <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
         </Tooltip>
-        <DeleteAction
-          disabled={disabled}
-          organization={organization}
-          project={project}
-          onDelete={this.onDelete}
-          onDiscard={this.onDiscard}
-        />
         {orgFeatures.has('shared-issues') && (
           <ShareIssue
             disabled={disabled}
@@ -310,6 +304,22 @@ class Actions extends React.Component<Props, State> {
           group={group}
           onClick={this.handleClick(disabled, this.onToggleSubscribe)}
         />
+
+        <DropdownLink
+          anchorRight
+          caret={false}
+          title={
+            <ActionButton aria-label={t('Show more')} icon={<IconEllipsis size="xs" />} />
+          }
+        >
+          <DeleteAction
+            disabled={disabled}
+            organization={organization}
+            project={project}
+            onDelete={this.onDelete}
+            onDiscard={this.onDiscard}
+          />
+        </DropdownLink>
 
         {displayReprocessEventAction(organization.features, event) && (
           <ReprocessAction
