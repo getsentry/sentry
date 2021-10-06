@@ -112,10 +112,7 @@ def _do_preprocess_event(
     project: Optional[Project],
 ) -> None:
     from sentry.lang.native.processing import should_process_with_symbolicator
-    from sentry.tasks.symbolication import (
-        should_demote_symbolication,
-        submit_symbolicate,
-    )
+    from sentry.tasks.symbolication import should_demote_symbolication, submit_symbolicate
 
     if cache_key and data is None:
         data = processing.event_processing_store.get(cache_key)
