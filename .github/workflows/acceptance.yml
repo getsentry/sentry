@@ -146,8 +146,8 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        instance: [0, 1, 2, 3]
         python-version: [3.6.13, 3.8.12]
+        instance: [0, 1, 2, 3]
     env:
       VISUAL_SNAPSHOT_ENABLE: 1
       TEST_GROUP_STRATEGY: roundrobin

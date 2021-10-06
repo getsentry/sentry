@@ -13,8 +13,8 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        instance: [0, 1]
         python-version: [3.6.13, 3.8.12]
+        instance: [0, 1]
     env:
       USE_SNUBA: 1
       MIGRATIONS_TEST_MIGRATE: 1
