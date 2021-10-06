@@ -246,8 +246,9 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         Applies a backoff timer to the project which prevents it from being automatically evicted
         from the queue while that timer is active.
 
-        This may throw an exception if there is some sort of issue registering the project with the
-        queue.
+        Returns True if the project was a new addition to the list. Returns False if it was already
+        assigned to the low priority queue. This may throw an exception if there is some sort of
+        issue registering the project with the queue.
         """
 
         # If this successfully completes then the project is expected to be in the set.
@@ -257,15 +258,17 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
     def remove_projects_from_lpq(self, project_ids: Set[int]) -> int:
         """
-        Removes projects from the low priority queue.
+        Unassigns projects from the low priority queue.
 
         This registers an intent to restore all specified projects back to the regular queue.
 
         Applies a backoff timer to the project which prevents it from being automatically assigned
         to the queue while that timer is active.
 
-        This may throw an exception if there is some sort of issue deregistering the projects from
-        the queue.
+        Returns the number of projects that were actively removed from the queue. Any projects that
+        were not assigned to the low priority queue to begin with will be omitted from the return
+        value. This may throw an exception if there is some sort of issue deregistering the projects
+        from the queue.
         """
         if len(project_ids) == 0:
             return 0
@@ -279,7 +282,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
     def was_recently_moved(self, project_id: int) -> bool:
         """
         Returns whether a project is currently in the middle of its backoff timer from having
-        recently moved in or out of the LPQ.
+        recently been assigned to or unassigned from the LPQ.
         """
         key = f"{self._backoff_key_prefix()}:{project_id}"
         return self.cluster.get(key) is not None
@@ -287,7 +290,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
     def recently_moved_projects(self) -> Set[int]:
         """
         Returns a list of projects currently in the middle of their backoff timers from having
-        recently moved in or out of the LPQ.
+        recently been assigned to or unassigned from the LPQ.
         """
         moved = set()
 

@@ -127,13 +127,14 @@ class RealtimeMetricsStore(Service):  # type: ignore
         from the queue while that timer is active.
 
         Returns True if the project was a new addition to the list. Returns False if it was already
-        assigned to the low priority queue.
+        assigned to the low priority queue. This may throw an exception if there is some sort of
+        issue registering the project with the queue.
         """
         raise NotImplementedError
 
     def remove_projects_from_lpq(self, project_ids: Set[int]) -> int:
         """
-        Removes projects from the low priority queue.
+        Unassigns projects from the low priority queue.
 
         This registers an intent to restore all specified projects back to the regular queue.
 
@@ -142,20 +143,21 @@ class RealtimeMetricsStore(Service):  # type: ignore
 
         Returns the number of projects that were actively removed from the queue. Any projects that
         were not assigned to the low priority queue to begin with will be omitted from the return
-        value.
+        value. This may throw an exception if there is some sort of issue deregistering the projects
+        from the queue.
         """
         raise NotImplementedError
 
     def was_recently_moved(self, project_id: int) -> bool:
         """
         Returns whether a project is currently in the middle of its backoff timer from having
-        recently moved in or out of the LPQ.
+        recently been assigned to or unassigned from the LPQ.
         """
         raise NotImplementedError
 
     def recently_moved_projects(self) -> Set[int]:
         """
         Returns a list of projects currently in the middle of their backoff timers from having
-        recently moved in or out of the LPQ.
+        recently been assigned to or unassigned from the LPQ.
         """
         raise NotImplementedError
