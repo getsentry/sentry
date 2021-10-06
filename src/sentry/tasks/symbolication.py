@@ -64,6 +64,7 @@ def should_demote_symbolication(project_id: int) -> bool:
             project_id
         )
 
+
 def submit_symbolicate(
     project: Optional[Project],
     is_low_priority: bool,
