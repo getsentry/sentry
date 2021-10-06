@@ -1,6 +1,6 @@
 import warnings
 from collections import defaultdict
-from typing import Sequence, Tuple, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
 
 from django.conf import settings
 from django.db import IntegrityError, connections, models, router, transaction
@@ -28,8 +28,8 @@ class TeamManager(BaseManager):
         self,
         organization: "Organization",
         user: "User",
-        scope=None,
-        with_projects: bool = False
+        scope: Optional[str] = None,
+        with_projects: bool = False,
     ) -> Union[Sequence["Team"], Sequence[Tuple["Team", Sequence["Project"]]]]:
         """
         Returns a list of all teams a user has some level of access to.

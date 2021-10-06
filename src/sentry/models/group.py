@@ -7,7 +7,7 @@ from datetime import timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import List, Mapping, Optional, Sequence, Set, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Set, Union
 
 from django.core.cache import cache
 from django.db import models
@@ -35,7 +35,7 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
-    from sentry.models import Integration, Organization, Team, User
+    from sentry.models import Integration, Team, User
 
 logger = logging.getLogger(__name__)
 
@@ -288,10 +288,10 @@ class GroupManager(BaseManager):
     def get_groups_by_external_issue(
         self,
         integration: "Integration",
-        organizations: Sequence["Organization"],
-        external_issue_key: str
+        external_issue_key: str,
     ) -> QuerySet:
         from sentry.models import ExternalIssue, GroupLink
+
         return self.filter(
             id__in=GroupLink.objects.filter(
                 linked_id__in=ExternalIssue.objects.filter(

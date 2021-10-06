@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from django.conf import settings
 from django.db import models
@@ -10,6 +10,9 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_assigned
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
+
+if TYPE_CHECKING:
+    from sentry.models import ActorTuple, Group, Team, User
 
 
 def sync_group_assignee_inbound(integration, email, external_issue_key, assign=True):
