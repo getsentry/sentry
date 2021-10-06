@@ -108,7 +108,7 @@ DATASETS = {
 }
 
 # Store the internal field names to save work later on.
-# Add `group_id` to the events dataset list as we don't want to publically
+# Add `group_id` to the events dataset list as we don't want to publicly
 # expose that field, but it is used by eventstore and other internals.
 DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()),

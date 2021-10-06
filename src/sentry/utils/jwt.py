@@ -66,7 +66,7 @@ def decode(
     # encoding vs those only suitable for decoding.
     # TODO(flub): The algorithms parameter really does not need to be Optional and should be
     # a straight List[str].  However this is used by some unclear code in
-    # sentry.integrations.msteams.webook.verify_signature which isn't checked by mypy yet,
+    # sentry.integrations.msteams.webhook.verify_signature which isn't checked by mypy yet,
     # and I am too afraid to change this.  One day (hah!) all will be checked by mypy and
     # this can be safely fixed.
     options = {"verify": True}

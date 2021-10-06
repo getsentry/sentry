@@ -2,7 +2,7 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Callable, List, Mapping, Match, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Sequence, Tuple, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -11,7 +11,7 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.discover.models import KeyTransaction, TeamKeyTransaction
+from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, ProjectTeam, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import (
@@ -30,7 +30,6 @@ from sentry.search.events.constants import (
     FUNCTION_PATTERN,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
-    KEY_TRANSACTION_ALIAS,
     MEASUREMENTS_FRAMES_FROZEN_RATE,
     MEASUREMENTS_FRAMES_SLOW_RATE,
     MEASUREMENTS_STALL_PERCENTAGE,
@@ -102,50 +101,6 @@ class PseudoField:
         assert (
             self.expression is None or self.expression_fn is None
         ), f"{self.name}: only one of expression, expression_fn is allowed"
-
-
-def key_transaction_expression(user_id, organization_id, project_ids):
-    """
-    This function may be called multiple times, making for repeated data bases queries.
-    Lifting the query higher to earlier in the call stack will require a lot more changes
-    as there are numerous entry points. So we will leave the duplicate query alone for now.
-    """
-    if user_id is None or organization_id is None or project_ids is None:
-        raise InvalidSearchQuery("Missing necessary meta for key transaction field.")
-
-    key_transactions = (
-        KeyTransaction.objects.filter(
-            owner_id=user_id,
-            organization_id=organization_id,
-            project_id__in=project_ids,
-        )
-        .order_by("transaction", "project_id")
-        .values("project_id", "transaction")
-    )
-
-    # if there are no key transactions, the value should always be 0
-    if not len(key_transactions):
-        return ["toInt64", [0]]
-
-    return [
-        "has",
-        [
-            [
-                "array",
-                [
-                    [
-                        "tuple",
-                        [
-                            ["toUInt64", [transaction["project_id"]]],
-                            "'{}'".format(transaction["transaction"]),
-                        ],
-                    ]
-                    for transaction in key_transactions
-                ],
-            ],
-            ["tuple", ["project_id", "transaction"]],
-        ],
-    ]
 
 
 def project_threshold_config_expression(organization_id, project_ids):
@@ -412,18 +367,6 @@ FIELD_ALIASES = {
             USER_DISPLAY_ALIAS,
             expression=["coalesce", ["user.email", "user.username", "user.ip"]],
         ),
-        # the key transaction field is intentially not added to the discover/fields list yet
-        # because there needs to be some work on the front end to integrate this into discover
-        PseudoField(
-            KEY_TRANSACTION_ALIAS,
-            KEY_TRANSACTION_ALIAS,
-            expression_fn=lambda params: key_transaction_expression(
-                params.get("user_id"),
-                params.get("organization_id"),
-                params.get("project_id"),
-            ),
-            result_type="boolean",
-        ),
         PseudoField(
             PROJECT_THRESHOLD_CONFIG_ALIAS,
             PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -432,6 +375,8 @@ FIELD_ALIASES = {
                 params.get("project_id"),
             ),
         ),
+        # the team key transaction field is intentially not added to the discover/fields list yet
+        # because there needs to be some work on the front end to integrate this into discover
         PseudoField(
             TEAM_KEY_TRANSACTION_ALIAS,
             TEAM_KEY_TRANSACTION_ALIAS,
@@ -2221,9 +2166,12 @@ class SnQLFunction(DiscoverFunction):
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
-    def __init__(self, dataset: Dataset, params: ParamsType):
-        super().__init__(dataset, params)
+    def __init__(
+        self, dataset: Dataset, params: ParamsType, functions_acl: Optional[List[str]] = None
+    ):
+        super().__init__(dataset, params, functions_acl)
 
+        self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
             # NOTE: `ISSUE_ALIAS` simply maps to the id, meaning that post processing
             # is required to insert the true issue short id into the response.
@@ -2314,6 +2262,7 @@ class QueryFields(QueryBase):
                 ),
                 SnQLFunction(
                     "count",
+                    optional_args=[NullColumn("column")],
                     snql_aggregate=lambda _, alias: Function(
                         "count",
                         [],
@@ -2675,8 +2624,16 @@ class QueryFields(QueryBase):
                     ),
                     default_result_type="number",
                 ),
+                SnQLFunction(
+                    "array_join",
+                    required_args=[StringArrayColumn("column")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "arrayJoin", [args["column"]], alias
+                    ),
+                    default_result_type="string",
+                    private=True,
+                ),
                 # TODO: implement these
-                SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("percentage", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("t_test", snql_aggregate=self._resolve_unimplemented_function),
@@ -2823,9 +2780,13 @@ class QueryFields(QueryBase):
             raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
 
         name, arguments, alias = self.parse_function(match)
-        snql_function = self.function_converter.get(name)
+        snql_function = self.function_converter[name]
+        if not snql_function.is_accessible(self.functions_acl):
+            raise InvalidSearchQuery(f"{snql_function.name}: no access to private function")
 
         arguments = snql_function.format_as_arguments(name, arguments, self.params)
+        self.function_alias_map[alias] = FunctionDetails(function, snql_function, arguments.copy())
+
         for arg in snql_function.args:
             if isinstance(arg, ColumnArg):
                 arguments[arg.name] = self.resolve_column(arguments[arg.name])

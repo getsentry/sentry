@@ -113,7 +113,7 @@ export default class DetailsBody extends React.Component<Props> {
 
     const eventType =
       dataset === Dataset.SESSIONS ? null : extractEventTypeFilterFromRule(rule);
-    const parsedQuery = parseSearch([eventType, query].join(' '));
+    const parsedQuery = parseSearch([eventType, query].join(' ').trim());
 
     return (
       <Filters>
@@ -364,7 +364,9 @@ export default class DetailsBody extends React.Component<Props> {
                     projects={projects}
                     interval={this.getInterval()}
                     filter={this.getFilter()}
-                    query={queryWithTypeFilter}
+                    query={
+                      rule.dataset === Dataset.SESSIONS ? query : queryWithTypeFilter
+                    }
                     orgId={orgId}
                     handleZoom={handleZoom}
                   />

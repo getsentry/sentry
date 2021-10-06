@@ -12,8 +12,9 @@ from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
+from ..utils import send_slack_response
 from . import build_linking_url as base_build_linking_url
-from . import never_cache, send_slack_response
+from . import never_cache
 
 SUCCESS_LINKED_MESSAGE = (
     "Your Slack identity has been linked to your Sentry account. You're good to go!"
