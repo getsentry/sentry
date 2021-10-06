@@ -16,7 +16,13 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.issues import IssueSyncMixin, ResolveSyncAction
-from sentry.models import ExternalIssue, IntegrationExternalProject, Organization, OrganizationIntegration, User
+from sentry.models import (
+    ExternalIssue,
+    IntegrationExternalProject,
+    Organization,
+    OrganizationIntegration,
+    User,
+)
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiUnauthorized,
@@ -26,6 +32,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.utils.compat import filter
 from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
+
 from .client import JiraApiClient, JiraCloud
 from .utils import build_user_choice
 

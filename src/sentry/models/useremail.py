@@ -34,7 +34,7 @@ class UserEmailManager(BaseManager):
 
     def get_users_by_id(self, email: str) -> Mapping[int, "User"]:
         return {
-            row["user"].id: row["user"]
+            row.user_id: row.user
             for row in self.filter(is_verified=True, email=email).select_related("user")
         }
 
