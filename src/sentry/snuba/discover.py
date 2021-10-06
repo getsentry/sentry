@@ -1163,7 +1163,7 @@ def get_histogram_column(fields, key_column, histogram_params, array_column):
     :param [str] fields: The list of fields for which you want to generate the histograms for.
     :param str key_column: The column for the key name. This is only set when generating a
         multihistogram of array values. Otherwise, it should be `None`.
-    :param HistogramParms histogram_params: The histogram parameters used.
+    :param HistogramParams histogram_params: The histogram parameters used.
     :param str array_column: Array column prefix
     """
     field = fields[0] if key_column is None else f"{array_column}_value"
@@ -1178,7 +1178,7 @@ def find_histogram_params(num_buckets, min_value, max_value, multiplier):
     :param int num_buckets: The number of buckets the histogram should contain.
     :param float min_value: The minimum value allowed to be in the histogram inclusive.
     :param float max_value: The maximum value allowed to be in the histogram inclusive.
-    :param int multipler: The multiplier we should use to preserve the desired precision.
+    :param int multiplier: The multiplier we should use to preserve the desired precision.
     """
 
     scaled_min = 0 if min_value is None else multiplier * min_value
@@ -1321,7 +1321,7 @@ def normalize_histogram_results(fields, key_column, histogram_params, results, a
     :param [str] fields: The list of fields for which you want to generate the
         histograms for.
     :param str key_column: The column of the key name.
-    :param HistogramParms histogram_params: The histogram parameters used.
+    :param HistogramParams histogram_params: The histogram parameters used.
     :param any results: The results from the histogram query that may be missing
         bins and needs to be normalized.
     :param str array_column: Array column prefix

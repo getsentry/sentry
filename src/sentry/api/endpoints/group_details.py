@@ -297,7 +297,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             metrics.incr(
                 "group.update.http_response",
                 sample_rate=1.0,
-                tags={"status": 200, "detail": "group_details:delete:Reponse"},
+                tags={"status": 200, "detail": "group_details:delete:Response"},
             )
             return Response(status=202)
         except snuba.RateLimitExceeded:
