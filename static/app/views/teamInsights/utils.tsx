@@ -16,3 +16,15 @@ export function convertDaySeriesToWeeks(data: SeriesDataUnit[]): SeriesDataUnit[
     };
   });
 }
+
+/**
+ * Convert an object with date as the key to a series
+ */
+export function convertDayValueObjectToSeries(
+  data: Record<string, number>
+): SeriesDataUnit[] {
+  return Object.entries(data).map(([bucket, count]) => ({
+    value: count,
+    name: new Date(bucket).getTime(),
+  }));
+}

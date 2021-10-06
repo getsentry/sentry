@@ -12,10 +12,9 @@ import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {SeriesDataUnit} from 'app/types/echarts';
 import {formatPercentage} from 'app/utils/formatters';
 
-import {convertDaySeriesToWeeks} from './utils';
+import {convertDaySeriesToWeeks, convertDayValueObjectToSeries} from './utils';
 
 type IssuesBreakdown = Record<string, Record<string, {reviewed: number; total: number}>>;
 
@@ -28,13 +27,6 @@ type Props = AsyncComponent['props'] & {
 type State = AsyncComponent['state'] & {
   issuesBreakdown: IssuesBreakdown | null;
 };
-
-function convertKeyValueToSeries(data: Record<string, number>): SeriesDataUnit[] {
-  return Object.entries(data).map(([bucket, count]) => ({
-    value: count,
-    name: new Date(bucket).getTime(),
-  }));
-}
 
 class TeamIssuesReviewed extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;
@@ -119,8 +111,8 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
       }
     }
 
-    const reviewedSeries = convertKeyValueToSeries(allReviewedByDay);
-    const notReviewedSeries = convertKeyValueToSeries(allNotReviewedByDay);
+    const reviewedSeries = convertDayValueObjectToSeries(allReviewedByDay);
+    const notReviewedSeries = convertDayValueObjectToSeries(allNotReviewedByDay);
 
     return (
       <Fragment>

@@ -9,7 +9,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 
-import {convertDaySeriesToWeeks} from './utils';
+import {convertDaySeriesToWeeks, convertDayValueObjectToSeries} from './utils';
 
 type AlertsTriggered = Record<string, number>;
 
@@ -73,10 +73,7 @@ class TeamAlertsTriggered extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {alertsTriggered} = this.state;
-    const data = Object.entries(alertsTriggered ?? {}).map(([bucket, count]) => ({
-      value: count,
-      name: new Date(bucket).getTime(),
-    }));
+    const data = convertDayValueObjectToSeries(alertsTriggered ?? {});
     const seriesData = convertDaySeriesToWeeks(data);
 
     return (
