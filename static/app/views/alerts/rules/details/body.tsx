@@ -113,7 +113,7 @@ export default class DetailsBody extends React.Component<Props> {
 
     const eventType =
       dataset === Dataset.SESSIONS ? null : extractEventTypeFilterFromRule(rule);
-    const parsedQuery = parseSearch([eventType, query].join(' '));
+    const parsedQuery = parseSearch([eventType, query].join(' ').trim());
 
     return (
       <Filters>

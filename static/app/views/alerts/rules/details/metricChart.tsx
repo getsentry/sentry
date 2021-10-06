@@ -322,6 +322,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       interval,
       handleZoom,
       filter,
+      query,
       incidents,
       rule,
       organization,
@@ -513,7 +514,7 @@ class MetricChart extends React.PureComponent<Props, State> {
             <ChartTitle>
               {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
             </ChartTitle>
-            {filter}
+            {query ? filter : null}
           </ChartHeader>
           <ChartZoom
             router={router}
