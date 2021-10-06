@@ -951,7 +951,7 @@ SENTRY_FEATURES = {
     "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
-    # Enable imporved syntax highlightign + autocomplete on unified search
+    # Enable improved syntax highlighting + autocomplete on unified search
     "organizations:improved-search": False,
     # Enable incidents feature
     "organizations:incidents": False,

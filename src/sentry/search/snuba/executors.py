@@ -229,9 +229,13 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
     def _transform_converted_filter(
         self, search_filter, converted_filter, project_ids, environment_ids=None
     ):
-        """This method serves as a hook - after we convert the search_filter into a snuba compatible filter (which converts it in a general dataset ambigious method),
-        we may want to transform the query - maybe change the value (time formats, translate value into id (like turning Release `version` into `id`) or vice versa),  alias fields, etc.
-        By default, no transformation is done.
+        """
+        This method serves as a hook - after we convert the search_filter into a
+        snuba compatible filter (which converts it in a general dataset
+        ambiguous method), we may want to transform the query - maybe change the
+        value (time formats, translate value into id (like turning Release
+        `version` into `id`) or vice versa), alias fields, etc. By default, no
+        transformation is done.
         """
         return converted_filter
 
@@ -831,7 +835,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             **paginator_options,
         ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
         # We filter against `group_queryset` here so that we recheck all conditions in Postgres.
-        # Since replag between Postgres and Clickhouse can happen, we might get back results that
+        # Since replay between Postgres and Clickhouse can happen, we might get back results that
         # have changed state in Postgres. By rechecking them we guarantee than any returned results
         # have the correct state.
         # TODO: This can result in us returning less than a full page of results, but shouldn't

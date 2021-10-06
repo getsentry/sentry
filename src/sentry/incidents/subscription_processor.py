@@ -223,7 +223,7 @@ class SubscriptionProcessor:
             '_total_count': 34
         }
         - `_crash_rate_alert_aggregate` represents sessions_crashed/sessions or
-        users_crashed/users, and so we need to subtract that number from 1 and then mutiply by
+        users_crashed/users, and so we need to subtract that number from 1 and then multiply by
         100 to get the crash free percentage
         - `_total_count` represents the total sessions or user counts. This is used when
         CRASH_RATE_ALERT_MINIMUM_THRESHOLD is set in the sense that if the minimum threshold is

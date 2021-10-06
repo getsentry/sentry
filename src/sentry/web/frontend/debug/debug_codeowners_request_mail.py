@@ -9,7 +9,7 @@ from sentry.web.helpers import render_to_response
 class DebugCodeOwnersRequestView(View):
     def get(self, request):
         requester_name = request.GET.get("requester_name", "Requester")
-        recipient_name = request.GET.get("recipient_name", "Recepient")
+        recipient_name = request.GET.get("recipient_name", "Recipient")
 
         org = Organization(id=1, slug="petal", name="Petal")
         project = Project(id=1, slug="nodejs", name="Node.js", organization=org)

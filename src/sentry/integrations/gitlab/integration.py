@@ -348,7 +348,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             "name": group["full_name"],
             # Splice the gitlab host and project together to
             # act as unique link between a gitlab instance, group + sentry.
-            # This value is embedded then in the webook token that we
+            # This value is embedded then in the webhook token that we
             # give to gitlab to allow us to find the integration a hook came
             # from.
             "external_id": "{}:{}".format(hostname, group["id"]),

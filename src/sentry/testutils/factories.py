@@ -232,7 +232,7 @@ def _patch_artifact_manifest(path, org, release, project=None, extra_files=None)
     return json.dumps(manifest)
 
 
-# TODO(dcramer): consider moving to something more scaleable like factoryboy
+# TODO(dcramer): consider moving to something more scalable like factoryboy
 class Factories:
     @staticmethod
     def create_organization(name=None, owner=None, **kwargs):

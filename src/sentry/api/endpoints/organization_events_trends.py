@@ -16,7 +16,7 @@ from sentry.snuba import discover
 Alias = namedtuple("Alias", "converter aggregate")
 
 
-# This is to flip conditions beteween trend types
+# This is to flip conditions between trend types
 CORRESPONDENCE_MAP = {
     ">": "<",
     ">=": "<=",

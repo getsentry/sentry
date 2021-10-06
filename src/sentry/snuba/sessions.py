@@ -422,7 +422,7 @@ def _get_release_health_data_overview(
 
     # Add releases without data points
     if missing_releases:
-        # If we're already looking at a 90 day horizont we don't need to
+        # If we're already looking at a 90 day horizon we don't need to
         # fire another query, we can already assume there is no data.
         if summary_stats_period != "90d":
             has_health_data = release_health.check_has_health_data(missing_releases)

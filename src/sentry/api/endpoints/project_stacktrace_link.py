@@ -30,7 +30,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     users can go from the file in the stack trace to the
     provider of their choice.
 
-    `filepath`: The file path from the strack trace
+    `filepath`: The file path from the stack trace
     `commitId` (optional): The commit_id for the last commit of the
                            release associated to the stack trace's event
 

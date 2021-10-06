@@ -143,7 +143,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, NullableOrganizatio
         queryset = RepositoryProjectPathConfig.objects.all()
 
         if integration_id:
-            # get_organization_integration will raise a 404 if no org_integraiton is found
+            # get_organization_integration will raise a 404 if no org_integration is found
             org_integration = self.get_organization_integration(organization, integration_id)
             queryset = queryset.filter(organization_integration=org_integration)
 
