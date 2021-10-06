@@ -20,9 +20,9 @@ from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from ..utils import logger, render_error_page, send_confirmation
+from ..utils import logger, send_confirmation
 from . import build_linking_url as base_build_linking_url
-from . import never_cache
+from . import never_cache, render_error_page
 
 ALLOWED_METHODS = ["GET", "POST"]
 

@@ -1,4 +1,3 @@
-import logging
 from typing import Any, List, Optional
 
 from rest_framework import status
@@ -6,10 +5,8 @@ from rest_framework.request import Request
 
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.integrations.slack.unfurl import LinkType, match_link
-from sentry.models import Identity, IdentityProvider
+from sentry.models import IdentityProvider
 from sentry.models.user import User
-
-logger = logging.getLogger("sentry.integrations.slack")
 
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
 
@@ -96,17 +93,15 @@ class SlackEventRequest(SlackRequest):
     def _validate_integration(self) -> None:
         super()._validate_integration()
 
-        if (self.text and self.text in COMMANDS) or (
+        if (self.text in COMMANDS) or (
             self.type == "link_shared" and has_discover_links(self.links)
         ):
             try:
-                idp = IdentityProvider.objects.get(type="slack", external_id=self.team_id)
+                identity = self.get_identity()
             except IdentityProvider.DoesNotExist:
-                logger.error("slack.action.invalid-team-id", extra={"slack_team": self.team_id})
                 raise SlackRequestError(status=status.HTTP_403_FORBIDDEN)
 
-            identities = Identity.objects.filter(idp=idp, external_id=self.user_id)
-            self.user = identities[0].user if identities else None
+            self.user = identity.user if identity else None
 
     def _log_request(self) -> None:
         self._info(f"slack.event.{self.type}")

@@ -92,7 +92,7 @@ class TeamManager(BaseManager):
                 "organization": instance.organization,
                 "projects": instance.get_projects(),
             }
-        ),
+        )
 
     def post_delete(self, instance, **kwargs):
         update_code_owners_schema.apply_async(
@@ -100,7 +100,7 @@ class TeamManager(BaseManager):
                 "organization": instance.organization,
                 "projects": instance.get_projects(),
             }
-        ),
+        )
 
 
 # TODO(dcramer): pull in enum library

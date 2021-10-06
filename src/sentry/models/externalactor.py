@@ -27,16 +27,25 @@ class ExternalActor(DefaultFieldsModel):
             (ExternalProviders.CUSTOM, "custom_scm"),
         ),
     )
-
-    # external name => display name i.e. username, team name, channel name
-    # external id => unique identifier i.e user id, channel id
+    # The display name i.e. username, team name, channel name.
     external_name = models.TextField()
+    # The unique identifier i.e user ID, channel ID.
     external_id = models.TextField(null=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_externalactor"
         unique_together = (("organization", "provider", "external_name", "actor"),)
+
+    def delete(self, **kwargs):
+        from sentry.models import NotificationSetting
+
+        # There is no foreign key relationship so we have to manually cascade.
+        NotificationSetting.objects._filter(
+            target_ids=[self.actor_id], provider=ExternalProviders(self.provider)
+        ).delete()
+
+        return super().delete(**kwargs)
 
 
 post_save.connect(

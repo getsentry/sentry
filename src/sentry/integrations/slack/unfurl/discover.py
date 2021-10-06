@@ -10,11 +10,11 @@ from sentry.api import client
 from sentry.charts import generate_chart
 from sentry.charts.types import ChartType
 from sentry.integrations.slack.message_builder.discover import build_discover_attachment
-from sentry.integrations.slack.utils import logger
 from sentry.models import ApiKey, Integration
 from sentry.models.user import User
 from sentry.search.events.filter import to_list
 
+from ..utils import logger
 from . import Handler, UnfurlableUrl, UnfurledUrl
 
 # The display modes on the frontend are defined in app/utils/discover/types.tsx

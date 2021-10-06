@@ -1,11 +1,13 @@
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
+from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 from uuid import uuid4
 
 from django.conf import settings
 from django.db import models, transaction
+from django.db.models import QuerySet
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -26,6 +28,10 @@ from sentry.db.models import (
 from sentry.db.models.manager import BaseManager
 from sentry.models.team import TeamStatus
 from sentry.utils.http import absolute_uri
+
+if TYPE_CHECKING:
+    from sentry.models import Integration, User
+
 
 INVITE_DAYS_VALID = 30
 
@@ -74,10 +80,8 @@ class OrganizationMemberTeam(BaseModel):
 
 
 class OrganizationMemberManager(BaseManager):
-    def get_contactable_members_for_org(self, organization_id):
-        """
-        Get a list of members we can contact for an organization through email
-        """
+    def get_contactable_members_for_org(self, organization_id: int) -> QuerySet:
+        """Get a list of members we can contact for an organization through email."""
         return self.select_related("user").filter(
             organization_id=organization_id,
             invite_status=InviteStatus.APPROVED.value,
@@ -86,9 +90,16 @@ class OrganizationMemberManager(BaseManager):
 
     def delete_expired(self, threshold: int) -> None:
         """Delete un-accepted member invitations that expired `threshold` days ago."""
-        self.filter(token_expires_at__lt=threshold, user_id__exact=None).exclude(
-            email__exact=None
-        ).delete()
+        self.filter(
+            token_expires_at__lt=threshold,
+            user_id__exact=None,
+        ).exclude(email__exact=None).delete()
+
+    def get_for_integration(self, integration: "Integration", actor: "User") -> QuerySet:
+        """TODO(mgaeta): Use a Django join on sentry_organizationintegration."""
+        return self.filter(
+            user=actor, organization__in=integration.organizations.all()
+        ).select_related("organization")
 
 
 class OrganizationMember(Model):

@@ -15,17 +15,18 @@ from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
+from sentry.utils.urls import parse_link
 from sentry.web.decorators import transaction_start
 
-from ..utils import logger, parse_link
+from ..utils import logger
 from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
 
-# XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will
-# need refactored
-
 
 class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
+    """
+    XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will need refactoring
+    """
 
     authentication_classes = ()
     permission_classes = ()
