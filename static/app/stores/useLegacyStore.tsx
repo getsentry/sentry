@@ -3,7 +3,7 @@ import Reflux from 'reflux';
 
 type LegacyStoreShape = Reflux.Store & {
   // Store must have `get` function that returns the current state
-  get: () => any;
+  get(): any;
 };
 
 /**
