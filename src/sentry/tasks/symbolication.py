@@ -8,6 +8,7 @@ from django.conf import settings
 
 from sentry import options
 from sentry.eventstore import processing
+from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Project
 from sentry.processing import realtime_metrics
@@ -55,7 +56,7 @@ def submit_symbolicate(
     cache_key: Optional[str],
     event_id: Optional[str],
     start_time: Optional[int],
-    data: Optional[processing.Event],
+    data: Optional[Event],
 ) -> None:
     task = symbolicate_event_from_reprocessing if from_reprocessing else symbolicate_event
     task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
@@ -67,7 +68,7 @@ def submit_symbolicate_low_priority(
     cache_key: Optional[str],
     event_id: Optional[str],
     start_time: Optional[int],
-    data: Optional[processing.Event],
+    data: Optional[Event],
 ) -> None:
     task = (
         symbolicate_event_from_reprocessing_low_priority
@@ -82,7 +83,7 @@ def _do_symbolicate_event(
     start_time: Optional[int],
     event_id: Optional[str],
     symbolicate_task: Callable[[Optional[str], Optional[int], Optional[str]], None],
-    data: Optional[processing.Event] = None,
+    data: Optional[Event] = None,
 ) -> None:
     from sentry.lang.native.processing import get_symbolication_function
     from sentry.tasks.store import _do_process_event, process_event, process_event_from_reprocessing

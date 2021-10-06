@@ -13,6 +13,7 @@ from sentry.attachments import attachment_cache
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
+from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Activity, Organization, Project, ProjectOption
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
@@ -86,7 +87,7 @@ def submit_save_event(
     cache_key: Optional[str],
     event_id: Optional[str],
     start_time: Optional[int],
-    data: Optional[processing.Event],
+    data: Optional[Event],
 ) -> None:
     if cache_key:
         data = None
@@ -104,7 +105,7 @@ def submit_save_event(
 
 def _do_preprocess_event(
     cache_key: Optional[str],
-    data: Optional[processing.Event],
+    data: Optional[Event],
     start_time: Optional[int],
     event_id: Optional[str],
     process_task: Callable[[Optional[str], Optional[int], Optional[str], bool], None],
@@ -179,7 +180,7 @@ def _do_preprocess_event(
 )
 def preprocess_event(
     cache_key: Optional[str] = None,
-    data: Optional[processing.Event] = None,
+    data: Optional[Event] = None,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project: Optional[Project] = None,
@@ -203,7 +204,7 @@ def preprocess_event(
 )
 def preprocess_event_from_reprocessing(
     cache_key: Optional[str] = None,
-    data: Optional[processing.Event] = None,
+    data: Optional[Event] = None,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project: Optional[Project] = None,
@@ -250,7 +251,7 @@ def _do_process_event(
     start_time: Optional[int],
     event_id: Optional[str],
     process_task: Callable[[Optional[str], Optional[int], Optional[str], bool], None],
-    data: Optional[processing.Event] = None,
+    data: Optional[Event] = None,
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
 ) -> None:
@@ -497,7 +498,7 @@ def delete_raw_event(
 
 def create_failed_event(
     cache_key: Optional[str],
-    data: Optional[processing.Event],
+    data: Optional[Event],
     project_id: int,
     issues: List[Dict[str, str]],
     event_id: Optional[str],
@@ -593,7 +594,7 @@ def create_failed_event(
 
 def _do_save_event(
     cache_key: Optional[str] = None,
-    data: Optional[processing.Event] = None,
+    data: Optional[Event] = None,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project_id: Optional[int] = None,
@@ -703,7 +704,7 @@ def _do_save_event(
 
 
 def time_synthetic_monitoring_event(
-    data: processing.Event, project_id: int, start_time: Optional[int]
+    data: Event, project_id: int, start_time: Optional[int]
 ) -> bool:
     """
     For special events produced by the recurring synthetic monitoring
@@ -760,7 +761,7 @@ def time_synthetic_monitoring_event(
 )
 def save_event(
     cache_key: Optional[str] = None,
-    data: Optional[processing.Event] = None,
+    data: Optional[Event] = None,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project_id: Optional[int] = None,
