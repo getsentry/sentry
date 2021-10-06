@@ -23,6 +23,10 @@ jobs:
   main:
     name: check migration
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        # TODO(joshuarli): Add 3.8.12.
+        python-version: [3.6.13]
     needs: [should-check]
     if: needs.should-check.outputs.changed == 'true'
 
@@ -30,10 +34,11 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
-      - name: Setup sentry env
+      - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
 
       - name: Migration & lockfile checks
