@@ -9,7 +9,7 @@ import socket
 import sys
 import tempfile
 from datetime import timedelta
-from platform import platform as pf
+from platform import platform
 from urllib.parse import urlparse
 
 from django.conf.global_settings import *  # NOQA
@@ -1701,7 +1701,7 @@ def build_cdc_postgres_init_db_volume(settings):
     )
 
 
-APPLE_ARM64 = pf().startswith("mac") and pf().endswith("arm64-arm-64bit")
+APPLE_ARM64 = platform().startswith("mac") and platform().endswith("arm64-arm-64bit")
 
 SENTRY_DEVSERVICES = {
     "redis": lambda settings, options: (
@@ -1757,6 +1757,8 @@ SENTRY_DEVSERVICES = {
         {
             # On Apple arm64, we upgrade to version 6.x allows zookeeper to run properly on Apple's arm64
             # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
+            # I'm selectively upgrading the version on Apple's arm64 since there was a bug that only affects
+            # Intel machines. For more details see: https://github.com/getsentry/sentry/pull/28672
             "image": "confluentinc/cp-zookeeper:6.2.0"
             if APPLE_ARM64
             else "confluentinc/cp-zookeeper:5.1.2",
