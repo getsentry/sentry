@@ -2,8 +2,8 @@ import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import TeamIssuesReviewed from 'app/views/teamInsights/teamIssuesReviewed';
 
-describe('TeamResolutionTime', () => {
-  it('should render graph of issue time to resolution', async () => {
+describe('TeamIssuesReviewed', () => {
+  it('should render graph with table of issues reviewed', async () => {
     const team = TestStubs.Team();
     const project = TestStubs.Project({id: '2', slug: 'javascript'});
     const organization = TestStubs.Organization();
