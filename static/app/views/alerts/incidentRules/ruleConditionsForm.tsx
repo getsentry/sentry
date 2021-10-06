@@ -416,7 +416,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                     maxWidth: 1000,
                   }}
                   value={comparisonDelta}
-                  onChange={({value}) => onComparisonDeltaChange(value)}
+                  onChange={onComparisonDeltaChange}
                   options={COMPARISON_DELTA_OPTIONS}
                   required={comparisonType === AlertRuleComparisonType.CHANGE}
                 />
