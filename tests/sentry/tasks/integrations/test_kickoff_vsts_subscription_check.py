@@ -1,10 +1,39 @@
 from time import time
+from typing import Any, Mapping, Optional
 
 import responses
 
 from sentry.models import Identity, IdentityProvider, Integration
 from sentry.tasks.integrations import kickoff_vsts_subscription_check
 from sentry.testutils import TestCase
+
+PROVIDER = "vsts"
+
+
+def _get_subscription_data(external_id: str) -> Mapping[str, Any]:
+    integration = Integration.objects.get(provider=PROVIDER, external_id=external_id)
+    return integration.metadata["subscription"]
+
+
+def assert_no_subscription(external_id: str, subscription_id: str) -> None:
+    subscription_data = _get_subscription_data(external_id)
+
+    assert subscription_data["id"] == subscription_id
+    assert "check" not in subscription_data
+    assert "secret" not in subscription_data
+
+
+def assert_subscription(
+    external_id: str, subscription_id: str, check_time: Optional[float] = None
+) -> None:
+    subscription_data = _get_subscription_data(external_id)
+
+    assert subscription_data["id"] == subscription_id
+    assert subscription_data["check"]
+    assert subscription_data["secret"]
+
+    if check_time:
+        assert check_time == subscription_data["check"]
 
 
 class VstsSubscriptionCheckTest(TestCase):
@@ -36,16 +65,11 @@ class VstsSubscriptionCheckTest(TestCase):
             data={"access_token": "vsts-access-token", "expires": time() + 50000},
         )
 
-    def assert_subscription(self, subscription_data, subscription_id):
-        assert subscription_data["id"] == subscription_id
-        assert subscription_data["check"]
-        assert subscription_data["secret"]
-
     @responses.activate
     def test_kickoff_subscription(self):
         integration3_check_time = time()
         integration1 = Integration.objects.create(
-            provider="vsts",
+            provider=PROVIDER,
             name="vsts1",
             external_id="vsts1",
             metadata={
@@ -53,13 +77,11 @@ class VstsSubscriptionCheckTest(TestCase):
                 "subscription": {"id": "subscription1"},
             },
         )
-        integration1.add_organization(self.organization, default_auth_id=self.identity.id)
         integration2 = Integration.objects.create(
-            provider="vsts", name="vsts2", external_id="vsts2", metadata={}
+            provider=PROVIDER, name="vsts2", external_id="vsts2", metadata={}
         )
-        integration2.add_organization(self.organization, default_auth_id=self.identity.id)
         integration3 = Integration.objects.create(
-            provider="vsts",
+            provider=PROVIDER,
             name="vsts3",
             external_id="vsts3",
             metadata={
@@ -70,26 +92,21 @@ class VstsSubscriptionCheckTest(TestCase):
                 }
             },
         )
+
+        integration1.add_organization(self.organization, default_auth_id=self.identity.id)
+        integration2.add_organization(self.organization, default_auth_id=self.identity.id)
         integration3.add_organization(self.organization, default_auth_id=self.identity.id)
 
         with self.tasks():
             kickoff_vsts_subscription_check()
 
-        subscription1 = Integration.objects.get(provider="vsts", external_id="vsts1").metadata[
-            "subscription"
-        ]
-        self.assert_subscription(subscription1, "subscription1_new_id")
-
-        subscription3 = Integration.objects.get(provider="vsts", external_id="vsts3").metadata[
-            "subscription"
-        ]
-        self.assert_subscription(subscription3, "subscription3")
-        assert integration3_check_time == subscription3["check"]
+        assert_subscription("vsts1", "subscription1_new_id")
+        assert_subscription("vsts3", "subscription3", check_time=integration3_check_time)
 
     @responses.activate
     def test_kickoff_subscription_no_default_identity(self):
         integration = Integration.objects.create(
-            provider="vsts",
+            provider=PROVIDER,
             name="vsts1",
             external_id="vsts1",
             metadata={
@@ -102,9 +119,4 @@ class VstsSubscriptionCheckTest(TestCase):
         with self.tasks():
             kickoff_vsts_subscription_check()
 
-        subscription = Integration.objects.get(provider="vsts", external_id="vsts1").metadata[
-            "subscription"
-        ]
-        assert subscription["id"] == "subscription1"
-        assert "check" not in subscription
-        assert "secret" not in subscription
+        assert_no_subscription("vsts1", "subscription1")
