@@ -26,6 +26,7 @@ import {
   SelectValue,
   TagCollection,
 } from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Aggregation} from 'app/utils/discover/fields';
 import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
@@ -234,7 +235,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   };
 
   handleFieldChange = (field: string) => (value: string) => {
-    const {defaultWidgetQuery, defaultTableColumns} = this.props;
+    const {defaultWidgetQuery, defaultTableColumns, fromDiscover, organization} =
+      this.props;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
@@ -257,6 +259,16 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         }
 
         set(newState, 'queries', normalized);
+
+        if (fromDiscover) {
+          trackAnalyticsEvent({
+            eventKey: 'discover_v2.add_widget_visualization_change',
+            eventName:
+              'Discoverv2: Updated Visualization Display on add to dashboard modal',
+            organization_id: parseInt(organization.id, 10),
+            visualization: displayType,
+          });
+        }
       }
 
       return {...newState, errors: undefined};
