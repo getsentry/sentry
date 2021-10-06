@@ -1,5 +1,6 @@
-from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, List, Mapping, MutableMapping, Optional, Set, Union
+
+from django.core.cache import cache
 
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
 from sentry.utils.services import Service
@@ -13,6 +14,33 @@ class PGStringIndexer(Service):  # type: ignore
 
     __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
+    def _build_cache_key_pair_dict(self, string: str, id: int) -> Mapping[str, Any]:
+        """
+        We need to cache at the same time both relationships:
+
+        1. string -> id
+        2. id -> string
+
+        The first is needed when consuming the original message
+        payloads from relay so that we can translate the strings to
+        their corresponding ids.
+
+        The second is needed for when the product needs to get the
+        human readable strings for ids read from snuba.
+        """
+        return {
+            self._build_indexer_cache_key(string): id,
+            self._build_indexer_cache_key(id): string,
+        }
+
+    def _build_indexer_cache_key(self, instance: Union[str, int]) -> str:
+        if isinstance(instance, str):
+            return f"metricsindexer:1:str:{instance}"
+        elif isinstance(instance, int):
+            return f"metricsindexer:1:int:{instance}"
+        else:
+            raise Exception("Invalid: must be string or int")
+
     def _bulk_record(self, unmapped_strings: Set[str]) -> Any:
         records = [MetricsKeyIndexer(string=string) for string in unmapped_strings]
         # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
@@ -24,20 +52,36 @@ class PGStringIndexer(Service):  # type: ignore
         # point.
         return MetricsKeyIndexer.objects.filter(string__in=unmapped_strings)
 
-    def bulk_record(self, strings: List[str]) -> Dict[str, int]:
-        # first look up to see if we have any of the values
-        records = MetricsKeyIndexer.objects.filter(string__in=strings)
-        result = defaultdict(int)
+    def bulk_record(self, strings: List[str]) -> Mapping[str, int]:
+        # first and foremoset check the cache
+        keys = [self._build_indexer_cache_key(string) for string in strings]
+        cache_results: Mapping[str, int] = cache.get_many(keys)
 
+        uncached = set(strings).difference(cache_results.keys())
+
+        if not uncached:
+            return cache_results
+
+        # next look up any values that have been created, but aren't in the cache
+        records = MetricsKeyIndexer.objects.filter(string__in=uncached)
+        result: MutableMapping[str, int] = {**cache_results}
+
+        to_cache: MutableMapping[str, Any] = {}
         for record in records:
             result[record.string] = record.id
+            to_cache = {**to_cache, **self._build_cache_key_pair_dict(record.string, record.id)}
 
         unmapped = set(strings).difference(result.keys())
         new_mapped = self._bulk_record(unmapped)
 
         for new in new_mapped:
             result[new.string] = new.id
+            to_cache = {**to_cache, **self._build_cache_key_pair_dict(new.string, new.id)}
 
+        if to_cache:
+            # caches both newly created indexer values as well as previously created
+            # indexer records that weren't in the cache already
+            cache.set_many(to_cache)
         return result
 
     def record(self, string: str) -> int:
@@ -51,11 +95,12 @@ class PGStringIndexer(Service):  # type: ignore
         Returns None if the entry cannot be found.
         """
         try:
-            id: int = MetricsKeyIndexer.objects.filter(string=string).values_list("id", flat=True)[
-                0
-            ]
-        except IndexError:
-            return None
+            id = int(cache.get(self._build_indexer_cache_key(string)))
+        except TypeError:
+            try:
+                id = MetricsKeyIndexer.objects.filter(string=string).values_list("id", flat=True)[0]
+            except IndexError:
+                return None
 
         return id
 
@@ -64,11 +109,11 @@ class PGStringIndexer(Service):  # type: ignore
 
         Returns None if the entry cannot be found.
         """
-        try:
-            string: str = MetricsKeyIndexer.objects.filter(id=id).values_list("string", flat=True)[
-                0
-            ]
-        except IndexError:
-            return None
+        string: Optional[str] = cache.get(self._build_indexer_cache_key(id))
+        if not string:
+            try:
+                string = MetricsKeyIndexer.objects.filter(id=id).values_list("string", flat=True)[0]
+            except IndexError:
+                return None
 
         return string
