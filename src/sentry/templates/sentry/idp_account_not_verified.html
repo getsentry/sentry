@@ -1,0 +1,12 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Sorry,</h3>
+    <p>
+        Something went wrong and your email could not be confirmed. Click the button below to go back to the login page.
+    </p>
+
+    <a href="{{ url }}" class="btn">Go back</a>
+{% endblock %}
