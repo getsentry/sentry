@@ -2387,6 +2387,12 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # priority queue. This setting determines how long we keep these duration values
     # around.
     "duration_time_window": 900,
+    # Number of seconds to wait after a project is made eligible or ineligible for the LPQ
+    # before its eligibility can be changed again.
+    #
+    # This backoff is only applied to automatic changes to project eligibility, and has zero effect
+    # on any manually-triggered changes to a project's presence in the LPQ.
+    "backoff_timer": 5 * 60,
 }
 
 # XXX(meredith): Temporary metrics indexer

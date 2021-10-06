@@ -26,6 +26,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         counter_time_window: int,
         duration_bucket_size: int,
         duration_time_window: int,
+        backoff_timer: int,
     ) -> None:
         """Creates a RedisRealtimeMetricsStore.
 
@@ -44,6 +45,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         self._duration_bucket_size = duration_bucket_size
         self._duration_time_window = duration_time_window
         self._prefix = "symbolicate_event_low_priority"
+        self._backoff_timer = backoff_timer
 
         self.validate()
 
@@ -70,7 +72,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         return f"{self._prefix}:backoff"
 
     def _register_backoffs(self, project_ids: Set[int]) -> None:
-        if len(project_ids) == 0:
+        if len(project_ids) == 0 or self._backoff_timer == 0:
             return
 
         now = datetime.now(pytz.utc).timestamp()
@@ -79,7 +81,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         for project_id in project_ids:
             key = f"{self._backoff_key_prefix()}:{project_id}"
             # Can't use mset because it doesn't allow also specifying an expiry
-            pipeline.set(name=key, value=str(now), ex=5 * 60)
+            pipeline.set(name=key, value=str(now), ex=self._backoff_timer)
 
         pipeline.execute()
 
