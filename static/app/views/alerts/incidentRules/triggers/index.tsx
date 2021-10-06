@@ -10,6 +10,7 @@ import TriggerForm from 'app/views/alerts/incidentRules/triggers/form';
 
 import {
   Action,
+  AlertRuleComparisonType,
   AlertRuleThresholdType,
   MetricActionTemplate,
   Trigger,
@@ -23,6 +24,7 @@ type Props = {
   triggers: Trigger[];
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
   thresholdType: UnsavedIncidentRule['thresholdType'];
+  comparisonType: AlertRuleComparisonType;
   aggregate: UnsavedIncidentRule['aggregate'];
   currentProject: string;
   availableActions: MetricActionTemplate[] | null;
@@ -98,6 +100,7 @@ class Triggers extends Component<Props> {
       disabled,
       aggregate,
       thresholdType,
+      comparisonType,
       resolveThreshold,
       onThresholdTypeChange,
       onResolveThresholdChange,
@@ -117,6 +120,7 @@ class Triggers extends Component<Props> {
               aggregate={aggregate}
               resolveThreshold={resolveThreshold}
               thresholdType={thresholdType}
+              comparisonType={comparisonType}
               onChange={this.handleChangeTrigger}
               onThresholdTypeChange={onThresholdTypeChange}
               onResolveThresholdChange={onResolveThresholdChange}
