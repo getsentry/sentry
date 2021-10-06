@@ -75,7 +75,6 @@ def submit_process(
     )
 
 
-
 def submit_save_event(project_id, from_reprocessing, cache_key, event_id, start_time, data):
     if cache_key:
         data = None
