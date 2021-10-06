@@ -5,6 +5,11 @@ export enum AlertRuleThresholdType {
   BELOW,
 }
 
+export enum AlertRuleComparisonType {
+  COUNT = 'count',
+  CHANGE = 'change',
+}
+
 export enum Dataset {
   ERRORS = 'events',
   TRANSACTIONS = 'transactions',
@@ -71,6 +76,7 @@ export type UnsavedIncidentRule = {
   aggregate: string;
   thresholdType: AlertRuleThresholdType;
   resolveThreshold: number | '' | null;
+  comparisonDelta?: number;
   eventTypes?: EventTypes[];
   owner?: string | null;
 };

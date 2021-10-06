@@ -2,21 +2,22 @@ import {PureComponent} from 'react';
 import color from 'color';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
-import round from 'lodash/round';
 
 import Graphic from 'app/components/charts/components/graphic';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
-import {defined} from 'app/utils';
-import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import theme from 'app/utils/theme';
-import {isSessionAggregate} from 'app/views/alerts/utils';
+import {
+  ALERT_CHART_MIN_MAX_BUFFER,
+  alertAxisFormatter,
+  alertTooltipValueFormatter,
+  isSessionAggregate,
+  shouldScaleAlertChart,
+} from 'app/views/alerts/utils';
 
 import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
-
-const MIN_MAX_BUFFER = 1.03;
 
 type DefaultProps = {
   data: Series[];
@@ -83,12 +84,6 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
   ref: null | ReactEchartsRef = null;
 
-  get shouldScale() {
-    // We want crash free rate charts to be scaled because they are usually too
-    // close to 100% and therefore too fine to see the spikes on 0%-100% scale.
-    return isSessionAggregate(this.props.aggregate);
-  }
-
   // If we have ref to chart and data, try to update chart axis so that
   // alertThreshold or resolveThreshold is visible in chart
   handleUpdateChartAxis = () => {
@@ -107,19 +102,20 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
    * Updates the chart so that yAxis is within bounds of our max value
    */
   updateChartAxis = debounce((minThreshold: number, maxThreshold: number) => {
-    const {minValue, maxValue} = this.props;
+    const {minValue, maxValue, aggregate} = this.props;
+    const shouldScale = shouldScaleAlertChart(aggregate);
     let yAxisMax =
-      this.shouldScale && maxValue
-        ? this.clampMaxValue(Math.ceil(maxValue * MIN_MAX_BUFFER))
+      shouldScale && maxValue
+        ? this.clampMaxValue(Math.ceil(maxValue * ALERT_CHART_MIN_MAX_BUFFER))
         : null;
     let yAxisMin =
-      this.shouldScale && minValue ? Math.floor(minValue / MIN_MAX_BUFFER) : 0;
+      shouldScale && minValue ? Math.floor(minValue / ALERT_CHART_MIN_MAX_BUFFER) : 0;
 
     if (typeof maxValue === 'number' && maxThreshold > maxValue) {
       yAxisMax = maxThreshold;
     }
     if (typeof minValue === 'number' && minThreshold < minValue) {
-      yAxisMin = Math.floor(minThreshold / MIN_MAX_BUFFER);
+      yAxisMin = Math.floor(minThreshold / ALERT_CHART_MIN_MAX_BUFFER);
     }
 
     // We need to force update after we set a new yAxis min/max because `convertToPixel`
@@ -273,24 +269,6 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
     );
   };
 
-  tooltipValueFormatter = (value: number, seriesName?: string) => {
-    const {aggregate} = this.props;
-    if (isSessionAggregate(aggregate)) {
-      return defined(value) ? `${value}%` : '\u2015';
-    }
-
-    return tooltipFormatter(value, seriesName);
-  };
-
-  axisFormatter = (value: number) => {
-    const {data, aggregate} = this.props;
-    if (isSessionAggregate(aggregate)) {
-      return defined(value) ? `${round(value, 2)}%` : '\u2015';
-    }
-
-    return axisLabelFormatter(value, data.length ? data[0].seriesName : '');
-  };
-
   clampMaxValue(value: number) {
     // When we apply top buffer to the crash free percentage (99.7% * 1.03), it
     // can cross 100%, so we clamp it
@@ -302,7 +280,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
   }
 
   render() {
-    const {data, triggers, period} = this.props;
+    const {data, triggers, period, aggregate} = this.props;
     const dataWithoutRecentBucket: LineChartSeries[] = data?.map(
       ({data: eventData, ...restOfData}) => ({
         ...restOfData,
@@ -326,13 +304,15 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
     const chartOptions = {
       tooltip: {
-        valueFormatter: this.tooltipValueFormatter,
+        valueFormatter: (value: number, seriesName?: string) =>
+          alertTooltipValueFormatter(value, seriesName ?? '', aggregate),
       },
       yAxis: {
         min: this.state.yAxisMin ?? undefined,
         max: this.state.yAxisMax ?? undefined,
         axisLabel: {
-          formatter: this.axisFormatter,
+          formatter: (value: number) =>
+            alertAxisFormatter(value, data[0].seriesName, aggregate),
         },
       },
     };
