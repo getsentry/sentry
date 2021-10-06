@@ -17,7 +17,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):  # type: 
         self, integration_id: Optional[int], organization_id: int
     ) -> IntegrationInstallation:
         if integration_id is None:
-            raise IntegrationError("%s requires an integration id." % self.name)
+            raise IntegrationError(f"{self.name} requires an integration id.")
 
         integration_model = Integration.objects.get(
             id=integration_id, organizations=organization_id, provider="vsts"

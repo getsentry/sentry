@@ -9,7 +9,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import {DISCOVER2_DOCS_URL} from 'app/constants';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {LightWeightOrganization} from 'app/types';
+import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Column} from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
@@ -19,7 +19,7 @@ import ColumnEditCollection from './columnEditCollection';
 
 type Props = {
   columns: Column[];
-  organization: LightWeightOrganization;
+  organization: Organization;
   tagKeys: null | string[];
   measurementKeys: null | string[];
   spanOperationBreakdownKeys?: string[];

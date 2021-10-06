@@ -194,7 +194,7 @@ class MiniBarChart extends React.Component<Props> {
         // default size.
         top: labelYAxisExtents ? 6 : 0,
         bottom: markers || labelYAxisExtents ? 4 : 0,
-        left: markers ? 4 : 0,
+        left: markers ? 8 : 4,
         right: markers ? 4 : 0,
       },
       xAxis: {

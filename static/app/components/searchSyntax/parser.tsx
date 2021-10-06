@@ -320,7 +320,10 @@ export class TokenConverter {
    * Validates various types of keys
    */
   keyValidation = {
-    isNumeric: (key: string) => this.config.numericKeys.has(key) || isMeasurement(key),
+    isNumeric: (key: string) =>
+      this.config.numericKeys.has(key) ||
+      isMeasurement(key) ||
+      isSpanOperationBreakdownField(key),
     isBoolean: (key: string) => this.config.booleanKeys.has(key),
     isPercentage: (key: string) => this.config.percentageKeys.has(key),
     isDate: (key: string) => this.config.dateKeys.has(key),
@@ -797,7 +800,6 @@ const defaultConfig: SearchConfig = {
     'error.handled',
     'error.unhandled',
     'stack.in_app',
-    'key_transaction',
     'team_key_transaction',
   ]),
   allowBoolean: true,

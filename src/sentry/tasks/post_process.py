@@ -274,21 +274,36 @@ def post_process_group(
         _capture_stats(event, is_new)
 
         with sentry_sdk.start_span(op="tasks.post_process_group.add_group_to_inbox"):
-            if is_reprocessed and is_new:
-                add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
+            try:
+                if is_reprocessed and is_new:
+                    add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
+            except Exception:
+                logger.exception("Failed to add group to inbox for reprocessed groups")
 
         if not is_reprocessed:
             # we process snoozes before rules as it might create a regression
             # but not if it's new because you can't immediately snooze a new group
-            has_reappeared = False if is_new else process_snoozes(event.group)
-            if not has_reappeared:  # If true, we added the .UNIGNORED reason already
-                if is_new:
-                    add_group_to_inbox(event.group, GroupInboxReason.NEW)
-                elif is_regression:
-                    add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+            has_reappeared = not is_new
+            try:
+                if has_reappeared:
+                    has_reappeared = process_snoozes(event.group)
+            except Exception:
+                logger.exception("Failed to process snoozes for group")
+
+            try:
+                if not has_reappeared:  # If true, we added the .UNIGNORED reason already
+                    if is_new:
+                        add_group_to_inbox(event.group, GroupInboxReason.NEW)
+                    elif is_regression:
+                        add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+            except Exception:
+                logger.exception("Failed to add group to inbox for non-reprocessed groups")
 
             with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
-                handle_owner_assignment(event.project, event.group, event)
+                try:
+                    handle_owner_assignment(event.project, event.group, event)
+                except Exception:
+                    logger.exception("Failed to handle owner assignments")
 
             rp = RuleProcessor(
                 event, is_new, is_regression, is_new_group_environment, has_reappeared
@@ -376,7 +391,10 @@ def post_process_group(
 
         # Patch attachments that were ingested on the standalone path.
         with sentry_sdk.start_span(op="tasks.post_process_group.update_existing_attachments"):
-            update_existing_attachments(event)
+            try:
+                update_existing_attachments(event)
+            except Exception:
+                logger.exception("Failed to update existing attachments")
 
         if not is_reprocessed:
             event_processed.send_robust(

@@ -11,7 +11,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.utils import InvalidParams
 from sentry.discover.endpoints import serializers
-from sentry.discover.models import KeyTransaction, TeamKeyTransaction
+from sentry.discover.models import TeamKeyTransaction
 from sentry.models import ProjectTeam, Team
 
 
@@ -24,35 +24,11 @@ class KeyTransactionPermission(OrganizationPermission):
     }
 
 
-class IsKeyTransactionEndpoint(KeyTransactionBase):
-    permission_classes = (KeyTransactionPermission,)
-
-    def get(self, request, organization):
-        """Get the Key Transactions for a user"""
-        if not self.has_feature(request, organization):
-            return Response(status=404)
-
-        project = self.get_project(request, organization)
-
-        transaction = request.GET.get("transaction")
-
-        try:
-            KeyTransaction.objects.get(
-                organization=organization,
-                owner=request.user,
-                project=project,
-                transaction=transaction,
-            )
-            return Response({"isKey": True}, status=200)
-        except KeyTransaction.DoesNotExist:
-            return Response({"isKey": False}, status=200)
-
-
 class KeyTransactionEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
     def get(self, request, organization):
-        if not self.has_feature(request, organization):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         transaction_name = request.GET.get("transaction")
@@ -72,7 +48,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
     def post(self, request, organization):
         """Create a Key Transaction"""
-        if not self.has_feature(request, organization):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         project = self.get_project(request, organization)
@@ -127,7 +103,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
     def delete(self, request, organization):
         """Remove a Key transaction for a user"""
-        if not self.has_feature(request, organization):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         project = self.get_project(request, organization)
@@ -158,7 +134,7 @@ class KeyTransactionListEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
     def get(self, request, organization):
-        if not self.has_feature(request, organization):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         try:

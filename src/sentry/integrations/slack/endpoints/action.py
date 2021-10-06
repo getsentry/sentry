@@ -1,5 +1,6 @@
 from typing import Any, Dict, Mapping
 
+from requests import post
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -54,7 +55,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         logging_data = logging_data.copy()
         logging_data["response"] = str(error.body)
         logging_data["action_type"] = action_type
-        logger.info("slack.action.api-error-pre-message: %s" % str(logging_data))
+        logger.info(f"slack.action.api-error-pre-message: {str(logging_data)}")
         logger.info("slack.action.api-error", extra=logging_data)
 
         return self.respond(
@@ -183,30 +184,42 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         data = slack_request.data
 
+        # Actions list may be empty when receiving a dialog response
+        action_list = data.get("actions", [])
+        action_option = action_list and action_list[0].get("value", "")
+
         # if a user is just clicking our auto response in the messages tab we just return a 200
-        if (
-            data.get("actions")
-            and data["actions"][0].get("value", "") == "sentry_docs_link_clicked"
-        ):
+        if action_option == "sentry_docs_link_clicked":
             return self.respond()
 
         channel_id = slack_request.channel_id
         user_id = slack_request.user_id
+        integration = slack_request.integration
         response_url = data.get("response_url")
+
+        if action_option in ["link", "ignore"]:
+            analytics.record(
+                "integrations.slack.chart_unfurl_action",
+                organization_id=integration.organizations.all()[0].id,
+                action=action_option,
+            )
+            payload = {"delete_original": "true"}
+            try:
+                post(response_url, json=payload)
+            except ApiError as e:
+                logger.error("slack.action.response-error", extra={"error": str(e)})
+                return self.respond(status=403)
+
+            return self.respond()
 
         logging_data["channel_id"] = channel_id
         logging_data["slack_user_id"] = user_id
         logging_data["response_url"] = response_url
-
-        integration = slack_request.integration
         logging_data["integration_id"] = integration.id
 
         # Determine the issue group action is being taken on
         group_id = slack_request.callback_data["issue"]
         logging_data["group_id"] = group_id
-
-        # Actions list may be empty when receiving a dialog response
-        action_list = data.get("actions", [])
 
         try:
             group = Group.objects.select_related("project__organization").get(
@@ -223,18 +236,14 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         # Determine the acting user by slack identity
         try:
-            idp = IdentityProvider.objects.get(type="slack", external_id=slack_request.team_id)
+            identity = slack_request.get_identity()
         except IdentityProvider.DoesNotExist:
-            logger.error("slack.action.invalid-team-id", extra=logging_data)
             return self.respond(status=403)
 
-        try:
-            identity = Identity.objects.select_related("user").get(idp=idp, external_id=user_id)
-        except Identity.DoesNotExist:
+        if not identity:
             associate_url = build_linking_url(
                 integration, group.organization, user_id, channel_id, response_url
             )
-
             return self.respond(
                 {
                     "response_type": "ephemeral",
@@ -255,7 +264,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
                 if e.status_code == 403:
                     text = UNLINK_IDENTITY_MESSAGE.format(
                         associate_url=build_unlinking_url(
-                            integration.id, group.organization.id, user_id, channel_id, response_url
+                            integration.id, user_id, channel_id, response_url
                         ),
                         user_email=identity.user,
                         org_name=group.organization.name,
@@ -303,11 +312,10 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
                     self.open_resolve_dialog(data, group, integration)
                     defer_attachment_update = True
         except client.ApiError as e:
-
             if e.status_code == 403:
                 text = UNLINK_IDENTITY_MESSAGE.format(
                     associate_url=build_unlinking_url(
-                        integration.id, group.organization.id, user_id, channel_id, response_url
+                        integration.id, user_id, channel_id, response_url
                     ),
                     user_email=identity.user,
                     org_name=group.organization.name,

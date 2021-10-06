@@ -29,7 +29,7 @@ from sentry.utils.http import absolute_uri
 from ..utils import build_notification_footer
 
 
-def format_actor_option(actor: Union[User, Team]) -> Mapping[str, str]:
+def format_actor_option(actor: Union["Team", "User"]) -> Mapping[str, str]:
     if isinstance(actor, User):
         return {"text": actor.get_display_name(), "value": f"user:{actor.id}"}
     if isinstance(actor, Team):
@@ -215,7 +215,7 @@ def build_actions(
 
     ignore_button = {"name": "status", "value": "ignored", "type": "button", "text": "Ignore"}
 
-    cache_key = "has_releases:2:%s" % project.id
+    cache_key = f"has_releases:2:{project.id}"
     has_releases = cache.get(cache_key)
     if has_releases is None:
         has_releases = ReleaseProject.objects.filter(project_id=project.id).exists()
@@ -313,7 +313,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         link_to_event: bool = False,
         issue_details: bool = False,
         notification: Optional[BaseNotification] = None,
-        recipient: Optional[Union[Team, User]] = None,
+        recipient: Optional[Union["Team", "User"]] = None,
     ) -> None:
         super().__init__()
         self.group = group

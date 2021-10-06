@@ -5,24 +5,24 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import tagstore, tsdb
+from sentry import features, tagstore, tsdb
 from sentry.api import client
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import (
+    delete_group_list,
     get_first_last_release,
     prep_search,
     rate_limit_endpoint,
     update_groups,
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
-from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.api.serializers.models.plugin import SHADOW_DEPRECATED_PLUGINS, PluginSerializer
 from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
 from sentry.models.groupinbox import get_inbox_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
-from sentry.signals import issue_deleted
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
@@ -31,7 +31,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     def _get_activity(self, request, group, num):
-        return Activity.get_activities_for_group(group, num)
+        return Activity.objects.get_activities_for_group(group, num)
 
     def _get_seen_by(self, request, group):
         seen_by = list(
@@ -44,6 +44,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         action_list = []
         for plugin in plugins.for_project(project, version=1):
+            if plugin.slug in SHADOW_DEPRECATED_PLUGINS and not features.has(
+                SHADOW_DEPRECATED_PLUGINS.get(plugin.slug), getattr(project, "organization", None)
+            ):
+                continue
+
             results = safe_execute(
                 plugin.actions, request, group, action_list, _with_transaction=False
             )
@@ -54,6 +59,10 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             action_list = results
 
         for plugin in plugins.for_project(project, version=2):
+            if plugin.slug in SHADOW_DEPRECATED_PLUGINS and not features.has(
+                SHADOW_DEPRECATED_PLUGINS.get(plugin.slug), getattr(project, "organization", None)
+            ):
+                continue
             for action in (
                 safe_execute(plugin.get_actions, request, group, _with_transaction=False) or ()
             ):
@@ -280,38 +289,15 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam string issue_id: the ID of the issue to delete.
         :auth: required
         """
+        from sentry.utils import snuba
+
         try:
-            from sentry.group_deletion import delete_group
-            from sentry.utils import snuba
-
-            transaction_id = delete_group(group)
-
-            if transaction_id:
-                self.create_audit_entry(
-                    request=request,
-                    organization_id=group.project.organization_id if group.project else None,
-                    target_object=group.id,
-                    transaction_id=transaction_id,
-                )
-
-                delete_logger.info(
-                    "object.delete.queued",
-                    extra={
-                        "object_id": group.id,
-                        "transaction_id": transaction_id,
-                        "model": type(group).__name__,
-                    },
-                )
-
-                # This is exclusively used for analytics, as such it should not run as part of reprocessing.
-                issue_deleted.send_robust(
-                    group=group, user=request.user, delete_type="delete", sender=self.__class__
-                )
+            delete_group_list(request, group.project, [group], "delete")
 
             metrics.incr(
                 "group.update.http_response",
                 sample_rate=1.0,
-                tags={"status": 200, "detail": "group_details:delete:Reponse"},
+                tags={"status": 200, "detail": "group_details:delete:Response"},
             )
             return Response(status=202)
         except snuba.RateLimitExceeded:

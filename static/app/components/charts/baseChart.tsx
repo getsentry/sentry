@@ -441,6 +441,7 @@ const ChartContainer = styled('div')`
   .tooltip-date {
     color: ${p => p.theme.gray300};
     font-family: ${p => p.theme.text.family};
+    font-variant-numeric: tabular-nums;
     background: ${p => p.theme.gray500};
     padding: ${space(1)} ${space(2)};
     border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
@@ -483,6 +484,10 @@ const ChartContainer = styled('div')`
 
   .echarts-for-react div:first-of-type {
     width: 100% !important;
+  }
+
+  .echarts-for-react tspan {
+    font-variant-numeric: tabular-nums;
   }
 
   /* Tooltip description styling */

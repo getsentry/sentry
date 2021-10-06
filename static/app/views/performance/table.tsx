@@ -54,7 +54,7 @@ type Props = {
   organization: Organization;
   location: Location;
   setError: (msg: string | undefined) => void;
-  summaryConditions: string;
+  summaryConditions?: string;
 
   projects: Project[];
   columnTitles?: string[];
@@ -66,7 +66,7 @@ type State = {
   transactionThreshold: number | undefined;
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
 };
-class Table extends React.Component<Props, State> {
+class _Table extends React.Component<Props, State> {
   state: State = {
     widths: [],
     transaction: undefined,
@@ -194,11 +194,6 @@ class Table extends React.Component<Props, State> {
       );
     }
 
-    if (field.startsWith('key_transaction')) {
-      // don't display per cell actions for key_transaction
-      return rendered;
-    }
-
     if (field.startsWith('team_key_transaction')) {
       // don't display per cell actions for team_key_transaction
       return rendered;
@@ -311,28 +306,11 @@ class Table extends React.Component<Props, State> {
   renderPrependCellWithData = (tableData: TableData | null) => {
     const {eventView} = this.props;
 
-    const keyTransactionColumn = eventView
-      .getColumns()
-      .find((col: TableColumn<React.ReactText>) => col.name === 'key_transaction');
     const teamKeyTransactionColumn = eventView
       .getColumns()
       .find((col: TableColumn<React.ReactText>) => col.name === 'team_key_transaction');
     return (isHeader: boolean, dataRow?: any) => {
-      if (keyTransactionColumn) {
-        if (isHeader) {
-          const star = (
-            <IconStar
-              key="keyTransaction"
-              color="yellow300"
-              isSolid
-              data-test-id="key-transaction-header"
-            />
-          );
-          return [this.renderHeadCell(tableData?.meta, keyTransactionColumn, star)];
-        } else {
-          return [this.renderBodyCell(tableData, keyTransactionColumn, dataRow)];
-        }
-      } else if (teamKeyTransactionColumn) {
+      if (teamKeyTransactionColumn) {
         if (isHeader) {
           const star = (
             <GuideAnchor target="team_key_transaction_header" position="top">
@@ -387,11 +365,10 @@ class Table extends React.Component<Props, State> {
       this.state;
     const columnOrder = eventView
       .getColumns()
-      // remove key_transactions from the column order as we'll be rendering it
+      // remove team_key_transactions from the column order as we'll be rendering it
       // via a prepended column
       .filter(
         (col: TableColumn<React.ReactText>) =>
-          col.name !== 'key_transaction' &&
           col.name !== 'team_key_transaction' &&
           !col.name.startsWith('count_miserable') &&
           col.name !== 'project_threshold_config'
@@ -443,6 +420,13 @@ class Table extends React.Component<Props, State> {
       </div>
     );
   }
+}
+
+function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: string}) {
+  const summaryConditions =
+    props.summaryConditions ?? props.eventView.getQueryWithAdditionalConditions();
+
+  return <_Table {...props} summaryConditions={summaryConditions} />;
 }
 
 export default Table;

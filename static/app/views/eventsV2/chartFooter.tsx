@@ -1,5 +1,7 @@
 import * as React from 'react';
 
+import Feature from 'app/components/acl/feature';
+import OptionCheckboxSelector from 'app/components/charts/optionCheckboxSelector';
 import OptionSelector from 'app/components/charts/optionSelector';
 import {
   ChartControls,
@@ -8,19 +10,24 @@ import {
   SectionValue,
 } from 'app/components/charts/styles';
 import {t} from 'app/locale';
-import {SelectValue} from 'app/types';
+import {Organization, SelectValue} from 'app/types';
+import {TOP_EVENT_MODES} from 'app/utils/discover/types';
 
 type Props = {
+  organization: Organization;
   total: number | null;
-  yAxisValue: string;
+  yAxisValue: string[];
   yAxisOptions: SelectValue<string>[];
-  onAxisChange: (value: string) => void;
+  onAxisChange: (value: string[]) => void;
   displayMode: string;
   displayOptions: SelectValue<string>[];
   onDisplayChange: (value: string) => void;
+  onTopEventsChange: (value: string) => void;
+  topEvents: string;
 };
 
 export default function ChartFooter({
+  organization,
   total,
   yAxisValue,
   yAxisOptions,
@@ -28,6 +35,8 @@ export default function ChartFooter({
   displayMode,
   displayOptions,
   onDisplayChange,
+  onTopEventsChange,
+  topEvents,
 }: Props) {
   const elements: React.ReactNode[] = [];
 
@@ -41,6 +50,10 @@ export default function ChartFooter({
       <SectionValue key="total-value">{total.toLocaleString()}</SectionValue>
     )
   );
+  const topEventOptions: SelectValue<string>[] = [];
+  for (let i = 1; i <= 10; i++) {
+    topEventOptions.push({value: i.toString(), label: i.toString()});
+  }
 
   return (
     <ChartControls>
@@ -53,12 +66,50 @@ export default function ChartFooter({
           onChange={onDisplayChange}
           menuWidth="170px"
         />
-        <OptionSelector
-          title={t('Y-Axis')}
-          selected={yAxisValue}
-          options={yAxisOptions}
-          onChange={onAxisChange}
-        />
+        <Feature organization={organization} features={['discover-top-events']}>
+          {({hasFeature}) => {
+            if (hasFeature && TOP_EVENT_MODES.includes(displayMode)) {
+              return (
+                <OptionSelector
+                  title={t('Limit')}
+                  selected={topEvents}
+                  options={topEventOptions}
+                  onChange={onTopEventsChange}
+                  menuWidth="60px"
+                  featureType="beta"
+                />
+              );
+            } else {
+              return null;
+            }
+          }}
+        </Feature>
+        <Feature
+          organization={organization}
+          features={['connect-discover-and-dashboards']}
+        >
+          {({hasFeature}) => {
+            if (hasFeature) {
+              return (
+                <OptionCheckboxSelector
+                  title={t('Y-Axis')}
+                  selected={yAxisValue}
+                  options={yAxisOptions}
+                  onChange={onAxisChange}
+                />
+              );
+            } else {
+              return (
+                <OptionSelector
+                  title={t('Y-Axis')}
+                  selected={yAxisValue[0]}
+                  options={yAxisOptions}
+                  onChange={value => onAxisChange([value])}
+                />
+              );
+            }
+          }}
+        </Feature>
       </InlineContainer>
     </ChartControls>
   );

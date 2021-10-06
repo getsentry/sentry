@@ -5,6 +5,7 @@ from django.urls import reverse
 from exam import fixture
 
 from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
+from sentry.auth.provider import MigratingIdentityId
 from sentry.models import (
     AuthIdentity,
     AuthProvider,
@@ -15,6 +16,7 @@ from sentry.models import (
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.utils import json
+from sentry.utils.compat import mock
 
 
 # TODO(dcramer): this is an integration test and repeats tests from
@@ -577,6 +579,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # setup a 'previous' identity, such as when we migrated Google from
         # the old idents to the new
         user = self.create_user("bar@example.com", is_managed=False, password="")
+        assert not user.has_usable_password()
         UserEmail.objects.filter(user=user, email="bar@example.com").update(is_verified=False)
         self.create_member(organization=self.organization, user=user)
 
@@ -589,6 +592,39 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         resp = self.client.post(path, {"email": "bar@example.com"})
         self.assertTemplateUsed(resp, "sentry/auth-confirm-identity.html")
+        assert resp.status_code == 200
+        assert resp.context["existing_user"] is None
+
+    @with_feature("organizations:idp-automatic-migration")
+    @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
+    def test_flow_automatically_migrated_without_verified_without_password(
+        self, mock_send_one_time_account_confirm_link
+    ):
+        provider = AuthProvider.objects.create(organization=self.organization, provider="dummy")
+
+        # setup a 'previous' identity, such as when we migrated Google from
+        # the old idents to the new
+        user = self.create_user("bar@example.com", is_managed=False, password="")
+        assert not user.has_usable_password()
+        UserEmail.objects.filter(user=user, email="bar@example.com").update(is_verified=False)
+        self.create_member(organization=self.organization, user=user)
+
+        resp = self.client.post(self.path, {"init": True})
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+        path = reverse("sentry-auth-sso")
+
+        resp = self.client.post(path, {"email": "bar@example.com"})
+        mock_send_one_time_account_confirm_link.assert_called_with(
+            user,
+            self.organization,
+            provider.get_provider().name,
+            "bar@example.com",
+            MigratingIdentityId(id="bar@example.com", legacy_id=None),
+        )
+        self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")
         assert resp.status_code == 200
         assert resp.context["existing_user"] == user
 

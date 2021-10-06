@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Tuple
 from uuid import uuid4
 
 from django.conf import settings
@@ -19,6 +19,7 @@ from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.idpmigration import send_one_time_account_confirm_link
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -333,6 +334,22 @@ class AuthIdentityHandler:
         except OrganizationMember.DoesNotExist:
             return self._handle_new_membership(auth_identity)
 
+    @staticmethod
+    def _get_user(identity: Identity) -> Optional[User]:
+        email = identity.get("email")
+        if email is None:
+            return None
+
+        # TODO(dcramer): its possible they have multiple accounts and at
+        # least one is managed (per the check below)
+        try:
+            return User.objects.filter(
+                id__in=UserEmail.objects.filter(email__iexact=email).values("user"),
+                is_active=True,
+            ).first()
+        except IndexError:
+            return None
+
     def _respond(
         self,
         template: str,
@@ -384,15 +401,7 @@ class AuthIdentityHandler:
         """
         op = self.request.POST.get("op")
         if not self.user.is_authenticated:
-            # TODO(dcramer): its possible they have multiple accounts and at
-            # least one is managed (per the check below)
-            try:
-                acting_user = User.objects.filter(
-                    id__in=UserEmail.objects.filter(email__iexact=identity["email"]).values("user"),
-                    is_active=True,
-                ).first()
-            except IndexError:
-                acting_user = None
+            acting_user = self._get_user(identity)
             login_form = AuthenticationForm(
                 self.request,
                 self.request.POST if self.request.POST.get("op") == "login" else None,
@@ -400,6 +409,7 @@ class AuthIdentityHandler:
             )
         else:
             acting_user = self.user
+            login_form = None
 
         # If they already have an SSO account and the identity provider says
         # the email matches we go ahead and let them merge it. This is the
@@ -457,23 +467,18 @@ class AuthIdentityHandler:
             op = None
 
         if not op:
-            # A blank character is needed to prevent the HTML span from collapsing
-            provider_name = self.auth_provider.get_provider().name if self.auth_provider else " "
+            existing_user, template = self._dispatch_to_confirmation(identity)
 
             context = {
                 "identity": identity,
-                "provider": provider_name,
+                "provider": self.provider_name,
                 "identity_display_name": identity.get("name") or identity.get("email"),
                 "identity_identifier": identity.get("email") or identity.get("id"),
+                "existing_user": existing_user or acting_user,
             }
-            if self.user.is_authenticated:
-                template = "sentry/auth-confirm-link.html"
-                context.update({"existing_user": self.user})
-            else:
-                self.request.session.set_test_cookie()
-                template = "sentry/auth-confirm-identity.html"
-                context.update({"existing_user": acting_user, "login_form": login_form})
-            return self._respond(template, context)
+            if login_form:
+                context["login_form"] = login_form
+            return self._respond(f"sentry/{template}.html", context)
 
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
@@ -490,6 +495,30 @@ class AuthIdentityHandler:
             # set activeorg to ensure correct redirect upon logging in
             self.request.session["activeorg"] = self.organization.slug
         return self._post_login_redirect()
+
+    @property
+    def provider_name(self):
+        # A blank character is needed to prevent an HTML span from collapsing
+        return self.auth_provider.get_provider().name if self.auth_provider else " "
+
+    def _dispatch_to_confirmation(self, identity: Identity) -> Tuple[Optional[User], str]:
+        if self.user.is_authenticated:
+            return self.user, "auth-confirm-link"
+
+        if features.has("organizations:idp-automatic-migration", self.organization):
+            existing_user = self._get_user(identity)
+            if existing_user and not existing_user.has_usable_password():
+                send_one_time_account_confirm_link(
+                    existing_user,
+                    self.organization,
+                    self.provider_name,
+                    identity["email"],
+                    identity["id"],
+                )
+                return existing_user, "auth-confirm-account"
+
+        self.request.session.set_test_cookie()
+        return None, "auth-confirm-identity"
 
     def handle_new_user(self, identity: Identity) -> AuthIdentity:
         user = User.objects.create(

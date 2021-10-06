@@ -140,7 +140,6 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
             <ClassNames>
               {({css}) => (
                 <SmartSearchBar
-                  {...this.props}
                   hasRecentSearches
                   savedSearchType={SavedSearchType.EVENT}
                   onGetTagValues={this.getEventFieldValues}
@@ -151,6 +150,7 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
                     max-height: 300px;
                     overflow-y: auto;
                   `}
+                  {...this.props}
                 />
               )}
             </ClassNames>

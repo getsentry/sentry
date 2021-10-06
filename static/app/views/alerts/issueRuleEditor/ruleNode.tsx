@@ -20,11 +20,12 @@ import {
   IssueAlertRuleConditionTemplate,
   MailActionTargetType,
 } from 'app/types/alerts';
+import MemberTeamFields from 'app/views/alerts/issueRuleEditor/memberTeamFields';
+import SentryAppRuleModal from 'app/views/alerts/issueRuleEditor/sentryAppRuleModal';
+import TicketRuleModal from 'app/views/alerts/issueRuleEditor/ticketRuleModal';
+import {SchemaFormConfig} from 'app/views/organizationIntegrations/sentryAppExternalForm';
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'app/views/projectInstall/issueAlertOptions';
 import Input from 'app/views/settings/components/forms/controls/input';
-
-import MemberTeamFields from './memberTeamFields';
-import TicketRuleModal from './ticketRuleModal';
 
 export type FormField = {
   // Type of form fields
@@ -44,7 +45,6 @@ type Props = {
   onReset: (rowIndex: number, name: string, value: string) => void;
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
-
 class RuleNode extends React.Component<Props> {
   handleDelete = () => {
     const {index, onDelete} = this.props;
@@ -65,23 +65,21 @@ class RuleNode extends React.Component<Props> {
     let initialVal;
     if (data) {
       if (data[name] === undefined && !!fieldConfig.choices.length) {
-        if (fieldConfig.initial) {
-          initialVal = fieldConfig.initial;
-        } else {
-          initialVal = fieldConfig.choices[0][0];
-        }
+        initialVal = fieldConfig.initial
+          ? `${fieldConfig.initial}`
+          : `${fieldConfig.choices[0][0]}`;
       } else {
-        initialVal = data[name];
+        initialVal = `${data[name]}`;
       }
     }
 
-    // Cast `key` to string, this problem pops up because of react-select v3 where
-    // `value` requires the `option` object (e.g. {label, object}) - we have
-    // helpers in `SelectControl` to filter `choices` to produce the value object
-    //
-    // However there are integrations that give the form field choices with the value as number, but
+    // All `value`s are cast to string
+    // There are integrations that give the form field choices with the value as number, but
     // when the integration configuration gets saved, it gets saved and returned as a string
-    const choices = fieldConfig.choices.map(([key, value]) => [`${key}`, value]);
+    const options = fieldConfig.choices.map(([value, label]) => ({
+      value: `${value}`,
+      label,
+    }));
 
     const handleChange = ({value}) => {
       if (fieldConfig.resetsForm) {
@@ -90,7 +88,6 @@ class RuleNode extends React.Component<Props> {
         onPropertyChange(index, name, value);
       }
     };
-
     return (
       <InlineSelectControl
         isClearable={false}
@@ -104,7 +101,7 @@ class RuleNode extends React.Component<Props> {
           }),
         }}
         disabled={disabled}
-        choices={choices}
+        options={options}
         onChange={handleChange}
       />
     );
@@ -327,7 +324,7 @@ class RuleNode extends React.Component<Props> {
    * @param formData Form data
    * @param fetchedFieldOptionsCache Object
    */
-  updateParent = (
+  updateParentFromTicketRule = (
     formData: {[key: string]: string},
     fetchedFieldOptionsCache: Record<string, Choices>
   ): void => {
@@ -352,11 +349,31 @@ class RuleNode extends React.Component<Props> {
     }
   };
 
+  /**
+   * Update all the AlertRuleAction's fields from the SentryAppRuleModal together
+   * only after the user clicks "Save Changes".
+   * @param formData Form data
+   */
+  updateParentFromSentryAppRule = (formData: {[key: string]: string}): void => {
+    const {index, onPropertyChange} = this.props;
+
+    for (const [name, value] of Object.entries(formData)) {
+      onPropertyChange(index, name, value);
+    }
+  };
+
+  isSchemaConfig(
+    formFields: IssueAlertRuleActionTemplate['formFields']
+  ): formFields is SchemaFormConfig {
+    return !formFields ? false : (formFields as SchemaFormConfig).uri !== undefined;
+  }
+
   render() {
     const {data, disabled, index, node, organization} = this.props;
-    const ticketRule = node?.actionType === 'ticket';
-    const sentryAppRule = node?.actionType === 'sentryapp';
-    const isNew = node?.id === EVENT_FREQUENCY_PERCENT_CONDITION;
+    const {actionType, id, sentryAppInstallationUuid} = node || {};
+    const ticketRule = actionType === 'ticket';
+    const sentryAppRule = actionType === 'sentryapp' && sentryAppInstallationUuid;
+    const isNew = id === EVENT_FREQUENCY_PERCENT_CONDITION;
     return (
       <RuleRowContainer>
         <RuleRow>
@@ -378,7 +395,7 @@ class RuleNode extends React.Component<Props> {
                       ticketType={node.ticketType}
                       instance={data}
                       index={index}
-                      onSubmitAction={this.updateParent}
+                      onSubmitAction={this.updateParentFromTicketRule}
                       organization={organization}
                     />
                   ))
@@ -393,7 +410,19 @@ class RuleNode extends React.Component<Props> {
                 icon={<IconSettings size="xs" />}
                 type="button"
                 onClick={() => {
-                  // TODO(nisanthan): Placeholder. Modal will be implemented in next PR.
+                  openModal(
+                    deps => (
+                      <SentryAppRuleModal
+                        {...deps}
+                        sentryAppInstallationUuid={sentryAppInstallationUuid}
+                        config={node.formFields as SchemaFormConfig}
+                        appName={node.prompt}
+                        onSubmitSuccess={this.updateParentFromSentryAppRule}
+                        resetValues={data}
+                      />
+                    ),
+                    {allowClickClose: false}
+                  );
                 }}
               >
                 {t('Settings')}

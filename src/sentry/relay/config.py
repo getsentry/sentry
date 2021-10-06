@@ -168,7 +168,7 @@ def get_project_config(project, full_config=True, project_keys=None):
 
     if features.has("organizations:performance-ops-breakdown", project.organization):
         cfg["config"]["breakdownsV2"] = project.get_option("sentry:breakdowns")
-    if features.has("organizations:performance-suspect-spans-ingestion", project.organization):
+    if features.has("projects:performance-suspect-spans-ingestion", project=project):
         cfg["config"]["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
         cfg["config"]["filterSettings"] = get_filter_settings(project)

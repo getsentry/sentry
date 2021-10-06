@@ -1,15 +1,23 @@
-import logging
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from rest_framework import status
 from rest_framework.request import Request
 
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
-from sentry.models import Identity, IdentityProvider
-
-logger = logging.getLogger("sentry.integrations.slack")
+from sentry.integrations.slack.unfurl import LinkType, match_link
+from sentry.models import IdentityProvider
+from sentry.models.user import User
 
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
+
+
+def has_discover_links(links: List[str]) -> bool:
+    for link in links:
+        link_type, _ = match_link(link)
+        if link_type == LinkType.DISCOVER:
+            return True
+
+    return False
 
 
 class SlackEventRequest(SlackRequest):
@@ -29,11 +37,15 @@ class SlackEventRequest(SlackRequest):
 
     def __init__(self, request: Request) -> None:
         super().__init__(request)
-        self.identity_str: Optional[str] = None
+        self.user: Optional[User] = None
 
     @property
     def has_identity(self) -> bool:
         return self.identity_str is not None
+
+    @property
+    def identity_str(self) -> Optional[str]:
+        return self.user.email if self.user else None
 
     def validate(self) -> None:
         if self.is_challenge():
@@ -64,6 +76,11 @@ class SlackEventRequest(SlackRequest):
         data = self.request.data.get("event")
         return data.get("text")
 
+    @property
+    def links(self) -> List[str]:
+        links = self.data.get("event", {}).get("links", [])
+        return [link["url"] for link in links if "url" in link]
+
     def _validate_event(self) -> None:
         if not self.data.get("event"):
             self._error("slack.event.invalid-event-data")
@@ -76,15 +93,15 @@ class SlackEventRequest(SlackRequest):
     def _validate_integration(self) -> None:
         super()._validate_integration()
 
-        if self.text and self.text in COMMANDS:
+        if (self.text in COMMANDS) or (
+            self.type == "link_shared" and has_discover_links(self.links)
+        ):
             try:
-                idp = IdentityProvider.objects.get(type="slack", external_id=self.team_id)
+                identity = self.get_identity()
             except IdentityProvider.DoesNotExist:
-                logger.error("slack.action.invalid-team-id", extra={"slack_team": self.team_id})
                 raise SlackRequestError(status=status.HTTP_403_FORBIDDEN)
 
-            identities = Identity.objects.filter(idp=idp, external_id=self.user_id)
-            self.identity_str = identities[0].user.email if identities else None
+            self.user = identity.user if identity else None
 
     def _log_request(self) -> None:
         self._info(f"slack.event.{self.type}")

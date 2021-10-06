@@ -196,10 +196,8 @@ export type RelaysByPublickey = {
 
 /**
  * Detailed organization (e.g. when requesting details for a single org)
- *
- * Lightweight in this case means it does not contain `projects` or `teams`
  */
-export type LightWeightOrganization = OrganizationSummary & {
+export type Organization = OrganizationSummary & {
   relayPiiConfig: string;
   scrubIPAddresses: boolean;
   attachmentsRole: string;
@@ -235,14 +233,6 @@ export type LightWeightOrganization = OrganizationSummary & {
 };
 
 /**
- * Full organization details
- */
-export type Organization = LightWeightOrganization & {
-  projects: Project[];
-  teams: Team[];
-};
-
-/**
  * Minimal organization shape used on shared issue views.
  */
 export type SharedViewOrganization = {
@@ -275,12 +265,16 @@ export type Project = {
   isInternal: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
+  hasSessions: boolean;
   firstEvent: 'string' | null;
   firstTransactionEvent: boolean;
   subjectTemplate: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;
   environments: string[];
+  eventProcessing: {
+    symbolicationDegraded: boolean;
+  };
 
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {
@@ -774,10 +768,6 @@ export interface Config {
     upgradeAvailable: boolean;
     latest: string;
   };
-  statuspage?: {
-    id: string;
-    api_host: string;
-  };
   sentryConfig: {
     dsn: string;
     release: string;
@@ -787,6 +777,10 @@ export interface Config {
   apmSampling: number;
   dsn_requests: string;
   demoMode: boolean;
+  statuspage?: {
+    id: string;
+    api_host: string;
+  };
 }
 
 // https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
@@ -1625,10 +1619,10 @@ export type SentryAppComponent = {
     slug:
       | 'calixa'
       | 'clickup'
-      | 'clubhouse'
       | 'komodor'
       | 'linear'
       | 'rookout'
+      | 'shortcut'
       | 'spikesh'
       | 'teamwork'
       | 'zepel';
@@ -1659,8 +1653,9 @@ export type NewQuery = {
   end?: string;
 
   // Graph
-  yAxis?: string;
+  yAxis?: string[];
   display?: string;
+  topEvents?: string;
 
   teams?: Readonly<('myteams' | number)[]>;
 };
@@ -2239,4 +2234,24 @@ export type CodeownersFile = {
   raw: string;
   filepath: string;
   html_url: string;
+};
+
+// Response from ShortIdLookupEndpoint
+// /organizations/${orgId}/shortids/${query}/
+export type ShortIdResponse = {
+  organizationSlug: string;
+  projectSlug: string;
+  groupId: string;
+  group: Group;
+  shortId: string;
+};
+
+// Response from EventIdLookupEndpoint
+// /organizations/${orgSlug}/eventids/${eventId}/
+export type EventIdResponse = {
+  organizationSlug: string;
+  projectSlug: string;
+  groupId: string;
+  eventId: string;
+  event: Event;
 };

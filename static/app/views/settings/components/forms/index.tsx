@@ -1,5 +1,6 @@
 export {default as ApiForm} from './apiForm';
 export {default as BooleanField} from './booleanField';
+export {default as CheckboxField} from './checkboxField';
 export {default as ChoiceMapperField} from './choiceMapperField';
 export {default as DatePickerField} from './datePickerField';
 export {default as DateTimeField} from './dateTimeField';

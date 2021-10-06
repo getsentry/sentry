@@ -18,7 +18,7 @@ import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
-import {LightWeightOrganization} from 'app/types';
+import {Organization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {tooltipFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
@@ -34,7 +34,7 @@ import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 type Props = WithRouterProps & {
   theme: Theme;
   api: Client;
-  organization: LightWeightOrganization;
+  organization: Organization;
   location: Location;
   eventView: EventView;
   isLoading: boolean;
@@ -231,6 +231,7 @@ function SidebarCharts({
             includePrevious={false}
             yAxis={['apdex()', 'failure_rate()', 'epm()']}
             partial
+            referrer="api.performance.transaction-summary.sidebar-chart"
           >
             {({results, errored, loading, reloading}) => {
               if (errored) {

@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,14 +11,16 @@ import ProgressRing, {
 } from 'app/components/progressRing';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {OnboardingTaskStatus, Organization} from 'app/types';
+import {OnboardingTaskStatus, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import theme, {Theme} from 'app/utils/theme';
+import withProjects from 'app/utils/withProjects';
 
 import {CommonSidebarProps, SidebarPanelKey} from './types';
 
 type Props = CommonSidebarProps & {
   org: Organization;
+  projects: Project[];
 };
 
 const isDone = (task: OnboardingTaskStatus) =>
@@ -29,10 +31,16 @@ const progressTextCss = () => css`
   font-weight: bold;
 `;
 
-class OnboardingStatus extends Component<Props> {
-  handleShowPanel = () => {
-    const {org, onShowPanel} = this.props;
-
+function OnboardingStatus({
+  collapsed,
+  org,
+  projects,
+  currentPanel,
+  orientation,
+  hidePanel,
+  onShowPanel,
+}: Props) {
+  const handleShowPanel = () => {
     trackAnalyticsEvent({
       eventKey: 'onboarding.wizard_opened',
       eventName: 'Onboarding Wizard Opened',
@@ -41,65 +49,61 @@ class OnboardingStatus extends Component<Props> {
     onShowPanel();
   };
 
-  render() {
-    const {collapsed, org, currentPanel, orientation, hidePanel} = this.props;
-
-    if (!(org.features && org.features.includes('onboarding'))) {
-      return null;
-    }
-
-    const tasks = getMergedTasks(org);
-
-    const allDisplayedTasks = tasks.filter(task => task.display);
-    const doneTasks = allDisplayedTasks.filter(isDone);
-    const numberRemaining = allDisplayedTasks.length - doneTasks.length;
-
-    const pendingCompletionSeen = doneTasks.some(
-      task =>
-        allDisplayedTasks.some(displayedTask => displayedTask.task === task.task) &&
-        task.status === 'complete' &&
-        !task.completionSeen
-    );
-
-    const isActive = currentPanel === SidebarPanelKey.OnboardingWizard;
-
-    if (doneTasks.length >= allDisplayedTasks.length && !isActive) {
-      return null;
-    }
-
-    return (
-      <Fragment>
-        <Container onClick={this.handleShowPanel} isActive={isActive}>
-          <ProgressRing
-            animateText
-            textCss={progressTextCss}
-            text={allDisplayedTasks.length - doneTasks.length}
-            value={(doneTasks.length / allDisplayedTasks.length) * 100}
-            backgroundColor="rgba(255, 255, 255, 0.15)"
-            progressEndcaps="round"
-            size={38}
-            barWidth={6}
-          />
-          {!collapsed && (
-            <div>
-              <Heading>{t('Quick Start')}</Heading>
-              <Remaining>
-                {tct('[numberRemaining] Remaining tasks', {numberRemaining})}
-                {pendingCompletionSeen && <PendingSeenIndicator />}
-              </Remaining>
-            </div>
-          )}
-        </Container>
-        {isActive && (
-          <OnboardingSidebar
-            orientation={orientation}
-            collapsed={collapsed}
-            onClose={hidePanel}
-          />
-        )}
-      </Fragment>
-    );
+  if (!org.features?.includes('onboarding')) {
+    return null;
   }
+
+  const tasks = getMergedTasks({organization: org, projects});
+
+  const allDisplayedTasks = tasks.filter(task => task.display);
+  const doneTasks = allDisplayedTasks.filter(isDone);
+  const numberRemaining = allDisplayedTasks.length - doneTasks.length;
+
+  const pendingCompletionSeen = doneTasks.some(
+    task =>
+      allDisplayedTasks.some(displayedTask => displayedTask.task === task.task) &&
+      task.status === 'complete' &&
+      !task.completionSeen
+  );
+
+  const isActive = currentPanel === SidebarPanelKey.OnboardingWizard;
+
+  if (doneTasks.length >= allDisplayedTasks.length && !isActive) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      <Container onClick={handleShowPanel} isActive={isActive}>
+        <ProgressRing
+          animateText
+          textCss={progressTextCss}
+          text={allDisplayedTasks.length - doneTasks.length}
+          value={(doneTasks.length / allDisplayedTasks.length) * 100}
+          backgroundColor="rgba(255, 255, 255, 0.15)"
+          progressEndcaps="round"
+          size={38}
+          barWidth={6}
+        />
+        {!collapsed && (
+          <div>
+            <Heading>{t('Quick Start')}</Heading>
+            <Remaining>
+              {tct('[numberRemaining] Remaining tasks', {numberRemaining})}
+              {pendingCompletionSeen && <PendingSeenIndicator />}
+            </Remaining>
+          </div>
+        )}
+      </Container>
+      {isActive && (
+        <OnboardingSidebar
+          orientation={orientation}
+          collapsed={collapsed}
+          onClose={hidePanel}
+        />
+      )}
+    </Fragment>
+  );
 }
 
 const Heading = styled('div')`
@@ -163,4 +167,4 @@ const Container = styled('div')<{isActive: boolean}>`
   }
 `;
 
-export default OnboardingStatus;
+export default withProjects(OnboardingStatus);

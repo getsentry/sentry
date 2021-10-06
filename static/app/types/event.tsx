@@ -1,7 +1,7 @@
 import {DebugImage} from 'app/components/events/interfaces/debugMeta/types';
 import {TraceContextType} from 'app/components/events/interfaces/spans/types';
 
-import {Breadcrumb} from './breadcrumbs';
+import {RawCrumb} from './breadcrumbs';
 import {Thread} from './events';
 import {StacktraceType} from './stacktrace';
 import {
@@ -41,7 +41,7 @@ type EntryDebugMeta = {
 type EntryBreadcrumbs = {
   type: EntryType.BREADCRUMBS;
   data: {
-    values: Array<Breadcrumb>;
+    values: Array<RawCrumb>;
   };
 };
 

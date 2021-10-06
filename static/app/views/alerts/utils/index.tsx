@@ -1,8 +1,12 @@
+import round from 'lodash/round';
+
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {NewQuery, Project} from 'app/types';
+import {NewQuery, Project, SessionField} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
+import {defined} from 'app/utils';
 import {getUtcDateString} from 'app/utils/dates';
+import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {PRESET_AGGREGATES} from 'app/views/alerts/incidentRules/presets';
@@ -12,6 +16,7 @@ import {
   EventTypes,
   IncidentRule,
   SavedIncidentRule,
+  SessionsAggregate,
 } from 'app/views/alerts/incidentRules/types';
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
@@ -155,7 +160,7 @@ export function getIncidentDiscoverUrl(opts: {
     id: undefined,
     name: (incident && incident.title) || '',
     orderby: `-${getAggregateAlias(incident.alertRule.aggregate)}`,
-    yAxis: incident.alertRule.aggregate,
+    yAxis: incident.alertRule.aggregate ? [incident.alertRule.aggregate] : undefined,
     query: incident?.discoverQuery ?? '',
     projects: projects
       .filter(({slug}) => incident.projects.includes(slug))
@@ -268,4 +273,41 @@ export function getQueryDatasource(
   }
 
   return null;
+}
+
+export function isSessionAggregate(aggregate: string) {
+  return Object.values(SessionsAggregate).includes(aggregate as SessionsAggregate);
+}
+
+export const SESSION_AGGREGATE_TO_FIELD = {
+  [SessionsAggregate.CRASH_FREE_SESSIONS]: SessionField.SESSIONS,
+  [SessionsAggregate.CRASH_FREE_USERS]: SessionField.USERS,
+};
+
+export function alertAxisFormatter(value: number, seriesName: string, aggregate: string) {
+  if (isSessionAggregate(aggregate)) {
+    return defined(value) ? `${round(value, 2)}%` : '\u2015';
+  }
+
+  return axisLabelFormatter(value, seriesName);
+}
+
+export function alertTooltipValueFormatter(
+  value: number,
+  seriesName: string,
+  aggregate: string
+) {
+  if (isSessionAggregate(aggregate)) {
+    return defined(value) ? `${value}%` : '\u2015';
+  }
+
+  return tooltipFormatter(value, seriesName);
+}
+
+export const ALERT_CHART_MIN_MAX_BUFFER = 1.03;
+
+export function shouldScaleAlertChart(aggregate: string) {
+  // We want crash free rate charts to be scaled because they are usually too
+  // close to 100% and therefore too fine to see the spikes on 0%-100% scale.
+  return isSessionAggregate(aggregate);
 }

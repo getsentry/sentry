@@ -14,7 +14,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
         }
 
     def get_child_relations(self, instance):
-        from sentry.discover.models import DiscoverSavedQuery, KeyTransaction, TeamKeyTransaction
+        from sentry.discover.models import DiscoverSavedQuery, TeamKeyTransaction
         from sentry.incidents.models import AlertRule, Incident
         from sentry.models import (
             CommitAuthor,
@@ -27,6 +27,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
             PromptsActivity,
             Release,
             Repository,
+            ServiceHook,
             Team,
         )
 
@@ -36,18 +37,18 @@ class OrganizationDeletionTask(ModelDeletionTask):
         model_list = (
             OrganizationMember,
             Repository,
+            ServiceHook,
             CommitAuthor,
+            Incident,
+            AlertRule,
             Release,
             Project,
             Environment,
             Dashboard,
             DiscoverSavedQuery,
-            KeyTransaction,
             TeamKeyTransaction,
             ExternalIssue,
             PromptsActivity,
-            Incident,
-            AlertRule,
             ProjectTransactionThreshold,
         )
         relations.extend([ModelRelation(m, {"organization_id": instance.id}) for m in model_list])

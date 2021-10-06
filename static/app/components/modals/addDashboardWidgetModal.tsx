@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {browserHistory} from 'react-router';
+import {components, OptionProps} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -15,7 +16,7 @@ import ButtonBar from 'app/components/buttonBar';
 import WidgetQueriesForm from 'app/components/dashboards/widgetQueriesForm';
 import SelectControl from 'app/components/forms/selectControl';
 import {PanelAlert} from 'app/components/panels';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
   DateString,
@@ -25,6 +26,7 @@ import {
   SelectValue,
   TagCollection,
 } from 'app/types';
+import {Aggregation} from 'app/utils/discover/fields';
 import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -34,6 +36,7 @@ import {
   DashboardDetails,
   DashboardListItem,
   DisplayType,
+  MAX_WIDGETS,
   Widget,
   WidgetQuery,
 } from 'app/views/dashboardsV2/types';
@@ -46,6 +49,8 @@ import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
 
+import Tooltip from '../tooltip';
+
 export type DashboardWidgetModalOptions = {
   organization: Organization;
   dashboard?: DashboardDetails;
@@ -53,7 +58,8 @@ export type DashboardWidgetModalOptions = {
   onAddWidget?: (data: Widget) => void;
   widget?: Widget;
   onUpdateWidget?: (nextWidget: Widget) => void;
-  defaultQuery?: string;
+  defaultWidgetQuery?: WidgetQuery;
+  defaultTableColumns?: readonly string[];
   defaultTitle?: string;
   fromDiscover?: boolean;
   start?: DateString;
@@ -80,8 +86,9 @@ type State = {
   queries: Widget['queries'];
   loading: boolean;
   errors?: Record<string, any>;
-  dashboards: SelectValue<string>[];
+  dashboards: DashboardListItem[];
   selectedDashboard?: SelectValue<string>;
+  userHasModified: boolean;
 };
 
 const newQuery = {
@@ -94,17 +101,18 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    const {widget, defaultQuery, defaultTitle, fromDiscover} = props;
+    const {widget, defaultWidgetQuery, defaultTitle, fromDiscover} = props;
 
     if (!widget) {
       this.state = {
         title: defaultTitle ?? '',
         displayType: DisplayType.LINE,
         interval: '5m',
-        queries: [{...newQuery, ...(defaultQuery ? {conditions: defaultQuery} : {})}],
+        queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...newQuery}],
         errors: undefined,
         loading: !!fromDiscover,
         dashboards: [],
+        userHasModified: false,
       };
       return;
     }
@@ -117,6 +125,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       errors: undefined,
       loading: false,
       dashboards: [],
+      userHasModified: false,
     };
   }
 
@@ -178,8 +187,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     if (
       !selectedDashboard ||
       !(
-        dashboards.find(({label, value}) => {
-          return label === selectedDashboard?.label && value === selectedDashboard?.value;
+        dashboards.find(({title, id}) => {
+          return title === selectedDashboard?.label && id === selectedDashboard?.value;
         }) || selectedDashboard.value === 'new'
       )
     ) {
@@ -225,13 +234,29 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   };
 
   handleFieldChange = (field: string) => (value: string) => {
+    const {defaultWidgetQuery, defaultTableColumns} = this.props;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
 
       if (field === 'displayType') {
         const displayType = value as Widget['displayType'];
-        set(newState, 'queries', normalizeQueries(displayType, prevState.queries));
+        const normalized = normalizeQueries(displayType, prevState.queries);
+
+        // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
+        if (defaultWidgetQuery && defaultTableColumns && !prevState.userHasModified) {
+          if (displayType === DisplayType.TABLE) {
+            normalized.forEach(query => {
+              query.fields = [...defaultTableColumns];
+            });
+          } else {
+            normalized.forEach(query => {
+              query.fields = [...defaultWidgetQuery.fields];
+            });
+          }
+        }
+
+        set(newState, 'queries', normalized);
       }
 
       return {...newState, errors: undefined};
@@ -242,6 +267,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, `queries.${index}`, widgetQuery);
+      set(newState, 'userHasModified', true);
 
       return {...newState, errors: undefined};
     });
@@ -259,7 +285,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   handleAddSearchConditions = () => {
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
-      newState.queries.push(cloneDeep(newQuery));
+      const query = cloneDeep(newQuery);
+      query.fields = this.state.queries[0].fields;
+      newState.queries.push(query);
 
       return newState;
     });
@@ -285,10 +313,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     );
 
     try {
-      const response = await promise;
-      const dashboards = response.map(({id, title}) => {
-        return {label: title, value: id};
-      });
+      const dashboards = await promise;
       this.setState({
         dashboards,
       });
@@ -308,6 +333,13 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   }
   renderDashboardSelector() {
     const {errors, loading, dashboards} = this.state;
+    const dashboardOptions = dashboards.map(d => {
+      return {
+        label: d.title,
+        value: d.id,
+        isDisabled: d.widgetDisplay.length >= MAX_WIDGETS,
+      };
+    });
     return (
       <React.Fragment>
         <p>
@@ -326,9 +358,30 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         >
           <SelectControl
             name="dashboard"
-            options={[{label: t('+ Create New Dashboard'), value: 'new'}, ...dashboards]}
+            options={[
+              {label: t('+ Create New Dashboard'), value: 'new'},
+              ...dashboardOptions,
+            ]}
             onChange={(option: SelectValue<string>) => this.handleDashboardChange(option)}
             disabled={loading}
+            components={{
+              Option: ({label, data, ...optionProps}: OptionProps<any>) => (
+                <Tooltip
+                  disabled={!!!data.isDisabled}
+                  title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                    maxWidgets: MAX_WIDGETS,
+                  })}
+                  containerDisplayMode="block"
+                  position="right"
+                >
+                  <components.Option
+                    label={label}
+                    data={data}
+                    {...(optionProps as any)}
+                  />
+                </Tooltip>
+              ),
+            }}
           />
         </Field>
       </React.Fragment>
@@ -365,6 +418,14 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         organization,
         tagKeys: Object.values(tags).map(({key}) => key),
         measurementKeys,
+      });
+
+    const topNFieldOptions = (measurementKeys: string[]) =>
+      generateFieldOptions({
+        organization,
+        tagKeys: Object.values(tags).map(({key}) => key),
+        measurementKeys,
+        aggregations: {} as Record<string, Aggregation>,
       });
 
     const isUpdatingWidget = typeof onUpdateWidget === 'function' && !!previousWidget;
@@ -425,7 +486,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           <Measurements organization={organization}>
             {({measurements}) => {
               const measurementKeys = Object.values(measurements).map(({key}) => key);
-              const amendedFieldOptions = fieldOptions(measurementKeys);
+              let amendedFieldOptions;
+              if (state.displayType === 'top_n') {
+                amendedFieldOptions = topNFieldOptions(measurementKeys);
+              } else {
+                amendedFieldOptions = fieldOptions(measurementKeys);
+              }
               return (
                 <WidgetQueriesForm
                   organization={organization}

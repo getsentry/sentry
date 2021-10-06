@@ -7,7 +7,6 @@ import {
   TraceRequestProps,
 } from 'app/utils/performance/quickTrace/types';
 import {
-  beforeFetch,
   getTraceRequestPayload,
   makeEventView,
 } from 'app/utils/performance/quickTrace/utils';
@@ -46,7 +45,6 @@ function TraceMetaQuery({
   return (
     <GenericDiscoverQuery<TraceMeta, {}>
       route={`events-trace-meta/${traceId}`}
-      beforeFetch={beforeFetch}
       getRequestPayload={getTraceRequestPayload}
       eventView={eventView}
       {...props}

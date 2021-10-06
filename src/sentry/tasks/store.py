@@ -1,4 +1,5 @@
 import logging
+import random
 from datetime import datetime
 from time import sleep, time
 
@@ -14,6 +15,7 @@ from sentry.datascrubbing import scrub_data
 from sentry.eventstore.processing import event_processing_store
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Activity, Organization, Project, ProjectOption
+from sentry.processing import realtime_metrics
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -82,12 +84,54 @@ def submit_process(
     )
 
 
-def submit_symbolicate(project, from_reprocessing, cache_key, event_id, start_time, data):
-    task = symbolicate_event_from_reprocessing if from_reprocessing else symbolicate_event
+def should_demote_symbolication(project_id: int) -> bool:
+    """
+    Determines whether a project's symbolication events should be pushed to the low priority queue.
+
+    The decision is made based on three factors, in order:
+        1. is the store.symbolicate-event-lpq-never killswitch set for the project? -> normal queue
+        2. is the store.symbolicate-event-lpq-always killswitch set for the project? -> low priority queue
+        3. has the project been selected for the lpq according to realtime_metrics? -> low priority queue
+
+    Note that 3 is gated behind the config setting SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE.
+    """
+    always_lowpri = killswitch_matches_context(
+        "store.symbolicate-event-lpq-always",
+        {
+            "project_id": project_id,
+        },
+    )
+    never_lowpri = killswitch_matches_context(
+        "store.symbolicate-event-lpq-never",
+        {
+            "project_id": project_id,
+        },
+    )
+
+    if never_lowpri:
+        return False
+    elif always_lowpri:
+        return True
+    else:
+        return settings.SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE and realtime_metrics.is_lpq_project(
+            project_id
+        )
+
+
+def submit_symbolicate(is_low_priority, from_reprocessing, cache_key, event_id, start_time, data):
+    if is_low_priority:
+        task = (
+            symbolicate_event_from_reprocessing_low_priority
+            if from_reprocessing
+            else symbolicate_event_low_priority
+        )
+    else:
+        task = symbolicate_event_from_reprocessing if from_reprocessing else symbolicate_event
+
     task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
 
 
-def submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, data):
+def submit_save_event(project_id, from_reprocessing, cache_key, event_id, start_time, data):
     if cache_key:
         data = None
 
@@ -98,7 +142,7 @@ def submit_save_event(project, from_reprocessing, cache_key, event_id, start_tim
         data=data,
         start_time=start_time,
         event_id=event_id,
-        project_id=project.id,
+        project_id=project_id,
     )
 
 
@@ -132,8 +176,15 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
 
     if should_process_with_symbolicator(data):
         reprocessing2.backup_unprocessed_event(project=project, data=original_data)
+
+        is_low_priority = should_demote_symbolication(project_id)
         submit_symbolicate(
-            project, from_reprocessing, cache_key, event_id, start_time, original_data
+            is_low_priority,
+            from_reprocessing,
+            cache_key,
+            event_id,
+            start_time,
+            original_data,
         )
         return
 
@@ -148,7 +199,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
         )
         return
 
-    submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, original_data)
+    submit_save_event(project_id, from_reprocessing, cache_key, event_id, start_time, original_data)
 
 
 @instrumented_task(
@@ -209,6 +260,11 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     event_id = data["event_id"]
 
+    from_reprocessing = (
+        symbolicate_task is symbolicate_event_from_reprocessing
+        or symbolicate_task is symbolicate_event_from_reprocessing_low_priority
+    )
+
     def _continue_to_process_event():
         process_task = process_event_from_reprocessing if from_reprocessing else process_event
         _do_process_event(
@@ -237,9 +293,18 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     has_changed = False
 
-    from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
-
     symbolication_start_time = time()
+
+    submission_ratio = options.get("symbolicate-event.low-priority.metrics.submission-rate")
+    submit_realtime_metrics = not from_reprocessing and random.random() < submission_ratio
+
+    if submit_realtime_metrics:
+        with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics.counter"):
+            timestamp = int(symbolication_start_time)
+            try:
+                realtime_metrics.increment_project_event_counter(project_id, timestamp)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
         span.set_data("symbolication_function", symbolication_function_name)
@@ -309,6 +374,18 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
                     data.setdefault("_metrics", {})["flag.processing.fatal"] = True
                     has_changed = True
                     break
+
+    if submit_realtime_metrics:
+        with sentry_sdk.start_span(
+            op="tasks.store.symbolicate_event.low_priority.metrics.histogram"
+        ):
+            symbolication_duration = int(time() - symbolication_start_time)
+            try:
+                realtime_metrics.increment_project_duration_counter(
+                    project_id, timestamp, symbolication_duration
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     # We cannot persist canonical types in the cache, so we need to
     # downgrade this.
@@ -387,6 +464,24 @@ def symbolicate_event_from_reprocessing(cache_key, start_time=None, event_id=Non
 
 
 @instrumented_task(
+    name="sentry.tasks.store.symbolicate_event_from_reprocessing_low_priority",
+    queue="events.reprocessing.symbolicate_event_low_priority",
+    time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
+    soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
+    acks_late=True,
+)
+def symbolicate_event_from_reprocessing_low_priority(
+    cache_key, start_time=None, event_id=None, **kwargs
+):
+    return _do_symbolicate_event(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        symbolicate_task=symbolicate_event_from_reprocessing_low_priority,
+    )
+
+
+@instrumented_task(
     name="sentry.tasks.store.retry_process_event",
     queue="sleep",
     time_limit=(60 * 5) + 5,
@@ -424,10 +519,6 @@ def _do_process_event(
     if data is None:
         data = event_processing_store.get(cache_key)
 
-    def _continue_to_save_event():
-        from_reprocessing = process_task is process_event_from_reprocessing
-        submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, data)
-
     if data is None:
         metrics.incr(
             "events.failed", tags={"reason": "cache", "stage": "process"}, skip_internal=False
@@ -441,6 +532,10 @@ def _do_process_event(
     set_current_event_project(project_id)
 
     event_id = data["event_id"]
+
+    def _continue_to_save_event():
+        from_reprocessing = process_task is process_event_from_reprocessing
+        submit_save_event(project_id, from_reprocessing, cache_key, event_id, start_time, data)
 
     if killswitch_matches_context(
         "store.load-shed-process-event-projects",
@@ -831,7 +926,14 @@ def _do_save_event(
 
             if start_time:
                 metrics.timing(
-                    "events.time-to-process", time() - start_time, instance=data["platform"]
+                    "events.time-to-process",
+                    time() - start_time,
+                    instance=data["platform"],
+                    tags={
+                        "is_reprocessing2": "true"
+                        if reprocessing2.is_reprocessed_event(data)
+                        else "false",
+                    },
                 )
 
             time_synthetic_monitoring_event(data, project_id, start_time)
