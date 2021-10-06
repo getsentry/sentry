@@ -22,6 +22,10 @@ type State = {
    */
   fetchError: null | RequestError;
   /**
+   * Reflects whether or not the initial fetch for the requested teams was fulfilled
+   */
+  initiallyLoaded: boolean;
+  /**
    * Indicates that Team results (from API) are paginated and there are more
    * Teams that are not in the initial response.
    */
@@ -48,7 +52,7 @@ export type Result = {
    * Will always add new options into the store.
    */
   onSearch: (searchTerm: string) => Promise<void>;
-} & Pick<State, 'fetching' | 'hasMore' | 'fetchError'>;
+} & Pick<State, 'fetching' | 'hasMore' | 'fetchError' | 'initiallyLoaded'>;
 
 type Options = {
   /**
@@ -126,7 +130,11 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   const {organization} = useLegacyStore(OrganizationStore);
   const store = useLegacyStore(TeamStore);
 
+  // If we need to make a request either for slugs or user teams, set initiallyLoaded to false
+  const initiallyLoaded =
+    slugs || (provideUserTeams && !store.loadedUserTeams) ? false : true;
   const [state, setState] = useState<State>({
+    initiallyLoaded,
     fetching: false,
     hasMore: null,
     lastSearch: null,
@@ -159,11 +167,11 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
     try {
       await fetchUserTeams(api, {orgId});
 
-      setState({...state, fetching: false});
+      setState({...state, fetching: false, initiallyLoaded: true});
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
 
-      setState({...state, fetching: false, fetchError: err});
+      setState({...state, fetching: false, initiallyLoaded: true, fetchError: err});
     }
   }
 
@@ -194,12 +202,13 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
         ...state,
         hasMore,
         fetching: false,
+        initiallyLoaded: true,
         nextCursor,
       });
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
 
-      setState({...state, fetching: false, fetchError: err});
+      setState({...state, fetching: false, initiallyLoaded: true, fetchError: err});
     }
   }
 
@@ -273,6 +282,7 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   const result: Result = {
     teams: filteredTeams,
     fetching: state.fetching || store.loading,
+    initiallyLoaded: state.initiallyLoaded,
     fetchError: state.fetchError,
     hasMore: state.hasMore,
     onSearch: handleSearch,
