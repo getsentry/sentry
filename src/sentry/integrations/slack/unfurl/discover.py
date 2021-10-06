@@ -95,8 +95,11 @@ def unfurl_discover(
 
         if "daily" in display_mode:
             params.setlist("interval", ["1d"])
+
         if "top5" in display_mode:
             params.setlist("topEvents", [f"{TOP_N}"])
+        else:
+            params.pop("topEvents", None)
 
         try:
             resp = client.get(
