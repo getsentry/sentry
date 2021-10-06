@@ -219,6 +219,7 @@ _SENTRY_RULES = (
     "sentry.mail.actions.NotifyEmailAction",
     "sentry.rules.actions.notify_event.NotifyEventAction",
     "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+    "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
     "sentry.rules.conditions.every_event.EveryEventCondition",
     "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
@@ -252,6 +253,10 @@ TICKET_ACTIONS = frozenset(
         "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
         "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
     ]
+)
+
+SCHEMA_FORM_ACTIONS = frozenset(
+    ["sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"]
 )
 
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
@@ -570,3 +575,6 @@ ALERTS_MEMBER_WRITE_DEFAULT = True
 
 # Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
 DataCategory = sentry_relay.DataCategory
+
+CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"
+CRASH_RATE_ALERT_AGGREGATE_ALIAS = "_crash_rate_alert_aggregate"

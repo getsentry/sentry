@@ -608,7 +608,7 @@ def create_alert_rule(
     Creates an alert rule for an organization.
 
     :param organization:
-    :param projects: A list of projects to subscribe to the rule. This will be overriden
+    :param projects: A list of projects to subscribe to the rule. This will be overridden
     if `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project
