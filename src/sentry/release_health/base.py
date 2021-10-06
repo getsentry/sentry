@@ -169,9 +169,14 @@ class ProjectReleaseSessionCounts(TypedDict):
     sessions_errored: int
 
 
-ProjectReleaseUserStats = Tuple[ProjectReleaseUserCounts, Mapping[int, ProjectReleaseUserCounts]]
+# NOTE: Tuple is the wrong type, it's a fixed-length list. Unfortunately mypy
+# is too opinionated to support fixed-length lists.
+ProjectReleaseUserStats = Tuple[
+    Sequence[Tuple[int, ProjectReleaseUserCounts]], ProjectReleaseUserCounts
+]
 ProjectReleaseSessionStats = Tuple[
-    ProjectReleaseSessionCounts, Mapping[int, ProjectReleaseSessionCounts]
+    Sequence[Tuple[int, ProjectReleaseSessionCounts]],
+    ProjectReleaseSessionCounts,
 ]
 
 

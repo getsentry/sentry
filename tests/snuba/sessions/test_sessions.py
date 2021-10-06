@@ -723,6 +723,147 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             (new_proj_id, "foo@3.0.0"),
         }
 
+    def test_get_project_release_stats_users(self):
+        end = timezone.now()
+        start = end - timedelta(days=4)
+        stats, totals = self.backend.get_project_release_stats(
+            self.project.id,
+            release=self.session_release,
+            stat="users",
+            rollup=86400,
+            start=start,
+            end=end,
+        )
+
+        assert stats == [
+            [
+                1633219200,
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                },
+            ],
+            [
+                1633305600,
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                },
+            ],
+            [
+                1633392000,
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                },
+            ],
+            [
+                1633478400,
+                {
+                    "duration_p50": 45.0,
+                    "duration_p90": 57.0,
+                    "users": 1,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 1,
+                },
+            ],
+        ]
+
+        assert totals == {
+            "users": 1,
+            "users_abnormal": 0,
+            "users_crashed": 0,
+            "users_errored": 0,
+            "users_healthy": 1,
+        }
+
+    def test_get_project_release_stats_sessions(self):
+        end = timezone.now()
+        start = end - timedelta(days=4)
+        stats, totals = self.backend.get_project_release_stats(
+            self.project.id,
+            release=self.session_release,
+            stat="sessions",
+            rollup=86400,
+            start=start,
+            end=end,
+        )
+
+        assert stats == [
+            [
+                1633219200,
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                },
+            ],
+            [
+                1633305600,
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                },
+            ],
+            [
+                1633392000,
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                },
+            ],
+            [
+                1633478400,
+                {
+                    "duration_p50": 45.0,
+                    "duration_p90": 57.0,
+                    "sessions": 2,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 2,
+                },
+            ],
+        ]
+        assert totals == {
+            "sessions": 2,
+            "sessions_abnormal": 0,
+            "sessions_crashed": 0,
+            "sessions_errored": 0,
+            "sessions_healthy": 2,
+        }
+
 
 class SnubaSessionsTestMetrics(ReleaseHealthMetricsTestCase, SnubaSessionsTest):
     """
