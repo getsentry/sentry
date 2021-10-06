@@ -14,7 +14,7 @@ type HookStoreInterface = {
   get<H extends HookName>(hookName: H): Array<Hooks[H]>;
 };
 
-const hookStoreConfig: Reflux.StoreDefinition & HookStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & HookStoreInterface = {
   hooks: {},
 
   init() {
@@ -49,7 +49,6 @@ const hookStoreConfig: Reflux.StoreDefinition & HookStoreInterface = {
  *
  * This functionality is primarily used by the SASS sentry.io product.
  */
-const HookStore = Reflux.createStore(hookStoreConfig) as Reflux.Store &
-  HookStoreInterface;
+const HookStore = Reflux.createStore(storeConfig) as Reflux.Store & HookStoreInterface;
 
 export default HookStore;

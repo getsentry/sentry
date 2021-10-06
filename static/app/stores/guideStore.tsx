@@ -75,7 +75,7 @@ type GuideStoreInterface = {
   updatePrevGuide(nextGuide: Guide | null): void;
 };
 
-const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & GuideStoreInterface = {
   state: defaultState,
 
   init() {
@@ -249,7 +249,6 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
   },
 };
 
-const GuideStore = Reflux.createStore(guideStoreConfig) as Reflux.Store &
-  GuideStoreInterface;
+const GuideStore = Reflux.createStore(storeConfig) as Reflux.Store & GuideStoreInterface;
 
 export default GuideStore;

@@ -22,7 +22,7 @@ type Internals = {
   records: Record<string, boolean>;
 };
 
-const storeConfig: Reflux.StoreDefinition & SelectedGroupStoreInterface & Internals = {
+const storeConfig: Reflux.StoreDefinition & Internals & SelectedGroupStoreInterface = {
   records: {},
 
   init() {

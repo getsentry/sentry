@@ -17,7 +17,7 @@ type PreferenceStoreInterface = {
   loadInitialState(prefs: Preferences): void;
 };
 
-const preferenceStoreConfig: Reflux.StoreDefinition & PreferenceStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & PreferenceStoreInterface = {
   prefs: {} as Preferences,
 
   init() {
@@ -58,7 +58,7 @@ const preferenceStoreConfig: Reflux.StoreDefinition & PreferenceStoreInterface =
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
-const PreferenceStore = Reflux.createStore(preferenceStoreConfig) as Reflux.Store &
+const PreferenceStore = Reflux.createStore(storeConfig) as Reflux.Store &
   PreferenceStoreInterface;
 
 export default PreferenceStore;

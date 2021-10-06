@@ -27,12 +27,14 @@ type LatestContextStoreInterface = {
   onUpdateProject(project: Project | null): void;
 };
 
-// Keeps track of last usable project/org
-// this currently won't track when users navigate out of a org/project completely,
-// it tracks only if a user switches into a new org/project
-//
-// Only keep slug so that people don't get the idea to access org/project data here
-// Org/project data is currently in organizationsStore/projectsStore
+/**
+ * Keeps track of last usable project/org this currently won't track when users
+ * navigate out of a org/project completely, it tracks only if a user switches
+ * into a new org/project.
+ *
+ * Only keep slug so that people don't get the idea to access org/project data
+ * here Org/project data is currently in organizationsStore/projectsStore
+ */
 const storeConfig: Reflux.StoreDefinition & LatestContextStoreInterface = {
   state: {
     project: null,
