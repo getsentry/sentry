@@ -172,8 +172,8 @@ def transform_data(result, translated_columns, snuba_filter):
 
     result["data"] = [get_row(row) for row in result["data"]]
 
-    rollup = snuba_filter.rollup
-    if rollup and rollup > 0:
+    if snuba_filter and snuba_filter.rollup and snuba_filter.rollup > 0:
+        rollup = snuba_filter.rollup
         with sentry_sdk.start_span(
             op="discover.discover", description="transform_results.zerofill"
         ) as span:
@@ -232,6 +232,8 @@ def query(
         raise InvalidSearchQuery("No columns selected")
 
     if use_snql:
+        # temporarily add snql to referrer
+        referrer = f"{referrer}.wip-snql"
         builder = QueryBuilder(
             Dataset.Discover,
             params,
@@ -246,8 +248,13 @@ def query(
         )
         snql_query = builder.get_snql_query()
 
-        results = raw_snql_query(snql_query, referrer)
-        return results
+        result = raw_snql_query(snql_query, referrer)
+        with sentry_sdk.start_span(
+            op="discover.discover", description="query.transform_results"
+        ) as span:
+            span.set_data("result_count", len(result.get("data", [])))
+            result = transform_results(result, builder.function_alias_map, {}, None)
+        return result
 
     # We clobber this value throughout this code, so copy the value
     selected_columns = selected_columns[:]
