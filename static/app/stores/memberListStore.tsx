@@ -5,11 +5,11 @@ import {User} from 'app/types';
 type MemberListStoreInterface = {
   state: User[];
   loaded: boolean;
-  loadInitialData: (items: User[]) => void;
-  isLoaded: () => boolean;
-  getById: (id: string) => User | undefined;
-  getByEmail: (email: string) => User | undefined;
-  getAll: () => User[];
+  loadInitialData(items: User[]): void;
+  isLoaded(): boolean;
+  getById(id: string): User | undefined;
+  getByEmail(email: string): User | undefined;
+  getAll(): User[];
 };
 
 const memberListStoreConfig: Reflux.StoreDefinition & MemberListStoreInterface = {
