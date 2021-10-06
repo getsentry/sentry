@@ -1304,7 +1304,7 @@ class NumericColumn(ColumnArg):
             return snuba_column
 
     def get_type(self, value: str) -> str:
-        if value in self.numeric_array_columns:
+        if isinstance(value, str) and value in self.numeric_array_columns:
             return "number"
 
         # `measurements.frames_frozen_rate` and `measurements.frames_slow_rate` are aliases
