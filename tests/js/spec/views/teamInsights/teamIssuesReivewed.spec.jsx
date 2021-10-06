@@ -30,6 +30,5 @@ describe('TeamIssuesReviewed', () => {
     // Reviewed
     expect(wrapper.getByText('11')).toBeInTheDocument();
     expect(timeToResolutionApi).toHaveBeenCalledTimes(1);
-    expect(wrapper.container).toSnapshot();
   });
 });

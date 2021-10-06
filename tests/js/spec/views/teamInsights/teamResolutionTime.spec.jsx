@@ -19,6 +19,5 @@ describe('TeamResolutionTime', () => {
     });
 
     expect(timeToResolutionApi).toHaveBeenCalledTimes(1);
-    expect(wrapper.container).toSnapshot();
   });
 });
