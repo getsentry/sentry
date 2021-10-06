@@ -95,7 +95,7 @@ ${red}${bold}
 ERROR: You're running a virtualenv with Python ${python_version}.
 On Apple M1 machines, we only support >= 3.8.10 < 3.9.
 Either run "rm -rf ${venv_name} && direnv allow" to
-OR set SENTRY_PYTHON_VERSION=${python_version} to an `.env` file to bypass this check."
+OR set SENTRY_PYTHON_VERSION=${python_version} to an .env file to bypass this check."
 EOF
             return 1
         fi
@@ -134,6 +134,9 @@ install-py-dev() {
         # This saves having to install postgresql on the Developer's machine + using flags
         # https://github.com/psycopg/psycopg2/issues/1286
         pip install https://storage.googleapis.com/python-arm64-wheels/psycopg2_binary-2.8.6-cp38-cp38-macosx_11_0_arm64.whl
+        # This install confluent-kafka from our GC storage since there's no arm64 wheel
+        # https://github.com/confluentinc/confluent-kafka-python/issues/1190
+        pip install https://storage.googleapis.com/python-arm64-wheels/confluent_kafka-1.5.0-cp38-cp38-macosx_11_0_arm64.whl
     fi
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
