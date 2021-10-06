@@ -351,3 +351,12 @@ def strip_equation(field: str) -> str:
     """remove the equation prefix from a public field alias"""
     assert is_equation(field), f"{field} does not start with {EQUATION_PREFIX}"
     return field[len(EQUATION_PREFIX) :]
+
+
+def get_equation_list(fields):
+    """equations have a prefix so that they can be easily included alongside our existing fields"""
+    return [strip_equation(field) for field in fields if is_equation(field)]
+
+
+def get_field_list(fields):
+    return [field for field in fields if not is_equation(field)]
