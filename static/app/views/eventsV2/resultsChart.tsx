@@ -185,6 +185,12 @@ class ResultsChartContainer extends Component<ContainerProps> {
       .map(opt => {
         // Can only use default display or total daily with multi y axis
         if (
+          hasTopEvents &&
+          [DisplayModes.TOP5, DisplayModes.DAILYTOP5].includes(opt.value as DisplayModes)
+        ) {
+          opt.label = DisplayModes.TOP5 === opt.value ? 'Top Period' : 'Top Daily';
+        }
+        if (
           yAxis.length > 1 &&
           ![DisplayModes.DEFAULT, DisplayModes.DAILY].includes(opt.value as DisplayModes)
         ) {
@@ -194,18 +200,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
             tooltip: t(
               'Change the Y-Axis dropdown to display only 1 function to use this view.'
             ),
-          };
-        }
-        if (hasTopEvents && DisplayModes.TOP5 === opt.value) {
-          return {
-            value: opt.value,
-            label: 'Top Period',
-          };
-        }
-        if (hasTopEvents && DisplayModes.DAILYTOP5 === opt.value) {
-          return {
-            value: opt.value,
-            label: 'Top Daily',
           };
         }
         return opt;
