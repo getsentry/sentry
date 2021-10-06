@@ -1,4 +1,5 @@
 import * as React from 'react';
+import LazyLoad from 'react-lazyload';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
@@ -185,34 +186,36 @@ class WidgetCard extends React.Component<Props> {
             <WidgetTitle>{widget.title}</WidgetTitle>
             {this.renderContextMenu()}
           </WidgetHeader>
-          <WidgetQueries
-            api={api}
-            organization={organization}
-            widget={widget}
-            selection={selection}
-          >
-            {({tableResults, timeseriesResults, errorMessage, loading}) => {
-              return (
-                <React.Fragment>
-                  {typeof renderErrorMessage === 'function'
-                    ? renderErrorMessage(errorMessage)
-                    : null}
-                  <WidgetCardChart
-                    timeseriesResults={timeseriesResults}
-                    tableResults={tableResults}
-                    errorMessage={errorMessage}
-                    loading={loading}
-                    location={location}
-                    widget={widget}
-                    selection={selection}
-                    router={router}
-                    organization={organization}
-                  />
-                  {this.renderToolbar()}
-                </React.Fragment>
-              );
-            }}
-          </WidgetQueries>
+          <LazyLoad once height={200}>
+            <WidgetQueries
+              api={api}
+              organization={organization}
+              widget={widget}
+              selection={selection}
+            >
+              {({tableResults, timeseriesResults, errorMessage, loading}) => {
+                return (
+                  <React.Fragment>
+                    {typeof renderErrorMessage === 'function'
+                      ? renderErrorMessage(errorMessage)
+                      : null}
+                    <WidgetCardChart
+                      timeseriesResults={timeseriesResults}
+                      tableResults={tableResults}
+                      errorMessage={errorMessage}
+                      loading={loading}
+                      location={location}
+                      widget={widget}
+                      selection={selection}
+                      router={router}
+                      organization={organization}
+                    />
+                    {this.renderToolbar()}
+                  </React.Fragment>
+                );
+              }}
+            </WidgetQueries>
+          </LazyLoad>
         </StyledPanel>
       </ErrorBoundary>
     );
