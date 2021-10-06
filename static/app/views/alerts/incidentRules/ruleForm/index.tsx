@@ -553,11 +553,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     });
   };
 
-  handleComparisonTypeChange = ({value}) => {
+  handleComparisonTypeChange = (value: AlertRuleComparisonType) => {
     this.setState({comparisonType: value});
   };
 
-  handleComparisonDeltaChange = ({value}) => {
+  handleComparisonDeltaChange = (value: number) => {
     this.setState({comparisonDelta: value});
   };
 

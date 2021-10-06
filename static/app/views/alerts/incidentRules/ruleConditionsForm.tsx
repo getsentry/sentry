@@ -4,9 +4,9 @@ import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import SearchBar from 'app/components/events/searchBar';
 import SelectControl from 'app/components/forms/selectControl';
-
 import ListItem from 'app/components/list/listItem';
 import {Panel, PanelBody} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
@@ -22,15 +22,17 @@ import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'app/views/alerts/utils';
 import {AlertType, getFunctionHelpText} from 'app/views/alerts/wizard/options';
+import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import FormField from 'app/views/settings/components/forms/formField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
-import {COMPARISON_DELTA_OPTIONS, DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
+import {
+  COMPARISON_DELTA_OPTIONS,
+  DEFAULT_AGGREGATE,
+  DEFAULT_TRANSACTION_AGGREGATE,
+} from './constants';
 import MetricField from './metricField';
 import {AlertRuleComparisonType, Dataset, Datasource, TimeWindow} from './types';
-import Feature from 'app/components/acl/feature';
-import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
-
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute'),
@@ -54,8 +56,8 @@ type Props = {
   alertType: AlertType;
   dataset: Dataset;
   comparisonType: AlertRuleComparisonType;
-  onComparisonDeltaChange: ({value: AlertRuleComparisonType}) => void;
-  onComparisonTypeChange: ({value: number}) => void;
+  onComparisonTypeChange: (value: AlertRuleComparisonType) => void;
+  onComparisonDeltaChange: (value: number) => void;
   comparisonDelta?: number;
   allowChangeEventTypes?: boolean;
 };
@@ -136,8 +138,17 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, disabled, onFilterSearch, allowChangeEventTypes, alertType, comparisonType, comparisonDelta, onComparisonDeltaChange, onComparisonTypeChange} =
-      this.props;
+    const {
+      organization,
+      disabled,
+      onFilterSearch,
+      allowChangeEventTypes,
+      alertType,
+      comparisonType,
+      comparisonDelta,
+      onComparisonDeltaChange,
+      onComparisonTypeChange,
+    } = this.props;
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] =
@@ -343,7 +354,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               ]}
               value={comparisonType}
               label={t('Threshold Type')}
-              onChange={value => onComparisonTypeChange({value})}
+              onChange={onComparisonTypeChange}
             />
           </FormRow>
         </Feature>
@@ -394,7 +405,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             flexibleControlStateSize
           />
           <Feature features={['organizations:change-alerts']} organization={organization}>
-            {comparisonType === AlertRuleComparisonType.CHANGE &&
+            {comparisonType === AlertRuleComparisonType.CHANGE && (
               <ComparisonContainer>
                 {t(' compared to ')}
                 <SelectField
@@ -405,12 +416,12 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                     maxWidth: 1000,
                   }}
                   value={comparisonDelta}
-                  onChange={onComparisonDeltaChange}
+                  onChange={({value}) => onComparisonDeltaChange(value)}
                   options={COMPARISON_DELTA_OPTIONS}
                   required={comparisonType === AlertRuleComparisonType.CHANGE}
                 />
               </ComparisonContainer>
-            }
+            )}
           </Feature>
         </FormRow>
       </React.Fragment>
@@ -467,6 +478,6 @@ const ComparisonContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-`
+`;
 
 export default RuleConditionsForm;
