@@ -40,6 +40,11 @@ describe('TeamInsightsOverview', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/releases/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {
