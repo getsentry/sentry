@@ -6,7 +6,7 @@ from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op, Or
 from snuba_sdk.function import Function
-from snuba_sdk.orderby import Direction, OrderBy
+from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder import QueryBuilder
@@ -84,6 +84,19 @@ class QueryBuilderTest(TestCase):
             [OrderBy(Column("email"), Direction.DESC)],
         )
         query.get_snql_query().validate()
+
+    def test_simple_limitby(self):
+        query = QueryBuilder(
+            dataset=Dataset.Discover,
+            params=self.params,
+            query="",
+            selected_columns=["message"],
+            orderby="message",
+            limitby=("message", 1),
+            limit=4,
+        )
+
+        assert query.limitby == LimitBy(Column("message"), 1)
 
     def test_environment_filter(self):
         query = QueryBuilder(
