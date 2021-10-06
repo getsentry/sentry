@@ -7,11 +7,7 @@ from django.utils import timezone
 
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
-from sentry.snuba.sessions import (
-    _make_stats,
-    get_project_releases_by_stability,
-    get_project_releases_count,
-)
+from sentry.snuba.sessions import _make_stats, get_project_releases_by_stability
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.utils.dates import to_timestamp
@@ -887,12 +883,16 @@ class GetCrashFreeRateTestCaseMetrics(ReleaseHealthMetricsTestCase, GetCrashFree
 
 
 class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
+    backend = SessionsReleaseHealthBackend()
+
     def test_empty(self):
         # Test no errors when no session data
         org = self.create_organization()
         proj = self.create_project(organization=org)
         assert (
-            get_project_releases_count(org.id, [proj.id], "crash_free_users", stats_period="14d")
+            self.backend.get_project_releases_count(
+                org.id, [proj.id], "crash_free_users", stats_period="14d"
+            )
             == 0
         )
 
@@ -912,22 +912,34 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
                 ),
             ]
         )
-        assert get_project_releases_count(self.organization.id, [self.project.id], "sessions") == 1
-        assert get_project_releases_count(self.organization.id, [self.project.id], "users") == 1
         assert (
-            get_project_releases_count(
+            self.backend.get_project_releases_count(
+                self.organization.id, [self.project.id], "sessions"
+            )
+            == 1
+        )
+        assert (
+            self.backend.get_project_releases_count(
+                self.organization.id, [self.project.id], "users"
+            )
+            == 1
+        )
+        assert (
+            self.backend.get_project_releases_count(
                 self.organization.id, [self.project.id, other_project.id], "sessions"
             )
             == 2
         )
         assert (
-            get_project_releases_count(
-                self.organization.id, [self.project.id, other_project.id], "users"
+            self.backend.get_project_releases_count(
+                self.organization.id,
+                [self.project.id, other_project.id],
+                "users",
             )
             == 2
         )
         assert (
-            get_project_releases_count(
+            self.backend.get_project_releases_count(
                 self.organization.id,
                 [self.project.id, other_project.id],
                 "sessions",
@@ -935,6 +947,10 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
             )
             == 1
         )
+
+
+class GetProjectReleasesCountTestMetrics(ReleaseHealthMetricsTestCase, GetProjectReleasesCountTest):
+    """Repeat tests with metric backend"""
 
 
 class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
