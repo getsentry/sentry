@@ -19,7 +19,7 @@ type SavedSearchesStoreInterface = {
   onPinSearch(type: SavedSearchType, query: string, sort: string): void;
 };
 
-const savedSearchesStoreConfig: Reflux.StoreDefinition & SavedSearchesStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & SavedSearchesStoreInterface = {
   state: {
     savedSearches: [],
     hasError: false,
@@ -230,7 +230,7 @@ const savedSearchesStoreConfig: Reflux.StoreDefinition & SavedSearchesStoreInter
   },
 };
 
-const SavedSearchesStore = Reflux.createStore(savedSearchesStoreConfig) as Reflux.Store &
+const SavedSearchesStore = Reflux.createStore(storeConfig) as Reflux.Store &
   SavedSearchesStoreInterface;
 
 export default SavedSearchesStore;
