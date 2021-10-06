@@ -191,6 +191,11 @@ const lightAliases = {
   chartLabel: colors.gray200,
 
   /**
+   * Color for the 'others' series in topEvent charts
+   */
+  chartOther: colors.gray200,
+
+  /**
    * Default Progressbar color
    */
   progressBar: colors.purple300,
@@ -658,6 +663,7 @@ const darkAliases = {
   rowBackground: colors.gray500,
   chartLineColor: colors.gray500,
   chartLabel: colors.gray400,
+  chartOther: colors.gray300,
   progressBar: colors.purple200,
   progressBackground: colors.gray400,
   badgeBackground: colors.gray400,
