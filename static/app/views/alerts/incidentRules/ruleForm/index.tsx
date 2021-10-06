@@ -2,7 +2,12 @@ import * as React from 'react';
 import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage, clearIndicators, Indicator,} from 'app/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addSuccessMessage,
+  clearIndicators,
+  Indicator,
+} from 'app/actionCreators/indicator';
 import {fetchOrganizationTags} from 'app/actionCreators/tags';
 import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
