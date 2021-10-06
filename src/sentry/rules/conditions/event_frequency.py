@@ -258,14 +258,10 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                     end=end,
                     filter_keys=filters,
                     referrer="rules.conditions.event_frequency.EventFrequencyPercentCondition",
-                )
+                )["data"]
 
-            # Note: (RaduW) Kept sessions_count_last_hour = False (when there are no sessions) to maintain
-            #       compatibility with old the implementation. It doesn't make a lot of sense to me but
-            #       since the value is saved in cache I didn't want to change the original behaviour.
-            session_count_last_hour = (
-                result_totals["data"][0]["sessions"] if result_totals["data"] else False
-            )
+            session_count_last_hour = result_totals[0]["sessions"] if result_totals else 0
+
             cache.set(cache_key, session_count_last_hour, 600)
 
         if session_count_last_hour >= MIN_SESSIONS_TO_FIRE:
