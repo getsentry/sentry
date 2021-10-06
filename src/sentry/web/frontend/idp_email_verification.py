@@ -6,7 +6,7 @@ from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
 
-class IDPView(BaseView):
+class AccountConfirmationView(BaseView):
     auth_required = False
 
     def handle(self, request: Request, key: str) -> HttpResponse:

@@ -21,7 +21,7 @@ from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
 from sentry.web.frontend.group_tag_export import GroupTagExportView
 from sentry.web.frontend.home import HomeView
-from sentry.web.frontend.idp_email_verification import IDPView
+from sentry.web.frontend.idp_email_verification import AccountConfirmationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
@@ -214,7 +214,7 @@ urlpatterns += [
                 ),
                 url(
                     r"^user-confirm/(?P<key>[^\/]+)/$",
-                    IDPView.as_view(),
+                    AccountConfirmationView.as_view(),
                     name="sentry-idp-email-verification",
                 ),
                 url(r"^recover/$", accounts.recover, name="sentry-account-recover"),
