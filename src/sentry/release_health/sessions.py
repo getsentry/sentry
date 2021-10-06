@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Mapping, Optional, Sequence, Set, Tuple
 
+import sentry_sdk
+
 from sentry.release_health.base import (
     CrashFreeBreakdown,
     CurrentAndPreviousCrashFreeRates,
@@ -15,6 +17,7 @@ from sentry.release_health.base import (
     ReleaseName,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
+    SessionsQueryResult,
     StatsPeriod,
 )
 from sentry.snuba.sessions import (
@@ -23,11 +26,13 @@ from sentry.snuba.sessions import (
     _get_changed_project_release_model_adoptions,
     _get_crash_free_breakdown,
     _get_oldest_health_data_for_releases,
+    _get_project_releases_count,
     _get_release_adoption,
     _get_release_health_data_overview,
     _get_release_sessions_time_bounds,
     get_current_and_previous_crash_free_rates,
 )
+from sentry.snuba.sessions_v2 import QueryDefinition, _run_sessions_query, massage_sessions_result
 
 
 class SessionsReleaseHealthBackend(ReleaseHealthBackend):
@@ -62,6 +67,18 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         return _get_release_adoption(  # type: ignore
             project_releases=project_releases, environments=environments, now=now
         )
+
+    def run_sessions_query(
+        self,
+        org_id: int,
+        query: QueryDefinition,
+        span_op: str,
+    ) -> SessionsQueryResult:
+        with sentry_sdk.start_span(op=span_op, description="run_sessions_query"):
+            totals, series = _run_sessions_query(query)
+
+        with sentry_sdk.start_span(op=span_op, description="massage_sessions_results"):
+            return massage_sessions_result(query, totals, series)  # type: ignore
 
     def get_release_sessions_time_bounds(
         self,
@@ -133,3 +150,15 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         project_releases: Sequence[ProjectRelease],
     ) -> Mapping[ProjectRelease, str]:
         return _get_oldest_health_data_for_releases(project_releases)  # type: ignore
+
+    def get_project_releases_count(
+        self,
+        organization_id: OrganizationId,
+        project_ids: Sequence[ProjectId],
+        scope: str,
+        stats_period: Optional[str] = None,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> int:
+        return _get_project_releases_count(  # type: ignore
+            organization_id, project_ids, scope, stats_period, environments
+        )

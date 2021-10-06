@@ -10,6 +10,7 @@ from typing import List, Optional, Tuple, Union
 from snuba_sdk import And, Column, Condition, Entity, Granularity, Limit, Offset, Op, Or, Query
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.query import SelectableExpression
+from typing_extensions import Protocol
 
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
@@ -118,13 +119,20 @@ class QueryDefinition:
         self.start = start
         self.end = end
 
-    def get_intervals(self):
-        start = self.start
-        end = self.end
-        delta = timedelta(seconds=self.rollup)
-        while start < end:
-            yield start
-            start += delta
+
+class TimeRange(Protocol):
+    start: datetime
+    end: datetime
+    rollup: int
+
+
+def get_intervals(query: TimeRange):
+    start = query.start
+    end = query.end
+    delta = timedelta(seconds=query.rollup)
+    while start < end:
+        yield start
+        start += delta
 
 
 class DataSource(ABC):
@@ -348,7 +356,7 @@ class MockDataSource(IndexMockingDataSource):
     def get_series(self, project: Project, query: QueryDefinition) -> dict:
         """Get time series for the given query"""
 
-        intervals = list(query.get_intervals())
+        intervals = list(get_intervals(query))
 
         tags = [
             {
@@ -628,7 +636,7 @@ class SnubaDataSource(IndexMockingDataSource):
     def get_series(self, project: Project, query: QueryDefinition) -> dict:
         """Get time series for the given query"""
 
-        intervals = list(query.get_intervals())
+        intervals = list(get_intervals(query))
 
         snuba_queries = SnubaQueryBuilder(project, query).get_snuba_queries()
         results = {
