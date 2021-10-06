@@ -13,7 +13,7 @@ class CacheKVStorage(KVStorage[Any, Any]):
     storing key/value data one of the various cache backends.
 
     This class is only intended to aid in the migration of existing code and
-    data, new functionality that doesn't require interopability with or
+    data, new functionality that doesn't require interoperability with or
     migration from existing implementations should use a more well-formed
     backend specific to their purposes.
     """
