@@ -114,7 +114,7 @@ def test_project_config_with_span_attributes(default_project, insta_snapshot):
     cfg = cfg.to_dict()
     assert "spanAttributes" not in cfg["config"]
 
-    with Feature("organizations:performance-suspect-spans-ingestion"):
+    with Feature("projects:performance-suspect-spans-ingestion"):
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
