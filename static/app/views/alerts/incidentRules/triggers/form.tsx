@@ -145,14 +145,20 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       return 'ms';
     }
 
-    if (isSessionAggregate(aggregate) || comparisonType === AlertRuleComparisonType.CHANGE) {
+    if (
+      isSessionAggregate(aggregate) ||
+      comparisonType === AlertRuleComparisonType.CHANGE
+    ) {
       return '%';
     }
 
     return '';
   }
 
-  getCriticalThresholdPlaceholder(aggregate: string, comparisonType: AlertRuleComparisonType) {
+  getCriticalThresholdPlaceholder(
+    aggregate: string,
+    comparisonType: AlertRuleComparisonType
+  ) {
     if (aggregate.includes('failure_rate')) {
       return '0.05';
     }
@@ -229,7 +235,11 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
               }
               placeholder={
                 isCritical
-                  ? `${this.getCriticalThresholdPlaceholder(aggregate, comparisonType)}${comparisonType === AlertRuleComparisonType.COUNT? thresholdUnits : ''}`
+                  ? `${this.getCriticalThresholdPlaceholder(aggregate, comparisonType)}${
+                      comparisonType === AlertRuleComparisonType.COUNT
+                        ? thresholdUnits
+                        : ''
+                    }`
                   : t('None')
               }
               onChange={this.handleChangeTrigger(index)}
