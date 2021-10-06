@@ -99,6 +99,8 @@ def unfurl_discover(
         if "top5" in display_mode:
             params.setlist("topEvents", [f"{TOP_N}"])
         else:
+            # topEvents param persists in the URL in some cases, we want to discard
+            # it if it's not a top n display type.
             params.pop("topEvents", None)
 
         try:
