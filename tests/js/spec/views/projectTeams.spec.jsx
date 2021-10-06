@@ -288,8 +288,8 @@ describe('ProjectTeams', function () {
     );
 
     // Two ticks are required
-    await tick();
-    await tick();
+    await act(tick);
+    await act(tick);
     wrapper.update();
 
     wrapper.find('input[name="slug"]').simulate('change', {target: {value: 'new-team'}});
