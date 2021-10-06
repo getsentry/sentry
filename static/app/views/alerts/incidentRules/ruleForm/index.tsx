@@ -36,6 +36,7 @@ import {addOrUpdateRule} from '../actions';
 import {createDefaultTrigger} from '../constants';
 import RuleConditionsForm from '../ruleConditionsForm';
 import {
+  AlertRuleComparisonType,
   AlertRuleThresholdType,
   Dataset,
   EventTypes,
@@ -70,6 +71,8 @@ type State = {
   triggers: Trigger[];
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
   thresholdType: UnsavedIncidentRule['thresholdType'];
+  comparisonType: AlertRuleComparisonType;
+  comparisonDelta?: number;
   projects: Project[];
   triggerErrors: Map<number, {[fieldName: string]: string}>;
 
@@ -119,6 +122,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
       thresholdType: rule.thresholdType,
+      comparisonDelta: rule.comparisonDelta,
+      comparisonType: AlertRuleComparisonType.COUNT,
       projects: [this.props.project],
       owner: rule.owner,
     };
@@ -428,7 +433,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     const {organization, params, rule, onSubmitSuccess, location, sessionId} = this.props;
     const {ruleId} = this.props.params;
-    const {resolveThreshold, triggers, thresholdType, uuid} = this.state;
+    const {resolveThreshold, triggers, thresholdType, comparisonDelta, uuid} = this.state;
 
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -465,6 +470,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           triggers: sanitizedTriggers,
           resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
           thresholdType,
+          comparisonDelta,
         },
         {
           referrer: location?.query?.referrer,
@@ -552,6 +558,14 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     });
   };
 
+  handleComparisonTypeChange = (value: AlertRuleComparisonType) => {
+    this.setState({comparisonType: value});
+  };
+
+  handleComparisonDeltaChange = (value: number) => {
+    this.setState({comparisonDelta: value});
+  };
+
   handleDeleteRule = async () => {
     const {params} = this.props;
     const {orgId, projectId, ruleId} = params;
@@ -600,6 +614,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       aggregate,
       environment,
       thresholdType,
+      comparisonDelta,
+      comparisonType,
       resolveThreshold,
       loading,
       eventTypes,
@@ -651,6 +667,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         aggregate={aggregate}
         resolveThreshold={resolveThreshold}
         thresholdType={thresholdType}
+        comparisonType={comparisonType}
         currentProject={params.projectId}
         organization={organization}
         ruleId={ruleId}
@@ -718,6 +735,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 allowChangeEventTypes={isCustomMetric || dataset === Dataset.ERRORS}
                 alertType={isCustomMetric ? 'custom' : alertType}
                 dataset={dataset}
+                comparisonType={comparisonType}
+                comparisonDelta={comparisonDelta}
+                onComparisonTypeChange={this.handleComparisonTypeChange}
+                onComparisonDeltaChange={this.handleComparisonDeltaChange}
               />
               <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
               {triggerForm(hasAccess)}

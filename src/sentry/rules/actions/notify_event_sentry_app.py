@@ -5,10 +5,8 @@ from typing import Any, Mapping, Optional, Sequence
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.sentry_app_component import SentryAppAlertRuleActionSerializer
-from sentry.coreapi import APIError
 from sentry.eventstore.models import Event
-from sentry.mediators import sentry_app_components
-from sentry.models import Project, SentryApp, SentryAppComponent, SentryAppInstallation
+from sentry.models import Project, SentryApp, SentryAppInstallation
 from sentry.rules.actions.base import EventAction
 from sentry.tasks.sentry_apps import notify_sentry_app
 
@@ -25,24 +23,17 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
     def get_custom_actions(self, project: Project) -> Sequence[Mapping[str, Any]]:
         action_list = []
         for install in SentryAppInstallation.get_installed_for_org(project.organization_id):
-            _components = SentryAppComponent.objects.filter(
-                sentry_app_id=install.sentry_app_id, type="alert-rule-action"
-            )
-            for component in _components:
-                try:
-                    sentry_app_components.Preparer.run(
-                        component=component, install=install, project=project
-                    )
-                    kwargs = {
-                        "install": install,
-                        "event_action": self,
-                    }
-                    action_details = serialize(
-                        component, None, SentryAppAlertRuleActionSerializer(), **kwargs
-                    )
-                    action_list.append(action_details)
-                except APIError:
-                    continue
+            component = install.prepare_sentry_app_components("alert-rule-action", project)
+            if component:
+                kwargs = {
+                    "install": install,
+                    "event_action": self,
+                }
+                action_details = serialize(
+                    component, None, SentryAppAlertRuleActionSerializer(), **kwargs
+                )
+                action_list.append(action_details)
+
         return action_list
 
     def get_sentry_app(self, event: Event) -> Optional[SentryApp]:

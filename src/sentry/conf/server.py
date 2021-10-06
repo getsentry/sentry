@@ -9,6 +9,7 @@ import socket
 import sys
 import tempfile
 from datetime import timedelta
+from platform import platform
 from urllib.parse import urlparse
 
 from django.conf.global_settings import *  # NOQA
@@ -951,7 +952,7 @@ SENTRY_FEATURES = {
     "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
-    # Enable imporved syntax highlightign + autocomplete on unified search
+    # Enable improved syntax highlighting + autocomplete on unified search
     "organizations:improved-search": False,
     # Enable incidents feature
     "organizations:incidents": False,
@@ -993,6 +994,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
+    # Allow orgs to view the Teamwork plugin
+    "organizations:integrations-ignore-teamwork-deprecation": False,
     # Allow orgs to debug internal/unpublished sentry apps with logging
     "organizations:sentry-app-debugging": False,
     # Temporary safety measure, turned on for specific orgs only if
@@ -1036,8 +1039,6 @@ SENTRY_FEATURES = {
     "organizations:performance-events-page": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Enable ingestion for suspect spans
-    "organizations:performance-suspect-spans-ingestion": False,
     # Enable views for suspect tags
     "organizations:performance-suspect-spans-view": False,
     # Enable the new Related Events feature
@@ -1107,6 +1108,8 @@ SENTRY_FEATURES = {
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
+    # Enable ingestion for suspect spans
+    "projects:performance-suspect-spans-ingestion": False,
     # Enable functionality for project plugins.
     "projects:plugins": True,
     # Enable alternative version of group creation that is supposed to be less racy.
@@ -1700,6 +1703,8 @@ def build_cdc_postgres_init_db_volume(settings):
     )
 
 
+APPLE_ARM64 = platform().startswith("mac") and platform().endswith("arm64-arm-64bit")
+
 SENTRY_DEVSERVICES = {
     "redis": lambda settings, options: (
         {
@@ -1752,7 +1757,13 @@ SENTRY_DEVSERVICES = {
     ),
     "zookeeper": lambda settings, options: (
         {
-            "image": "confluentinc/cp-zookeeper:5.1.2",
+            # On Apple arm64, we upgrade to version 6.x allows zookeeper to run properly on Apple's arm64
+            # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
+            # I'm selectively upgrading the version on Apple's arm64 since there was a bug that only affects
+            # Intel machines. For more details see: https://github.com/getsentry/sentry/pull/28672
+            "image": "confluentinc/cp-zookeeper:6.2.0"
+            if APPLE_ARM64
+            else "confluentinc/cp-zookeeper:5.1.2",
             "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
             "volumes": {"zookeeper": {"bind": "/var/lib/zookeeper"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
@@ -1760,7 +1771,10 @@ SENTRY_DEVSERVICES = {
     ),
     "kafka": lambda settings, options: (
         {
-            "image": "confluentinc/cp-kafka:5.1.2",
+            # On Apple arm64, we upgrade to version 6.x to match zookeeper's version (I believe they both release together)
+            "image": "confluentinc/cp-kafka:6.2.0"
+            if APPLE_ARM64
+            else "confluentinc/cp-kafka:5.1.2",
             "ports": {"9092/tcp": 9092},
             "environment": {
                 "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
@@ -1775,7 +1789,7 @@ SENTRY_DEVSERVICES = {
                 "KAFKA_MESSAGE_MAX_BYTES": "50000000",
                 "KAFKA_MAX_REQUEST_SIZE": "50000000",
             },
-            "volumes": {"kafka": {"bind": "/var/lib/kafka/data"}},
+            "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
             or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS,
