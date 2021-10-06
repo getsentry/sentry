@@ -26,11 +26,9 @@ import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
-import SelectControl from 'app/components/forms/selectControl';
-import Feature from 'app/components/acl/feature';
 
 import {addOrUpdateRule} from '../actions';
-import {createDefaultTrigger, COMPARISON_DELTA_OPTIONS} from '../constants';
+import {createDefaultTrigger} from '../constants';
 import RuleConditionsForm from '../ruleConditionsForm';
 import {
   AlertRuleComparisonType,
@@ -680,25 +678,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       <RuleNameOwnerForm disabled={!hasAccess || !canEdit} project={project} />
     );
 
-    const comparisonTypeForm = () => (
-      <StyledSelectControl
-        value={comparisonType}
-        onChange={this.handleComparisonTypeChange}
-        options={[
-          {value: AlertRuleComparisonType.COUNT, label: 'Count'},
-          {value: AlertRuleComparisonType.CHANGE, label: 'Percentage Change'},
-        ]}
-      />
-    );
-
-    const comparisonDeltaForm = () => (
-      <StyledSelectControl
-        value={comparisonDelta}
-        onChange={this.handleComparisonDeltaChange}
-        options={COMPARISON_DELTA_OPTIONS}
-      />
-    )
-
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => (
@@ -752,25 +731,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 allowChangeEventTypes={isCustomMetric || dataset === Dataset.ERRORS}
                 alertType={isCustomMetric ? 'custom' : alertType}
                 dataset={dataset}
+                comparisonType={comparisonType}
+                comparisonDelta={comparisonDelta}
+                onComparisonTypeChange={this.handleComparisonTypeChange}
+                onComparisonDeltaChange={this.handleComparisonDeltaChange}
               />
-              <Feature features={['organizations:change-alerts']} organization={organization}>
-                <ComparisonListItem>
-                  <ComparisonContainer>
-                    <span>{t('Select comparison type')}</span>
-                    {comparisonType === AlertRuleComparisonType.CHANGE && <span>
-                      {t('Select comparison interval')}
-                    </span>}
-                </ComparisonContainer>
-                </ComparisonListItem>
-                <ComparisonContainer>
-                  <ComparisonControlContainer>
-                    {comparisonTypeForm()}
-                  </ComparisonControlContainer>
-                  {comparisonType === AlertRuleComparisonType.CHANGE && <ComparisonControlContainer>
-                    {comparisonDeltaForm()}
-                  </ComparisonControlContainer>}
-                </ComparisonContainer>
-              </Feature>
               <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
               {triggerForm(hasAccess)}
               <StyledListItem>{t('Add a rule name and team')}</StyledListItem>
@@ -792,10 +757,6 @@ const AlertListItem = styled(StyledListItem)`
   margin-top: 0;
 `;
 
-const ComparisonListItem = styled(StyledListItem)`
-  margin-top: 0;
-`;
-
 const ChartHeader = styled('div')`
   padding: ${space(3)} ${space(3)} 0 ${space(3)};
 `;
@@ -811,26 +772,6 @@ const AlertInfo = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-weight: normal;
   color: ${p => p.theme.subText};
-`;
-
-const ComparisonContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-`;
-
-const ComparisonControlContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${space(4)};
-
-  &:nth-of-type(2) {
-    margin-left: ${space(1.5)};     
-  }
-`
-const StyledSelectControl = styled(SelectControl)`
-  flex: 1;
 `;
 
 export default RuleFormContainer;

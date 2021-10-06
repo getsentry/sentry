@@ -66,12 +66,12 @@ const allAggregations: AggregationKey[] = [
 
 
 export const COMPARISON_DELTA_OPTIONS = [
-  {value: 5, label: t('Compared to 5 minuntes ago')}, // 5 minutes
-  {value: 15, label: t('Compared to 15 minutes ago')}, // 15 minutes
-  {value: 60, label: t('Compared to one hour ago')}, // one hour
-  {value: 1440, label: t('Compared to one day ago')}, // one day
-  {value: 10080, label: t('Compared to one week ago')}, // one week
-  {value: 43200, label: t('Compared to one month ago')}, // 30 days
+  {value: 5, label: t('same time 5 minutes ago')}, // 5 minutes
+  {value: 15, label: t('same time 15 minutes ago')}, // 15 minutes
+  {value: 60, label: t('same time one hour ago')}, // one hour
+  {value: 1440, label: t('same time one day ago')}, // one day
+  {value: 10080, label: t('same time one week ago')}, // one week
+  {value: 43200, label: t('same time one month ago')}, // 30 days
 ]
 
 export function getWizardAlertFieldConfig(

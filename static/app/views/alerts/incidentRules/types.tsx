@@ -6,8 +6,8 @@ export enum AlertRuleThresholdType {
 }
 
 export enum AlertRuleComparisonType {
-  COUNT,
-  CHANGE,
+  COUNT= 'count',
+  CHANGE = 'change',
 }
 
 export enum Dataset {
