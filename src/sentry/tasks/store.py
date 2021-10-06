@@ -75,7 +75,6 @@ def submit_process(
     )
 
 
-
 def submit_save_event(project_id, from_reprocessing, cache_key, event_id, start_time, data):
     if cache_key:
         data = None
@@ -93,11 +92,7 @@ def submit_save_event(project_id, from_reprocessing, cache_key, event_id, start_
 
 def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, project):
     from sentry.lang.native.processing import should_process_with_symbolicator
-    from sentry.tasks.symbolication import (
-        should_demote_symbolication,
-        submit_symbolicate,
-        submit_symbolicate_low_priority,
-    )
+    from sentry.tasks.symbolication import should_demote_symbolication, submit_symbolicate
 
     if cache_key and data is None:
         data = processing.event_processing_store.get(cache_key)
