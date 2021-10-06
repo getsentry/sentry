@@ -10,7 +10,7 @@ from sentry import options
 from sentry.eventstore import processing
 from sentry.killswitches import killswitch_matches_context
 from sentry.models import Project
-from sentry.processing import realtime_metrics  # type: ignore
+from sentry.processing import realtime_metrics
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
