@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Set, Tuple
+from typing import Mapping, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
 
@@ -12,6 +12,8 @@ from sentry.release_health.base import (
     ProjectId,
     ProjectOrRelease,
     ProjectRelease,
+    ProjectReleaseSessionStats,
+    ProjectReleaseUserStats,
     ReleaseHealthBackend,
     ReleaseHealthOverview,
     ReleaseName,
@@ -26,6 +28,7 @@ from sentry.snuba.sessions import (
     _get_changed_project_release_model_adoptions,
     _get_crash_free_breakdown,
     _get_oldest_health_data_for_releases,
+    _get_project_release_stats,
     _get_project_releases_count,
     _get_release_adoption,
     _get_release_health_data_overview,
@@ -161,4 +164,24 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
     ) -> int:
         return _get_project_releases_count(  # type: ignore
             organization_id, project_ids, scope, stats_period, environments
+        )
+
+    def get_project_release_stats(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        stat: OverviewStat,
+        rollup: int,
+        start: datetime,
+        end: datetime,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
+        return _get_project_release_stats(
+            project_id=project_id,
+            release=release,
+            stat=stat,
+            rollup=rollup,
+            start=start,
+            end=end,
+            environments=environments,
         )

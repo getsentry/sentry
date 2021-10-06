@@ -17,6 +17,8 @@ from sentry.release_health.base import (
     ProjectId,
     ProjectOrRelease,
     ProjectRelease,
+    ProjectReleaseSessionStats,
+    ProjectReleaseUserStats,
     ReleaseAdoption,
     ReleaseHealthBackend,
     ReleaseHealthOverview,
@@ -1272,3 +1274,15 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         ret_val: int = rows[0]["count"] if rows else 0
         return ret_val
+
+    def get_project_release_stats(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        stat: OverviewStat,
+        rollup: int,
+        start: datetime,
+        end: datetime,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
+        raise NotImplementedError()

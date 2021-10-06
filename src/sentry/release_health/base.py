@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Set, Tuple, TypeVar, Union
+from typing import Mapping, Optional, Sequence, Set, Tuple, TypeVar, Union, overload
 
 from typing_extensions import Literal, TypedDict
 
@@ -153,6 +153,28 @@ class CrashFreeBreakdown(TypedDict):
     crash_free_sessions: Optional[float]
 
 
+class ProjectReleaseUserCounts(TypedDict):
+    users: int
+    users_healthy: int
+    users_crashed: int
+    users_abnormal: int
+    users_errored: int
+
+
+class ProjectReleaseSessionCounts(TypedDict):
+    sessions: int
+    sessions_healthy: int
+    sessions_crashed: int
+    sessions_abnormal: int
+    sessions_errored: int
+
+
+ProjectReleaseUserStats = Tuple[ProjectReleaseUserCounts, Mapping[int, ProjectReleaseUserCounts]]
+ProjectReleaseSessionStats = Tuple[
+    ProjectReleaseSessionCounts, Mapping[int, ProjectReleaseSessionCounts]
+]
+
+
 class ReleaseHealthBackend(Service):  # type: ignore
     """Abstraction layer for all release health related queries"""
 
@@ -168,6 +190,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "get_changed_project_release_model_adoptions",
         "get_oldest_health_data_for_releases",
         "get_project_releases_count",
+        "get_project_release_stats",
     )
 
     def get_current_and_previous_crash_free_rates(
@@ -300,7 +323,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         environments: Optional[Sequence[EnvironmentName]] = None,
         summary_stats_period: Optional[StatsPeriod] = None,
         health_stats_period: Optional[StatsPeriod] = None,
-        stat: Optional[OverviewStat] = None,
+        stat: Optional[Literal["users", "sessions"]] = None,
     ) -> Mapping[ProjectRelease, ReleaseHealthOverview]:
         """Checks quickly for which of the given project releases we have
         health data available.  The argument is a tuple of `(project_id, release_name)`
@@ -348,4 +371,42 @@ class ReleaseHealthBackend(Service):  # type: ignore
         """
         Fetches the total count of releases/project combinations
         """
+        raise NotImplementedError()
+
+    @overload
+    def get_project_release_stats(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        stat: Literal["users"],
+        rollup: int,
+        start: datetime,
+        end: datetime,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> ProjectReleaseUserStats:
+        ...
+
+    @overload
+    def get_project_release_stats(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        stat: Literal["sessions"],
+        rollup: int,
+        start: datetime,
+        end: datetime,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> ProjectReleaseSessionStats:
+        ...
+
+    def get_project_release_stats(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        stat: OverviewStat,
+        rollup: int,
+        start: datetime,
+        end: datetime,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
         raise NotImplementedError()
