@@ -9,14 +9,13 @@ import {
 import ProjectActions from 'app/actions/projectActions';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import {removeGlobalSelectionStorage} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
-import {LOCAL_STORAGE_KEY} from 'app/constants/globalSelectionHeader';
 import {fields} from 'app/data/forms/projectGeneralSettings';
 import {t, tct} from 'app/locale';
 import ProjectsStore from 'app/stores/projectsStore';
 import {Organization, Project} from 'app/types';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
-import localStorage from 'app/utils/localStorage';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
@@ -62,8 +61,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     const {orgId} = this.props.params;
     const project = this.state.data;
 
-    const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgId}`;
-    localStorage.removeItem(localStorageKey);
+    removeGlobalSelectionStorage(orgId);
 
     if (!project) {
       return;
