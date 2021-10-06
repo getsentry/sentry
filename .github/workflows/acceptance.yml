@@ -147,7 +147,8 @@ jobs:
     strategy:
       matrix:
         instance: [0, 1, 2, 3]
-
+        # TODO(joshuarli): Add 3.8.12.
+        python-version: [3.6.13]
     env:
       VISUAL_SNAPSHOT_ENABLE: 1
       TEST_GROUP_STRATEGY: roundrobin
@@ -156,10 +157,11 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
-      - name: Setup sentry python env
+      - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
@@ -207,6 +209,8 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
+        # TODO(joshuarli): Add 3.8.12.
+        python-version: [3.6.13]
         instance: [0]
     env:
       VISUAL_SNAPSHOT_ENABLE: 1
@@ -218,10 +222,11 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Setup sentry env
+      - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           chartcuterie: true
 
