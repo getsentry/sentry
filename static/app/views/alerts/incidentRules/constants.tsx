@@ -1,3 +1,4 @@
+import {t} from 'app/locale';
 import EventView from 'app/utils/discover/eventView';
 import {AggregationKey, LooseFieldKey} from 'app/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
@@ -16,7 +17,6 @@ import {
   isSessionAggregate,
 } from 'app/views/alerts/utils';
 import {AlertType, WizardRuleTemplate} from 'app/views/alerts/wizard/options';
-import {t} from 'app/locale';
 
 export const DEFAULT_AGGREGATE = 'count()';
 export const DEFAULT_TRANSACTION_AGGREGATE = 'p95(transaction.duration)';
@@ -64,7 +64,6 @@ const allAggregations: AggregationKey[] = [
   'count',
 ];
 
-
 export const COMPARISON_DELTA_OPTIONS = [
   {value: 5, label: t('same time 5 minutes ago')}, // 5 minutes
   {value: 15, label: t('same time 15 minutes ago')}, // 15 minutes
@@ -72,7 +71,7 @@ export const COMPARISON_DELTA_OPTIONS = [
   {value: 1440, label: t('same time one day ago')}, // one day
   {value: 10080, label: t('same time one week ago')}, // one week
   {value: 43200, label: t('same time one month ago')}, // 30 days
-]
+];
 
 export function getWizardAlertFieldConfig(
   alertType: AlertType,
