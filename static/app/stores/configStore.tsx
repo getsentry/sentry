@@ -4,7 +4,6 @@ import Reflux from 'reflux';
 import {Config} from 'app/types';
 
 type ConfigStoreInterface = {
-  config: Config;
 
   get<K extends keyof Config>(key: K): Config[K];
   set<K extends keyof Config>(key: K, value: Config[K]): void;
@@ -13,7 +12,11 @@ type ConfigStoreInterface = {
   loadInitialData(config: Config): void;
 };
 
-const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
+type Internals = {
+  config: Config;
+};
+
+const storeConfig: Reflux.StoreDefinition & Internals & ConfigStoreInterface = {
   // When the app is booted we will _immediately_ hydrate the config store,
   // effecively ensureing this is not empty.
   config: {} as Config,
@@ -69,7 +72,7 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
   },
 };
 
-const ConfigStore = Reflux.createStore(configStoreConfig) as Reflux.Store &
+const ConfigStore = Reflux.createStore(storeConfig) as Reflux.Store &
   ConfigStoreInterface;
 
 export default ConfigStore;

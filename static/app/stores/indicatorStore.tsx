@@ -57,7 +57,7 @@ type Internals = {
   lastId: number;
 };
 
-const storeConfig: Reflux.StoreDefinition & IndicatorStoreInterface & Internals = {
+const storeConfig: Reflux.StoreDefinition & Internals & IndicatorStoreInterface = {
   items: [],
   lastId: 0,
   init() {

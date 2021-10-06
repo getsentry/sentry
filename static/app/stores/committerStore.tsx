@@ -35,7 +35,7 @@ type CommitterStoreInterface = {
   };
 };
 
-export const CommitterStoreConfig: Reflux.StoreDefinition & CommitterStoreInterface = {
+export const storeConfig: Reflux.StoreDefinition & CommitterStoreInterface = {
   listenables: CommitterActions,
   state: {},
 
@@ -104,7 +104,7 @@ export function getCommitterStoreKey(
   return `${orgSlug} ${projectSlug} ${eventId}`;
 }
 
-const CommitterStore = Reflux.createStore(CommitterStoreConfig) as Reflux.Store &
+const CommitterStore = Reflux.createStore(storeConfig) as Reflux.Store &
   CommitterStoreInterface;
 
 export default CommitterStore;
