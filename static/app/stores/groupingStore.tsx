@@ -110,30 +110,30 @@ type IdState = {
 };
 
 type GroupingStoreInterface = Reflux.StoreDefinition & {
-  init: () => void;
-  getInitialState: () => State;
-  setStateForId: (
+  init(): void;
+  getInitialState(): State;
+  setStateForId(
     map: Map<string, IdState>,
     idOrIds: Array<string> | string,
     newState: IdState
-  ) => Array<IdState>;
-  isAllUnmergedSelected: () => boolean;
-  onFetch: (
+  ): Array<IdState>;
+  isAllUnmergedSelected(): boolean;
+  onFetch(
     toFetchArray?: Array<{
       dataKey: DataKey;
       endpoint: string;
       queryParams?: Record<string, any>;
     }>
-  ) => Promise<any>;
-  onToggleMerge: (id: string) => void;
-  onToggleUnmerge: (props: [string, string] | string) => void;
-  onUnmerge: (props: {
+  ): Promise<any>;
+  onToggleMerge(id: string): void;
+  onToggleUnmerge(props: [string, string] | string): void;
+  onUnmerge(props: {
     groupId: Group['id'];
     loadingMessage?: string;
     successMessage?: string;
     errorMessage?: string;
-  }) => void;
-  onMerge: (props: {
+  }): void;
+  onMerge(props: {
     params?: {
       orgId: Organization['id'];
       projectId: Project['id'];
@@ -141,10 +141,10 @@ type GroupingStoreInterface = Reflux.StoreDefinition & {
     };
     projectId?: Project['id'];
     query?: string;
-  }) => undefined | Promise<any>;
-  onToggleCollapseFingerprints: () => void;
-  onToggleCollapseFingerprint: (fingerprint: string) => void;
-  triggerFetchState: () => Pick<
+  }): undefined | Promise<any>;
+  onToggleCollapseFingerprints(): void;
+  onToggleCollapseFingerprint(fingerprint: string): void;
+  triggerFetchState(): Pick<
     State,
     | 'similarItems'
     | 'filteredSimilarItems'
@@ -156,7 +156,7 @@ type GroupingStoreInterface = Reflux.StoreDefinition & {
     | 'loading'
     | 'error'
   >;
-  triggerUnmergeState: () => Pick<
+  triggerUnmergeState(): Pick<
     State,
     | 'unmergeDisabled'
     | 'unmergeState'
@@ -164,7 +164,7 @@ type GroupingStoreInterface = Reflux.StoreDefinition & {
     | 'enableFingerprintCompare'
     | 'unmergeLastCollapsed'
   >;
-  triggerMergeState: () => Pick<State, 'mergeState' | 'mergeDisabled' | 'mergeList'>;
+  triggerMergeState(): Pick<State, 'mergeState' | 'mergeDisabled' | 'mergeList'>;
 };
 
 type Internals = {

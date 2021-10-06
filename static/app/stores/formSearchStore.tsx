@@ -14,8 +14,8 @@ export type FormSearchField = {
 };
 
 type StoreInterface = {
-  reset: () => void;
-  get: () => Internals['searchMap'];
+  reset(): void;
+  get(): Internals['searchMap'];
 };
 
 type Internals = {

@@ -20,23 +20,23 @@ type Internals = {
 };
 
 type ProjectsStoreInterface = {
-  init: () => void;
-  reset: () => void;
-  loadInitialData: (projects: Project[]) => void;
-  onStatsLoadSuccess: (data: StatsData) => void;
-  onChangeSlug: (prevSlug: string, newSlug: string) => void;
-  onCreateSuccess: (project: Project) => void;
-  onUpdateSuccess: (data: Partial<Project>) => void;
-  onDeleteTeam: (slug: string) => void;
-  onRemoveTeam: (teamSlug: string, projectSlug: string) => void;
-  onAddTeam: (team: Team, projectSlug: string) => void;
-  removeTeamFromProject: (teamSlug: string, project: Project) => void;
-  getWithTeam: (teamSlug: string) => Project[];
-  getAll: () => Project[];
-  getBySlugs: (slug: string[]) => Project[];
-  getState: (slugs?: string[]) => State;
-  getById: (id?: string) => Project | undefined;
-  getBySlug: (slug?: string) => Project | undefined;
+  init(): void;
+  reset(): void;
+  loadInitialData(projects: Project[]): void;
+  onStatsLoadSuccess(data: StatsData): void;
+  onChangeSlug(prevSlug: string, newSlug: string): void;
+  onCreateSuccess(project: Project): void;
+  onUpdateSuccess(data: Partial<Project>): void;
+  onDeleteTeam(slug: string): void;
+  onRemoveTeam(teamSlug: string, projectSlug: string): void;
+  onAddTeam(team: Team, projectSlug: string): void;
+  removeTeamFromProject(teamSlug: string, project: Project): void;
+  getWithTeam(teamSlug: string): Project[];
+  getAll(): Project[];
+  getBySlugs(slug: string[]): Project[];
+  getState(slugs?: string[]): State;
+  getById(id?: string): Project | undefined;
+  getBySlug(slug?: string): Project | undefined;
 };
 
 const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface = {
