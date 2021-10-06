@@ -76,7 +76,7 @@ export default function ChartFooter({
                   options={topEventOptions}
                   onChange={onTopEventsChange}
                   menuWidth="60px"
-                  featureType="alpha"
+                  featureType="beta"
                 />
               );
             } else {

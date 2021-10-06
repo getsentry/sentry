@@ -13,6 +13,7 @@ import Truncate from 'app/components/truncate';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
+import {defined} from 'app/utils';
 
 const defaultProps = {
   menuWidth: 'auto',
@@ -67,7 +68,7 @@ class OptionSelector extends Component<Props, State> {
       <InlineContainer>
         <SectionHeading>
           {title}
-          {featureType ? <StyledFeatureBadge type={featureType} /> : null}
+          {defined(featureType) ? <StyledFeatureBadge type={featureType} /> : null}
         </SectionHeading>
         <MenuContainer ref={this.menuContainerRef}>
           <DropdownMenu alwaysRenderMenu={false}>
