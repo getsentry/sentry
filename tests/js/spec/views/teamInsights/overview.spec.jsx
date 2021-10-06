@@ -69,6 +69,14 @@ describe('TeamInsightsOverview', () => {
       url: `/teams/org-slug/${team1.slug}/alerts-triggered/`,
       body: TestStubs.TeamAlertsTriggered(),
     });
+    MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team1.slug}/time-to-resolution/`,
+      body: TestStubs.TeamResolutionTime(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team1.slug}/issue-breakdown/`,
+      body: TestStubs.TeamIssuesReviewed(),
+    });
     act(() => void TeamStore.loadInitialData([team1, team2]));
   });
 
