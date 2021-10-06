@@ -62,7 +62,7 @@ class QueryBase:
         if alias == resolved:
             return column
 
-        # If the expected aliases differes from the resolved snuba column,
+        # If the expected aliases differs from the resolved snuba column,
         # make sure to alias the expression appropriately so we get back
         # the column with the correct names.
         return AliasedExpression(column, alias)

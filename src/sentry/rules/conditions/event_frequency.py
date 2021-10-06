@@ -257,16 +257,11 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                     start=end - timedelta(minutes=60),
                     end=end,
                     filter_keys=filters,
-                    groupby=["bucketed_started"],
                     referrer="rules.conditions.event_frequency.EventFrequencyPercentCondition",
-                )
+                )["data"]
 
-            if result_totals["data"]:
-                session_count_last_hour = sum(
-                    bucket["sessions"] for bucket in result_totals["data"]
-                )
-            else:
-                session_count_last_hour = False
+            session_count_last_hour = result_totals[0]["sessions"] if result_totals else 0
+
             cache.set(cache_key, session_count_last_hour, 600)
 
         if session_count_last_hour >= MIN_SESSIONS_TO_FIRE:
