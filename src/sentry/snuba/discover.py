@@ -231,6 +231,7 @@ def query(
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
 
+    sentry_sdk.set_tag("discover.use_snql", use_snql)
     if use_snql:
         # temporarily add snql to referrer
         referrer = f"{referrer}.wip-snql"
