@@ -53,6 +53,18 @@ def test_default() -> None:
     realtime_metrics.increment_project_duration_counter(17, 1234, 55)
 
 
+@pytest.mark.xfail
+def test_invalid_config() -> None:
+    invalid_config = {
+        "cluster": "default",
+        "counter_bucket_size": 0,
+        "counter_ttl": -1,
+        "histogram_bucket_size": -10,
+        "histogram_ttl": 0,
+    }
+    RedisRealtimeMetricsStore(**invalid_config)
+
+
 # TODO: group tests using classes
 
 #

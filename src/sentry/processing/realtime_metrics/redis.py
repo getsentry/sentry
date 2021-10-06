@@ -42,6 +42,8 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         self._histogram_ttl = histogram_ttl
         self._prefix = "symbolicate_event_low_priority"
 
+        self.validate()
+
     def validate(self) -> None:
         if self._counter_bucket_size <= 0:
             raise InvalidConfiguration("counter bucket size must be at least 1")
