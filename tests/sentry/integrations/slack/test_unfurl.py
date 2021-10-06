@@ -266,13 +266,19 @@ class UnfurlTest(TestCase):
     def test_top_events_url_param(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
+            data={"message": "first", "fingerprint": ["group2"], "timestamp": min_ago},
+            project_id=self.project.id,
         )
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
+            data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"message": "third", "fingerprint": ["group2"], "timestamp": min_ago},
+            project_id=self.project.id,
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=timestamp&field=count()&name=All+Events&query=&sort=-timestamp&statsPeriod=24h&display=top5&topEvents=3"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=count()&name=All+Events&query=&sort=-count&statsPeriod=24h&display=top5&topEvents=3"
         link_type, args = match_link(url)
 
         if not args or not link_type:
