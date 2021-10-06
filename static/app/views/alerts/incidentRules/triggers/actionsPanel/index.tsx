@@ -60,6 +60,7 @@ const getCleanAction = (actionConfig, dateCreated?: string): Action => {
         ? actionConfig.allowedTargetTypes[0]
         : null,
     targetIdentifier: actionConfig.sentryAppId || '',
+    inputChannelId: null,
     integrationId: actionConfig.integrationId,
     sentryAppId: actionConfig.sentryAppId,
     options: actionConfig.options || null,

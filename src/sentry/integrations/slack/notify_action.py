@@ -146,9 +146,6 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
 
 
 class SlackNotifyServiceAction(IntegrationEventAction):  # type: ignore
-
-    from django.utils.safestring import mark_safe
-
     form_cls = SlackNotifyServiceForm
     label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"
     prompt = "Send a Slack notification"
