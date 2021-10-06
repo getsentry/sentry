@@ -1208,17 +1208,24 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         if scope.endswith("_24h"):
             stats_period = "24h"
 
-        _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
+        granularity, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
         where = [
             Condition(Column("timestamp"), Op.GTE, stats_start),
             Condition(Column("timestamp"), Op.LT, datetime.now()),
             Condition(Column("project_id"), Op.IN, project_ids),
             Condition(Column("org_id"), Op.EQ, organization_id),
         ]
-        release_column_name = tag_key(organization_id, "release")
+
+        try:
+            release_column_name = tag_key(organization_id, "release")
+        except MetricIndexNotFound:
+            return 0
 
         if environments is not None:
-            environment_column_name = tag_key(organization_id, "environment")
+            try:
+                environment_column_name = tag_key(organization_id, "environment")
+            except MetricIndexNotFound:
+                return 0
 
             environment_values = get_tag_values_list(organization_id, environments)
             where.append(Condition(Column(environment_column_name), Op.IN, environment_values))
@@ -1244,6 +1251,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select=query_columns,
             where=where,
             having=having,
+            granularity=granularity,
         )
 
         rows = raw_snql_query(
