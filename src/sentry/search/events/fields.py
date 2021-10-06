@@ -1257,6 +1257,11 @@ class NumericColumn(ColumnArg):
         MEASUREMENTS_STALL_PERCENTAGE,
     }
 
+    numeric_array_columns = {
+        "measurements_value",
+        "span_op_breakdowns_value",
+    }
+
     def __init__(self, name: str, allow_array_value: Optional[bool] = False, **kwargs):
         super().__init__(name, **kwargs)
         self.allow_array_value = allow_array_value
@@ -1287,7 +1292,7 @@ class NumericColumn(ColumnArg):
         # expand it using `arrayJoin`. The resulting column will be a numeric
         # column of type Float64.
         if self.allow_array_value:
-            if value in {"measurements_value", "span_op_breakdowns_value"}:
+            if value in self.numeric_array_columns:
                 snuba_column = value
 
         if snuba_column is None:
@@ -1299,6 +1304,9 @@ class NumericColumn(ColumnArg):
             return snuba_column
 
     def get_type(self, value: str) -> str:
+        if value in self.numeric_array_columns:
+            return "number"
+
         # `measurements.frames_frozen_rate` and `measurements.frames_slow_rate` are aliases
         # to a percentage value, since they are expressions rather than columns, we special
         # case them here
@@ -1308,6 +1316,7 @@ class NumericColumn(ColumnArg):
                 expression = field.get_expression(None)
                 if expression == value:
                     return field.result_type
+
         snuba_column = self._normalize(value)
         if is_duration_measurement(snuba_column) or is_span_op_breakdown(snuba_column):
             return "duration"
@@ -1503,7 +1512,7 @@ class DiscoverFunction:
                     if normalized_value in argument.measurement_aliases:
                         field = FIELD_ALIASES[normalized_value]
                         normalized_value = field.get_expression(params)
-                    elif normalized_value in {"measurements_value", "span_op_breakdowns_value"}:
+                    elif normalized_value in NumericColumn.numeric_array_columns:
                         normalized_value = ["arrayJoin", [normalized_value]]
                 arguments[argument.name] = normalized_value
             except InvalidFunctionArgument as e:
@@ -2656,9 +2665,7 @@ class QueryFields(QueryBase):
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
                     combinators=[
-                        SnQLArrayCombinator(
-                            "column", {"measurements_value", "span_op_breakdowns_value"}
-                        )
+                        SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
                     ],
                 ),
                 SnQLFunction(
