@@ -648,7 +648,6 @@ class AppStoreConnect2FactorAuthSerializer(serializers.Serializer):  # type: ign
 
     sessionContext = TwoFactorAuthSessionContextSerializer(required=True)
     code = serializers.CharField(max_length=10, required=True)
-    useSms = serializers.BooleanField(required=True)
 
 
 class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):  # type: ignore
@@ -665,7 +664,6 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):  # type: ignore
     {
         "sessionContext": { ... },
         "code": "324784",
-        "useSms": false,  # or true if requestSms was called,
     }
     ```
 
