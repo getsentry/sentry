@@ -1,7 +1,7 @@
 import logging
 import random
 from time import sleep, time
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 import sentry_sdk
 from django.conf import settings
@@ -265,7 +265,7 @@ def symbolicate_event(
     cache_key: Optional[str],
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
-    **kwargs: Dict[str, Any],
+    **kwargs: Any,
 ) -> None:
     """
     Handles event symbolication using the external service: symbolicator.
@@ -293,7 +293,7 @@ def symbolicate_event_low_priority(
     cache_key: Optional[str],
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
-    **kwargs: Dict[str, Any],
+    **kwargs: Any,
 ) -> None:
     """
     Handles event symbolication using the external service: symbolicator.
@@ -324,7 +324,7 @@ def symbolicate_event_from_reprocessing(
     cache_key: Optional[str],
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
-    **kwargs: Dict[str, Any],
+    **kwargs: Any,
 ) -> None:
     return _do_symbolicate_event(
         cache_key=cache_key,
@@ -345,7 +345,7 @@ def symbolicate_event_from_reprocessing_low_priority(
     cache_key: Optional[str],
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
-    **kwargs: Dict[str, Any],
+    **kwargs: Any,
 ) -> None:
     return _do_symbolicate_event(
         cache_key=cache_key,
