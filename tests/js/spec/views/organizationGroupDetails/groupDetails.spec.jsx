@@ -10,6 +10,9 @@ import GroupDetails from 'app/views/organizationGroupDetails';
 
 jest.unmock('app/utils/recreateRoute');
 
+const SAMPLE_EVENT_ALERT_TEXT =
+  'You are viewing a sample error. Configure Sentry to start viewing real errors.';
+
 describe('groupDetails', () => {
   const group = TestStubs.Group();
   const event = TestStubs.Event();
@@ -215,5 +218,22 @@ describe('groupDetails', () => {
     ProjectsStore.loadInitialData(organization.projects);
 
     expect(await findByText('New Issue')).toBeTruthy();
+  });
+
+  it('renders alert for sample event', async function () {
+    const aProject = TestStubs.Project({firstEvent: false});
+    ProjectsStore.reset();
+    ProjectsStore.loadInitialData([aProject]);
+    const {findByText} = createWrapper();
+
+    expect(await findByText(SAMPLE_EVENT_ALERT_TEXT)).toBeTruthy();
+  });
+  it('does not render alert for non sample events', async function () {
+    const aProject = TestStubs.Project({firstEvent: false});
+    ProjectsStore.reset();
+    ProjectsStore.loadInitialData([aProject]);
+    const {queryByText} = createWrapper();
+
+    expect(await queryByText(SAMPLE_EVENT_ALERT_TEXT)).toBeNull();
   });
 });

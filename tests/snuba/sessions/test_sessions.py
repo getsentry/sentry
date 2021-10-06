@@ -7,11 +7,7 @@ from django.utils import timezone
 
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
-from sentry.snuba.sessions import (
-    _make_stats,
-    get_project_releases_by_stability,
-    get_release_health_data_overview,
-)
+from sentry.snuba.sessions import _make_stats, get_project_releases_by_stability
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.utils.dates import to_timestamp
@@ -361,7 +357,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         }
 
     def test_get_release_health_data_overview_users(self):
-        data = get_release_health_data_overview(
+        data = self.backend.get_release_health_data_overview(
             [
                 (self.project.id, self.session_release),
                 (self.project.id, self.session_crashed_release),
@@ -415,7 +411,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         }
 
     def test_get_release_health_data_overview_sessions(self):
-        data = get_release_health_data_overview(
+        data = self.backend.get_release_health_data_overview(
             [
                 (self.project.id, self.session_release),
                 (self.project.id, self.session_crashed_release),

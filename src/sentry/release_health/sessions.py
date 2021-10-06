@@ -6,13 +6,16 @@ from sentry.release_health.base import (
     CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
     OrganizationId,
+    OverviewStat,
     ProjectId,
     ProjectOrRelease,
     ProjectRelease,
     ReleaseHealthBackend,
+    ReleaseHealthOverview,
     ReleaseName,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
+    StatsPeriod,
 )
 from sentry.snuba.sessions import (
     _check_has_health_data,
@@ -22,6 +25,7 @@ from sentry.snuba.sessions import (
     _get_oldest_health_data_for_releases,
     _get_project_releases_count,
     _get_release_adoption,
+    _get_release_health_data_overview,
     _get_release_sessions_time_bounds,
     get_current_and_previous_crash_free_rates,
 )
@@ -90,6 +94,22 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
             release_versions,
             start,
             end,
+        )
+
+    def get_release_health_data_overview(
+        self,
+        project_releases: Sequence[ProjectRelease],
+        environments: Optional[Sequence[EnvironmentName]] = None,
+        summary_stats_period: Optional[StatsPeriod] = None,
+        health_stats_period: Optional[StatsPeriod] = None,
+        stat: Optional[OverviewStat] = None,
+    ) -> Mapping[ProjectRelease, ReleaseHealthOverview]:
+        return _get_release_health_data_overview(  # type: ignore
+            project_releases=project_releases,
+            environments=environments,
+            summary_stats_period=summary_stats_period,
+            health_stats_period=health_stats_period,
+            stat=stat,
         )
 
     def get_crash_free_breakdown(
