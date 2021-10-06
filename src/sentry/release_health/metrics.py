@@ -23,11 +23,14 @@ from sentry.release_health.base import (
     ReleaseName,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
+    SessionsQueryResult,
     StatsPeriod,
 )
+from sentry.release_health.metrics_sessions_v2 import run_sessions_query
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets, parse_snuba_datetime
+from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils.snuba import QueryOutsideRetentionError, raw_snql_query
 
 
@@ -366,6 +369,15 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             rv[project_id, release] = adoption
 
         return rv
+
+    def run_sessions_query(
+        self,
+        org_id: int,
+        query: QueryDefinition,
+        span_op: str,
+    ) -> SessionsQueryResult:
+
+        return run_sessions_query(org_id, query, span_op)
 
     def get_release_sessions_time_bounds(
         self,
