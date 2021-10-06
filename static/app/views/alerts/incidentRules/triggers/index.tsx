@@ -9,7 +9,8 @@ import ActionsPanel from 'app/views/alerts/incidentRules/triggers/actionsPanel';
 import TriggerForm from 'app/views/alerts/incidentRules/triggers/form';
 
 import {
-  Action, AlertRuleComparisonType,
+  Action,
+  AlertRuleComparisonType,
   AlertRuleThresholdType,
   MetricActionTemplate,
   Trigger,
