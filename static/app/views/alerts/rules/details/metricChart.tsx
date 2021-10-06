@@ -41,6 +41,7 @@ import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 import {
   alertAxisFormatter,
   alertTooltipValueFormatter,
+  isSessionAggregate,
   SESSION_AGGREGATE_TO_FIELD,
 } from '../../utils';
 
@@ -300,11 +301,13 @@ class MetricChart extends React.PureComponent<Props, State> {
             </StatItem>
           </SummaryStats>
         </ChartSummary>
-        <Feature features={['discover-basic']}>
-          <Button size="small" {...props}>
-            {buttonText}
-          </Button>
-        </Feature>
+        {!isSessionAggregate(rule.aggregate) && (
+          <Feature features={['discover-basic']}>
+            <Button size="small" {...props}>
+              {buttonText}
+            </Button>
+          </Feature>
+        )}
       </ChartActions>
     );
   }
