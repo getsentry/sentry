@@ -165,7 +165,7 @@ const Container = styled('div')<{comparisonType: AlertRuleComparisonType}>`
   display: flex;
   align-items: center;
   flex-direction: ${p => p.comparisonType === AlertRuleComparisonType.COUNT ? 'row' : 'row-reverse'};
-  grid-gap: ${space(1)};
+  gap: ${p => p.comparisonType === AlertRuleComparisonType.COUNT ? space(1) : space(2)};
 `;
 
 const SelectContainer = styled('div')`
