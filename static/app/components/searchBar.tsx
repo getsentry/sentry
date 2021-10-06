@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import Button from 'app/components/button';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconSearch} from 'app/icons';
 import {IconClose} from 'app/icons/iconClose';
 import {t} from 'app/locale';
@@ -20,6 +21,7 @@ type Props = DefaultProps & {
   className?: string;
   onChange?: (query: string) => void;
   width?: string;
+  busy?: boolean;
 };
 
 type State = {
@@ -86,7 +88,7 @@ class SearchBar extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {className, width} = this.props;
+    const {className, width, busy} = this.props;
 
     return (
       <div className={classNames('search', className)}>
@@ -104,7 +106,11 @@ class SearchBar extends React.PureComponent<Props, State> {
               onChange={this.onQueryChange}
               width={width}
             />
-            <StyledIconSearch className="search-input-icon" size="sm" color="gray300" />
+            {busy ? (
+              <StyledLoadingIndicator size={18} hideMessage mini />
+            ) : (
+              <StyledIconSearch className="search-input-icon" size="sm" color="gray300" />
+            )}
             {this.state.query !== this.props.defaultQuery && (
               <SearchClearButton
                 type="button"
@@ -133,6 +139,13 @@ const StyledInput = styled(Input)`
 `;
 
 const StyledIconSearch = styled(IconSearch)`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 14px;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
