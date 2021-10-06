@@ -6,7 +6,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from sentry.auth.authenticators import RecoveryCodeInterface, SmsInterface, TotpInterface
-from sentry.models import Authenticator, Organization, User
+from sentry.models import Authenticator, Organization, OrganizationMember, User
 from sentry.testutils import APITestCase
 from sentry.utils.compat import mock
 
@@ -56,8 +56,8 @@ class UserAuthenticatorDetailsTestBase(APITestCase):
         self.login_as(user=self.user)
 
     def _require_2fa_for_organization(self) -> None:
-        organization = self.create_organization(name="test monkey", owner=self.user)
-        organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        self.organization = self.create_organization(name="test monkey", owner=self.user)
+        self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
 
 
 class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
@@ -233,15 +233,19 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     def test_require_2fa__can_delete_last_auth_superuser(self):
         self._require_2fa_for_organization()
 
-        user = self.create_user(email="a@example.com", is_superuser=True)
-        self.login_as(user=user)
+        superuser = self.create_user(email="a@example.com", is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+        OrganizationMember.objects.create(
+            organization=self.organization, user=superuser, role="owner"
+        )
+
         # enroll in one auth method
         interface = TotpInterface()
-        interface.enroll(user)
+        interface.enroll(self.user)
         auth = interface.authenticator
 
         with self.tasks():
-            self.get_success_response(user.id, auth.id, method="delete", status_code=204)
+            self.get_success_response(self.user.id, auth.id, method="delete", status_code=204)
 
         assert not Authenticator.objects.filter(id=auth.id).exists()
 
