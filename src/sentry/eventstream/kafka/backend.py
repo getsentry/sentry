@@ -10,7 +10,10 @@ from sentry import options
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.postprocessworker import (
     _CONCURRENCY_OPTION,
+    ErrorsPostProcessForwarderWorker,
+    PostProcessForwarderType,
     PostProcessForwarderWorker,
+    TransactionsPostProcessForwarderWorker,
     _sampled_eventstream_timer,
 )
 from sentry.eventstream.kafka.protocol import (
@@ -143,7 +146,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def _build_consumer(
         self,
-        dataset,
+        entity,
         consumer_group,
         commit_log_topic,
         synchronize_commit_group,
@@ -162,7 +165,15 @@ class KafkaEventStream(SnubaProtocolEventStream):
         )
 
         concurrency = options.get(_CONCURRENCY_OPTION)
-        worker = PostProcessForwarderWorker(concurrency=concurrency)
+        if entity == PostProcessForwarderType.TRANSACTIONS:
+            worker = TransactionsPostProcessForwarderWorker(concurrency=concurrency)
+        elif entity == PostProcessForwarderType.ERRORS:
+            worker = ErrorsPostProcessForwarderWorker(concurrency=concurrency)
+        else:
+            # Default implementation which would process both errors and transactions
+            # irrespective of values in the header. This would most likely be the case
+            # for development environments.
+            worker = PostProcessForwarderWorker(concurrency=concurrency)
 
         consumer = BatchingKafkaConsumer(
             topics=self.topic,
@@ -176,6 +187,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def run_batched_consumer(
         self,
+        entity,
         consumer_group,
         commit_log_topic,
         synchronize_commit_group,
@@ -184,6 +196,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         initial_offset_reset="latest",
     ):
         consumer = self._build_consumer(
+            entity,
             consumer_group,
             commit_log_topic,
             synchronize_commit_group,
@@ -397,6 +410,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def run_post_process_forwarder(
         self,
+        entity,
         consumer_group,
         commit_log_topic,
         synchronize_commit_group,
@@ -409,6 +423,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         if settings.SENTRY_POST_PROCESS_FORWARDER_BATCHING:
             logger.info("Starting batching consumer")
             self.run_batched_consumer(
+                entity,
                 consumer_group,
                 commit_log_topic,
                 synchronize_commit_group,

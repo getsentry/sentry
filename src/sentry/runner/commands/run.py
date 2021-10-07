@@ -325,10 +325,10 @@ def cron(**options):
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
 @click.option(
-    "--dataset",
+    "--entity",
     default="errors",
     type=click.Choice(["errors", "transactions"]),
-    help="Dataset to process.",
+    help="The type of entity to process (errors, transactions).",
 )
 @log_options()
 @configuration
@@ -338,7 +338,7 @@ def post_process_forwarder(**options):
 
     try:
         eventstream.run_post_process_forwarder(
-            dataset=options["dataset"],
+            entity=options["entity"],
             consumer_group=options["consumer_group"],
             commit_log_topic=options["commit_log_topic"],
             synchronize_commit_group=options["synchronize_commit_group"],

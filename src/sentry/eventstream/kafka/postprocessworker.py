@@ -2,6 +2,7 @@ import logging
 import random
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
+from enum import Enum
 from typing import Any, Generator, Mapping, Optional, Sequence
 
 from sentry import options
@@ -23,6 +24,11 @@ _CONCURRENCY_METRIC = "eventstream.concurrency"
 _MESSAGES_METRIC = "eventstream.messages"
 _CONCURRENCY_OPTION = "post-process-forwarder:concurrency"
 _TRANSACTION_FORWARDER_HEADER = "transaction_forwarder"
+
+
+class PostProcessForwarderType(str, Enum):
+    ERRORS = "errors"
+    TRANSACTIONS = "transactions"
 
 
 @contextmanager
