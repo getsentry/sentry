@@ -850,6 +850,14 @@ export function isEquationAlias(field: string): boolean {
   return EQUATION_ALIAS_PATTERN.test(field);
 }
 
+export function maybeEquationAlias(field: string): boolean {
+  return field.includes(EQUATION_PREFIX);
+}
+
+export function stripEquationPrefix(field: string): string {
+  return field.replace(EQUATION_PREFIX, '');
+}
+
 export function getEquationAliasIndex(field: string): number {
   const results = field.match(EQUATION_ALIAS_PATTERN);
 
