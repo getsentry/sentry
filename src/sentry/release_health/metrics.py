@@ -92,7 +92,7 @@ def filter_releases_by_project_release(
 
 
 def _model_environment_ids_to_environment_names(
-    metric_ids: Sequence[int],
+    environment_ids: Sequence[int],
 ) -> Mapping[int, Optional[str]]:
     """
     Maps Environment Model ids to the environment name
@@ -101,7 +101,7 @@ def _model_environment_ids_to_environment_names(
     empty_string_to_none: Callable[[Any], Optional[Any]] = lambda v: None if v == "" else v
     id_to_name: Mapping[int, Optional[str]] = {
         k: empty_string_to_none(v)
-        for k, v in Environment.objects.filter(id__in=metric_ids).values_list("id", "name")
+        for k, v in Environment.objects.filter(id__in=environment_ids).values_list("id", "name")
     }
     return defaultdict(lambda: None, id_to_name)
 
@@ -1143,7 +1143,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         query = Query(
             dataset=Dataset.Metrics.value,
-            match=Entity("metrics_counters"),
+            match=Entity(EntityKey.MetricsCounters.value),
             select=query_cols,
             where=where_clause,
             groupby=group_by,
@@ -1199,7 +1199,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         query = Query(
             dataset=Dataset.Metrics.value,
-            match=Entity("metrics_counters"),
+            match=Entity(EntityKey.MetricsCounters.value),
             select=query_cols,
             where=where_clause,
             groupby=group_by,
@@ -1263,9 +1263,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         # Filter out releases with zero users when sorting by either `users` or `crash_free_users`
         if scope in ["users", "crash_free_users"]:
             having.append(Condition(Column("value"), Op.GT, 0))
-            match = Entity("metrics_sets")
+            match = Entity(EntityKey.MetricsSets.value)
         else:
-            match = Entity("metrics_counters")
+            match = Entity(EntityKey.MetricsCounters.value)
 
         query_columns = [
             Function(
@@ -1334,7 +1334,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         query = Query(
             dataset=Dataset.Metrics.value,
-            match=Entity("metrics_counters"),
+            match=Entity(EntityKey.MetricsCounters.value),
             select=columns,
             where=where_clause,
             granularity=Granularity(rollup),
