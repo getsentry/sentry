@@ -1,6 +1,4 @@
-import * as React from 'react';
-import {Fragment} from 'react';
-
+import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {
   Action,
@@ -20,9 +18,7 @@ type Props = {
   onChange: (value: string) => void;
 };
 
-export default function ActionSpecificTargetSelector(props: Props) {
-  const {action, disabled, onChange} = props;
-
+function ActionSpecificTargetSelector({action, disabled, onChange}: Props) {
   const handleChangeSpecificTargetIdentifier = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -30,7 +26,7 @@ export default function ActionSpecificTargetSelector(props: Props) {
   };
 
   if (action.targetType !== TargetType.SPECIFIC || action.type !== ActionType.SLACK) {
-    return <Fragment />;
+    return null;
   }
   return (
     <Input
@@ -40,7 +36,9 @@ export default function ActionSpecificTargetSelector(props: Props) {
       key="inputChannelId"
       value={action.inputChannelId || ''}
       onChange={handleChangeSpecificTargetIdentifier}
-      placeholder="optional: channel ID or user ID"
+      placeholder={t('optional: channel ID or user ID')}
     />
   );
 }
+
+export default ActionSpecificTargetSelector;

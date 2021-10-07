@@ -119,7 +119,12 @@ const getFullActionTitle = ({
  * Lists saved actions as well as control to add a new action
  */
 class ActionsPanel extends PureComponent<Props> {
-  handleChangeKey(triggerIndex: number, index: number, key: string, value: string) {
+  handleChangeKey(
+    triggerIndex: number,
+    index: number,
+    key: 'targetIdentifier' | 'inputChannelId',
+    value: string
+  ) {
     const {triggers, onChange} = this.props;
     const {actions} = triggers[triggerIndex];
     const newAction = {
