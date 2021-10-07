@@ -2344,7 +2344,7 @@ SENTRY_REALTIME_METRICS_BACKEND = (
 SENTRY_REALTIME_METRICS_OPTIONS = {
     # The redis cluster used for the realtime store redis backend.
     "cluster": "default",
-    # The bucket size of the counter.
+    # The bucket size of the event counter.
     #
     # The size (in seconds) of the buckets that events are sorted into.
     "counter_bucket_size": 10,
@@ -2354,20 +2354,18 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # so that projects that exceed a reasonable rate can be sent to the low
     # priority queue. This setting determines how long we keep these rates
     # around.
-    # Note that the time is counted after the last time a counter is incremented.
-    "counter_ttl": 300,
-    # The bucket size of the histogram.
+    "counter_time_window": 300,
+    # The bucket size of the processing duration histogram.
     #
     # The size (in seconds) of the buckets that events are sorted into.
-    "histogram_bucket_size": 10,
+    "duration_bucket_size": 10,
     # Number of seconds to keep symbolicate_event durations per project.
     #
     # symbolicate_event tasks report the processing durations of events per project to redis
     # so that projects that exceed a reasonable duration can be sent to the low
     # priority queue. This setting determines how long we keep these duration values
     # around.
-    # Note that the time is counted after the last time a counter is incremented.
-    "histogram_ttl": 900,
+    "duration_time_window": 900,
 }
 
 # XXX(meredith): Temporary metrics indexer
