@@ -28,6 +28,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
         ]:
             return int(action.target_identifier)
 
+        # if an input_channel_id is provided, we flip these to display properly
         return (
             action.target_display if action.target_display is not None else action.target_identifier
         )
@@ -45,6 +46,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
                 AlertRuleTriggerAction.TargetType(obj.target_type)
             ],
             "targetIdentifier": self.get_identifier_from_action(obj),
+            "inputChannelId": obj.target_identifier,
             "integrationId": obj.integration_id,
             "sentryAppId": obj.sentry_app_id,
             "dateCreated": obj.date_added,
