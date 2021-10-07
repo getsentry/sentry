@@ -65,6 +65,17 @@ type ModalRenderProps = {
   CloseButton: ReturnType<typeof makeCloseButton>;
 };
 
+/**
+ * Meta-type to make re-exporting these in the action creator easy without
+ * poluting the global API namespace with duplicate type names.
+ *
+ * eg. you won't accidentally import ModalRenderProps from here.
+ */
+export type ModalTypes = {
+  options: ModalOptions;
+  renderProps: ModalRenderProps;
+};
+
 type Props = {
   /**
    * Configuration of the modal
