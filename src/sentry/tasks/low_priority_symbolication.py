@@ -8,11 +8,9 @@ This has three major tasks, executed in the following general order:
 3. Remove some specified project from the LPQ.
 """
 
-import datetime
 import logging
+import time
 from typing import Iterable
-
-import pytz
 
 from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.base import BucketedCount, DurationHistogram
@@ -34,7 +32,7 @@ def scan_for_suspect_projects() -> None:
 
 def _scan_for_suspect_projects() -> None:
     suspect_projects = set()
-    now = int(datetime.datetime.now(tz=pytz.utc).timestamp())
+    now = int(time.time())
 
     for project_id in realtime_metrics.projects():
         suspect_projects.add(project_id)
