@@ -9,7 +9,7 @@ from sentry.models import Environment, Group
 
 
 class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
-    @rate_limit_endpoint(limit=10, window=1)
+    @rate_limit_endpoint(limit=20, window=1)
     def get(self, request, project):
         try:
             environment_id = self._get_environment_id_from_request(request, project.organization_id)
