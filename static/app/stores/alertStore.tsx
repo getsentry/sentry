@@ -3,21 +3,24 @@ import Reflux from 'reflux';
 import AlertActions from 'app/actions/alertActions';
 import {defined} from 'app/utils';
 import localStorage from 'app/utils/localStorage';
+import {Theme} from 'app/utils/theme';
+
+import {CommonStoreInterface} from './types';
 
 type Alert = {
-  message: string;
-  type: 'warning' | 'warn' | 'error';
+  message: React.ReactNode;
+  type: keyof Theme['alert'];
   expireAfter?: number;
   key?: number;
   id?: string;
   url?: string;
   neverExpire?: boolean;
   noDuplicates?: boolean;
+  onClose?: () => void;
 };
 
-type AlertStoreInterface = {
+type AlertStoreInterface = CommonStoreInterface<Alert[]> & {
   init(): void;
-  getInitialState(): Alert[];
   onAddAlert(alert: Alert): void;
   onCloseAlert(alert: Alert, duration?: number): void;
 };
@@ -35,10 +38,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & AlertStoreInterface = {
   init() {
     this.alerts = [];
     this.count = 0;
-  },
-
-  getInitialState() {
-    return this.alerts;
   },
 
   onAddAlert(alert) {
@@ -102,6 +101,10 @@ const storeConfig: Reflux.StoreDefinition & Internals & AlertStoreInterface = {
     // TODO(dcramer): we need some animations here for closing alerts
     this.alerts = this.alerts.filter(item => alert !== item);
     this.trigger(this.alerts);
+  },
+
+  getState() {
+    return this.alerts;
   },
 };
 

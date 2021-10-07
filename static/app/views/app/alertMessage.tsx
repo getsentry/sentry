@@ -7,30 +7,19 @@ import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import {IconCheckmark, IconClose, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
+import AlertStore from 'app/stores/alertStore';
 import space from 'app/styles/space';
 
-type AlertType = {
-  /**
-   * A lot of alerts coming from getsentry do not have an `id`
-   */
-  id?: string;
-  message: React.ReactNode;
-  type: 'success' | 'error' | 'warning' | 'info';
-  url?: string;
-  onClose?: () => void;
-};
-
 type Props = {
-  alert: AlertType;
+  alert: ReturnType<typeof AlertStore['getState']>[number];
   system: boolean;
 };
 
 const AlertMessage = ({alert, system}: Props) => {
-  const handleCloseAlert = () => {
-    AlertActions.closeAlert(alert);
-  };
+  const handleClose = () => AlertActions.closeAlert(alert);
 
   const {url, message, type} = alert;
+
   const icon =
     type === 'success' ? (
       <IconCheckmark size="md" isCircled />
@@ -46,7 +35,7 @@ const AlertMessage = ({alert, system}: Props) => {
       <StyledCloseButton
         icon={<IconClose size="md" isCircled />}
         aria-label={t('Close')}
-        onClick={alert.onClose ?? handleCloseAlert}
+        onClick={alert.onClose ?? handleClose}
         size="zero"
         borderless
       />
