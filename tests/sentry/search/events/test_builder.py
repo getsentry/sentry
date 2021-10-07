@@ -333,6 +333,23 @@ class QueryBuilderTest(TestCase):
             ],
         )
 
+    def test_array_join(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=["array_join(measurements_key)", "count()"],
+            functions_acl=["array_join"],
+        )
+        array_join_column = Function(
+            "arrayJoin",
+            [Column("measurements.key")],
+            "array_join_measurements_key",
+        )
+        self.assertCountEqual(query.columns, [array_join_column, Function("count", [], "count")])
+        # make sure the the array join columns are present in gropuby
+        self.assertCountEqual(query.groupby, [array_join_column])
+
     def test_retention(self):
         with self.options({"system.event-retention-days": 10}):
             with self.assertRaises(QueryOutsideRetentionError):
