@@ -21,7 +21,7 @@ export function openModal(
   renderer: (renderProps: ModalRenderProps) => React.ReactNode,
   options?: ModalOptions
 ) {
-  ModalActions.openModal(renderer, options);
+  ModalActions.openModal(renderer, options ?? {});
 }
 
 /**
