@@ -69,7 +69,7 @@ def submit_symbolicate(
     project: Optional[Project],
     is_low_priority: bool,
     from_reprocessing: bool,
-    cache_key: Optional[str],
+    cache_key: str,
     event_id: Optional[str],
     start_time: Optional[int],
     data: Optional[Event],
@@ -87,7 +87,7 @@ def submit_symbolicate(
 
 
 def _do_symbolicate_event(
-    cache_key: Optional[str],
+    cache_key: str,
     start_time: Optional[int],
     event_id: Optional[str],
     symbolicate_task: Callable[[Optional[str], Optional[int], Optional[str]], None],
@@ -262,7 +262,7 @@ def _do_symbolicate_event(
     acks_late=True,
 )
 def symbolicate_event(
-    cache_key: Optional[str],
+    cache_key: str,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     **kwargs: Any,
@@ -290,7 +290,7 @@ def symbolicate_event(
     acks_late=True,
 )
 def symbolicate_event_low_priority(
-    cache_key: Optional[str],
+    cache_key: str,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     **kwargs: Any,
@@ -321,7 +321,7 @@ def symbolicate_event_low_priority(
     acks_late=True,
 )
 def symbolicate_event_from_reprocessing(
-    cache_key: Optional[str],
+    cache_key: str,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     **kwargs: Any,
@@ -342,7 +342,7 @@ def symbolicate_event_from_reprocessing(
     acks_late=True,
 )
 def symbolicate_event_from_reprocessing_low_priority(
-    cache_key: Optional[str],
+    cache_key: str,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     **kwargs: Any,

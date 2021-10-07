@@ -67,7 +67,7 @@ def _should_process_inner(data: CanonicalKeyDict) -> bool:
 def submit_process(
     project: Optional[Project],
     from_reprocessing: bool,
-    cache_key: Optional[str],
+    cache_key: str,
     event_id: Optional[str],
     start_time: Optional[int],
     data_has_changed: bool = False,
@@ -104,7 +104,7 @@ def submit_save_event(
 
 
 def _do_preprocess_event(
-    cache_key: Optional[str],
+    cache_key: str,
     data: Optional[Event],
     start_time: Optional[int],
     event_id: Optional[str],
@@ -175,7 +175,7 @@ def _do_preprocess_event(
     soft_time_limit=60,
 )
 def preprocess_event(
-    cache_key: Optional[str] = None,
+    cache_key: str,
     data: Optional[Event] = None,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
@@ -199,7 +199,7 @@ def preprocess_event(
     soft_time_limit=60,
 )
 def preprocess_event_from_reprocessing(
-    cache_key: Optional[str] = None,
+    cache_key: str,
     data: Optional[Event] = None,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
@@ -241,7 +241,7 @@ def retry_process_event(process_task_name: str, task_kwargs: Dict[str, Any], **k
 
 
 def _do_process_event(
-    cache_key: Optional[str],
+    cache_key: str,
     start_time: Optional[int],
     event_id: Optional[str],
     process_task: Callable[[Optional[str], Optional[int], Optional[str], bool], None],
@@ -414,7 +414,7 @@ def _do_process_event(
     soft_time_limit=60,
 )
 def process_event(
-    cache_key: Optional[str],
+    cache_key: str,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     data_has_changed: bool = False,
@@ -446,7 +446,7 @@ def process_event(
     soft_time_limit=60,
 )
 def process_event_from_reprocessing(
-    cache_key: Optional[str],
+    cache_key: str,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     data_has_changed: bool = False,
@@ -491,7 +491,7 @@ def delete_raw_event(
 
 
 def create_failed_event(
-    cache_key: Optional[str],
+    cache_key: str,
     data: Optional[Event],
     project_id: int,
     issues: List[Dict[str, str]],
