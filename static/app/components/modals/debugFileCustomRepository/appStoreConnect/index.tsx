@@ -107,7 +107,6 @@ function AppStoreConnect({
   const [activeStep, setActiveStep] = useState(revalidateItunesSession ? 3 : 0);
   const [appStoreApps, setAppStoreApps] = useState<AppStoreApp[]>([]);
   const [appleStoreOrgs, setAppleStoreOrgs] = useState<AppleStoreOrg[]>([]);
-  const [useSms, setUseSms] = useState(false);
   const [sessionContext, setSessionContext] = useState<SessionContext | undefined>(
     undefined
   );
@@ -204,7 +203,6 @@ function AppStoreConnect({
           method: 'POST',
           data: {
             code: stepFourData.authenticationCode,
-            useSms,
             sessionContext,
           },
         }
@@ -312,10 +310,6 @@ function AppStoreConnect({
       setIsLoading(true);
     }
 
-    if (useSms) {
-      setUseSms(false);
-    }
-
     try {
       const response = await api.requestPromise(
         `/projects/${orgSlug}/${projectSlug}/appstoreconnect/start/`,
@@ -357,7 +351,6 @@ function AppStoreConnect({
           data: {sessionContext},
         }
       );
-      setUseSms(true);
       setSessionContext(response.sessionContext);
       addSuccessMessage(t("We've sent a SMS code to your phone"));
     } catch {
