@@ -17,7 +17,11 @@ if TYPE_CHECKING:
     def _fixture(func: Callable[..., Any]) -> Callable[..., None]:
         ...
 
+    def _xfail(func: Callable[..., Any]) -> Callable[..., None]:
+        ...
+
     pytest.fixture = _fixture
+    pytest.mark.xfail = _xfail
 
 
 @pytest.fixture
@@ -55,7 +59,7 @@ def test_default() -> None:
 
 @pytest.mark.xfail
 def test_invalid_config() -> None:
-    invalid_config = {
+    invalid_config: Dict[str, Any] = {
         "cluster": "default",
         "counter_bucket_size": 0,
         "counter_time_window": -1,
