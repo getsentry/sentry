@@ -81,9 +81,14 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
         onConfirm={onDelete}
         disabled={disabled}
       >
-        <MenuItemActionLink title="">{t('Delete issue')}</MenuItemActionLink>
+        <MenuItemActionLink title={t('Delete issue')}>
+          {t('Delete issue')}
+        </MenuItemActionLink>
       </Confirm>
-      <MenuItemActionLink title="" onAction={openDiscardModal}>
+      <MenuItemActionLink
+        title={t('Delete and discard future events')}
+        onAction={openDiscardModal}
+      >
         {t('Delete and discard future events')}
       </MenuItemActionLink>
     </Fragment>
