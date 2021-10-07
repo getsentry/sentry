@@ -182,7 +182,7 @@ export function getCountSeries(
 ): SeriesDataUnit[] {
   return intervals.map((interval, index) => ({
     name: interval,
-    value: group.series[field][index],
+    value: group?.series[field][index] ?? 0,
   }));
 }
 
