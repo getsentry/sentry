@@ -26,7 +26,7 @@ import {
   SelectValue,
   TagCollection,
 } from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import {Aggregation} from 'app/utils/discover/fields';
 import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
@@ -261,12 +261,11 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         set(newState, 'queries', normalized);
 
         if (fromDiscover) {
-          trackAnalyticsEvent({
-            eventKey: 'discover_v2.add_widget_visualization_change',
-            eventName:
-              'Discoverv2: Updated Visualization Display on add to dashboard modal',
-            organization_id: parseInt(organization.id, 10),
-            visualization: displayType,
+          trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.change', {
+            from: 'discoverv2',
+            field,
+            value: displayType,
+            organization,
           });
         }
       }
