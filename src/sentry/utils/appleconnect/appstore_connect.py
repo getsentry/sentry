@@ -83,8 +83,6 @@ def _get_appstore_json(
         logger.debug(f"GET {full_url}")
         with sentry_sdk.start_span(op="http", description="AppStoreConnect request"):
             response = session.get(full_url, headers=headers, timeout=REQUEST_TIMEOUT)
-        if response.status_code == HTTPStatus.UNAUTHORIZED:
-            raise UnauthorizedError(full_url, response.status_code, response.text)
         if not response.ok:
             err_info = {
                 "url": full_url,
