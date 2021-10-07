@@ -130,9 +130,13 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   const {organization} = useLegacyStore(OrganizationStore);
   const store = useLegacyStore(TeamStore);
 
-  // If we need to make a request either for slugs or user teams, set initiallyLoaded to false
-  const initiallyLoaded =
-    slugs || (provideUserTeams && !store.loadedUserTeams) ? false : true;
+  const storeSlugs = new Set(store.teams.map(t => t.slug));
+  const slugsToLoad = slugs?.filter(slug => !storeSlugs.has(slug)) ?? [];
+  const shouldLoadSlugs = slugsToLoad.length > 0;
+  const shouldLoadTeams = provideUserTeams && !store.loadedUserTeams;
+
+  // If we don't need to make a request either for slugs or user teams, set initiallyLoaded to true
+  const initiallyLoaded = !shouldLoadSlugs && !shouldLoadTeams;
   const [state, setState] = useState<State>({
     initiallyLoaded,
     fetching: false,
@@ -177,21 +181,14 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
 
   async function loadTeamsBySlug() {
     const orgId = organization?.slug;
-    if (orgId === undefined || !slugs) {
-      return;
-    }
-
-    const storeSlugs = store.teams.map(t => t.slug);
-    const slugsNotInStore = slugs.filter(slug => !storeSlugs.includes(slug));
-
-    if (slugsNotInStore.length === 0) {
+    if (orgId === undefined) {
       return;
     }
 
     setState({...state, fetching: true});
     try {
       const {results, hasMore, nextCursor} = await fetchTeams(api, orgId, {
-        slugs: slugsNotInStore,
+        slugs: slugsToLoad,
         limit,
       });
 
@@ -261,13 +258,13 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
 
   useEffect(() => {
     // Load specified team slugs
-    if (slugs) {
+    if (shouldLoadSlugs) {
       loadTeamsBySlug();
       return;
     }
 
     // Load user teams
-    if (provideUserTeams && !store.loadedUserTeams) {
+    if (shouldLoadTeams) {
       loadUserTeams();
     }
   }, [slugsRef.current, provideUserTeams]);

@@ -94,6 +94,8 @@ describe('useTeams', function () {
       initialProps: {slugs: ['foo']},
     });
 
+    expect(result.current.initiallyLoaded).toBe(false);
+
     await act(async () => {
       // @ts-expect-error
       await tick();
@@ -104,5 +106,17 @@ describe('useTeams', function () {
     const {teams} = result.current;
     expect(teams.length).toBe(1);
     expect(teams).toEqual(expect.arrayContaining([teamFoo]));
+  });
+
+  it('only loads slugs when needed', async function () {
+    act(() => void TeamStore.loadInitialData(mockTeams));
+
+    const {result} = renderHook(props => useTeams(props), {
+      initialProps: {slugs: [mockTeams[0].slug]},
+    });
+
+    const {teams, initiallyLoaded} = result.current;
+    expect(initiallyLoaded).toBe(true);
+    expect(teams).toEqual(expect.arrayContaining(mockTeams));
   });
 });
