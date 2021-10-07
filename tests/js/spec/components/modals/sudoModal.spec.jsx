@@ -7,7 +7,7 @@ import ConfigStore from 'app/stores/configStore';
 import App from 'app/views/app';
 
 describe('Sudo Modal', function () {
-  const setHaspasswordAuth = hasPasswordAuth =>
+  const setHasPasswordAuth = hasPasswordAuth =>
     act(() => ConfigStore.set('user', {...ConfigStore.get('user'), hasPasswordAuth}));
 
   beforeEach(function () {
@@ -44,7 +44,7 @@ describe('Sudo Modal', function () {
   });
 
   it('can delete an org with sudo flow', async function () {
-    setHaspasswordAuth(true);
+    setHasPasswordAuth(true);
 
     const wrapper = mountWithTheme(
       <App>{<div>placeholder content</div>}</App>,
@@ -129,7 +129,7 @@ describe('Sudo Modal', function () {
   });
 
   it('shows button to redirect if user does not have password auth', async function () {
-    setHaspasswordAuth(false);
+    setHasPasswordAuth(false);
 
     const wrapper = mountWithTheme(
       <App>{<div>placeholder content</div>}</App>,
