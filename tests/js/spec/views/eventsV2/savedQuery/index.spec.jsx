@@ -419,6 +419,18 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     });
   });
   describe('add dashboard widget', () => {
+    beforeEach(() => {
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [],
+      });
+    });
+
     it('opens widget modal when add to dashboard is clicked', async () => {
       const wrapper = generateWrappedComponent(
         location,
@@ -430,14 +442,14 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       wrapper.find('DiscoverQueryMenu').find('Button').first().simulate('click');
       wrapper.find('MenuItem').first().simulate('click');
       await tick();
-      await wrapper.update();
+      await tick();
       const modal = await mountGlobalModal();
       expect(modal.find('AddDashboardWidgetModal').find('h4').children().html()).toEqual(
         'Add Widget to Dashboard'
       );
     });
 
-    it('populated dashboard widget modal with saved query data if created from discover', async () => {
+    it('populates dashboard widget modal with saved query data if created from discover', async () => {
       const wrapper = generateWrappedComponent(
         location,
         organization,
@@ -448,7 +460,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       wrapper.find('DiscoverQueryMenu').find('Button').first().simulate('click');
       wrapper.find('MenuItem').first().simulate('click');
       await tick();
-      await wrapper.update();
+      await tick();
       const modal = await mountGlobalModal();
       expect(modal.find('SmartSearchBar').props().query).toEqual('event.type:error');
       expect(modal.find('QueryField').at(0).props().fieldValue.function[0]).toEqual(
@@ -470,7 +482,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       wrapper.find('DiscoverQueryMenu').find('Button').first().simulate('click');
       wrapper.find('MenuItem').first().simulate('click');
       await tick();
-      await wrapper.update();
+      await tick();
       const modal = await mountGlobalModal();
       expect(modal.find('QueryField').at(2).props().fieldValue.field).toEqual(
         'count() + failure_count()'
@@ -483,12 +495,12 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         organization,
         errorsViewModified,
         savedQuery,
-        [...yAxis, 'equation|count() + count_unqiue(user)']
+        [...yAxis, 'equation|count() + count_unique(user)']
       );
       wrapper.find('DiscoverQueryMenu').find('Button').first().simulate('click');
       wrapper.find('MenuItem').first().simulate('click');
       await tick();
-      await wrapper.update();
+      await tick();
       const modal = await mountGlobalModal();
       expect(modal.find('QueryField').length).toEqual(2);
     });
