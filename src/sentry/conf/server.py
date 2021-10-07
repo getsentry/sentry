@@ -1805,7 +1805,7 @@ SENTRY_DEVSERVICES = {
             # altinity provides clickhouse support to other companies
             # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
             # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
-            "image": "altinity/clickhouse-server:21.6.1.6734-testing-arm"
+            "image": "altinity/clickhouse-server:20.10.1.4844-testing-arm"
             if APPLE_ARM64
             else "yandex/clickhouse-server:20.3.9.70",
             "pull": True,
