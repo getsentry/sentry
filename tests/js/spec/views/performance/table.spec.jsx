@@ -109,7 +109,7 @@ describe('Performance > Table', function () {
         },
         data: [
           {
-            key_transaction: 1,
+            team_key_transaction: 1,
             transaction: '/apple/cart',
             project: project1.slug,
             user: 'uhoh@example.com',
@@ -124,7 +124,7 @@ describe('Performance > Table', function () {
             project_threshold_config: ['duration', 300],
           },
           {
-            key_transaction: 0,
+            team_key_transaction: 0,
             transaction: '/apple/checkout',
             project: project2.slug,
             user: 'uhoh@example.com',

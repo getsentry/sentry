@@ -15,8 +15,17 @@ class GroupHistoryStatus:
     UNASSIGNED = 6
     REGRESSED = 7
     DELETED = 8
-    DELETED_AND_DISCADED = 9
+    DELETED_AND_DISCARDED = 9
     REVIEWED = 10
+
+
+ACTIONED_STATUSES = [
+    GroupHistoryStatus.RESOLVED,
+    GroupHistoryStatus.IGNORED,
+    GroupHistoryStatus.REVIEWED,
+    GroupHistoryStatus.DELETED,
+    GroupHistoryStatus.DELETED_AND_DISCARDED,
+]
 
 
 class GroupHistory(Model):
@@ -25,7 +34,7 @@ class GroupHistory(Model):
     and is designed to power a few types of queries:
     - `resolved_in:release` syntax - we can query for entries with status=REGRESSION and matching release
     - Time to Resolution and Age of Unresolved Issues-style queries
-    - Issue Actvity/Status over time breakdown (i.e. for each of the last 14 days, how many new, resolved, regressed, unignored, etc. issues were there?)
+    - Issue Activity/Status over time breakdown (i.e. for each of the last 14 days, how many new, resolved, regressed, unignored, etc. issues were there?)
     """
 
     __include_in_export__ = False
@@ -48,7 +57,7 @@ class GroupHistory(Model):
             (GroupHistoryStatus.ASSIGNED, _("Assigned")),
             (GroupHistoryStatus.UNASSIGNED, _("Unassigned")),
             (GroupHistoryStatus.DELETED, _("Deleted")),
-            (GroupHistoryStatus.DELETED_AND_DISCADED, _("Deleted and Discarded")),
+            (GroupHistoryStatus.DELETED_AND_DISCARDED, _("Deleted and Discarded")),
             (GroupHistoryStatus.REVIEWED, _("Reviewed")),
         ),
     )
