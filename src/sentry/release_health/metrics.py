@@ -33,7 +33,10 @@ from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets, parse_snuba_datetime
 from sentry.snuba.sessions_v2 import QueryDefinition
+from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.snuba import QueryOutsideRetentionError, raw_snql_query
+
+SMALLEST_METRICS_BUCKET = 10
 
 
 class MetricIndexNotFound(Exception):
@@ -1285,4 +1288,44 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
+        assert stat in ("users", "sessions")
+
+        org_id = self._get_org_id([project_id])
+
+        # since snuba end queries are exclusive of the time and we're bucketing to
+        # 10 seconds, we need to round to the next 10 seconds since snuba is
+        # exclusive on the end.
+        end = to_datetime(
+            (to_timestamp(end) // SMALLEST_METRICS_BUCKET + 1) * SMALLEST_METRICS_BUCKET
+        )
+
+        where = [
+            Condition(Column("project_id"), Op.EQ, project_id),
+            Condition(Column(tag_key(org_id, "release")), Op.EQ, release),
+        ]
+
+        if environments is not None:
+            where.append(
+                Condition(
+                    Column(tag_key(org_id, "environment")),
+                    Op.IN,
+                    get_tag_values_list(org_id, environments),
+                )
+            )
+
+        buckets = int((end - start).total_seconds() / rollup)
+        stats = _make_stats(start, rollup, buckets, default=None)
+
+        # Due to the nature of the probabilistic data structures some
+        # subtractions can become negative.  As such we're making sure a number
+        # never goes below zero to avoid confusion.
+
+        totals = {
+            stat: 0,
+            stat + "_healthy": 0,
+            stat + "_crashed": 0,
+            stat + "_abnormal": 0,
+            stat + "_errored": 0,
+        }
+
         raise NotImplementedError()
