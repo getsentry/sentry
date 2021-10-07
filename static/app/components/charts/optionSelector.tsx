@@ -7,11 +7,13 @@ import DropdownBubble from 'app/components/dropdownBubble';
 import DropdownButton from 'app/components/dropdownButton';
 import {DropdownItem} from 'app/components/dropdownControl';
 import DropdownMenu from 'app/components/dropdownMenu';
+import FeatureBadge from 'app/components/featureBadge';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
+import {defined} from 'app/utils';
 
 const defaultProps = {
   menuWidth: 'auto',
@@ -22,6 +24,7 @@ type Props = {
   selected: string;
   onChange: (value: string) => void;
   title: string;
+  featureType?: 'alpha' | 'beta' | 'new';
 } & typeof defaultProps;
 
 type State = {
@@ -58,12 +61,15 @@ class OptionSelector extends Component<Props, State> {
 
   render() {
     const {menuContainerWidth} = this.state;
-    const {options, onChange, selected, title, menuWidth} = this.props;
+    const {options, onChange, selected, title, menuWidth, featureType} = this.props;
     const selectedOption = options.find(opt => selected === opt.value) || options[0];
 
     return (
       <InlineContainer>
-        <SectionHeading>{title}</SectionHeading>
+        <SectionHeading>
+          {title}
+          {defined(featureType) ? <StyledFeatureBadge type={featureType} /> : null}
+        </SectionHeading>
         <MenuContainer ref={this.menuContainerRef}>
           <DropdownMenu alwaysRenderMenu={false}>
             {({isOpen, getMenuProps, getActorProps}) => (
@@ -152,6 +158,10 @@ const StyledDropdownBubble = styled(DropdownBubble)<{
 const StyledDropdownItem = styled(DropdownItem)`
   line-height: ${p => p.theme.text.lineHeightBody};
   white-space: nowrap;
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin-left: 0px;
 `;
 
 export default OptionSelector;

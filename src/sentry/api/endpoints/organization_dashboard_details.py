@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
@@ -30,6 +31,7 @@ class OrganizationDashboardBase(OrganizationEndpoint):
 
     def _get_dashboard(self, request, organization, dashboard_id):
         prebuilt = Dashboard.get_prebuilt(dashboard_id)
+        sentry_sdk.set_tag("dashboard.is_prebuilt", prebuilt is not None)
         if prebuilt:
             return prebuilt
         return Dashboard.objects.get(id=dashboard_id, organization_id=organization.id)

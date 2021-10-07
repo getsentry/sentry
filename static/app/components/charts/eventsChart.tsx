@@ -180,7 +180,8 @@ class Chart extends React.Component<ChartProps, State> {
 
     const releasesLegend = t('Releases');
 
-    if (topEvents && topEvents + 1 === timeseriesData.length) {
+    const hasOther = topEvents && topEvents + 1 === timeseriesData.length;
+    if (hasOther) {
       data.push('Other');
     }
 
@@ -223,12 +224,16 @@ class Chart extends React.Component<ChartProps, State> {
     if (previousSeriesTransformer) {
       previousSeries = previousSeriesTransformer(previousTimeseriesData);
     }
+    const chartColors = timeseriesData.length
+      ? colors?.slice(0, series.length) ?? [
+          ...theme.charts.getColorPalette(timeseriesData.length - 2 - (hasOther ? 1 : 0)),
+        ]
+      : undefined;
+    if (chartColors && chartColors.length && hasOther) {
+      chartColors.push(theme.chartOther);
+    }
     const chartOptions = {
-      colors: timeseriesData.length
-        ? colors?.slice(0, series.length) ?? [
-            ...theme.charts.getColorPalette(timeseriesData.length - 2),
-          ]
-        : undefined,
+      colors: chartColors,
       grid: {
         left: '24px',
         right: '24px',
