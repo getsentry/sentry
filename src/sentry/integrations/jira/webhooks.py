@@ -8,7 +8,7 @@ from sentry.integrations.atlassian_connect import (
     AtlassianConnectValidationError,
     get_integration_from_jwt,
 )
-from sentry.models import sync_group_assignee_inbound
+from sentry.integrations.utils import sync_group_assignee_inbound
 
 from .client import JiraApiClient, JiraCloud
 

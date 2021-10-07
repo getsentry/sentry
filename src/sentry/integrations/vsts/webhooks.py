@@ -8,12 +8,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.models import (
-    Identity,
-    Integration,
-    OrganizationIntegration,
-    sync_group_assignee_inbound,
-)
+from sentry.integrations.utils import sync_group_assignee_inbound
+from sentry.models import Identity, Integration, OrganizationIntegration
 from sentry.models.apitoken import generate_token
 
 from .client import VstsApiClient

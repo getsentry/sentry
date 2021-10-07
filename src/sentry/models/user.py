@@ -99,6 +99,13 @@ class UserManager(BaseManager, DjangoUserManager):
             .filter(row_count=1)
         )
 
+    def get_for_email(self, email: str) -> Sequence["User"]:
+        return self.filter(
+            emails__email=email,
+            emails__is_verified=True,
+            is_active=True,
+        )
+
 
 class User(BaseModel, AbstractBaseUser):
     __include_in_export__ = True
