@@ -1,3 +1,5 @@
+import {act} from 'react-dom/test-utils';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
@@ -136,7 +138,7 @@ describe('Organization Developer Settings', function () {
       expect(wrapper.find(publishButtonSelector).prop('disabled')).toEqual(false);
       wrapper.find(publishButtonSelector).simulate('click');
 
-      await tick();
+      await act(tick);
       wrapper.update();
 
       const modal = await mountGlobalModal();
