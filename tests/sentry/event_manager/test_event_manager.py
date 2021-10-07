@@ -1240,7 +1240,7 @@ class EventManagerTest(TestCase):
         assert data["type"] == "transaction"
 
     def test_transaction_event_span_grouping(self):
-        with self.feature("organizations:performance-suspect-spans-ingestion"):
+        with self.feature("projects:performance-suspect-spans-ingestion"):
             manager = EventManager(
                 make_event(
                     **{

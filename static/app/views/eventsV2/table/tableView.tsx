@@ -249,10 +249,6 @@ class TableView extends React.Component<TableViewProps> {
 
     let cell = fieldRenderer(dataRow, {organization, location});
 
-    const hasOther =
-      organization.features.includes('discover-top-events') &&
-      (tableData?.data?.length ?? 0) > TOP_N;
-
     if (columnKey === 'id') {
       const eventSlug = generateEventSlug(dataRow);
 
@@ -313,7 +309,7 @@ class TableView extends React.Component<TableViewProps> {
       <React.Fragment>
         {isFirstPage && isTopEvents && rowIndex < topEvents && columnIndex === 0 ? (
           // Add one if we need to include Other in the series
-          <TopResultsIndicator count={count + (hasOther ? 1 : 0)} index={rowIndex} />
+          <TopResultsIndicator count={count} index={rowIndex} />
         ) : null}
         <CellAction
           column={column}
@@ -359,7 +355,7 @@ class TableView extends React.Component<TableViewProps> {
 
   handleCellAction = (dataRow: TableDataRow, column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, organization, projects} = this.props;
+      const {eventView, organization, projects, location} = this.props;
 
       const query = new MutableSearch(eventView.query);
 
@@ -431,7 +427,10 @@ class TableView extends React.Component<TableViewProps> {
       }
       nextView.query = query.formatString();
 
-      browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
+      const target = nextView.getResultsViewUrlTarget(organization.slug);
+      // Get yAxis from location
+      target.query.yAxis = decodeList(location.query.yAxis);
+      browserHistory.push(target);
     };
   };
 

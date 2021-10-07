@@ -19,11 +19,11 @@ import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project, SessionApiResponse, SessionField} from 'app/types';
+import {Organization, Project, SessionApiResponse} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 import {getCount, getCrashFreeRateSeries} from 'app/utils/sessions';
 import withApi from 'app/utils/withApi';
-import {isSessionAggregate} from 'app/views/alerts/utils';
+import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'app/views/alerts/utils';
 import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 
@@ -115,17 +115,17 @@ const AGGREGATE_FUNCTIONS = {
     Math.min(...seriesChunk.map(series => series.value)),
 };
 
-const SESSION_AGGREGATE_TO_FIELD = {
-  [SessionsAggregate.CRASH_FREE_SESSIONS]: SessionField.SESSIONS,
-  [SessionsAggregate.CRASH_FREE_USERS]: SessionField.USERS,
-};
-
 const TIME_WINDOW_TO_SESSION_INTERVAL = {
   [TimeWindow.THIRTY_MINUTES]: '30m',
   [TimeWindow.ONE_HOUR]: '1h',
   [TimeWindow.TWO_HOURS]: '2h',
   [TimeWindow.FOUR_HOURS]: '4h',
   [TimeWindow.ONE_DAY]: '1d',
+};
+
+const SESSION_AGGREGATE_TO_HEADING = {
+  [SessionsAggregate.CRASH_FREE_SESSIONS]: t('Total Sessions'),
+  [SessionsAggregate.CRASH_FREE_USERS]: t('Total Users'),
 };
 
 /**
@@ -315,7 +315,9 @@ class TriggersChart extends React.PureComponent<Props, State> {
         <ChartControls>
           <InlineContainer>
             <SectionHeading>
-              {isSessionAggregate(aggregate) ? t('Total Sessions') : t('Total Events')}
+              {isSessionAggregate(aggregate)
+                ? SESSION_AGGREGATE_TO_HEADING[aggregate]
+                : t('Total Events')}
             </SectionHeading>
             <SectionValue>
               {totalCount !== null ? totalCount.toLocaleString() : '\u2014'}

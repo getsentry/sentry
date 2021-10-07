@@ -204,6 +204,10 @@ const StyledPanelTable = styled(PanelTable)`
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
+
+  & > div {
+    padding: ${space(1)} ${space(2)};
+  }
 `;
 
 const RightAligned = styled('span')`

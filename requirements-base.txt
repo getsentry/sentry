@@ -1,6 +1,6 @@
 beautifulsoup4==4.7.1
-boto3==1.10.49
-botocore==1.13.50
+boto3==1.13.16
+botocore==1.16.16
 celery==4.4.7
 click==7.1.2
 confluent-kafka==1.5.0; python_version <= '3.8'
