@@ -17,14 +17,7 @@ from structlog import get_logger
 from bitfield import BitField
 from sentry import roles
 from sentry.constants import ALERTS_MEMBER_WRITE_DEFAULT, EVENTS_MEMBER_ADMIN_DEFAULT
-from sentry.db.models import (
-    BaseModel,
-    BoundedAutoField,
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    Model,
-    sane_repr,
-)
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.models.team import TeamStatus
 from sentry.utils.http import absolute_uri
@@ -47,36 +40,6 @@ invite_status_names = {
     InviteStatus.REQUESTED_TO_BE_INVITED.value: "requested_to_be_invited",
     InviteStatus.REQUESTED_TO_JOIN.value: "requested_to_join",
 }
-
-
-class OrganizationMemberTeam(BaseModel):
-    """
-    Identifies relationships between organization members and the teams they are on.
-    """
-
-    __include_in_export__ = True
-
-    id = BoundedAutoField(primary_key=True)
-    team = FlexibleForeignKey("sentry.Team")
-    organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
-    # an inactive membership simply removes the team from the default list
-    # but still allows them to re-join without request
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_organizationmember_teams"
-        unique_together = (("team", "organizationmember"),)
-
-    __repr__ = sane_repr("team_id", "organizationmember_id")
-
-    def get_audit_log_data(self):
-        return {
-            "team_slug": self.team.slug,
-            "member_id": self.organizationmember_id,
-            "email": self.organizationmember.get_email(),
-            "is_active": self.is_active,
-        }
 
 
 class OrganizationMemberManager(BaseManager):
@@ -350,7 +313,7 @@ class OrganizationMember(Model):
         return "letter_avatar"
 
     def get_audit_log_data(self):
-        from sentry.models import Team
+        from sentry.models import OrganizationMemberTeam, Team
 
         teams = list(
             Team.objects.filter(
@@ -371,7 +334,7 @@ class OrganizationMember(Model):
         }
 
     def get_teams(self):
-        from sentry.models import Team
+        from sentry.models import OrganizationMemberTeam, Team
 
         return Team.objects.filter(
             status=TeamStatus.VISIBLE,

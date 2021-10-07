@@ -7,11 +7,11 @@ from datetime import timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import List, Mapping, Optional, Sequence, Set
+from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Set, Union
 
 from django.core.cache import cache
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.utils import timezone
 from django.utils.http import urlencode, urlquote
 from django.utils.translation import ugettext_lazy as _
@@ -33,6 +33,9 @@ from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
+
+if TYPE_CHECKING:
+    from sentry.models import Integration, Team, User
 
 logger = logging.getLogger(__name__)
 
@@ -282,10 +285,14 @@ class GroupManager(BaseManager):
 
         return Group.objects.filter(id__in=group_ids)
 
-    def get_groups_by_external_issue(self, integration, external_issue_key):
+    def get_groups_by_external_issue(
+        self,
+        integration: "Integration",
+        external_issue_key: str,
+    ) -> QuerySet:
         from sentry.models import ExternalIssue, GroupLink
 
-        return Group.objects.filter(
+        return self.filter(
             id__in=GroupLink.objects.filter(
                 linked_id__in=ExternalIssue.objects.filter(
                     key=external_issue_key,
@@ -602,3 +609,18 @@ class Group(Model):
                 id__in=group_ids, project_id__in=project_ids, project__organization=organization
             )
         }
+
+    def get_assignee(self) -> Optional[Union["Team", "User"]]:
+        from sentry.models import GroupAssignee
+
+        try:
+            group_assignee = GroupAssignee.objects.get(group=self)
+        except GroupAssignee.DoesNotExist:
+            return None
+
+        assigned_actor = group_assignee.assigned_actor()
+
+        try:
+            return assigned_actor.resolve()
+        except assigned_actor.type.DoesNotExist:
+            return None

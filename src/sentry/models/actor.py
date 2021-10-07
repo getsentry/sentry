@@ -1,5 +1,5 @@
 from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING, Optional, Sequence, Type, Union
+from typing import TYPE_CHECKING, Mapping, Optional, Sequence, Type, Union
 
 from django.db import models
 from django.db.models.signals import pre_save
@@ -137,7 +137,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         return list(filter(None, [results.get((actor.type, actor.id)) for actor in actors]))
 
     @classmethod
-    def resolve_dict(cls, actor_dict):
+    def resolve_dict(cls, actor_dict: Mapping[int, "Actor"]) -> Mapping[int, Union["Team", "User"]]:
         actors_by_type = defaultdict(list)
         for actor in actor_dict.values():
             actors_by_type[actor.type].append(actor)
