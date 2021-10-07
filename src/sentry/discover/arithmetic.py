@@ -353,10 +353,13 @@ def strip_equation(field: str) -> str:
     return field[len(EQUATION_PREFIX) :]
 
 
-def get_equation_list(fields):
+def categorize_columns(columns) -> Tuple[List[str], List[str]]:
     """equations have a prefix so that they can be easily included alongside our existing fields"""
-    return [strip_equation(field) for field in fields if is_equation(field)]
-
-
-def get_field_list(fields):
-    return [field for field in fields if not is_equation(field)]
+    equations = []
+    fields = []
+    for column in columns:
+        if is_equation(column):
+            equations.append(strip_equation(column))
+        else:
+            fields.append(column)
+    return equations, fields
