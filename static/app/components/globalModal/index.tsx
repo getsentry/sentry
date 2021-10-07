@@ -147,6 +147,9 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
     return reset;
   }, [portal, handleEscapeClose, visible]);
 
+  // Close the modal when the browser history changes
+  React.useEffect(() => browserHistory.listen(() => actionCloseModal()), []);
+
   const renderedChild = children?.({
     CloseButton: makeCloseButton(closeModal),
     Header: makeClosableHeader(closeModal),
@@ -249,13 +252,7 @@ class GlobalModalContainer extends React.Component<Partial<Props>, State> {
     modalStore: ModalStore.get(),
   };
 
-  componentDidMount() {
-    // Listen for route changes so we can dismiss modal
-    this.unlistenBrowserHistory = browserHistory.listen(() => actionCloseModal());
-  }
-
   componentWillUnmount() {
-    this.unlistenBrowserHistory?.();
     this.unlistener?.();
   }
 
@@ -263,8 +260,6 @@ class GlobalModalContainer extends React.Component<Partial<Props>, State> {
     (modalStore: State['modalStore']) => this.setState({modalStore}),
     undefined
   );
-
-  unlistenBrowserHistory?: ReturnType<typeof browserHistory.listen>;
 
   render() {
     const {modalStore} = this.state;
