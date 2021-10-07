@@ -166,7 +166,7 @@ def gauge(
         current_tags.update(tags)
 
     try:
-        backend.gauge(key, instance, current_tags, value, sample_rate)
+        backend.gauge(key, value, instance, current_tags, sample_rate)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
