@@ -119,27 +119,12 @@ const getFullActionTitle = ({
  * Lists saved actions as well as control to add a new action
  */
 class ActionsPanel extends PureComponent<Props> {
-  handleChangeTargetIdentifier(triggerIndex: number, index: number, value: string) {
+  handleChangeKey(triggerIndex: number, index: number, key: string, value: string) {
     const {triggers, onChange} = this.props;
     const {actions} = triggers[triggerIndex];
     const newAction = {
       ...actions[index],
-      targetIdentifier: value,
-    };
-
-    onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
-  }
-
-  handleChangeSpecificTargetIdentifier(
-    triggerIndex: number,
-    index: number,
-    value: string
-  ) {
-    const {triggers, onChange} = this.props;
-    const {actions} = triggers[triggerIndex];
-    const newAction = {
-      ...actions[index],
-      inputChannelId: value,
+      [key]: value,
     };
 
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
@@ -330,10 +315,11 @@ class ActionsPanel extends PureComponent<Props> {
                       availableAction={availableAction}
                       disabled={disabled}
                       loading={loading}
-                      onChange={this.handleChangeTargetIdentifier.bind(
+                      onChange={this.handleChangeKey.bind(
                         this,
                         triggerIndex,
-                        actionIdx
+                        actionIdx,
+                        'targetIdentifier'
                       )}
                       organization={organization}
                       project={project}
@@ -343,10 +329,11 @@ class ActionsPanel extends PureComponent<Props> {
                       availableAction={availableAction}
                       disabled={disabled}
                       loading={loading}
-                      onChange={this.handleChangeSpecificTargetIdentifier.bind(
+                      onChange={this.handleChangeKey.bind(
                         this,
                         triggerIndex,
-                        actionIdx
+                        actionIdx,
+                        'inputChannelId'
                       )}
                       organization={organization}
                       project={project}
