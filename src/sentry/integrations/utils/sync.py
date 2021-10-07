@@ -1,12 +1,12 @@
 import logging
-from typing import Mapping, Optional, Sequence, TYPE_CHECKING
+from typing import TYPE_CHECKING, Mapping, Optional, Sequence
 
 from sentry import features
 from sentry.models import GroupAssignee
 from sentry.tasks.integrations import sync_assignee_outbound
 
 if TYPE_CHECKING:
-    from sentry.models import Group, GroupLink, Integration, Organization, Project, User
+    from sentry.models import Group, Integration, Organization
 
 
 def where_should_sync(
@@ -27,20 +27,20 @@ def where_should_sync(
         organization
         for organization in integration.organizations.filter(**kwargs)
         if features.has("organizations:integrations-issue-sync", organization)
-           and integration.get_installation(organization.id).should_sync(key)
+        and integration.get_installation(organization.id).should_sync(key)
     ]
 
 
-def get_user(projects_by_user: Mapping["User", Sequence["Project"]], group: "Group") -> Optional["User"]:
-    users = [
-        user
-        for user, projects in projects_by_user.items()
-        for project in projects
-        if group.project_id == project.id
+def get_user_id(projects_by_user: Mapping[int, Sequence[int]], group: "Group") -> Optional[int]:
+    user_ids = [
+        user_id
+        for user_id, project_ids in projects_by_user.items()
+        for project_id in project_ids
+        if group.project_id == project_id
     ]
-    if not users:
+    if not user_ids:
         return None
-    return users[0]
+    return user_ids[0]
 
 
 def sync_group_assignee_inbound(
@@ -59,10 +59,10 @@ def sync_group_assignee_inbound(
     logger = logging.getLogger(f"sentry.integrations.{integration.provider}")
 
     orgs_with_sync_enabled = where_should_sync(integration, "inbound_assignee")
-    affected_groups = Group.objects.get_groups_by_external_issue(
-        integration,
-        orgs_with_sync_enabled,
-        external_issue_key,
+    affected_groups = (
+        Group.objects.get_groups_by_external_issue(integration, external_issue_key)
+        .filter(project__organization__in=orgs_with_sync_enabled)
+        .select_related("project")
     )
     if not affected_groups:
         return []
@@ -73,13 +73,14 @@ def sync_group_assignee_inbound(
         return affected_groups
 
     users = User.objects.get_for_email(email)
+    users_by_id = {user.id: user for user in users}
     projects_by_user = Project.objects.get_by_users(users)
 
     groups_assigned = []
     for group in affected_groups:
-        user = get_user(projects_by_user, group)
-        if user:
-            GroupAssignee.objects.assign(group, user)
+        user_id = get_user_id(projects_by_user, group)
+        if user_id:
+            GroupAssignee.objects.assign(group, users_by_id.get(user_id))
             groups_assigned.append(group)
         else:
             logger.info(
@@ -93,7 +94,11 @@ def sync_group_assignee_inbound(
     return groups_assigned
 
 
-def sync_group_assignee_outbound(group: "Group", user_id: Optional[int], assign: bool = True) -> None:
+def sync_group_assignee_outbound(
+    group: "Group", user_id: Optional[int], assign: bool = True
+) -> None:
+    from sentry.models import GroupLink
+
     external_issue_ids = GroupLink.objects.filter(
         project_id=group.project_id, group_id=group.id, linked_type=GroupLink.LinkedType.issue
     ).values_list("linked_id", flat=True)
