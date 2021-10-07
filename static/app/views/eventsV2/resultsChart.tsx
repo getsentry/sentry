@@ -103,7 +103,9 @@ class ResultsChart extends Component<ResultsChartProps> {
               confirmedQuery={confirmedQuery}
               withoutZerofill={hasPerformanceChartInterpolation}
               chartComponent={
-                hasConnectDiscoverAndDashboards && !isDaily ? AreaChart : undefined
+                hasConnectDiscoverAndDashboards && yAxisValue.length > 1 && !isDaily
+                  ? AreaChart
+                  : undefined
               }
               referrer={referrer}
             />
