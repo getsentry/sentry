@@ -31,7 +31,7 @@ logger = logging.getLogger("sentry.rules")
 class SlackNotifyServiceForm(forms.Form):  # type: ignore
     workspace = forms.ChoiceField(choices=(), widget=forms.Select())
     channel = forms.CharField(widget=forms.TextInput())
-    channel_id = forms.HiddenInput()
+    channel_id = forms.CharField(required=False, widget=forms.TextInput())
     tags = forms.CharField(required=False, widget=forms.TextInput())
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -147,7 +147,7 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
 
 class SlackNotifyServiceAction(IntegrationEventAction):  # type: ignore
     form_cls = SlackNotifyServiceForm
-    label = "Send a notification to the {workspace} Slack workspace to {channel} and show tags {tags} in notification"
+    label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"
     prompt = "Send a Slack notification"
     provider = "slack"
     integration_key = "workspace"
@@ -160,6 +160,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):  # type: ignore
                 "choices": [(i.id, i.name) for i in self.get_integrations()],
             },
             "channel": {"type": "string", "placeholder": "i.e #critical"},
+            "channel_id": {"type": "string", "placeholder": "i.e. CA2FRA079 or UA1J9RTE1"},
             "tags": {"type": "string", "placeholder": "i.e environment,user,my_tag"},
         }
 
@@ -209,6 +210,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):  # type: ignore
         return self.label.format(
             workspace=self.get_integration_name(),
             channel=self.get_option("channel"),
+            channel_id=self.get_option("channel_id"),
             tags="[{}]".format(", ".join(tags)),
         )
 
