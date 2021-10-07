@@ -109,6 +109,10 @@ type Props = {
       ) => string;
       valueFormatter?: (value: number, label?: string) => string | number;
       nameFormatter?: (name: string) => string;
+      /**
+       * Array containing seriesNames that need to be indented
+       */
+      indentLabels?: string[];
     };
   /**
    * DataZoom (allows for zooming of chart)
@@ -455,6 +459,9 @@ const ChartContainer = styled('div')`
   .tooltip-label strong {
     font-weight: normal;
     color: ${p => p.theme.white};
+  }
+  .tooltip-label-indent {
+    margin-left: ${space(3)};
   }
   .tooltip-series > div {
     display: flex;
