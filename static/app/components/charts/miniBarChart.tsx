@@ -2,10 +2,11 @@
 import './components/markPoint';
 
 import * as React from 'react';
+import {withTheme} from '@emotion/react';
 import set from 'lodash/set';
 
 import {getFormattedDate} from 'app/utils/dates';
-import theme from 'app/utils/theme';
+import theme, {Theme} from 'app/utils/theme';
 
 import BarChart, {BarChartSeries} from './barChart';
 import BaseChart from './baseChart';
@@ -43,6 +44,8 @@ type BarChartProps = React.ComponentProps<typeof BarChart>;
 
 type Props = Omit<ChartProps, 'series'> &
   typeof defaultProps & {
+    theme: Theme;
+
     /**
      * A list of series to be rendered as markLine components on the chart
      * This is often used to indicate start/end markers on the xAxis
@@ -86,6 +89,7 @@ class MiniBarChart extends React.Component<Props> {
       series,
       hideDelay,
       tooltipFormatter,
+      theme,
       ...props
     } = this.props;
 
@@ -151,7 +155,7 @@ class MiniBarChart extends React.Component<Props> {
           symbolSize: marker.symbolSize ?? 8,
           itemStyle: {
             color: marker.color,
-            borderColor: '#ffffff',
+            borderColor: theme.background,
           },
         })),
       };
@@ -227,4 +231,4 @@ class MiniBarChart extends React.Component<Props> {
   }
 }
 
-export default MiniBarChart;
+export default withTheme(MiniBarChart);
