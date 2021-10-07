@@ -29,7 +29,7 @@ function AppRoot() {
     const url = replaceRouterParams(DEFAULT_APP_ROUTE, {orgSlug});
 
     browserHistory.replace(url);
-  }, []);
+  }, [config]);
 
   return null;
 }
