@@ -4,7 +4,10 @@ import Reflux from 'reflux';
 import {HookName, Hooks} from 'app/types/hooks';
 
 type HookStoreInterface = {
-  hooks: {[H in HookName]?: Array<Hooks[H]>};
+  // XXX(epurkhiser): We could type this as {[H in HookName]?:
+  // Array<Hooks[H]>}, however this causes typescript to produce a complex
+  // union that it complains is 'too complex'
+  hooks: any;
 
   add<H extends HookName>(hookName: H, callback: Hooks[H]): void;
   remove<H extends HookName>(hookName: H, callback: Hooks[H]): void;
