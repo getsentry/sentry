@@ -1,3 +1,4 @@
+import {dashboardsEventMap, DashboardsEventParameters} from './dashboardsAnalyticsEvents';
 import {growthEventMap, GrowthEventParameters} from './growthAnalyticsEvents';
 import {issueEventMap, IssueEventParameters} from './issueAnalyticsEvents';
 import makeAnalyticsFunction from './makeAnalyticsFunction';
@@ -8,12 +9,14 @@ import {
 
 type EventParameters = GrowthEventParameters &
   IssueEventParameters &
-  PerformanceEventParameters;
+  PerformanceEventParameters &
+  DashboardsEventParameters;
 
 const allEventMap = {
   ...growthEventMap,
   ...issueEventMap,
   ...performanceEventMap,
+  ...dashboardsEventMap,
 };
 
 /**
