@@ -152,7 +152,7 @@ class WidgetQueries extends React.Component<Props, State> {
 
     const [widgetQueryNames, widgetQueries] = widget.queries
       .map((query: WidgetQuery) => {
-        query.fields = query.fields.filter(field => !!field);
+        query.fields = query.fields.filter(field => !!field && field !== 'equation|');
         return query;
       })
       .reduce(
