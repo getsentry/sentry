@@ -14,6 +14,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
         }
 
     def get_child_relations(self, instance):
+        from sentry.deletions.defaults.discoversavedquery import DiscoverSavedQueryDeletionTask
         from sentry.discover.models import DiscoverSavedQuery, TeamKeyTransaction
         from sentry.incidents.models import AlertRule, Incident
         from sentry.models import (
@@ -45,13 +46,20 @@ class OrganizationDeletionTask(ModelDeletionTask):
             Project,
             Environment,
             Dashboard,
-            DiscoverSavedQuery,
             TeamKeyTransaction,
             ExternalIssue,
             PromptsActivity,
             ProjectTransactionThreshold,
         )
         relations.extend([ModelRelation(m, {"organization_id": instance.id}) for m in model_list])
+        # Explicitly assign the task here as it was getting replaced with BulkModelDeletionTask in CI.
+        relations.append(
+            ModelRelation(
+                DiscoverSavedQuery,
+                {"organization_id": instance.id},
+                task=DiscoverSavedQueryDeletionTask,
+            )
+        )
 
         return relations
 

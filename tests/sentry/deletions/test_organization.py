@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models import (
     Commit,
@@ -215,3 +216,28 @@ class DeleteOrganizationTest(TransactionTestCase):
         assert not Environment.objects.filter(id=env.id).exists()
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
         assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()
+
+    def test_discover_query_cleanup(self):
+        org = self.create_organization(name="test", owner=self.user)
+        self.create_team(organization=org, name="test1")
+
+        other = self.create_organization(name="other", owner=self.user)
+        other_project = self.create_project(organization=other, name="other project")
+
+        query = DiscoverSavedQuery.objects.create(organization=org, name="test query", query="{}")
+        # Make a cross-org project reference. This can happen when an account was
+        # merged in the past and we didn't update the discover queries.
+        query_project = DiscoverSavedQueryProject.objects.create(
+            discover_saved_query=query, project=other_project
+        )
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        deletion = ScheduledDeletion.schedule(org, days=0)
+        deletion.update(in_progress=True)
+
+        with self.tasks():
+            run_deletion(deletion.id)
+
+        assert not Organization.objects.filter(id=org.id).exists()
+        assert not DiscoverSavedQuery.objects.filter(id=query.id).exists()
+        assert not DiscoverSavedQueryProject.objects.filter(id=query_project.id).exists()
