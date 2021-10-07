@@ -4,9 +4,10 @@ import {Indicator} from 'app/actionCreators/indicator';
 import IndicatorActions from 'app/actions/indicatorActions';
 import {t} from 'app/locale';
 
-type IndicatorStoreInterface = {
+import {CommonStoreInterface} from './types';
+
+type IndicatorStoreInterface = CommonStoreInterface<Indicator[]> & {
   init(): void;
-  get(): Indicator[];
   addSuccess(message: string): Indicator;
   addError(message?: string): Indicator;
   /**
@@ -67,10 +68,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & IndicatorStoreInterface 
     this.listenTo(IndicatorActions.replace, this.add);
     this.listenTo(IndicatorActions.remove, this.remove);
     this.listenTo(IndicatorActions.clear, this.clear);
-  },
-
-  get() {
-    return this.items;
   },
 
   addSuccess(message) {
@@ -135,6 +132,10 @@ const storeConfig: Reflux.StoreDefinition & Internals & IndicatorStoreInterface 
     }
 
     this.trigger(this.items);
+  },
+
+  getState() {
+    return this.items;
   },
 };
 
