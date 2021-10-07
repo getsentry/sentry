@@ -19,6 +19,5 @@ describe('TeamAlertsTriggered', () => {
     });
 
     expect(alertsTriggeredApi).toHaveBeenCalledTimes(1);
-    expect(wrapper.container).toSnapshot();
   });
 });

@@ -9,6 +9,7 @@ import {Item} from 'app/components/dropdownAutoComplete/types';
 import DropdownButton from 'app/components/dropdownButton';
 import TeamBadge from 'app/components/idBadge/teamBadge';
 import Link from 'app/components/links/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import {IconSubtract} from 'app/icons';
@@ -45,6 +46,10 @@ type Props = {
    * if empty no confirm will be displayed.
    */
   confirmLastTeamRemoveMessage?: string;
+  /**
+   * Used to determine whether we should show a loading state while waiting for teams
+   */
+  loadingTeams?: boolean;
 };
 
 function TeamSelect({
@@ -55,6 +60,7 @@ function TeamSelect({
   onAddTeam,
   onRemoveTeam,
   confirmLastTeamRemoveMessage,
+  loadingTeams,
 }: Props) {
   const {teams, onSearch, fetching} = useTeams();
 
@@ -126,7 +132,7 @@ function TeamSelect({
         </DropdownAutoComplete>
       </PanelHeader>
 
-      <PanelBody>{renderBody()}</PanelBody>
+      <PanelBody>{loadingTeams ? <LoadingIndicator /> : renderBody()}</PanelBody>
     </Panel>
   );
 }

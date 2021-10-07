@@ -22,6 +22,10 @@ type State = {
    */
   fetchError: null | RequestError;
   /**
+   * Reflects whether or not the initial fetch for the requested teams was fulfilled
+   */
+  initiallyLoaded: boolean;
+  /**
    * Indicates that Team results (from API) are paginated and there are more
    * Teams that are not in the initial response.
    */
@@ -48,7 +52,7 @@ export type Result = {
    * Will always add new options into the store.
    */
   onSearch: (searchTerm: string) => Promise<void>;
-} & Pick<State, 'fetching' | 'hasMore' | 'fetchError'>;
+} & Pick<State, 'fetching' | 'hasMore' | 'fetchError' | 'initiallyLoaded'>;
 
 type Options = {
   /**
@@ -126,7 +130,15 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   const {organization} = useLegacyStore(OrganizationStore);
   const store = useLegacyStore(TeamStore);
 
+  const storeSlugs = new Set(store.teams.map(t => t.slug));
+  const slugsToLoad = slugs?.filter(slug => !storeSlugs.has(slug)) ?? [];
+  const shouldLoadSlugs = slugsToLoad.length > 0;
+  const shouldLoadTeams = provideUserTeams && !store.loadedUserTeams;
+
+  // If we don't need to make a request either for slugs or user teams, set initiallyLoaded to true
+  const initiallyLoaded = !shouldLoadSlugs && !shouldLoadTeams;
   const [state, setState] = useState<State>({
+    initiallyLoaded,
     fetching: false,
     hasMore: null,
     lastSearch: null,
@@ -159,31 +171,24 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
     try {
       await fetchUserTeams(api, {orgId});
 
-      setState({...state, fetching: false});
+      setState({...state, fetching: false, initiallyLoaded: true});
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
 
-      setState({...state, fetching: false, fetchError: err});
+      setState({...state, fetching: false, initiallyLoaded: true, fetchError: err});
     }
   }
 
   async function loadTeamsBySlug() {
     const orgId = organization?.slug;
-    if (orgId === undefined || !slugs) {
-      return;
-    }
-
-    const storeSlugs = store.teams.map(t => t.slug);
-    const slugsNotInStore = slugs.filter(slug => !storeSlugs.includes(slug));
-
-    if (slugsNotInStore.length === 0) {
+    if (orgId === undefined) {
       return;
     }
 
     setState({...state, fetching: true});
     try {
       const {results, hasMore, nextCursor} = await fetchTeams(api, orgId, {
-        slugs: slugsNotInStore,
+        slugs: slugsToLoad,
         limit,
       });
 
@@ -194,12 +199,13 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
         ...state,
         hasMore,
         fetching: false,
+        initiallyLoaded: true,
         nextCursor,
       });
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
 
-      setState({...state, fetching: false, fetchError: err});
+      setState({...state, fetching: false, initiallyLoaded: true, fetchError: err});
     }
   }
 
@@ -252,13 +258,13 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
 
   useEffect(() => {
     // Load specified team slugs
-    if (slugs) {
+    if (shouldLoadSlugs) {
       loadTeamsBySlug();
       return;
     }
 
     // Load user teams
-    if (provideUserTeams && !store.loadedUserTeams) {
+    if (shouldLoadTeams) {
       loadUserTeams();
     }
   }, [slugsRef.current, provideUserTeams]);
@@ -273,6 +279,7 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   const result: Result = {
     teams: filteredTeams,
     fetching: state.fetching || store.loading,
+    initiallyLoaded: state.initiallyLoaded,
     fetchError: state.fetchError,
     hasMore: state.hasMore,
     onSearch: handleSearch,

@@ -95,8 +95,20 @@ def unfurl_discover(
 
         if "daily" in display_mode:
             params.setlist("interval", ["1d"])
+
         if "top5" in display_mode:
-            params.setlist("topEvents", [f"{TOP_N}"])
+            if features.has("organizations:discover-top-events", org):
+                params.setlist(
+                    "topEvents",
+                    params.getlist("topEvents")
+                    or to_list(saved_query.get("topEvents", f"{TOP_N}")),
+                )
+            else:
+                params.setlist("topEvents", [f"{TOP_N}"])
+        else:
+            # topEvents param persists in the URL in some cases, we want to discard
+            # it if it's not a top n display type.
+            params.pop("topEvents", None)
 
         try:
             resp = client.get(

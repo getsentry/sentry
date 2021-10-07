@@ -5,14 +5,14 @@ import {User} from 'app/types';
 type MemberListStoreInterface = {
   state: User[];
   loaded: boolean;
-  loadInitialData: (items: User[]) => void;
-  isLoaded: () => boolean;
-  getById: (id: string) => User | undefined;
-  getByEmail: (email: string) => User | undefined;
-  getAll: () => User[];
+  loadInitialData(items: User[]): void;
+  isLoaded(): boolean;
+  getById(id: string): User | undefined;
+  getByEmail(email: string): User | undefined;
+  getAll(): User[];
 };
 
-const memberListStoreConfig: Reflux.StoreDefinition & MemberListStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & MemberListStoreInterface = {
   // listenables: MemberActions,
 
   loaded: false,
@@ -67,7 +67,7 @@ const memberListStoreConfig: Reflux.StoreDefinition & MemberListStoreInterface =
   },
 };
 
-const MemberListStore = Reflux.createStore(memberListStoreConfig) as Reflux.Store &
+const MemberListStore = Reflux.createStore(storeConfig) as Reflux.Store &
   MemberListStoreInterface;
 
 export default MemberListStore;

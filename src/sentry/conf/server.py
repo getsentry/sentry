@@ -996,6 +996,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-custom-scm": False,
     # Allow orgs to view the Teamwork plugin
     "organizations:integrations-ignore-teamwork-deprecation": False,
+    # Allow orgs to view the Clubhouse/Shortcut plugin
+    "organizations:integrations-ignore-clubhouse-deprecation": False,
     # Allow orgs to debug internal/unpublished sentry apps with logging
     "organizations:sentry-app-debugging": False,
     # Temporary safety measure, turned on for specific orgs only if
@@ -1789,7 +1791,7 @@ SENTRY_DEVSERVICES = {
                 "KAFKA_MESSAGE_MAX_BYTES": "50000000",
                 "KAFKA_MAX_REQUEST_SIZE": "50000000",
             },
-            "volumes": {"kafka": {"bind": "/var/lib/kafka/data"}},
+            "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
             or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS,
