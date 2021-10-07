@@ -72,7 +72,7 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
             # unless all the callbacks are successful.
             #
             # In the future if we know which callback failed, we can
-            # commmit only up to that point and retry on the remaining
+            # commit only up to that point and retry on the remaining
             # messages.
             raise Exception(f"didn't get all the callbacks: {messages_left} left")
 

@@ -13,6 +13,7 @@ from sentry.utils.http import absolute_uri
 
 _REDIS_KEY = "verificationKeyStorage"
 _TTL = timedelta(minutes=10)
+SSO_VERIFICATION_KEY = "confirm_account_verification_key"
 
 
 def send_one_time_account_confirm_link(

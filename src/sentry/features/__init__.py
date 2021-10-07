@@ -58,7 +58,7 @@ default_manager.add("organizations:api-keys", OrganizationFeature)
 default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature, False)
 default_manager.add("organizations:boolean-search", OrganizationFeature)
 default_manager.add("organizations:breadcrumb-linked-event", OrganizationFeature, True)
-default_manager.add("organizations:change-alerts", OrganizationFeature)
+default_manager.add("organizations:change-alerts", OrganizationFeature, True)
 default_manager.add("organizations:chart-unfurls", OrganizationFeature, True)
 default_manager.add("organizations:connect-discover-and-dashboards", OrganizationFeature, True)
 default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, True)
@@ -71,6 +71,7 @@ default_manager.add("organizations:discover", OrganizationFeature)
 default_manager.add("organizations:discover-top-events", OrganizationFeature, True)
 default_manager.add("organizations:discover-basic", OrganizationFeature)
 default_manager.add("organizations:discover-query", OrganizationFeature)
+default_manager.add("organizations:discover-use-snql", OrganizationFeature, True)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)
 default_manager.add("organizations:event-attachments", OrganizationFeature)
 default_manager.add("organizations:event-attachments-viewer", OrganizationFeature)
@@ -96,6 +97,13 @@ default_manager.add("organizations:integrations-issue-sync", OrganizationFeature
 default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature)
 default_manager.add("organizations:integrations-ticket-rules", OrganizationFeature, True)
 default_manager.add("organizations:integrations-vsts-limited-scopes", OrganizationFeature)
+default_manager.add(
+    "organizations:integrations-ignore-teamwork-deprecation", OrganizationFeature, True
+)
+
+default_manager.add(
+    "organizations:integrations-ignore-clubhouse-deprecation", OrganizationFeature, True
+)
 default_manager.add("organizations:invite-members", OrganizationFeature)
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)
 default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature, True)

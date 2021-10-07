@@ -12,7 +12,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         Retrieve Committer information for an event
         ```````````````````````````````````````````
 
-        Return commiters on an individual event, plus a per-frame breakdown.
+        Return committers on an individual event, plus a per-frame breakdown.
 
         :pparam string project_slug: the slug of the project the event
                                      belongs to.

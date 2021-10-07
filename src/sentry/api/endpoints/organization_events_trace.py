@@ -528,7 +528,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
     def update_children(event: TraceEvent) -> None:
-        """Updates the childrens of subtraces
+        """Updates the children of subtraces
 
         - Generation could be incorrect from orphans where we've had to reconnect back to an orphan event that's
           already been encountered
