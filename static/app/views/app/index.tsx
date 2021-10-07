@@ -20,9 +20,7 @@ import HookStore from 'app/stores/hookStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import OrganizationStore from 'app/stores/organizationStore';
 import {useLegacyStore} from 'app/stores/useLegacyStore';
-import {Config} from 'app/types';
 import useApi from 'app/utils/useApi';
-import withConfig from 'app/utils/withConfig';
 
 import SystemAlerts from './systemAlerts';
 
@@ -32,7 +30,6 @@ const GlobalNotifications = HookOrDefault({
 });
 
 type Props = {
-  config: Config;
   children: React.ReactNode;
 };
 
@@ -42,8 +39,9 @@ const NewsletterConsent = lazy(() => import('app/views/newsletterConsent'));
 /**
  * App is the root level container for all uathenticated routes.
  */
-function App({config, children}: Props) {
+function App({children}: Props) {
   const api = useApi();
+  const config = useLegacyStore(ConfigStore);
   const {organization} = useLegacyStore(OrganizationStore);
 
   // Command palette global-shortcut
@@ -174,7 +172,7 @@ function App({config, children}: Props) {
   );
 }
 
-export default withConfig(App);
+export default App;
 
 const MainContainer = styled('div')`
   display: flex;
