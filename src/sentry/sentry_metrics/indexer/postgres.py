@@ -62,7 +62,7 @@ class PGStringIndexer(Service):  # type: ignore
         Returns None if the entry cannot be found.
         """
         try:
-            id = MetricsKeyIndexer.objects.get_from_cache(string=string).id
+            id: int = MetricsKeyIndexer.objects.get_from_cache(string=string).id
         except MetricsKeyIndexer.DoesNotExist:
             return None
 
@@ -74,7 +74,7 @@ class PGStringIndexer(Service):  # type: ignore
         Returns None if the entry cannot be found.
         """
         try:
-            string = MetricsKeyIndexer.objects.get_from_cache(pk=id).string
+            string: str = MetricsKeyIndexer.objects.get_from_cache(pk=id).string
         except MetricsKeyIndexer.DoesNotExist:
             return None
 

@@ -14,9 +14,7 @@ class MetricsKeyIndexer(Model):  # type: ignore
     string = models.CharField(max_length=200)
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = BaseManager(
-        cache_fields=("pk", "string"), cache_ttl=settings.SENTRY_METRICS_INDEXER_CACHE_TTL
-    )
+    objects = BaseManager(cache_fields=("pk", "string"), cache_ttl=settings.SENTRY_METRICS_INDEXER_CACHE_TTL)  # type: ignore
 
     class Meta:
         db_table = "sentry_metricskeyindexer"
