@@ -125,6 +125,7 @@ class EventStream(Service):
         commit_log_topic,
         synchronize_commit_group,
         commit_batch_size=100,
+        commit_batch_timeout_ms=5000,
         initial_offset_reset="latest",
     ):
         assert not self.requires_post_process_forwarder()

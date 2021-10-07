@@ -2,15 +2,16 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Callable, List, Mapping, Match, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Sequence, Tuple, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.discover.models import KeyTransaction, TeamKeyTransaction
+from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, ProjectTeam, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import (
@@ -24,13 +25,11 @@ from sentry.search.events.constants import (
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
     DURATION_PATTERN,
-    ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_ALIASES,
     FUNCTION_PATTERN,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
-    KEY_TRANSACTION_ALIAS,
     MEASUREMENTS_FRAMES_FROZEN_RATE,
     MEASUREMENTS_FRAMES_SLOW_RATE,
     MEASUREMENTS_STALL_PERCENTAGE,
@@ -45,7 +44,6 @@ from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
     TIMESTAMP_TO_DAY_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
-    TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
@@ -54,6 +52,7 @@ from sentry.search.utils import InvalidQuery, parse_duration
 from sentry.utils.compat import zip
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import (
+    SESSIONS_SNUBA_MAP,
     Dataset,
     get_json_type,
     is_duration_measurement,
@@ -102,50 +101,6 @@ class PseudoField:
         assert (
             self.expression is None or self.expression_fn is None
         ), f"{self.name}: only one of expression, expression_fn is allowed"
-
-
-def key_transaction_expression(user_id, organization_id, project_ids):
-    """
-    This function may be called multiple times, making for repeated data bases queries.
-    Lifting the query higher to earlier in the call stack will require a lot more changes
-    as there are numerous entry points. So we will leave the duplicate query alone for now.
-    """
-    if user_id is None or organization_id is None or project_ids is None:
-        raise InvalidSearchQuery("Missing necessary meta for key transaction field.")
-
-    key_transactions = (
-        KeyTransaction.objects.filter(
-            owner_id=user_id,
-            organization_id=organization_id,
-            project_id__in=project_ids,
-        )
-        .order_by("transaction", "project_id")
-        .values("project_id", "transaction")
-    )
-
-    # if there are no key transactions, the value should always be 0
-    if not len(key_transactions):
-        return ["toInt64", [0]]
-
-    return [
-        "has",
-        [
-            [
-                "array",
-                [
-                    [
-                        "tuple",
-                        [
-                            ["toUInt64", [transaction["project_id"]]],
-                            "'{}'".format(transaction["transaction"]),
-                        ],
-                    ]
-                    for transaction in key_transactions
-                ],
-            ],
-            ["tuple", ["project_id", "transaction"]],
-        ],
-    ]
 
 
 def project_threshold_config_expression(organization_id, project_ids):
@@ -412,18 +367,6 @@ FIELD_ALIASES = {
             USER_DISPLAY_ALIAS,
             expression=["coalesce", ["user.email", "user.username", "user.ip"]],
         ),
-        # the key transaction field is intentially not added to the discover/fields list yet
-        # because there needs to be some work on the front end to integrate this into discover
-        PseudoField(
-            KEY_TRANSACTION_ALIAS,
-            KEY_TRANSACTION_ALIAS,
-            expression_fn=lambda params: key_transaction_expression(
-                params.get("user_id"),
-                params.get("organization_id"),
-                params.get("project_id"),
-            ),
-            result_type="boolean",
-        ),
         PseudoField(
             PROJECT_THRESHOLD_CONFIG_ALIAS,
             PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -432,6 +375,8 @@ FIELD_ALIASES = {
                 params.get("project_id"),
             ),
         ),
+        # the team key transaction field is intentially not added to the discover/fields list yet
+        # because there needs to be some work on the front end to integrate this into discover
         PseudoField(
             TEAM_KEY_TRANSACTION_ALIAS,
             TEAM_KEY_TRANSACTION_ALIAS,
@@ -929,7 +874,7 @@ def is_function(field: str) -> Optional[Match[str]]:
     return None
 
 
-def get_function_alias(field):
+def get_function_alias(field: str) -> str:
     match = FUNCTION_PATTERN.search(field)
     if match is None:
         return field
@@ -941,7 +886,7 @@ def get_function_alias(field):
     return get_function_alias_with_columns(function, columns)
 
 
-def get_function_alias_with_columns(function_name, columns):
+def get_function_alias_with_columns(function_name, columns) -> str:
     columns = re.sub(r"[^\w]", "_", "_".join(str(col) for col in columns))
     return f"{function_name}_{columns}".rstrip("_")
 
@@ -1337,6 +1282,16 @@ class StringArrayColumn(ColumnArg):
         if value in ["tags.key", "tags.value", "measurements_key", "span_op_breakdowns_key"]:
             return value
         raise InvalidFunctionArgument(f"{value} is not a valid string array column")
+
+
+class SessionColumnArg(ColumnArg):
+    # XXX(ahmed): hack to get this to work with crash rate alerts over the sessions dataset until
+    # we deprecate the logic that is tightly coupled with the events dataset. At which point,
+    # we will just rely on dataset specific logic and refactor this class out
+    def normalize(self, value: str, _) -> str:
+        if value in SESSIONS_SNUBA_MAP:
+            return value
+        raise InvalidFunctionArgument(f"{value} is not a valid sessions dataset column")
 
 
 def with_default(default, argument):
@@ -2147,6 +2102,12 @@ FUNCTIONS = {
                 ],
             ],
         ),
+        DiscoverFunction(
+            "identity",
+            required_args=[SessionColumnArg("column")],
+            aggregate=["identity", ArgValue("column"), None],
+            private=True,
+        ),
     ]
 }
 
@@ -2205,9 +2166,12 @@ class SnQLFunction(DiscoverFunction):
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
-    def __init__(self, dataset: Dataset, params: ParamsType):
-        super().__init__(dataset, params)
+    def __init__(
+        self, dataset: Dataset, params: ParamsType, functions_acl: Optional[List[str]] = None
+    ):
+        super().__init__(dataset, params, functions_acl)
 
+        self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
             # NOTE: `ISSUE_ALIAS` simply maps to the id, meaning that post processing
             # is required to insert the true issue short id into the response.
@@ -2218,10 +2182,8 @@ class QueryFields(QueryBase):
             TIMESTAMP_TO_HOUR_ALIAS: self._resolve_timestamp_to_hour_alias,
             TIMESTAMP_TO_DAY_ALIAS: self._resolve_timestamp_to_day_alias,
             USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
-            TRANSACTION_STATUS_ALIAS: self._resolve_transaction_status,
             PROJECT_THRESHOLD_CONFIG_ALIAS: self._resolve_project_threshold_config,
             ERROR_UNHANDLED_ALIAS: self._resolve_error_unhandled_alias,
-            ERROR_HANDLED_ALIAS: self._resolve_error_handled_alias,
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             MEASUREMENTS_FRAMES_SLOW_RATE: self._resolve_measurements_frames_slow_rate,
             MEASUREMENTS_FRAMES_FROZEN_RATE: self._resolve_measurements_frames_frozen_rate,
@@ -2300,6 +2262,7 @@ class QueryFields(QueryBase):
                 ),
                 SnQLFunction(
                     "count",
+                    optional_args=[NullColumn("column")],
                     snql_aggregate=lambda _, alias: Function(
                         "count",
                         [],
@@ -2661,8 +2624,16 @@ class QueryFields(QueryBase):
                     ),
                     default_result_type="number",
                 ),
+                SnQLFunction(
+                    "array_join",
+                    required_args=[StringArrayColumn("column")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "arrayJoin", [args["column"]], alias
+                    ),
+                    default_result_type="string",
+                    private=True,
+                ),
                 # TODO: implement these
-                SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("percentage", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("t_test", snql_aggregate=self._resolve_unimplemented_function),
@@ -2759,6 +2730,15 @@ class QueryFields(QueryBase):
                     continue
 
                 elif (
+                    isinstance(selected_column, AliasedExpression)
+                    and selected_column.alias == bare_orderby
+                ):
+                    # We cannot directly order by an `AliasedExpression`.
+                    # Instead, we order by the column inside.
+                    validated.append(OrderBy(selected_column.exp, direction))
+                    continue
+
+                elif (
                     isinstance(selected_column, Function) and selected_column.alias == bare_orderby
                 ):
                     validated.append(OrderBy(selected_column, direction))
@@ -2800,9 +2780,13 @@ class QueryFields(QueryBase):
             raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
 
         name, arguments, alias = self.parse_function(match)
-        snql_function = self.function_converter.get(name)
+        snql_function = self.function_converter[name]
+        if not snql_function.is_accessible(self.functions_acl):
+            raise InvalidSearchQuery(f"{snql_function.name}: no access to private function")
 
         arguments = snql_function.format_as_arguments(name, arguments, self.params)
+        self.function_alias_map[alias] = FunctionDetails(function, snql_function, arguments.copy())
+
         for arg in snql_function.args:
             if isinstance(arg, ColumnArg):
                 arguments[arg.name] = self.resolve_column(arguments[arg.name])
@@ -2872,12 +2856,6 @@ class QueryFields(QueryBase):
     def _resolve_user_display_alias(self, _: str) -> SelectType:
         columns = ["user.email", "user.username", "user.ip"]
         return Function("coalesce", [self.column(column) for column in columns], USER_DISPLAY_ALIAS)
-
-    def _resolve_transaction_status(self, _: str) -> SelectType:
-        # TODO: Remove the `toUInt8` once Column supports aliases
-        return Function(
-            "toUInt8", [self.column(TRANSACTION_STATUS_ALIAS)], TRANSACTION_STATUS_ALIAS
-        )
 
     def _resolve_project_threshold_config(self, _: str) -> SelectType:
         org_id = self.params.get("organization_id")
@@ -3057,13 +3035,6 @@ class QueryFields(QueryBase):
 
     def _resolve_error_unhandled_alias(self, _: str) -> SelectType:
         return Function("notHandled", [], ERROR_UNHANDLED_ALIAS)
-
-    def _resolve_error_handled_alias(self, _: str) -> SelectType:
-        # Columns in snuba doesn't support aliasing right now like Function does.
-        # Adding a no-op here to get the alias.
-        return Function(
-            "cast", [self.column("error.handled"), "Array(Nullable(UInt8))"], ERROR_HANDLED_ALIAS
-        )
 
     def _project_threshold_multi_if_function(self) -> SelectType:
         """Accessed by `_resolve_apdex_function` and `_resolve_count_miserable_function`,

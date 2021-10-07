@@ -14,15 +14,15 @@ from typing import (
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.db.models.manager import BaseManager
 from sentry.notifications.helpers import (
     get_scope,
     get_scope_type,
     get_target_id,
-    transform_to_notification_settings_by_user,
+    transform_to_notification_settings_by_recipient,
     validate,
-    where_should_user_be_notified,
+    where_should_recipient_be_notified,
 )
 from sentry.notifications.types import (
     VALID_VALUES_FOR_KEY,
@@ -256,7 +256,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         self,
         type_: NotificationSettingTypes,
         parent: Union["Organization", "Project"],
-        recipients: Sequence[Union["Team", "User"]],
+        recipients: Iterable[Union["Team", "User"]],
     ) -> QuerySet:
         from sentry.models import Team, User
 
@@ -297,31 +297,37 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             target__in=actor_ids,
         )
 
-    def filter_to_subscribed_users(
+    def filter_to_accepting_recipients(
         self,
         project: "Project",
-        users: List["User"],
-    ) -> Mapping[ExternalProviders, Iterable["User"]]:
+        recipients: Iterable[Union["Team", "User"]],
+    ) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
         """
-        Filters a list of users down to the users by provider who are subscribed to alerts.
-        We check both the project level settings and global default settings.
+        Filters a list of teams or users down to the recipients by provider who
+        are subscribed to alerts. We check both the project level settings and
+        global default settings.
         """
         notification_settings = self.get_for_recipient_by_parent(
-            NotificationSettingTypes.ISSUE_ALERTS, parent=project, recipients=users
+            NotificationSettingTypes.ISSUE_ALERTS, parent=project, recipients=recipients
         )
-        notification_settings_by_user = transform_to_notification_settings_by_user(
-            notification_settings, users
+        notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
+            notification_settings, recipients
         )
         mapping = defaultdict(set)
-        for user in users:
-            providers = where_should_user_be_notified(notification_settings_by_user, user)
+        should_use_slack_automatic = features.has(
+            "organizations:notification-slack-automatic", project.organization
+        )
+        for recipient in recipients:
+            providers = where_should_recipient_be_notified(
+                notification_settings_by_recipient, recipient, should_use_slack_automatic
+            )
             for provider in providers:
-                mapping[provider].add(user)
+                mapping[provider].add(recipient)
         return mapping
 
     def get_notification_recipients(
         self, project: "Project"
-    ) -> Mapping[ExternalProviders, Iterable["User"]]:
+    ) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
         """
         Return a set of users that should receive Issue Alert emails for a given
         project. To start, we get the set of all users. Then we fetch all of
@@ -333,7 +339,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
         user_ids = project.member_set.values_list("user", flat=True)
         users = User.objects.filter(id__in=user_ids)
-        return self.filter_to_subscribed_users(project, users)
+        return self.filter_to_accepting_recipients(project, users)
 
     def update_settings_bulk(
         self,

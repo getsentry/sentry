@@ -1,5 +1,6 @@
 import responses
 
+from sentry.constants import ObjectStatus
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
@@ -244,7 +245,15 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
             response = self.client.delete(path, format="json")
             assert response.status_code == 204
 
-        assert len(OrganizationIntegration.objects.filter(integration=self.integration)) == 1
+        assert (
+            len(
+                OrganizationIntegration.objects.filter(
+                    integration=self.integration,
+                    status=ObjectStatus.VISIBLE,
+                )
+            )
+            == 1
+        )
 
         response = self.client.delete(
             path=self.url,
@@ -280,7 +289,15 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
             response = self.client.delete(path, format="json")
             assert response.status_code == 204
 
-        assert len(OrganizationIntegration.objects.filter(integration=self.integration)) == 0
+        assert (
+            len(
+                OrganizationIntegration.objects.filter(
+                    integration=self.integration,
+                    status=ObjectStatus.VISIBLE,
+                )
+            )
+            == 0
+        )
 
         response = self.client.delete(
             path=self.url,

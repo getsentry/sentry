@@ -53,6 +53,10 @@ export const mobile = [
   'dart-flutter',
   'unity',
   'dotnet-xamarin',
+  // Old platforms
+  'java-android',
+  'cocoa-objc',
+  'cocoa-swift',
 ] as const;
 
 export const backend = [
@@ -139,7 +143,11 @@ export const sourceMaps: PlatformKey[] = [
   'electron',
 ];
 
-export const tracing = ['python-tracing', 'node-tracing'] as const;
+export const tracing = [
+  'python-tracing',
+  'node-tracing',
+  'react-native-tracing',
+] as const;
 
 export const performance: PlatformKey[] = [
   'javascript',

@@ -8,8 +8,7 @@ import {openCreateTeamModal} from 'app/actionCreators/modal';
 import ProjectActions from 'app/actions/projectActions';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
-import SelectControl from 'app/components/forms/selectControl';
-import IdBadge from 'app/components/idBadge';
+import TeamSelector from 'app/components/forms/teamSelector';
 import PageHeading from 'app/components/pageHeading';
 import PlatformPicker from 'app/components/platformPicker';
 import Tooltip from 'app/components/tooltip';
@@ -60,11 +59,11 @@ type State = {
 };
 
 class CreateProject extends React.Component<Props, State> {
-  constructor(props, context) {
+  constructor(props: Props, context) {
     super(props, context);
 
-    const {query} = props.location;
-    const {teams} = props.organization;
+    const {teams, location} = props;
+    const {query} = location;
     const accessTeams = teams.filter((team: Team) => team.hasAccess);
 
     const team = query.team || (accessTeams.length && accessTeams[0].slug);
@@ -89,8 +88,6 @@ class CreateProject extends React.Component<Props, State> {
     const {organization} = this.props;
     const {projectName, platform, team} = this.state;
 
-    const teams = this.props.teams.filter(filterTeam => filterTeam.hasAccess);
-
     const createProjectForm = (
       <CreateProjectForm onSubmit={this.createProject}>
         <div>
@@ -110,16 +107,13 @@ class CreateProject extends React.Component<Props, State> {
         <div>
           <FormLabel>{t('Team')}</FormLabel>
           <TeamSelectInput>
-            <SelectControl
+            <TeamSelector
               name="select-team"
               clearable={false}
               value={team}
               placeholder={t('Select a Team')}
               onChange={choice => this.setState({team: choice.value})}
-              options={teams.map(teamItem => ({
-                label: <IdBadge team={teamItem} />,
-                value: teamItem.slug,
-              }))}
+              teamFilter={(filterTeam: Team) => filterTeam.hasAccess}
             />
             <Tooltip title={t('Create a team')}>
               <Button
@@ -329,7 +323,7 @@ export {CreateProject};
 
 const CreateProjectForm = styled('form')`
   display: grid;
-  grid-template-columns: 300px 250px max-content;
+  grid-template-columns: 300px minmax(250px, max-content) max-content;
   grid-gap: ${space(2)};
   align-items: end;
   padding: ${space(3)} 0;

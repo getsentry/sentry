@@ -120,6 +120,7 @@ const SidebarItem = ({
     <Tooltip disabled={!collapsed} title={label} position={placement}>
       <StyledSidebarItem
         data-test-id={props['data-test-id']}
+        id={`sidebar-item-${id}`}
         active={isActive ? 'true' : undefined}
         to={(to ? to : href) || '#'}
         className={className}

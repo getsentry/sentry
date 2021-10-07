@@ -6,8 +6,8 @@ import moment from 'moment';
 
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import PickProjectToContinue from 'app/components/pickProjectToContinue';
@@ -42,7 +42,7 @@ import ReleaseHeader from './releaseHeader';
 
 const DEFAULT_FRESH_RELEASE_STATS_PERIOD = '24h';
 
-type ReleaseContext = {
+type ReleaseContextType = {
   release: ReleaseWithHealth;
   project: Required<ReleaseProject>;
   deploys: Deploy[];
@@ -54,7 +54,7 @@ type ReleaseContext = {
   hasHealthData: boolean;
   releaseBounds: ReleaseBounds;
 };
-const ReleaseContext = createContext<ReleaseContext>({} as ReleaseContext);
+const ReleaseContext = createContext<ReleaseContextType>({} as ReleaseContextType);
 
 type RouteParams = {
   orgId: string;
@@ -196,7 +196,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
     }
 
     return (
-      <LightWeightNoProjectMessage organization={organization}>
+      <NoProjectMessage organization={organization}>
         <StyledPageContent>
           <ReleaseHeader
             location={location}
@@ -223,7 +223,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
             {this.props.children}
           </ReleaseContext.Provider>
         </StyledPageContent>
-      </LightWeightNoProjectMessage>
+      </NoProjectMessage>
     );
   }
 }

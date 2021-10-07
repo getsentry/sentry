@@ -8,6 +8,7 @@ import Collapsible from 'app/components/collapsible';
 import Count from 'app/components/count';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import NotAvailable from 'app/components/notAvailable';
 import {PanelItem} from 'app/components/panels';
@@ -32,23 +33,36 @@ import {DisplayOption} from '../utils';
 import Header from './header';
 import ProjectLink from './projectLink';
 
-const ADOPTION_STAGE_LABELS: Record<
+const adoptionStagesLink = (
+  <ExternalLink href="https://docs.sentry.io/product/releases/health/#adoption-stages" />
+);
+
+export const ADOPTION_STAGE_LABELS: Record<
   string,
-  {name: string; tooltipTitle: string; type: keyof Theme['tag']}
+  {name: string; tooltipTitle: JSX.Element; type: keyof Theme['tag']}
 > = {
   low_adoption: {
     name: t('Low Adoption'),
-    tooltipTitle: t('Never exceeded 10% adoption in a 6 hour period'),
+    tooltipTitle: tct(
+      'This release has a low percentage of sessions compared to other releases in this project. [link:Learn more]',
+      {link: adoptionStagesLink}
+    ),
     type: 'warning',
   },
   adopted: {
     name: t('Adopted'),
-    tooltipTitle: t('At least 10% adoption in the last 6 hours'),
+    tooltipTitle: tct(
+      'This release has a high percentage of sessions compared to other releases in this project. [link:Learn more]',
+      {link: adoptionStagesLink}
+    ),
     type: 'success',
   },
   replaced: {
     name: t('Replaced'),
-    tooltipTitle: t('Was previously adopted'),
+    tooltipTitle: tct(
+      'This release was previously Adopted, but now has a lower level of sessions compared to other releases in this project. [link:Learn more]',
+      {link: adoptionStagesLink}
+    ),
     type: 'default',
   },
 };
@@ -135,10 +149,6 @@ const Content = ({
             activeDisplay
           );
           const adoption = getHealthData.getAdoption(releaseVersion, id, activeDisplay);
-          // we currently don't support sub-hour session intervals, we rather hide the count histogram than to show only two bars
-          const hasCountHistogram =
-            timeSeries?.[0].data.length > 7 &&
-            timeSeries[0].data.some(item => item.value > 0);
 
           const adoptionStage =
             showReleaseAdoptionStages &&
@@ -184,17 +194,15 @@ const Content = ({
                 <AdoptionColumn>
                   {showPlaceholders ? (
                     <StyledPlaceholder width="100px" />
-                  ) : adoption && hasCountHistogram ? (
+                  ) : (
                     <AdoptionWrapper>
-                      <span>{Math.round(adoption)}%</span>
+                      <span>{adoption ? Math.round(adoption) : '0'}%</span>
                       <HealthStatsChart
                         data={timeSeries}
                         height={20}
                         activeDisplay={activeDisplay}
                       />
                     </AdoptionWrapper>
-                  ) : (
-                    <NotAvailable />
                   )}
                 </AdoptionColumn>
 
@@ -339,6 +347,8 @@ const Column = styled('div')`
 `;
 
 const NewIssuesColumn = styled(Column)`
+  font-variant-numeric: tabular-nums;
+
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     text-align: right;
   }
@@ -346,6 +356,8 @@ const NewIssuesColumn = styled(Column)`
 
 const AdoptionColumn = styled(Column)`
   display: none;
+  font-variant-numeric: tabular-nums;
+
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: flex;
     /* Chart tooltips need overflow */
@@ -359,6 +371,8 @@ const AdoptionColumn = styled(Column)`
 
 const AdoptionStageColumn = styled(Column)`
   display: none;
+  font-variant-numeric: tabular-nums;
+
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     display: flex;
 
@@ -379,6 +393,8 @@ const AdoptionWrapper = styled('span')`
 `;
 
 const CrashFreeRateColumn = styled(Column)`
+  font-variant-numeric: tabular-nums;
+
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     text-align: center;
   }
@@ -390,6 +406,7 @@ const CrashFreeRateColumn = styled(Column)`
 
 const CrashesColumn = styled(Column)`
   display: none;
+  font-variant-numeric: tabular-nums;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: block;

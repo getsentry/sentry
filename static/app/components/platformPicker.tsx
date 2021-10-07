@@ -1,5 +1,4 @@
 import * as React from 'react';
-import keydown from 'react-keydown';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
@@ -8,6 +7,7 @@ import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
+import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import categoryList, {filterAliases, PlatformKey} from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import {IconClose, IconProject, IconSearch} from 'app/icons';
@@ -87,17 +87,7 @@ class PlatformPicker extends React.Component<Props, State> {
         organization: this.props.organization ?? null,
       });
     }
-  }, 300);
-
-  @keydown('/')
-  focusSearch(e: KeyboardEvent) {
-    if (e.target !== this.searchInput.current) {
-      this.searchInput?.current?.focus();
-      e.preventDefault();
-    }
-  }
-
-  searchInput = React.createRef<HTMLInputElement>();
+  }, DEFAULT_DEBOUNCE_DURATION);
 
   render() {
     const platformList = this.platformList;
@@ -131,7 +121,6 @@ class PlatformPicker extends React.Component<Props, State> {
             <IconSearch size="xs" />
             <input
               type="text"
-              ref={this.searchInput}
               value={filter}
               placeholder={t('Filter Platforms')}
               onChange={e => this.setState({filter: e.target.value}, this.logSearch)}

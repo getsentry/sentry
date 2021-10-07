@@ -22,7 +22,9 @@ import {Organization, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
+import {decodeList} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
+import {WidgetQuery} from 'app/views/dashboardsV2/types';
 
 import {handleCreateQuery, handleDeleteQuery} from './savedQuery/utils';
 import MiniGraph from './miniGraph';
@@ -67,23 +69,24 @@ class QueryList extends React.Component<Props> {
     });
   };
 
-  handleDuplicateQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
-    event.preventDefault();
-    event.stopPropagation();
+  handleDuplicateQuery =
+    (eventView: EventView, yAxis: string[]) => (event: React.MouseEvent<Element>) => {
+      event.preventDefault();
+      event.stopPropagation();
 
-    const {api, location, organization, onQueryChange} = this.props;
+      const {api, location, organization, onQueryChange} = this.props;
 
-    eventView = eventView.clone();
-    eventView.name = `${eventView.name} copy`;
+      eventView = eventView.clone();
+      eventView.name = `${eventView.name} copy`;
 
-    handleCreateQuery(api, organization, eventView).then(() => {
-      onQueryChange();
-      browserHistory.push({
-        pathname: location.pathname,
-        query: {},
+      handleCreateQuery(api, organization, eventView, yAxis).then(() => {
+        onQueryChange();
+        browserHistory.push({
+          pathname: location.pathname,
+          query: {},
+        });
       });
-    });
-  };
+    };
 
   handleAddQueryToDashboard =
     (eventView: EventView, savedQuery?: SavedQuery) =>
@@ -91,14 +94,25 @@ class QueryList extends React.Component<Props> {
       const {organization} = this.props;
       event.preventDefault();
       event.stopPropagation();
+
+      const defaultWidgetQuery: WidgetQuery = {
+        name: '',
+        fields: savedQuery?.yAxis ?? ['count()'],
+        conditions: eventView.query,
+        orderby: '',
+      };
+
       openAddDashboardWidgetModal({
         organization,
-        defaultQuery: eventView.query,
         start: eventView.start,
         end: eventView.end,
         statsPeriod: eventView.statsPeriod,
         fromDiscover: true,
-        defaultTitle: savedQuery?.name ?? eventView.name,
+        defaultWidgetQuery,
+        defaultTableColumns: eventView.fields.map(({field}) => field),
+        defaultTitle:
+          savedQuery?.name ??
+          (eventView.name !== 'All Events' ? eventView.name : undefined),
       });
     };
 
@@ -167,6 +181,7 @@ class QueryList extends React.Component<Props> {
               location={location}
               eventView={eventView}
               organization={organization}
+              referrer="api.discover.homepage.prebuilt"
             />
           )}
           onEventClick={() => {
@@ -222,6 +237,7 @@ class QueryList extends React.Component<Props> {
 
       const to = eventView.getResultsViewShortUrlTarget(organization.slug);
       const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
+      const referrer = `api.discover.${eventView.getDisplayMode()}-chart`;
 
       return (
         <QueryCard
@@ -240,11 +256,20 @@ class QueryList extends React.Component<Props> {
             });
           }}
           renderGraph={() => (
-            <MiniGraph
-              location={location}
-              eventView={eventView}
+            <Feature
               organization={organization}
-            />
+              features={['connect-discover-and-dashboards']}
+            >
+              {({hasFeature}) => (
+                <MiniGraph
+                  location={location}
+                  eventView={eventView}
+                  organization={organization}
+                  referrer={referrer}
+                  yAxis={hasFeature ? savedQuery.yAxis : undefined}
+                />
+              )}
+            </Feature>
           )}
           renderContextMenu={() => (
             <ContextMenu>
@@ -271,7 +296,10 @@ class QueryList extends React.Component<Props> {
               </MenuItem>
               <MenuItem
                 data-test-id="duplicate-query"
-                onClick={this.handleDuplicateQuery(eventView)}
+                onClick={this.handleDuplicateQuery(
+                  eventView,
+                  decodeList(savedQuery.yAxis)
+                )}
               >
                 {t('Duplicate Query')}
               </MenuItem>

@@ -7,11 +7,11 @@ python_version = sys.version_info[:2]
 
 if python_version < (3, 6):
     sys.exit(f"Error: Sentry requires at least Python 3.6 ({python_version})")
-if python_version > (3, 6):
+if python_version not in ((3, 6), (3, 8)):
     import logging
 
     logger = logging.getLogger()
-    logger.warning(f"A Python version different than 3.6 is being used ({python_version})")
+    logger.warning(f"A Python version different than 3.6 or 3.8 is being used ({python_version})")
 
 
 from distutils.command.build import build as BuildCommand
@@ -32,7 +32,7 @@ from sentry.utils.distutils import (
     BuildJsSdkRegistryCommand,
 )
 
-VERSION = "21.9.0.dev0"
+VERSION = "21.10.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 

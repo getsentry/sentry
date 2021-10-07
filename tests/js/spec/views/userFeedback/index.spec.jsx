@@ -10,7 +10,11 @@ describe('UserFeedback', function () {
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
+  const project = TestStubs.Project({isMember: true});
+
   beforeEach(function () {
+    ProjectsStore.loadInitialData([project]);
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [TestStubs.UserFeedback()],
@@ -28,23 +32,19 @@ describe('UserFeedback', function () {
   });
 
   it('renders', async function () {
-    const project = TestStubs.Project({isMember: true});
     const params = {
-      organization: TestStubs.Organization({
-        projects: [project],
-      }),
+      organization: TestStubs.Organization(),
       location: {query: {}, search: ''},
       params: {
         orgId: organization.slug,
       },
     };
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project],
       headers: {Link: pageLinks},
     });
-
-    ProjectsStore.loadInitialData(params.organization.projects);
 
     const wrapper = mountWithTheme(<UserFeedback {...params} />, routerContext);
     await tick();
@@ -54,10 +54,10 @@ describe('UserFeedback', function () {
   });
 
   it('renders no project message', function () {
+    ProjectsStore.loadInitialData([]);
+
     const params = {
-      organization: TestStubs.Organization({
-        projects: [],
-      }),
+      organization: TestStubs.Organization(),
       location: {query: {}, search: ''},
       params: {
         orgId: organization.slug,

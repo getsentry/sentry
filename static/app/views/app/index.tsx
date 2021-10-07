@@ -1,9 +1,6 @@
-import {Component, createRef, lazy, Suspense} from 'react';
-import keydown from 'react-keydown';
-import {RouteComponentProps} from 'react-router';
+import {lazy, Suspense, useEffect, useRef} from 'react';
+import {useHotkeys} from 'react-hotkeys-hook';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
 
 import {
   displayDeployPreviewAlert,
@@ -12,22 +9,20 @@ import {
 import {fetchGuides} from 'app/actionCreators/guides';
 import {openCommandPalette} from 'app/actionCreators/modal';
 import AlertActions from 'app/actions/alertActions';
-import {Client, initApiClientErrorHandling} from 'app/api';
+import {initApiClientErrorHandling} from 'app/api';
 import ErrorBoundary from 'app/components/errorBoundary';
 import GlobalModal from 'app/components/globalModal';
 import HookOrDefault from 'app/components/hookOrDefault';
 import Indicators from 'app/components/indicators';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
-import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import OrganizationStore from 'app/stores/organizationStore';
-import {Config, Organization} from 'app/types';
-import withApi from 'app/utils/withApi';
+import {useLegacyStore} from 'app/stores/useLegacyStore';
+import {Config} from 'app/types';
+import useApi from 'app/utils/useApi';
 import withConfig from 'app/utils/withConfig';
-import NewsletterConsent from 'app/views/newsletterConsent';
 
 import SystemAlerts from './systemAlerts';
 
@@ -36,211 +31,150 @@ const GlobalNotifications = HookOrDefault({
   defaultComponent: () => null,
 });
 
-function getAlertTypeForProblem(problem) {
-  switch (problem.severity) {
-    case 'critical':
-      return 'error';
-    default:
-      return 'warning';
-  }
-}
-
 type Props = {
-  api: Client;
   config: Config;
-} & RouteComponentProps<{}, {}>;
-
-type State = {
-  loading: boolean;
-  error: boolean;
-  needsUpgrade: boolean;
-  newsletterConsentPrompt: boolean;
-  user?: Config['user'];
-  organization?: Organization;
+  children: React.ReactNode;
 };
 
-class App extends Component<Props, State> {
-  static childContextTypes = {
-    location: PropTypes.object,
-  };
+const InstallWizard = lazy(() => import('app/views/admin/installWizard'));
+const NewsletterConsent = lazy(() => import('app/views/newsletterConsent'));
 
-  state: State = {
-    loading: false,
-    error: false,
-    needsUpgrade: ConfigStore.get('user')?.isSuperuser && ConfigStore.get('needsUpgrade'),
-    newsletterConsentPrompt: ConfigStore.get('user')?.flags?.newsletter_consent_prompt,
-  };
+/**
+ * App is the root level container for all uathenticated routes.
+ */
+function App({config, children}: Props) {
+  const api = useApi();
+  const {organization} = useLegacyStore(OrganizationStore);
 
-  getChildContext() {
-    return {
-      location: this.props.location,
-    };
+  // Command palette global-shortcut
+  useHotkeys('command+shift+p, command+k, ctrl+shift+p, ctrl+k', e => {
+    openCommandPalette();
+    e.preventDefault();
+  });
+
+  // Theme toggle global shortcut
+  useHotkeys(
+    'command+shift+l, ctrl+shift+l',
+    e => {
+      ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light');
+      e.preventDefault();
+    },
+    [config.theme]
+  );
+
+  /**
+   * Loads the users organization list into the OrganizationsStore
+   */
+  async function loadOrganizations() {
+    try {
+      const data = await api.requestPromise('/organizations/', {query: {member: '1'}});
+      OrganizationsStore.load(data);
+    } catch {
+      // TODO: do something?
+    }
   }
 
-  componentDidMount() {
-    this.props.api.request('/organizations/', {
-      query: {
-        member: '1',
-      },
-      success: data => {
-        OrganizationsStore.load(data);
-        this.setState({
-          loading: false,
-        });
-      },
-      error: () => {
-        this.setState({
-          loading: false,
-          error: true,
-        });
-      },
-    });
+  /**
+   * Creates Alerts for any internal health problems
+   */
+  async function checkInternalHealth() {
+    let data: any = null;
 
-    this.props.api.request('/internal/health/', {
-      success: data => {
-        if (data && data.problems) {
-          data.problems.forEach(problem => {
-            AlertActions.addAlert({
-              id: problem.id,
-              message: problem.message,
-              type: getAlertTypeForProblem(problem),
-              url: problem.url,
-            });
-          });
-        }
-      },
-      error: () => {}, // TODO: do something?
-    });
+    try {
+      data = await api.requestPromise('/internal/health/');
+    } catch {
+      // TODO: do something?
+    }
 
-    ConfigStore.get('messages').forEach(msg => {
-      AlertActions.addAlert({
-        message: msg.message,
-        type: msg.level,
-        neverExpire: true,
-      });
-    });
+    data?.problems?.forEach?.(problem => {
+      const {id, message, url} = problem;
+      const type = problem.severity === 'critical' ? 'error' : 'warning';
 
+      AlertActions.addAlert({id, message, type, url});
+    });
+  }
+
+  useEffect(() => {
+    loadOrganizations();
+    checkInternalHealth();
+
+    // Show system-level alerts
+    config.messages.forEach(msg =>
+      AlertActions.addAlert({message: msg.message, type: msg.level, neverExpire: true})
+    );
+
+    // The app is running in deploy preview mode
     if (DEPLOY_PREVIEW_CONFIG) {
       displayDeployPreviewAlert();
-    } else if (EXPERIMENTAL_SPA) {
+    }
+
+    // The app is running in local SPA mode
+    if (!DEPLOY_PREVIEW_CONFIG && EXPERIMENTAL_SPA) {
       displayExperimentalSpaAlert();
     }
 
+    // Set the user for analytics
+    if (config.user) {
+      HookStore.get('analytics:init-user').map(cb => cb(config.user));
+    }
+
     initApiClientErrorHandling();
-
-    const user = ConfigStore.get('user');
-    if (user) {
-      HookStore.get('analytics:init-user').map(cb => cb(user));
-    }
-
     fetchGuides();
+
+    // When the app is unloaded clear the organizationst list
+    return () => OrganizationsStore.load([]);
+  }, []);
+
+  function clearUpgrade() {
+    ConfigStore.set('needsUpgrade', false);
   }
 
-  componentDidUpdate(prevProps) {
-    const {config} = this.props;
-    if (!isEqual(config, prevProps.config)) {
-      this.handleConfigStoreChange(config);
-    }
+  function clearNewsletterConsent() {
+    const flags = {...config.user.flags, newsletter_consent_prompt: false};
+    ConfigStore.set('user', {...config.user, flags});
   }
 
-  componentWillUnmount() {
-    OrganizationsStore.load([]);
-    this.unlistener?.();
-  }
+  const needsUpgrade = config.user?.isSuperuser && config.needsUpgrade;
+  const newsletterConsentPrompt = config.user?.flags?.newsletter_consent_prompt;
 
-  mainContainerRef = createRef<HTMLDivElement>();
-  unlistener = OrganizationStore.listen(
-    state => this.setState({organization: state.organization}),
-    undefined
-  );
-
-  handleConfigStoreChange(config) {
-    const newState = {} as State;
-    if (config.needsUpgrade !== undefined) {
-      newState.needsUpgrade = config.needsUpgrade;
-    }
-
-    if (config.user !== undefined) {
-      newState.user = config.user;
-    }
-
-    if (Object.keys(newState).length > 0) {
-      this.setState(newState);
-    }
-  }
-
-  @keydown('meta+shift+p', 'meta+k', 'ctrl+shift+p', 'ctrl+k')
-  openCommandPalette(e) {
-    openCommandPalette();
-    e.preventDefault();
-    e.stopPropagation();
-  }
-
-  @keydown('meta+shift+l', 'ctrl+shift+l')
-  toggleDarkMode() {
-    ConfigStore.set('theme', ConfigStore.get('theme') === 'light' ? 'dark' : 'light');
-  }
-
-  onConfigured = () => this.setState({needsUpgrade: false});
-
-  // this is somewhat hackish
-  handleNewsletterConsent = () =>
-    this.setState({
-      newsletterConsentPrompt: false,
-    });
-
-  handleGlobalModalClose = () => {
-    if (typeof this.mainContainerRef.current?.focus === 'function') {
-      // Focus the main container to get hotkeys to keep working after modal closes
-      this.mainContainerRef.current.focus();
-    }
-  };
-
-  renderBody() {
-    const {needsUpgrade, newsletterConsentPrompt} = this.state;
-
+  function renderBody() {
     if (needsUpgrade) {
-      const InstallWizard = lazy(() => import('app/views/admin/installWizard'));
-
       return (
         <Suspense fallback={null}>
-          <InstallWizard onConfigured={this.onConfigured} />;
+          <InstallWizard onConfigured={clearUpgrade} />;
         </Suspense>
       );
     }
 
     if (newsletterConsentPrompt) {
-      return <NewsletterConsent onSubmitSuccess={this.handleNewsletterConsent} />;
-    }
-
-    return this.props.children;
-  }
-
-  render() {
-    if (this.state.loading) {
       return (
-        <LoadingIndicator triangle>
-          {t('Getting a list of all of your organizations.')}
-        </LoadingIndicator>
+        <Suspense fallback={null}>
+          <NewsletterConsent onSubmitSuccess={clearNewsletterConsent} />
+        </Suspense>
       );
     }
 
-    return (
-      <MainContainer tabIndex={-1} ref={this.mainContainerRef}>
-        <GlobalModal onClose={this.handleGlobalModalClose} />
-        <SystemAlerts className="messages-container" />
-        <GlobalNotifications
-          className="notifications-container messages-container"
-          organization={this.state.organization}
-        />
-        <Indicators className="indicators-container" />
-        <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
-      </MainContainer>
-    );
+    return children;
   }
+
+  // Used to restore focus to the container after closing the modal
+  const mainContainerRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <MainContainer tabIndex={-1} ref={mainContainerRef}>
+      <GlobalModal onClose={() => mainContainerRef.current?.focus?.()} />
+      <SystemAlerts className="messages-container" />
+      <GlobalNotifications
+        className="notifications-container messages-container"
+        organization={organization ?? undefined}
+      />
+      <Indicators className="indicators-container" />
+      <ErrorBoundary>{renderBody()}</ErrorBoundary>
+    </MainContainer>
+  );
 }
 
-export default withApi(withConfig(App));
+export default withConfig(App);
 
 const MainContainer = styled('div')`
   display: flex;

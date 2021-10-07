@@ -1,7 +1,16 @@
+from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Sequence, Union
+
+from rest_framework.response import Response
+
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.utils.http import absolute_uri
 
+if TYPE_CHECKING:
+    from sentry.models import Identity, Project
+
 UNSET = object()
+
+UnsettableString = Union[str, object, None]
 
 FIELD_MAP = {
     "title": "/fields/System.Title",
@@ -37,19 +46,29 @@ class VstsApiPath:
     work_item_categories = "{instance}{project}/_apis/wit/workitemtypecategories"
 
 
-class VstsApiClient(ApiClient, OAuth2RefreshMixin):
+class VstsApiClient(ApiClient, OAuth2RefreshMixin):  # type: ignore
     api_version = "4.1"  # TODO: update api version
     api_version_preview = "-preview.1"
     integration_name = "vsts"
 
-    def __init__(self, identity, oauth_redirect_url, *args, **kwargs):
+    def __init__(
+        self, identity: "Identity", oauth_redirect_url: str, *args: Any, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.identity = identity
         self.oauth_redirect_url = oauth_redirect_url
         if "access_token" not in self.identity.data:
             raise ValueError("Vsts Identity missing access token")
 
-    def request(self, method, path, data=None, params=None, api_preview=False, timeout=None):
+    def request(
+        self,
+        method: str,
+        path: str,
+        data: Optional[Mapping[str, Any]] = None,
+        params: Optional[Sequence[Any]] = None,
+        api_preview: bool = False,
+        timeout: Optional[int] = None,
+    ) -> Response:
         self.check_auth(redirect_url=self.oauth_redirect_url)
         headers = {
             "Accept": "application/json; api-version={}{}".format(
@@ -68,14 +87,14 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
 
     def create_work_item(
         self,
-        instance,
-        project,
-        item_type=None,
-        title=None,
-        description=None,
-        comment=None,
-        link=None,
-    ):
+        instance: str,
+        project: "Project",
+        item_type: Optional[str] = None,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        comment: Optional[str] = None,
+        link: Optional[str] = None,
+    ) -> Response:
         data = []
         if title:
             data.append({"op": "add", "path": FIELD_MAP["title"], "value": title})
@@ -103,16 +122,16 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
 
     def update_work_item(
         self,
-        instance,
-        id,
-        title=UNSET,
-        description=UNSET,
-        link=UNSET,
-        comment=UNSET,
-        assigned_to=UNSET,
-        state=UNSET,
-    ):
-        data = []
+        instance: str,
+        id: str,
+        title: UnsettableString = UNSET,
+        description: UnsettableString = UNSET,
+        link: UnsettableString = UNSET,
+        comment: UnsettableString = UNSET,
+        assigned_to: UnsettableString = UNSET,
+        state: UnsettableString = UNSET,
+    ) -> Response:
+        data: List[Mapping[str, Any]] = []
 
         for f_name, f_value in (
             ("title", title),
@@ -143,10 +162,10 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
 
         return self.patch(VstsApiPath.work_items.format(instance=instance, id=id), data=data)
 
-    def get_work_item(self, instance, id):
+    def get_work_item(self, instance: str, id: str) -> Response:
         return self.get(VstsApiPath.work_items.format(instance=instance, id=id))
 
-    def get_work_item_states(self, instance, project):
+    def get_work_item_states(self, instance: str, project: str) -> Response:
         return self.get(
             VstsApiPath.work_item_states.format(
                 instance=instance,
@@ -157,10 +176,10 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             api_preview=True,
         )
 
-    def get_work_item_categories(self, instance, project):
+    def get_work_item_categories(self, instance: str, project: str) -> Response:
         return self.get(VstsApiPath.work_item_categories.format(instance=instance, project=project))
 
-    def get_repo(self, instance, name_or_id, project=None):
+    def get_repo(self, instance: str, name_or_id: str, project: Optional[str] = None) -> Response:
         return self.get(
             VstsApiPath.repository.format(
                 instance=instance,
@@ -169,7 +188,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             )
         )
 
-    def get_repos(self, instance, project=None):
+    def get_repos(self, instance: str, project: Optional[str] = None) -> Response:
         return self.get(
             VstsApiPath.repositories.format(
                 instance=instance, project=f"{project}/" if project else ""
@@ -177,25 +196,27 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             timeout=5,
         )
 
-    def get_commits(self, instance, repo_id, commit, limit=100):
+    def get_commits(self, instance: str, repo_id: str, commit: str, limit: int = 100) -> Response:
         return self.get(
             VstsApiPath.commits.format(instance=instance, repo_id=repo_id),
             params={"commit": commit, "$top": limit},
         )
 
-    def get_commit(self, instance, repo_id, commit):
+    def get_commit(self, instance: str, repo_id: str, commit: str) -> Response:
         return self.get(
             VstsApiPath.commit.format(instance=instance, repo_id=repo_id, commit_id=commit)
         )
 
-    def get_commit_filechanges(self, instance, repo_id, commit):
+    def get_commit_filechanges(self, instance: str, repo_id: str, commit: str) -> Response:
         resp = self.get(
             VstsApiPath.commits_changes.format(instance=instance, repo_id=repo_id, commit_id=commit)
         )
         changes = resp["changes"]
         return changes
 
-    def get_commit_range(self, instance, repo_id, start_sha, end_sha):
+    def get_commit_range(
+        self, instance: str, repo_id: str, start_sha: str, end_sha: str
+    ) -> Response:
         return self.post(
             VstsApiPath.commits_batch.format(instance=instance, repo_id=repo_id),
             data={
@@ -204,22 +225,25 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             },
         )
 
-    def get_project(self, instance, project_id):
+    def get_project(self, instance: str, project_id: str) -> Response:
         return self.get(
             VstsApiPath.project.format(instance=instance, project_id=project_id),
             params={"stateFilter": "WellFormed"},
         )
 
-    def get_projects(self, instance):
-        def gen_params(page_number, page_size):
-            # ADO supports a continuation token in the response but only in the newer API version (https://docs.microsoft.com/en-us/rest/api/azure/devops/core/projects/list?view=azure-devops-rest-6.1)
-            # the token comes as a response header instead of the body and our API clients currently only return the body
-            # we can use count, $skip, and $top to get the same result
+    def get_projects(self, instance: str) -> Response:
+        def gen_params(page_number: int, page_size: int) -> Mapping[str, Union[str, int]]:
+            # ADO supports a continuation token in the response but only in the newer API version (
+            # https://docs.microsoft.com/en-us/rest/api/azure/devops/core/projects/list?view=azure-devops-rest-6.1
+            # ). The token comes as a response header instead of the body and our API clients
+            # currently only return the body we can use count, $skip, and $top to get the same result.
             offset = self.page_size * page_number
             return {"stateFilter": "WellFormed", "$skip": offset, "$top": page_size}
 
-        def get_results(resp):
-            return resp["value"]
+        def get_results(resp: Response) -> Sequence[Any]:
+            # Explicitly typing to satisfy mypy.
+            results: Sequence[Any] = resp["value"]
+            return results
 
         return self.get_with_pagination(
             VstsApiPath.projects.format(instance=instance),
@@ -227,7 +251,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             get_results=get_results,
         )
 
-    def get_users(self, account_name, continuation_token=None):
+    def get_users(self, account_name: str, continuation_token: Optional[str] = None) -> Response:
         """
         Gets Users with access to a given account/organization
         https://docs.microsoft.com/en-us/rest/api/azure/devops/graph/users/list?view=azure-devops-rest-4.1
@@ -238,7 +262,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             params={"continuationToken": continuation_token},
         )
 
-    def create_subscription(self, instance, shared_secret):
+    def create_subscription(self, instance: Optional[str], shared_secret: str) -> Response:
         return self.post(
             VstsApiPath.subscriptions.format(instance=instance),
             data={
@@ -250,27 +274,27 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
                 "consumerInputs": {
                     "url": absolute_uri("/extensions/vsts/issue-updated/"),
                     "resourceDetailsToSend": "all",
-                    "httpHeaders": "shared-secret:%s" % shared_secret,
+                    "httpHeaders": f"shared-secret:{shared_secret}",
                 },
             },
         )
 
-    def get_subscription(self, instance, subscription_id):
+    def get_subscription(self, instance: str, subscription_id: str) -> Response:
         return self.get(
             VstsApiPath.subscription.format(instance=instance, subscription_id=subscription_id)
         )
 
-    def delete_subscription(self, instance, subscription_id):
+    def delete_subscription(self, instance: str, subscription_id: str) -> Response:
         return self.delete(
             VstsApiPath.subscription.format(instance=instance, subscription_id=subscription_id)
         )
 
-    def update_subscription(self, instance, subscription_id):
+    def update_subscription(self, instance: str, subscription_id: str) -> Response:
         return self.put(
             VstsApiPath.subscription.format(instance=instance, subscription_id=subscription_id)
         )
 
-    def search_issues(self, account_name, query=None):
+    def search_issues(self, account_name: str, query: Optional[str] = None) -> Response:
         return self.post(
             VstsApiPath.work_item_search.format(account_name=account_name),
             data={"searchText": query, "$top": 1000},

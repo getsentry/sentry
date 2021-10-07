@@ -4,6 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
+import {OrganizationContext} from 'app/views/organizationContext';
 import VitalDetail from 'app/views/performance/vitalDetail/';
 
 function initializeData({query} = {query: {}}) {
@@ -26,6 +27,14 @@ function initializeData({query} = {query: {}}) {
   ProjectsStore.loadInitialData(initialData.organization.projects);
   return initialData;
 }
+
+const WrappedComponent = ({organization, ...rest}) => {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <VitalDetail {...rest} />
+    </OrganizationContext.Provider>
+  );
+};
 
 describe('Performance > VitalDetail', function () {
   beforeEach(function () {
@@ -122,7 +131,7 @@ describe('Performance > VitalDetail', function () {
             compare_numeric_aggregate_p75_measurements_cls_greater_0_25: 'number',
             count: 'integer',
             count_unique_user: 'integer',
-            key_transaction: 'boolean',
+            team_key_transaction: 'boolean',
             p50_measurements_cls: 'number',
             p75_measurements_cls: 'number',
             p95_measurements_cls: 'number',
@@ -135,7 +144,7 @@ describe('Performance > VitalDetail', function () {
               compare_numeric_aggregate_p75_measurements_cls_greater_0_25: 0,
               count: 10000,
               count_unique_user: 2740,
-              key_transaction: 1,
+              team_key_transaction: 1,
               p50_measurements_cls: 0.143,
               p75_measurements_cls: 0.215,
               p95_measurements_cls: 0.302,
@@ -169,7 +178,7 @@ describe('Performance > VitalDetail', function () {
   it('renders basic UI elements', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
-      <VitalDetail
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -194,7 +203,7 @@ describe('Performance > VitalDetail', function () {
   it('triggers a navigation on search', async function () {
     const initialData = initializeData();
     const wrapper = mountWithTheme(
-      <VitalDetail
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -228,7 +237,7 @@ describe('Performance > VitalDetail', function () {
       },
     });
     const wrapper = mountWithTheme(
-      <VitalDetail
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -261,7 +270,7 @@ describe('Performance > VitalDetail', function () {
       },
     });
     const wrapper = mountWithTheme(
-      <VitalDetail
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -295,7 +304,7 @@ describe('Performance > VitalDetail', function () {
   it('Pagination links exist to switch between vitals', async function () {
     const initialData = initializeData({query: {query: 'tag:value'}});
     const wrapper = mountWithTheme(
-      <VitalDetail
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,
@@ -321,7 +330,7 @@ describe('Performance > VitalDetail', function () {
   it('Check LCP vital renders correctly', async function () {
     const initialData = initializeData({query: {query: 'tag:value'}});
     const wrapper = mountWithTheme(
-      <VitalDetail
+      <WrappedComponent
         organization={initialData.organization}
         location={initialData.router.location}
       />,

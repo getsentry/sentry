@@ -100,16 +100,6 @@ function ReleaseStats({
     DisplayOption.USERS
   );
 
-  let apdexField: string;
-  let apdexPerformanceTerm: PERFORMANCE_TERM;
-  if (organization.features.includes('project-transaction-threshold')) {
-    apdexPerformanceTerm = PERFORMANCE_TERM.APDEX_NEW;
-    apdexField = 'apdex()';
-  } else {
-    apdexPerformanceTerm = PERFORMANCE_TERM.APDEX;
-    apdexField = `apdex(${organization.apdexThreshold})`;
-  }
-
   return (
     <Container>
       <div>
@@ -279,7 +269,7 @@ function ReleaseStats({
                 {t('Apdex')}
                 <QuestionTooltip
                   position="top"
-                  title={getTermHelp(organization, apdexPerformanceTerm)}
+                  title={getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW)}
                   size="sm"
                 />
               </SectionHeading>
@@ -314,7 +304,7 @@ function ReleaseStats({
                             >
                               <Tooltip title={t('Open in Performance')}>
                                 <Count
-                                  value={tableData.data[0][getAggregateAlias(apdexField)]}
+                                  value={tableData.data[0][getAggregateAlias('apdex()')]}
                                 />
                               </Tooltip>
                             </GlobalSelectionLink>

@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
 import {t} from 'app/locale';
-import {LightWeightOrganization, Organization, Project} from 'app/types';
+import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {
   formatAbbreviatedNumber,
@@ -136,7 +136,7 @@ type VitalCardDetail = {
 };
 
 export const vitalCardDetails = (
-  organization: LightWeightOrganization
+  organization: Organization
 ): {[key: string]: VitalCardDetail | undefined} => {
   return {
     'p75(transaction.duration)': {
@@ -156,9 +156,7 @@ export const vitalCardDetails = (
     },
     'apdex()': {
       title: t('Apdex'),
-      tooltip: organization.features.includes('project-transaction-threshold')
-        ? getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW)
-        : getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
       formatter: value => formatFloat(value, 4),
     },
     'p75(measurements.frames_slow_rate)': {

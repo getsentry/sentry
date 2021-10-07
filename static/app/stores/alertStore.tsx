@@ -15,11 +15,11 @@ type Alert = {
   noDuplicates?: boolean;
 };
 
-type AlertStoreInterface = Reflux.StoreDefinition & {
-  init: () => void;
-  getInitialState: () => Alert[];
-  onAddAlert: (alert: Alert) => void;
-  onCloseAlert: (alert: Alert, duration?: number) => void;
+type AlertStoreInterface = {
+  init(): void;
+  getInitialState(): Alert[];
+  onAddAlert(alert: Alert): void;
+  onCloseAlert(alert: Alert, duration?: number): void;
 };
 
 type Internals = {
@@ -27,7 +27,7 @@ type Internals = {
   count: number;
 };
 
-const storeConfig: AlertStoreInterface & Internals = {
+const storeConfig: Reflux.StoreDefinition & Internals & AlertStoreInterface = {
   listenables: AlertActions,
   alerts: [],
   count: 0,
@@ -105,8 +105,6 @@ const storeConfig: AlertStoreInterface & Internals = {
   },
 };
 
-type AlertStore = Reflux.Store & AlertStoreInterface;
-
-const AlertStore = Reflux.createStore(storeConfig) as AlertStore;
+const AlertStore = Reflux.createStore(storeConfig) as Reflux.Store & AlertStoreInterface;
 
 export default AlertStore;

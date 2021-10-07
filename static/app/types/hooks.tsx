@@ -5,14 +5,7 @@ import {ChildrenRenderFn} from 'app/components/acl/feature';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRange/selectorItems';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
-import {
-  IntegrationProvider,
-  LightWeightOrganization,
-  Member,
-  Organization,
-  Project,
-  User,
-} from 'app/types';
+import {IntegrationProvider, Member, Organization, Project, User} from 'app/types';
 import {ExperimentKey} from 'app/types/experiments';
 import {NavigationItem, NavigationSection} from 'app/views/settings/types';
 
@@ -48,7 +41,6 @@ export type RouteHooks = {
   'routes:admin': RoutesHook;
   'routes:api': RoutesHook;
   'routes:organization': RoutesHook;
-  'routes:organization-root': RoutesHook;
 };
 
 /**
@@ -70,7 +62,10 @@ type DisabledAppStoreConnectItem = {
 };
 type DisabledMemberTooltipProps = {children: React.ReactNode};
 type DashboardHeadersProps = {organization: Organization};
-
+type CodeOwnersHeaderProps = {
+  addCodeOwner: () => void;
+  handleRequest: () => void;
+};
 /**
  * Component wrapping hooks
  */
@@ -80,6 +75,7 @@ export type ComponentHooks = {
   'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
+  'component:codeowners-header': () => React.ComponentType<CodeOwnersHeaderProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:disabled-app-store-connect-item': () => React.ComponentType<DisabledAppStoreConnectItem>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
@@ -127,6 +123,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:discover-sidebar-item': FeatureDisabledHook;
   'feature-disabled:discover2-page': FeatureDisabledHook;
   'feature-disabled:discover2-sidebar-item': FeatureDisabledHook;
+  'feature-disabled:open-in-discover': FeatureDisabledHook;
   'feature-disabled:events-page': FeatureDisabledHook;
   'feature-disabled:events-sidebar-item': FeatureDisabledHook;
   'feature-disabled:grid-editable-actions': FeatureDisabledHook;
@@ -142,6 +139,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:project-performance-score-card': FeatureDisabledHook;
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
+  'feature-disabled:relay': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
   'feature-disabled:sso-rippling': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
@@ -270,7 +268,7 @@ type AnalyticsTrackEventV2 = (
      */
     eventName: string | null;
 
-    organization: LightWeightOrganization | null;
+    organization: Organization | null;
     /**
      * Arbitrary data to track
      */
@@ -375,14 +373,14 @@ type SettingsItemsHook = (organization?: Organization) => NavigationItem[];
  */
 type SidebarItemLabelHook = () => React.ComponentType<{
   /**
+   * The item label being wrapped
+   */
+  children: React.ReactNode;
+  /**
    * The key of the item label currently being rendered. If no id is provided
    * the hook will have no effect.
    */
   id?: string;
-  /**
-   * The item label being wrapped
-   */
-  children: React.ReactNode;
 }>;
 
 type SidebarItemOverrideHook = () => React.ComponentType<{

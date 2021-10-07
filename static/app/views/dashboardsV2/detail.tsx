@@ -13,7 +13,7 @@ import {Client} from 'app/api';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import HookOrDefault from 'app/components/hookOrDefault';
 import * as Layout from 'app/components/layouts/thirds';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
@@ -279,7 +279,8 @@ class DashboardDetail extends Component<Props, State> {
                   ...location.query,
                 },
               });
-            }
+            },
+            () => undefined
           );
         }
         break;
@@ -319,7 +320,8 @@ class DashboardDetail extends Component<Props, State> {
                 });
                 return;
               }
-            }
+            },
+            () => undefined
           );
 
           return;
@@ -401,7 +403,7 @@ class DashboardDetail extends Component<Props, State> {
         }}
       >
         <PageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
             <StyledPageHeader>
               <DashboardTitle
                 dashboard={modifiedDashboard ?? dashboard}
@@ -429,7 +431,7 @@ class DashboardDetail extends Component<Props, State> {
               router={router}
               location={location}
             />
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
     );
@@ -453,7 +455,7 @@ class DashboardDetail extends Component<Props, State> {
           },
         }}
       >
-        <LightWeightNoProjectMessage organization={organization}>
+        <NoProjectMessage organization={organization}>
           <Layout.Header>
             <Layout.HeaderContent>
               <Breadcrumbs
@@ -508,7 +510,7 @@ class DashboardDetail extends Component<Props, State> {
               />
             </Layout.Main>
           </Layout.Body>
-        </LightWeightNoProjectMessage>
+        </NoProjectMessage>
       </GlobalSelectionHeader>
     );
   }

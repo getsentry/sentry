@@ -40,6 +40,7 @@ DEFAULT_AUTHENTICATION = (TokenAuthentication, ApiKeyAuthentication, SessionAuth
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
+api_access_logger = logging.getLogger("sentry.access.api")
 
 
 def allow_cors_options(func):
@@ -160,6 +161,42 @@ class Endpoint(APIView):
         except json.JSONDecodeError:
             return
 
+    def _create_api_access_log(self):
+        """
+        Create a log entry to be used for api metrics gathering
+        """
+        try:
+
+            token_class = getattr(self.request.auth, "__class__", None)
+            token_name = token_class.__name__
+
+            view_obj = self.request.parser_context["view"]
+
+            request_user = getattr(self.request, "user", None)
+            user_id = getattr(request_user, "id", None)
+
+            request_access = getattr(self.request, "access", None)
+            org_id = getattr(request_access, "organization_id", None)
+
+            request_auth = getattr(self.request, "auth", None)
+            auth_id = getattr(request_auth, "id", None)
+
+            log_metrics = dict(
+                method=self.request.method,
+                view=f"{view_obj.__module__}.{view_obj.__class__.__name__}",
+                response=self.response.status_code,
+                user_id=user_id,
+                token_type=token_name,
+                organization_id=org_id,
+                auth_id=auth_id,
+                path=self.request.path,
+                caller_ip=self.request.META.get("REMOTE_ADDR"),
+                user_agent=self.request.META.get("HTTP_USER_AGENT"),
+            )
+            api_access_logger.info("api.access", extra=log_metrics)
+        except Exception:
+            api_access_logger.exception("api.access")
+
     def initialize_request(self, request, *args, **kwargs):
         # XXX: Since DRF 3.x, when the request is passed into
         # `initialize_request` it's set as an internal variable on the returned
@@ -234,12 +271,6 @@ class Endpoint(APIView):
                     # setup default access
                     request.access = access.from_request(request)
 
-            if (
-                getattr(self.request.successful_authenticator, "token_name", None)
-                == TokenAuthentication.token_name
-            ):
-                request._metric_tags["backend_request"] = True
-
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
                 description=f"{type(self).__name__}.{handler.__name__}",
@@ -264,6 +295,8 @@ class Endpoint(APIView):
                 ) as span:
                     span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
+
+        self._create_api_access_log()
 
         return self.response
 

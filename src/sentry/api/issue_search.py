@@ -31,7 +31,7 @@ issue_search_config = SearchConfig.create_from(
     allow_boolean=False,
     is_filter_translation=is_filter_translation,
     numeric_keys=default_config.numeric_keys | {"times_seen"},
-    date_keys=default_config.date_keys | {"active_at", "date"},
+    date_keys=default_config.date_keys | {"date"},
     key_mappings={
         "assigned_to": ["assigned"],
         "bookmarked_by": ["bookmarks"],
@@ -40,7 +40,6 @@ issue_search_config = SearchConfig.create_from(
         "first_release": ["first-release", "firstRelease"],
         "first_seen": ["age", "firstSeen"],
         "last_seen": ["lastSeen"],
-        "active_at": ["activeSince"],
         # TODO: Special case this in the backends, since they currently rely
         # on date_from and date_to explicitly
         "date": ["event.timestamp"],

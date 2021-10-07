@@ -10,7 +10,6 @@ import {
   TraceRequestProps,
 } from 'app/utils/performance/quickTrace/types';
 import {
-  beforeFetch,
   getTraceRequestPayload,
   makeEventView,
 } from 'app/utils/performance/quickTrace/utils';
@@ -69,7 +68,6 @@ function TraceLiteQuery({
     <GenericDiscoverQuery<TraceLite, AdditionalQueryProps>
       route={`events-trace-light/${traceId}`}
       getRequestPayload={getTraceLiteRequestPayload}
-      beforeFetch={beforeFetch}
       eventView={eventView}
       {...props}
     >

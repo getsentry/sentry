@@ -11,6 +11,7 @@ from sentry.snuba.metrics import (
     QueryDefinition,
     SnubaQueryBuilder,
     SnubaResultConverter,
+    get_intervals,
 )
 
 
@@ -70,20 +71,24 @@ def test_build_snuba_query(mock_now, mock_now2):
     assert snuba_queries == {
         "metrics_counters": {
             "totals": expected_query("metrics_counters", "value", []),
-            "series": expected_query("metrics_counters", "value", [Column("timestamp")]),
+            "series": expected_query("metrics_counters", "value", [Column("bucketed_time")]),
         },
         "metrics_sets": {
             "totals": expected_query("metrics_sets", "value", []),
-            "series": expected_query("metrics_sets", "value", [Column("timestamp")]),
+            "series": expected_query("metrics_sets", "value", [Column("bucketed_time")]),
         },
         "metrics_distributions": {
             "totals": expected_query("metrics_distributions", "percentiles", []),
-            "series": expected_query("metrics_distributions", "percentiles", [Column("timestamp")]),
+            "series": expected_query(
+                "metrics_distributions", "percentiles", [Column("bucketed_time")]
+            ),
         },
     }
 
 
-def test_translate_results():
+@mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
+@mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
+def test_translate_results(_1, _2):
     query_params = MultiValueDict(
         {
             "groupBy": ["session.status"],
@@ -93,10 +98,13 @@ def test_translate_results():
                 "p50(session.duration)",
                 "p95(session.duration)",
             ],
+            "interval": ["1d"],
+            "statsPeriod": ["2d"],
         }
     )
     query_definition = QueryDefinition(query_params)
 
+    intervals = list(get_intervals(query_definition))
     results = {
         "metrics_counters": {
             "totals": {
@@ -118,25 +126,25 @@ def test_translate_results():
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 4,
-                        "timestamp": datetime(2021, 2, 1, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 24, tzinfo=pytz.utc),
                         "value": 100,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 0,
-                        "timestamp": datetime(2021, 2, 1, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 24, tzinfo=pytz.utc),
                         "value": 110,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 4,
-                        "timestamp": datetime(2021, 2, 2, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 25, tzinfo=pytz.utc),
                         "value": 200,
                     },
                     {
                         "metric_id": 9,  # session
                         "tags[8]": 0,
-                        "timestamp": datetime(2021, 2, 2, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 25, tzinfo=pytz.utc),
                         "value": 220,
                     },
                 ],
@@ -164,28 +172,28 @@ def test_translate_results():
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
-                        "timestamp": datetime(2021, 2, 1, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 24, tzinfo=pytz.utc),
                         "max": 10.1,
                         "percentiles": [1.1, 2.1, 3.1, 4.1, 5.1],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 0,
-                        "timestamp": datetime(2021, 2, 1, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 24, tzinfo=pytz.utc),
                         "max": 20.2,
                         "percentiles": [1.2, 2.2, 3.2, 4.2, 5.2],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 4,
-                        "timestamp": datetime(2021, 2, 2, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 25, tzinfo=pytz.utc),
                         "max": 30.3,
                         "percentiles": [1.3, 2.3, 3.3, 4.3, 5.3],
                     },
                     {
                         "metric_id": 7,  # session.duration
                         "tags[8]": 0,
-                        "timestamp": datetime(2021, 2, 2, tzinfo=pytz.utc),
+                        "bucketed_time": datetime(2021, 8, 25, tzinfo=pytz.utc),
                         "max": 40.4,
                         "percentiles": [1.4, 2.4, 3.4, 4.4, 5.4],
                     },
@@ -194,7 +202,7 @@ def test_translate_results():
         },
     }
 
-    assert SnubaResultConverter(1, query_definition, results).translate_results() == [
+    assert SnubaResultConverter(1, query_definition, intervals, results).translate_results() == [
         {
             "by": {"session.status": "healthy"},
             "totals": {
@@ -203,20 +211,12 @@ def test_translate_results():
                 "p50(session.duration)": 1,
                 "p95(session.duration)": 4,
             },
-            "series": [
-                {
-                    "sum(session)": 100,
-                    "max(session.duration)": 10.1,
-                    "p50(session.duration)": 1.1,
-                    "p95(session.duration)": 4.1,
-                },
-                {
-                    "sum(session)": 200,
-                    "max(session.duration)": 30.3,
-                    "p50(session.duration)": 1.3,
-                    "p95(session.duration)": 4.3,
-                },
-            ],
+            "series": {
+                "sum(session)": [100, 200],
+                "max(session.duration)": [10.1, 30.3],
+                "p50(session.duration)": [1.1, 1.3],
+                "p95(session.duration)": [4.1, 4.3],
+            },
         },
         {
             "by": {"session.status": "abnormal"},
@@ -226,19 +226,68 @@ def test_translate_results():
                 "p50(session.duration)": 1.5,
                 "p95(session.duration)": 4.5,
             },
-            "series": [
-                {
-                    "sum(session)": 110,
-                    "max(session.duration)": 20.2,
-                    "p50(session.duration)": 1.2,
-                    "p95(session.duration)": 4.2,
-                },
-                {
-                    "sum(session)": 220,
-                    "max(session.duration)": 40.4,
-                    "p50(session.duration)": 1.4,
-                    "p95(session.duration)": 4.4,
-                },
+            "series": {
+                "sum(session)": [110, 220],
+                "max(session.duration)": [20.2, 40.4],
+                "p50(session.duration)": [1.2, 1.4],
+                "p95(session.duration)": [4.2, 4.4],
+            },
+        },
+    ]
+
+
+@mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
+@mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
+def test_translate_results_missing_slots(_1, _2):
+    query_params = MultiValueDict(
+        {
+            "field": [
+                "sum(session)",
             ],
+            "interval": ["1d"],
+            "statsPeriod": ["3d"],
+        }
+    )
+    query_definition = QueryDefinition(query_params)
+
+    results = {
+        "metrics_counters": {
+            "totals": {
+                "data": [
+                    {
+                        "metric_id": 9,  # session
+                        "value": 400,
+                    },
+                ],
+            },
+            "series": {
+                "data": [
+                    {
+                        "metric_id": 9,  # session
+                        "bucketed_time": datetime(2021, 8, 23, tzinfo=pytz.utc),
+                        "value": 100,
+                    },
+                    # no data for 2021-08-24
+                    {
+                        "metric_id": 9,  # session
+                        "bucketed_time": datetime(2021, 8, 25, tzinfo=pytz.utc),
+                        "value": 300,
+                    },
+                ],
+            },
+        },
+    }
+
+    intervals = list(get_intervals(query_definition))
+    assert SnubaResultConverter(1, query_definition, intervals, results).translate_results() == [
+        {
+            "by": {},
+            "totals": {
+                "sum(session)": 400,
+            },
+            "series": {
+                # No data for 2021-08-24
+                "sum(session)": [100, 0, 300],
+            },
         },
     ]

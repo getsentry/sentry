@@ -42,6 +42,7 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.notifications.types import NotificationSettingTypes
+from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -365,9 +366,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
         data = serialize(project, request.user, DetailedProjectSerializer())
 
+        # TODO: should switch to expand and move logic into the serializer
         include = set(filter(bool, request.GET.get("include", "").split(",")))
         if "stats" in include:
             data["stats"] = {"unresolved": self._get_unresolved_count(project)}
+
+        expand = request.GET.getlist("expand", [])
+        if "hasAlertIntegration" in expand:
+            data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
         return Response(data)
 
@@ -726,7 +732,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         Schedules a project for deletion.
 
-        Deletion happens asynchronously and therefor is not immediate.
+        Deletion happens asynchronously and therefore is not immediate.
         However once deletion has begun the state of a project changes and
         will be hidden from most public views.
 

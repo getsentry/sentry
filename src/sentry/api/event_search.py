@@ -11,7 +11,6 @@ from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.nodes import Node
 
 from sentry.search.events.constants import (
-    KEY_TRANSACTION_ALIAS,
     OPERATOR_NEGATION_MAP,
     SEARCH_MAP,
     SEMVER_ALIAS,
@@ -458,7 +457,7 @@ class SearchVisitor(NodeVisitor):
         return lookup
 
     def is_numeric_key(self, key):
-        return key in self.config.numeric_keys or is_measurement(key)
+        return key in self.config.numeric_keys or is_measurement(key) or is_span_op_breakdown(key)
 
     def is_duration_key(self, key):
         return (
@@ -1033,7 +1032,6 @@ default_config = SearchConfig(
         "error.handled",
         "error.unhandled",
         "stack.in_app",
-        KEY_TRANSACTION_ALIAS,
         TEAM_KEY_TRANSACTION_ALIAS,
     },
 )

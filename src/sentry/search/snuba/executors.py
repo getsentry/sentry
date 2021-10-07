@@ -229,9 +229,13 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
     def _transform_converted_filter(
         self, search_filter, converted_filter, project_ids, environment_ids=None
     ):
-        """This method serves as a hook - after we convert the search_filter into a snuba compatible filter (which converts it in a general dataset ambigious method),
-        we may want to transform the query - maybe change the value (time formats, translate value into id (like turning Release `version` into `id`) or vice versa),  alias fields, etc.
-        By default, no transformation is done.
+        """
+        This method serves as a hook - after we convert the search_filter into a
+        snuba compatible filter (which converts it in a general dataset
+        ambiguous method), we may want to transform the query - maybe change the
+        value (time formats, translate value into id (like turning Release
+        `version` into `id`) or vice versa), alias fields, etc. By default, no
+        transformation is done.
         """
         return converted_filter
 
@@ -257,7 +261,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     logger = logging.getLogger("sentry.search.postgressnuba")
     dependency_aggregations = {"priority": ["last_seen", "times_seen"]}
     postgres_only_fields = {
-        "query",
         "status",
         "for_review",
         "assigned_or_suggested",
@@ -266,7 +269,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "unassigned",
         "linked",
         "subscribed_by",
-        "active_at",
         "first_release",
         "first_seen",
     }
@@ -386,10 +388,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             return self.empty_result
         elif len(group_ids) > max_candidates:
             # If the pre-filter query didn't include anything to significantly
-            # filter down the number of results (from 'first_release', 'query',
-            # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
-            # 'subscribed_by', 'active_at_from', or 'active_at_to') then it
-            # might have surpassed the `max_candidates`. In this case,
+            # filter down the number of results (from 'first_release', 'status',
+            # 'bookmarked_by', 'assigned_to', 'unassigned', or 'subscribed_by')
+            # then it might have surpassed the `max_candidates`. In this case,
             # we *don't* want to pass candidates down to Snuba, and instead we
             # want Snuba to do all the filtering/sorting it can and *then* apply
             # this queryset to the results from Snuba, which we call
@@ -644,19 +645,37 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "event": Entity("events", alias="e"),
         "group": Entity("groupedmessage", alias="g"),
     }
-    times_seen_aggregation = Function("count", [Column("group_id", entities["event"])])
+    times_seen_aggregation = Function(
+        "ifNull", [Function("count", [Column("group_id", entities["event"])]), 0]
+    )
     first_seen_aggregation = Function(
-        "multiply",
+        "ifNull",
         [
-            Function("toUInt64", [Function("min", [Column("timestamp", entities["event"])])]),
-            1000,
+            Function(
+                "multiply",
+                [
+                    Function(
+                        "toUInt64", [Function("min", [Column("timestamp", entities["event"])])]
+                    ),
+                    1000,
+                ],
+            ),
+            0,
         ],
     )
     last_seen_aggregation = Function(
-        "multiply",
+        "ifNull",
         [
-            Function("toUInt64", [Function("max", [Column("timestamp", entities["event"])])]),
-            1000,
+            Function(
+                "multiply",
+                [
+                    Function(
+                        "toUInt64", [Function("max", [Column("timestamp", entities["event"])])]
+                    ),
+                    1000,
+                ],
+            ),
+            0,
         ],
     )
 
@@ -686,7 +705,9 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 )
             ],
         ),
-        "user_count": Function("uniq", [Column("tags[sentry:user]", entities["event"])]),
+        "user_count": Function(
+            "ifNull", [Function("uniq", [Column("tags[sentry:user]", entities["event"])]), 0]
+        ),
     }
 
     def calculate_start_end(
@@ -809,10 +830,12 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             ][0]["count"]
 
         paginator_results = SequencePaginator(
-            [(row["score"], row["g.id"]) for row in data], reverse=True, **paginator_options
+            [(row["score"], row["g.id"]) for row in data],
+            reverse=True,
+            **paginator_options,
         ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
         # We filter against `group_queryset` here so that we recheck all conditions in Postgres.
-        # Since replag between Postgres and Clickhouse can happen, we might get back results that
+        # Since replay between Postgres and Clickhouse can happen, we might get back results that
         # have changed state in Postgres. By rechecking them we guarantee than any returned results
         # have the correct state.
         # TODO: This can result in us returning less than a full page of results, but shouldn't

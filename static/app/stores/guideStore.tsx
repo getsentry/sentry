@@ -68,14 +68,14 @@ const defaultState: GuideStoreState = {
 type GuideStoreInterface = {
   state: GuideStoreState;
 
-  onFetchSucceeded: (data: GuidesServerData) => void;
-  onRegisterAnchor: (target: string) => void;
-  onUnregisterAnchor: (target: string) => void;
-  recordCue: (guide: string) => void;
-  updatePrevGuide: (nextGuide: Guide | null) => void;
+  onFetchSucceeded(data: GuidesServerData): void;
+  onRegisterAnchor(target: string): void;
+  onUnregisterAnchor(target: string): void;
+  recordCue(guide: string): void;
+  updatePrevGuide(nextGuide: Guide | null): void;
 };
 
-const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & GuideStoreInterface = {
   state: defaultState,
 
   init() {
@@ -249,8 +249,6 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
   },
 };
 
-type GuideStore = Reflux.Store & GuideStoreInterface;
-
-const GuideStore = Reflux.createStore(guideStoreConfig) as GuideStore;
+const GuideStore = Reflux.createStore(storeConfig) as Reflux.Store & GuideStoreInterface;
 
 export default GuideStore;

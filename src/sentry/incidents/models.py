@@ -10,6 +10,7 @@ from django.utils import timezone
 from sentry.db.models import (
     ArrayField,
     FlexibleForeignKey,
+    JSONField,
     Model,
     OneToOneCascadeDeletes,
     UUIDField,
@@ -383,6 +384,9 @@ class AlertRule(Model):
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
     threshold_period = models.IntegerField()
+    # This represents a time delta, in seconds. If not null, this is used to determine which time
+    # window to query to compare the result from the current time_window to.
+    comparison_delta = models.IntegerField(null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -571,6 +575,7 @@ class AlertRuleTriggerAction(Model):
     # Human readable name to display in the UI
     target_display = models.TextField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
+    sentry_app_config = JSONField(null=True)
 
     class Meta:
         app_label = "sentry"

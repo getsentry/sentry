@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-11.0, ubuntu-20.04]
-        python-version: [3.6.13, 3.8.11]
+        python-version: [3.6.13, 3.8.12]
       fail-fast: false
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
@@ -28,10 +28,11 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Install prerequisites
-        # brew can be finicky but it does not always means that the rest of the job will fail
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: on
+        # Necessary packages for some Python deps
         run: |
-          # Needed for xmlsec
-          brew install libxmlsec1 pkg-config
+          brew install libxmlsec1
 
       - name: Setup Python
         uses: ./.github/actions/setup-python

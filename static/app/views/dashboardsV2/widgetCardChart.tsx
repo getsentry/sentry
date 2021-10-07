@@ -147,6 +147,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       case 'bar':
         return <BarChart {...chartProps} />;
       case 'area':
+      case 'top_n':
         return <AreaChart stacked {...chartProps} />;
       case 'world_map':
         return <WorldMapChart {...chartProps} />;
@@ -269,7 +270,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {
       grid: {
-        left: 0,
+        left: 4,
         right: 0,
         top: '40px',
         bottom: 0,
@@ -303,6 +304,14 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           const colors = timeseriesResults
             ? theme.charts.getColorPalette(timeseriesResults.length - 2)
             : [];
+          // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
+          if (
+            widget.displayType === 'top_n' &&
+            timeseriesResults &&
+            timeseriesResults.length > 5
+          ) {
+            colors[colors.length - 1] = theme.chartOther;
+          }
 
           // Create a list of series based on the order of the fields,
           const series = timeseriesResults

@@ -967,7 +967,7 @@ class DataPopulation:
             "projects": [project.id],
             "range": "7d",
             "environment": [],
-            "yAxis": "p75(transaction.duration)",
+            "yAxis": ["p75(transaction.duration)"],
             "display": "daily",
         }
 
@@ -1075,7 +1075,7 @@ class DataPopulation:
         - Front-end error
         - Back-end transaction
         - Back-end error
-        Occurrance times and durations are randomized
+        Occurrence times and durations are randomized
         """
         react_transaction = get_event_from_file("scen1/react_transaction.json")
         react_error = get_event_from_file("scen1/react_error.json")
@@ -1366,7 +1366,7 @@ class DataPopulation:
     ):
         """
         This function populates a single error
-        Occurrance times and durations are randomized
+        Occurrence times and durations are randomized
         """
         error = get_event_from_file(file_path)
 
@@ -1401,7 +1401,7 @@ class DataPopulation:
     ):
         """
         This function populates a single transaction
-        Occurrance times and durations are randomized
+        Occurrence times and durations are randomized
         """
         transaction = get_event_from_file(file_path)
 

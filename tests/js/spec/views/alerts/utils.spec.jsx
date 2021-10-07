@@ -1,7 +1,16 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Dataset, Datasource} from 'app/views/alerts/incidentRules/types';
-import {getQueryDatasource} from 'app/views/alerts/utils';
+import {
+  Dataset,
+  Datasource,
+  SessionsAggregate,
+} from 'app/views/alerts/incidentRules/types';
+import {
+  alertAxisFormatter,
+  alertTooltipValueFormatter,
+  getQueryDatasource,
+  isSessionAggregate,
+} from 'app/views/alerts/utils';
 import {getIncidentDiscoverUrl} from 'app/views/alerts/utils/getIncidentDiscoverUrl';
 
 describe('Alert utils', function () {
@@ -145,6 +154,46 @@ describe('Alert utils', function () {
         source: Datasource.ERROR,
         query: 'explode OR (event.type:default event.level:fatal)',
       });
+    });
+  });
+
+  describe('isSessionAggregate', () => {
+    it('accepts session aggregate', () => {
+      Object.values(SessionsAggregate).forEach(aggregate => {
+        expect(isSessionAggregate(aggregate)).toBeTruthy();
+      });
+    });
+
+    it('rejects other aggregates', () => {
+      expect(isSessionAggregate('p95(transaction.duration)')).toBeFalsy();
+    });
+  });
+
+  describe('alertAxisFormatter', () => {
+    it('formatts', () => {
+      expect(
+        alertAxisFormatter(
+          98.312,
+          'Crash Free Rate',
+          SessionsAggregate.CRASH_FREE_SESSIONS
+        )
+      ).toBe('98.31%');
+      expect(alertAxisFormatter(0.1234, 'failure_rate()', 'failure_rate()')).toBe('12%');
+    });
+  });
+
+  describe('alertTooltipValueFormatter', () => {
+    it('formatts', () => {
+      expect(
+        alertTooltipValueFormatter(
+          98.312,
+          'Crash Free Rate',
+          SessionsAggregate.CRASH_FREE_SESSIONS
+        )
+      ).toBe('98.312%');
+      expect(alertTooltipValueFormatter(0.1234, 'failure_rate()', 'failure_rate()')).toBe(
+        '12.34%'
+      );
     });
   });
 });

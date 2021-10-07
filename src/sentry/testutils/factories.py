@@ -232,7 +232,7 @@ def _patch_artifact_manifest(path, org, release, project=None, extra_files=None)
     return json.dumps(manifest)
 
 
-# TODO(dcramer): consider moving to something more scaleable like factoryboy
+# TODO(dcramer): consider moving to something more scalable like factoryboy
 class Factories:
     @staticmethod
     def create_organization(name=None, owner=None, **kwargs):
@@ -553,7 +553,7 @@ class Factories:
         kwargs.setdefault("is_superuser", False)
 
         user = User(email=email, **kwargs)
-        if not kwargs.get("password"):
+        if kwargs.get("password") is None:
             user.set_password("admin")
         user.save()
 
@@ -942,6 +942,7 @@ class Factories:
         resolve_threshold=None,
         user=None,
         event_types=None,
+        comparison_delta=None,
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
@@ -963,6 +964,7 @@ class Factories:
             excluded_projects=excluded_projects,
             user=user,
             event_types=event_types,
+            comparison_delta=comparison_delta,
         )
 
         if date_added is not None:

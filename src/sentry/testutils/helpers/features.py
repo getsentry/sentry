@@ -1,9 +1,14 @@
 __all__ = ["Feature", "with_feature"]
 
-import collections
+import logging
+from collections.abc import Mapping
 from contextlib import contextmanager
 
+import sentry.features
+from sentry.features.exceptions import FeatureNotRegistered
 from sentry.utils.compat.mock import patch
+
+logger = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -31,11 +36,27 @@ def Feature(names):
     if isinstance(names, str):
         names = {names: True}
 
-    elif not isinstance(names, collections.Mapping):
+    elif not isinstance(names, Mapping):
         names = {k: True for k in names}
 
+    default_features = sentry.features.has
+
+    def features_override(name, *args, **kwargs):
+        if name in names:
+            return names[name]
+        else:
+            try:
+                default_value = default_features(name, *args, **kwargs)
+            except FeatureNotRegistered:
+                logger.info("Unregistered flag defaulting to False: %s", repr(name))
+                return False
+
+            if default_value:
+                logger.info("Flag defaulting to %s: %s", default_value, repr(name))
+            return default_value
+
     with patch("sentry.features.has") as features_has:
-        features_has.side_effect = lambda x, *a, **k: names.get(x, False)
+        features_has.side_effect = features_override
         yield
 
 

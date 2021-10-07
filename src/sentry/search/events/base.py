@@ -1,20 +1,23 @@
-from typing import List, Mapping, Set
+from typing import List, Mapping, Optional, Set
 
 from django.utils.functional import cached_property
+from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
-from snuba_sdk.function import CurriedFunction, Function
+from snuba_sdk.function import CurriedFunction
 from snuba_sdk.orderby import OrderBy
 
 from sentry.models import Project
-from sentry.search.events.constants import ARRAY_FIELDS, TAG_KEY_RE
 from sentry.search.events.types import ParamsType, SelectType, WhereType
 from sentry.utils.snuba import Dataset, resolve_column
 
 
 class QueryBase:
-    def __init__(self, dataset: Dataset, params: ParamsType):
-        self.params = params
+    def __init__(
+        self, dataset: Dataset, params: ParamsType, functions_acl: Optional[List[str]] = None
+    ):
         self.dataset = dataset
+        self.params = params
+        self.functions_acl = set() if functions_acl is None else functions_acl
 
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
@@ -59,21 +62,10 @@ class QueryBase:
         if alias == resolved:
             return column
 
-        if alias in ARRAY_FIELDS:
-            # since the array fields are already flattened, we can use
-            # `arrayFlatten` to alias it
-            return Function("arrayFlatten", [column], alias)
-
-        if TAG_KEY_RE.search(resolved):
-            # since tags are strings, we can use `toString` to alias it
-            return Function("toString", [column], alias)
-
-        # string type arguments
-        if alias in {"user.email"}:
-            return Function("toString", [column], alias)
-
-        # columns that are resolved into a snuba name are not supported
-        raise NotImplementedError(f"{alias} not implemented in snql column resolution yet")
+        # If the expected aliases differs from the resolved snuba column,
+        # make sure to alias the expression appropriately so we get back
+        # the column with the correct names.
+        return AliasedExpression(column, alias)
 
     def column(self, name: str) -> Column:
         """Given an unresolved sentry name and return a snql column.

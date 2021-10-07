@@ -142,10 +142,37 @@ class Projects extends React.Component<Props, State> {
   componentDidMount() {
     const {slugs} = this.props;
 
-    if (slugs && !!slugs.length) {
+    if (!!slugs?.length) {
       this.loadSpecificProjects();
     } else {
       this.loadAllProjects();
+    }
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    const {projects} = this.props;
+
+    if (projects !== prevProps.projects) {
+      this.updateProjectsFromStore();
+    }
+  }
+
+  /**
+   * Function to update projects when the store emits updates
+   */
+  updateProjectsFromStore() {
+    const {allProjects, projects, slugs} = this.props;
+
+    if (allProjects) {
+      this.setState({fetchedProjects: projects});
+      return;
+    }
+
+    if (!!slugs?.length) {
+      // Extract the requested projects from the store based on props.slugs
+      const projectsMap = this.getProjectsMap(projects);
+      const projectsFromStore = slugs.map(slug => projectsMap.get(slug)).filter(defined);
+      this.setState({projectsFromStore});
     }
   }
 

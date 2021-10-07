@@ -12,6 +12,7 @@ from sentry.models import (
     AuditLogEntryEvent,
     DeletedProject,
     EnvironmentProject,
+    Integration,
     NotificationSetting,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
@@ -103,6 +104,34 @@ class ProjectDetailsTest(APITestCase):
             project.organization.slug, project.slug, qs_params={"include": "stats"}
         )
         assert response.data["stats"]["unresolved"] == 1
+
+    def test_has_alert_integration(self):
+        integration = Integration.objects.create(provider="msteams")
+        integration.add_organization(self.organization)
+
+        project = self.create_project()
+        self.create_group(project=project)
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            project.organization.slug,
+            project.slug,
+            qs_params={"expand": "hasAlertIntegration"},
+        )
+        assert response.data["hasAlertIntegrationInstalled"]
+
+    def test_no_alert_integration(self):
+        integration = Integration.objects.create(provider="jira")
+        integration.add_organization(self.organization)
+
+        project = self.create_project()
+        self.create_group(project=project)
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            project.organization.slug, project.slug, qs_params={"expand": "hasAlertIntegration"}
+        )
+        assert not response.data["hasAlertIntegrationInstalled"]
 
     def test_with_dynamic_sampling_rules(self):
         project = self.project  # force creation
@@ -787,8 +816,41 @@ class ProjectUpdateTest(APITestCase):
                 self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
             )
             # on save the magic object should be replaced with the previously set password
-            redacted_source["password"] = "beepbeep"
-            assert self.project.get_option("sentry:symbol_sources") == json.dumps([redacted_source])
+            assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
+
+    @mock.patch("sentry.api.base.create_audit_entry")
+    def test_redacted_symbol_source_secrets_unknown_secret(self, create_audit_entry):
+        with Feature(
+            {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
+        ):
+            config = {
+                "id": "honk",
+                "name": "honk source",
+                "layout": {
+                    "type": "native",
+                },
+                "filetypes": ["pe"],
+                "type": "http",
+                "url": "http://honk.beep",
+                "username": "honkhonk",
+                "password": "beepbeep",
+            }
+            self.get_valid_response(
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
+            )
+            assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
+
+            # prepare new call, this secret is not known
+            new_source = config.copy()
+            new_source["password"] = {"hidden-secret": True}
+            new_source["id"] = "oops"
+            response = self.get_response(
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([new_source])
+            )
+            assert response.status_code == 400
+            assert json.loads(response.content) == {
+                "symbolSources": ["Sources contain unknown hidden secret"]
+            }
 
 
 class CopyProjectSettingsTest(APITestCase):

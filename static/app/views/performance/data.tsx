@@ -3,7 +3,7 @@ import {Location} from 'history';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
-import {LightWeightOrganization, NewQuery, Project, SelectValue} from 'app/types';
+import {NewQuery, Organization, Project, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
@@ -56,23 +56,13 @@ export type TooltipOption = SelectValue<string> & {
   tooltip: string;
 };
 
-export function getAxisOptions(organization: LightWeightOrganization): TooltipOption[] {
-  let apdexOption: TooltipOption;
-  if (organization.features.includes('project-transaction-threshold')) {
-    apdexOption = {
+export function getAxisOptions(organization: Organization): TooltipOption[] {
+  return [
+    {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
       value: 'apdex()',
       label: t('Apdex'),
-    };
-  } else {
-    apdexOption = {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
-      value: `apdex(${organization.apdexThreshold})`,
-      label: t('Apdex'),
-    };
-  }
-  return [
-    apdexOption,
+    },
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
       value: 'tpm()',
@@ -110,9 +100,7 @@ export type AxisOption = TooltipOption & {
   isRightDefault?: boolean;
 };
 
-export function getFrontendAxisOptions(
-  organization: LightWeightOrganization
-): AxisOption[] {
+export function getFrontendAxisOptions(organization: Organization): AxisOption[] {
   return [
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.LCP),
@@ -151,9 +139,7 @@ export function getFrontendAxisOptions(
   ];
 }
 
-export function getFrontendOtherAxisOptions(
-  organization: LightWeightOrganization
-): AxisOption[] {
+export function getFrontendOtherAxisOptions(organization: Organization): AxisOption[] {
   return [
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
@@ -185,25 +171,7 @@ export function getFrontendOtherAxisOptions(
   ];
 }
 
-export function getBackendAxisOptions(
-  organization: LightWeightOrganization
-): AxisOption[] {
-  let apdexOption: AxisOption;
-  if (organization.features.includes('project-transaction-threshold')) {
-    apdexOption = {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
-      value: 'apdex()',
-      label: t('Apdex'),
-      field: 'apdex()',
-    };
-  } else {
-    apdexOption = {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
-      value: `apdex(${organization.apdexThreshold})`,
-      label: t('Apdex'),
-      field: `apdex(${organization.apdexThreshold})`,
-    };
-  }
+export function getBackendAxisOptions(organization: Organization): AxisOption[] {
   return [
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
@@ -250,13 +218,16 @@ export function getBackendAxisOptions(
       isDistribution: true,
       isRightDefault: true,
     },
-    apdexOption,
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      value: 'apdex()',
+      label: t('Apdex'),
+      field: 'apdex()',
+    },
   ];
 }
 
-export function getMobileAxisOptions(
-  organization: LightWeightOrganization
-): AxisOption[] {
+export function getMobileAxisOptions(organization: Organization): AxisOption[] {
   return [
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
@@ -337,9 +308,9 @@ export function getMobileAxisOptions(
   ];
 }
 
-type TermFormatter = (organization: LightWeightOrganization) => string;
+type TermFormatter = (organization: Organization) => string;
 
-const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
+export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   apdex: () =>
     t(
       'Apdex is the ratio of both satisfactory and tolerable response times to all response times. To adjust the tolerable threshold, go to performance settings.'
@@ -393,7 +364,7 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
 };
 
 export function getTermHelp(
-  organization: LightWeightOrganization,
+  organization: Organization,
   term: keyof typeof PERFORMANCE_TERMS
 ): string {
   if (!PERFORMANCE_TERMS.hasOwnProperty(term)) {
@@ -403,7 +374,7 @@ export function getTermHelp(
 }
 
 function generateGenericPerformanceEventView(
-  organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location
 ): EventView {
   const {query} = location;
@@ -416,16 +387,11 @@ function generateGenericPerformanceEventView(
     'p50()',
     'p95()',
     'failure_rate()',
+    'apdex()',
+    'count_unique(user)',
+    'count_miserable(user)',
+    'user_misery()',
   ];
-
-  const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['apdex()', 'count_unique(user)', 'count_miserable(user)', 'user_misery()']
-    : [
-        `apdex(${organization.apdexThreshold})`,
-        'count_unique(user)',
-        `count_miserable(user,${organization.apdexThreshold})`,
-        `user_misery(${organization.apdexThreshold})`,
-      ];
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
@@ -433,7 +399,7 @@ function generateGenericPerformanceEventView(
     name: t('Performance'),
     query: 'event.type:transaction',
     projects: [],
-    fields: [...fields, ...featureFields],
+    fields,
     version: 2,
   };
 
@@ -473,7 +439,7 @@ function generateGenericPerformanceEventView(
 }
 
 function generateBackendPerformanceEventView(
-  organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location
 ): EventView {
   const {query} = location;
@@ -488,16 +454,11 @@ function generateBackendPerformanceEventView(
     'p50()',
     'p95()',
     'failure_rate()',
+    'apdex()',
+    'count_unique(user)',
+    'count_miserable(user)',
+    'user_misery()',
   ];
-
-  const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['apdex()', 'count_unique(user)', 'count_miserable(user)', 'user_misery()']
-    : [
-        `apdex(${organization.apdexThreshold})`,
-        'count_unique(user)',
-        `count_miserable(user,${organization.apdexThreshold})`,
-        `user_misery(${organization.apdexThreshold})`,
-      ];
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
@@ -505,7 +466,7 @@ function generateBackendPerformanceEventView(
     name: t('Performance'),
     query: 'event.type:transaction',
     projects: [],
-    fields: [...fields, ...featureFields],
+    fields,
     version: 2,
   };
 
@@ -545,7 +506,7 @@ function generateBackendPerformanceEventView(
 }
 
 function generateMobilePerformanceEventView(
-  organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location,
   projects: Project[],
   genericEventView: EventView
@@ -584,21 +545,13 @@ function generateMobilePerformanceEventView(
     }
   }
 
-  const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['count_unique(user)', 'count_miserable(user)', 'user_misery()']
-    : [
-        'count_unique(user)',
-        `count_miserable(user,${organization.apdexThreshold})`,
-        `user_misery(${organization.apdexThreshold})`,
-      ];
-
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
     query: 'event.type:transaction',
     projects: [],
-    fields: [...fields, ...featureFields],
+    fields: [...fields, 'count_unique(user)', 'count_miserable(user)', 'user_misery()'],
     version: 2,
   };
 
@@ -638,7 +591,7 @@ function generateMobilePerformanceEventView(
 }
 
 function generateFrontendPageloadPerformanceEventView(
-  organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location
 ): EventView {
   const {query} = location;
@@ -652,15 +605,10 @@ function generateFrontendPageloadPerformanceEventView(
     'p75(measurements.lcp)',
     'p75(measurements.fid)',
     'p75(measurements.cls)',
+    'count_unique(user)',
+    'count_miserable(user)',
+    'user_misery()',
   ];
-
-  const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['count_unique(user)', 'count_miserable(user)', 'user_misery()']
-    : [
-        'count_unique(user)',
-        `count_miserable(user,${organization.apdexThreshold})`,
-        `user_misery(${organization.apdexThreshold})`,
-      ];
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
@@ -668,7 +616,7 @@ function generateFrontendPageloadPerformanceEventView(
     name: t('Performance'),
     query: 'event.type:transaction',
     projects: [],
-    fields: [...fields, ...featureFields],
+    fields,
     version: 2,
   };
 
@@ -710,7 +658,7 @@ function generateFrontendPageloadPerformanceEventView(
 }
 
 function generateFrontendOtherPerformanceEventView(
-  organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location
 ): EventView {
   const {query} = location;
@@ -724,15 +672,10 @@ function generateFrontendOtherPerformanceEventView(
     'p50(transaction.duration)',
     'p75(transaction.duration)',
     'p95(transaction.duration)',
+    'count_unique(user)',
+    'count_miserable(user)',
+    'user_misery()',
   ];
-
-  const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['count_unique(user)', 'count_miserable(user)', 'user_misery()']
-    : [
-        'count_unique(user)',
-        `count_miserable(user,${organization.apdexThreshold})`,
-        `user_misery(${organization.apdexThreshold})`,
-      ];
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
@@ -740,7 +683,7 @@ function generateFrontendOtherPerformanceEventView(
     name: t('Performance'),
     query: 'event.type:transaction',
     projects: [],
-    fields: [...fields, ...featureFields],
+    fields,
     version: 2,
   };
 
@@ -813,7 +756,7 @@ export function generatePerformanceEventView(
 }
 
 export function generatePerformanceVitalDetailView(
-  _organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location
 ): EventView {
   const {query} = location;

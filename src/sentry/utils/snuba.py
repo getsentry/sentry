@@ -39,7 +39,6 @@ from sentry.snuba.events import Columns
 from sentry.utils import json, metrics
 from sentry.utils.compat import map
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
-from sentry.utils.snql import should_use_snql
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +85,10 @@ TRANSACTIONS_SNUBA_MAP = {
     if col.value.transaction_name is not None
 }
 
+SESSIONS_FIELD_LIST = ["release", "sessions", "sessions_crashed", "users", "users_crashed"]
+
+SESSIONS_SNUBA_MAP = {column: column for column in SESSIONS_FIELD_LIST}
+
 # This maps the public column aliases to the discover dataset column names.
 # Longer term we would like to not expose the transactions dataset directly
 # to end users and instead have all ad-hoc queries go through the discover
@@ -101,15 +104,17 @@ DATASETS = {
     Dataset.Events: SENTRY_SNUBA_MAP,
     Dataset.Transactions: TRANSACTIONS_SNUBA_MAP,
     Dataset.Discover: DISCOVER_COLUMN_MAP,
+    Dataset.Sessions: SESSIONS_SNUBA_MAP,
 }
 
 # Store the internal field names to save work later on.
-# Add `group_id` to the events dataset list as we don't want to publically
+# Add `group_id` to the events dataset list as we don't want to publicly
 # expose that field, but it is used by eventstore and other internals.
 DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()),
     Dataset.Transactions: list(TRANSACTIONS_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
+    Dataset.Sessions: SESSIONS_FIELD_LIST,
 }
 
 SNUBA_OR = "or"
@@ -648,14 +653,7 @@ def raw_query(
         **kwargs,
     )
 
-    use_snql = should_use_snql(referrer)
-
-    return bulk_raw_query(
-        [snuba_params],
-        referrer=referrer,
-        use_cache=use_cache,
-        use_snql=use_snql,
-    )[0]
+    return bulk_raw_query([snuba_params], referrer=referrer, use_cache=use_cache)[0]
 
 
 SnubaQuery = Union[Query, MutableMapping[str, Any]]
@@ -691,19 +689,15 @@ def bulk_raw_query(
     snuba_param_list: Sequence[SnubaQueryParams],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
-    use_snql: Optional[bool] = None,
 ) -> ResultSet:
     params = map(_prepare_query_params, snuba_param_list)
-    return _apply_cache_and_build_results(
-        params, referrer=referrer, use_cache=use_cache, use_snql=use_snql
-    )
+    return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
 
 def _apply_cache_and_build_results(
     snuba_param_list: Sequence[SnubaQueryBody],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
-    use_snql: Optional[bool] = None,
 ) -> ResultSet:
     headers = {}
     if referrer:
@@ -731,7 +725,7 @@ def _apply_cache_and_build_results(
         to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
 
     if to_query:
-        query_results = _bulk_snuba_query(map(itemgetter(1), to_query), headers, use_snql)
+        query_results = _bulk_snuba_query(map(itemgetter(1), to_query), headers)
         for result, (query_pos, _, cache_key) in zip(query_results, to_query):
             if cache_key:
                 cache.set(cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS)
@@ -746,7 +740,6 @@ def _apply_cache_and_build_results(
 def _bulk_snuba_query(
     snuba_param_list: Sequence[SnubaQueryBody],
     headers: Mapping[str, str],
-    use_snql: Optional[bool] = None,
 ) -> ResultSet:
     with sentry_sdk.start_span(
         op="start_snuba_query",
@@ -757,15 +750,12 @@ def _bulk_snuba_query(
         # but we still want to know a general sense of how referrers impact performance
         span.set_tag("query.referrer", query_referrer)
         sentry_sdk.set_tag("query.referrer", query_referrer)
-        # This is confusing because this function is overloaded right now with three cases:
-        # 1. A legacy JSON query (_snuba_query)
-        # 2. A SnQL query of a legacy query (_legacy_snql_query)
-        # 3. A direct SnQL query using the new SDK (_snql_query)
-        query_fn, query_type = _snuba_query, "legacy"
+        # This is confusing because this function is overloaded right now with two cases:
+        # 1. A SnQL query of a legacy query (_legacy_snql_query)
+        # 2. A direct SnQL query using the new SDK (_snql_query)
+        query_fn, query_type = _legacy_snql_query, "translated"
         if isinstance(snuba_param_list[0][0], Query):
             query_fn, query_type = _snql_query, "snql"
-        elif use_snql:
-            query_fn, query_type = _legacy_snql_query, "translated"
 
         metrics.incr(
             "snuba.snql.query.type",
@@ -829,30 +819,6 @@ def _bulk_snuba_query(
 RawResult = Tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
 
 
-def _snuba_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
-    query_data, thread_hub, headers = params
-    query_params, forward, reverse = query_data
-    try:
-        with timer("snuba_query"):
-            referrer = headers.get("referer", "<unknown>")
-            if SNUBA_INFO:
-                # We want debug in the body, but not in the logger, so dump the json twice
-                logger.info(f"{referrer}.body: {json.dumps(query_params)}")
-                query_params["debug"] = True
-            body = json.dumps(query_params)
-            with thread_hub.start_span(op="snuba", description=f"query {referrer}") as span:
-                span.set_tag("referrer", referrer)
-                for param_key, param_data in query_params.items():
-                    span.set_data(param_key, param_data)
-                return (
-                    _snuba_pool.urlopen("POST", "/query", body=body, headers=headers),
-                    forward,
-                    reverse,
-                )
-    except urllib3.exceptions.HTTPError as err:
-        raise SnubaError(err)
-
-
 def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function.
@@ -889,7 +855,24 @@ def _raw_snql_query(
             logger.info(f"{referrer}.body: {query}")
             query = query.set_debug(True)
 
-        body = query.snuba()
+        with thread_hub.start_span(
+            op="snuba_snql_validate", description=f"validate query {referrer}"
+        ):
+            scope = thread_hub.scope
+            if scope.transaction:
+                query = query.set_parent_api(scope.transaction.name)
+
+            metrics.incr(
+                "snuba.parent_api",
+                tags={
+                    "parent_api": query.parent_api.name
+                    if query.parent_api is not None
+                    else "<unknown>",
+                    "referrer": referrer,
+                },
+            )
+            body = query.snuba()
+
         with thread_hub.start_span(op="snuba_snql", description=f"query {referrer}") as span:
             span.set_tag("referrer", referrer)
             span.set_data("snql", str(query))

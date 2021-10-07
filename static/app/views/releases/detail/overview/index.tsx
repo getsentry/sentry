@@ -9,6 +9,7 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import {DateTimeObject} from 'app/components/charts/utils';
 import DateTime from 'app/components/dateTime';
+import PerformanceCardTable from 'app/components/discover/performanceCardTable';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
 import {Body, Main, Side} from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -37,8 +38,8 @@ import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
 import {getReleaseParams, isReleaseArchived, ReleaseBounds} from '../../utils';
 import {ReleaseContext} from '..';
 
-import ReleaseChart from './chart/';
 import {EventType, YAxis} from './chart/releaseChartControls';
+import ReleaseChart from './chart';
 import CommitAuthorBreakdown from './commitAuthorBreakdown';
 import Deploys from './deploys';
 import Issues from './issues';
@@ -374,9 +375,15 @@ class ReleaseOverview extends AsyncView<Props> {
           const {commitCount, version} = release;
           const hasDiscover = organization.features.includes('discover-basic');
           const hasPerformance = organization.features.includes('performance-view');
+          const hasReleaseComparison =
+            organization.features.includes('release-comparison');
+          const hasReleaseComparisonPerformance = organization.features.includes(
+            'release-comparison-performance'
+          );
           const yAxis = this.getYAxis(hasHealthData, hasPerformance);
           const eventType = this.getEventType(yAxis);
           const vitalType = this.getVitalType(yAxis);
+          const {environments} = selection;
 
           const {selectedSort, sortOptions} = getTransactionsListSort(location);
           const releaseEventView = this.getReleaseEventView(
@@ -516,17 +523,27 @@ class ReleaseOverview extends AsyncView<Props> {
                       withChart
                     />
                     <Feature features={['performance-view']}>
-                      <TransactionsList
-                        location={location}
-                        organization={organization}
-                        eventView={releaseEventView}
-                        trendView={releaseTrendView}
-                        selected={selectedSort}
-                        options={sortOptions}
-                        handleDropdownChange={this.handleTransactionsListSortChange}
-                        titles={titles}
-                        generateLink={generateLink}
-                      />
+                      {hasReleaseComparison && hasReleaseComparisonPerformance ? (
+                        <PerformanceCardTable
+                          organization={organization}
+                          project={project}
+                          isLoading={loading}
+                          // TODO(kelly): hardcoding this until I have data
+                          isEmpty={false}
+                        />
+                      ) : (
+                        <TransactionsList
+                          location={location}
+                          organization={organization}
+                          eventView={releaseEventView}
+                          trendView={releaseTrendView}
+                          selected={selectedSort}
+                          options={sortOptions}
+                          handleDropdownChange={this.handleTransactionsListSortChange}
+                          titles={titles}
+                          generateLink={generateLink}
+                        />
+                      )}
                     </Feature>
                   </Main>
                   <Side>
@@ -550,6 +567,7 @@ class ReleaseOverview extends AsyncView<Props> {
                           errored={errored}
                           release={release}
                           project={project}
+                          environment={environments}
                         />
                       )}
                     </Feature>

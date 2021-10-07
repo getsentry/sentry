@@ -28,10 +28,10 @@ import Conditions from './conditions';
 import handleXhrErrorResponse from './handleXhrErrorResponse';
 import {isLegacyBrowser} from './utils';
 
-type Conditions = React.ComponentProps<typeof Conditions>['conditions'];
+type ConditionsProps = React.ComponentProps<typeof Conditions>['conditions'];
 
 type State = {
-  conditions: Conditions;
+  conditions: ConditionsProps;
   errors: {
     sampleRate?: string;
   };
@@ -171,10 +171,10 @@ function RuleModal({
     setData({...data, conditions: newConditions});
   }
 
-  function handleChangeCondition<T extends keyof Conditions[0]>(
+  function handleChangeCondition<T extends keyof ConditionsProps[0]>(
     index: number,
     field: T,
-    value: Conditions[0][T]
+    value: ConditionsProps[0][T]
   ) {
     const newConditions = [...conditions];
     newConditions[index][field] = value;
@@ -252,6 +252,8 @@ function RuleModal({
                   conditions={conditions}
                   onDelete={handleDeleteCondition}
                   onChange={handleChangeCondition}
+                  orgSlug={organization.slug}
+                  projectId={project.id}
                 />
               )}
             </PanelBody>
@@ -279,6 +281,7 @@ function RuleModal({
           <Button
             priority="primary"
             onClick={() => onSubmit({conditions, sampleRate, submitRules})}
+            title={submitDisabled ? t('Required fields must be filled out') : undefined}
             disabled={submitDisabled}
           >
             {t('Save Rule')}

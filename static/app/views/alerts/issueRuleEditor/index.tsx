@@ -17,11 +17,11 @@ import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import TeamSelector from 'app/components/forms/teamSelector';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import LoadingMask from 'app/components/loadingMask';
 import {Panel, PanelBody} from 'app/components/panels';
-import SelectMembers from 'app/components/selectMembers';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {IconChevron, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
@@ -41,6 +41,10 @@ import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
+import {
+  CHANGE_ALERT_CONDITION_IDS,
+  CHANGE_ALERT_PLACEHOLDERS_LABELS,
+} from 'app/views/alerts/issueRuleEditor/constants/changeAlerts';
 import AsyncView from 'app/views/asyncView';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
@@ -48,28 +52,29 @@ import Form from 'app/views/settings/components/forms/form';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
 import RuleNodeList from './ruleNodeList';
+import SetupAlertIntegrationButton from './setupAlertIntegrationButton';
 
-const FREQUENCY_CHOICES = [
-  ['5', t('5 minutes')],
-  ['10', t('10 minutes')],
-  ['30', t('30 minutes')],
-  ['60', t('60 minutes')],
-  ['180', t('3 hours')],
-  ['720', t('12 hours')],
-  ['1440', t('24 hours')],
-  ['10080', t('one week')],
-  ['43200', t('30 days')],
+const FREQUENCY_OPTIONS = [
+  {value: '5', label: t('5 minutes')},
+  {value: '10', label: t('10 minutes')},
+  {value: '30', label: t('30 minutes')},
+  {value: '60', label: t('60 minutes')},
+  {value: '180', label: t('3 hours')},
+  {value: '720', label: t('12 hours')},
+  {value: '1440', label: t('24 hours')},
+  {value: '10080', label: t('1 week')},
+  {value: '43200', label: t('30 days')},
 ];
 
-const ACTION_MATCH_CHOICES: Array<[IssueAlertRule['actionMatch'], string]> = [
-  ['all', t('all')],
-  ['any', t('any')],
-  ['none', t('none')],
+const ACTION_MATCH_OPTIONS = [
+  {value: 'all', label: t('all')},
+  {value: 'any', label: t('any')},
+  {value: 'none', label: t('none')},
 ];
 
-const ACTION_MATCH_CHOICES_MIGRATED: Array<[IssueAlertRule['actionMatch'], string]> = [
-  ['all', t('all')],
-  ['any', t('any')],
+const ACTION_MATCH_OPTIONS_MIGRATED = [
+  {value: 'all', label: t('all')},
+  {value: 'any', label: t('any')},
 ];
 
 const defaultRule: UnsavedIssueAlertRule = {
@@ -487,6 +492,25 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }));
   };
 
+  getConditions() {
+    const {organization} = this.props;
+
+    if (!organization.features.includes('change-alerts')) {
+      return this.state.configs?.conditions ?? null;
+    }
+
+    return (
+      this.state.configs?.conditions?.map(condition =>
+        CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
+          ? ({
+              ...condition,
+              label: CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id],
+            } as IssueAlertRuleConditionTemplate)
+          : condition
+      ) ?? null
+    );
+  }
+
   getTeamId = () => {
     const {rule} = this.state;
     const owner = rule?.owner;
@@ -516,9 +540,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   renderBody() {
     const {project, organization, teams} = this.props;
     const {environments} = this.state;
-    const environmentChoices = [
-      [ALL_ENVIRONMENTS_KEY, t('All Environments')],
-      ...(environments?.map(env => [env.name, getDisplayName(env)]) ?? []),
+    const environmentOptions = [
+      {
+        value: ALL_ENVIRONMENTS_KEY,
+        label: t('All Environments'),
+      },
+      ...(environments?.map(env => ({value: env.name, label: getDisplayName(env)})) ??
+        []),
     ];
 
     const {rule, detailedError} = this.state;
@@ -531,11 +559,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const ownerId = rule?.owner?.split(':')[1];
     // check if superuser or if user is on the alert's team
     const canEdit = isActiveSuperuser() || (ownerId ? userTeams.includes(ownerId) : true);
-
-    const filteredTeamIds = new Set(userTeams);
-    if (ownerId) {
-      filteredTeamIds.add(ownerId);
-    }
 
     // Note `key` on `<Form>` below is so that on initial load, we show
     // the form with a loading mask on top of it, but force a re-render by using
@@ -585,7 +608,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     placeholder={t('Select an Environment')}
                     clearable={false}
                     name="environment"
-                    choices={environmentChoices}
+                    options={environmentOptions}
                     onChange={val => this.handleEnvironmentChange(val)}
                     disabled={!hasAccess || !canEdit}
                   />
@@ -595,13 +618,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     help={t('The team that can edit this alert.')}
                     disabled={!hasAccess || !canEdit}
                   >
-                    <SelectMembers
-                      showTeam
-                      project={project}
-                      organization={organization}
+                    <TeamSelector
                       value={this.getTeamId()}
+                      project={project}
                       onChange={this.handleOwnerChange}
-                      filteredTeamIds={filteredTeamIds}
+                      teamFilter={(team: Team) => team.isMember || team.id === ownerId}
+                      useId
                       includeUnassigned
                       disabled={!hasAccess || !canEdit}
                     />
@@ -629,7 +651,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   </StyledField>
                 </PanelBody>
               </Panel>
-              <StyledListItem>{t('Set conditions')}</StyledListItem>
+              <SetConditionsListItem>
+                {t('Set conditions')}
+                <SetupAlertIntegrationButton
+                  projectSlug={project.slug}
+                  organization={organization}
+                />
+              </SetConditionsListItem>
               <ConditionsPanel>
                 <PanelBody>
                   <Step>
@@ -672,10 +700,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                         name="actionMatch"
                                         required
                                         flexibleControlStateSize
-                                        choices={
+                                        options={
                                           hasFeature
-                                            ? ACTION_MATCH_CHOICES_MIGRATED
-                                            : ACTION_MATCH_CHOICES
+                                            ? ACTION_MATCH_OPTIONS_MIGRATED
+                                            : ACTION_MATCH_OPTIONS
                                         }
                                         onChange={val =>
                                           this.handleChange('actionMatch', val)
@@ -688,7 +716,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                               )}
                             </StepLead>
                             <RuleNodeList
-                              nodes={this.state.configs?.conditions ?? null}
+                              nodes={this.getConditions()}
                               items={conditions ?? []}
                               placeholder={
                                 hasFeature
@@ -758,7 +786,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                     name="filterMatch"
                                     required
                                     flexibleControlStateSize
-                                    choices={ACTION_MATCH_CHOICES}
+                                    options={ACTION_MATCH_OPTIONS}
                                     onChange={val =>
                                       this.handleChange('filterMatch', val)
                                     }
@@ -845,7 +873,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     className={this.hasError('frequency') ? ' error' : ''}
                     value={frequency}
                     required
-                    choices={FREQUENCY_CHOICES}
+                    options={FREQUENCY_OPTIONS}
                     onChange={val => this.handleChange('frequency', val)}
                     disabled={!hasAccess || !canEdit}
                   />
@@ -878,6 +906,11 @@ const StyledAlert = styled(Alert)`
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const SetConditionsListItem = styled(StyledListItem)`
+  display: flex;
+  justify-content: space-between;
 `;
 
 const Step = styled('div')`

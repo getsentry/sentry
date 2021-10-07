@@ -10,6 +10,19 @@ type ConfigParams = {
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
 
+// Object with the pluginId as the key, and enablingFeature as the value
+const SHADOW_DEPRECATED_PLUGINS = {
+  teamwork: 'integrations-ignore-teamwork-deprecation',
+};
+
+const canViewPlugin = (pluginId: string, organization?: Organization) => {
+  const isDeprecated = SHADOW_DEPRECATED_PLUGINS.hasOwnProperty(pluginId);
+  const hasFeature = organization?.features?.includes(
+    SHADOW_DEPRECATED_PLUGINS[pluginId]
+  );
+  return isDeprecated ? hasFeature : true;
+};
+
 export default function getConfiguration({
   project,
   organization,
@@ -50,7 +63,7 @@ export default function getConfiguration({
           path: `${pathPrefix}/ownership/`,
           title: t('Issue Owners'),
           description: t('Manage issue ownership rules for a project'),
-          badge: () => 'beta',
+          badge: () => 'new',
         },
         {
           path: `${pathPrefix}/data-forwarding/`,
@@ -89,8 +102,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/processing-issues/`,
           title: t('Processing Issues'),
-          // TODO(eslint): Remove `no-shadow`
-          // eslint-disable-next-line no-shadow,@typescript-eslint/no-shadow
+          // eslint-disable-next-line @typescript-eslint/no-shadow
           badge: ({project}) => {
             if (!project) {
               return null;
@@ -161,7 +173,8 @@ export default function getConfiguration({
         ...plugins.map(plugin => ({
           path: `${pathPrefix}/plugins/${plugin.id}/`,
           title: plugin.name,
-          show: opts => opts?.access?.has('project:write'),
+          show: opts =>
+            opts?.access?.has('project:write') && canViewPlugin(plugin.id, organization),
           id: 'plugin_details',
           recordAnalytics: true,
         })),

@@ -128,7 +128,7 @@ class GroupSerializerBase(Serializer):
 
         cache_keys = []
         for item in item_list:
-            cache_keys.append("group-mechanism-handled:%d" % item.id)
+            cache_keys.append(f"group-mechanism-handled:{item.id}")
 
         cache_data = cache.get_many(cache_keys)
         for item, cache_key in zip(item_list, cache_keys):
@@ -721,7 +721,6 @@ class SharedGroupSerializer(GroupSerializer):
 
 class GroupSerializerSnuba(GroupSerializerBase):
     skip_snuba_fields = {
-        "query",
         "status",
         "bookmarked_by",
         "assigned_to",
@@ -730,7 +729,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
         "unassigned",
         "linked",
         "subscribed_by",
-        "active_at",
         "first_release",
         "first_seen",
         "last_seen",

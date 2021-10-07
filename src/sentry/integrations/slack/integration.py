@@ -21,7 +21,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.json import JSONData
 
 from .client import SlackClient
-from .utils import get_integration_type, logger
+from .utils import logger
 
 Channel = namedtuple("Channel", ["name", "id"])
 
@@ -54,13 +54,6 @@ setup_alert = {
     "text": "The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.",
 }
 
-discover_unfurl_alert = {
-    "type": "warning",
-    "text": "Project permissions will not apply when unfurling Sentry Discover charts from within your Slack workspace.",
-    "icon": "icon-warning-sm",
-    "feature": "chart-unfurls",
-}
-
 metadata = IntegrationMetadata(
     description=_(DESCRIPTION.strip()),
     features=FEATURES,
@@ -68,13 +61,18 @@ metadata = IntegrationMetadata(
     noun=_("Workspace"),
     issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Slack%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack",
-    aspects={"alerts": [setup_alert, discover_unfurl_alert]},
+    aspects={"alerts": [setup_alert]},
 )
 
 
 class SlackIntegration(IntegrationInstallation):  # type: ignore
     def get_config_data(self) -> Mapping[str, str]:
-        return {"installationType": get_integration_type(self.model)}
+        metadata_ = self.model.metadata
+        # Classic bots had a user_access_token in the metadata.
+        default_installation = (
+            "classic_bot" if "user_access_token" in metadata_ else "workspace_app"
+        )
+        return {"installationType": metadata_.get("installation_type", default_installation)}
 
     def uninstall(self) -> None:
         """

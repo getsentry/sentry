@@ -310,6 +310,11 @@ class StreamGroup extends React.Component<Props, State> {
     const {data} = this.state;
     const {statusDetails, count} = data as GroupReprocessing;
     const {info, pendingEvents} = statusDetails;
+
+    if (!info) {
+      return null;
+    }
+
     const {totalEvents, dateCreated} = info;
 
     const remainingEventsToReprocess = totalEvents - pendingEvents;
@@ -679,6 +684,7 @@ const GroupCheckBoxWrapper = styled('div')`
 
 const primaryStatStyle = (theme: Theme) => css`
   font-size: ${theme.fontSizeLarge};
+  font-variant-numeric: tabular-nums;
 `;
 
 const PrimaryCount = styled(Count)`
@@ -691,6 +697,7 @@ const PrimaryPercent = styled('div')`
 
 const secondaryStatStyle = (theme: Theme) => css`
   font-size: ${theme.fontSizeLarge};
+  font-variant-numeric: tabular-nums;
 
   :before {
     content: '/';
@@ -739,6 +746,7 @@ const StyledMenuItem = styled(({to, children, ...p}: MenuItemProps) => (
 const menuItemStatStyles = css`
   text-align: right;
   font-weight: bold;
+  font-variant-numeric: tabular-nums;
   padding-left: ${space(1)};
 `;
 

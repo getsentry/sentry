@@ -1,10 +1,12 @@
 import * as React from 'react';
+import LazyLoad from 'react-lazyload';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
+import {openDashboardWidgetQuerySelectorModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import {HeaderTitle} from 'app/components/charts/styles';
 import ErrorBoundary from 'app/components/errorBoundary';
@@ -21,10 +23,10 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
+import {eventViewFromWidget} from 'app/views/dashboardsV2/utils';
 
 import ContextMenu from './contextMenu';
 import {Widget} from './types';
-import {eventViewFromWidget} from './utils';
 import WidgetCardChart from './widgetCardChart';
 import WidgetQueries from './widgetQueries';
 
@@ -120,16 +122,6 @@ class WidgetCard extends React.Component<Props> {
       // Open table widget in Discover
 
       if (widget.queries.length) {
-        // We expect Table widgets to have only one query.
-        const query = widget.queries[0];
-
-        const eventView = eventViewFromWidget(
-          widget.title,
-          query,
-          selection,
-          widget.displayType
-        );
-
         menuOptions.push(
           <MenuItem
             key="open-discover"
@@ -140,7 +132,29 @@ class WidgetCard extends React.Component<Props> {
                 eventName: 'Dashboards2: Table Widget - Open in Discover',
                 organization_id: parseInt(this.props.organization.id, 10),
               });
-              browserHistory.push(eventView.getResultsViewUrlTarget(organization.slug));
+              if (widget.queries.length === 1) {
+                const eventView = eventViewFromWidget(
+                  widget.title,
+                  widget.queries[0],
+                  selection,
+                  widget.displayType
+                );
+                const discoverLocation = eventView.getResultsViewUrlTarget(
+                  organization.slug
+                );
+                if (this.isAllowWidgetsToDiscover()) {
+                  // Pull a max of 3 valid Y-Axis from the widget
+                  const yAxisOptions = eventView
+                    .getYAxisOptions()
+                    .map(({value}) => value);
+                  discoverLocation.query.yAxis = widget.queries[0].fields
+                    .filter(field => yAxisOptions.includes(field))
+                    .slice(0, 3);
+                }
+                browserHistory.push(discoverLocation);
+              } else {
+                openDashboardWidgetQuerySelectorModal({organization, widget});
+              }
             }}
           >
             {t('Open in Discover')}
@@ -172,34 +186,36 @@ class WidgetCard extends React.Component<Props> {
             <WidgetTitle>{widget.title}</WidgetTitle>
             {this.renderContextMenu()}
           </WidgetHeader>
-          <WidgetQueries
-            api={api}
-            organization={organization}
-            widget={widget}
-            selection={selection}
-          >
-            {({tableResults, timeseriesResults, errorMessage, loading}) => {
-              return (
-                <React.Fragment>
-                  {typeof renderErrorMessage === 'function'
-                    ? renderErrorMessage(errorMessage)
-                    : null}
-                  <WidgetCardChart
-                    timeseriesResults={timeseriesResults}
-                    tableResults={tableResults}
-                    errorMessage={errorMessage}
-                    loading={loading}
-                    location={location}
-                    widget={widget}
-                    selection={selection}
-                    router={router}
-                    organization={organization}
-                  />
-                  {this.renderToolbar()}
-                </React.Fragment>
-              );
-            }}
-          </WidgetQueries>
+          <LazyLoad once height={200}>
+            <WidgetQueries
+              api={api}
+              organization={organization}
+              widget={widget}
+              selection={selection}
+            >
+              {({tableResults, timeseriesResults, errorMessage, loading}) => {
+                return (
+                  <React.Fragment>
+                    {typeof renderErrorMessage === 'function'
+                      ? renderErrorMessage(errorMessage)
+                      : null}
+                    <WidgetCardChart
+                      timeseriesResults={timeseriesResults}
+                      tableResults={tableResults}
+                      errorMessage={errorMessage}
+                      loading={loading}
+                      location={location}
+                      widget={widget}
+                      selection={selection}
+                      router={router}
+                      organization={organization}
+                    />
+                    {this.renderToolbar()}
+                  </React.Fragment>
+                );
+              }}
+            </WidgetQueries>
+          </LazyLoad>
         </StyledPanel>
       </ErrorBoundary>
     );

@@ -21,6 +21,20 @@ standard_intervals = {
     "1w": ("one week", timedelta(days=7)),
     "30d": ("30 days", timedelta(days=30)),
 }
+comparison_intervals = {
+    "5m": ("5 minutes", timedelta(minutes=5)),
+    "15m": ("15 minutes", timedelta(minutes=15)),
+    "1h": ("one hour", timedelta(hours=1)),
+    "1d": ("one day", timedelta(hours=24)),
+    "1w": ("one week", timedelta(days=7)),
+    "30d": ("30 days", timedelta(days=30)),
+}
+COMPARISON_TYPE_COUNT = "count"
+COMPARISON_TYPE_PERCENT = "percent"
+comparison_types = {
+    COMPARISON_TYPE_COUNT: COMPARISON_TYPE_COUNT,
+    COMPARISON_TYPE_PERCENT: COMPARISON_TYPE_PERCENT,
+}
 
 
 class EventFrequencyForm(forms.Form):
@@ -34,6 +48,32 @@ class EventFrequencyForm(forms.Form):
         ]
     )
     value = forms.IntegerField(widget=forms.TextInput())
+    comparisonType = forms.ChoiceField(
+        choices=list(sorted(comparison_types.items(), key=lambda item: item[1])),
+        required=False,
+    )
+    comparisonInterval = forms.ChoiceField(
+        choices=[
+            (key, label)
+            for key, (label, duration) in sorted(
+                comparison_intervals.items(), key=lambda item: item[1][1]
+            )
+        ],
+        required=False,
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        # Don't store an empty string here if the value isn't passed
+        if cleaned_data.get("comparisonInterval") == "":
+            del cleaned_data["comparisonInterval"]
+        cleaned_data["comparisonType"] = cleaned_data.get("comparisonType") or COMPARISON_TYPE_COUNT
+        if cleaned_data["comparisonType"] == COMPARISON_TYPE_PERCENT and not cleaned_data.get(
+            "comparisonInterval"
+        ):
+            msg = forms.ValidationError("comparisonInterval is required when comparing by percent")
+            self.add_error("comparisonInterval", msg)
+            return
 
 
 class BaseEventFrequencyCondition(EventCondition):
@@ -90,7 +130,24 @@ class BaseEventFrequencyCondition(EventCondition):
     def get_rate(self, event, interval, environment_id):
         _, duration = self.intervals[interval]
         end = timezone.now()
-        return self.query(event, end - duration, end, environment_id=environment_id)
+        result = self.query(event, end - duration, end, environment_id=environment_id)
+        comparison_type = self.get_option("comparisonType", COMPARISON_TYPE_COUNT)
+        if comparison_type == COMPARISON_TYPE_PERCENT:
+            comparison_interval = comparison_intervals[self.get_option("comparisonInterval")][1]
+            comparison_end = end - comparison_interval
+            # TODO: Figure out if there's a way we can do this less frequently. All queries are
+            # automatically cached for 10s. We could consider trying to cache this and the main
+            # query for 20s to reduce the load.
+            comparison_result = self.query(
+                event, comparison_end - duration, comparison_end, environment_id=environment_id
+            )
+            result = (
+                int(max(0, ((result / comparison_result) * 100) - 100))
+                if comparison_result > 0
+                else 0
+            )
+
+        return result
 
     @property
     def is_guessed_to_be_created_on_project_creation(self):
@@ -200,16 +257,11 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                     start=end - timedelta(minutes=60),
                     end=end,
                     filter_keys=filters,
-                    groupby=["bucketed_started"],
                     referrer="rules.conditions.event_frequency.EventFrequencyPercentCondition",
-                )
+                )["data"]
 
-            if result_totals["data"]:
-                session_count_last_hour = sum(
-                    bucket["sessions"] for bucket in result_totals["data"]
-                )
-            else:
-                session_count_last_hour = False
+            session_count_last_hour = result_totals[0]["sessions"] if result_totals else 0
+
             cache.set(cache_key, session_count_last_hour, 600)
 
         if session_count_last_hour >= MIN_SESSIONS_TO_FIRE:

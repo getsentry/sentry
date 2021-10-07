@@ -1,6 +1,7 @@
 from copy import deepcopy
 from datetime import datetime, timedelta
 from itertools import chain
+from typing import Optional
 
 from django.db import transaction
 from django.db.models.signals import post_save
@@ -578,7 +579,9 @@ class AlertRuleNameAlreadyUsedError(Exception):
     pass
 
 
+# Default values for `SnubaQuery.resolution`, in minutes.
 DEFAULT_ALERT_RULE_RESOLUTION = 1
+DEFAULT_CMP_ALERT_RULE_RESOLUTION = 2
 
 
 def create_alert_rule(
@@ -598,13 +601,14 @@ def create_alert_rule(
     dataset=QueryDatasets.EVENTS,
     user=None,
     event_types=None,
+    comparison_delta: Optional[int] = None,
     **kwargs,
 ):
     """
     Creates an alert rule for an organization.
 
     :param organization:
-    :param projects: A list of projects to subscribe to the rule. This will be overriden
+    :param projects: A list of projects to subscribe to the rule. This will be overridden
     if `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project
@@ -624,10 +628,16 @@ def create_alert_rule(
     `include_all_projects`.
     :param dataset: The dataset that this query will be executed on
     :param event_types: List of `EventType` that this alert will be related to
+    :param comparison_delta: An optional int representing the time delta to use to determine the
+    comparison period. In minutes.
 
     :return: The created `AlertRule`
     """
     resolution = DEFAULT_ALERT_RULE_RESOLUTION
+    if comparison_delta is not None:
+        # Since comparison alerts make twice as many queries, run the queries less frequently.
+        resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
+        comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
     validate_alert_rule_query(query)
     if AlertRule.objects.filter(organization=organization, name=name).exists():
         raise AlertRuleNameAlreadyUsedError()
@@ -654,6 +664,7 @@ def create_alert_rule(
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
             owner=actor,
+            comparison_delta=comparison_delta,
         )
 
         if include_all_projects:
@@ -732,6 +743,7 @@ def update_alert_rule(
     excluded_projects=None,
     user=None,
     event_types=None,
+    comparison_delta=NOT_SET,
     **kwargs,
 ):
     """
@@ -757,6 +769,8 @@ def update_alert_rule(
     :param excluded_projects: List of projects to exclude if we're using
     `include_all_projects`. Ignored otherwise.
     :param event_types: List of `EventType` that this alert will be related to
+    :param comparison_delta: An optional int representing the time delta to use to determine the
+    comparison period. In minutes.
     :return: The updated `AlertRule`
     """
     if (
@@ -791,6 +805,15 @@ def update_alert_rule(
         updated_query_fields["event_types"] = event_types
     if owner is not None:
         updated_fields["owner"] = owner.resolve_to_actor()
+    if comparison_delta is not NOT_SET:
+        resolution = DEFAULT_ALERT_RULE_RESOLUTION
+        if comparison_delta is not None:
+            # Since comparison alerts make twice as many queries, run the queries less frequently.
+            resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
+            comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
+
+        updated_query_fields["resolution"] = timedelta(minutes=resolution)
+        updated_fields["comparison_delta"] = comparison_delta
 
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
@@ -810,9 +833,9 @@ def update_alert_rule(
                 "time_window", timedelta(seconds=snuba_query.time_window)
             )
             updated_query_fields.setdefault("event_types", None)
+            updated_query_fields.setdefault("resolution", timedelta(seconds=snuba_query.resolution))
             update_snuba_query(
                 alert_rule.snuba_query,
-                resolution=timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
                 environment=environment,
                 **updated_query_fields,
             )

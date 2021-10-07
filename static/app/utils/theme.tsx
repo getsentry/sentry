@@ -191,6 +191,11 @@ const lightAliases = {
   chartLabel: colors.gray200,
 
   /**
+   * Color for the 'others' series in topEvent charts
+   */
+  chartOther: colors.gray200,
+
+  /**
    * Default Progressbar color
    */
   progressBar: colors.purple300,
@@ -481,12 +486,6 @@ const commonTheme = {
     // does not need to battle others for z-index priority
     initial: 1,
 
-    breadcrumbs: {
-      header: 2,
-      gridCellError: 1,
-      iconWrapper: 1,
-    },
-
     truncationFullValue: 10,
 
     traceView: {
@@ -590,7 +589,7 @@ const commonTheme = {
 
   text: {
     family: '"Rubik", "Avenir Next", sans-serif',
-    familyMono: '"IBM Plex", Monaco, Consolas, "Courier New", monospace',
+    familyMono: '"Roboto Mono", Monaco, Consolas, "Courier New", monospace',
     lineHeightHeading: '1.15',
     lineHeightBody: '1.4',
   },
@@ -664,6 +663,7 @@ const darkAliases = {
   rowBackground: colors.gray500,
   chartLineColor: colors.gray500,
   chartLabel: colors.gray400,
+  chartOther: colors.gray300,
   progressBar: colors.purple200,
   progressBackground: colors.gray400,
   badgeBackground: colors.gray400,

@@ -665,7 +665,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get(
             reverse("sentry-api-0-organization-group-index", args=[self.project.organization.slug]),
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % token.token,
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
         assert response.status_code == 200, response.content
 
@@ -1279,6 +1279,15 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == []
 
+        response = self.get_response(sort_by="date", limit=10, query=f"!{SEMVER_ALIAS}:1.2.4")
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.json()] == [
+            release_1_g_1,
+            release_1_g_2,
+            release_3_g_1,
+            release_3_g_2,
+        ]
+
     def test_release_stage(self):
         replaced_release = self.create_release(
             version="replaced_release", environments=[self.environment]
@@ -1514,7 +1523,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         query = "server:example.com"
         query += " status:unresolved"
-        query += " active_at:" + iso_format(before_now(seconds=350))
         query += " first_seen:" + iso_format(before_now(seconds=500))
 
         self.login_as(user=self.user)
