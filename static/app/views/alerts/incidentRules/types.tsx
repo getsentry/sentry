@@ -239,7 +239,7 @@ type UnsavedAction = {
    */
   targetIdentifier: string | null;
   /**
-   * An optional Slack channel or user ID the user can input to avoid rate limiting issues.
+   * An optional Slack channel or user id the user can input to avoid rate limiting issues.
    */
   inputChannelId: string | null;
   /**
