@@ -1377,6 +1377,7 @@ SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefix
 # Metrics product
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
+SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 24
 
 # Release Health
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
