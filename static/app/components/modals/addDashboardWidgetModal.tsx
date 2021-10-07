@@ -308,7 +308,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       `/organizations/${organization.slug}/dashboards/`,
       {
         method: 'GET',
-        query: {sort: 'title'},
+        query: {sort: 'myDashboardsAndRecentlyViewed'},
       }
     );
 
@@ -331,6 +331,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   handleDashboardChange(option: SelectValue<string>) {
     this.setState({selectedDashboard: option});
   }
+
   renderDashboardSelector() {
     const {errors, loading, dashboards} = this.state;
     const dashboardOptions = dashboards.map(d => {
