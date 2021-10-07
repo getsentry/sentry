@@ -43,7 +43,8 @@ class ProjectManager(BaseManager):
     def get_by_users(self, users: Iterable["User"]) -> Mapping["User", Iterable["Project"]]:
         """Given a list of users, return a mapping of each user to the projects they are a member of."""
         project_rows = self.filter(
-            projectteam__team__organizationmemberteam__organizationmember__user__in=users
+            projectteam__team__organizationmemberteam__is_active=True,
+            projectteam__team__organizationmemberteam__organizationmember__user__in=users,
         ).values_list("id", "projectteam__team__organizationmemberteam__organizationmember__user")
 
         projects_by_user_id = defaultdict(set)
