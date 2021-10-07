@@ -1,14 +1,10 @@
 import {useEffect} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import {DEFAULT_APP_ROUTE} from 'app/constants';
-import {Config} from 'app/types';
+import ConfigStore from 'app/stores/configStore';
+import {useLegacyStore} from 'app/stores/useLegacyStore';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
-import withConfig from 'app/utils/withConfig';
-
-type Props = {
-  config: Config;
-} & RouteComponentProps<{}, {}>;
 
 /**
  * This view is used when a user lands on the route `/` which historically
@@ -21,7 +17,9 @@ type Props = {
  * TODO: There might be an edge case where user does not have `lastOrganization` set,
  * in which case we should load their list of organizations and make a decision
  */
-function AppRoot({config}: Props) {
+function AppRoot() {
+  const config = useLegacyStore(ConfigStore);
+
   useEffect(() => {
     if (!config.lastOrganization) {
       return;
@@ -36,4 +34,4 @@ function AppRoot({config}: Props) {
   return null;
 }
 
-export default withConfig(AppRoot);
+export default AppRoot;
