@@ -94,7 +94,7 @@ class MiniBarChart extends React.Component<Props> {
     let chartSeries: BarChartSeries[] = [];
 
     // Ensure bars overlap and that empty values display as we're disabling the axis lines.
-    if (series && series.length) {
+    if (!!series?.length) {
       chartSeries = series.map((original, i: number) => {
         const updated = {
           ...original,
@@ -222,6 +222,7 @@ class MiniBarChart extends React.Component<Props> {
         animation: false,
       },
     };
+
     return <BarChart series={chartSeries} {...chartOptions} {...barChartProps} />;
   }
 }
