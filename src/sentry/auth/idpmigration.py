@@ -102,7 +102,13 @@ def get_redis_key(verification_key: str) -> str:
     return f"auth:one-time-key:{verification_key}"
 
 
-def get_verification_value_from_key(verification_key):
+def get_org(key: str) -> str:
+    verification_key = get_redis_key(key)
+    verification_value = get_verification_value_from_key(verification_key)
+    return OrganizationMember.objects.get(id=verification_value["member_id"]).organization.slug
+
+
+def get_verification_value_from_key(verification_key: str) -> dict:
     cluster = get_redis_cluster()
     verification_value = cluster.get(verification_key)
     if verification_value:

@@ -20,6 +20,7 @@ from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.idpmigration import (
+    get_redis_key,
     get_verification_value_from_key,
     send_one_time_account_confirm_link,
 )
@@ -382,18 +383,21 @@ class AuthIdentityHandler:
 
         return response
 
-    def _has_verified_account(self, identity):
-        if self.request.session.get("confirm_account_verification_key"):
-            verification_value = get_verification_value_from_key(
-                self.request.session["confirm_account_verification_key"]
-            )
-            acting_user = self._get_user(identity)
-            if (
-                verification_value["email"] == identity["email"]
-                and verification_value["user_id"] == acting_user.id
-            ):
-                return True
-        return False
+    def _has_verified_account(self, identity: Identity) -> bool:
+        if not self.request.session.get("confirm_account_verification_key"):
+            return False
+
+        verification_key = get_redis_key(self.request.session["confirm_account_verification_key"])
+        verification_value = get_verification_value_from_key(verification_key)
+        acting_user = self._get_user(identity)
+
+        if (
+            verification_value["email"] != identity["email"]
+            and verification_value["user_id"] != acting_user.id
+        ):
+            return False
+
+        return True
 
     def handle_unknown_identity(
         self,

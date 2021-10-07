@@ -1026,9 +1026,9 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
 
         resp = self.client.get(path)
 
-        assert resp.status_code == 302
+        assert resp.status_code == 200
 
-        path = reverse("sentry-auth-sso")
+        path = reverse("sentry-auth-organization", args=[self.organization.slug])
 
         resp = self.client.post(path, follow=True)
 
