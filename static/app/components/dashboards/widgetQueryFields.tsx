@@ -284,7 +284,7 @@ function WidgetQueryFields({
             size="small"
             label={t('Add an Equation')}
             onClick={handleAddEquation}
-            icon={<IconAdd isCircled size="xs" />}
+            icon={<IconAdd isCircled />}
           >
             {t('Add an Equation')}
           </Button>
