@@ -331,17 +331,13 @@ class ActionsPanel extends PureComponent<Props> {
                     />
                     <ActionSpecificTargetSelector
                       action={action}
-                      availableAction={availableAction}
                       disabled={disabled}
-                      loading={loading}
                       onChange={this.handleChangeKey.bind(
                         this,
                         triggerIndex,
                         actionIdx,
                         'inputChannelId'
                       )}
-                      organization={organization}
-                      project={project}
                     />
                   </PanelItemSelects>
                   <DeleteActionButton

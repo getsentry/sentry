@@ -1,20 +1,10 @@
 import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import {
-  Action,
-  ActionType,
-  MetricActionTemplate,
-  TargetType,
-} from 'app/views/alerts/incidentRules/types';
+import {Action, ActionType, TargetType} from 'app/views/alerts/incidentRules/types';
 import Input from 'app/views/settings/components/forms/controls/input';
 
 type Props = {
   action: Action;
-  availableAction?: MetricActionTemplate;
   disabled: boolean;
-  loading: boolean;
-  organization: Organization;
-  project?: Project;
   onChange: (value: string) => void;
 };
 
