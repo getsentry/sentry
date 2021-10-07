@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import ModalActions from 'app/actions/modalActions';
-import GlobalModal from 'app/components/globalModal';
+import type {ModalTypes} from 'app/components/globalModal';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'app/components/modals/dashboardWidgetQuerySelectorModal';
 import {InviteRow} from 'app/components/modals/inviteMembersModal/types';
@@ -11,10 +11,8 @@ import {Group, IssueOwnership, Organization, Project, SentryApp, Team} from 'app
 import {CustomRepoType} from 'app/types/debugFiles';
 import {Event} from 'app/types/event';
 
-type ModalProps = Required<React.ComponentProps<typeof GlobalModal>>;
-
-export type ModalOptions = ModalProps['options'];
-export type ModalRenderProps = Parameters<NonNullable<ModalProps['children']>>[0];
+export type ModalOptions = ModalTypes['options'];
+export type ModalRenderProps = ModalTypes['renderProps'];
 
 /**
  * Show a modal
@@ -23,7 +21,7 @@ export function openModal(
   renderer: (renderProps: ModalRenderProps) => React.ReactNode,
   options?: ModalOptions
 ) {
-  ModalActions.openModal(renderer, options);
+  ModalActions.openModal(renderer, options ?? {});
 }
 
 /**
