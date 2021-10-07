@@ -1,5 +1,6 @@
 from django import template
 
+from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.plugins.base import Annotation, plugins
 from sentry.utils.safe import safe_execute
 
@@ -34,6 +35,8 @@ def get_annotations(group, request=None):
 
     annotation_list = []
     for plugin in plugins.for_project(project, version=2):
+        if is_plugin_deprecated(plugin, project):
+            continue
         for value in (
             safe_execute(plugin.get_annotations, group=group, _with_transaction=False) or ()
         ):

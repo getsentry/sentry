@@ -13,6 +13,7 @@ from django.utils import timezone
 from sentry import tagstore, tsdb
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS, StatsPeriod
@@ -344,6 +345,8 @@ class GroupSerializerBase(Serializer):
             # note that the model GroupMeta where all the information is stored is already cached at the top of this function
             # so these for loops doesn't make a bunch of queries
             for plugin in plugins.for_project(project=item.project, version=1):
+                if is_plugin_deprecated(plugin, item.project):
+                    continue
                 safe_execute(plugin.tags, None, item, annotations, _with_transaction=False)
             for plugin in plugins.for_project(project=item.project, version=2):
                 annotations.extend(

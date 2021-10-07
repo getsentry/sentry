@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import features, tagstore, tsdb
+from sentry import tagstore, tsdb
 from sentry.api import client
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
@@ -18,7 +18,7 @@ from sentry.api.helpers.group_index import (
     update_groups,
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
-from sentry.api.serializers.models.plugin import SHADOW_DEPRECATED_PLUGINS, PluginSerializer
+from sentry.api.serializers.models.plugin import PluginSerializer, is_plugin_deprecated
 from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
 from sentry.models.groupinbox import get_inbox_details
 from sentry.plugins.base import plugins
@@ -44,9 +44,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         action_list = []
         for plugin in plugins.for_project(project, version=1):
-            if plugin.slug in SHADOW_DEPRECATED_PLUGINS and not features.has(
-                SHADOW_DEPRECATED_PLUGINS.get(plugin.slug), getattr(project, "organization", None)
-            ):
+            if is_plugin_deprecated(plugin, project):
                 continue
 
             results = safe_execute(
@@ -59,9 +57,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             action_list = results
 
         for plugin in plugins.for_project(project, version=2):
-            if plugin.slug in SHADOW_DEPRECATED_PLUGINS and not features.has(
-                SHADOW_DEPRECATED_PLUGINS.get(plugin.slug), getattr(project, "organization", None)
-            ):
+            if is_plugin_deprecated(plugin, project):
                 continue
             for action in (
                 safe_execute(plugin.get_actions, request, group, _with_transaction=False) or ()
@@ -76,6 +72,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         plugin_issues = []
         for plugin in plugins.for_project(project, version=1):
             if isinstance(plugin, IssueTrackingPlugin2):
+                if is_plugin_deprecated(plugin, project):
+                    continue
                 plugin_issues = safe_execute(
                     plugin.plugin_issues, request, group, plugin_issues, _with_transaction=False
                 )

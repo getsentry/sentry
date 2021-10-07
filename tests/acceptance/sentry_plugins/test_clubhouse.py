@@ -13,7 +13,8 @@ class ClubhouseTest(AcceptanceTestCase):
         self.path = f"/{self.org.slug}/{self.project.slug}/settings/plugins/clubhouse/"
 
     def test_simple(self):
-        self.browser.get(self.path)
-        self.browser.wait_until_not(".loading-indicator")
-        self.browser.snapshot("clubhouse settings")
-        assert self.browser.element_exists(".ref-plugin-config-clubhouse")
+        with self.feature("organizations:integrations-ignore-clubhouse-deprecation"):
+            self.browser.get(self.path)
+            self.browser.wait_until_not(".loading-indicator")
+            self.browser.snapshot("clubhouse settings")
+            assert self.browser.element_exists(".ref-plugin-config-clubhouse")
