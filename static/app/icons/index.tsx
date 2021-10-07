@@ -91,6 +91,7 @@ export {IconSupport} from './iconSupport';
 export {IconSwitch} from './iconSwitch';
 export {IconSync} from './iconSync';
 export {IconTag} from './iconTag';
+export {IconTaskcall} from './iconTaskcall';
 export {IconTeamwork} from './iconTeamwork';
 export {IconTelescope} from './iconTelescope';
 export {IconTerminal} from './iconTerminal';

@@ -7,6 +7,7 @@ import {
   IconRookout,
   IconShortcut,
   IconSpikesh,
+  IconTaskcall,
   IconTeamwork,
   IconZepel,
 } from 'app/icons';
@@ -32,6 +33,8 @@ const SentryAppIcon = ({slug}: Props) => {
       return <IconShortcut size="md" />;
     case 'spikesh':
       return <IconSpikesh size="md" />;
+    case 'taskcall':
+      return IconTaskcall size="md" />;
     case 'teamwork':
       return <IconTeamwork size="md" />;
     case 'zepel':
