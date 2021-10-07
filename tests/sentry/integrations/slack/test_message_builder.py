@@ -216,7 +216,7 @@ class BuildIncidentAttachmentTest(TestCase):
                         },
                     ],
                     "text": "Select Assignee...",
-                    "selected_options": [None],
+                    "selected_options": [],
                     "type": "select",
                     "name": "assign",
                 },
