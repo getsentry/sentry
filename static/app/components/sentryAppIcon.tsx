@@ -34,7 +34,7 @@ const SentryAppIcon = ({slug}: Props) => {
     case 'spikesh':
       return <IconSpikesh size="md" />;
     case 'taskcall':
-      return IconTaskcall size="md" />;
+      return <IconTaskcall size="md" />;
     case 'teamwork':
       return <IconTeamwork size="md" />;
     case 'zepel':
