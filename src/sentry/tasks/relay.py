@@ -11,7 +11,13 @@ from sentry.utils.sdk import set_current_event_project
 logger = logging.getLogger(__name__)
 
 
-@instrumented_task(name="sentry.tasks.relay.update_config_cache", queue="relay_config")
+@instrumented_task(
+    name="sentry.tasks.relay.update_config_cache",
+    queue="relay_config",
+    time_limit=120,
+    soft_time_limit=110,
+    acks_late=True,
+)
 def update_config_cache(generate, organization_id=None, project_id=None, update_reason=None):
     """
     Update the Redis cache for the Relay projectconfig. This task is invoked
