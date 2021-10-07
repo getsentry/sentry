@@ -532,7 +532,7 @@ def timeseries_query(
             comp_query_params.start -= comparison_delta
             comp_query_params.end -= comparison_delta
             query_params_list.append(comp_query_params)
-        query_results = bulk_raw_query(query_params_list)
+        query_results = bulk_raw_query(query_params_list, referrer=referrer)
 
     with sentry_sdk.start_span(
         op="discover.discover", description="timeseries.transform_results"
