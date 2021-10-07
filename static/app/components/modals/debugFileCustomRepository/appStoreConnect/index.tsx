@@ -32,6 +32,9 @@ import {
   StepThreeData,
   StepTwoData,
 } from './types';
+import {xhrErrorMessage} from './utils';
+
+type Error = Parameters<typeof xhrErrorMessage>[0];
 
 type SessionContext = {
   auth_key: string;
@@ -185,11 +188,8 @@ function AppStoreConnect({
       goNext();
     } catch (error) {
       setIsLoading(false);
-      addErrorMessage(
-        t(
-          'We could not establish a connection with App Store Connect. Please check the entered App Store Connect credentials.'
-        )
-      );
+      // app-connect-authentication-error
+      addErrorMessage(xhrErrorMessage(error));
     }
   }
 
@@ -222,9 +222,8 @@ function AppStoreConnect({
       goNext();
     } catch (error) {
       setIsLoading(false);
-      addErrorMessage(
-        t('The two factor authentication failed. Please check the entered code.')
-      );
+      // itunes-2fa-required
+      addErrorMessage(xhrErrorMessage(error));
     }
   }
 
@@ -267,6 +266,16 @@ function AppStoreConnect({
       onSubmit();
     } catch (error) {
       setIsLoading(false);
+
+      const err = error as Error;
+
+      if (
+        typeof err !== 'string' &&
+        err.responseJSON?.detail.code === 'app-connect-multiple-sources-error'
+      ) {
+        addErrorMessage(xhrErrorMessage(err));
+        return;
+      }
       addErrorMessage(errorMessage);
     }
   }
@@ -332,13 +341,12 @@ function AppStoreConnect({
       }
 
       addSuccessMessage(t('An iTunes verification code has been sent'));
-    } catch {
+    } catch (error) {
       if (shouldGoNext) {
         setIsLoading(false);
       }
-      addErrorMessage(
-        t('The iTunes authentication failed. Please check the provided credentials')
-      );
+      // itunes-authentication-error'
+      addErrorMessage(xhrErrorMessage(error));
     }
   }
 
@@ -353,9 +361,9 @@ function AppStoreConnect({
       );
       setSessionContext(response.sessionContext);
       addSuccessMessage(t("We've sent a SMS code to your phone"));
-    } catch {
-      // TODO: use the message from the itunes-sms-blocked-error
-      addErrorMessage(t('An error occured while sending the SMS. Please try again'));
+    } catch (error) {
+      // itunes-sms-blocked-error
+      addErrorMessage(xhrErrorMessage(error));
     }
   }
 
