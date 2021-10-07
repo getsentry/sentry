@@ -4,7 +4,6 @@ import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import {Organization, SessionApiResponse} from 'app/types';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'app/utils/sessions';
@@ -70,8 +69,6 @@ class ReleaseDetailsRequest extends React.Component<Props, State> {
     const releaseParams = getReleaseParams({
       location,
       releaseBounds,
-      defaultStatsPeriod: DEFAULT_STATS_PERIOD, // this will be removed once we get rid off legacy release details
-      allowEmptyPeriod: true,
     });
 
     return {

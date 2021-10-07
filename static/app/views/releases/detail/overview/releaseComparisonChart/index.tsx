@@ -14,7 +14,6 @@ import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import NotAvailable from 'app/components/notAvailable';
 import {Panel, PanelTable} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
 import {IconActivity, IconArrow, IconChevron, IconWarning} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
@@ -129,8 +128,6 @@ function ReleaseComparisonChart({
       getReleaseParams({
         location,
         releaseBounds: getReleaseBounds(release),
-        defaultStatsPeriod: DEFAULT_STATS_PERIOD, // this will be removed once we get rid off legacy release details
-        allowEmptyPeriod: true,
       }),
     [release, location]
   );
