@@ -436,5 +436,61 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         'Add Widget to Dashboard'
       );
     });
+
+    it('populated dashboard widget modal with saved query data if created from discover', async () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewModified,
+        savedQuery,
+        yAxis
+      );
+      wrapper.find('DiscoverQueryMenu').find('Button').first().simulate('click');
+      wrapper.find('MenuItem').first().simulate('click');
+      await tick();
+      await wrapper.update();
+      const modal = await mountGlobalModal();
+      expect(modal.find('SmartSearchBar').props().query).toEqual('event.type:error');
+      expect(modal.find('QueryField').at(0).props().fieldValue.function[0]).toEqual(
+        'count'
+      );
+      expect(modal.find('QueryField').at(1).props().fieldValue.function[0]).toEqual(
+        'failure_count'
+      );
+    });
+
+    it('adds equation to query fields if yAxis includes comprising functions', async () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewModified,
+        savedQuery,
+        [...yAxis, 'equation|count() + failure_count()']
+      );
+      wrapper.find('DiscoverQueryMenu').find('Button').first().simulate('click');
+      wrapper.find('MenuItem').first().simulate('click');
+      await tick();
+      await wrapper.update();
+      const modal = await mountGlobalModal();
+      expect(modal.find('QueryField').at(2).props().fieldValue.field).toEqual(
+        'count() + failure_count()'
+      );
+    });
+
+    it('does not add equations to query fields if yAxis does not contain comprising functions', async () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewModified,
+        savedQuery,
+        [...yAxis, 'equation|count() + count_unqiue(user)']
+      );
+      wrapper.find('DiscoverQueryMenu').find('Button').first().simulate('click');
+      wrapper.find('MenuItem').first().simulate('click');
+      await tick();
+      await wrapper.update();
+      const modal = await mountGlobalModal();
+      expect(modal.find('QueryField').length).toEqual(2);
+    });
   });
 });
