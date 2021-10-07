@@ -184,10 +184,10 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         buckets = range(first_bucket, now_bucket + bucket_size, bucket_size)
 
-        pipeline = self.cluster.pipeline()
-        for ts in buckets:
-            pipeline.hgetall(f"{self._duration_key_prefix()}:{project_id}:{ts}")
-        histograms = pipeline.execute()
+        with self.cluster.pipeline() as pipeline:
+            for ts in buckets:
+                pipeline.hgetall(f"{self._duration_key_prefix()}:{project_id}:{ts}")
+            histograms = pipeline.execute()
 
         for ts, histogram_redis_raw in zip(buckets, histograms):
             histogram = {duration: 0 for duration in range(0, 600, 10)}
