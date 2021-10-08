@@ -4,13 +4,11 @@ from sentry import tsdb
 from sentry.api.base import EnvironmentMixin, StatsMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.helpers.group_index import rate_limit_endpoint
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.models import Environment
 
 
 class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
-    @rate_limit_endpoint(limit=20, window=1)
     def get(self, request, project):
         """
         Retrieve Event Counts for a Project
