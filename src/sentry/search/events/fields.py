@@ -2905,7 +2905,7 @@ class QueryFields(QueryBase):
                 combinator_applied = True
 
         if combinator and not combinator_applied:
-            raise InvalidSearchQuery("Invalid combinator")
+            raise InvalidSearchQuery("Invalid combinator: Arguments passed were incompatible")
 
         if snql_function.snql_aggregate is not None:
             self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
