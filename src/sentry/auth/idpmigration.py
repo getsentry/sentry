@@ -92,6 +92,7 @@ class AccountConfirmLink:
             "user_id": self.user.id,
             "email": self.email,
             "member_id": member_id,
+            "organization_id": self.organization.id,
             "identity_id": self.identity_id,
             "provider": self.provider.provider,
         }
@@ -105,10 +106,11 @@ def get_verification_value_from_key(key: str) -> Dict[str, Any]:
     verification_key = f"auth:one-time-key:{key}"
     verification_value = cluster.get(verification_key)
     if verification_value:
-        if verification_value.get("provider") == "okta":
-            metrics.incr("idpmigration.migraton_to_okta")
-        metrics.incr("idpmigration.confirmation_success")
-        return json.loads(verification_value)
+        verification_value = json.loads(verification_value)
+        metrics.incr(
+            "idpmigration.confirmation_success",
+            tags={key: verification_value.get(key) for key in ("provider", "organization_id")},
+        )
     else:
         metrics.incr("idpmigration.confirmation_failure")
-        return verification_value
+    return verification_value
