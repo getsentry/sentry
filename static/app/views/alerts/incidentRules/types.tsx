@@ -5,6 +5,11 @@ export enum AlertRuleThresholdType {
   BELOW,
 }
 
+export enum AlertRuleComparisonType {
+  COUNT = 'count',
+  CHANGE = 'change',
+}
+
 export enum Dataset {
   ERRORS = 'events',
   TRANSACTIONS = 'transactions',
@@ -71,6 +76,7 @@ export type UnsavedIncidentRule = {
   aggregate: string;
   thresholdType: AlertRuleThresholdType;
   resolveThreshold: number | '' | null;
+  comparisonDelta?: number;
   eventTypes?: EventTypes[];
   owner?: string | null;
 };
@@ -232,7 +238,10 @@ type UnsavedAction = {
    * user_id, team_id, SentryApp id, etc
    */
   targetIdentifier: string | null;
-
+  /**
+   * An optional Slack channel or user id the user can input to avoid rate limiting issues.
+   */
+  inputChannelId: string | null;
   /**
    * The id of the integration, can be null (e.g. email) or undefined (server errors when posting w/ null value)
    */

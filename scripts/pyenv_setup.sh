@@ -94,10 +94,11 @@ install_pyenv() {
       exit 1
     fi
 
-    if query-apple-m1; then
-      pyenv install --skip-existing "${PYENV_VERSION}"
-    elif query-big-sur; then
-      # We need to patch the source code on Big Sur before building Python
+    # I'm assuming that SENTRY_PYTHON_VERSION won't be used to specify a 3.6 version to simplify the condition
+    # When a user sets a SENTRY_PYTHON_VERSION they intend to use a non-default version that I assume
+    # is newer, thus, can install with the non-source-patched default pyenv install command
+    if query-big-sur && [[ -z "${SENTRY_PYTHON_VERSION:-}" ]]; then
+      # For Python 3.6.x, we need to patch the source code on Big Sur before building Python
       # We can remove this once we upgrade to newer versions of Python
       # cat is used since pyenv would finish to soon when the Python version is already installed
       curl -sSL https://github.com/python/cpython/commit/8ea6353.patch | cat |

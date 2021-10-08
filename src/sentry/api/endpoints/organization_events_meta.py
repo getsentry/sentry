@@ -4,7 +4,7 @@ import sentry_sdk
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import search
+from sentry import features, search
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import parse_search_query
@@ -28,6 +28,9 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                 params=params,
                 query=request.query_params.get("query"),
                 referrer="api.organization-events-meta",
+                use_snql=features.has(
+                    "organizations:discover-use-snql", organization, actor=request.user
+                ),
             )
 
         return Response({"count": result["data"][0]["count"]})

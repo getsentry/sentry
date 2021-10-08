@@ -9,6 +9,7 @@ import socket
 import sys
 import tempfile
 from datetime import timedelta
+from platform import platform
 from urllib.parse import urlparse
 
 from django.conf.global_settings import *  # NOQA
@@ -951,7 +952,7 @@ SENTRY_FEATURES = {
     "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
-    # Enable imporved syntax highlightign + autocomplete on unified search
+    # Enable improved syntax highlighting + autocomplete on unified search
     "organizations:improved-search": False,
     # Enable incidents feature
     "organizations:incidents": False,
@@ -993,6 +994,12 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
+    # Allow orgs to use the deprecated Teamwork plugin
+    "organizations:integrations-ignore-teamwork-deprecation": False,
+    # Allow orgs to use the deprecated Clubhouse/Shortcut plugin
+    "organizations:integrations-ignore-clubhouse-deprecation": False,
+    # Allow orgs to use the deprecated VSTS (Azure DevOps) plugin
+    "organizations:integrations-ignore-vsts-deprecation": False,
     # Allow orgs to debug internal/unpublished sentry apps with logging
     "organizations:sentry-app-debugging": False,
     # Temporary safety measure, turned on for specific orgs only if
@@ -1036,8 +1043,6 @@ SENTRY_FEATURES = {
     "organizations:performance-events-page": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Enable ingestion for suspect spans
-    "organizations:performance-suspect-spans-ingestion": False,
     # Enable views for suspect tags
     "organizations:performance-suspect-spans-view": False,
     # Enable the new Related Events feature
@@ -1107,6 +1112,8 @@ SENTRY_FEATURES = {
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
+    # Enable ingestion for suspect spans
+    "projects:performance-suspect-spans-ingestion": False,
     # Enable functionality for project plugins.
     "projects:plugins": True,
     # Enable alternative version of group creation that is supposed to be less racy.
@@ -1377,6 +1384,7 @@ SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefix
 # Metrics product
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
+SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 
 # Release Health
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
@@ -1700,6 +1708,8 @@ def build_cdc_postgres_init_db_volume(settings):
     )
 
 
+APPLE_ARM64 = platform().startswith("mac") and platform().endswith("arm64-arm-64bit")
+
 SENTRY_DEVSERVICES = {
     "redis": lambda settings, options: (
         {
@@ -1752,7 +1762,13 @@ SENTRY_DEVSERVICES = {
     ),
     "zookeeper": lambda settings, options: (
         {
-            "image": "confluentinc/cp-zookeeper:5.1.2",
+            # On Apple arm64, we upgrade to version 6.x allows zookeeper to run properly on Apple's arm64
+            # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
+            # I'm selectively upgrading the version on Apple's arm64 since there was a bug that only affects
+            # Intel machines. For more details see: https://github.com/getsentry/sentry/pull/28672
+            "image": "confluentinc/cp-zookeeper:6.2.0"
+            if APPLE_ARM64
+            else "confluentinc/cp-zookeeper:5.1.2",
             "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
             "volumes": {"zookeeper": {"bind": "/var/lib/zookeeper"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
@@ -1760,7 +1776,10 @@ SENTRY_DEVSERVICES = {
     ),
     "kafka": lambda settings, options: (
         {
-            "image": "confluentinc/cp-kafka:5.1.2",
+            # On Apple arm64, we upgrade to version 6.x to match zookeeper's version (I believe they both release together)
+            "image": "confluentinc/cp-kafka:6.2.0"
+            if APPLE_ARM64
+            else "confluentinc/cp-kafka:5.1.2",
             "ports": {"9092/tcp": 9092},
             "environment": {
                 "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
@@ -1775,7 +1794,7 @@ SENTRY_DEVSERVICES = {
                 "KAFKA_MESSAGE_MAX_BYTES": "50000000",
                 "KAFKA_MAX_REQUEST_SIZE": "50000000",
             },
-            "volumes": {"kafka": {"bind": "/var/lib/kafka/data"}},
+            "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
             or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS,
@@ -2347,7 +2366,7 @@ SENTRY_REALTIME_METRICS_BACKEND = (
 SENTRY_REALTIME_METRICS_OPTIONS = {
     # The redis cluster used for the realtime store redis backend.
     "cluster": "default",
-    # The bucket size of the counter.
+    # The bucket size of the event counter.
     #
     # The size (in seconds) of the buckets that events are sorted into.
     "counter_bucket_size": 10,
@@ -2357,20 +2376,18 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # so that projects that exceed a reasonable rate can be sent to the low
     # priority queue. This setting determines how long we keep these rates
     # around.
-    # Note that the time is counted after the last time a counter is incremented.
-    "counter_ttl": timedelta(seconds=300),
-    # The bucket size of the histogram.
+    "counter_time_window": 300,
+    # The bucket size of the processing duration histogram.
     #
     # The size (in seconds) of the buckets that events are sorted into.
-    "histogram_bucket_size": 10,
+    "duration_bucket_size": 10,
     # Number of seconds to keep symbolicate_event durations per project.
     #
     # symbolicate_event tasks report the processing durations of events per project to redis
     # so that projects that exceed a reasonable duration can be sent to the low
     # priority queue. This setting determines how long we keep these duration values
     # around.
-    # Note that the time is counted after the last time a counter is incremented.
-    "histogram_ttl": timedelta(seconds=900),
+    "duration_time_window": 900,
 }
 
 # XXX(meredith): Temporary metrics indexer
