@@ -10,7 +10,6 @@ from sentry.processing.realtime_metrics.base import (
     DurationHistogram,
     RealtimeMetricsStore,
 )
-from sentry.processing.realtime_metrics.redis import RedisRealtimeMetricsStore
 from sentry.tasks.low_priority_symbolication import (
     _scan_for_suspect_projects,
     _update_lpq_eligibility,
@@ -112,13 +111,24 @@ class TestScanForSuspectProjects:
 class UpdateLpqEligibility:
     @pytest.fixture
     def store(self):
-        return RedisRealtimeMetricsStore(
-            cluster="default",
-            counter_bucket_size=10,
-            counter_time_window=1,
-            duration_bucket_size=10,
-            duration_time_window=1,
+        store = LazyServiceWrapper(
+            RealtimeMetricsStore,
+            "sentry.processing.realtime_metrics.redis.RedisRealtimeMetricsStore",
+            {
+                "cluster": "default",
+                "counter_bucket_size": 10,
+                "counter_time_window": 0,
+                "duration_bucket_size": 10,
+                "duration_time_window": 0,
+            },
         )
+
+        old_properties = realtime_metrics.__dict__.copy()
+        store.expose(realtime_metrics.__dict__)
+        yield store
+
+        # cleanup
+        realtime_metrics.__dict__.update(old_properties)
 
     def test_no_counts_no_durations_in_lpq(self, store) -> None:
         store.add_project_to_lpq(17)
