@@ -146,7 +146,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):  # type: ignore
             yield
         except discover.InvalidSearchQuery as error:
             message = str(error)
-            sentry_sdk.set_tag("query.error_reason", message)
+            # Special case the project message since it has so many variants so tagging is messy otherwise
+            if message.endswith("do not exist or are not actively selected."):
+                sentry_sdk.set_tag(
+                    "query.error_reason", "Project in query does not exist or not selected"
+                )
+            else:
+                sentry_sdk.set_tag("query.error_reason", message)
             raise ParseError(detail=message)
         except ArithmeticError as error:
             message = str(error)

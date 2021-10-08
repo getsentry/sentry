@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -19,7 +19,6 @@ import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
 import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
 import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
-import {Theme} from 'app/utils/theme';
 
 import {DoubleHeaderContainer} from '../../styles';
 import {getFieldOrBackup} from '../display/utils';
@@ -28,7 +27,6 @@ const NUM_BUCKETS = 50;
 const PRECISION = 0;
 
 type Props = {
-  theme: Theme;
   location: Location;
   organization: Organization;
   eventView: EventView;
@@ -43,7 +41,6 @@ type Props = {
 
 export function HistogramChart(props: Props) {
   const {
-    theme,
     location,
     onFilterChange,
     organization,
@@ -55,6 +52,7 @@ export function HistogramChart(props: Props) {
     backupField,
     usingBackupAxis,
   } = props;
+  const theme = useTheme();
 
   const _backupField = backupField ? [backupField] : [];
 
@@ -177,4 +175,4 @@ const MaskContainer = styled('div')`
   position: relative;
 `;
 
-export default withTheme(HistogramChart);
+export default HistogramChart;

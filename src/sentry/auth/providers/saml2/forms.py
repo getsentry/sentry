@@ -91,7 +91,7 @@ def process_metadata(form_cls, request, helper):
 
     helper.bind_state("idp", data)
 
-    # Data is bound, do not respond with a form to signal the nexts steps
+    # Data is bound, do not respond with a form to signal the next steps
     return None
 
 

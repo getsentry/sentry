@@ -1,7 +1,7 @@
 import 'zrender/lib/svg/svg';
 
-import * as React from 'react';
-import {withTheme} from '@emotion/react';
+import {forwardRef, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
@@ -61,8 +61,6 @@ type Truncateable = {
 };
 
 type Props = {
-  theme: Theme;
-
   options?: EChartOption;
   /**
    * Chart Series
@@ -109,6 +107,10 @@ type Props = {
       ) => string;
       valueFormatter?: (value: number, label?: string) => string | number;
       nameFormatter?: (name: string) => string;
+      /**
+       * Array containing seriesNames that need to be indented
+       */
+      indentLabels?: string[];
     };
   /**
    * DataZoom (allows for zooming of chart)
@@ -236,8 +238,6 @@ type Props = {
 };
 
 function BaseChartUnwrapped({
-  theme,
-
   colors,
   grid,
   tooltip,
@@ -285,6 +285,8 @@ function BaseChartUnwrapped({
   transformSinglePointToBar = false,
   onChartReady = () => {},
 }: Props) {
+  const theme = useTheme();
+
   const hasSinglePoints = (series as EChartOption.SeriesLine[] | undefined)?.every(
     s => Array.isArray(s.data) && s.data.length <= 1
   );
@@ -403,7 +405,7 @@ function BaseChartUnwrapped({
   //
   // We use React.useMemo to keep the value across renders
   //
-  const eventsMap = React.useMemo(
+  const eventsMap = useMemo(
     () =>
       ({
         click: (props, instance) => {
@@ -462,6 +464,9 @@ const ChartContainer = styled('div')`
   .tooltip-label strong {
     font-weight: normal;
     color: ${p => p.theme.white};
+  }
+  .tooltip-label-indent {
+    margin-left: ${space(3)};
   }
   .tooltip-series > div {
     display: flex;
@@ -528,11 +533,9 @@ const ChartContainer = styled('div')`
   }
 `;
 
-const BaseChartWithTheme = withTheme(BaseChartUnwrapped);
-
-const BaseChart = React.forwardRef<ReactEchartsRef, Omit<Props, 'theme'>>(
-  (props, ref) => <BaseChartWithTheme forwardedRef={ref} {...props} />
-);
+const BaseChart = forwardRef<ReactEchartsRef, Props>((props, ref) => (
+  <BaseChartUnwrapped forwardedRef={ref} {...props} />
+));
 BaseChart.displayName = 'forwardRef(BaseChart)';
 
 export default BaseChart;

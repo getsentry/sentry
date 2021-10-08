@@ -22,7 +22,12 @@ import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {getFieldFormatter} from 'app/utils/discover/fieldRenderers';
-import {getAggregateArg, getMeasurementSlug} from 'app/utils/discover/fields';
+import {
+  getAggregateArg,
+  getMeasurementSlug,
+  maybeEquationAlias,
+  stripEquationPrefix,
+} from 'app/utils/discover/fields';
 import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 
@@ -263,6 +268,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
             seriesName = slug.toUpperCase();
           }
         }
+        if (maybeEquationAlias(seriesName)) {
+          seriesName = stripEquationPrefix(seriesName);
+        }
         return seriesName;
       },
     };
@@ -304,6 +312,14 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           const colors = timeseriesResults
             ? theme.charts.getColorPalette(timeseriesResults.length - 2)
             : [];
+          // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
+          if (
+            widget.displayType === 'top_n' &&
+            timeseriesResults &&
+            timeseriesResults.length > 5
+          ) {
+            colors[colors.length - 1] = theme.chartOther;
+          }
 
           // Create a list of series based on the order of the fields,
           const series = timeseriesResults

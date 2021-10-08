@@ -23,11 +23,14 @@ from sentry.release_health.base import (
     ReleaseName,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
+    SessionsQueryResult,
     StatsPeriod,
 )
+from sentry.release_health.metrics_sessions_v2 import run_sessions_query
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets, parse_snuba_datetime
+from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils.snuba import QueryOutsideRetentionError, raw_snql_query
 
 
@@ -40,32 +43,32 @@ def get_tag_values_list(org_id: int, values: Sequence[str]) -> Sequence[int]:
 
 
 def metric_id(org_id: int, name: str) -> int:
-    index = indexer.resolve(org_id, name)  # type: ignore
+    index = indexer.resolve(name)  # type: ignore
     if index is None:
         raise MetricIndexNotFound(name)
     return index  # type: ignore
 
 
 def tag_key(org_id: int, name: str) -> str:
-    index = indexer.resolve(org_id, name)  # type: ignore
+    index = indexer.resolve(name)  # type: ignore
     if index is None:
         raise MetricIndexNotFound(name)
     return f"tags[{index}]"
 
 
 def tag_value(org_id: int, name: str) -> int:
-    index = indexer.resolve(org_id, name)  # type: ignore
+    index = indexer.resolve(name)  # type: ignore
     if index is None:
         raise MetricIndexNotFound(name)
     return index  # type: ignore
 
 
 def try_get_string_index(org_id: int, name: str) -> Optional[int]:
-    return indexer.resolve(org_id, name)  # type: ignore
+    return indexer.resolve(name)  # type: ignore
 
 
 def reverse_tag_value(org_id: int, index: int) -> str:
-    str_value = indexer.reverse_resolve(org_id, index)  # type: ignore
+    str_value = indexer.reverse_resolve(index)  # type: ignore
     # If the value can't be reversed it's very likely a real programming bug
     # instead of something to be caught down: We probably got back a value from
     # Snuba that's not in the indexer => partial data loss
@@ -338,7 +341,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rv = {}
 
         for project_id, release in project_releases:
-            release_tag_value = indexer.resolve(org_id, release)  # type: ignore
+            release_tag_value = indexer.resolve(release)  # type: ignore
             if release_tag_value is None:
                 # Don't emit empty releases -- for exact compatibility with
                 # sessions table backend.
@@ -366,6 +369,15 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             rv[project_id, release] = adoption
 
         return rv
+
+    def run_sessions_query(
+        self,
+        org_id: int,
+        query: QueryDefinition,
+        span_op: str,
+    ) -> SessionsQueryResult:
+
+        return run_sessions_query(org_id, query, span_op)
 
     def get_release_sessions_time_bounds(
         self,
@@ -1191,3 +1203,72 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ]
 
         return result
+
+    def get_project_releases_count(
+        self,
+        organization_id: OrganizationId,
+        project_ids: Sequence[ProjectId],
+        scope: str,
+        stats_period: Optional[str] = None,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> int:
+
+        if stats_period is None:
+            stats_period = "24h"
+
+        # Special rule that we support sorting by the last 24h only.
+        if scope.endswith("_24h"):
+            stats_period = "24h"
+
+        granularity, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
+        where = [
+            Condition(Column("timestamp"), Op.GTE, stats_start),
+            Condition(Column("timestamp"), Op.LT, datetime.now()),
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("org_id"), Op.EQ, organization_id),
+        ]
+
+        try:
+            release_column_name = tag_key(organization_id, "release")
+        except MetricIndexNotFound:
+            return 0
+
+        if environments is not None:
+            try:
+                environment_column_name = tag_key(organization_id, "environment")
+            except MetricIndexNotFound:
+                return 0
+
+            environment_values = get_tag_values_list(organization_id, environments)
+            where.append(Condition(Column(environment_column_name), Op.IN, environment_values))
+
+        having = []
+
+        # Filter out releases with zero users when sorting by either `users` or `crash_free_users`
+        if scope in ["users", "crash_free_users"]:
+            having.append(Condition(Column("value"), Op.GT, 0))
+            match = Entity("metrics_sets")
+        else:
+            match = Entity("metrics_counters")
+
+        query_columns = [
+            Function(
+                "uniqExact", [Column(release_column_name), Column("project_id")], alias="count"
+            )
+        ]
+
+        query = Query(
+            dataset=Dataset.Metrics.value,
+            match=match,
+            select=query_columns,
+            where=where,
+            having=having,
+            granularity=granularity,
+        )
+
+        rows = raw_snql_query(
+            query, referrer="release_health.metrics.sessions.get_project_releases_count"
+        )["data"]
+
+        ret_val: int = rows[0]["count"] if rows else 0
+        return ret_val
