@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {css, withTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
@@ -17,7 +17,6 @@ import {
   DynamicSamplingRuleType,
 } from 'app/types/dynamicSampling';
 import {defined} from 'app/utils';
-import {Theme} from 'app/utils/theme';
 import Field from 'app/views/settings/components/forms/field';
 
 import {DYNAMIC_SAMPLING_DOC_LINK} from '../utils';
@@ -36,18 +35,13 @@ type Props = Omit<
   | 'emptyMessage'
   | 'onChage'
 > & {
-  theme: Theme;
   errorRules: DynamicSamplingRules;
   transactionRules: DynamicSamplingRules;
 };
 
-function TransactionRuleModal({
-  rule,
-  errorRules,
-  transactionRules,
-  theme,
-  ...props
-}: Props) {
+function TransactionRuleModal({rule, errorRules, transactionRules, ...props}: Props) {
+  const theme = useTheme();
+
   const [tracing, setTracing] = useState(
     rule ? rule.type === DynamicSamplingRuleType.TRACE : true
   );
@@ -180,7 +174,7 @@ function TransactionRuleModal({
   );
 }
 
-export default withTheme(TransactionRuleModal);
+export default TransactionRuleModal;
 
 const TracingWrapper = styled('div')`
   display: grid;
