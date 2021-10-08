@@ -33,7 +33,7 @@ const unexpectedErrorMessage = t(
   'An unexpected error occurred while configuring the app store connect'
 );
 
-export function fetchErrorMessage(error: Error | string) {
+export function getAppStoreErrorMessage(error: Error | string) {
   if (typeof error === 'string') {
     return error;
   }

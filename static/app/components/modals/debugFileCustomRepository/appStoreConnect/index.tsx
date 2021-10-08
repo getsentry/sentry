@@ -32,7 +32,7 @@ import {
   StepThreeData,
   StepTwoData,
 } from './types';
-import {DetailedErrorResponse, fetchErrorMessage} from './utils';
+import {DetailedErrorResponse, getAppStoreErrorMessage} from './utils';
 
 type SessionContext = {
   auth_key: string;
@@ -187,7 +187,7 @@ function AppStoreConnect({
     } catch (error) {
       setIsLoading(false);
       // app-connect-authentication-error
-      addErrorMessage(fetchErrorMessage(error));
+      addErrorMessage(getAppStoreErrorMessage(error));
     }
   }
 
@@ -221,7 +221,7 @@ function AppStoreConnect({
     } catch (error) {
       setIsLoading(false);
       // itunes-2fa-required
-      addErrorMessage(fetchErrorMessage(error));
+      addErrorMessage(getAppStoreErrorMessage(error));
     }
   }
 
@@ -270,7 +270,7 @@ function AppStoreConnect({
         (error as DetailedErrorResponse).responseJSON?.detail?.code ===
           'app-connect-multiple-sources-error'
       ) {
-        addErrorMessage(fetchErrorMessage(error));
+        addErrorMessage(getAppStoreErrorMessage(error));
         return;
       }
       addErrorMessage(errorMessage);
@@ -343,7 +343,7 @@ function AppStoreConnect({
         setIsLoading(false);
       }
       // itunes-authentication-error'
-      addErrorMessage(fetchErrorMessage(error));
+      addErrorMessage(getAppStoreErrorMessage(error));
     }
   }
 
@@ -360,7 +360,7 @@ function AppStoreConnect({
       addSuccessMessage(t("We've sent a SMS code to your phone"));
     } catch (error) {
       // itunes-sms-blocked-error
-      addErrorMessage(fetchErrorMessage(error));
+      addErrorMessage(getAppStoreErrorMessage(error));
     }
   }
 
