@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
@@ -183,35 +183,39 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
   }
 }
 
-type ChartProps = React.ComponentPropsWithoutRef<typeof AreaChart> & {theme: Theme};
+type ChartProps = React.ComponentPropsWithoutRef<typeof AreaChart>;
 
-const StyledAreaChart = withTheme(({theme, ...props}: ChartProps) => (
-  <AreaChart
-    grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
-    xAxis={{
-      type: 'category' as const,
-      truncate: true,
-      axisLabel: {
-        showMinLabel: true,
-        showMaxLabel: true,
-      },
-      axisTick: {
-        interval: 0,
-        alignWithLabel: true,
-      },
-    }}
-    yAxis={{
-      type: 'value' as const,
-      axisLabel: {
-        color: theme.chartLabel,
-        // Use p50() to force time formatting.
-        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
-      },
-    }}
-    tooltip={{valueFormatter: value => getDuration(value / 1000, 2)}}
-    {...props}
-  />
-));
+function StyledAreaChart(props: ChartProps) {
+  const theme = useTheme();
+
+  return (
+    <AreaChart
+      grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
+      xAxis={{
+        type: 'category' as const,
+        truncate: true,
+        axisLabel: {
+          showMinLabel: true,
+          showMaxLabel: true,
+        },
+        axisTick: {
+          interval: 0,
+          alignWithLabel: true,
+        },
+      }}
+      yAxis={{
+        type: 'value' as const,
+        axisLabel: {
+          color: theme.chartLabel,
+          // Use p50() to force time formatting.
+          formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+        },
+      }}
+      tooltip={{valueFormatter: value => getDuration(value / 1000, 2)}}
+      {...props}
+    />
+  );
+}
 
 const VALUE_EXTRACT_PATTERN = /(\d+)$/;
 /**
