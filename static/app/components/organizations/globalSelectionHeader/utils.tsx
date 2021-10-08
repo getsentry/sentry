@@ -12,6 +12,7 @@ import {
 import {GlobalSelection} from 'app/types';
 import {defined} from 'app/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
+import localStorage from 'app/utils/localStorage';
 
 import {getParams} from './getParams';
 
@@ -125,7 +126,6 @@ export function isSelectionEqual(
 /**
  * Removes globalselection from localstorage
  */
-
 export function removeGlobalSelectionStorage(orgId) {
   const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgId}`;
   localStorage.removeItem(localStorageKey);
