@@ -19,3 +19,7 @@ class PostgresIndexerTest(TestCase):
         # test record on a string that already exists
         PGStringIndexer().record("hello")
         assert PGStringIndexer().resolve("hello") == obj.id
+
+        # test invalid values
+        assert PGStringIndexer().resolve("beep") is None
+        assert PGStringIndexer().reverse_resolve(1234) is None

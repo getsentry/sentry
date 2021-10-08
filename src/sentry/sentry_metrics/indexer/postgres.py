@@ -1,5 +1,4 @@
-from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Set
 
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
 from sentry.utils.services import Service
@@ -20,25 +19,27 @@ class PGStringIndexer(Service):  # type: ignore
         # attempt to create the rows down below.
         MetricsKeyIndexer.objects.bulk_create(records, ignore_conflicts=True)
         # Using `ignore_conflicts=True` prevents the pk from being set on the model
-        # instances. Re-query the database to fetch the rows, they should all exist at this
-        # point.
-        return MetricsKeyIndexer.objects.filter(string__in=unmapped_strings)
+        # instances.
+        #
+        # Using `get_many_from_cache` will not only re-query the database to fetch the rows
+        # (which should all exist point at this point), but also cache the results
+        return MetricsKeyIndexer.objects.get_many_from_cache(list(unmapped_strings), key="string")
 
-    def bulk_record(self, strings: List[str]) -> Dict[str, int]:
-        # first look up to see if we have any of the values
-        records = MetricsKeyIndexer.objects.filter(string__in=strings)
-        result = defaultdict(int)
+    def bulk_record(self, strings: List[str]) -> Mapping[str, int]:
 
-        for record in records:
-            result[record.string] = record.id
+        cache_results: Sequence[Any] = MetricsKeyIndexer.objects.get_many_from_cache(
+            strings, key="string"
+        )
 
-        unmapped = set(strings).difference(result.keys())
+        mapped_result: MutableMapping[str, int] = {r.string: r.id for r in cache_results}
+
+        unmapped = set(strings).difference(mapped_result.keys())
         new_mapped = self._bulk_record(unmapped)
 
         for new in new_mapped:
-            result[new.string] = new.id
+            mapped_result[new.string] = new.id
 
-        return result
+        return mapped_result
 
     def record(self, string: str) -> int:
         """Store a string and return the integer ID generated for it"""
@@ -51,10 +52,8 @@ class PGStringIndexer(Service):  # type: ignore
         Returns None if the entry cannot be found.
         """
         try:
-            id: int = MetricsKeyIndexer.objects.filter(string=string).values_list("id", flat=True)[
-                0
-            ]
-        except IndexError:
+            id: int = MetricsKeyIndexer.objects.get_from_cache(string=string).id
+        except MetricsKeyIndexer.DoesNotExist:
             return None
 
         return id
@@ -65,10 +64,8 @@ class PGStringIndexer(Service):  # type: ignore
         Returns None if the entry cannot be found.
         """
         try:
-            string: str = MetricsKeyIndexer.objects.filter(id=id).values_list("string", flat=True)[
-                0
-            ]
-        except IndexError:
+            string: str = MetricsKeyIndexer.objects.get_from_cache(pk=id).string
+        except MetricsKeyIndexer.DoesNotExist:
             return None
 
         return string
