@@ -1,4 +1,4 @@
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Count from 'app/components/count';
@@ -7,7 +7,6 @@ import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
 
 import {releaseDisplayLabel} from '../utils';
 
@@ -18,7 +17,6 @@ type Props = {
   releaseCount: number;
   projectCount: number;
   displayOption: DisplayOption;
-  theme: Theme;
   withLabels?: boolean;
 };
 
@@ -27,9 +25,9 @@ function ReleaseAdoption({
   releaseCount,
   projectCount,
   displayOption,
-  theme,
   withLabels,
 }: Props) {
+  const theme = useTheme();
   return (
     <div>
       {withLabels && (
@@ -138,4 +136,4 @@ const ProgressBarWrapper = styled('div')`
   padding: ${space(0.5)} 0;
 `;
 
-export default withTheme(ReleaseAdoption);
+export default ReleaseAdoption;
