@@ -947,6 +947,9 @@ class Combinator:
     # The kind of combinator this is, to be overridden in the subclasses
     kind: Optional[str] = None
 
+    def __init__(self, private: bool = True):
+        self.private = private
+
     def validate_argument(self, column: str) -> bool:
         raise NotImplementedError(f"{self.kind} combinator needs to implement `validate_argument`")
 
@@ -960,7 +963,8 @@ class Combinator:
 class ArrayCombinator(Combinator):
     kind = "Array"
 
-    def __init__(self, column_name: str, array_columns: Set[str]):
+    def __init__(self, column_name: str, array_columns: Set[str], private: bool = True):
+        super().__init__(private=private)
         self.column_name = column_name
         self.array_columns = array_columns
 
@@ -1607,14 +1611,23 @@ class DiscoverFunction:
     def is_accessible(
         self,
         acl: Optional[List[str]] = None,
-        combinator: Optional[str] = None,
+        combinator: Optional[Combinator] = None,
     ) -> bool:
-        # Combinator support is private by default.
-        if not self.private and combinator is None:
+        name = self.name
+        is_combinator_private = False
+
+        if combinator is not None:
+            is_combinator_private = not combinator.private
+            name = f"{name}{combinator.kind}"
+
+        # a function is only public if both the function
+        # and the specified combinator is public
+        if not is_combinator_private and not self.private:
             return True
-        elif not acl:
+
+        if not acl:
             return False
-        name = self.name if combinator is None else f"{self.name}{combinator}"
+
         return name in acl
 
     def find_combinator(self, kind: Optional[str]) -> Optional[Combinator]:
@@ -2881,15 +2894,15 @@ class QueryFields(QueryBase):
         name, combinator_name, arguments, alias = self.parse_function(match)
         snql_function = self.function_converter[name]
 
-        if not snql_function.is_accessible(self.functions_acl, combinator_name):
-            raise InvalidSearchQuery(f"{snql_function.name}: no access to private function")
-
         combinator = snql_function.find_combinator(combinator_name)
 
         if combinator_name is not None and combinator is None:
             raise InvalidSearchQuery(
                 f"{snql_function.name}: no support for the -{combinator_name} combinator"
             )
+
+        if not snql_function.is_accessible(self.functions_acl, combinator):
+            raise InvalidSearchQuery(f"{snql_function.name}: no access to private function")
 
         combinator_applied = False
 
