@@ -85,6 +85,18 @@ class QueryBuilderTest(TestCase):
         )
         query.get_snql_query().validate()
 
+    def test_orderby_duplicate_columns(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            selected_columns=["user.email", "user.email"],
+            orderby=["user.email"],
+        )
+        self.assertCountEqual(
+            query.orderby,
+            [OrderBy(Column("email"), Direction.ASC)],
+        )
+
     def test_simple_limitby(self):
         query = QueryBuilder(
             dataset=Dataset.Discover,
