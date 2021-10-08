@@ -103,6 +103,11 @@ describe('useTeams', function () {
 
     expect(mockRequest).toHaveBeenCalled();
 
+    await act(async () => {
+      // @ts-expect-error
+      await tick();
+    });
+
     const {teams} = result.current;
     expect(teams.length).toBe(1);
     expect(teams).toEqual(expect.arrayContaining([teamFoo]));
