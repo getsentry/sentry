@@ -2649,18 +2649,33 @@ class QueryFields(QueryBase):
         if selected_columns is None:
             return []
 
-        columns = []
+        resolved_columns = []
+        stripped_columns = [column.strip() for column in selected_columns]
 
-        for column in selected_columns:
-            if column.strip() == "":
+        # Add threshold config alias if there's a function that depends on it
+        # TODO: this should be replaced with an explicit request for the project_threshold_config as a column
+        for column in {
+            "apdex()",
+            "count_miserable(user)",
+            "user_misery()",
+        }:
+            if (
+                column in stripped_columns
+                and PROJECT_THRESHOLD_CONFIG_ALIAS not in stripped_columns
+            ):
+                stripped_columns.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
+                break
+
+        for column in stripped_columns:
+            if column == "":
                 continue
             # need to make sure the column is resolved with the appropriate alias
             # because the resolved snuba name may be different
             resolved_column = self.resolve_column(column, alias=True)
             if resolved_column not in self.columns:
-                columns.append(resolved_column)
+                resolved_columns.append(resolved_column)
 
-        return columns
+        return resolved_columns
 
     def resolve_column(self, field: str, alias: bool = False) -> SelectType:
         """Given a public field, construct the corresponding Snql, this
