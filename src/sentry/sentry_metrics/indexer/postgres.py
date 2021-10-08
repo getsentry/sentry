@@ -1,7 +1,5 @@
 from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Set
 
-from django.db.models.signals import post_save
-
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
 from sentry.utils.services import Service
 
@@ -21,19 +19,11 @@ class PGStringIndexer(Service):  # type: ignore
         # attempt to create the rows down below.
         MetricsKeyIndexer.objects.bulk_create(records, ignore_conflicts=True)
         # Using `ignore_conflicts=True` prevents the pk from being set on the model
-        # instances. Re-query the database to fetch the rows, they should all exist at this
-        # point.
-        indexer_objs = MetricsKeyIndexer.objects.filter(string__in=unmapped_strings)
-
-        for indexer_obj in indexer_objs:
-            # XXX(meredith): `bulk_create` doesn't trigger a `post_save` signal. The
-            # django model caching happens in `__post_save` so we manually trigger it here.
-            # possible concerns:
-            #   could this be sending `post_save` for an obj that is already created ?
-            #   and if so, does that matter ?
-            post_save.send(sender=type(indexer_obj), instance=indexer_obj, created=True)
-
-        return indexer_objs
+        # instances.
+        #
+        # Using `get_many_from_cache` will not only re-query the database to fetch the rows
+        # (which should all exist point at this point), but also cache the results
+        return MetricsKeyIndexer.objects.get_many_from_cache(list(unmapped_strings), key="string")
 
     def bulk_record(self, strings: List[str]) -> Mapping[str, int]:
 
