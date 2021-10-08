@@ -1,4 +1,3 @@
-import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 /* eslint-disable-next-line import/default */
 import LinkTo from '@storybook/addon-links/react';
@@ -29,9 +28,7 @@ type Link = {
   story: string;
 };
 
-type LinkProps = Link & {
-  theme: Theme;
-};
+type LinkProps = Link;
 
 type Props = {
   links: Link[];
@@ -42,7 +39,7 @@ type Props = {
  * kind defaults to 'Core/Overview', so an empty link will just
  * lead back to the home page
  */
-const DocsLink = ({img, title, desc, kind, story, theme}: LinkProps) => (
+const DocsLink = ({img, title, desc, kind, story}: LinkProps) => (
   <LinkWrap kind={kind} story={story}>
     {img && (
       <ImgWrap>
@@ -52,22 +49,22 @@ const DocsLink = ({img, title, desc, kind, story, theme}: LinkProps) => (
     <TitleWrap>
       <Title>{title}</Title>
       <IconWrap>
-        <IconArrow theme={theme} color="gray500" direction="right" size="sm" />
+        <IconArrow color="gray500" direction="right" size="sm" />
       </IconWrap>
     </TitleWrap>
     {desc && <Desc>{desc}</Desc>}
   </LinkWrap>
 );
 
-const DocsLinks = ({links, theme}: Props) => (
+const DocsLinks = ({links}: Props) => (
   <Wrapper>
     {links.map((link, i) => (
-      <DocsLink key={i} {...link} theme={theme} />
+      <DocsLink key={i} {...link} />
     ))}
   </Wrapper>
 );
 
-export default withTheme(DocsLinks);
+export default DocsLinks;
 
 const Wrapper = styled('div')`
   display: flex;

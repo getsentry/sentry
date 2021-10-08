@@ -1,4 +1,4 @@
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
@@ -20,7 +20,6 @@ type Props = SizeProp & {
    * to replace the parsed color name with a custom name
    */
   textOverwrite?: string;
-  theme: Theme;
 };
 
 type WrapperProps = SizeProp & {
@@ -32,7 +31,9 @@ type ColorSwatchProps = SizeProp & {
   border: boolean;
 };
 
-const ColorChip = ({value, size = 'md', noText = false, textOverwrite, theme}: Props) => {
+function ColorChip({value, size = 'md', noText = false, textOverwrite}: Props) {
+  const theme = useTheme();
+
   const isThemeColor = value in theme;
 
   const color = Color(isThemeColor ? theme[value] : value);
@@ -52,9 +53,9 @@ const ColorChip = ({value, size = 'md', noText = false, textOverwrite, theme}: P
       </Wrapper>
     </OuterWrap>
   );
-};
+}
 
-export default withTheme(ColorChip);
+export default ColorChip;
 
 const OuterWrap = styled('span')<SizeProp>`
   align-items: center;

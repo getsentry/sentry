@@ -1,7 +1,7 @@
 import 'prismjs/themes/prism.css';
 
 import {createRef, RefObject, useEffect, useState} from 'react';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import copy from 'copy-text-to-clipboard';
 import Prism from 'prismjs';
@@ -34,7 +34,8 @@ type Props = {
   label?: string;
 };
 
-const Code = ({theme, children, className, label}: Props) => {
+const Code = ({children, className, label}: Props) => {
+  const theme = useTheme();
   const codeRef: RefObject<HTMLElement> = createRef();
 
   const [copied, setCopied] = useState(false);
@@ -72,7 +73,7 @@ const Code = ({theme, children, className, label}: Props) => {
   );
 };
 
-export default withTheme(Code);
+export default Code;
 
 const Wrap = styled('pre')`
   /** Increase specificity to override default styles */
