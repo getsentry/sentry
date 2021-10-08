@@ -14,12 +14,12 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import ActionButton from 'app/components/actions/button';
 import IgnoreActions from 'app/components/actions/ignore';
+import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
 import ResolveActions from 'app/components/actions/resolve';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import DropdownLink from 'app/components/dropdownLink';
 import Tooltip from 'app/components/tooltip';
 import {IconEllipsis, IconStar} from 'app/icons';
-import {IconRefresh} from 'app/icons/iconRefresh';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -319,23 +319,20 @@ class Actions extends React.Component<Props, State> {
             onDelete={this.onDelete}
             onDiscard={this.onDiscard}
           />
-        </DropdownLink>
 
-        {displayReprocessEventAction(organization.features, event) && (
-          <ReprocessAction
-            disabled={disabled}
-            icon={<IconRefresh size="xs" />}
-            title={t('Reprocess this issue')}
-            label={t('Reprocess this issue')}
-            onClick={this.handleClick(disabled, this.onReprocessEvent)}
-          />
-        )}
+          {displayReprocessEventAction(organization.features, event) && (
+            <MenuItemActionLink
+              title={t('Reprocess events')}
+              onAction={this.handleClick(disabled, this.onReprocessEvent)}
+            >
+              {t('Reprocess events')}
+            </MenuItemActionLink>
+          )}
+        </DropdownLink>
       </Wrapper>
     );
   }
 }
-
-const ReprocessAction = styled(ActionButton)``;
 
 const BookmarkButton = styled(ActionButton)<{isActive: boolean}>`
   ${p =>

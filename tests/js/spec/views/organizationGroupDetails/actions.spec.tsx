@@ -106,7 +106,7 @@ describe('GroupActions', function () {
     it('renders ReprocessAction component if org has feature flag reprocessing-v2', function () {
       const wrapper = renderComponent();
 
-      const reprocessActionButton = wrapper.find('ReprocessAction');
+      const reprocessActionButton = wrapper.find('a[aria-label="Reprocess events"]');
       expect(reprocessActionButton).toBeTruthy();
     });
 
@@ -120,7 +120,7 @@ describe('GroupActions', function () {
 
       const wrapper = renderComponent(event);
 
-      const reprocessActionButton = wrapper.find('ReprocessAction');
+      const reprocessActionButton = wrapper.find('a[aria-label="Reprocess events"]');
       expect(reprocessActionButton).toBeTruthy();
 
       reprocessActionButton.simulate('click');
