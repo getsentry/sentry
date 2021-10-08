@@ -1,7 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict
 
 import pytest
+from exam import fixture
 from freezegun import freeze_time
 
 from sentry.processing.realtime_metrics.base import BucketedCount, DurationHistogram
@@ -25,17 +26,15 @@ if TYPE_CHECKING:
 
 
 class TestScanForSuspectProjects(TestCase):
-    def reset_store(self):
-        self.store = RedisRealtimeMetricsStore(
+    @fixture
+    def store(self):
+        return RedisRealtimeMetricsStore(
             cluster="default",
             counter_bucket_size=10,
             counter_ttl=1,
             histogram_bucket_size=10,
             histogram_ttl=1,
         )
-
-    def setUp(self):
-        self.reset_store()
 
     @mock.patch("sentry.processing.realtime_metrics")
     def test_no_metrics_not_in_lpq(self, mock_store) -> None:
@@ -105,20 +104,15 @@ class TestScanForSuspectProjects(TestCase):
 
 
 class UpdateLpqEligibility(TestCase):
-    def reset_store(self):
-        self.store = RedisRealtimeMetricsStore(
+    @fixture
+    def store(self):
+        return RedisRealtimeMetricsStore(
             cluster="default",
             counter_bucket_size=10,
             counter_ttl=1,
             histogram_bucket_size=10,
             histogram_ttl=1,
-            # set to 0 so it is easy to set up test data.
-            # tests for when backoff_timer > 0 should be taken care of in the redis store's tests
-            backoff_timer=0,
         )
-
-    def setUp(self):
-        self.reset_store()
 
     @mock.patch("sentry.processing.realtime_metrics")
     def test_no_counts_no_durations_in_lpq(self, mock_store) -> None:
