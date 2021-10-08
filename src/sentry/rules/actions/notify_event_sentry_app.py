@@ -69,11 +69,9 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
         return None
 
     def self_validate(self, data):
-        sentry_app_installation_uuid = (
-            data.get("sentryAppInstallationUuid") or "b85e70c6-9c0a-4d4f-a06b-267ad8de97ca"
-        )
+        sentry_app_installation_uuid = data.get("sentryAppInstallationUuid")
         if not sentry_app_installation_uuid:
-            raise ValidationError("Please configure your integration settings below.")
+            raise ValidationError("Missing attribute 'sentryAppInstallationUuid'")
 
         try:
             sentry_app = SentryApp.objects.get(installations__uuid=sentry_app_installation_uuid)
