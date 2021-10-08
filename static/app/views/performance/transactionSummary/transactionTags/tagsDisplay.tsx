@@ -1,6 +1,5 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
-import {withTheme} from '@emotion/react';
 import {Location} from 'history';
 
 import {GridColumnOrder} from 'app/components/gridEditable';
@@ -209,4 +208,4 @@ const TagsDisplay = (props: Props) => {
   );
 };
 
-export default withTheme(TagsDisplay);
+export default TagsDisplay;
