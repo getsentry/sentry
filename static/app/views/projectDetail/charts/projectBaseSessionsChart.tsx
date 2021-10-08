@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
@@ -34,7 +34,6 @@ type Props = {
   selection: GlobalSelection;
   api: Client;
   organization: Organization;
-  theme: Theme;
   onTotalValuesChange: (value: number | null) => void;
   displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
   help?: string;
@@ -44,7 +43,6 @@ type Props = {
 
 function ProjectBaseSessionsChart({
   title,
-  theme,
   organization,
   router,
   selection,
@@ -55,6 +53,8 @@ function ProjectBaseSessionsChart({
   disablePrevious,
   query,
 }: Props) {
+  const theme = useTheme();
+
   const {projects, environments, datetime} = selection;
   const {start, end, period, utc} = datetime;
 
@@ -307,4 +307,4 @@ class Chart extends Component<ChartProps, ChartState> {
   }
 }
 
-export default withGlobalSelection(withTheme(ProjectBaseSessionsChart));
+export default withGlobalSelection(ProjectBaseSessionsChart);
