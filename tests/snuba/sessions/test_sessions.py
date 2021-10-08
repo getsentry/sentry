@@ -1012,7 +1012,9 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
         super().setUp()
         self.dev_env = self.create_environment(name="development", project=self.project)
         self.prod_env = self.create_environment(name="production", project=self.project)
+        self.test_env = self.create_environment(name="test", project=self.project)
         self.another_project = self.create_project()
+        self.third_project = self.create_project()
 
         self.now_dt = datetime.utcnow()
         self._5_min_ago_dt = self.now_dt - timedelta(minutes=5)
@@ -1153,6 +1155,63 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
         )
 
         assert actual == 2
+
+    def test_sessions_per_project_no_sessions(self):
+        """
+        Tests that no sessions are returned
+        """
+        actual = self.backend.get_num_sessions_per_project(
+            project_ids=[self.project.id, self.another_project.id],
+            environment_ids=None,
+            rollup=60,
+            start=self._30_min_ago_dt,
+            end=self.now_dt,
+        )
+        assert [] == actual
+
+    def test_sesions_per_project_multiple_projects(self):
+        dev = self.dev_env.name
+        prod = self.prod_env.name
+        test = self.test_env.name
+        p1 = self.project
+        p2 = self.another_project
+        p3 = self.third_project
+
+        self.bulk_store_sessions(
+            [
+                # counted in p1
+                self.make_session(environment=dev, received=self._5_min_ago),
+                self.make_session(environment=prod, received=self._5_min_ago),
+                self.make_session(environment=dev, received=self._30_min_ago),
+                # ignored in p1
+                # ignored env
+                self.make_session(environment=test, received=self._30_min_ago),
+                # too old
+                self.make_session(environment=prod, received=self._2_h_ago),
+                # counted in p2
+                self.make_session(environment=dev, received=self._5_min_ago, project=p2),
+                # ignored in p2
+                # ignored env
+                self.make_session(environment=test, received=self._5_min_ago, project=p2),
+                # too old
+                self.make_session(environment=prod, received=self._2_h_ago, project=p2),
+                # ignored p3
+                self.make_session(environment=dev, received=self._5_min_ago, project=p3),
+            ]
+        )
+
+        actual = self.backend.get_num_sessions_per_project(
+            project_ids=[self.project.id, self.another_project.id],
+            environment_ids=[self.dev_env.id, self.prod_env.id],
+            rollup=60,
+            start=self._1_h_ago_dt,
+            end=self.now_dt,
+        )
+
+        assert len(actual) == 2
+
+        for t in [(p1.id, 3), (p2.id, 1)]:
+            assert t in actual
 
 
 class CheckNumberOfSessionsMetrics(ReleaseHealthMetricsTestCase, CheckNumberOfSessions):

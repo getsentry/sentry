@@ -18,6 +18,7 @@ from sentry.release_health.base import (
     ProjectId,
     ProjectOrRelease,
     ProjectRelease,
+    ProjectWithCount,
     ReleaseAdoption,
     ReleaseHealthBackend,
     ReleaseHealthOverview,
@@ -1345,4 +1346,66 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ]
 
         ret_val: int = rows[0]["value"] if rows else 0
+        return ret_val
+
+    def get_num_sessions_per_project(
+        self,
+        project_ids: Sequence[ProjectId],
+        start: datetime,
+        end: datetime,
+        environment_ids: Optional[Sequence[int]] = None,
+        rollup: Optional[int] = None,  # rollup in seconds
+    ) -> Sequence[ProjectWithCount]:
+
+        org_id = self._get_org_id(project_ids)
+        columns = [Column("value"), Column("project_id")]
+
+        try:
+            status_key = tag_key(org_id, "session.status")
+            status_init = tag_value(org_id, "init")
+        except MetricIndexNotFound:
+            return []
+
+        where_clause = [
+            Condition(Column("org_id"), Op.EQ, org_id),
+            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, end),
+            Condition(Column(status_key), Op.EQ, status_init),
+            Condition(Column("project_id"), Op.IN, project_ids),
+        ]
+
+        if environment_ids is not None:
+            # convert the PosgreSQL environmentID into the clickhouse string index
+            # for the environment name
+            env_names_dict = _model_environment_ids_to_environment_names(environment_ids)
+            env_names = list(env_names_dict.values())
+
+            try:
+                env_id = tag_key(org_id, "environment")
+                snuba_env_ids = get_tag_values_list(org_id, env_names)
+            except MetricIndexNotFound:
+                return []
+
+            where_clause.append(Condition(Column(env_id), Op.IN, snuba_env_ids))
+
+        group_by = [Column("project_id")]
+
+        query = Query(
+            dataset=Dataset.Metrics.value,
+            match=Entity(EntityKey.MetricsCounters.value),
+            select=columns,
+            where=where_clause,
+            groupby=group_by,
+            granularity=Granularity(rollup) if rollup is not None else None,
+        )
+
+        rows = raw_snql_query(
+            query, referrer="release_health.metrics.get_num_sessions_per_project"
+        )["data"]
+
+        ret_val = []
+
+        for row in rows:
+            ret_val.append((row["project_id"], row["value"]))
         return ret_val
