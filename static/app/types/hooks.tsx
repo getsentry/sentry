@@ -90,6 +90,7 @@ export type ComponentHooks = {
 export type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
+  'project-selector-all-projects:customization': MultiProjectSelectButtonHook;
 };
 
 /**
@@ -528,5 +529,16 @@ type InviteModalCustomizationHook = () => React.ComponentType<{
      * Trigger sending invites
      */
     sendInvites: () => void;
+  }) => React.ReactElement;
+}>;
+
+type MultiProjectSelectButtonHook = () => React.ComponentType<{
+  defaultButtonText: string;
+  defaultOnClick: () => void;
+  canShowAllProjects: boolean;
+  children: (opts: {
+    buttonText: React.ReactNode;
+    onClick: () => void;
+    icon?: React.ReactNode;
   }) => React.ReactElement;
 }>;

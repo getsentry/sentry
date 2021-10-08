@@ -4,6 +4,7 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
+import HookOrDefault from 'app/components/hookOrDefault';
 import Link from 'app/components/links/link';
 import HeaderItem from 'app/components/organizations/headerItem';
 import PlatformList from 'app/components/platformList';
@@ -27,7 +28,7 @@ type Props = WithRouterProps & {
   onChange: (selected: number[]) => unknown;
   onUpdate: () => unknown;
   isGlobalSelectionReady?: boolean;
-  multi?: boolean;
+  disableMultipleProjectSelection?: boolean;
   shouldForceProject?: boolean;
   forceProject?: MinimalProject | null;
   showIssueStreamLink?: boolean;
@@ -42,13 +43,19 @@ type State = {
 
 class MultipleProjectSelector extends React.PureComponent<Props, State> {
   static defaultProps = {
-    multi: true,
     lockedMessageSubject: t('page'),
   };
 
   state: State = {
     hasChanges: false,
   };
+
+  get multi() {
+    const {organization, disableMultipleProjectSelection} = this.props;
+    return (
+      !disableMultipleProjectSelection && organization.features.includes('global-views')
+    );
+  }
 
   // Reset "hasChanges" state and call `onUpdate` callback
   doUpdate = () => {
@@ -93,12 +100,12 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
       return;
     }
 
-    const {value, multi} = this.props;
+    const {value} = this.props;
     analytics('projectselector.update', {
       count: value.length,
       path: getRouteStringFromRoutes(this.props.router.routes),
       org_id: parseInt(this.props.organization.id, 10),
-      multi,
+      multi: this.multi,
     });
 
     this.doUpdate();
@@ -139,9 +146,9 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
   };
 
   renderProjectName() {
-    const {forceProject, location, multi, organization, showIssueStreamLink} = this.props;
+    const {forceProject, location, organization, showIssueStreamLink} = this.props;
 
-    if (showIssueStreamLink && forceProject && multi) {
+    if (showIssueStreamLink && forceProject && this.multi) {
       return (
         <Tooltip title={t('Issues Stream')} position="bottom">
           <StyledLink
@@ -181,8 +188,8 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
       value,
       projects,
       isGlobalSelectionReady,
+      disableMultipleProjectSelection,
       nonMemberProjects,
-      multi,
       organization,
       shouldForceProject,
       forceProject,
@@ -190,6 +197,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
       footerMessage,
     } = this.props;
     const selectedProjectIds = new Set(value);
+    const multi = this.multi;
 
     const allProjects = [...projects, ...nonMemberProjects];
     const selected = allProjects.filter(project =>
@@ -246,7 +254,7 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
             menuFooter={({actions}) => (
               <SelectorFooterControls
                 selected={selectedProjectIds}
-                multi={multi}
+                disableMultipleProjectSelection={disableMultipleProjectSelection}
                 organization={organization}
                 hasChanges={this.state.hasChanges}
                 onApply={() => this.handleUpdate(actions)}
@@ -305,20 +313,26 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
   }
 }
 
+const MultiProjectOverride = HookOrDefault({
+  hookName: 'project-selector-all-projects:customization',
+  defaultComponent: ({children, defaultButtonText, defaultOnClick}) =>
+    children({buttonText: defaultButtonText, onClick: defaultOnClick}),
+});
+
 type ControlProps = {
   organization: Organization;
-  onApply: (e: React.MouseEvent) => void;
-  onShowAllProjects: (e: React.MouseEvent) => void;
-  onShowMyProjects: (e: React.MouseEvent) => void;
+  onApply: () => void;
+  onShowAllProjects: () => void;
+  onShowMyProjects: () => void;
   selected?: Set<number>;
-  multi?: boolean;
+  disableMultipleProjectSelection?: boolean;
   hasChanges?: boolean;
   message?: React.ReactNode;
 };
 
 const SelectorFooterControls = ({
   selected,
-  multi,
+  disableMultipleProjectSelection,
   hasChanges,
   onApply,
   onShowAllProjects,
@@ -326,41 +340,41 @@ const SelectorFooterControls = ({
   organization,
   message,
 }: ControlProps) => {
-  let showMyProjects = false;
-  let showAllProjects = false;
-  if (multi) {
-    showMyProjects = true;
-
-    const hasGlobalRole =
-      organization.role === 'owner' || organization.role === 'manager';
-    const hasOpenMembership = organization.features.includes('open-membership');
-    const allSelected = selected && selected.has(ALL_ACCESS_PROJECTS);
-    if ((hasGlobalRole || hasOpenMembership) && !allSelected) {
-      showAllProjects = true;
-      showMyProjects = false;
-    }
-  }
-
   // Nothing to show.
-  if (!(showAllProjects || showMyProjects || hasChanges || message)) {
+  if (disableMultipleProjectSelection && !hasChanges && !message) {
     return null;
   }
+
+  // see we should show "All Projects" or "My Projects" if disableMultipleProjectSelection isn't true
+  const hasGlobalRole = organization.role === 'owner' || organization.role === 'manager';
+  const hasOpenMembership = organization.features.includes('open-membership');
+  const allSelected = selected && selected.has(ALL_ACCESS_PROJECTS);
+
+  const canShowAllProjects = (hasGlobalRole || hasOpenMembership) && !allSelected;
+  const onProjectClick = canShowAllProjects ? onShowAllProjects : onShowMyProjects;
+  const projectText = canShowAllProjects
+    ? t('Select All Projects')
+    : t('Select My Projects');
 
   return (
     <FooterContainer>
       {message && <FooterMessage>{message}</FooterMessage>}
 
       <FooterActions>
-        {showAllProjects && (
-          <Button onClick={onShowAllProjects} priority="default" size="xsmall">
-            {t('View All Projects')}
-          </Button>
+        {!disableMultipleProjectSelection && (
+          <MultiProjectOverride
+            defaultButtonText={projectText}
+            defaultOnClick={onProjectClick}
+            canShowAllProjects={canShowAllProjects}
+          >
+            {({buttonText, ...rest}) => (
+              <Button priority="default" size="xsmall" {...rest}>
+                {buttonText}
+              </Button>
+            )}
+          </MultiProjectOverride>
         )}
-        {showMyProjects && (
-          <Button onClick={onShowMyProjects} priority="default" size="xsmall">
-            {t('View My Projects')}
-          </Button>
-        )}
+
         {hasChanges && (
           <SubmitButton onClick={onApply} size="xsmall" priority="primary">
             {t('Apply Filter')}

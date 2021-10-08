@@ -65,6 +65,7 @@ const validHookNames = new Set<HookName>([
   'onboarding:extra-chrome',
   'onboarding-wizard:skip-help',
   'organization:header',
+  'project-selector-all-projects:customization',
   'routes',
   'routes:admin',
   'routes:api',
