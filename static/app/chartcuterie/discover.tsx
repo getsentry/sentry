@@ -320,6 +320,7 @@ discoverCharts.push({
         lineSeries.push(
           LineSeries({
             name: t('previous %s', s.key),
+            stack: 'previous',
             data: previous.map(([_, countsForTimestamp], index) => [
               current[index][0] * 1000,
               countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
