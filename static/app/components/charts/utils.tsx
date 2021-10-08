@@ -197,3 +197,14 @@ export const getDimensionValue = (dimension?: number | string | null) => {
 
   return dimension;
 };
+
+const RGB_LIGHTEN_VALUE = 30;
+export const lightenHexToRgb = (colors: string[]) =>
+  colors.map(hex => {
+    const rgb = [
+      Math.min(parseInt(hex.slice(1, 3), 16) + RGB_LIGHTEN_VALUE, 255),
+      Math.min(parseInt(hex.slice(3, 5), 16) + RGB_LIGHTEN_VALUE, 255),
+      Math.min(parseInt(hex.slice(5, 7), 16) + RGB_LIGHTEN_VALUE, 255),
+    ];
+    return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+  });
