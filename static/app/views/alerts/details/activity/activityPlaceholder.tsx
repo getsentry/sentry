@@ -1,22 +1,25 @@
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ActivityItem from 'app/components/activity/item';
 import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
 
-export default withTheme(function ActivityPlaceholder(props: {theme: Theme}) {
+function ActivityPlaceholder() {
+  const theme = useTheme();
+
   return (
     <ActivityItem
       bubbleProps={{
-        backgroundColor: props.theme.backgroundSecondary,
-        borderColor: props.theme.backgroundSecondary,
+        backgroundColor: theme.backgroundSecondary,
+        borderColor: theme.backgroundSecondary,
       }}
     >
       {() => <Placeholder />}
     </ActivityItem>
   );
-});
+}
+
+export default ActivityPlaceholder;
 
 const Placeholder = styled('div')`
   padding: ${space(4)};
