@@ -30,7 +30,9 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         # TODO(releases): add health data
 
     def test_detail(self):
-        release = self.create_release(project=self.project, version="1.0", date_added=self.release_date)
+        release = self.create_release(
+            project=self.project, version="1.0", date_added=self.release_date
+        )
         self.browser.get(self.path + release.version)
         self.browser.wait_until_not(".loading")
         self.browser.wait_until_test_id("release-wrapper")
@@ -39,7 +41,10 @@ class OrganizationReleasesTest(AcceptanceTestCase):
 
     def test_detail_pick_project(self):
         release = self.create_release(
-            project=self.project, additional_projects=[self.project2], version="1.0", date_added=self.release_date
+            project=self.project,
+            additional_projects=[self.project2],
+            version="1.0",
+            date_added=self.release_date,
         )
         self.browser.get(self.path + release.version)
         self.browser.wait_until_not(".loading")
@@ -49,7 +54,10 @@ class OrganizationReleasesTest(AcceptanceTestCase):
     # and a custom footer message saying "Only projects with this release are visible."
     def test_detail_global_header(self):
         release = self.create_release(
-            project=self.project, additional_projects=[self.project2], version="1.0", date_added=self.release_date
+            project=self.project,
+            additional_projects=[self.project2],
+            version="1.0",
+            date_added=self.release_date,
         )
         self.browser.get(f"{self.path + release.version}?project={self.project.id}")
         self.browser.wait_until_not(".loading")
@@ -60,7 +68,9 @@ class OrganizationReleasesTest(AcceptanceTestCase):
     # This is snapshotting features that are enable through the discover and performance features.
     def test_detail_with_discover_and_performance(self):
         with self.feature(["organizations:discover-basic", "organizations:performance-view"]):
-            release = self.create_release(project=self.project, version="1.0", date_added=self.release_date)
+            release = self.create_release(
+                project=self.project, version="1.0", date_added=self.release_date
+            )
             self.browser.get(self.path + release.version)
             self.browser.wait_until_not(".loading")
             self.browser.wait_until_test_id("release-wrapper")
