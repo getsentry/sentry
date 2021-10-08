@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Tuple
+from typing import Any, Dict, Mapping, Optional, Tuple
 from uuid import uuid4
 
 from django.conf import settings
@@ -383,12 +383,7 @@ class AuthIdentityHandler:
 
         return response
 
-    def _has_verified_account(self, identity: Identity) -> bool:
-        if not self.request.session.get("confirm_account_verification_key"):
-            return False
-
-        verification_key = get_redis_key(self.request.session["confirm_account_verification_key"])
-        verification_value = get_verification_value_from_key(verification_key)
+    def has_verified_account(self, identity: Identity, verification_value: Dict[str, Any]) -> bool:
         acting_user = self._get_user(identity)
 
         if (
@@ -431,8 +426,15 @@ class AuthIdentityHandler:
             acting_user = self.user
             login_form = None
         # we don't trust all IDP email verification, so users can also confirm via one time email link
+        is_account_verified = False
+        if self.request.session.get("confirm_account_verification_key"):
+            verification_key = get_redis_key(
+                self.request.session.get("confirm_account_verification_key")
+            )
+            verification_value = get_verification_value_from_key(verification_key)
+            is_account_verified = self.has_verified_account(identity, verification_value)
 
-        if acting_user and identity.get("email_verified") or self._has_verified_account(identity):
+        if acting_user and identity.get("email_verified") or is_account_verified:
             # we only allow this flow to happen if the existing user has
             # membership, otherwise we short circuit because it might be
             # an attempt to hijack membership of another organization
