@@ -1,9 +1,6 @@
 import logging
-from datetime import datetime
 from itertools import chain
-from typing import Iterable, Set
-
-import pytz
+from typing import Iterable, Sequence, Set
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
@@ -71,17 +68,15 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
     def _backoff_key_prefix(self) -> str:
         return f"{self._prefix}:backoff"
 
-    def _register_backoffs(self, project_ids: Set[int]) -> None:
+    def _register_backoffs(self, project_ids: Sequence[int]) -> None:
         if len(project_ids) == 0 or self._backoff_timer == 0:
             return
 
-        now = datetime.now(pytz.utc).timestamp()
         pipeline = self.cluster.pipeline()
-
         for project_id in project_ids:
             key = f"{self._backoff_key_prefix()}:{project_id}"
             # Can't use mset because it doesn't allow also specifying an expiry
-            pipeline.set(name=key, value=str(now), ex=self._backoff_timer)
+            pipeline.set(name=key, value="1", ex=self._backoff_timer)
 
         pipeline.execute()
 
@@ -253,7 +248,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         # If this successfully completes then the project is expected to be in the set.
         was_added = int(self.cluster.sadd(LPQ_MEMBERS_KEY, project_id)) > 0
-        self._register_backoffs({project_id})
+        self._register_backoffs([project_id])
         return was_added
 
     def remove_projects_from_lpq(self, project_ids: Set[int]) -> int:
