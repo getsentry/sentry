@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from sentry import features
-from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
+from sentry.constants import MIGRATED_CONDITIONS, SCHEMA_FORM_ACTIONS, TICKET_ACTIONS
 from sentry.models import ActorTuple, Environment, Team, User
 from sentry.rules import rules
 
@@ -32,6 +32,10 @@ class RuleNodeField(serializers.Field):
             raise ValidationError(msg % data["id"])
 
         node = cls(self.context["project"], data)
+
+        # Nodes with user-declared fields will manage their own validation
+        if node.id in SCHEMA_FORM_ACTIONS:
+            return node.self_validate(data)
 
         if not node.form_cls:
             return data
