@@ -14,6 +14,7 @@ const pathPrefix = '/settings/:orgId/projects/:projectId';
 const SHADOW_DEPRECATED_PLUGINS = {
   teamwork: 'integrations-ignore-teamwork-deprecation',
   clubhouse: 'integrations-ignore-clubhouse-deprecation',
+  vsts: 'integrations-ignore-vsts-deprecation',
 };
 
 const canViewPlugin = (pluginId: string, organization?: Organization) => {
