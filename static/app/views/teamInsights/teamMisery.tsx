@@ -30,6 +30,9 @@ type TeamMiseryProps = {
   period?: string;
 };
 
+/** The number of elements to display before collapsing */
+const COLLAPSE_COUNT = 5;
+
 function TeamMisery({
   organization,
   location,
@@ -64,10 +67,7 @@ function TeamMisery({
       } as TableDataRow & {trend: number | null};
     })
     .filter(x => x.trend !== null)
-    .sort((a, b) => b.trend! - a.trend!);
-
-  const zeroCount = trendTableData.filter(x => Math.round(x.trend!) === 0).length;
-  const shouldShrink = trendTableData.length > 5 && zeroCount > 0;
+    .sort((a, b) => Math.abs(b.trend) - Math.abs(a.trend));
 
   return (
     <Fragment>
@@ -98,7 +98,7 @@ function TeamMisery({
             weekRow && miseryRenderer?.(weekRow, {organization, location});
           const trendValue = Math.round(Math.abs(trend));
 
-          if (shouldShrink && !isExpanded && trendValue === 0) {
+          if (idx > COLLAPSE_COUNT && !isExpanded) {
             return null;
           }
 
@@ -138,11 +138,11 @@ function TeamMisery({
           );
         })}
       </StyledPanelTable>
-      {shouldShrink && !isExpanded && !isLoading && (
+      {trendTableData.length > COLLAPSE_COUNT && !isExpanded && !isLoading && (
         <ShowMore onClick={expandResults}>
           <ShowMoreText>
             <StyledIconList color="gray300" />
-            {tct('Show [count] More', {count: zeroCount})}
+            {tct('Show [count] More', {count: trendTableData.length - COLLAPSE_COUNT})}
           </ShowMoreText>
 
           <IconChevron color="gray300" direction="down" />

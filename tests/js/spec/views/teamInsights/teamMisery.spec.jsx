@@ -122,10 +122,10 @@ describe('TeamMisery', () => {
 
     expect(weekMisery).toHaveBeenCalledTimes(1);
     expect(periodMisery).toHaveBeenCalledTimes(1);
-    expect(screen.getAllByText(project.slug)).toHaveLength(2);
+    expect(screen.getAllByText(project.slug)).toHaveLength(6);
     expect(screen.getByText('10% better')).toBeInTheDocument();
     expect(screen.getByText('25% worse')).toBeInTheDocument();
-    expect(screen.queryByText('0% change')).not.toBeInTheDocument();
+    expect(screen.getAllByText('0% change')).toHaveLength(4);
 
     expect(screen.getByText('More')).toBeInTheDocument();
     fireEvent.click(screen.getByText('More'));
