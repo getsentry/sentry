@@ -16,6 +16,7 @@ import {uniqueId} from 'app/utils/guid';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import withOrganization from 'app/utils/withOrganization';
+import ActionSpecificTargetSelector from 'app/views/alerts/incidentRules/triggers/actionsPanel/actionSpecificTargetSelector';
 import ActionTargetSelector from 'app/views/alerts/incidentRules/triggers/actionsPanel/actionTargetSelector';
 import DeleteActionButton from 'app/views/alerts/incidentRules/triggers/actionsPanel/deleteActionButton';
 import {
@@ -59,6 +60,7 @@ const getCleanAction = (actionConfig, dateCreated?: string): Action => {
         ? actionConfig.allowedTargetTypes[0]
         : null,
     targetIdentifier: actionConfig.sentryAppId || '',
+    inputChannelId: null,
     integrationId: actionConfig.integrationId,
     sentryAppId: actionConfig.sentryAppId,
     options: actionConfig.options || null,
@@ -117,12 +119,17 @@ const getFullActionTitle = ({
  * Lists saved actions as well as control to add a new action
  */
 class ActionsPanel extends PureComponent<Props> {
-  handleChangeTargetIdentifier(triggerIndex: number, index: number, value: string) {
+  handleChangeKey(
+    triggerIndex: number,
+    index: number,
+    key: 'targetIdentifier' | 'inputChannelId',
+    value: string
+  ) {
     const {triggers, onChange} = this.props;
     const {actions} = triggers[triggerIndex];
     const newAction = {
       ...actions[index],
-      targetIdentifier: value,
+      [key]: value,
     };
 
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
@@ -313,13 +320,24 @@ class ActionsPanel extends PureComponent<Props> {
                       availableAction={availableAction}
                       disabled={disabled}
                       loading={loading}
-                      onChange={this.handleChangeTargetIdentifier.bind(
+                      onChange={this.handleChangeKey.bind(
                         this,
                         triggerIndex,
-                        actionIdx
+                        actionIdx,
+                        'targetIdentifier'
                       )}
                       organization={organization}
                       project={project}
+                    />
+                    <ActionSpecificTargetSelector
+                      action={action}
+                      disabled={disabled}
+                      onChange={this.handleChangeKey.bind(
+                        this,
+                        triggerIndex,
+                        actionIdx,
+                        'inputChannelId'
+                      )}
                     />
                   </PanelItemSelects>
                   <DeleteActionButton

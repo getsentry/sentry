@@ -2627,9 +2627,7 @@ class QueryFields(QueryBase):
                 SnQLFunction(
                     "array_join",
                     required_args=[StringArrayColumn("column")],
-                    snql_aggregate=lambda args, alias: Function(
-                        "arrayJoin", [args["column"]], alias
-                    ),
+                    snql_column=lambda args, alias: Function("arrayJoin", [args["column"]], alias),
                     default_result_type="string",
                     private=True,
                 ),

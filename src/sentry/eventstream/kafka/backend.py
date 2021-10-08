@@ -69,6 +69,10 @@ class KafkaEventStream(SnubaProtocolEventStream):
         def strip_none_values(value: Mapping[str, Optional[str]]) -> Mapping[str, str]:
             return {key: value for key, value in value.items() if value is not None}
 
+        # TODO: Change transaction_forwarder to be intelligent once transaction post process forwarder
+        #       is implemented and caught up with current events post process forwarder.
+        transaction_forwarder = False
+
         send_new_headers = options.get("eventstream:kafka-headers")
 
         if send_new_headers is True:
@@ -83,19 +87,23 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     "is_new_group_environment": encode_bool(is_new_group_environment),
                     "is_regression": encode_bool(is_regression),
                     "skip_consume": encode_bool(skip_consume),
+                    "transaction_forwarder": encode_bool(transaction_forwarder),
                 }
             )
         else:
-            return super()._get_headers_for_insert(
-                group,
-                event,
-                is_new,
-                is_regression,
-                is_new_group_environment,
-                primary_hash,
-                received_timestamp,
-                skip_consume,
-            )
+            return {
+                **super()._get_headers_for_insert(
+                    group,
+                    event,
+                    is_new,
+                    is_regression,
+                    is_new_group_environment,
+                    primary_hash,
+                    received_timestamp,
+                    skip_consume,
+                ),
+                "transaction_forwarder": encode_bool(transaction_forwarder),
+            }
 
     def _send(
         self,

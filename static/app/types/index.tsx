@@ -1624,6 +1624,7 @@ export type SentryAppComponent = {
       | 'rookout'
       | 'shortcut'
       | 'spikesh'
+      | 'taskcall'
       | 'teamwork'
       | 'zepel';
     name: string;
