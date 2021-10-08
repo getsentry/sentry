@@ -79,11 +79,6 @@ class RealtimeMetricsStore(Service):  # type: ignore
         """
         Returns a sorted list of bucketed timestamps paired with the count of symbolicator requests
         made during that time for some given project.
-
-        The returned range of timestamps is determined by the given timestamp and this object's
-        counter_ttl field.
-        This may throw an exception if there is some sort of issue fetching counts from the redis
-        store.
         """
         raise NotImplementedError
 
@@ -94,9 +89,6 @@ class RealtimeMetricsStore(Service):  # type: ignore
         Returns a sorted list of bucketed timestamps paired with a histogram-like dictionary of
         symbolication durations made during some timestamp for some given project.
 
-        The returned range of timestamps is determined by the given timestamp and this object's
-        histogram_ttl field.
-
         For a given `{duration:count}` entry in the dictionary bound to a specific `timestamp`:
 
         - `duration` represents the amount of time it took for a symbolication request to complete.
@@ -105,9 +97,6 @@ class RealtimeMetricsStore(Service):  # type: ignore
 
         - `count` is the number of symbolication requests that took some amount of time within the
         range of `[duration, duration+10)` to complete.
-
-        This may throw an exception if there is some sort of issue fetching durations from the redis
-        store.
         """
         raise NotImplementedError
 
