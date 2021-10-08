@@ -15,6 +15,7 @@ from typing import Iterable
 from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.base import BucketedCount, DurationHistogram
 from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,13 @@ def _scan_for_suspect_projects() -> None:
         # TODO: add metrics!
         logger.warning("Moved project out of symbolicator's low priority queue: %s", project_id)
 
+    project_count = len(realtime_metrics.projects())
+    metrics.gauge(
+        "tasks.store.symbolicate_event.low_priority.projects",
+        project_count,
+        tags={"reason": "expired"},
+    )
+
 
 @instrumented_task(  # type: ignore
     name="sentry.tasks.low_priority_symbolication.update_lpq_eligibility",
@@ -83,10 +91,22 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
         was_added = realtime_metrics.add_project_to_lpq(project_id)
         if was_added:
             logger.warning("Moved project to symbolicator's low priority queue: %s", project_id)
+            project_count = len(realtime_metrics.projects())
+            metrics.gauge(
+                "tasks.store.symbolicate_event.low_priority.projects",
+                project_count,
+                tags={"reason": "added"},
+            )
     elif not is_eligible:
         was_removed = realtime_metrics.remove_projects_from_lpq({project_id})
         if was_removed:
             logger.warning("Moved project out of symbolicator's low priority queue: %s", project_id)
+            project_count = len(realtime_metrics.projects())
+            metrics.gauge(
+                "tasks.store.symbolicate_event.low_priority.projects",
+                project_count,
+                tags={"reason": "removed"},
+            )
 
 
 def calculation_magic(
