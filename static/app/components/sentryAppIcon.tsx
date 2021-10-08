@@ -9,7 +9,6 @@ import {
   IconSpikesh,
   IconTaskcall,
   IconTeamwork,
-  IconZepel,
 } from 'app/icons';
 import {SentryAppComponent} from 'app/types';
 
@@ -37,8 +36,6 @@ const SentryAppIcon = ({slug}: Props) => {
       return <IconTaskcall size="md" />;
     case 'teamwork':
       return <IconTeamwork size="md" />;
-    case 'zepel':
-      return <IconZepel size="md" />;
     default:
       return <IconGeneric size="md" />;
   }
