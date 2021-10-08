@@ -11,9 +11,8 @@ import {t, tn} from 'app/locale';
 import {Organization, Project, Team} from 'app/types';
 import {defined} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
-import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
+import Teams from 'app/utils/teams';
 import withProjects from 'app/utils/withProjects';
-import withTeams from 'app/utils/withTeams';
 
 /**
  * This can't be a function component because `TeamKeyTransaction` uses
@@ -82,7 +81,6 @@ type WrapperProps = BaseProps & {
 function TeamKeyTransactionButtonWrapper({
   eventView,
   organization,
-  teams,
   projects,
   ...props
 }: WrapperProps) {
@@ -96,28 +94,29 @@ function TeamKeyTransactionButtonWrapper({
     return <TitleButton isOpen={false} disabled keyedTeams={null} />;
   }
 
-  const isSuperuser = isActiveSuperuser();
-  const userTeams = teams.filter(({isMember}) => isMember || isSuperuser);
-
   return (
-    <TeamKeyTransactionManager.Provider
-      organization={organization}
-      teams={userTeams}
-      selectedTeams={['myteams']}
-      selectedProjects={[String(projectId)]}
-    >
-      <TeamKeyTransactionManager.Consumer>
-        {results => (
-          <TeamKeyTransactionButton
-            organization={organization}
-            project={project}
-            {...props}
-            {...results}
-          />
-        )}
-      </TeamKeyTransactionManager.Consumer>
-    </TeamKeyTransactionManager.Provider>
+    <Teams provideUserTeams>
+      {({teams}) => (
+        <TeamKeyTransactionManager.Provider
+          organization={organization}
+          teams={teams}
+          selectedTeams={['myteams']}
+          selectedProjects={[String(projectId)]}
+        >
+          <TeamKeyTransactionManager.Consumer>
+            {results => (
+              <TeamKeyTransactionButton
+                organization={organization}
+                project={project}
+                {...props}
+                {...results}
+              />
+            )}
+          </TeamKeyTransactionManager.Consumer>
+        </TeamKeyTransactionManager.Provider>
+      )}
+    </Teams>
   );
 }
 
-export default withTeams(withProjects(TeamKeyTransactionButtonWrapper));
+export default withProjects(TeamKeyTransactionButtonWrapper);
