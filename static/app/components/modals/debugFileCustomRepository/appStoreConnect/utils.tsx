@@ -13,19 +13,31 @@ type Error = {
   status: number;
   responseJSON?: {
     detail: {
-      code: ErrorCode;
+      code: ErrorCode | string[];
       extra: Record<string, any>;
       message: string;
     };
   };
 };
 
-export function xhrErrorMessage(error: Error | string) {
+const unexpectedErrorMessage = t(
+  'An unexpected error occurred while configuring the app store connect'
+);
+
+export function fetchErrorMessage(error: Error | string) {
   if (typeof error === 'string') {
     return error;
   }
 
   const code = error.responseJSON?.detail.code;
+
+  if (typeof code !== 'string') {
+    if (Array.isArray(code)) {
+      return code[0] ?? unexpectedErrorMessage;
+    }
+
+    return unexpectedErrorMessage;
+  }
 
   switch (code) {
     case 'app-connect-authentication-error':
@@ -45,7 +57,7 @@ export function xhrErrorMessage(error: Error | string) {
     default: {
       // this shall not happen
       Sentry.captureException(new Error('Unknown app store connect error'));
-      return t('An unexpected error occurred while configuring the app store connect');
+      return unexpectedErrorMessage;
     }
   }
 }

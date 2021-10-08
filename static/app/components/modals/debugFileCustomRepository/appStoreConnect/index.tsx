@@ -32,9 +32,9 @@ import {
   StepThreeData,
   StepTwoData,
 } from './types';
-import {xhrErrorMessage} from './utils';
+import {fetchErrorMessage} from './utils';
 
-type Error = Parameters<typeof xhrErrorMessage>[0];
+type Error = Parameters<typeof fetchErrorMessage>[0];
 
 type SessionContext = {
   auth_key: string;
@@ -189,7 +189,7 @@ function AppStoreConnect({
     } catch (error) {
       setIsLoading(false);
       // app-connect-authentication-error
-      addErrorMessage(xhrErrorMessage(error));
+      addErrorMessage(fetchErrorMessage(error));
     }
   }
 
@@ -223,7 +223,7 @@ function AppStoreConnect({
     } catch (error) {
       setIsLoading(false);
       // itunes-2fa-required
-      addErrorMessage(xhrErrorMessage(error));
+      addErrorMessage(fetchErrorMessage(error));
     }
   }
 
@@ -273,7 +273,7 @@ function AppStoreConnect({
         typeof err !== 'string' &&
         err.responseJSON?.detail.code === 'app-connect-multiple-sources-error'
       ) {
-        addErrorMessage(xhrErrorMessage(err));
+        addErrorMessage(fetchErrorMessage(err));
         return;
       }
       addErrorMessage(errorMessage);
@@ -346,7 +346,7 @@ function AppStoreConnect({
         setIsLoading(false);
       }
       // itunes-authentication-error'
-      addErrorMessage(xhrErrorMessage(error));
+      addErrorMessage(fetchErrorMessage(error));
     }
   }
 
@@ -363,7 +363,7 @@ function AppStoreConnect({
       addSuccessMessage(t("We've sent a SMS code to your phone"));
     } catch (error) {
       // itunes-sms-blocked-error
-      addErrorMessage(xhrErrorMessage(error));
+      addErrorMessage(fetchErrorMessage(error));
     }
   }
 
