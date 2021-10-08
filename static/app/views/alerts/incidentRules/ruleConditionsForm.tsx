@@ -283,9 +283,9 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                         : model.setValue('aggregate', DEFAULT_AGGREGATE);
 
                       // set the value of the dataset and event type from data source
-                      const {dataset, eventTypes} =
+                      const {dataset: datasetFromDataSource, eventTypes} =
                         DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
-                      model.setValue('dataset', dataset);
+                      model.setValue('dataset', datasetFromDataSource);
                       model.setValue('eventTypes', eventTypes);
                     }}
                     options={dataSourceOptions}
