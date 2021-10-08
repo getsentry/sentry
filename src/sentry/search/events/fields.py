@@ -3159,7 +3159,7 @@ class QueryFields(QueryBase):
             )
         )
 
-    def _resolve_division(self, dividend: str, divisor: str) -> SelectType:
+    def _resolve_division(self, dividend: str, divisor: str, alias: str) -> SelectType:
         return Function(
             "if",
             [
@@ -3176,16 +3176,25 @@ class QueryFields(QueryBase):
                 ),
                 None,
             ],
+            alias,
         )
 
     def _resolve_measurements_frames_slow_rate(self, _: str) -> SelectType:
-        return self._resolve_division("measurements.frames_slow", "measurements.frames_total")
+        return self._resolve_division(
+            "measurements.frames_slow", "measurements.frames_total", MEASUREMENTS_FRAMES_SLOW_RATE
+        )
 
     def _resolve_measurements_frames_frozen_rate(self, _: str) -> SelectType:
-        return self._resolve_division("measurements.frozen_rate", "measurements.frames_total")
+        return self._resolve_division(
+            "measurements.frames_frozen",
+            "measurements.frames_total",
+            MEASUREMENTS_FRAMES_FROZEN_RATE,
+        )
 
     def _resolve_measurements_stall_percentage(self, _: str) -> SelectType:
-        return self._resolve_division("measurements.stall_total_time", "transaction.duration")
+        return self._resolve_division(
+            "measurements.stall_total_time", "transaction.duration", MEASUREMENTS_STALL_PERCENTAGE
+        )
 
     def _resolve_unimplemented_function(
         self,
