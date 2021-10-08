@@ -32,8 +32,8 @@ class TestScanForSuspectProjects(TestCase):
             cluster="default",
             counter_bucket_size=10,
             counter_time_window=1,
-            histogram_bucket_size=10,
-            histogram_time_window=1,
+            duration_bucket_size=10,
+            duration_time_window=1,
         )
 
     @mock.patch("sentry.processing.realtime_metrics")
@@ -110,8 +110,8 @@ class UpdateLpqEligibility(TestCase):
             cluster="default",
             counter_bucket_size=10,
             counter_time_window=1,
-            histogram_bucket_size=10,
-            histogram_time_window=1,
+            duration_bucket_size=10,
+            duration_time_window=1,
         )
 
     @mock.patch("sentry.processing.realtime_metrics")
