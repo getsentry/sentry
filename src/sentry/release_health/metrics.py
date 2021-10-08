@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union, cast
 
 import pytz
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query
@@ -1263,7 +1263,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select=query_columns,
             where=where,
             having=having,
-            granularity=granularity,
+            granularity=Granularity(cast(int, granularity)),
         )
 
         rows = raw_snql_query(
