@@ -33,14 +33,14 @@ MAX_PERIOD_DAYS_INCLUDE_PREVIOUS = 45
 DEFAULT_PERIOD = "14d"
 
 
-def get_double_period(period):
+def get_double_period(period: str) -> str:
     m = re.match(r"^(\d+)([hdmsw]?)$", period)
     if not m:
-        return None
+        m = re.match(r"^(\d+)([hdmsw]?)$", DEFAULT_PERIOD)
     value, unit = m.groups()
     value = int(value)  # type: ignore
 
-    return (f"{value * 2}{unit}", None, None)
+    return f"{value * 2}{unit}"
 
 
 def unfurl_discover(
@@ -127,8 +127,8 @@ def unfurl_discover(
         if "previous" in display_mode:
             stats_period = params.getlist("statsPeriod", [DEFAULT_PERIOD])[0]
             parsed_period = parse_stats_period(stats_period)
-            if parsed_period <= timedelta(days=MAX_PERIOD_DAYS_INCLUDE_PREVIOUS):
-                stats_period, _, _ = get_double_period(stats_period)
+            if parsed_period and parsed_period <= timedelta(days=MAX_PERIOD_DAYS_INCLUDE_PREVIOUS):
+                stats_period = get_double_period(stats_period)
                 params.setlist("statsPeriod", [stats_period])
 
         try:
