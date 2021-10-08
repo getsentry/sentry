@@ -12,7 +12,7 @@ import {aggregateOutputType} from 'app/utils/discover/fields';
 
 type Props = {
   data: Series[];
-  previousData?: Series;
+  previousData?: Series[];
   router: InjectedRouter;
   statsPeriod: string | undefined;
   start: DateString;
@@ -198,7 +198,7 @@ function Chart({
           height={height}
           {...zoomRenderProps}
           series={series}
-          previousPeriod={previousData ? [previousData] : undefined}
+          previousPeriod={previousData}
           xAxis={disableXAxis ? {show: false} : undefined}
           {...areaChartProps}
         />
