@@ -125,7 +125,7 @@ def unfurl_discover(
             params.pop("topEvents", None)
 
         if "previous" in display_mode:
-            stats_period = params.getlist("statsPeriod")[0] or DEFAULT_PERIOD
+            stats_period = params.getlist("statsPeriod", [DEFAULT_PERIOD])[0]
             parsed_period = parse_stats_period(stats_period)
             if parsed_period <= timedelta(days=MAX_PERIOD_DAYS_INCLUDE_PREVIOUS):
                 stats_period, _, _ = get_double_period(stats_period)

@@ -160,6 +160,7 @@ class UnfurlTest(TestCase):
             title=args["query"].get("name"), chart_url="chart-url"
         )
         assert len(mock_generate_chart.mock_calls) == 1
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count()"
         assert len(chart_data["stats"]["data"]) == 48
