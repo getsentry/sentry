@@ -1625,8 +1625,7 @@ export type SentryAppComponent = {
       | 'shortcut'
       | 'spikesh'
       | 'taskcall'
-      | 'teamwork'
-      | 'zepel';
+      | 'teamwork';
     name: string;
   };
 };

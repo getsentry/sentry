@@ -47,7 +47,6 @@ export const POPULARITY_WEIGHT: {
   split: 9,
   taskcall: 9,
   teamwork: 9,
-  zepel: 9,
 
   // Plugins
   webhooks: 10,

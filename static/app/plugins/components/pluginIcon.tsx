@@ -50,7 +50,6 @@ import vercel from 'sentry-logos/logo-vercel.svg';
 import victorops from 'sentry-logos/logo-victorops.svg';
 import visualstudio from 'sentry-logos/logo-visualstudio.svg';
 import youtrack from 'sentry-logos/logo-youtrack.svg';
-import zepel from 'sentry-logos/logo-zepel.svg';
 import zulip from 'sentry-logos/logo-zulip.svg';
 
 // Map of plugin id -> logo filename
@@ -117,7 +116,6 @@ export const ICON_PATHS = {
   youtrack,
   vercel,
   victorops,
-  zepel,
   zulip,
 };
 
