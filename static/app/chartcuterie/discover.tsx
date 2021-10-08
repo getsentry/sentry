@@ -255,27 +255,25 @@ discoverCharts.push({
   ) => {
     if (isArray(data.stats.data)) {
       const dataMiddleIndex = Math.floor(data.stats.data.length / 2);
+      const current = data.stats.data.slice(dataMiddleIndex);
+      const previous = data.stats.data.slice(0, dataMiddleIndex);
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
       const areaSeries = AreaSeries({
         name: data.seriesName,
-        data: data.stats.data
-          .slice(dataMiddleIndex)
-          .map(([timestamp, countsForTimestamp]) => [
-            timestamp * 1000,
-            countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-          ]),
+        data: current.map(([timestamp, countsForTimestamp]) => [
+          timestamp * 1000,
+          countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+        ]),
         lineStyle: {color: color?.[0], opacity: 1, width: 0.4},
         areaStyle: {color: color?.[0], opacity: 1},
       });
 
       const previousPeriod = LineSeries({
         name: t('previous %s', data.seriesName),
-        data: data.stats.data
-          .slice(0, dataMiddleIndex)
-          .map(([timestamp, countsForTimestamp]) => [
-            timestamp * 1000,
-            countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-          ]),
+        data: previous.map(([_, countsForTimestamp], i) => [
+          current[i][0] * 1000,
+          countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+        ]),
         lineStyle: {color: theme.gray200, type: 'dotted'},
         itemStyle: {color: theme.gray200},
       });
@@ -293,18 +291,39 @@ discoverCharts.push({
     );
     const color = theme.charts.getColorPalette(stats.length - 2);
 
-    const series = stats
+    const dataMiddleIndex = Math.floor(stats.length / 2);
+    const current = stats[0].data.slice(dataMiddleIndex);
+
+    const areaSeries = stats
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       .map((s, i) =>
         AreaSeries({
           name: s.key,
           stack: 'area',
-          data: s.data.map(([timestamp, countsForTimestamp]) => [
-            timestamp * 1000,
-            countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-          ]),
+          data: s.data
+            .slice(dataMiddleIndex)
+            .map(([timestamp, countsForTimestamp]) => [
+              timestamp * 1000,
+              countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+            ]),
           lineStyle: {color: color?.[i], opacity: 1, width: 0.4},
           areaStyle: {color: color?.[i], opacity: 1},
+        })
+      );
+
+    const lineSeries = stats
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((s, i) =>
+        LineSeries({
+          name: t('previous %s', s.key),
+          data: s.data
+            .slice(0, dataMiddleIndex)
+            .map(([_, countsForTimestamp]) => [
+              current[i][0] * 1000,
+              countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+            ]),
+          lineStyle: {color: color?.[i], type: 'dotted'},
+          itemStyle: {color: color?.[i]},
         })
       );
 
@@ -313,7 +332,7 @@ discoverCharts.push({
       xAxis: discoverxAxis,
       useUTC: true,
       color,
-      series,
+      series: [areaSeries, lineSeries],
     };
   },
   ...slackChartSize,
