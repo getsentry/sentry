@@ -3,6 +3,8 @@ import isArray from 'lodash/isArray';
 import XAxis from 'app/components/charts/components/xAxis';
 import AreaSeries from 'app/components/charts/series/areaSeries';
 import BarSeries from 'app/components/charts/series/barSeries';
+import LineSeries from 'app/components/charts/series/lineSeries';
+import {t} from 'app/locale';
 import {EventsStats} from 'app/types';
 import {lightTheme as theme} from 'app/utils/theme';
 
@@ -230,6 +232,79 @@ discoverCharts.push({
             countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
           ]),
           itemStyle: {color: color?.[i], opacity: 1},
+        })
+      );
+
+    return {
+      ...slackChartDefaults,
+      xAxis: discoverxAxis,
+      useUTC: true,
+      color,
+      series,
+    };
+  },
+  ...slackChartSize,
+});
+
+discoverCharts.push({
+  key: ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD,
+  getOption: (
+    data:
+      | {seriesName: string; stats: EventsStats}
+      | {seriesName?: string; stats: Record<string, EventsStats>}
+  ) => {
+    if (isArray(data.stats.data)) {
+      const dataMiddleIndex = Math.floor(data.stats.data.length / 2);
+      const color = theme.charts.getColorPalette(data.stats.data.length - 2);
+      const areaSeries = AreaSeries({
+        name: data.seriesName,
+        data: data.stats.data
+          .slice(dataMiddleIndex)
+          .map(([timestamp, countsForTimestamp]) => [
+            timestamp * 1000,
+            countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+          ]),
+        lineStyle: {color: color?.[0], opacity: 1, width: 0.4},
+        areaStyle: {color: color?.[0], opacity: 1},
+      });
+
+      const previousPeriod = LineSeries({
+        name: t('previous %s', data.seriesName),
+        data: data.stats.data
+          .slice(0, dataMiddleIndex)
+          .map(([timestamp, countsForTimestamp]) => [
+            timestamp * 1000,
+            countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+          ]),
+        lineStyle: {color: theme.gray200, type: 'dotted'},
+        itemStyle: {color: theme.gray200},
+      });
+
+      return {
+        ...slackChartDefaults,
+        useUTC: true,
+        color,
+        series: [areaSeries, previousPeriod],
+      };
+    }
+
+    const stats = Object.keys(data.stats).map(key =>
+      Object.assign({}, {key}, data.stats[key])
+    );
+    const color = theme.charts.getColorPalette(stats.length - 2);
+
+    const series = stats
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((s, i) =>
+        AreaSeries({
+          name: s.key,
+          stack: 'area',
+          data: s.data.map(([timestamp, countsForTimestamp]) => [
+            timestamp * 1000,
+            countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+          ]),
+          lineStyle: {color: color?.[i], opacity: 1, width: 0.4},
+          areaStyle: {color: color?.[i], opacity: 1},
         })
       );
 

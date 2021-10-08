@@ -1,5 +1,6 @@
 import html
 import re
+from datetime import timedelta
 from typing import Any, List, Mapping, Optional
 from urllib.parse import urlparse
 
@@ -13,6 +14,7 @@ from sentry.integrations.slack.message_builder.discover import build_discover_at
 from sentry.models import ApiKey, Integration
 from sentry.models.user import User
 from sentry.search.events.filter import to_list
+from sentry.utils.dates import parse_stats_period
 
 from ..utils import logger
 from . import Handler, UnfurlableUrl, UnfurledUrl
@@ -23,10 +25,23 @@ display_modes: Mapping[str, ChartType] = {
     "daily": ChartType.SLACK_DISCOVER_TOTAL_DAILY,
     "top5": ChartType.SLACK_DISCOVER_TOP5_PERIOD,
     "dailytop5": ChartType.SLACK_DISCOVER_TOP5_DAILY,
+    "previous": ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD,
     # TODO(epurkhiser): Previous period
 }
 
 TOP_N = 5
+MAX_PERIOD_DAYS_INCLUDE_PREVIOUS = 45
+DEFAULT_PERIOD = "14d"
+
+
+def get_double_period(period):
+    m = re.match(r"^(\d+)([hdmsw]?)$", period)
+    if not m:
+        return None
+    value, unit = m.groups()
+    value = int(value)  # type: ignore
+
+    return (f"{value * 2}{unit}", None, None)
 
 
 def unfurl_discover(
@@ -109,6 +124,13 @@ def unfurl_discover(
             # topEvents param persists in the URL in some cases, we want to discard
             # it if it's not a top n display type.
             params.pop("topEvents", None)
+
+        if "previous" in display_mode:
+            stats_period = params.getlist("statsPeriod")[0] or DEFAULT_PERIOD
+            parsed_period = parse_stats_period(stats_period)
+            if parsed_period <= timedelta(days=MAX_PERIOD_DAYS_INCLUDE_PREVIOUS):
+                stats_period, _, _ = get_double_period(stats_period)
+                params.setlist("statsPeriod", [stats_period])
 
         try:
             resp = client.get(
