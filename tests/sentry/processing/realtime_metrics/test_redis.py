@@ -66,6 +66,7 @@ def test_invalid_config() -> None:
         "counter_time_window": -1,
         "duration_bucket_size": -10,
         "duration_time_window": 0,
+        "backoff_timer": -100,
     }
     RedisRealtimeMetricsStore(**invalid_config)
 
