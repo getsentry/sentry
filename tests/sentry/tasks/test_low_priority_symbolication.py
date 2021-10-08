@@ -31,9 +31,9 @@ class TestScanForSuspectProjects(TestCase):
         return RedisRealtimeMetricsStore(
             cluster="default",
             counter_bucket_size=10,
-            counter_ttl=1,
+            counter_time_window=1,
             histogram_bucket_size=10,
-            histogram_ttl=1,
+            histogram_time_window=1,
         )
 
     @mock.patch("sentry.processing.realtime_metrics")
@@ -109,9 +109,9 @@ class UpdateLpqEligibility(TestCase):
         return RedisRealtimeMetricsStore(
             cluster="default",
             counter_bucket_size=10,
-            counter_ttl=1,
+            counter_time_window=1,
             histogram_bucket_size=10,
-            histogram_ttl=1,
+            histogram_time_window=1,
         )
 
     @mock.patch("sentry.processing.realtime_metrics")
