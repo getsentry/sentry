@@ -1,32 +1,22 @@
-import {Component} from 'react';
 import LazyLoad from 'react-lazyload';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
 import MiniBarChart from 'app/components/charts/miniBarChart';
 import {tn} from 'app/locale';
 import {Series} from 'app/types/echarts';
-import {Theme} from 'app/utils/theme';
 
 import {DisplayOption} from './utils';
 
-type DefaultProps = {
-  height: number;
-};
-
-type Props = DefaultProps & {
+type Props = {
   activeDisplay: DisplayOption;
   data: Series[];
-  theme: Theme;
+  height?: number;
 };
 
-class HealthStatsChart extends Component<Props> {
-  static defaultProps: DefaultProps = {
-    height: 24,
-  };
+function HealthStatsChart({activeDisplay, data, height = 24}: Props) {
+  const theme = useTheme();
 
-  formatTooltip = (value: number) => {
-    const {activeDisplay} = this.props;
-
+  const formatTooltip = (value: number) => {
     const suffix =
       activeDisplay === DisplayOption.USERS
         ? tn('user', 'users', value)
@@ -35,23 +25,19 @@ class HealthStatsChart extends Component<Props> {
     return `${value.toLocaleString()} ${suffix}`;
   };
 
-  render() {
-    const {height, data, theme} = this.props;
-
-    return (
-      <LazyLoad debounce={50} height={height}>
-        <MiniBarChart
-          series={data}
-          height={height}
-          isGroupedByDate
-          showTimeInTooltip
-          hideDelay={50}
-          tooltipFormatter={this.formatTooltip}
-          colors={[theme.purple300, theme.gray200]}
-        />
-      </LazyLoad>
-    );
-  }
+  return (
+    <LazyLoad debounce={50} height={height}>
+      <MiniBarChart
+        series={data}
+        height={height}
+        isGroupedByDate
+        showTimeInTooltip
+        hideDelay={50}
+        tooltipFormatter={formatTooltip}
+        colors={[theme.purple300, theme.gray200]}
+      />
+    </LazyLoad>
+  );
 }
 
-export default withTheme(HealthStatsChart);
+export default HealthStatsChart;
