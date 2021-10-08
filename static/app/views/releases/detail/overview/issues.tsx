@@ -351,6 +351,7 @@ class Issues extends Component<Props, State> {
                 barId={value}
                 size="small"
                 onClick={() => this.handleIssuesTypeSelection(value)}
+                data-test-id={`filter-${value}`}
               >
                 {label}
                 <QueryCount count={issueCount} max={99} hideParens hideIfEmpty={false} />
