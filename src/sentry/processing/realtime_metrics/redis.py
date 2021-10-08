@@ -80,6 +80,14 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         pipeline.execute()
 
+    def _is_backing_off(self, project_id: int) -> bool:
+        """
+        Returns whether a project is currently in the middle of its backoff timer from having
+        recently been assigned to or unassigned from the LPQ.
+        """
+        key = f"{self._backoff_key_prefix()}:{project_id}"
+        return self.cluster.get(key) is not None
+
     def increment_project_event_counter(self, project_id: int, timestamp: int) -> None:
         """Increment the event counter for the given project_id.
 
@@ -246,6 +254,8 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         issue registering the project with the queue.
         """
 
+        if self._is_backing_off(project_id):
+            return False
         # If this successfully completes then the project is expected to be in the set.
         was_added = int(self.cluster.sadd(LPQ_MEMBERS_KEY, project_id)) > 0
         self._register_backoffs([project_id])
@@ -265,34 +275,13 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         value. This may throw an exception if there is some sort of issue deregistering the projects
         from the queue.
         """
-        if len(project_ids) == 0:
+        removable = [project for project in project_ids if not self._is_backing_off(project)]
+
+        if len(removable) == 0:
             return 0
 
         # This returns the number of projects removed, and throws an exception if there's a problem.
         # If this successfully completes then the projects are expected to no longer be in the set.
-        removed = int(self.cluster.srem(LPQ_MEMBERS_KEY, *project_ids))
-        self._register_backoffs(project_ids)
+        removed = int(self.cluster.srem(LPQ_MEMBERS_KEY, *removable))
+        self._register_backoffs(removable)
         return removed
-
-    def was_recently_moved(self, project_id: int) -> bool:
-        """
-        Returns whether a project is currently in the middle of its backoff timer from having
-        recently been assigned to or unassigned from the LPQ.
-        """
-        key = f"{self._backoff_key_prefix()}:{project_id}"
-        return self.cluster.get(key) is not None
-
-    def recently_moved_projects(self) -> Set[int]:
-        """
-        Returns a list of projects currently in the middle of their backoff timers from having
-        recently been assigned to or unassigned from the LPQ.
-        """
-        moved = set()
-
-        for key in self.cluster.scan_iter(
-            match=self._backoff_key_prefix() + ":*",
-        ):
-            _, project_id = key.split(self._backoff_key_prefix() + ":")
-            moved.add(int(project_id))
-
-        return moved

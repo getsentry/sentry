@@ -33,12 +33,8 @@ def scan_for_suspect_projects() -> None:
 def _scan_for_suspect_projects() -> None:
     suspect_projects = set()
     now = int(time.time())
-    recently_moved_projects = realtime_metrics.recently_moved_projects()
 
     for project_id in realtime_metrics.projects():
-        # currently in the middle of a backoff timer
-        if project_id in recently_moved_projects:
-            continue
         suspect_projects.add(project_id)
         update_lpq_eligibility.delay(project_id=project_id, cutoff=now)
 
@@ -46,7 +42,7 @@ def _scan_for_suspect_projects() -> None:
     # `update_lpq_eligibility` should handle removing suspect projects from the list if it turns
     # out they need to be evicted.
     current_lpq_projects = realtime_metrics.get_lpq_projects() or set()
-    expired_projects = current_lpq_projects.difference(suspect_projects, recently_moved_projects)
+    expired_projects = current_lpq_projects.difference(suspect_projects)
     if len(expired_projects) == 0:
         return
 
@@ -76,9 +72,6 @@ def update_lpq_eligibility(project_id: int, cutoff: int) -> None:
 
 
 def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
-    if realtime_metrics.was_recently_moved(project_id):
-        return
-
     # TODO: It may be a good idea to figure out how to debounce especially if this is
     # executing more than 10s after cutoff.
     counts = realtime_metrics.get_counts_for_project(project_id, cutoff)

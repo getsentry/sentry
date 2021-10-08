@@ -46,8 +46,6 @@ class RealtimeMetricsStore(Service):  # type: ignore
         "get_lpq_projects",
         "add_project_to_lpq",
         "remove_projects_from_lpq",
-        "was_recently_moved",
-        "recently_moved_projects",
     )
 
     def increment_project_event_counter(self, project_id: int, timestamp: int) -> None:
@@ -145,19 +143,5 @@ class RealtimeMetricsStore(Service):  # type: ignore
         were not assigned to the low priority queue to begin with will be omitted from the return
         value. This may throw an exception if there is some sort of issue deregistering the projects
         from the queue.
-        """
-        raise NotImplementedError
-
-    def was_recently_moved(self, project_id: int) -> bool:
-        """
-        Returns whether a project is currently in the middle of its backoff timer from having
-        recently been assigned to or unassigned from the LPQ.
-        """
-        raise NotImplementedError
-
-    def recently_moved_projects(self) -> Set[int]:
-        """
-        Returns a list of projects currently in the middle of their backoff timers from having
-        recently been assigned to or unassigned from the LPQ.
         """
         raise NotImplementedError

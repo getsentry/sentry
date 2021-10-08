@@ -27,5 +27,3 @@ if TYPE_CHECKING:
     is_lpq_project = realtime_metrics_store.is_lpq_project
     add_project_to_lpq = realtime_metrics_store.add_project_to_lpq
     remove_projects_from_lpq = realtime_metrics_store.remove_projects_from_lpq
-    was_recently_moved = realtime_metrics_store.was_recently_moved
-    recently_moved_projects = realtime_metrics_store.recently_moved_projects
