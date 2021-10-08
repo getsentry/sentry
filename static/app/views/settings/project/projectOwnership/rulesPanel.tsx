@@ -1,6 +1,5 @@
 import * as React from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
-import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -21,11 +20,18 @@ type Props = {
   'data-test-id': string;
 };
 
-type State = {};
-
-class RulesPanel extends React.Component<Props, State> {
-  renderIcon(provider: string) {
-    switch (provider) {
+function RulesPanel({
+  raw,
+  dateUpdated,
+  provider,
+  repoName,
+  type,
+  placeholder,
+  controls,
+  ['data-test-id']: dataTestId,
+}: Props) {
+  function renderIcon() {
+    switch (provider ?? '') {
       case 'github':
         return <IconGithub size="md" />;
       case 'gitlab':
@@ -34,8 +40,9 @@ class RulesPanel extends React.Component<Props, State> {
         return <IconSentry size="md" />;
     }
   }
-  renderTitle() {
-    switch (this.props.type) {
+
+  function renderTitle() {
+    switch (type) {
       case 'codeowners':
         return 'CODEOWNERS';
       case 'issueowners':
@@ -45,57 +52,46 @@ class RulesPanel extends React.Component<Props, State> {
     }
   }
 
-  render() {
-    const {
-      raw,
-      dateUpdated,
-      provider,
-      repoName,
-      placeholder,
-      controls,
-      ['data-test-id']: dataTestId,
-    } = this.props;
-    return (
-      <Panel data-test-id={dataTestId}>
-        <PanelHeader>
-          {[
-            <Container key="title">
-              {this.renderIcon(provider ?? '')}
-              <Title>{this.renderTitle()}</Title>
-              {repoName && <Repository>{`- ${repoName}`}</Repository>}
-              <FeatureBadge type="new" />
-            </Container>,
-            <Container key="control">
-              <SyncDate>
-                {dateUpdated && `Last synced ${moment(dateUpdated).fromNow()}`}
-              </SyncDate>
-              <Controls>
-                {(controls || []).map((c, n) => (
-                  <span key={n}> {c}</span>
-                ))}
-              </Controls>
-            </Container>,
-          ]}
-        </PanelHeader>
+  return (
+    <Panel data-test-id={dataTestId}>
+      <PanelHeader>
+        {[
+          <Container key="title">
+            {renderIcon()}
+            <Title>{renderTitle()}</Title>
+            {repoName && <Repository>{`- ${repoName}`}</Repository>}
+            <FeatureBadge type="new" />
+          </Container>,
+          <Container key="control">
+            <SyncDate>
+              {dateUpdated && `Last synced ${moment(dateUpdated).fromNow()}`}
+            </SyncDate>
+            <Controls>
+              {(controls || []).map((c, n) => (
+                <span key={n}> {c}</span>
+              ))}
+            </Controls>
+          </Container>,
+        ]}
+      </PanelHeader>
 
-        <PanelBody>
-          <InnerPanelBody>
-            <StyledTextArea
-              value={raw}
-              spellCheck="false"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              placeholder={placeholder}
-            />
-          </InnerPanelBody>
-        </PanelBody>
-      </Panel>
-    );
-  }
+      <PanelBody>
+        <InnerPanelBody>
+          <StyledTextArea
+            value={raw}
+            spellCheck="false"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            placeholder={placeholder}
+          />
+        </InnerPanelBody>
+      </PanelBody>
+    </Panel>
+  );
 }
 
-export default withTheme(RulesPanel);
+export default RulesPanel;
 
 const Container = styled('div')`
   display: flex;
