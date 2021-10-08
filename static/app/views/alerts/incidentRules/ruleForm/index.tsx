@@ -559,7 +559,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   };
 
   handleComparisonTypeChange = (value: AlertRuleComparisonType) => {
-    this.setState({comparisonType: value});
+    const comparisonDelta = value === AlertRuleComparisonType.COUNT ? undefined : this.state.comparisonDelta;
+    this.setState({comparisonType: value, comparisonDelta});
   };
 
   handleComparisonDeltaChange = (value: number) => {
@@ -635,6 +636,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       environment,
       resolveThreshold,
       thresholdType,
+      comparisonDelta,
     };
     const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
 

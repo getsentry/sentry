@@ -71,6 +71,10 @@ type DefaultProps = {
    */
   interval: string;
   /**
+   *
+   */
+  comparisonDelta?: number;
+  /**
    * number of rows to return
    */
   limit: number;
@@ -198,6 +202,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     start: null,
     end: null,
     interval: '1d',
+    comparisonDelta: undefined,
     limit: 15,
     query: '',
     includePrevious: true,

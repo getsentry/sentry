@@ -52,6 +52,7 @@ type Props = {
   resolveThreshold: IncidentRule['resolveThreshold'];
   thresholdType: IncidentRule['thresholdType'];
   header?: React.ReactNode;
+  comparisonDelta?: number;
 };
 
 const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
@@ -282,7 +283,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {api, organization, projects, timeWindow, query, aggregate, environment} =
+    const {api, organization, projects, timeWindow, query, aggregate, environment, comparisonDelta} =
       this.props;
     const {totalCount} = this.state;
 
