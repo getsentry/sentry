@@ -148,6 +148,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       comparisonDelta,
       onComparisonDeltaChange,
       onComparisonTypeChange,
+      dataset,
     } = this.props;
     const {environments} = this.state;
 
@@ -337,27 +338,29 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                   {...(this.searchSupportedTags
                     ? {supportedTags: this.searchSupportedTags}
                     : {})}
-                  hasRecentSearches={this.props.dataset !== Dataset.SESSIONS}
+                  hasRecentSearches={dataset !== Dataset.SESSIONS}
                 />
               </SearchContainer>
             )}
           </FormField>
         </FormRow>
-        <Feature features={['organizations:change-alerts']} organization={organization}>
-          <StyledListItem>{t('Select threshold type')}</StyledListItem>
-          <FormRow>
-            <RadioGroup
-              style={{flex: 1}}
-              choices={[
-                [AlertRuleComparisonType.COUNT, 'Count'],
-                [AlertRuleComparisonType.CHANGE, 'Percent Change'],
-              ]}
-              value={comparisonType}
-              label={t('Threshold Type')}
-              onChange={onComparisonTypeChange}
-            />
-          </FormRow>
-        </Feature>
+        {dataset !== Dataset.SESSIONS && (
+          <Feature features={['organizations:change-alerts']} organization={organization}>
+            <StyledListItem>{t('Select threshold type')}</StyledListItem>
+            <FormRow>
+              <RadioGroup
+                style={{flex: 1}}
+                choices={[
+                  [AlertRuleComparisonType.COUNT, 'Count'],
+                  [AlertRuleComparisonType.CHANGE, 'Percent Change'],
+                ]}
+                value={comparisonType}
+                label={t('Threshold Type')}
+                onChange={onComparisonTypeChange}
+              />
+            </FormRow>
+          </Feature>
+        )}
         <StyledListItem>
           <StyledListTitle>
             <div>{intervalLabelText}</div>
