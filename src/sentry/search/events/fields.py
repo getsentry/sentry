@@ -1617,7 +1617,7 @@ class DiscoverFunction:
         is_combinator_private = False
 
         if combinator is not None:
-            is_combinator_private = not combinator.private
+            is_combinator_private = combinator.private
             name = f"{name}{combinator.kind}"
 
         # a function is only public if both the function
