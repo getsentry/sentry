@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import {EChartOption} from 'echarts';
 
 import {Client} from 'app/api';
@@ -18,9 +18,8 @@ import {
   ReleaseWithHealth,
 } from 'app/types';
 import {tooltipFormatter} from 'app/utils/discover/charts';
-import {Theme} from 'app/utils/theme';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 import withOrganization from 'app/utils/withOrganization';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
@@ -36,9 +35,7 @@ type Props = WithRouterProps & {
   chartType: ReleaseComparisonChartType;
   value: React.ReactNode;
   diff: React.ReactNode;
-  theme: Theme;
   organization: Organization;
-  api: Client;
   period?: string;
   start?: string;
   end?: string;
@@ -51,9 +48,7 @@ function ReleaseEventsChart({
   chartType,
   value,
   diff,
-  theme,
   organization,
-  api,
   router,
   period,
   start,
@@ -61,6 +56,9 @@ function ReleaseEventsChart({
   utc,
   location,
 }: Props) {
+  const api = useApi();
+  const theme = useTheme();
+
   function getColors() {
     const colors = theme.charts.getColorPalette(14);
     switch (chartType) {
@@ -229,4 +227,4 @@ function ReleaseEventsChart({
   );
 }
 
-export default withOrganization(withTheme(withRouter(withApi(ReleaseEventsChart))));
+export default withOrganization(withRouter(ReleaseEventsChart));
