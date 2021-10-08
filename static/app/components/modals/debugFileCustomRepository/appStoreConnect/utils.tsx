@@ -9,16 +9,25 @@ type ErrorCode =
   | 'itunes-2fa-required'
   | 'itunes-sms-blocked-error';
 
-type Error = {
+export type DetailedErrorResponse = {
   status: number;
   responseJSON?: {
     detail: {
-      code: ErrorCode | string[];
+      code: ErrorCode;
       extra: Record<string, any>;
       message: string;
     };
   };
 };
+
+type NotDetailedErrorResponse = {
+  status: number;
+  responseJSON?: {
+    code: string[];
+  };
+};
+
+type Error = DetailedErrorResponse | NotDetailedErrorResponse;
 
 const unexpectedErrorMessage = t(
   'An unexpected error occurred while configuring the app store connect'
@@ -29,17 +38,13 @@ export function fetchErrorMessage(error: Error | string) {
     return error;
   }
 
-  const code = error.responseJSON?.detail.code;
-
-  if (typeof code !== 'string') {
-    if (Array.isArray(code)) {
-      return code[0] ?? unexpectedErrorMessage;
-    }
-
-    return unexpectedErrorMessage;
+  if ((error as NotDetailedErrorResponse).responseJSON?.code) {
+    return (
+      (error as NotDetailedErrorResponse).responseJSON?.code[0] ?? unexpectedErrorMessage
+    );
   }
 
-  switch (code) {
+  switch ((error as DetailedErrorResponse).responseJSON?.detail.code) {
     case 'app-connect-authentication-error':
       return t(
         'We could not establish a connection with App Store Connect. Please check the entered App Store Connect credentials'

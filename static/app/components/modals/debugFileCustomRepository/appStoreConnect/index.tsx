@@ -32,9 +32,7 @@ import {
   StepThreeData,
   StepTwoData,
 } from './types';
-import {fetchErrorMessage} from './utils';
-
-type Error = Parameters<typeof fetchErrorMessage>[0];
+import {DetailedErrorResponse, fetchErrorMessage} from './utils';
 
 type SessionContext = {
   auth_key: string;
@@ -267,13 +265,12 @@ function AppStoreConnect({
     } catch (error) {
       setIsLoading(false);
 
-      const err = error as Error;
-
       if (
-        typeof err !== 'string' &&
-        err.responseJSON?.detail.code === 'app-connect-multiple-sources-error'
+        typeof error !== 'string' &&
+        (error as DetailedErrorResponse).responseJSON?.detail?.code ===
+          'app-connect-multiple-sources-error'
       ) {
-        addErrorMessage(fetchErrorMessage(err));
+        addErrorMessage(fetchErrorMessage(error));
         return;
       }
       addErrorMessage(errorMessage);
