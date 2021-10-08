@@ -312,6 +312,7 @@ class Results extends React.Component<Props, State> {
     const isDisplayMultiYAxisSupported = [
       DisplayModes.DEFAULT,
       DisplayModes.DAILY,
+      DisplayModes.PREVIOUS,
     ].includes(location.query.display as DisplayModes);
 
     const newQuery = {

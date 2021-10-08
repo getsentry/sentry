@@ -678,7 +678,7 @@ class MetricChart extends React.PureComponent<Props, State> {
         end={viableEndDate}
         yAxis={aggregate}
         includePrevious={false}
-        currentSeriesName={aggregate}
+        currentSeriesNames={[aggregate]}
         partial={false}
         referrer="api.alerts.alert-rule-chart"
       >

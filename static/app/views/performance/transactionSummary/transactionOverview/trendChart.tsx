@@ -124,7 +124,7 @@ function TrendChart({
             query={query}
             includePrevious={false}
             yAxis={trendDisplay}
-            currentSeriesName={trendDisplay}
+            currentSeriesNames={[trendDisplay]}
             partial
             withoutZerofill={withoutZerofill}
             referrer="api.performance.transaction-summary.trends-chart"

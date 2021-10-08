@@ -29,7 +29,7 @@ import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
-import {getDimensionValue} from './utils';
+import {getDimensionValue, lightenHexToRgb} from './utils';
 
 // TODO(ts): What is the series type? EChartOption.Series's data cannot have
 // `onClick` since it's typically an array.
@@ -291,6 +291,14 @@ function BaseChartUnwrapped({
     s => Array.isArray(s.data) && s.data.length <= 1
   );
 
+  const resolveColors =
+    colors !== undefined ? (Array.isArray(colors) ? colors : colors(theme)) : null;
+  const color =
+    resolveColors ||
+    (series.length ? theme.charts.getColorPalette(series.length) : theme.charts.colors);
+  const previousPeriodColors =
+    previousPeriod && previousPeriod.length > 1 ? lightenHexToRgb(color) : undefined;
+
   const transformedSeries =
     (hasSinglePoints && transformSinglePointToBar
       ? (series as EChartOption.SeriesLine[] | undefined)?.map(s => ({
@@ -303,12 +311,18 @@ function BaseChartUnwrapped({
       : series) ?? [];
 
   const transformedPreviousPeriod =
-    previousPeriod?.map(previous =>
+    previousPeriod?.map((previous, seriesIndex) =>
       LineSeries({
         name: previous.seriesName,
         data: previous.data.map(({name, value}) => [name, value]),
-        lineStyle: {color: theme.gray200, type: 'dotted'},
-        itemStyle: {color: theme.gray200},
+        lineStyle: {
+          color: previousPeriodColors ? previousPeriodColors[seriesIndex] : theme.gray200,
+          type: 'dotted',
+        },
+        itemStyle: {
+          color: previousPeriodColors ? previousPeriodColors[seriesIndex] : theme.gray200,
+        },
+        stack: 'previous',
       })
     ) ?? [];
 
@@ -361,13 +375,6 @@ function BaseChartUnwrapped({
           ...tooltip,
         })
       : undefined;
-
-  const resolveColors =
-    colors !== undefined ? (Array.isArray(colors) ? colors : colors(theme)) : null;
-
-  const color =
-    resolveColors ||
-    (series.length ? theme.charts.getColorPalette(series.length) : theme.charts.colors);
 
   const chartOption = {
     ...options,

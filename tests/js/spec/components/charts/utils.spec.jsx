@@ -3,6 +3,7 @@ import {
   getDiffInMinutes,
   getInterval,
   getSeriesApiInterval,
+  lightenHexToRgb,
 } from 'app/components/charts/utils';
 
 describe('Chart Utils', function () {
@@ -135,6 +136,15 @@ describe('Chart Utils', function () {
     it('returns value of `includePrevious` if no period', function () {
       expect(canIncludePreviousPeriod(true)).toBe(true);
       expect(canIncludePreviousPeriod(false)).toBe(false);
+    });
+  });
+
+  describe('lightenHexToRgb', function () {
+    it('converts hex to rgb and lightens values', function () {
+      expect(lightenHexToRgb(['#2f2936', '#f0f0f0'])).toEqual([
+        'rgb(77, 71, 84)',
+        'rgb(255, 255, 255)',
+      ]);
     });
   });
 });
