@@ -393,7 +393,7 @@ class AuthIdentityHandler:
 
         if (
             verification_value["email"] != identity["email"]
-            and verification_value["user_id"] != acting_user.id
+            or verification_value["user_id"] != acting_user.id
         ):
             return False
 

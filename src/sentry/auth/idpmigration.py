@@ -1,6 +1,7 @@
 import string
 from dataclasses import dataclass
 from datetime import timedelta
+from typing import Any, Dict
 
 from django.urls import reverse
 from django.utils.crypto import get_random_string
@@ -108,7 +109,7 @@ def get_org(key: str) -> str:
     return OrganizationMember.objects.get(id=verification_value["member_id"]).organization.slug
 
 
-def get_verification_value_from_key(verification_key: str) -> dict:
+def get_verification_value_from_key(verification_key: str) -> Dict[str, Any]:
     cluster = get_redis_cluster()
     verification_value = cluster.get(verification_key)
     if verification_value:

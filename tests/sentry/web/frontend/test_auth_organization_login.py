@@ -1025,6 +1025,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         )
 
         resp = self.client.get(path)
+        assert resp.templates[0].name == "sentry/idp_account_verified.html"
 
         assert resp.status_code == 200
 
