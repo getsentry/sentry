@@ -24,7 +24,7 @@ def validate_field(value: str, field: Mapping[str, Any], app_name: str):
             field_label = field.get("label")
             allowed_values_message = ", ".join(allowed_values)
             raise ValidationError(
-                f"{app_name} received {value} for {field_label} setting.\n Allowed values are {allowed_values_message}'"
+                f"{app_name} received {value} for {field_label} setting. Allowed values are {allowed_values_message}'"
             )
 
 
@@ -94,25 +94,28 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
             raise ValidationError(f"{sentry_app.name} requires settings to configure alert rules.")
 
         schema = alert_rule_component.schema.get("settings")
+        all_fields = {}
+        # Ensure required fields are provided and valid
         for required_field in schema.get("required_fields"):
             field_name = required_field.get("name")
-            field_label = required_field.get("label")
             field_value = incoming_settings.get(field_name)
             if not field_value:
                 raise ValidationError(
-                    f"{sentry_app.name} is missing required field '{field_label}'"
+                    f"{sentry_app.name} is missing required settings field: '{field_name}'"
                 )
-            validate_field(incoming_settings.get(field_name), required_field, sentry_app.name)
+            validate_field(field_value, required_field, sentry_app.name)
+            all_fields[field_name] = field_value
 
+        # Ensure optional fields are valid
         for optional_field in schema.get("optional_fields", []):
             field_name = optional_field.get("name")
             field_value = incoming_settings.get(field_name)
-            validate_field(incoming_settings.get(field_name), optional_field, sentry_app.name)
+            validate_field(field_value, optional_field, sentry_app.name)
+            all_fields[field_name] = field_value
 
+        # Ensure the payload we send matches the expectations set in the schema
         for key in incoming_settings.keys():
-            if key not in schema.get("required_fields") and key not in schema.get(
-                "optional_fields"
-            ):
+            if key not in all_fields:
                 raise ValidationError(
                     f"Unexpected setting '{key}' configured for {sentry_app.name}"
                 )
