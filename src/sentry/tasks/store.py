@@ -265,6 +265,19 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
         or symbolicate_task is symbolicate_event_from_reprocessing_low_priority
     )
 
+    is_low_priority = (
+        symbolicate_task is symbolicate_event_low_priority
+        or symbolicate_task is symbolicate_event_from_reprocessing_low_priority
+    )
+    should_be_low_priority = should_demote_symbolication(project_id)
+
+    # if the event is in the wrong queue, move it to the other one
+    if is_low_priority != should_be_low_priority:
+        submit_symbolicate.delay(
+            is_low_priority, from_reprocessing, cache_key, event_id, start_time, data
+        )
+        return
+
     def _continue_to_process_event():
         process_task = process_event_from_reprocessing if from_reprocessing else process_event
         _do_process_event(
