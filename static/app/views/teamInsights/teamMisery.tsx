@@ -31,7 +31,7 @@ type TeamMiseryProps = {
 };
 
 /** The number of elements to display before collapsing */
-const COLLAPSE_COUNT = 5;
+const COLLAPSE_COUNT = 8;
 
 function TeamMisery({
   organization,
@@ -51,7 +51,7 @@ function TeamMisery({
   }
 
   // Calculate trend, so we can sort based on it
-  const trendTableData = (periodTableData?.data ?? [])
+  const sortedTableData = (periodTableData?.data ?? [])
     .map(dataRow => {
       const weekRow = weekTableData?.data.find(
         row => row.project === dataRow.project && row.transaction === dataRow.transaction
@@ -64,10 +64,15 @@ function TeamMisery({
       return {
         ...dataRow,
         trend,
-      } as TableDataRow & {trend: number | null};
+      } as TableDataRow & {trend: number};
     })
     .filter(x => x.trend !== null)
-    .sort((a, b) => Math.abs(b.trend!) - Math.abs(a.trend!));
+    .sort((a, b) => Math.abs(b.trend) - Math.abs(a.trend));
+
+  const worseItems = sortedTableData.filter(x => Math.round(x.trend) < 0);
+  const betterItems = sortedTableData.filter(x => Math.round(x.trend) > 0);
+  const zeroItems = sortedTableData.filter(x => Math.round(x.trend) === 0);
+  const groupedData = [...worseItems, ...betterItems, ...zeroItems];
 
   return (
     <Fragment>
@@ -82,7 +87,7 @@ function TeamMisery({
         ]}
         isLoading={isLoading}
       >
-        {trendTableData.map((dataRow, idx) => {
+        {groupedData.map((dataRow, idx) => {
           const project = projects.find(({slug}) => dataRow.project === slug);
           const {trend, project: projectId, transaction} = dataRow;
 
@@ -98,7 +103,7 @@ function TeamMisery({
             weekRow && miseryRenderer?.(weekRow, {organization, location});
           const trendValue = Math.round(Math.abs(trend));
 
-          if (idx > COLLAPSE_COUNT && !isExpanded) {
+          if (idx >= COLLAPSE_COUNT && !isExpanded) {
             return null;
           }
 
@@ -138,11 +143,11 @@ function TeamMisery({
           );
         })}
       </StyledPanelTable>
-      {trendTableData.length > COLLAPSE_COUNT && !isExpanded && !isLoading && (
+      {groupedData.length >= COLLAPSE_COUNT && !isExpanded && !isLoading && (
         <ShowMore onClick={expandResults}>
           <ShowMoreText>
             <StyledIconList color="gray300" />
-            {tct('Show [count] More', {count: trendTableData.length - COLLAPSE_COUNT})}
+            {tct('Show [count] More', {count: groupedData.length - 1 - COLLAPSE_COUNT})}
           </ShowMoreText>
 
           <IconChevron color="gray300" direction="down" />

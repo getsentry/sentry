@@ -1,3 +1,5 @@
+import range from 'lodash/range';
+
 import {
   fireEvent,
   mountWithTheme,
@@ -25,33 +27,12 @@ describe('TeamMisery', () => {
       count_miserable_user: 122,
       project_threshold_config: ['duration', 300],
     };
-    const noChange = [
-      {
-        transaction: '/apple/1',
-        user_misery: 0.1,
-        ...extraData,
-      },
-      {
-        transaction: '/apple/2',
-        user_misery: 0.1,
-        ...extraData,
-      },
-      {
-        transaction: '/apple/3',
-        user_misery: 0.1,
-        ...extraData,
-      },
-      {
-        transaction: '/apple/4',
-        user_misery: 0.1,
-        ...extraData,
-      },
-      {
-        transaction: '/apple/5',
-        user_misery: 0.1,
-        ...extraData,
-      },
-    ];
+    const noChangeItems = 10;
+    const noChange = range(0, noChangeItems).map(x => ({
+      transaction: `/apple/${x}`,
+      user_misery: 0.1,
+      ...extraData,
+    }));
 
     const weekMisery = MockApiClient.addMockResponse(
       {
@@ -122,14 +103,17 @@ describe('TeamMisery', () => {
 
     expect(weekMisery).toHaveBeenCalledTimes(1);
     expect(periodMisery).toHaveBeenCalledTimes(1);
-    expect(screen.getAllByText(project.slug)).toHaveLength(6);
+
+    // Should have 8 items, the rest are collapsed.
+    expect(screen.getAllByText(project.slug)).toHaveLength(8);
+
     expect(screen.getByText('10% better')).toBeInTheDocument();
     expect(screen.getByText('25% worse')).toBeInTheDocument();
-    expect(screen.getAllByText('0% change')).toHaveLength(4);
+    expect(screen.getAllByText('0% change')).toHaveLength(6);
 
     expect(screen.getByText('More')).toBeInTheDocument();
     fireEvent.click(screen.getByText('More'));
-    expect(screen.getAllByText('0% change')).toHaveLength(5);
+    expect(screen.getAllByText('0% change')).toHaveLength(noChangeItems);
   });
 
   it('should render empty state', async () => {
