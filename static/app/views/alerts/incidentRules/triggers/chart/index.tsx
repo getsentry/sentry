@@ -7,7 +7,9 @@ import minBy from 'lodash/minBy';
 import {fetchTotalCount} from 'app/actionCreators/events';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import MarkLine from 'app/components/charts/components/markLine';
 import EventsRequest from 'app/components/charts/eventsRequest';
+import {LineChartSeries} from 'app/components/charts/lineChart';
 import OptionSelector from 'app/components/charts/optionSelector';
 import SessionsRequest from 'app/components/charts/sessionsRequest';
 import {
@@ -23,12 +25,15 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 import {getCount, getCrashFreeRateSeries} from 'app/utils/sessions';
+import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'app/views/alerts/utils';
 import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 
 import {
+  AlertRuleComparisonType,
+  AlertRuleThresholdType,
   Dataset,
   IncidentRule,
   SessionsAggregate,
@@ -51,6 +56,7 @@ type Props = {
   triggers: Trigger[];
   resolveThreshold: IncidentRule['resolveThreshold'];
   thresholdType: IncidentRule['thresholdType'];
+  comparisonType: AlertRuleComparisonType;
   header?: React.ReactNode;
   comparisonDelta?: number;
 };
@@ -225,15 +231,209 @@ class TriggersChart extends React.PureComponent<Props, State> {
     }
   }
 
+  async fetchSessionTimeSeries() {
+    const {api, organization, environment, projects, query, timeWindow, aggregate} =
+      this.props;
+    try {
+      this.setState(state => ({
+        sessionsLoading: state.sessionTimeSeries === null,
+        sessionsReloading: state.sessionTimeSeries !== null,
+      }));
+      const {groups, intervals}: SessionApiResponse = await api.requestPromise(
+        `/organizations/${organization.slug}/sessions/`,
+        {
+          query: {
+            project: projects.map(({id}) => id),
+            environment: environment ? [environment] : [],
+            statsPeriod: this.getStatsPeriod(),
+            field: SESSION_AGGREGATE_TO_FIELD[aggregate],
+            interval: TIME_WINDOW_TO_SESSION_INTERVAL[timeWindow],
+            groupBy: ['session.status'],
+            query,
+          },
+        }
+      );
+      const totalCount = getCount(groups, SESSION_AGGREGATE_TO_FIELD[aggregate]);
+      const sessionTimeSeries = [
+        {
+          seriesName:
+            AlertWizardAlertNames[
+              getAlertTypeFromAggregateDataset({aggregate, dataset: Dataset.SESSIONS})
+            ],
+          data: getCrashFreeRateSeries(
+            groups,
+            intervals,
+            SESSION_AGGREGATE_TO_FIELD[aggregate]
+          ),
+        },
+      ];
+      this.setState({
+        sessionTimeSeries,
+        totalCount,
+        sessionsLoading: false,
+        sessionsReloading: false,
+      });
+    } catch (e) {
+      this.setState({
+        sessionTimeSeries: null,
+        totalCount: null,
+        sessionsLoading: false,
+        sessionsReloading: false,
+      });
+    }
+  }
+
+  checkChangeStatus(value: number): string {
+    const {thresholdType, triggers} = this.props;
+    const criticalTrigger = triggers?.find(trig => trig.label === 'critical');
+    const warningTrigger = triggers?.find(trig => trig.label === 'warning');
+    const criticalTriggerAlertThreshold =
+      typeof criticalTrigger?.alertThreshold === 'number'
+        ? criticalTrigger?.alertThreshold
+        : undefined;
+    const warningTriggerAlertThreshold =
+      typeof warningTrigger?.alertThreshold === 'number'
+        ? warningTrigger?.alertThreshold
+        : undefined;
+
+    if (thresholdType === AlertRuleThresholdType.ABOVE) {
+      if (criticalTriggerAlertThreshold && value >= criticalTriggerAlertThreshold) {
+        return 'critical';
+      } else if (warningTriggerAlertThreshold && value >= warningTriggerAlertThreshold) {
+        return 'warning';
+      }
+    } else {
+      if (criticalTriggerAlertThreshold && -1 * value >= criticalTriggerAlertThreshold) {
+        return 'critical';
+      } else if (
+        warningTriggerAlertThreshold &&
+        -1 * value >= warningTriggerAlertThreshold
+      ) {
+        return 'warning';
+      }
+    }
+
+    return '';
+  }
+
+  renderChangeChart(
+    chartTimeseriesData: Series[] = [],
+    chartIsLoading: boolean,
+    chartIsReloading: boolean
+  ) {
+    const {
+      api,
+      organization,
+      projects,
+      timeWindow,
+      query,
+      aggregate,
+      environment,
+      comparisonDelta,
+    } = this.props;
+    const period = this.getStatsPeriod();
+
+    return (
+      <EventsRequest
+        api={api}
+        organization={organization}
+        query={query}
+        environment={environment ? [environment] : undefined}
+        project={projects.map(({id}) => Number(id))}
+        interval={`${timeWindow}m`}
+        comparisonDelta={comparisonDelta}
+        period={period}
+        yAxis={aggregate}
+        includePrevious={false}
+        currentSeriesName={aggregate}
+        partial={false}
+      >
+        {({loading, reloading, timeseriesData}) => {
+          const changeStatuses: {name: number | string; status: string}[] = [];
+          let changeDataSeries: LineChartSeries[] = [];
+
+          if (
+            !loading &&
+            !reloading &&
+            timeseriesData?.[0]?.data !== undefined &&
+            timeseriesData[0].data.length > 1
+          ) {
+            const changeData = timeseriesData[0].data;
+
+            if (
+              this.props.triggers.some(
+                ({alertThreshold}) => typeof alertThreshold === 'number'
+              )
+            ) {
+              changeData.forEach(({name, value}, idx) => {
+                const status = this.checkChangeStatus(value);
+
+                if (
+                  idx === 0 ||
+                  idx === changeData.length - 1 ||
+                  status !== changeStatuses[changeStatuses.length - 1].status
+                ) {
+                  changeStatuses.push({name, status});
+                }
+              });
+
+              changeDataSeries = changeStatuses
+                .slice(0, -1)
+                .map(({name, status}, idx) => ({
+                  seriesName: 'Status Area',
+                  type: 'line',
+                  markLine: MarkLine({
+                    silent: true,
+                    lineStyle: {
+                      color:
+                        status === 'critical'
+                          ? theme.red300
+                          : status === 'warning'
+                          ? theme.yellow300
+                          : theme.green300,
+                      type: 'solid',
+                      width: 4,
+                    },
+                    data: [
+                      [
+                        {coord: [name, 0]},
+                        {coord: [changeStatuses[idx + 1].name, 0]},
+                      ] as any,
+                    ],
+                  }),
+                  data: [],
+                }));
+            }
+          }
+
+          return this.renderChart(
+            chartTimeseriesData,
+            chartIsLoading,
+            chartIsReloading,
+            changeDataSeries
+          );
+        }}
+      </EventsRequest>
+    );
+  }
+
   renderChart(
     timeseriesData: Series[] = [],
     isLoading: boolean,
     isReloading: boolean,
-    totalCount: number | null
+    totalCount: number | null,
+    changeDataSeries?: LineChartSeries[]
   ) {
-    const {triggers, resolveThreshold, thresholdType, header, timeWindow, aggregate} =
-      this.props;
-    const {statsPeriod} = this.state;
+    const {
+      triggers,
+      resolveThreshold,
+      thresholdType,
+      header,
+      timeWindow,
+      aggregate,
+      comparisonType,
+    } = this.props;
+    const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = this.getStatsPeriod();
     return (
@@ -248,6 +448,8 @@ class TriggersChart extends React.PureComponent<Props, State> {
             minValue={minBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             maxValue={maxBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             data={timeseriesData}
+            changeDataSeries={changeDataSeries}
+            hideThresholdLines={comparisonType === AlertRuleComparisonType.CHANGE}
             triggers={triggers}
             resolveThreshold={resolveThreshold}
             thresholdType={thresholdType}
@@ -283,8 +485,16 @@ class TriggersChart extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {api, organization, projects, timeWindow, query, aggregate, environment, comparisonDelta} =
-      this.props;
+    const {
+      api,
+      organization,
+      projects,
+      timeWindow,
+      query,
+      aggregate,
+      environment,
+      comparisonDelta,
+    } = this.props;
     const {totalCount} = this.state;
 
     const period = this.getStatsPeriod();
@@ -375,6 +585,10 @@ class TriggersChart extends React.PureComponent<Props, State> {
                       {seriesName: t('Maximum'), data: maxData},
                     ];
                   }
+                }
+
+                if (organization.features.includes('change-alerts') && comparisonDelta) {
+                  return this.renderChangeChart(timeseriesData, loading, reloading);
                 }
 
                 return this.renderChart(timeseriesData, loading, reloading, totalCount);
