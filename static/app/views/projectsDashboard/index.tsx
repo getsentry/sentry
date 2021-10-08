@@ -6,7 +6,6 @@ import {withProfiler} from '@sentry/react';
 import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
 
-import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
@@ -22,7 +21,6 @@ import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import space from 'app/styles/space';
 import {Organization, TeamWithProjects} from 'app/types';
 import {sortProjects} from 'app/utils';
-import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeamsForUser from 'app/utils/withTeamsForUser';
 import TeamInsightsHeaderTabs from 'app/views/teamInsights/headerTabs';
@@ -31,7 +29,6 @@ import Resources from './resources';
 import TeamSection from './teamSection';
 
 type Props = {
-  api: Client;
   organization: Organization;
   teams: TeamWithProjects[];
   loadingTeams: boolean;
@@ -155,6 +152,4 @@ const OrganizationDashboardWrapper = styled('div')`
 `;
 
 export {Dashboard};
-export default withApi(
-  withOrganization(withTeamsForUser(withProfiler(OrganizationDashboard)))
-);
+export default withOrganization(withTeamsForUser(withProfiler(OrganizationDashboard)));
