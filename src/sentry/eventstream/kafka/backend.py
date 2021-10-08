@@ -173,6 +173,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         )
 
         concurrency = options.get(_CONCURRENCY_OPTION)
+        logger.info(f"Starting post process forwrader to consume {entity} messages")
         if entity == PostProcessForwarderType.TRANSACTIONS:
             worker = TransactionsPostProcessForwarderWorker(concurrency=concurrency)
         elif entity == PostProcessForwarderType.ERRORS:
