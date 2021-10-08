@@ -26,7 +26,6 @@ display_modes: Mapping[str, ChartType] = {
     "top5": ChartType.SLACK_DISCOVER_TOP5_PERIOD,
     "dailytop5": ChartType.SLACK_DISCOVER_TOP5_DAILY,
     "previous": ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD,
-    # TODO(epurkhiser): Previous period
 }
 
 TOP_N = 5
