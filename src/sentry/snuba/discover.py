@@ -8,7 +8,7 @@ from typing import Dict, Optional, Sequence
 import sentry_sdk
 
 from sentry import options
-from sentry.discover.arithmetic import is_equation, resolve_equation_list, strip_equation
+from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
 from sentry.models import Group
 from sentry.models.transaction_threshold import ProjectTransactionThreshold
 from sentry.search.events.builder import QueryBuilder
@@ -172,8 +172,8 @@ def transform_data(result, translated_columns, snuba_filter):
 
     result["data"] = [get_row(row) for row in result["data"]]
 
-    rollup = snuba_filter.rollup
-    if rollup and rollup > 0:
+    if snuba_filter and snuba_filter.rollup and snuba_filter.rollup > 0:
+        rollup = snuba_filter.rollup
         with sentry_sdk.start_span(
             op="discover.discover", description="transform_results.zerofill"
         ) as span:
@@ -231,7 +231,10 @@ def query(
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
 
+    sentry_sdk.set_tag("discover.use_snql", use_snql)
     if use_snql:
+        # temporarily add snql to referrer
+        referrer = f"{referrer}.wip-snql"
         builder = QueryBuilder(
             Dataset.Discover,
             params,
@@ -240,13 +243,19 @@ def query(
             orderby=orderby,
             auto_aggregations=auto_aggregations,
             use_aggregate_conditions=use_aggregate_conditions,
+            functions_acl=functions_acl,
             limit=limit,
             offset=offset,
         )
         snql_query = builder.get_snql_query()
 
-        results = raw_snql_query(snql_query, referrer)
-        return results
+        result = raw_snql_query(snql_query, referrer)
+        with sentry_sdk.start_span(
+            op="discover.discover", description="query.transform_results"
+        ) as span:
+            span.set_data("result_count", len(result.get("data", [])))
+            result = transform_results(result, builder.function_alias_map, {}, None)
+        return result
 
     # We clobber this value throughout this code, so copy the value
     selected_columns = selected_columns[:]
@@ -395,14 +404,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params):
     if not snuba_filter.start and not snuba_filter.end:
         raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
 
-    columns = []
-    equations = []
-
-    for column in selected_columns:
-        if is_equation(column):
-            equations.append(strip_equation(column))
-        else:
-            columns.append(column)
+    equations, columns = categorize_columns(selected_columns)
 
     if len(equations) > 0:
         resolved_equations, updated_columns = resolve_equation_list(
@@ -523,7 +525,7 @@ def timeseries_query(
             comp_query_params.start -= comparison_delta
             comp_query_params.end -= comparison_delta
             query_params_list.append(comp_query_params)
-        query_results = bulk_raw_query(query_params_list)
+        query_results = bulk_raw_query(query_params_list, referrer=referrer)
 
     with sentry_sdk.start_span(
         op="discover.discover", description="timeseries.transform_results"
@@ -716,27 +718,27 @@ def top_events_timeseries(
                     other_conditions.append([resolved_field, "NOT IN", values])
 
     with sentry_sdk.start_span(op="discover.discover", description="top_events.snuba_query"):
-        result = raw_query(
-            aggregations=snuba_filter.aggregations,
-            conditions=snuba_filter.conditions,
-            filter_keys=snuba_filter.filter_keys,
-            selected_columns=snuba_filter.selected_columns,
-            start=snuba_filter.start,
-            end=snuba_filter.end,
-            rollup=rollup,
-            orderby=["time"] + snuba_filter.groupby,
-            groupby=["time"] + snuba_filter.groupby,
-            dataset=Dataset.Discover,
-            limit=10000,
-            referrer=referrer,
-        )
-        if len(top_events["data"]) == limit and len(result.get("data", [])) and include_other:
-            other_result = raw_query(
-                aggregations=snuba_filter.aggregations,
-                conditions=original_conditions + [other_conditions],
-                filter_keys=snuba_filter.filter_keys,
+        top_5_query = {
+            "aggregations": snuba_filter.aggregations,
+            "conditions": snuba_filter.conditions,
+            "filter_keys": snuba_filter.filter_keys,
+            "selected_columns": snuba_filter.selected_columns,
+            "start": snuba_filter.start,
+            "end": snuba_filter.end,
+            "rollup": rollup,
+            "orderby": ["time"] + snuba_filter.groupby,
+            "groupby": ["time"] + snuba_filter.groupby,
+            "dataset": Dataset.Discover,
+            "limit": 10000,
+            "referrer": referrer,
+        }
+        if len(top_events["data"]) == limit and include_other:
+            other_query = {
+                "aggregations": snuba_filter.aggregations,
+                "conditions": original_conditions + [other_conditions],
+                "filter_keys": snuba_filter.filter_keys,
                 # Hack cause equations on aggregates have to go in selected columns instead of aggregations
-                selected_columns=[
+                "selected_columns": [
                     column
                     for column in snuba_filter.selected_columns
                     # Check that the column is a list with 3 items, and the alias in the third item is an equation
@@ -744,16 +746,21 @@ def top_events_timeseries(
                     and len(column) == 3
                     and column[-1].startswith("equation[")
                 ],
-                start=snuba_filter.start,
-                end=snuba_filter.end,
-                rollup=rollup,
-                orderby=["time"],
-                groupby=["time"],
-                dataset=Dataset.Discover,
-                limit=10000,
-                referrer=referrer + ".other",
+                "start": snuba_filter.start,
+                "end": snuba_filter.end,
+                "rollup": rollup,
+                "orderby": ["time"],
+                "groupby": ["time"],
+                "dataset": Dataset.Discover,
+                "limit": 10000,
+                "referrer": referrer + ".other",
+            }
+            result, other_result = bulk_raw_query(
+                [SnubaQueryParams(**top_5_query), SnubaQueryParams(**other_query)],
+                referrer=referrer,
             )
         else:
+            result = raw_query(**top_5_query)
             other_result = {"data": []}
 
     if (
@@ -1149,7 +1156,7 @@ def get_histogram_column(fields, key_column, histogram_params, array_column):
     :param [str] fields: The list of fields for which you want to generate the histograms for.
     :param str key_column: The column for the key name. This is only set when generating a
         multihistogram of array values. Otherwise, it should be `None`.
-    :param HistogramParms histogram_params: The histogram parameters used.
+    :param HistogramParams histogram_params: The histogram parameters used.
     :param str array_column: Array column prefix
     """
     field = fields[0] if key_column is None else f"{array_column}_value"
@@ -1164,7 +1171,7 @@ def find_histogram_params(num_buckets, min_value, max_value, multiplier):
     :param int num_buckets: The number of buckets the histogram should contain.
     :param float min_value: The minimum value allowed to be in the histogram inclusive.
     :param float max_value: The maximum value allowed to be in the histogram inclusive.
-    :param int multipler: The multiplier we should use to preserve the desired precision.
+    :param int multiplier: The multiplier we should use to preserve the desired precision.
     """
 
     scaled_min = 0 if min_value is None else multiplier * min_value
@@ -1307,7 +1314,7 @@ def normalize_histogram_results(fields, key_column, histogram_params, results, a
     :param [str] fields: The list of fields for which you want to generate the
         histograms for.
     :param str key_column: The column of the key name.
-    :param HistogramParms histogram_params: The histogram parameters used.
+    :param HistogramParams histogram_params: The histogram parameters used.
     :param any results: The results from the histogram query that may be missing
         bins and needs to be normalized.
     :param str array_column: Array column prefix

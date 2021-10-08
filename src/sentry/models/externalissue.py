@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import models
 from django.utils import timezone
 
@@ -21,3 +23,10 @@ class ExternalIssue(Model):
         unique_together = (("organization_id", "integration_id", "key"),)
 
     __repr__ = sane_repr("organization_id", "integration_id", "key")
+
+    def get_installation(self) -> Any:
+        from sentry.models import Integration
+
+        return Integration.objects.get(id=self.integration_id).get_installation(
+            organization_id=self.organization_id
+        )

@@ -12,7 +12,7 @@ class SentryDatabaseCreation(DatabaseCreation):
         work around an issue where `pgcode` is missing when we run tests.
         """
         try:
-            # Explicitly skip the overriden `_execute_create_test_db` and just call the one from
+            # Explicitly skip the overridden `_execute_create_test_db` and just call the one from
             # its superclass
             super(DatabaseCreation, self)._execute_create_test_db(cursor, parameters, keepdb)
         except Exception as e:

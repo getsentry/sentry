@@ -12,7 +12,7 @@ type SidebarPanelStoreInterface = {
   onHidePanel(): void;
 };
 
-const sidebarPanelStoreConfig: Reflux.StoreDefinition & SidebarPanelStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & SidebarPanelStoreInterface = {
   activePanel: '',
 
   init() {
@@ -44,7 +44,7 @@ const sidebarPanelStoreConfig: Reflux.StoreDefinition & SidebarPanelStoreInterfa
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
-const SidebarPanelStore = Reflux.createStore(sidebarPanelStoreConfig) as Reflux.Store &
+const SidebarPanelStore = Reflux.createStore(storeConfig) as Reflux.Store &
   SidebarPanelStoreInterface;
 
 export default SidebarPanelStore;

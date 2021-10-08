@@ -73,6 +73,7 @@ from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA
 from .organizationavatar import *  # NOQA
 from .organizationmember import *  # NOQA
+from .organizationmemberteam import *  # NOQA
 from .organizationonboardingtask import *  # NOQA
 from .organizationoption import *  # NOQA
 from .platformexternalissue import *  # NOQA
@@ -86,6 +87,7 @@ from .projectoption import *  # NOQA
 from .projectownership import *  # NOQA
 from .projectplatform import *  # NOQA
 from .projectredirect import *  # NOQA
+from .projectteam import *  # NOQA
 from .promptsactivity import *  # NOQA
 from .pullrequest import *  # NOQA
 from .rawevent import *  # NOQA

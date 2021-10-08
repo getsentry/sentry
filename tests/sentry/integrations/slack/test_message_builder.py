@@ -4,7 +4,6 @@ from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
-from sentry.integrations.slack.utils import parse_link
 from sentry.testutils import TestCase
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
@@ -252,20 +251,3 @@ class BuildIncidentAttachmentTest(TestCase):
         warning_event = self.store_event(data={"level": "warning"}, project_id=self.project.id)
         assert build_group_attachment(warning_event.group)["color"] == "#FFC227"
         assert build_group_attachment(warning_event.group, warning_event)["color"] == "#FFC227"
-
-    def test_parse_link(self):
-        link = "https://meowlificent.ngrok.io/organizations/sentry/issues/167/?project=2&query=is%3Aunresolved"
-        link2 = "https://meowlificent.ngrok.io/organizations/sentry/issues/1/events/2d113519854c4f7a85bae8b69c7404ad/?project=2"
-        link3 = "https://meowlificent.ngrok.io/organizations/sentry/issues/9998089891/events/198e93sfa99d41b993ac8ae5dc384642/events/"
-        assert (
-            parse_link(link)
-            == "organizations/{organization}/issues/{issue_id}/project=%7Bproject%7D&query=%5B%27is%3Aunresolved%27%5D"
-        )
-        assert (
-            parse_link(link2)
-            == "organizations/{organization}/issues/{issue_id}/events/{event_id}/project=%7Bproject%7D"
-        )
-        assert (
-            parse_link(link3)
-            == "organizations/{organization}/issues/{issue_id}/events/{event_id}/events/"
-        )

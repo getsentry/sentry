@@ -1,10 +1,9 @@
 import {useEffect, useState} from 'react';
 import Reflux from 'reflux';
 
-type LegacyStoreShape = Reflux.Store & {
-  // Store must have `get` function that returns the current state
-  get: () => any;
-};
+import {CommonStoreInterface} from './types';
+
+type LegacyStoreShape = Reflux.Store & CommonStoreInterface<any>;
 
 /**
  * Returns the state of a reflux store. Automatically unsubscribes when destroyed
@@ -15,11 +14,13 @@ type LegacyStoreShape = Reflux.Store & {
  */
 export function useLegacyStore<T extends LegacyStoreShape>(
   store: T
-): ReturnType<T['get']> {
-  const [state, setState] = useState(store.get());
+): ReturnType<T['getState']> {
+  const [state, setState] = useState(store.getState());
+
   // Not all stores emit the new state, call get on change
-  const callback = () => setState(store.get());
-  useEffect(() => store.listen(callback, undefined) as () => void);
+  const callback = () => setState(store.getState());
+
+  useEffect(() => store.listen(callback, undefined) as () => void, []);
 
   return state;
 }
