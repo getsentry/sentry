@@ -29,6 +29,7 @@ _TRANSACTION_FORWARDER_HEADER = "transaction_forwarder"
 class PostProcessForwarderType(str, Enum):
     ERRORS = "errors"
     TRANSACTIONS = "transactions"
+    ALL = "all"
 
 
 @contextmanager

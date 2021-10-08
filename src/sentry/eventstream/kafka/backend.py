@@ -178,7 +178,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         elif entity == PostProcessForwarderType.ERRORS:
             worker = ErrorsPostProcessForwarderWorker(concurrency=concurrency)
         else:
-            # Default implementation which would process both errors and transactions
+            # Default implementation which processes both errors and transactions
             # irrespective of values in the header. This would most likely be the case
             # for development environments.
             worker = PostProcessForwarderWorker(concurrency=concurrency)

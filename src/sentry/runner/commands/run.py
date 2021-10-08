@@ -326,9 +326,9 @@ def cron(**options):
 )
 @click.option(
     "--entity",
-    default="errors",
-    type=click.Choice(["errors", "transactions"]),
-    help="The type of entity to process (errors, transactions).",
+    default="all",
+    type=click.Choice(["all", "errors", "transactions"]),
+    help="The type of entity to process (all, errors, transactions).",
 )
 @log_options()
 @configuration
