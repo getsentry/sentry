@@ -200,6 +200,7 @@ def query(
     conditions=None,
     functions_acl=None,
     use_snql=False,
+    sample_rate=None,
 ):
     """
     High-level API for doing arbitrary user queries against events.
@@ -289,6 +290,8 @@ def query(
             limit=limit,
             offset=offset,
             referrer=referrer,
+            turbo=sample_rate is not None,
+            sample=sample_rate,
         )
 
     with sentry_sdk.start_span(
@@ -465,6 +468,7 @@ def timeseries_query(
     referrer: Optional[str] = None,
     zerofill_results: bool = True,
     comparison_delta: Optional[timedelta] = None,
+    sample_rate: Optional[int] = None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -516,6 +520,8 @@ def timeseries_query(
             dataset=Dataset.Discover,
             limit=10000,
             referrer=referrer,
+            turbo=sample_rate is not None,
+            sample=sample_rate,
         )
         query_params_list = [base_query_params]
         if comparison_delta:
@@ -593,6 +599,7 @@ def top_events_timeseries(
     allow_empty=True,
     zerofill_results=True,
     include_other=False,
+    sample_rate=None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -628,6 +635,8 @@ def top_events_timeseries(
                 referrer=referrer,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
+                turbo=sample_rate is not None,
+                sample=sample_rate,
             )
 
     with sentry_sdk.start_span(
@@ -731,6 +740,8 @@ def top_events_timeseries(
             "dataset": Dataset.Discover,
             "limit": 10000,
             "referrer": referrer,
+            "turbo": sample_rate is not None,
+            "sample": sample_rate,
         }
         if len(top_events["data"]) == limit and include_other:
             other_query = {
@@ -754,6 +765,8 @@ def top_events_timeseries(
                 "dataset": Dataset.Discover,
                 "limit": 10000,
                 "referrer": referrer + ".other",
+                "turbo": sample_rate is not None,
+                "sample": sample_rate,
             }
             result, other_result = bulk_raw_query(
                 [SnubaQueryParams(**top_5_query), SnubaQueryParams(**other_query)],

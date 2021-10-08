@@ -1,5 +1,6 @@
 import logging
 
+import sentry_sdk
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
@@ -49,6 +50,12 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         referrer = (
             referrer if referrer in ALLOWED_EVENTS_V2_REFERRERS else "api.organization-events-v2"
         )
+        try:
+            sample_rate = request.GET.get("sampleRate")
+            sample_rate = float(sample_rate) if sample_rate else None
+            sentry_sdk.set_tag("discover.sample_rate", sample_rate)
+        except ValueError:
+            raise ParseError(detail="sampleRate must be a number")
 
         def data_fn(offset, limit):
             return discover.query(
@@ -63,6 +70,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 auto_fields=True,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
+                sample_rate=sample_rate,
             )
 
         with self.handle_query_errors():

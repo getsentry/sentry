@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Optional, Sequence, Set
 
 import sentry_sdk
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -86,6 +86,13 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 else "api.organization-event-stats"
             )
 
+            try:
+                sample_rate = request.GET.get("sampleRate")
+                sample_rate = float(sample_rate) if sample_rate else None
+                sentry_sdk.set_tag("discover.sample_rate", sample_rate)
+            except ValueError:
+                raise ParseError(detail="sampleRate must be a number")
+
         def get_event_stats(
             query_columns: Sequence[str],
             query: str,
@@ -109,6 +116,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     allow_empty=False,
                     zerofill_results=zerofill_results,
                     include_other=self.has_top_events(organization, request),
+                    sample_rate=sample_rate,
                 )
             return discover.timeseries_query(
                 selected_columns=query_columns,
@@ -118,6 +126,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 referrer=referrer,
                 zerofill_results=zerofill_results,
                 comparison_delta=comparison_delta,
+                sample_rate=sample_rate,
             )
 
         try:
