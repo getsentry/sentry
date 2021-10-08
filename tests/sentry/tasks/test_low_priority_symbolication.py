@@ -116,7 +116,6 @@ class TestScanForSuspectProjects:
             _scan_for_suspect_projects()
 
         assert store.get_lpq_projects() == {17}
-        assert store.was_recently_moved(17)
 
     def test_add_recently_moved_project(self, store) -> None:
         store._backoff_timer = 10
@@ -128,7 +127,6 @@ class TestScanForSuspectProjects:
             _scan_for_suspect_projects()
 
         assert store.get_lpq_projects() == set()
-        assert store.was_recently_moved(17)
 
 
 class UpdateLpqEligibility:
