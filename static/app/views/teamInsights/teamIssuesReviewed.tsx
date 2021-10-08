@@ -75,7 +75,7 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {issuesBreakdown, isLoading} = this.state;
+    const {issuesBreakdown, loading} = this.state;
     const {projects} = this.props;
 
     const allReviewedByDay: Record<string, number> = {};
@@ -83,15 +83,14 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
 
     // Total reviewed & total reviewed keyed by project ID
     const projectTotals: Record<string, {reviewed: number; total: number}> = {};
-    // Initialize all projects with zero
-    projects.forEach(({id}) => {
-      projectTotals[id] = {reviewed: 0, total: 0};
-    });
 
     if (issuesBreakdown) {
       // The issues breakdown is split into projectId ->
       for (const [projectId, entries] of Object.entries(issuesBreakdown)) {
         for (const [bucket, {reviewed, total}] of Object.entries(entries)) {
+          if (!projectTotals[projectId]) {
+            projectTotals[projectId] = {reviewed: 0, total: 0};
+          }
           projectTotals[projectId].reviewed += reviewed;
           projectTotals[projectId].total += total;
 
@@ -117,8 +116,8 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
     return (
       <Fragment>
         <IssuesChartWrapper>
-          {isLoading && <Placeholder height="200px" />}
-          {!isLoading && (
+          {loading && <Placeholder height="200px" />}
+          {!loading && (
             <BarChart
               style={{height: 200}}
               stacked
@@ -138,11 +137,16 @@ class TeamIssuesReviewed extends AsyncComponent<Props, State> {
           )}
         </IssuesChartWrapper>
         <StyledPanelTable
-          headers={[t('Project'), t('For Review'), t('Reviewed'), t('% Reviewed')]}
-          isLoading={isLoading}
+          headers={[
+            t('Project'),
+            <AlignRight key="forReview">{t('For Review')}</AlignRight>,
+            <AlignRight key="reviewed">{t('Reviewed')}</AlignRight>,
+            <AlignRight key="change">{t('% Reviewed')}</AlignRight>,
+          ]}
+          isLoading={loading}
         >
           {projects.map(project => {
-            const {total, reviewed} = projectTotals[project.id];
+            const {total, reviewed} = projectTotals[project.id] ?? {};
             return (
               <Fragment key={project.id}>
                 <ProjectBadgeContainer>
