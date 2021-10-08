@@ -1,4 +1,4 @@
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Placeholder from 'app/components/placeholder';
@@ -10,16 +10,16 @@ import {IconWarning} from 'app/icons/iconWarning';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {AppStoreConnectValidationData} from 'app/types/debugFiles';
-import {Theme} from 'app/utils/theme';
 
 type Props = {
-  theme: Theme;
   onEditRepository: () => void;
   onRevalidateItunesSession: () => void;
   details?: AppStoreConnectValidationData;
 };
 
-function Status({theme, details, onEditRepository, onRevalidateItunesSession}: Props) {
+function Status({details, onEditRepository, onRevalidateItunesSession}: Props) {
+  const theme = useTheme();
+
   if (!details) {
     return <Placeholder height="14px" />;
   }
@@ -84,7 +84,7 @@ function Status({theme, details, onEditRepository, onRevalidateItunesSession}: P
   return null;
 }
 
-export default withTheme(Status);
+export default Status;
 
 const Wrapper = styled('div')<{color: string}>`
   display: grid;
