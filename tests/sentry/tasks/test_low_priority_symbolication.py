@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any, Dict
 import pytest
 from freezegun import freeze_time
 
-from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.base import BucketedCount, DurationHistogram
 from sentry.processing.realtime_metrics.redis import RedisRealtimeMetricsStore
 from sentry.tasks.low_priority_symbolication import (
@@ -25,146 +24,177 @@ if TYPE_CHECKING:
     pytest.fixture = _fixture
 
 
-def create_store() -> RedisRealtimeMetricsStore:
-    return RedisRealtimeMetricsStore(
-        cluster="default",
-        counter_bucket_size=10,
-        counter_ttl=timedelta(milliseconds=400),
-        histogram_bucket_size=10,
-        histogram_ttl=timedelta(milliseconds=400),
-    )
-
-
-STORE = create_store()
-
-
-def reset_store() -> None:
-    STORE = create_store()
-    # TODO: i am bad at python
-    STORE
-
-
 class TestScanForSuspectProjects(TestCase):
-    def tearDown(self):
-        reset_store()
+    def reset_store(self):
+        self.store = RedisRealtimeMetricsStore(
+            cluster="default",
+            counter_bucket_size=10,
+            counter_ttl=1,
+            histogram_bucket_size=10,
+            histogram_ttl=1,
+        )
 
-    @mock.patch("sentry.processing.realtime_metrics", STORE)
-    def test_no_metrics_not_in_lpq(self) -> None:
-        assert realtime_metrics.get_lpq_projects() == set()
+    def setUp(self):
+        self.reset_store()
+
+    @mock.patch("sentry.processing.realtime_metrics")
+    def test_no_metrics_not_in_lpq(self, mock_store) -> None:
+        mock_store = self.store
+        assert mock_store.get_lpq_projects() == set()
 
         with TaskRunner():
             _scan_for_suspect_projects()
 
-        assert realtime_metrics.get_lpq_projects() == set()
+        assert mock_store.get_lpq_projects() == set()
 
-    @mock.patch("sentry.processing.realtime_metrics", STORE)
-    def test_no_metrics_in_lpq(self) -> None:
-        realtime_metrics.add_project_to_lpq(17)
-        assert realtime_metrics.get_lpq_projects() == {17}
+    @mock.patch("sentry.processing.realtime_metrics")
+    def test_no_metrics_in_lpq(self, mock_store) -> None:
+        mock_store = self.store
+        mock_store.add_project_to_lpq(17)
+        assert mock_store.get_lpq_projects() == {17}
 
         with TaskRunner():
             _scan_for_suspect_projects()
 
-        assert realtime_metrics.get_lpq_projects() == set()
+        assert mock_store.get_lpq_projects() == set()
 
     @freeze_time(datetime.fromtimestamp(0))
     # TODO: Remove patch and update test once calculation_magic is implemented
     @mock.patch("sentry.tasks.low_priority_symbolication.calculation_magic", lambda x, y: True)
-    @mock.patch("sentry.processing.realtime_metrics", STORE)
-    def test_has_metric_not_in_lpq(self) -> None:
-        realtime_metrics.increment_project_event_counter(17, 0)
-        assert realtime_metrics.get_lpq_projects() == set()
+    @mock.patch("sentry.processing.realtime_metrics")
+    def test_has_metric_not_in_lpq(self, mock_store) -> None:
+        mock_store = self.store
+        mock_store.increment_project_event_counter(17, 0)
+        assert mock_store.get_lpq_projects() == set()
 
         with TaskRunner():
             _scan_for_suspect_projects()
 
-        assert realtime_metrics.get_lpq_projects() == {17}
+        assert mock_store.get_lpq_projects() == {17}
 
     @freeze_time(datetime.fromtimestamp(0))
     # TODO: Remove patch and update test once calculation_magic is implemented
     @mock.patch("sentry.tasks.low_priority_symbolication.calculation_magic", lambda x, y: True)
-    @mock.patch("sentry.processing.realtime_metrics", STORE)
-    def test_has_metric_in_lpq(self) -> None:
-        realtime_metrics.increment_project_event_counter(17, 0)
-        realtime_metrics.add_project_to_lpq(17)
-        assert realtime_metrics.get_lpq_projects() == {17}
+    @mock.patch("sentry.processing.realtime_metrics")
+    def test_has_metric_in_lpq(self, mock_store) -> None:
+        mock_store = self.store
+        mock_store.increment_project_event_counter(17, 0)
+        mock_store.add_project_to_lpq(17)
+        assert mock_store.get_lpq_projects() == {17}
 
         with TaskRunner():
             _scan_for_suspect_projects()
 
-        assert realtime_metrics.get_lpq_projects() == {17}
+        assert mock_store.get_lpq_projects() == {17}
 
     @freeze_time(datetime.fromtimestamp(0))
     # TODO: Remove patch and update test once calculation_magic is implemented
     @mock.patch("sentry.tasks.low_priority_symbolication.calculation_magic", lambda x, y: True)
-    @mock.patch("sentry.processing.realtime_metrics", STORE)
-    def test_add_one_project_remove_one_project(self) -> None:
-        realtime_metrics.increment_project_event_counter(17, 0)
-        realtime_metrics.remove_projects_from_lpq([17])
-        realtime_metrics.add_project_to_lpq(1)
-        assert realtime_metrics.get_lpq_projects() == {1}
+    @mock.patch("sentry.processing.realtime_metrics")
+    def test_add_one_project_remove_one_project(self, mock_store) -> None:
+        mock_store = self.store
+        mock_store.increment_project_event_counter(17, 0)
+        mock_store.remove_projects_from_lpq([17])
+        mock_store.add_project_to_lpq(1)
+        assert mock_store.get_lpq_projects() == {1}
 
         with TaskRunner():
             _scan_for_suspect_projects()
 
-        assert realtime_metrics.get_lpq_projects() == {17}
+        assert mock_store.get_lpq_projects() == {17}
 
 
 class UpdateLpqEligibility(TestCase):
-    def test_no_counts_no_durations_not_lpq(self) -> None:
-        _update_lpq_eligibility(17, 10)
-        assert realtime_metrics.get_lpq_projects() == set()
+    def reset_store(self):
+        self.store = RedisRealtimeMetricsStore(
+            cluster="default",
+            counter_bucket_size=10,
+            counter_ttl=1,
+            histogram_bucket_size=10,
+            histogram_ttl=1,
+            # set to 0 so it is easy to set up test data.
+            # tests for when backoff_timer > 0 should be taken care of in the redis store's tests
+            backoff_timer=0,
+        )
 
-    def test_no_counts_no_durations_in_lpq(self) -> None:
-        realtime_metrics.add_project_to_lpq(17)
-        assert realtime_metrics.get_lpq_projects() == {17}
+    def setUp(self):
+        self.reset_store()
+
+    @mock.patch("sentry.processing.realtime_metrics")
+    def test_no_counts_no_durations_in_lpq(self, mock_store) -> None:
+        mock_store = self.store
+        mock_store.add_project_to_lpq(17)
+        assert mock_store.get_lpq_projects() == {17}
 
         _update_lpq_eligibility(17, 10)
-        assert realtime_metrics.get_lpq_projects() == set()
+        assert mock_store.get_lpq_projects() == set()
+
+    @mock.patch("sentry.processing.realtime_metrics")
+    def test_no_counts_no_durations_not_lpq(self, mock_store) -> None:
+        mock_store = self.store
+        _update_lpq_eligibility(17, 10)
+        assert mock_store.get_lpq_projects() == set()
 
     @freeze_time(datetime.fromtimestamp(0))
     # TODO: Remove patch and update test once calculation_magic is implemented
     @mock.patch("sentry.tasks.low_priority_symbolication.calculation_magic", lambda x, y: True)
-    def test_some_counts_no_durations(self) -> None:
-        realtime_metrics.increment_project_event_counter(17, 0)
-        assert realtime_metrics.get_lpq_projects() == set()
+    @mock.patch("sentry.processing.realtime_metrics")
+    def test_some_counts_no_durations(self, mock_store) -> None:
+        mock_store = self.store
+        mock_store.increment_project_event_counter(17, 0)
+        assert mock_store.get_lpq_projects() == set()
 
         _update_lpq_eligibility(17, 10)
-        assert realtime_metrics.get_lpq_projects() == {17}
+        assert mock_store.get_lpq_projects() == {17}
 
     @freeze_time(datetime.fromtimestamp(0))
     # TODO: Remove patch and update test once calculation_magic is implemented
     @mock.patch("sentry.tasks.low_priority_symbolication.calculation_magic", lambda x, y: True)
-    def test_no_counts_some_durations(self) -> None:
-        realtime_metrics.increment_project_duration_counter(17, 0, 10)
-        assert realtime_metrics.get_lpq_projects() == set()
+    @mock.patch("sentry.processing.realtime_metrics")
+    def test_no_counts_some_durations(self, mock_store) -> None:
+        mock_store = self.store
+        mock_store.increment_project_duration_counter(17, 0, 10)
+        assert mock_store.get_lpq_projects() == set()
 
         _update_lpq_eligibility(17, 10)
-        assert realtime_metrics.get_lpq_projects() == {17}
+        assert mock_store.get_lpq_projects() == {17}
 
     @freeze_time(datetime.fromtimestamp(0))
     # TODO: Remove patch and update test once calculation_magic is implemented
     @mock.patch("sentry.tasks.low_priority_symbolication.calculation_magic", lambda x, y: True)
-    def test_is_eligible_in_lpq(self) -> None:
-        realtime_metrics.add_project_to_lpq(17)
+    @mock.patch("sentry.processing.realtime_metrics")
+    def test_is_eligible_in_lpq(self, mock_store) -> None:
+        mock_store = self.store
+        mock_store.add_project_to_lpq(17)
 
         _update_lpq_eligibility(17, 10)
-        assert realtime_metrics.get_lpq_projects() == {17}
+        assert mock_store.get_lpq_projects() == {17}
 
     # TODO: Remove patch and update test once calculation_magic is implemented
     @freeze_time(datetime.fromtimestamp(0))
     @mock.patch("sentry.tasks.low_priority_symbolication.calculation_magic", lambda x, y: True)
-    def test_is_eligible_not_lpq(self) -> None:
+    @mock.patch("sentry.processing.realtime_metrics")
+    def test_is_eligible_not_lpq(self, mock_store) -> None:
+        mock_store = self.store
         _update_lpq_eligibility(17, 10)
 
-        assert realtime_metrics.get_lpq_projects() == {17}
+        assert mock_store.get_lpq_projects() == {17}
 
     # TODO: Update once calculation_magic is implemented
-    def test_not_eligible_in_lpq(self) -> None:
-        realtime_metrics.add_project_to_lpq(17)
+    @mock.patch("sentry.processing.realtime_metrics")
+    def test_not_eligible_in_lpq(self, mock_store) -> None:
+        mock_store = self.store
+        mock_store.add_project_to_lpq(17)
 
         _update_lpq_eligibility(17, 10)
-        assert realtime_metrics.get_lpq_projects() == set()
+        assert mock_store.get_lpq_projects() == set()
+
+    # TODO: Update once calculation_magic is implemented
+    @mock.patch("sentry.processing.realtime_metrics")
+    def test_not_eligible_not_lpq(self, mock_store) -> None:
+        mock_store = self.store
+        _update_lpq_eligibility(17, 10)
+        assert mock_store.get_lpq_projects() == set()
 
 
 class TestCalculationMagic(TestCase):
