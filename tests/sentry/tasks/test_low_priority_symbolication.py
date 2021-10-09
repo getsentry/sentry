@@ -108,18 +108,10 @@ class TestScanForSuspectProjects:
 
         assert store.get_lpq_projects() == {17}
 
-    def test_remove_recently_moved_project(self, store) -> None:
-        store.add_project_to_lpq(17)
-        assert store.get_lpq_projects() == {17}
-
-        with TaskRunner():
-            _scan_for_suspect_projects()
-
-        assert store.get_lpq_projects() == {17}
-
     def test_add_recently_moved_project(self, store) -> None:
         store._backoff_timer = 10
         store.increment_project_event_counter(17, 0)
+        # Abusing the fact that removing always updates the backoff timer even if it's a noop
         store.remove_projects_from_lpq([17])
         assert store.get_lpq_projects() == set()
 
@@ -127,6 +119,16 @@ class TestScanForSuspectProjects:
             _scan_for_suspect_projects()
 
         assert store.get_lpq_projects() == set()
+
+    def test_remove_recently_moved_project(self, store) -> None:
+        store._backoff_timer = 10
+        store.add_project_to_lpq(17)
+        assert store.get_lpq_projects() == {17}
+
+        with TaskRunner():
+            _scan_for_suspect_projects()
+
+        assert store.get_lpq_projects() == {17}
 
 
 class UpdateLpqEligibility:
