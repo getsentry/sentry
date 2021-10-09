@@ -2056,12 +2056,24 @@ export type ExceptionType = {
 };
 
 /**
- * Identity is used in Account Identities for SocialAuths
+ * UserIdentityConfig is used in Account Identities
  */
-export type Identity = {
+export enum UserIdentityCategory {
+  SOCIAL_IDENTITY = 'social-identity',
+  GLOBAL_IDENTITY = 'global-identity',
+  ORG_IDENTITY = 'org-identity',
+}
+export enum UserIdentityStatus {
+  CAN_DISCONNECT = 'can_disconnect',
+  NEEDED_FOR_GLOBAL_AUTH = 'needed_for_global_auth',
+  NEEDED_FOR_ORG_AUTH = 'needed_for_org_auth',
+}
+export type UserIdentityConfig = {
+  category: UserIdentityCategory;
   id: string;
-  provider: IntegrationProvider;
-  providerLabel: string;
+  providerName: string;
+  status: UserIdentityStatus;
+  organization: Organization | null;
 };
 
 // taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript

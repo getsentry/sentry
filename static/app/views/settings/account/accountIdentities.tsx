@@ -5,17 +5,17 @@ import {disconnectIdentity} from 'app/actionCreators/account';
 import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
-import {Identity} from 'app/types';
+import {UserIdentityCategory, UserIdentityConfig, UserIdentityStatus} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
-const ENDPOINT = '/users/me/social-identities/';
+const ENDPOINT = '/users/me/user-identities/';
 
 type Props = RouteComponentProps<{}, {}>;
 
 type State = {
-  identities: Identity[] | null;
+  identities: UserIdentityConfig[] | null;
 } & AsyncView['state'];
 
 class AccountIdentities extends AsyncView<Props, State> {
@@ -34,24 +34,48 @@ class AccountIdentities extends AsyncView<Props, State> {
     return t('Identities');
   }
 
-  handleDisconnect = (identity: Identity) => {
-    const {identities} = this.state;
+  renderItem = (identity: UserIdentityConfig) => {
+    return (
+      <IdentityPanelItem key={`${identity.category}:${identity.id}`}>
+        <div>
+          {identity.category === UserIdentityCategory.SOCIAL_IDENTITY ? (
+            <span title={t('This identity links to an application.')}>&#x1F517;</span>
+          ) : (
+            <span title={t('This identity can be used to sign in.')}>&#x1F512;</span>
+          )}
+          &nbsp;
+          {identity.providerName}
+          {identity.organization && ` (${identity.organization.name})`}
+        </div>
 
-    this.setState(
-      state => {
-        const newIdentities = state.identities?.filter(({id}) => id !== identity.id);
-
-        return {
-          identities: newIdentities ?? [],
-        };
-      },
-      () =>
-        disconnectIdentity(identity).catch(() => {
-          this.setState({
-            identities,
-          });
-        })
+        {this.renderButton(identity)}
+      </IdentityPanelItem>
     );
+  };
+
+  renderButton(identity: UserIdentityConfig) {
+    return (
+      <Button
+        disabled={identity.status !== UserIdentityStatus.CAN_DISCONNECT}
+        title={
+          identity.status === UserIdentityStatus.NEEDED_FOR_GLOBAL_AUTH
+            ? t(
+                'You need this identity to sign into your account. If you want to disconnect it, set a password first.'
+              )
+            : identity.status === UserIdentityStatus.NEEDED_FOR_ORG_AUTH
+            ? t('You need this identity to access your organization.')
+            : null
+        }
+        onClick={() => this.handleDisconnect(identity)}
+      >
+        {t('Disconnect')}
+      </Button>
+    );
+  }
+
+  handleDisconnect = (identity: UserIdentityConfig) => {
+    disconnectIdentity(identity);
+    this.reloadData(); // TODO: Avoid this if request fails
   };
 
   renderBody() {
@@ -66,18 +90,7 @@ class AccountIdentities extends AsyncView<Props, State> {
                 {t('There are no identities associated with this account')}
               </EmptyMessage>
             ) : (
-              this.state.identities.map(identity => (
-                <IdentityPanelItem key={identity.id}>
-                  <div>{identity.providerLabel}</div>
-
-                  <Button
-                    size="small"
-                    onClick={this.handleDisconnect.bind(this, identity)}
-                  >
-                    {t('Disconnect')}
-                  </Button>
-                </IdentityPanelItem>
-              ))
+              this.state.identities.map(this.renderItem)
             )}
           </PanelBody>
         </Panel>
