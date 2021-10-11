@@ -713,7 +713,7 @@ urlpatterns = [
                 url(
                     r"^(?P<user_id>[^\/]+)/user-identities/(?P<category>[\w-]+)/(?P<identity_id>[^\/]+)/$",
                     UserIdentityConfigDetailsEndpoint.as_view(),
-                    name="sentry-api-0-user-identity-config",
+                    name="sentry-api-0-user-identity-config-details",
                 ),
             ]
         ),
