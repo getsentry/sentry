@@ -1379,7 +1379,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             # convert the PosgreSQL environmentID into the clickhouse string index
             # for the environment name
             env_names_dict = _model_environment_ids_to_environment_names(environment_ids)
-            env_names = list(env_names_dict.values())
+            env_names = [value for value in env_names_dict.values() if value is not None]
 
             try:
                 env_id = tag_key(org_id, "environment")

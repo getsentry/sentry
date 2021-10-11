@@ -1,5 +1,6 @@
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -23,6 +24,9 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         :auth: required
         """
         queryset = Repository.objects.filter(organization_id=organization.id)
+
+        if not features.has("organizations:integrations-ignore-vsts-deprecation", organization):
+            queryset = queryset.exclude(provider="visualstudio")
 
         status = request.GET.get("status", "active")
         if status == "active":
