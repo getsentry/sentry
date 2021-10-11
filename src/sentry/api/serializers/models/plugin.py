@@ -11,6 +11,7 @@ from sentry.utils.http import absolute_uri
 SHADOW_DEPRECATED_PLUGINS = {
     "teamwork": "organizations:integrations-ignore-teamwork-deprecation",
     "clubhouse": "organizations:integrations-ignore-clubhouse-deprecation",
+    "vsts": "organizations:integrations-ignore-vsts-deprecation",
 }
 
 

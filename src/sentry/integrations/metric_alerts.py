@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.urls import reverse
 
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, get_incident_aggregates
 from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus, IncidentTrigger
 from sentry.utils.assets import get_asset_url
@@ -10,6 +11,8 @@ from sentry.utils.http import absolute_uri
 QUERY_AGGREGATION_DISPLAY = {
     "count()": "events",
     "count_unique(tags[sentry:user])": "users affected",
+    "percentage(sessions_crashed, sessions)": "% sessions crash free rate",
+    "percentage(users_crashed, users)": "% users crash free rate",
 }
 
 
@@ -36,9 +39,12 @@ def incident_attachment_info(incident, metric_value=None, action=None, method=No
 
     status = INCIDENT_STATUS[incident_status_info(incident, metric_value, action, method)]
 
-    agg_text = QUERY_AGGREGATION_DISPLAY.get(
-        alert_rule.snuba_query.aggregate, alert_rule.snuba_query.aggregate
-    )
+    agg_display_key = alert_rule.snuba_query.aggregate
+    if CRASH_RATE_ALERT_AGGREGATE_ALIAS in alert_rule.snuba_query.aggregate:
+        agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
+
+    agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, alert_rule.snuba_query.aggregate)
+
     if metric_value is None:
         incident_trigger = (
             IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
@@ -60,7 +66,12 @@ def incident_attachment_info(incident, metric_value=None, action=None, method=No
         ]
     time_window = alert_rule.snuba_query.time_window // 60
 
-    text = f"{metric_value} {agg_text} in the last {time_window} minutes"
+    if agg_text.startswith("%"):
+        metric_and_agg_text = f"{metric_value}{agg_text}"
+    else:
+        metric_and_agg_text = f"{metric_value} {agg_text}"
+
+    text = f"{metric_and_agg_text} in the last {time_window} minutes"
     if alert_rule.snuba_query.query != "":
         text += f"\nFilter: {alert_rule.snuba_query.query}"
 

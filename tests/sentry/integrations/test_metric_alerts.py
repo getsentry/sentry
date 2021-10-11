@@ -102,3 +102,35 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
         )
+
+    def test_with_incident_trigger_crash_rate_alerts(self):
+        for idx, field in enumerate(["sessions", "users"]):
+            alert_rule = self.create_alert_rule(
+                query="",
+                aggregate=f"percentage({field}_crashed, {field}) AS _crash_rate_alert_aggregate",
+            )
+            date_started = self.now
+            incident = self.create_incident(
+                self.organization,
+                title="Incident #1",
+                projects=[self.project],
+                alert_rule=alert_rule,
+                status=IncidentStatus.CLOSED.value,
+                date_started=date_started,
+            )
+            trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 95)
+            action = self.create_alert_rule_trigger_action(
+                alert_rule_trigger=trigger, triggered_for_incident=incident
+            )
+            metric_value = 92
+            data = incident_attachment_info(incident, metric_value, action, method="fire")
+
+            assert data["title"] == f"Critical: {alert_rule.name}"
+            assert data["status"] == "Critical"
+            assert data["text"] == f"92% {field} crash free rate in the last 10 minutes"
+            assert data["ts"] == date_started
+            assert data["title_link"] == f"http://testserver/organizations/baz/alerts/{idx + 1}/"
+            assert (
+                data["logo_url"]
+                == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
+            )
