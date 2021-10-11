@@ -225,7 +225,7 @@ class OrganizationSerializer(serializers.Serializer):
 
     def validate_requireEmailVerification(self, value):
         user = self.context["user"]
-        has_verified = UserEmail.get_primary_email(user).is_verified
+        has_verified = UserEmail.objects.get_primary_email(user).is_verified
         if value and not has_verified:
             raise serializers.ValidationError(ERR_EMAIL_VERIFICATION)
         return value
@@ -358,9 +358,9 @@ class OrganizationSerializer(serializers.Serializer):
                     changed_data[key] = f"from {old_val} to {option_inst.value}"
                 option_inst.save()
 
-        trusted_realy_info = self.validated_data.get("trustedRelays")
-        if trusted_realy_info is not None:
-            self.save_trusted_relays(trusted_realy_info, changed_data, org)
+        trusted_relay_info = self.validated_data.get("trustedRelays")
+        if trusted_relay_info is not None:
+            self.save_trusted_relays(trusted_relay_info, changed_data, org)
 
         if "openMembership" in self.initial_data:
             org.flags.allow_joinleave = self.initial_data["openMembership"]

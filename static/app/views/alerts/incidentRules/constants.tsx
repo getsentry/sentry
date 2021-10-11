@@ -1,3 +1,4 @@
+import {t} from 'app/locale';
 import EventView from 'app/utils/discover/eventView';
 import {AggregationKey, LooseFieldKey} from 'app/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
@@ -6,12 +7,14 @@ import {
   Dataset,
   Datasource,
   EventTypes,
+  TimeWindow,
   Trigger,
   UnsavedIncidentRule,
 } from 'app/views/alerts/incidentRules/types';
 import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
   getQueryDatasource,
+  isSessionAggregate,
 } from 'app/views/alerts/utils';
 import {AlertType, WizardRuleTemplate} from 'app/views/alerts/wizard/options';
 
@@ -61,6 +64,15 @@ const allAggregations: AggregationKey[] = [
   'count',
 ];
 
+export const COMPARISON_DELTA_OPTIONS = [
+  {value: 5, label: t('same time 5 minutes ago')}, // 5 minutes
+  {value: 15, label: t('same time 15 minutes ago')}, // 15 minutes
+  {value: 60, label: t('same time one hour ago')}, // one hour
+  {value: 1440, label: t('same time one day ago')}, // one day
+  {value: 10080, label: t('same time one week ago')}, // one week
+  {value: 43200, label: t('same time one month ago')}, // 30 days
+];
+
 export function getWizardAlertFieldConfig(
   alertType: AlertType,
   dataset: Dataset
@@ -106,7 +118,9 @@ export function createDefaultTrigger(label: 'critical' | 'warning'): Trigger {
   };
 }
 
-export function createDefaultRule(): UnsavedIncidentRule {
+export function createDefaultRule(
+  defaultRuleOptions: Partial<UnsavedIncidentRule> = {}
+): UnsavedIncidentRule {
   return {
     dataset: Dataset.ERRORS,
     eventTypes: [EventTypes.ERROR],
@@ -118,6 +132,7 @@ export function createDefaultRule(): UnsavedIncidentRule {
     environment: null,
     resolveThreshold: '',
     thresholdType: AlertRuleThresholdType.ABOVE,
+    ...defaultRuleOptions,
   };
 }
 
@@ -145,10 +160,18 @@ export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRu
 export function createRuleFromWizardTemplate(
   wizardTemplate: WizardRuleTemplate
 ): UnsavedIncidentRule {
-  const {eventTypes, ...aggregateDataset} = wizardTemplate;
+  const {eventTypes, aggregate, dataset} = wizardTemplate;
+  const defaultRuleOptions: Partial<UnsavedIncidentRule> = {};
+
+  if (isSessionAggregate(aggregate)) {
+    defaultRuleOptions.thresholdType = AlertRuleThresholdType.BELOW;
+    defaultRuleOptions.timeWindow = TimeWindow.ONE_HOUR;
+  }
+
   return {
-    ...createDefaultRule(),
+    ...createDefaultRule(defaultRuleOptions),
     eventTypes: [eventTypes],
-    ...aggregateDataset,
+    aggregate,
+    dataset,
   };
 }

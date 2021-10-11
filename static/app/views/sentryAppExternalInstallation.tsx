@@ -10,12 +10,7 @@ import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
 import NarrowLayout from 'app/components/narrowLayout';
 import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
-import {
-  LightWeightOrganization,
-  Organization,
-  SentryApp,
-  SentryAppInstallation,
-} from 'app/types';
+import {Organization, SentryApp, SentryAppInstallation} from 'app/types';
 import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import AsyncView from 'app/views/asyncView';
@@ -26,7 +21,7 @@ type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 type State = AsyncView['state'] & {
   selectedOrgSlug: string | null;
   organization: Organization | null;
-  organizations: LightWeightOrganization[];
+  organizations: Organization[];
   reloading: boolean;
   sentryApp: SentryApp;
 };
@@ -82,7 +77,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     return isInstalled || reloading || this.isSentryAppUnavailableForOrg;
   }
 
-  hasAccess = (org: LightWeightOrganization) => org.access.includes('org:integrations');
+  hasAccess = (org: Organization) => org.access.includes('org:integrations');
 
   onClose = () => {
     // if we came from somewhere, go back there. Otherwise, back to the integrations page
@@ -156,13 +151,15 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
   };
 
   getOptions() {
-    return this.state.organizations.map(org => [
-      org.slug,
-      <div key={org.slug}>
-        <OrganizationAvatar organization={org} />
-        <OrgNameHolder>{org.slug}</OrgNameHolder>
-      </div>,
-    ]);
+    return this.state.organizations.map(org => ({
+      value: org.slug,
+      label: (
+        <div key={org.slug}>
+          <OrganizationAvatar organization={org} />
+          <OrgNameHolder>{org.slug}</OrgNameHolder>
+        </div>
+      ),
+    }));
   }
 
   renderInternalAppError() {
@@ -245,7 +242,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
               onChange={({value}) => this.onSelectOrg(value)}
               value={selectedOrgSlug}
               placeholder={t('Select an organization')}
-              choices={this.getOptions()}
+              options={this.getOptions()}
             />
           )}
         </Field>

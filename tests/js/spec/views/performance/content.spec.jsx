@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import * as globalSelection from 'app/actionCreators/globalSelection';
 import ProjectsStore from 'app/stores/projectsStore';
+import {OrganizationContext} from 'app/views/organizationContext';
 import PerformanceContent from 'app/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
 import {vitalAbbreviations} from 'app/views/performance/vitalDetail/utils';
@@ -142,7 +143,7 @@ describe('Performance > Content', function () {
           } else if (!options.query.hasOwnProperty('field')) {
             return false;
           }
-          return !options.query.field.includes('key_transaction');
+          return !options.query.field.includes('team_key_transaction');
         },
       }
     );
@@ -165,7 +166,7 @@ describe('Performance > Content', function () {
           },
           data: [
             {
-              key_transaction: 1,
+              team_key_transaction: 1,
               transaction: '/apple/cart',
               'project.id': 1,
               user: 'uhoh@example.com',
@@ -179,7 +180,7 @@ describe('Performance > Content', function () {
               user_misery_300: 0.114,
             },
             {
-              key_transaction: 0,
+              team_key_transaction: 0,
               transaction: '/apple/checkout',
               'project.id': 1,
               user: 'uhoh@example.com',
@@ -202,7 +203,7 @@ describe('Performance > Content', function () {
           } else if (!options.query.hasOwnProperty('field')) {
             return false;
           }
-          return options.query.field.includes('key_transaction');
+          return options.query.field.includes('team_key_transaction');
         },
       }
     );
@@ -539,10 +540,12 @@ describe('Performance > Content', function () {
     ]);
 
     const wrapper = mountWithTheme(
-      <PerformanceContent
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <OrganizationContext.Provider value={data.organization}>
+        <PerformanceContent
+          organization={data.organization}
+          location={data.router.location}
+        />
+      </OrganizationContext.Provider>,
       data.routerContext
     );
 

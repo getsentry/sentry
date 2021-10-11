@@ -1,65 +1,32 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 
-import {Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
+import {OrganizationContext} from 'app/views/organizationContext';
 import {PerformanceLanding} from 'app/views/performance/landing';
 import {LandingDisplayField} from 'app/views/performance/landing/utils';
 
-function initializeData(settings?: {
-  query?: {};
-  features?: string[];
-  projects?: Project[];
-  project?: Project;
-}) {
-  // @ts-expect-error
-  const _defaultProject = TestStubs.Project();
-  const _settings = {
-    query: {},
-    features: [],
-    projects: [_defaultProject],
-    project: _defaultProject,
-    ...settings,
-  };
-  const {query, features} = _settings;
-
-  // @ts-expect-error
-  const projects = [TestStubs.Project()];
-  const [project] = projects;
-
-  // @ts-expect-error
-  const organization = TestStubs.Organization({
-    features,
-    projects,
-  });
-  const router = {
-    location: {
-      query: {
-        ...query,
-      },
-    },
-  };
-  const initialData = initializeOrg({organization, projects, project, router});
-  return initialData;
-}
-
 const WrappedComponent = ({data}) => {
   const eventView = EventView.fromLocation(data.router.location);
+
   return (
-    <PerformanceLanding
-      organization={data.organization}
-      location={data.router.location}
-      eventView={eventView}
-      projects={data.projects}
-      shouldShowOnboarding={false}
-      handleSearch={() => {}}
-      handleTrendsClick={() => {}}
-      setError={() => {}}
-    />
+    <OrganizationContext.Provider value={data.organization}>
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+        eventView={eventView}
+        projects={data.projects}
+        shouldShowOnboarding={false}
+        handleSearch={() => {}}
+        handleTrendsClick={() => {}}
+        setError={() => {}}
+      />
+    </OrganizationContext.Provider>
   );
 };
 
 describe('Performance > Landing > Index', function () {
+  let eventStatsMock: any;
   beforeEach(function () {
     // @ts-expect-error
     MockApiClient.addMockResponse({
@@ -75,6 +42,24 @@ describe('Performance > Landing > Index', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/key-transactions-list/`,
+      body: [],
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/legacy-key-transactions-count/`,
+      body: [],
+    });
+    // @ts-expect-error
+    eventStatsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-stats/`,
+      body: [],
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events-trends-stats/`,
       body: [],
     });
   });
@@ -110,5 +95,70 @@ describe('Performance > Landing > Index', function () {
     expect(wrapper.find('div[data-test-id="frontend-pageload-view"]').exists()).toBe(
       true
     );
+
+    expect(wrapper.find('Table')).toHaveLength(1);
+  });
+
+  it('renders frontend other view', async function () {
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
+    });
+
+    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    // @ts-expect-error
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Table').exists()).toBe(true);
+  });
+
+  it('renders backend view', async function () {
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.BACKEND},
+    });
+
+    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    // @ts-expect-error
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Table').exists()).toBe(true);
+  });
+
+  it('renders mobile view', async function () {
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.MOBILE},
+    });
+
+    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    // @ts-expect-error
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Table').exists()).toBe(true);
+  });
+
+  it('renders all transactions view', async function () {
+    const data = initializeData({
+      query: {landingDisplay: LandingDisplayField.ALL},
+    });
+
+    const wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+    // @ts-expect-error
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Table').exists()).toBe(true);
+
+    expect(eventStatsMock).toHaveBeenCalledTimes(5); // Currently defaulting to 5 event stat charts on all transactions view.
+
+    const titles = wrapper.find('div[data-test-id="performance-widget-title"]');
+    expect(titles).toHaveLength(5);
+
+    expect(titles.at(0).text()).toEqual('User Misery');
+    expect(titles.at(1).text()).toEqual('Transactions Per Minute');
+    expect(titles.at(2).text()).toEqual('Failure Rate');
+    expect(titles.at(3).text()).toEqual('Transactions Per Minute');
+    expect(titles.at(4).text()).toEqual('Transactions Per Minute');
   });
 });

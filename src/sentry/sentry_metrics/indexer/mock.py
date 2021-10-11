@@ -2,9 +2,7 @@ import itertools
 from collections import defaultdict
 from typing import DefaultDict, Dict, Optional
 
-from sentry.models import Organization
-
-from .base import StringIndexer, UseCase
+from .base import StringIndexer
 
 _STRINGS = (
     "abnormal",
@@ -33,18 +31,13 @@ class SimpleIndexer(StringIndexer):
         self._strings: DefaultDict[str, int] = defaultdict(self._counter.__next__)
         self._reverse: Dict[int, str] = {}
 
-    def record(self, organization: Organization, use_case: UseCase, string: str) -> int:
-        # NOTE: Ignores ``use_case`` for simplicity.
+    def record(self, string: str) -> int:
         return self._record(string)
 
-    def resolve(self, organization: Organization, use_case: UseCase, string: str) -> Optional[int]:
-        # NOTE: Ignores ``use_case`` for simplicity.
+    def resolve(self, string: str) -> Optional[int]:
         return self._strings.get(string)
 
-    def reverse_resolve(
-        self, organization: Organization, use_case: UseCase, id: int
-    ) -> Optional[str]:
-        # NOTE: Ignores ``use_case`` for simplicity.
+    def reverse_resolve(self, id: int) -> Optional[str]:
         return self._reverse.get(id)
 
     def _record(self, string: str) -> int:

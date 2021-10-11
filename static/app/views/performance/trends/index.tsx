@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
@@ -79,9 +79,9 @@ class TrendsSummary extends React.Component<Props, State> {
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
         <StyledPageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
             {this.renderContent()}
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </StyledPageContent>
       </SentryDocumentTitle>
     );

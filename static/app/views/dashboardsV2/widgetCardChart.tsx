@@ -22,7 +22,12 @@ import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {getFieldFormatter} from 'app/utils/discover/fieldRenderers';
-import {getAggregateArg, getMeasurementSlug} from 'app/utils/discover/fields';
+import {
+  getAggregateArg,
+  getMeasurementSlug,
+  maybeEquationAlias,
+  stripEquationPrefix,
+} from 'app/utils/discover/fields';
 import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 
@@ -147,6 +152,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       case 'bar':
         return <BarChart {...chartProps} />;
       case 'area':
+      case 'top_n':
         return <AreaChart stacked {...chartProps} />;
       case 'world_map':
         return <WorldMapChart {...chartProps} />;
@@ -262,6 +268,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
             seriesName = slug.toUpperCase();
           }
         }
+        if (maybeEquationAlias(seriesName)) {
+          seriesName = stripEquationPrefix(seriesName);
+        }
         return seriesName;
       },
     };
@@ -269,7 +278,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {
       grid: {
-        left: 0,
+        left: 4,
         right: 0,
         top: '40px',
         bottom: 0,
@@ -303,6 +312,14 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           const colors = timeseriesResults
             ? theme.charts.getColorPalette(timeseriesResults.length - 2)
             : [];
+          // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
+          if (
+            widget.displayType === 'top_n' &&
+            timeseriesResults &&
+            timeseriesResults.length > 5
+          ) {
+            colors[colors.length - 1] = theme.chartOther;
+          }
 
           // Create a list of series based on the order of the fields,
           const series = timeseriesResults

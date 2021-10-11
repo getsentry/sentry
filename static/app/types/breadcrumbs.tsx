@@ -92,18 +92,16 @@ export type BreadcrumbTypeDefault = {
     | BreadcrumbType.SYSTEM
     | BreadcrumbType.SESSION
     | BreadcrumbType.TRANSACTION;
-  data?: {[key: string]: any};
+  data?: Record<string, any>;
 } & BreadcrumbTypeBase;
 
-export type Breadcrumb =
+export type RawCrumb =
   | BreadcrumbTypeNavigation
   | BreadcrumbTypeHTTP
   | BreadcrumbTypeDefault;
 
-type BreadcrumbDetails = {
-  color?: Color | React.CSSProperties['color'];
-  icon?: React.ComponentType<IconProps>;
+export type Crumb = RawCrumb & {
   description: string;
+  color: Color;
+  id: number;
 };
-
-export type BreadcrumbsWithDetails = Array<Breadcrumb & BreadcrumbDetails & {id: number}>;

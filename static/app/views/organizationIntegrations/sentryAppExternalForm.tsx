@@ -5,7 +5,6 @@ import debounce from 'lodash/debounce';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {SentryAppInstallation} from 'app/types';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import withApi from 'app/utils/withApi';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
@@ -25,28 +24,41 @@ export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
   async?: boolean;
 };
 
-export type Config = {
+export type SchemaFormConfig = {
   uri: string;
   required_fields?: FieldFromSchema[];
   optional_fields?: FieldFromSchema[];
 };
 
 // only need required_fields and optional_fields
-type State = Omit<Config, 'uri'> & {
+type State = Omit<SchemaFormConfig, 'uri'> & {
   optionsByField: Map<string, Array<{label: string; value: any}>>;
 };
 
 type Props = {
   api: Client;
-  sentryAppInstallation: SentryAppInstallation;
+  sentryAppInstallationUuid: string;
   appName: string;
-  config: Config;
+  config: SchemaFormConfig;
   action: 'create' | 'link';
   element: 'issue-link' | 'alert-rule-action';
+  /**
+   * Addtional form data to submit with the request
+   */
   extraFields?: {[key: string]: any};
+  /**
+   * Addtional body parameters to submit with the request
+   */
   extraRequestBody?: {[key: string]: any};
-  onSubmitSuccess: (...params: any[]) => void;
+  /**
+   * Object containing reset values for fields if previously entered, in case this form is unmounted
+   */
+  resetValues?: {[key: string]: any};
+  /**
+   * Function to provide fields with pre-written data if a default is specified
+   */
   getFieldDefault?: (field: FieldFromSchema) => string;
+  onSubmitSuccess: Function;
 };
 
 /**
@@ -75,17 +87,21 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
   // reset the state when we mount or the action changes
   resetStateFromProps() {
-    const {config, action, extraFields} = this.props;
+    const {config, action, extraFields, element} = this.props;
     this.setState({
       required_fields: config.required_fields,
       optional_fields: config.optional_fields,
     });
-    // we need to pass these fields in the API so just set them as values so we don't need hidden form fields
-    this.model.setInitialData({
-      ...extraFields,
-      action,
-      uri: config.uri,
-    });
+    // For alert-rule-actions, the forms are entirely custom, extra fields are
+    // passed in on submission, not as part of the form. See handleAlertRuleSubmit().
+    if (element !== 'alert-rule-action') {
+      this.model.setInitialData({
+        ...extraFields,
+        // we need to pass these fields in the API so just set them as values so we don't need hidden form fields
+        action,
+        uri: config.uri,
+      });
+    }
   }
 
   onSubmitError = () => {
@@ -128,8 +144,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
   );
 
   makeExternalRequest = async (field: FieldFromSchema, input: FieldValue) => {
-    const install = this.props.sentryAppInstallation;
-    const {extraRequestBody = {}} = this.props;
+    const {extraRequestBody = {}, sentryAppInstallationUuid} = this.props;
     const query: {[key: string]: any} = {
       ...extraRequestBody,
       uri: field.uri,
@@ -146,7 +161,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     }
 
     const {choices} = await this.props.api.requestPromise(
-      `/sentry-app-installations/${install.uuid}/external-requests/`,
+      `/sentry-app-installations/${sentryAppInstallationUuid}/external-requests/`,
       {
         query,
       }
@@ -233,6 +248,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
     // async only used for select components
     const isAsync = typeof field.async === 'undefined' ? true : !!field.async; // default to true
+    const defaultResetValues = (this.props.resetValues || {}).settings || {};
 
     if (fieldToPass.type === 'select') {
       // find the options from state to pass down
@@ -247,6 +263,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
       fieldToPass = {
         ...fieldToPass,
         options,
+        defaultValue: defaultResetValues[field.name],
         defaultOptions,
         filterOption,
         allowClear,
@@ -255,12 +272,18 @@ export class SentryAppExternalForm extends Component<Props, State> {
       if (isAsync) {
         fieldToPass.noOptionsMessage = () => 'Type to search';
       }
-    } else if (
-      ['text', 'textarea'].includes(fieldToPass.type || '') &&
-      field.default &&
-      this.props.getFieldDefault
-    ) {
-      fieldToPass = {...fieldToPass, defaultValue: this.props.getFieldDefault(field)};
+    } else if (['text', 'textarea'].includes(fieldToPass.type || '')) {
+      // Interpret the default if a getFieldDefault function is provided
+      let defaultValue = '';
+      if (field.default && this.props.getFieldDefault) {
+        defaultValue = this.props.getFieldDefault(field);
+      }
+      // Override this default if a reset value is provided
+      defaultValue = defaultResetValues[field.name] || defaultValue;
+      fieldToPass = {
+        ...fieldToPass,
+        defaultValue,
+      };
     }
 
     if (field.depends_on) {
@@ -296,22 +319,40 @@ export class SentryAppExternalForm extends Component<Props, State> {
     );
   };
 
+  handleAlertRuleSubmit = (formData, onSubmitSuccess) => {
+    const {config, sentryAppInstallationUuid} = this.props;
+    if (this.model.validateForm()) {
+      onSubmitSuccess({
+        // The form data must be nested in 'settings' to ensure they don't overlap with any other field names.
+        settings: formData,
+        uri: config.uri,
+        sentryAppInstallationUuid,
+        // Used on the backend to explicitly associate with a different rule than those without a custom form.
+        hasSchemaFormConfig: true,
+      });
+    }
+  };
+
   render() {
-    const {sentryAppInstallation, action} = this.props;
+    const {sentryAppInstallationUuid, action, element, onSubmitSuccess} = this.props;
 
     const requiredFields = this.state.required_fields || [];
     const optionalFields = this.state.optional_fields || [];
 
-    if (!sentryAppInstallation) {
-      return '';
-    }
+    if (!sentryAppInstallationUuid) return '';
 
     return (
       <Form
         key={action}
-        apiEndpoint={`/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`}
+        apiEndpoint={`/sentry-app-installations/${sentryAppInstallationUuid}/external-issue-actions/`}
         apiMethod="POST"
-        onSubmitSuccess={this.props.onSubmitSuccess}
+        // Without defining onSubmit, the Form will send an `apiMethod` request to the above `apiEndpoint`
+        onSubmit={
+          element === 'alert-rule-action' ? this.handleAlertRuleSubmit : undefined
+        }
+        onSubmitSuccess={(...params) => {
+          onSubmitSuccess(...params);
+        }}
         onSubmitError={this.onSubmitError}
         onFieldChange={this.handleFieldChange}
         model={this.model}

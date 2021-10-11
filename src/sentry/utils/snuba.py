@@ -85,6 +85,10 @@ TRANSACTIONS_SNUBA_MAP = {
     if col.value.transaction_name is not None
 }
 
+SESSIONS_FIELD_LIST = ["release", "sessions", "sessions_crashed", "users", "users_crashed"]
+
+SESSIONS_SNUBA_MAP = {column: column for column in SESSIONS_FIELD_LIST}
+
 # This maps the public column aliases to the discover dataset column names.
 # Longer term we would like to not expose the transactions dataset directly
 # to end users and instead have all ad-hoc queries go through the discover
@@ -100,15 +104,17 @@ DATASETS = {
     Dataset.Events: SENTRY_SNUBA_MAP,
     Dataset.Transactions: TRANSACTIONS_SNUBA_MAP,
     Dataset.Discover: DISCOVER_COLUMN_MAP,
+    Dataset.Sessions: SESSIONS_SNUBA_MAP,
 }
 
 # Store the internal field names to save work later on.
-# Add `group_id` to the events dataset list as we don't want to publically
+# Add `group_id` to the events dataset list as we don't want to publicly
 # expose that field, but it is used by eventstore and other internals.
 DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()),
     Dataset.Transactions: list(TRANSACTIONS_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
+    Dataset.Sessions: SESSIONS_FIELD_LIST,
 }
 
 SNUBA_OR = "or"

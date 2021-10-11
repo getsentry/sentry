@@ -21,7 +21,7 @@ const defaultState = {
   pageLinks: null,
 };
 
-const PluginStoreConfig: Reflux.StoreDefinition & PluginStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & PluginStoreInterface = {
   plugins: null,
   state: {...defaultState},
   updating: new Map(),
@@ -121,7 +121,7 @@ const PluginStoreConfig: Reflux.StoreDefinition & PluginStoreInterface = {
   },
 };
 
-const PluginStore = Reflux.createStore(PluginStoreConfig) as Reflux.Store &
+const PluginStore = Reflux.createStore(storeConfig) as Reflux.Store &
   PluginStoreInterface;
 
 export default PluginStore;

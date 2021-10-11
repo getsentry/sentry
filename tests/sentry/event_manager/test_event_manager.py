@@ -39,6 +39,7 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     UserReport,
 )
+from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import TestCase, assert_mock_called_once_with_partial
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.compat import mock
@@ -1237,6 +1238,67 @@ class EventManagerTest(TestCase):
         manager.normalize()
         data = manager.get_data()
         assert data["type"] == "transaction"
+
+    def test_transaction_event_span_grouping(self):
+        with self.feature("projects:performance-suspect-spans-ingestion"):
+            manager = EventManager(
+                make_event(
+                    **{
+                        "transaction": "wait",
+                        "contexts": {
+                            "trace": {
+                                "parent_span_id": "bce14471e0e9654d",
+                                "op": "foobar",
+                                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                                "span_id": "bf5be759039ede9a",
+                            }
+                        },
+                        "spans": [
+                            {
+                                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                                "parent_span_id": "bf5be759039ede9a",
+                                "span_id": "a" * 16,
+                                "start_timestamp": 0,
+                                "timestamp": 1,
+                                "same_process_as_parent": True,
+                                "op": "default",
+                                "description": "span a",
+                            },
+                            {
+                                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                                "parent_span_id": "bf5be759039ede9a",
+                                "span_id": "b" * 16,
+                                "start_timestamp": 0,
+                                "timestamp": 1,
+                                "same_process_as_parent": True,
+                                "op": "default",
+                                "description": "span a",
+                            },
+                            {
+                                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                                "parent_span_id": "bf5be759039ede9a",
+                                "span_id": "c" * 16,
+                                "start_timestamp": 0,
+                                "timestamp": 1,
+                                "same_process_as_parent": True,
+                                "op": "default",
+                                "description": "span b",
+                            },
+                        ],
+                        "timestamp": "2019-06-14T14:01:40Z",
+                        "start_timestamp": "2019-06-14T14:01:40Z",
+                        "type": "transaction",
+                    }
+                )
+            )
+            manager.normalize()
+            event = manager.save(self.project.id)
+            data = event.data
+            assert data["type"] == "transaction"
+            assert data["span_grouping_config"]["id"] == "default:2021-08-25"
+            spans = [{"hash": span["hash"]} for span in data["spans"]]
+            # the basic strategy is to simply use the description
+            assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
 
     def test_sdk(self):
         manager = EventManager(make_event(**{"sdk": {"name": "sentry-unity", "version": "1.0"}}))

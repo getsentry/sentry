@@ -23,7 +23,6 @@ describe('getFieldRenderer', function () {
       query: {},
     };
     data = {
-      key_transaction: 1,
       team_key_transaction: 1,
       title: 'ValueError: something bad',
       transaction: 'api.do_things',
@@ -195,56 +194,6 @@ describe('getFieldRenderer', function () {
     const value = wrapper.find('ProjectBadge');
     expect(value).toHaveLength(1);
     expect(value.text()).toEqual(project.slug);
-  });
-
-  it('can render key transaction as a star', async function () {
-    const renderer = getFieldRenderer('key_transaction', {key_transaction: 'boolean'});
-    delete data.project;
-
-    const wrapper = mountWithTheme(
-      renderer(data, {location, organization}),
-      context.routerContext
-    );
-
-    const value = wrapper.find('StyledKey');
-    expect(value).toHaveLength(1);
-    expect(value.props().isSolid).toBeTruthy();
-
-    // Since there is not project column, it's not clickable
-    expect(wrapper.find('KeyColumn')).toHaveLength(0);
-  });
-
-  it('can render key transaction as a clickable star', async function () {
-    const renderer = getFieldRenderer('key_transaction', {key_transaction: 'boolean'});
-
-    const wrapper = mountWithTheme(
-      renderer(data, {location, organization}),
-      context.routerContext
-    );
-    await tick();
-    wrapper.update();
-
-    let value;
-
-    value = wrapper.find('StyledKey');
-    expect(value).toHaveLength(1);
-    expect(value.props().isSolid).toBeTruthy();
-
-    wrapper.find('KeyColumn').simulate('click');
-    await tick();
-    wrapper.update();
-
-    value = wrapper.find('StyledKey');
-    expect(value).toHaveLength(1);
-    expect(value.props().isSolid).toBeFalsy();
-
-    wrapper.find('KeyColumn').simulate('click');
-    await tick();
-    wrapper.update();
-
-    value = wrapper.find('StyledKey');
-    expect(value).toHaveLength(1);
-    expect(value.props().isSolid).toBeTruthy();
   });
 
   it('can render team key transaction as a star with the dropdown', async function () {

@@ -3,22 +3,24 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateProjects} from 'app/actionCreators/globalSelection';
+import {fetchOrganizationDetails} from 'app/actionCreators/organization';
 import {fetchTagValues} from 'app/actionCreators/tags';
 import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import CreateAlertButton from 'app/components/createAlertButton';
 import GlobalAppStoreConnectUpdateAlert from 'app/components/globalAppStoreConnectUpdateAlert';
+import GlobalEventProcessingAlert from 'app/components/globalEventProcessingAlert';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import IdBadge from 'app/components/idBadge';
 import * as Layout from 'app/components/layouts/thirds';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import LoadingError from 'app/components/loadingError';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
 import TextOverflow from 'app/components/textOverflow';
-import {IconSettings, IconWarning} from 'app/icons';
+import {IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -168,6 +170,11 @@ class ProjectDetail extends AsyncView<Props, State> {
     }
   }
 
+  onRetryProjects = () => {
+    const {params} = this.props;
+    fetchOrganizationDetails(this.api, params.orgId, true, false);
+  };
+
   isProjectStabilized() {
     const {selection, location} = this.props;
     const projectId = this.project?.id;
@@ -188,10 +195,7 @@ class ProjectDetail extends AsyncView<Props, State> {
 
     return (
       <PageContent>
-        <MissingProjectMembership
-          organization={organization}
-          projectSlug={project.slug}
-        />
+        <MissingProjectMembership organization={organization} project={project} />
       </PageContent>
     );
   }
@@ -199,9 +203,10 @@ class ProjectDetail extends AsyncView<Props, State> {
   renderProjectNotFound() {
     return (
       <PageContent>
-        <Alert type="error" icon={<IconWarning />}>
-          {t('This project could not be found.')}
-        </Alert>
+        <LoadingError
+          message={t('This project could not be found.')}
+          onRetry={this.onRetryProjects}
+        />
       </PageContent>
     );
   }
@@ -235,7 +240,7 @@ class ProjectDetail extends AsyncView<Props, State> {
         skipLoadLastUsed
         onUpdateProjects={this.handleProjectChange}
       >
-        <LightWeightNoProjectMessage organization={organization}>
+        <NoProjectMessage organization={organization}>
           <StyledPageContent>
             <Layout.Header>
               <Layout.HeaderContent>
@@ -288,6 +293,7 @@ class ProjectDetail extends AsyncView<Props, State> {
             </Layout.Header>
 
             <Layout.Body>
+              {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
               <StyledSdkUpdatesAlert />
               <StyledGlobalAppStoreConnectUpdateAlert
                 project={project}
@@ -364,7 +370,7 @@ class ProjectDetail extends AsyncView<Props, State> {
               </Layout.Side>
             </Layout.Body>
           </StyledPageContent>
-        </LightWeightNoProjectMessage>
+        </NoProjectMessage>
       </GlobalSelectionHeader>
     );
   }
@@ -380,6 +386,12 @@ const ProjectFiltersWrapper = styled('div')`
 `;
 
 const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-bottom: 0;
+  }
+`;
+
+const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     margin-bottom: 0;
   }

@@ -1,11 +1,13 @@
 import pytest
 import responses
 
-from sentry.integrations.slack.utils import CHANNEL_PREFIX, MEMBER_PREFIX, get_channel_id
+from sentry.integrations.slack.utils import get_channel_id
+from sentry.integrations.slack.utils.channel import CHANNEL_PREFIX, MEMBER_PREFIX
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.testutils import TestCase
 from sentry.utils import json
+from tests.sentry.integrations.slack import install_slack
 
 
 class GetChannelIdBotTest(TestCase):
@@ -13,16 +15,7 @@ class GetChannelIdBotTest(TestCase):
         self.resp = responses.mock
         self.resp.__enter__()
 
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Awesome Team",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-        self.integration.add_organization(self.event.project.organization, self.user)
+        self.integration = install_slack(self.event.project.organization)
         self.add_list_response(
             "conversations",
             [

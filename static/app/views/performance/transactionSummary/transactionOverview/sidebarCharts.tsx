@@ -1,10 +1,9 @@
 import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {Client} from 'app/api';
 import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
@@ -18,7 +17,7 @@ import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
-import {LightWeightOrganization} from 'app/types';
+import {Organization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {tooltipFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
@@ -27,14 +26,11 @@ import {
   formatFloat,
   formatPercentage,
 } from 'app/utils/formatters';
-import {Theme} from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
 type Props = WithRouterProps & {
-  theme: Theme;
-  api: Client;
-  organization: LightWeightOrganization;
+  organization: Organization;
   location: Location;
   eventView: EventView;
   isLoading: boolean;
@@ -43,8 +39,6 @@ type Props = WithRouterProps & {
 };
 
 function SidebarCharts({
-  theme,
-  api,
   location,
   eventView,
   organization,
@@ -53,6 +47,9 @@ function SidebarCharts({
   error,
   totals,
 }: Props) {
+  const api = useApi();
+  const theme = useTheme();
+
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
@@ -231,6 +228,7 @@ function SidebarCharts({
             includePrevious={false}
             yAxis={['apdex()', 'failure_rate()', 'epm()']}
             partial
+            referrer="api.performance.transaction-summary.sidebar-chart"
           >
             {({results, errored, loading, reloading}) => {
               if (errored) {
@@ -296,4 +294,4 @@ const ChartValue = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
-export default withApi(withTheme(withRouter(SidebarCharts)));
+export default withRouter(SidebarCharts);

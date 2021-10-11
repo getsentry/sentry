@@ -10,7 +10,11 @@ import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, SelectValue} from 'app/types';
-import {getAggregateAlias} from 'app/utils/discover/fields';
+import {
+  explodeField,
+  generateFieldAsString,
+  getAggregateAlias,
+} from 'app/utils/discover/fields';
 import {Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
@@ -82,6 +86,7 @@ class WidgetQueriesForm extends React.Component<Props> {
     } = this.props;
 
     const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);
+    const explodedFields = queries[0].fields.map(field => explodeField({field}));
 
     return (
       <QueryWrapper>
@@ -153,17 +158,18 @@ class WidgetQueriesForm extends React.Component<Props> {
           displayType={displayType}
           fieldOptions={fieldOptions}
           errors={this.getFirstQueryError('fields')}
-          fields={queries[0].fields}
+          fields={explodedFields}
           organization={organization}
           onChange={fields => {
+            const fieldStrings = fields.map(field => generateFieldAsString(field));
             queries.forEach((widgetQuery, queryIndex) => {
               const newQuery = cloneDeep(widgetQuery);
-              newQuery.fields = fields;
+              newQuery.fields = fieldStrings;
               onChange(queryIndex, newQuery);
             });
           }}
         />
-        {displayType === 'table' && (
+        {['table', 'top_n'].includes(displayType) && (
           <Field
             label={t('Sort by')}
             inline={false}

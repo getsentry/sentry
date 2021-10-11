@@ -4,6 +4,7 @@ from typing import Sequence, Set, Tuple
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
 
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.models import (
     INCIDENT_STATUS,
     AlertRuleThresholdType,
@@ -63,7 +64,7 @@ class EmailActionHandler(ActionHandler):
             return {target.id}
 
         elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
-            users = NotificationSetting.objects.filter_to_subscribed_users(
+            users = NotificationSetting.objects.filter_to_accepting_recipients(
                 self.project,
                 {member.user for member in target.member_set},
             )[ExternalProviders.EMAIL]
@@ -187,7 +188,11 @@ def generate_incident_trigger_email_context(project, incident, alert_rule_trigge
     # we can simplify this to be the below statement
     show_greater_than_string = is_active == is_threshold_type_above
     environment_string = snuba_query.environment.name if snuba_query.environment else "All"
+
     aggregate = alert_rule.snuba_query.aggregate
+    if CRASH_RATE_ALERT_AGGREGATE_ALIAS in aggregate:
+        aggregate = aggregate.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
+
     return {
         "link": absolute_uri(
             reverse(

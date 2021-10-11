@@ -9,10 +9,10 @@ from sentry.integrations.slack.message_builder.discover import build_discover_at
 from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
-from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat.mock import patch
+from tests.sentry.integrations.slack import install_slack
 
 
 @pytest.mark.parametrize(
@@ -43,49 +43,38 @@ def test_match_link(url, expected):
 class UnfurlTest(TestCase):
     def setUp(self):
         super().setUp()
+        self.integration = install_slack(self.organization)
+
         self.request = RequestFactory().get("slack/event")
-        self.user = self.create_user(is_superuser=False)
-        self.org = self.create_organization(owner=None)
-        self.integration = Integration.objects.create(
-            provider="slack",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        self.team = self.create_team(organization=self.org, name="charts team")
-        self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
-        OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
 
     def test_unfurl_issues(self):
-        project1 = self.create_project(organization=self.org)
-        group1 = self.create_group(project=project1)
         min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
         group2 = event.group
 
         links = [
             UnfurlableUrl(
-                url=f"https://sentry.io/organizations/{self.org.slug}/issues/{group1.id}/",
-                args={"issue_id": group1.id, "event_id": None},
+                url=f"https://sentry.io/organizations/{self.organization.slug}/issues/{self.group.id}/",
+                args={"issue_id": self.group.id, "event_id": None},
             ),
             UnfurlableUrl(
-                url=f"https://sentry.io/organizations/{self.org.slug}/issues/{group2.id}/{event.event_id}/",
+                url=f"https://sentry.io/organizations/{self.organization.slug}/issues/{group2.id}/{event.event_id}/",
                 args={"issue_id": group2.id, "event_id": event.event_id},
             ),
         ]
 
         unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
 
-        assert unfurls[links[0].url] == build_group_attachment(group1)
+        assert unfurls[links[0].url] == build_group_attachment(self.group)
         assert unfurls[links[1].url] == build_group_attachment(group2, event, link_to_event=True)
 
     def test_unfurl_incidents(self):
-        project1 = self.create_project(organization=self.org)
         alert_rule = self.create_alert_rule()
 
         incident = self.create_incident(
-            status=2, organization=self.org, projects=[project1], alert_rule=alert_rule
+            status=2, organization=self.organization, projects=[self.project], alert_rule=alert_rule
         )
         incident.update(identifier=123)
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
@@ -95,8 +84,8 @@ class UnfurlTest(TestCase):
 
         links = [
             UnfurlableUrl(
-                url=f"https://sentry.io/organizations/{self.org.slug}/alerts/rules/details/{incident.identifier}/",
-                args={"org_slug": self.org.slug, "incident_id": incident.identifier},
+                url=f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{incident.identifier}/",
+                args={"org_slug": self.organization.slug, "incident_id": incident.identifier},
             ),
         ]
         unfurls = link_handlers[LinkType.INCIDENTS].fn(self.request, self.integration, links)
@@ -105,16 +94,15 @@ class UnfurlTest(TestCase):
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover(self, mock_generate_chart):
-        project1 = self.create_project(organization=self.org)
         min_ago = iso_format(before_now(minutes=1))
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
 
-        url = f"https://sentry.io/organizations/{self.org.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={project1.id}&query=&sort=-timestamp&statsPeriod=24h"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -130,7 +118,7 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"
@@ -141,17 +129,16 @@ class UnfurlTest(TestCase):
         assert len(chart_data["stats"]["data"]) == 288
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
-    def test_unfurl_discover_multi_y_axis(self, mock_generate_chart):
-        project1 = self.create_project(organization=self.org)
+    def test_unfurl_discover_previous_period(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
 
-        url = f"https://sentry.io/organizations/{self.org.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={project1.id}&query=&sort=-timestamp&statsPeriod=24h&yAxis=count_unique%28user%29&yAxis=count%28%29"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=previous&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -167,7 +154,44 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["seriesName"] == "count()"
+        assert len(chart_data["stats"]["data"]) == 48
+
+    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    def test_unfurl_discover_multi_y_axis(self, mock_generate_chart):
+        min_ago = iso_format(before_now(minutes=1))
+        self.store_event(
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
+        )
+        self.store_event(
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
+        )
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h&yAxis=count_unique%28user%29&yAxis=count%28%29"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise Exception("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(
+            [
+                "organizations:discover-basic",
+                "organizations:chart-unfurls",
+            ]
+        ):
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"
@@ -180,16 +204,15 @@ class UnfurlTest(TestCase):
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover_html_escaped(self, mock_generate_chart):
-        project1 = self.create_project(organization=self.org)
         min_ago = iso_format(before_now(minutes=1))
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
 
-        url = f"https://sentry.io/organizations/{self.org.slug}/discover/results/?field=title&amp;field=event.type&amp;field=project&amp;field=user.display&amp;field=timestamp&amp;name=All+Events&amp;project={project1.id}&amp;query=&amp;sort=-timestamp&amp;statsPeriod=24h"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&amp;field=event.type&amp;field=project&amp;field=user.display&amp;field=timestamp&amp;name=All+Events&amp;project={self.project.id}&amp;query=&amp;sort=-timestamp&amp;statsPeriod=24h"
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -205,7 +228,7 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"
@@ -218,25 +241,32 @@ class UnfurlTest(TestCase):
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover_short_url(self, mock_generate_chart):
         query = {
-            "fields": ["title", "event.type", "project", "user.display", "timestamp"],
-            "query": "",
-            "yAxis": "count_unique(users)",
+            "fields": ["message", "event.type", "project", "user.display", "count_unique(user)"],
+            "query": "message:[first,second]",
+            "yAxis": "count_unique(user)",
+            "display": "top5",
+            "topEvents": 2,
         }
         saved_query = DiscoverSavedQuery.objects.create(
-            organization=self.org, created_by=self.user, name="Test query", query=query, version=2
+            organization=self.organization,
+            created_by=self.user,
+            name="Test query",
+            query=query,
+            version=2,
         )
-        project1 = self.create_project(organization=self.org)
-        saved_query.set_projects([project1.id])
+        saved_query.set_projects([self.project.id])
 
         min_ago = iso_format(before_now(minutes=1))
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+            data={"message": "first", "fingerprint": ["group2"], "timestamp": min_ago},
+            project_id=self.project.id,
         )
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+            data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
+            project_id=self.project.id,
         )
 
-        url = f"https://sentry.io/organizations/{self.org.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h&project={project1.id}"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h&project={self.project.id}"
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -251,19 +281,67 @@ class UnfurlTest(TestCase):
                 "organizations:discover",
                 "organizations:discover-basic",
                 "organizations:chart-unfurls",
+                "organizations:discover-top-events",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"
         )
         assert len(mock_generate_chart.mock_calls) == 1
 
-        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOTAL_PERIOD
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOP5_PERIOD
         chart_data = mock_generate_chart.call_args[0][1]
-        assert chart_data["seriesName"] == "count_unique(users)"
-        assert len(chart_data["stats"]["data"]) == 288
+        assert chart_data["seriesName"] == "count_unique(user)"
+        # 2 + 1 cause of Other
+        assert len(chart_data["stats"].keys()) == 2
+        first_key = list(chart_data["stats"].keys())[0]
+        assert len(chart_data["stats"][first_key]["data"]) == 288
+
+    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    def test_top_events_url_param(self, mock_generate_chart):
+        min_ago = iso_format(before_now(minutes=1))
+        self.store_event(
+            data={"message": "first", "fingerprint": ["group1"], "timestamp": min_ago},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
+            project_id=self.project.id,
+        )
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=message&field=event.type&field=count()&name=All+Events&query=message:[first,second]&sort=-count&statsPeriod=24h&display=top5&topEvents=2"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise Exception("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(
+            [
+                "organizations:discover",
+                "organizations:discover-basic",
+                "organizations:chart-unfurls",
+                "organizations:discover-top-events",
+            ]
+        ):
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+
+        assert unfurls[url] == build_discover_attachment(
+            title=args["query"].get("name"), chart_url="chart-url"
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOP5_PERIOD
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["seriesName"] == "count()"
+        assert len(chart_data["stats"].keys()) == 2
+        first_key = list(chart_data["stats"].keys())[0]
+        assert len(chart_data["stats"][first_key]["data"]) == 288
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover_short_url_without_project_ids(self, mock_generate_chart):
@@ -273,20 +351,23 @@ class UnfurlTest(TestCase):
             "yAxis": "count_unique(users)",
         }
         saved_query = DiscoverSavedQuery.objects.create(
-            organization=self.org, created_by=self.user, name="Test query", query=query, version=2
+            organization=self.organization,
+            created_by=self.user,
+            name="Test query",
+            query=query,
+            version=2,
         )
-        project1 = self.create_project(organization=self.org, teams=[self.team])
-        saved_query.set_projects([project1.id])
+        saved_query.set_projects([self.project.id])
 
         min_ago = iso_format(before_now(minutes=1))
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
 
-        url = f"https://sentry.io/organizations/{self.org.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h&user={self.user.id}"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h"
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -303,7 +384,7 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"
@@ -317,16 +398,15 @@ class UnfurlTest(TestCase):
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover_without_project_ids(self, mock_generate_chart):
-        project1 = self.create_project(organization=self.org, teams=[self.team])
         min_ago = iso_format(before_now(minutes=1))
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
         self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=project1.id
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
 
-        url = f"https://sentry.io/organizations/{self.org.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&statsPeriod=24h&user={self.user.id}"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 
         if not args or not link_type:
@@ -343,7 +423,7 @@ class UnfurlTest(TestCase):
                 "organizations:chart-unfurls",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
         assert unfurls[url] == build_discover_attachment(
             title=args["query"].get("name"), chart_url="chart-url"

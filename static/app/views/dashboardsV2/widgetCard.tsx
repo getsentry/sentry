@@ -1,4 +1,5 @@
 import * as React from 'react';
+import LazyLoad from 'react-lazyload';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
@@ -138,7 +139,19 @@ class WidgetCard extends React.Component<Props> {
                   selection,
                   widget.displayType
                 );
-                browserHistory.push(eventView.getResultsViewUrlTarget(organization.slug));
+                const discoverLocation = eventView.getResultsViewUrlTarget(
+                  organization.slug
+                );
+                if (this.isAllowWidgetsToDiscover()) {
+                  // Pull a max of 3 valid Y-Axis from the widget
+                  const yAxisOptions = eventView
+                    .getYAxisOptions()
+                    .map(({value}) => value);
+                  discoverLocation.query.yAxis = widget.queries[0].fields
+                    .filter(field => yAxisOptions.includes(field))
+                    .slice(0, 3);
+                }
+                browserHistory.push(discoverLocation);
               } else {
                 openDashboardWidgetQuerySelectorModal({organization, widget});
               }
@@ -173,34 +186,36 @@ class WidgetCard extends React.Component<Props> {
             <WidgetTitle>{widget.title}</WidgetTitle>
             {this.renderContextMenu()}
           </WidgetHeader>
-          <WidgetQueries
-            api={api}
-            organization={organization}
-            widget={widget}
-            selection={selection}
-          >
-            {({tableResults, timeseriesResults, errorMessage, loading}) => {
-              return (
-                <React.Fragment>
-                  {typeof renderErrorMessage === 'function'
-                    ? renderErrorMessage(errorMessage)
-                    : null}
-                  <WidgetCardChart
-                    timeseriesResults={timeseriesResults}
-                    tableResults={tableResults}
-                    errorMessage={errorMessage}
-                    loading={loading}
-                    location={location}
-                    widget={widget}
-                    selection={selection}
-                    router={router}
-                    organization={organization}
-                  />
-                  {this.renderToolbar()}
-                </React.Fragment>
-              );
-            }}
-          </WidgetQueries>
+          <LazyLoad once height={200}>
+            <WidgetQueries
+              api={api}
+              organization={organization}
+              widget={widget}
+              selection={selection}
+            >
+              {({tableResults, timeseriesResults, errorMessage, loading}) => {
+                return (
+                  <React.Fragment>
+                    {typeof renderErrorMessage === 'function'
+                      ? renderErrorMessage(errorMessage)
+                      : null}
+                    <WidgetCardChart
+                      timeseriesResults={timeseriesResults}
+                      tableResults={tableResults}
+                      errorMessage={errorMessage}
+                      loading={loading}
+                      location={location}
+                      widget={widget}
+                      selection={selection}
+                      router={router}
+                      organization={organization}
+                    />
+                    {this.renderToolbar()}
+                  </React.Fragment>
+                );
+              }}
+            </WidgetQueries>
+          </LazyLoad>
         </StyledPanel>
       </ErrorBoundary>
     );

@@ -8,6 +8,7 @@ import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
+import ExternalLink from 'app/components/links/externalLink';
 import {RowRectangle} from 'app/components/performance/waterfall/rowBar';
 import {pickBarColor, toPercent} from 'app/components/performance/waterfall/utils';
 import Tooltip from 'app/components/tooltip';
@@ -15,7 +16,7 @@ import UserMisery from 'app/components/userMisery';
 import Version from 'app/components/version';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
-import {defined} from 'app/utils';
+import {defined, isUrl} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {EventData, MetaType} from 'app/utils/discover/eventView';
 import {
@@ -38,7 +39,6 @@ import {
 } from 'app/views/performance/transactionSummary/filter';
 
 import ArrayValue from './arrayValue';
-import KeyTransactionField from './keyTransactionField';
 import {
   BarContainer,
   Container,
@@ -164,6 +164,15 @@ const FIELD_FORMATTERS: FieldFormatters = {
         : defined(data[field])
         ? data[field]
         : emptyValue;
+      if (isUrl(value)) {
+        return (
+          <Container>
+            <ExternalLink href={value} data-test-id="group-tag-url">
+              {value}
+            </ExternalLink>
+          </Container>
+        );
+      }
       return <Container>{value}</Container>;
     },
   },
@@ -197,7 +206,6 @@ type SpecialFields = {
   'error.handled': SpecialField;
   issue: SpecialField;
   release: SpecialField;
-  key_transaction: SpecialField;
   team_key_transaction: SpecialField;
   'trend_percentage()': SpecialField;
   'timestamp.to_hour': SpecialField;
@@ -373,19 +381,6 @@ const SPECIAL_FIELDS: SpecialFields = {
       const value = Array.isArray(values) ? values.slice(-1)[0] : values;
       return <Container>{[1, null].includes(value) ? 'true' : 'false'}</Container>;
     },
-  },
-  key_transaction: {
-    sortField: null,
-    renderFunc: (data, {organization}) => (
-      <Container>
-        <KeyTransactionField
-          isKeyTransaction={(data.key_transaction ?? 0) !== 0}
-          organization={organization}
-          projectSlug={data.project}
-          transactionName={data.transaction}
-        />
-      </Container>
-    ),
   },
   team_key_transaction: {
     sortField: null,

@@ -7,25 +7,14 @@ from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
 from sentry.utils import json
+from tests.sentry.integrations.slack import install_slack
 
 
 class SlackNotifyActionTest(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
 
     def setUp(self):
-        event = self.get_event()
-
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Awesome Team",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-                "domain_name": "sentry.slack.com",
-            },
-        )
-        self.integration.add_organization(event.project.organization, self.user)
+        self.integration = install_slack(self.get_event().project.organization)
 
     def assert_form_valid(self, form, expected_channel_id, expected_channel):
         assert form.is_valid()
@@ -61,25 +50,35 @@ class SlackNotifyActionTest(RuleTestCase):
 
     def test_render_label(self):
         rule = self.get_rule(
-            data={"workspace": self.integration.id, "channel": "#my-channel", "tags": "one, two"}
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "channel_id": "",
+                "tags": "one, two",
+            }
         )
 
         assert (
             rule.render_label()
-            == "Send a notification to the Awesome Team Slack workspace to #my-channel and show tags [one, two] in notification"
+            == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] in notification"
         )
 
     def test_render_label_without_integration(self):
         self.integration.delete()
 
         rule = self.get_rule(
-            data={"workspace": self.integration.id, "channel": "#my-channel", "tags": ""}
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "channel_id": "",
+                "tags": "",
+            }
         )
 
         label = rule.render_label()
         assert (
             label
-            == "Send a notification to the [removed] Slack workspace to #my-channel and show tags [] in notification"
+            == "Send a notification to the [removed] Slack workspace to #my-channel (optionally, an ID: ) and show tags [] in notification"
         )
 
     @responses.activate

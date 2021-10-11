@@ -51,6 +51,13 @@ register(
     flags=FLAG_PRIORITIZE_DISK,
 )
 register("releasefile.cache-limit", type=Int, default=10 * 1024 * 1024, flags=FLAG_PRIORITIZE_DISK)
+register(
+    "releasefile.cache-max-archive-size",
+    type=Int,
+    default=1024 * 1024 * 1024,
+    flags=FLAG_PRIORITIZE_DISK,
+)
+
 
 # Mail
 register("mail.backend", default="smtp", flags=FLAG_NOSTORE)
@@ -367,3 +374,5 @@ register("subscriptions-query.sample-rate", default=0.01)
 # This is to allow gradual rollout of metrics collection for symbolication requests and can be
 # removed once it is fully rolled out.
 register("symbolicate-event.low-priority.metrics.submission-rate", default=0.0)
+
+register("performance.suspect-spans-ingestion-projects", default={})

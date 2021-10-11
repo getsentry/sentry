@@ -3,7 +3,7 @@ import {Location} from 'history';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
-import {LightWeightOrganization, NewQuery, Project, SelectValue} from 'app/types';
+import {NewQuery, Organization, Project, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
@@ -56,7 +56,7 @@ export type TooltipOption = SelectValue<string> & {
   tooltip: string;
 };
 
-export function getAxisOptions(organization: LightWeightOrganization): TooltipOption[] {
+export function getAxisOptions(organization: Organization): TooltipOption[] {
   return [
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
@@ -100,9 +100,7 @@ export type AxisOption = TooltipOption & {
   isRightDefault?: boolean;
 };
 
-export function getFrontendAxisOptions(
-  organization: LightWeightOrganization
-): AxisOption[] {
+export function getFrontendAxisOptions(organization: Organization): AxisOption[] {
   return [
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.LCP),
@@ -141,9 +139,7 @@ export function getFrontendAxisOptions(
   ];
 }
 
-export function getFrontendOtherAxisOptions(
-  organization: LightWeightOrganization
-): AxisOption[] {
+export function getFrontendOtherAxisOptions(organization: Organization): AxisOption[] {
   return [
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
@@ -175,9 +171,7 @@ export function getFrontendOtherAxisOptions(
   ];
 }
 
-export function getBackendAxisOptions(
-  organization: LightWeightOrganization
-): AxisOption[] {
+export function getBackendAxisOptions(organization: Organization): AxisOption[] {
   return [
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
@@ -233,9 +227,7 @@ export function getBackendAxisOptions(
   ];
 }
 
-export function getMobileAxisOptions(
-  organization: LightWeightOrganization
-): AxisOption[] {
+export function getMobileAxisOptions(organization: Organization): AxisOption[] {
   return [
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
@@ -316,9 +308,9 @@ export function getMobileAxisOptions(
   ];
 }
 
-type TermFormatter = (organization: LightWeightOrganization) => string;
+type TermFormatter = (organization: Organization) => string;
 
-const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
+export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   apdex: () =>
     t(
       'Apdex is the ratio of both satisfactory and tolerable response times to all response times. To adjust the tolerable threshold, go to performance settings.'
@@ -372,7 +364,7 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
 };
 
 export function getTermHelp(
-  organization: LightWeightOrganization,
+  organization: Organization,
   term: keyof typeof PERFORMANCE_TERMS
 ): string {
   if (!PERFORMANCE_TERMS.hasOwnProperty(term)) {
@@ -382,7 +374,7 @@ export function getTermHelp(
 }
 
 function generateGenericPerformanceEventView(
-  _organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location
 ): EventView {
   const {query} = location;
@@ -447,7 +439,7 @@ function generateGenericPerformanceEventView(
 }
 
 function generateBackendPerformanceEventView(
-  _organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location
 ): EventView {
   const {query} = location;
@@ -514,7 +506,7 @@ function generateBackendPerformanceEventView(
 }
 
 function generateMobilePerformanceEventView(
-  _organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location,
   projects: Project[],
   genericEventView: EventView
@@ -599,7 +591,7 @@ function generateMobilePerformanceEventView(
 }
 
 function generateFrontendPageloadPerformanceEventView(
-  _organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location
 ): EventView {
   const {query} = location;
@@ -666,7 +658,7 @@ function generateFrontendPageloadPerformanceEventView(
 }
 
 function generateFrontendOtherPerformanceEventView(
-  _organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location
 ): EventView {
   const {query} = location;
@@ -764,7 +756,7 @@ export function generatePerformanceEventView(
 }
 
 export function generatePerformanceVitalDetailView(
-  _organization: LightWeightOrganization,
+  _organization: Organization,
   location: Location
 ): EventView {
   const {query} = location;

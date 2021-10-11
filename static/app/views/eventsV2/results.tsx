@@ -17,14 +17,13 @@ import Confirm from 'app/components/confirm';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import SearchBar from 'app/components/events/searchBar';
 import * as Layout from 'app/components/layouts/thirds';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'app/constants';
 import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, SavedQuery} from 'app/types';
@@ -32,8 +31,9 @@ import {defined, generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
+import {DisplayModes} from 'app/utils/discover/types';
 import localStorage from 'app/utils/localStorage';
-import {decodeScalar} from 'app/utils/queryString';
+import {decodeList, decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -66,12 +66,21 @@ type State = {
   needConfirmation: boolean;
   confirmedQuery: boolean;
   incompatibleAlertNotice: React.ReactNode;
+  savedQuery?: SavedQuery;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
 function readShowTagsState() {
   const value = localStorage.getItem(SHOW_TAGS_STORAGE_KEY);
   return value === '1';
+}
+
+function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQuery) {
+  return location.query.yAxis
+    ? decodeList(location.query.yAxis)
+    : savedQuery?.yAxis && savedQuery.yAxis.length > 0
+    ? decodeList(savedQuery?.yAxis)
+    : [eventView.getYAxis()];
 }
 
 class Results extends React.Component<Props, State> {
@@ -81,7 +90,7 @@ class Results extends React.Component<Props, State> {
         nextProps.savedQuery,
         nextProps.location
       );
-      return {...prevState, eventView};
+      return {...prevState, eventView, savedQuery: nextProps.savedQuery};
     }
     return prevState;
   }
@@ -113,14 +122,26 @@ class Results extends React.Component<Props, State> {
 
   componentDidUpdate(prevProps: Props, prevState: State) {
     const {api, location, organization, selection} = this.props;
-    const {eventView, confirmedQuery} = this.state;
+    const {eventView, confirmedQuery, savedQuery} = this.state;
 
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
+    const yAxisArray = getYAxis(location, eventView, savedQuery);
+    const prevYAxisArray = getYAxis(
+      prevProps.location,
+      prevState.eventView,
+      prevState.savedQuery
+    );
+
     if (
       !isAPIPayloadSimilar(currentQuery, prevQuery) ||
-      this.hasChartParametersChanged(prevState.eventView, eventView)
+      this.hasChartParametersChanged(
+        prevState.eventView,
+        eventView,
+        prevYAxisArray,
+        yAxisArray
+      )
     ) {
       api.clear();
       this.canLoadEvents();
@@ -138,11 +159,13 @@ class Results extends React.Component<Props, State> {
 
   tagsApi: Client = new Client();
 
-  hasChartParametersChanged(prevEventView: EventView, eventView: EventView) {
-    const prevYAxisValue = prevEventView.getYAxis();
-    const yAxisValue = eventView.getYAxis();
-
-    if (prevYAxisValue !== yAxisValue) {
+  hasChartParametersChanged(
+    prevEventView: EventView,
+    eventView: EventView,
+    prevYAxisArray: string[],
+    yAxisArray: string[]
+  ) {
+    if (!isEqual(prevYAxisArray, yAxisArray)) {
       return true;
     }
 
@@ -284,12 +307,24 @@ class Results extends React.Component<Props, State> {
     });
   };
 
-  handleYAxisChange = (value: string) => {
+  handleYAxisChange = (value: string[]) => {
     const {router, location} = this.props;
+    const isDisplayMultiYAxisSupported = [
+      DisplayModes.DEFAULT,
+      DisplayModes.DAILY,
+      DisplayModes.PREVIOUS,
+    ].includes(location.query.display as DisplayModes);
 
     const newQuery = {
       ...location.query,
       yAxis: value,
+      // If using Multi Y-axis and not in a supported display, change to the default display mode
+      display:
+        value.length > 1 && !isDisplayMultiYAxisSupported
+          ? location.query.display === DisplayModes.DAILYTOP5
+            ? DisplayModes.DAILY
+            : DisplayModes.DEFAULT
+          : location.query.display,
     };
 
     router.push({
@@ -316,6 +351,25 @@ class Results extends React.Component<Props, State> {
     const newQuery = {
       ...location.query,
       display: value,
+    };
+
+    router.push({
+      pathname: location.pathname,
+      query: newQuery,
+    });
+
+    // Treat display changing like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
+  };
+
+  handleTopEventsChange = (value: string) => {
+    const {router, location} = this.props;
+
+    const newQuery = {
+      ...location.query,
+      topEvents: value,
     };
 
     router.push({
@@ -415,23 +469,26 @@ class Results extends React.Component<Props, State> {
       showTags,
       incompatibleAlertNotice,
       confirmedQuery,
+      savedQuery,
     } = this.state;
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
       : eventView.fields;
     const query = eventView.query;
     const title = this.getDocumentTitle();
+    const yAxisArray = getYAxis(location, eventView, savedQuery);
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
         <StyledPageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
             <ResultsHeader
               errorCode={errorCode}
               organization={organization}
               location={location}
               eventView={eventView}
               onIncompatibleAlertQuery={this.handleIncompatibleQuery}
+              yAxis={yAxisArray}
             />
             <Layout.Body>
               {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
@@ -453,8 +510,10 @@ class Results extends React.Component<Props, State> {
                   location={location}
                   onAxisChange={this.handleYAxisChange}
                   onDisplayChange={this.handleDisplayChange}
+                  onTopEventsChange={this.handleTopEventsChange}
                   total={totalValues}
                   confirmedQuery={confirmedQuery}
+                  yAxis={yAxisArray}
                 />
               </Top>
               <Layout.Main fullWidth={!showTags}>
@@ -495,7 +554,7 @@ class Results extends React.Component<Props, State> {
                 {this.setOpenFunction}
               </Confirm>
             </Layout.Body>
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </StyledPageContent>
       </SentryDocumentTitle>
     );
@@ -553,16 +612,6 @@ function ResultsContainer(props: Props) {
    * you no longer need to enforce a project if it is empty. We assume an empty project is
    * the desired behavior because saved queries can contain a project filter.
    */
-
-  const {location, router} = props;
-  const user = ConfigStore.get('user');
-
-  if (user.id !== location.query.user) {
-    router.push({
-      pathname: location.pathname,
-      query: {...location.query, user: user.id},
-    });
-  }
 
   return (
     <GlobalSelectionHeader

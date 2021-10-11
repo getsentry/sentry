@@ -146,6 +146,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           field: ['count()', 'failure_count()'],
           name: 'Test Widget',
           query: 'title:/organizations/:orgId/performance/summary/',
+          yAxis: ['count()', 'failure_count()'],
         }),
       })
     );
@@ -165,6 +166,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         field: ['geo.country_code', 'count()'],
         name: 'Test Widget',
         query: 'title:/organizations/:orgId/performance/summary/ has:geo.country_code',
+        yAxis: ['count()'],
       }),
     });
     wrapper.unmount();

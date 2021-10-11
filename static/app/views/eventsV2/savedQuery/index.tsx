@@ -2,6 +2,7 @@ import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
@@ -24,6 +25,7 @@ import EventView from 'app/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
+import {WidgetQuery} from 'app/views/dashboardsV2/types';
 import InputControl from 'app/views/settings/components/forms/controls/input';
 
 import DiscoverQueryMenu from './discoverQueryMenu';
@@ -53,6 +55,7 @@ type Props = DefaultProps & {
   onIncompatibleAlertQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
+  yAxis: string[];
 };
 
 type State = {
@@ -64,7 +67,7 @@ type State = {
 
 class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    const {eventView: nextEventView, savedQuery, savedQueryLoading} = nextProps;
+    const {eventView: nextEventView, savedQuery, savedQueryLoading, yAxis} = nextProps;
 
     // For a new unsaved query
     if (!savedQuery) {
@@ -92,9 +95,18 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     // For modifying a SavedQuery
     const isEqualQuery = nextEventView.isEqualTo(savedEventView);
+    // undefined saved yAxis defaults to count() and string values are converted to array
+    const isEqualYAxis = isEqual(
+      yAxis,
+      !savedQuery.yAxis
+        ? ['count()']
+        : typeof savedQuery.yAxis === 'string'
+        ? [savedQuery.yAxis]
+        : savedQuery.yAxis
+    );
     return {
       isNewQuery: false,
-      isEditingQuery: !isEqualQuery,
+      isEditingQuery: !isEqualQuery || !isEqualYAxis,
 
       // HACK(leedongwei): See comment at SavedQueryButtonGroup.onFocusInput
       queryName: prevState.queryName || '',
@@ -147,7 +159,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, organization, eventView} = this.props;
+    const {api, organization, eventView, yAxis} = this.props;
 
     if (!this.state.queryName) {
       return;
@@ -160,7 +172,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     // clicked while modifying an existing query
     const isNewQuery = !eventView.id;
 
-    handleCreateQuery(api, organization, nextEventView, isNewQuery).then(
+    handleCreateQuery(api, organization, nextEventView, yAxis, isNewQuery).then(
       (savedQuery: SavedQuery) => {
         const view = EventView.fromSavedQuery(savedQuery);
 
@@ -175,14 +187,16 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, organization, eventView, updateCallback} = this.props;
+    const {api, organization, eventView, updateCallback, yAxis} = this.props;
 
-    handleUpdateQuery(api, organization, eventView).then((savedQuery: SavedQuery) => {
-      const view = EventView.fromSavedQuery(savedQuery);
-      this.setState({queryName: ''});
-      browserHistory.push(view.getResultsViewShortUrlTarget(organization.slug));
-      updateCallback();
-    });
+    handleUpdateQuery(api, organization, eventView, yAxis).then(
+      (savedQuery: SavedQuery) => {
+        const view = EventView.fromSavedQuery(savedQuery);
+        this.setState({queryName: ''});
+        browserHistory.push(view.getResultsViewShortUrlTarget(organization.slug));
+        updateCallback();
+      }
+    );
   };
 
   handleDeleteQuery = (event: React.MouseEvent<Element>) => {
@@ -211,13 +225,22 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   };
 
   handleAddDashboardWidget = () => {
-    const {organization, eventView, savedQuery} = this.props;
+    const {organization, eventView, savedQuery, yAxis} = this.props;
+    const defaultWidgetQuery: WidgetQuery = {
+      name: '',
+      fields: yAxis ?? ['count()'],
+      conditions: eventView.query,
+      orderby: '',
+    };
+
     openAddDashboardWidgetModal({
       organization,
-      defaultQuery: eventView.query,
-      defaultTitle:
-        savedQuery?.name ?? eventView.name !== 'All Events' ? eventView.name : undefined,
       fromDiscover: true,
+      defaultWidgetQuery,
+      defaultTableColumns: eventView.fields.map(({field}) => field),
+      defaultTitle:
+        savedQuery?.name ??
+        (eventView.name !== 'All Events' ? eventView.name : undefined),
     });
   };
 

@@ -1,5 +1,5 @@
 from collections import defaultdict, namedtuple
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Mapping, Optional, Sequence, Type, Union
 
 from django.db import models
 from django.db.models.signals import pre_save
@@ -8,10 +8,14 @@ from rest_framework import serializers
 from sentry.db.models import Model
 from sentry.utils.compat import filter
 
+if TYPE_CHECKING:
+    from sentry.models import Team, User
+
+
 ACTOR_TYPES = {"team": 0, "user": 1}
 
 
-def actor_type_to_class(type: int) -> Any:
+def actor_type_to_class(type: int) -> Type[Union["Team", "User"]]:
     # type will be 0 or 1 and we want to get Team or User
     from sentry.models import Team, User
 
@@ -65,7 +69,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
     """
 
     def get_actor_identifier(self):
-        return "%s:%d" % (self.type.__name__.lower(), self.id)
+        return f"{self.type.__name__.lower()}:{self.id}"
 
     @classmethod
     def from_actor_identifier(cls, actor_identifier):
@@ -111,7 +115,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         return self.resolve().actor
 
     @classmethod
-    def resolve_many(cls, actors):
+    def resolve_many(cls, actors: Sequence["ActorTuple"]) -> Sequence[Union["Team", "User"]]:
         """
         Resolve multiple actors at the same time. Returns the result in the same order
         as the input, minus any actors we couldn't resolve.
@@ -133,7 +137,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         return list(filter(None, [results.get((actor.type, actor.id)) for actor in actors]))
 
     @classmethod
-    def resolve_dict(cls, actor_dict):
+    def resolve_dict(cls, actor_dict: Mapping[int, "Actor"]) -> Mapping[int, Union["Team", "User"]]:
         actors_by_type = defaultdict(list)
         for actor in actor_dict.values():
             actors_by_type[actor.type].append(actor)

@@ -24,7 +24,7 @@ export type TimeSeriesData = {
   originalTimeseriesData?: EventsStatsData;
   timeseriesTotals?: {count: number};
   originalPreviousTimeseriesData?: EventsStatsData | null;
-  previousTimeseriesData?: Series | null;
+  previousTimeseriesData?: Series[] | null;
   timeAggregatedData?: Series | {};
   timeframe?: {start: number; end: number};
 };
@@ -41,7 +41,10 @@ type LoadingStatus = {
 // Chart format for multiple series.
 type MultiSeriesResults = Series[];
 
-type RenderProps = LoadingStatus & TimeSeriesData & {results?: MultiSeriesResults};
+export type RenderProps = LoadingStatus &
+  TimeSeriesData & {
+    results?: MultiSeriesResults;
+  };
 
 type DefaultProps = {
   /**
@@ -122,8 +125,8 @@ type EventsRequestPartialProps = {
   /**
    * Name used for display current series data set tooltip
    */
-  currentSeriesName?: string;
-  previousSeriesName?: string;
+  currentSeriesNames?: string[];
+  previousSeriesNames?: string[];
   children: (renderProps: RenderProps) => React.ReactNode;
   /**
    * The number of top results to get. When set a multi-series result will be returned
@@ -163,13 +166,19 @@ type EventsRequestPartialProps = {
    * Whether or not to zerofill results
    */
   withoutZerofill?: boolean;
+  /**
+   * A unique name for what's triggering this request, see organization_events_stats for an allowlist
+   */
+  referrer?: string;
 };
 
 type TimeAggregationProps =
   | {includeTimeAggregation: true; timeAggregationSeriesName: string}
   | {includeTimeAggregation?: false; timeAggregationSeriesName?: undefined};
 
-type EventsRequestProps = DefaultProps & TimeAggregationProps & EventsRequestPartialProps;
+export type EventsRequestProps = DefaultProps &
+  TimeAggregationProps &
+  EventsRequestPartialProps;
 
 type EventsRequestState = {
   reloading: boolean;
@@ -313,7 +322,8 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
    */
   transformPreviousPeriodData(
     current: EventsStatsData,
-    previous: EventsStatsData | null
+    previous: EventsStatsData | null,
+    seriesName?: string
   ): Series | null {
     // Need the current period data array so we can take the timestamp
     // so we can be sure the data lines up
@@ -322,11 +332,12 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     }
 
     return {
-      seriesName: this.props.previousSeriesName ?? 'Previous',
+      seriesName: seriesName ?? 'Previous',
       data: this.calculateTotalsPerTimestamp(
         previous,
         (_timestamp, _countArray, i) => current[i][0] * 1000
       ),
+      stack: 'previous',
     };
   }
 
@@ -355,20 +366,29 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     ];
   }
 
-  processData(response: EventsStats | null) {
-    if (!response) {
-      return {};
-    }
-
+  processData(response: EventsStats, seriesIndex: number = 0, seriesName?: string) {
     const {data, totals} = response;
-    const {includeTransformedData, includeTimeAggregation, timeAggregationSeriesName} =
-      this.props;
+    const {
+      includeTransformedData,
+      includeTimeAggregation,
+      timeAggregationSeriesName,
+      currentSeriesNames,
+      previousSeriesNames,
+    } = this.props;
     const {current, previous} = this.getData(data);
     const transformedData = includeTransformedData
-      ? this.transformTimeseriesData(current, this.props.currentSeriesName)
+      ? this.transformTimeseriesData(
+          current,
+          seriesName ?? currentSeriesNames?.[seriesIndex]
+        )
       : [];
     const previousData = includeTransformedData
-      ? this.transformPreviousPeriodData(current, previous)
+      ? this.transformPreviousPeriodData(
+          current,
+          previous,
+          (seriesName ? `previous ${seriesName}` : undefined) ??
+            previousSeriesNames?.[seriesIndex]
+        )
       : null;
     const timeAggregatedData = includeTimeAggregation
       ? this.transformAggregatedTimeseries(current, timeAggregationSeriesName || '')
@@ -407,7 +427,6 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     if (showLoading && loading) {
       return <LoadingPanel data-test-id="events-request-loading" />;
     }
-
     if (isMultiSeriesStats(timeseriesData)) {
       // Convert multi-series results into chartable series. Multi series results
       // are created when multiple yAxis are used or a topEvents request is made.
@@ -415,24 +434,29 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       // As the server will have replied with a map like:
       // {[titleString: string]: EventsStats}
       let timeframe: {start: number; end: number} | undefined = undefined;
-      const results: MultiSeriesResults = Object.keys(timeseriesData)
-        .map((seriesName: string): [number, Series] => {
+      const sortedTimeseriesData = Object.keys(timeseriesData)
+        .map((seriesName: string, index: number): [number, Series, Series | null] => {
           const seriesData: EventsStats = timeseriesData[seriesName];
-          // Use the first timeframe we find from the series since all series have the same timeframe anyways
-          if (seriesData.start && seriesData.end && !timeframe) {
-            timeframe = {
-              start: seriesData.start * 1000,
-              end: seriesData.end * 1000,
-            };
+          const processedData = this.processData(seriesData, index, seriesName);
+          if (!timeframe) {
+            timeframe = processedData.timeframe;
           }
-          const transformed = this.transformTimeseriesData(
-            seriesData.data,
-            seriesName
-          )[0];
-          return [seriesData.order || 0, transformed];
+          return [
+            seriesData.order || 0,
+            processedData.data[0],
+            processedData.previousData,
+          ];
         })
-        .sort((a, b) => a[0] - b[0])
-        .map(item => item[1]);
+        .sort((a, b) => a[0] - b[0]);
+      const results: MultiSeriesResults = sortedTimeseriesData.map(item => {
+        return item[1];
+      });
+      const previousTimeseriesData: MultiSeriesResults | undefined =
+        sortedTimeseriesData.some(item => item[2] === null)
+          ? undefined
+          : sortedTimeseriesData.map(item => {
+              return item[2] as Series;
+            });
 
       return children({
         loading,
@@ -440,36 +464,46 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         errored,
         results,
         timeframe,
+        previousTimeseriesData,
         // sometimes we want to reference props that were given to EventsRequest
         ...props,
       });
     }
+    if (timeseriesData) {
+      const {
+        data: transformedTimeseriesData,
+        allData: allTimeseriesData,
+        originalData: originalTimeseriesData,
+        totals: timeseriesTotals,
+        originalPreviousData: originalPreviousTimeseriesData,
+        previousData: previousTimeseriesData,
+        timeAggregatedData,
+        timeframe,
+      } = this.processData(timeseriesData);
 
-    const {
-      data: transformedTimeseriesData,
-      allData: allTimeseriesData,
-      originalData: originalTimeseriesData,
-      totals: timeseriesTotals,
-      originalPreviousData: originalPreviousTimeseriesData,
-      previousData: previousTimeseriesData,
-      timeAggregatedData,
-      timeframe,
-    } = this.processData(timeseriesData);
-
+      return children({
+        loading,
+        reloading,
+        errored,
+        // timeseries data
+        timeseriesData: transformedTimeseriesData,
+        allTimeseriesData,
+        originalTimeseriesData,
+        timeseriesTotals,
+        originalPreviousTimeseriesData,
+        previousTimeseriesData: previousTimeseriesData
+          ? [previousTimeseriesData]
+          : previousTimeseriesData,
+        timeAggregatedData,
+        timeframe,
+        // sometimes we want to reference props that were given to EventsRequest
+        ...props,
+      });
+    }
     return children({
       loading,
       reloading,
       errored,
-      // timeseries data
-      timeseriesData: transformedTimeseriesData,
-      allTimeseriesData,
-      originalTimeseriesData,
-      timeseriesTotals,
-      originalPreviousTimeseriesData,
-      previousTimeseriesData,
-      timeAggregatedData,
-      timeframe,
-      // sometimes we want to reference props that were given to EventsRequest
       ...props,
     });
   }

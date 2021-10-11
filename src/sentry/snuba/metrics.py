@@ -10,10 +10,10 @@ from typing import List, Optional, Tuple, Union
 from snuba_sdk import And, Column, Condition, Entity, Granularity, Limit, Offset, Op, Or, Query
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.query import SelectableExpression
+from typing_extensions import Protocol
 
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.indexer.base import UseCase
 from sentry.snuba.sessions_v2 import (  # TODO: unite metrics and sessions_v2
     InvalidField,
     InvalidParams,
@@ -119,13 +119,20 @@ class QueryDefinition:
         self.start = start
         self.end = end
 
-    def get_intervals(self):
-        start = self.start
-        end = self.end
-        delta = timedelta(seconds=self.rollup)
-        while start < end:
-            yield start
-            start += delta
+
+class TimeRange(Protocol):
+    start: datetime
+    end: datetime
+    rollup: int
+
+
+def get_intervals(query: TimeRange):
+    start = query.start
+    end = query.end
+    delta = timedelta(seconds=query.rollup)
+    while start < end:
+        yield start
+        start += delta
 
 
 class DataSource(ABC):
@@ -349,7 +356,7 @@ class MockDataSource(IndexMockingDataSource):
     def get_series(self, project: Project, query: QueryDefinition) -> dict:
         """Get time series for the given query"""
 
-        intervals = list(query.get_intervals())
+        intervals = list(get_intervals(query))
 
         tags = [
             {
@@ -423,9 +430,9 @@ class SnubaQueryBuilder:
         if filter_ is None:
             return None
 
-        def to_int(string_type, string):
+        def to_int(string):
             try:
-                return indexer.resolve(self._project.id, string_type, string)
+                return indexer.resolve(string)
             except KeyError:
                 return None
 
@@ -436,9 +443,9 @@ class SnubaQueryBuilder:
                     And,
                     [
                         Condition(
-                            Column(f"tags[{to_int(UseCase.TAG_KEY, tag)}]"),
+                            Column(f"tags[{to_int(tag)}]"),
                             Op.EQ,
-                            to_int(UseCase.TAG_VALUE, value),
+                            to_int(value),
                         )
                         for tag, value in or_operand["and"]
                     ],
@@ -456,10 +463,7 @@ class SnubaQueryBuilder:
             Condition(
                 Column("metric_id"),
                 Op.IN,
-                [
-                    indexer.resolve(self._project.id, UseCase.METRIC, name)
-                    for _, name in query_definition.fields.values()
-                ],
+                [indexer.resolve(name) for _, name in query_definition.fields.values()],
             ),
             Condition(Column(TS_COL_QUERY), Op.GTE, query_definition.start),
             Condition(Column(TS_COL_QUERY), Op.LT, query_definition.end),
@@ -472,8 +476,7 @@ class SnubaQueryBuilder:
 
     def _build_groupby(self, query_definition: QueryDefinition) -> List[SelectableExpression]:
         return [Column("metric_id")] + [
-            Column(f"tags[{indexer.resolve(self._project.id, UseCase.TAG_KEY, field)}]")
-            for field in query_definition.groupby
+            Column(f"tags[{indexer.resolve(field)}]") for field in query_definition.groupby
         ]
 
     def _build_queries(self, query_definition):
@@ -548,9 +551,13 @@ class SnubaResultConverter:
     """Interpret a Snuba result and convert it to API format"""
 
     def __init__(
-        self, project_id: int, query_definition: QueryDefinition, intervals: List[datetime], results
+        self,
+        organization_id: int,
+        query_definition: QueryDefinition,
+        intervals: List[datetime],
+        results,
     ):
-        self._project_id = project_id
+        self._organization_id = organization_id
         self._query_definition = query_definition
         self._intervals = intervals
         self._results = results
@@ -563,12 +570,12 @@ class SnubaResultConverter:
 
     def _parse_tag(self, tag_string: str) -> str:
         tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
-        return indexer.reverse_resolve(self._project_id, UseCase.TAG_KEY, tag_key)
+        return indexer.reverse_resolve(tag_key)
 
     def _extract_data(self, entity, data, groups):
         tags = tuple((key, data[key]) for key in sorted(data.keys()) if key.startswith("tags["))
 
-        metric_name = indexer.reverse_resolve(self._project_id, UseCase.METRIC, data["metric_id"])
+        metric_name = indexer.reverse_resolve(data["metric_id"])
         ops = self._ops_by_metric[metric_name]
 
         tag_data = groups.setdefault(
@@ -612,16 +619,9 @@ class SnubaResultConverter:
             for data in series:
                 self._extract_data(entity, data, groups)
 
-        project_id = self._project_id
-
         groups = [
             dict(
-                by={
-                    self._parse_tag(key): indexer.reverse_resolve(
-                        project_id, UseCase.TAG_VALUE, value
-                    )
-                    for key, value in tags
-                },
+                by={self._parse_tag(key): indexer.reverse_resolve(value) for key, value in tags},
                 **data,
             )
             for tags, data in groups.items()
@@ -636,7 +636,7 @@ class SnubaDataSource(IndexMockingDataSource):
     def get_series(self, project: Project, query: QueryDefinition) -> dict:
         """Get time series for the given query"""
 
-        intervals = list(query.get_intervals())
+        intervals = list(get_intervals(query))
 
         snuba_queries = SnubaQueryBuilder(project, query).get_snuba_queries()
         results = {
@@ -648,7 +648,7 @@ class SnubaDataSource(IndexMockingDataSource):
             for entity, queries in snuba_queries.items()
         }
 
-        converter = SnubaResultConverter(project.id, query, intervals, results)
+        converter = SnubaResultConverter(project.organization_id, query, intervals, results)
 
         return {
             "start": query.start,
