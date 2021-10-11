@@ -24,7 +24,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
-import {getCount, getCrashFreeRateSeries} from 'app/utils/sessions';
+import {getCrashFreeRateSeries} from 'app/utils/sessions';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'app/views/alerts/utils';
@@ -231,58 +231,6 @@ class TriggersChart extends React.PureComponent<Props, State> {
     }
   }
 
-  async fetchSessionTimeSeries() {
-    const {api, organization, environment, projects, query, timeWindow, aggregate} =
-      this.props;
-    try {
-      this.setState(state => ({
-        sessionsLoading: state.sessionTimeSeries === null,
-        sessionsReloading: state.sessionTimeSeries !== null,
-      }));
-      const {groups, intervals}: SessionApiResponse = await api.requestPromise(
-        `/organizations/${organization.slug}/sessions/`,
-        {
-          query: {
-            project: projects.map(({id}) => id),
-            environment: environment ? [environment] : [],
-            statsPeriod: this.getStatsPeriod(),
-            field: SESSION_AGGREGATE_TO_FIELD[aggregate],
-            interval: TIME_WINDOW_TO_SESSION_INTERVAL[timeWindow],
-            groupBy: ['session.status'],
-            query,
-          },
-        }
-      );
-      const totalCount = getCount(groups, SESSION_AGGREGATE_TO_FIELD[aggregate]);
-      const sessionTimeSeries = [
-        {
-          seriesName:
-            AlertWizardAlertNames[
-              getAlertTypeFromAggregateDataset({aggregate, dataset: Dataset.SESSIONS})
-            ],
-          data: getCrashFreeRateSeries(
-            groups,
-            intervals,
-            SESSION_AGGREGATE_TO_FIELD[aggregate]
-          ),
-        },
-      ];
-      this.setState({
-        sessionTimeSeries,
-        totalCount,
-        sessionsLoading: false,
-        sessionsReloading: false,
-      });
-    } catch (e) {
-      this.setState({
-        sessionTimeSeries: null,
-        totalCount: null,
-        sessionsLoading: false,
-        sessionsReloading: false,
-      });
-    }
-  }
-
   checkChangeStatus(value: number): string {
     const {thresholdType, triggers} = this.props;
     const criticalTrigger = triggers?.find(trig => trig.label === 'critical');
@@ -345,7 +293,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
         period={period}
         yAxis={aggregate}
         includePrevious={false}
-        currentSeriesName={aggregate}
+        currentSeriesNames={[aggregate]}
         partial={false}
       >
         {({loading, reloading, timeseriesData}) => {
@@ -421,7 +369,6 @@ class TriggersChart extends React.PureComponent<Props, State> {
     timeseriesData: Series[] = [],
     isLoading: boolean,
     isReloading: boolean,
-    totalCount: number | null,
     changeDataSeries?: LineChartSeries[]
   ) {
     const {
@@ -495,7 +442,6 @@ class TriggersChart extends React.PureComponent<Props, State> {
       environment,
       comparisonDelta,
     } = this.props;
-    const {totalCount} = this.state;
 
     const period = this.getStatsPeriod();
 
@@ -527,12 +473,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
             },
           ];
 
-          return this.renderChart(
-            sessionTimeSeries,
-            loading,
-            reloading,
-            getCount(groups, SESSION_AGGREGATE_TO_FIELD[aggregate])
-          );
+          return this.renderChart(sessionTimeSeries, loading, reloading);
         }}
       </SessionsRequest>
     ) : (
@@ -591,7 +532,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
                   return this.renderChangeChart(timeseriesData, loading, reloading);
                 }
 
-                return this.renderChart(timeseriesData, loading, reloading, totalCount);
+                return this.renderChart(timeseriesData, loading, reloading);
               }}
             </EventsRequest>
           );
