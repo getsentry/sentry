@@ -208,14 +208,8 @@ function ReleaseComparisonChart({
   });
 
   const isMobileProject = isProjectMobileForReleases(project.platform);
-  let adoptionStageLabel;
-  try {
-    const adoptionStage = release.adoptionStages?.[project.slug].stage;
-    adoptionStageLabel = Boolean(adoptionStage) && ADOPTION_STAGE_LABELS[adoptionStage];
-  } catch (err) {
-    // Edge case where project slug isn't valid because of updating the name/slug or deleting the project
-    // and not refreshing the page if another tab was opened. Still load the page.
-  }
+  const adoptionStage = release.adoptionStages?.[project.slug]?.stage;
+  const adoptionStageLabel = ADOPTION_STAGE_LABELS[adoptionStage];
   const multipleEnvironments = environment.length === 0 || environment.length > 1;
 
   return (
