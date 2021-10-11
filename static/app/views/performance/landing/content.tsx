@@ -10,7 +10,7 @@ import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTr
 import {MAX_QUERY_LENGTH} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project, Team} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
@@ -52,7 +52,6 @@ type Props = {
   eventView: EventView;
   location: Location;
   projects: Project[];
-  teams: Team[];
   setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
 } & WithRouterProps;
