@@ -1021,12 +1021,14 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
         self._30_min_ago_dt = self.now_dt - timedelta(minutes=30)
         self._1_h_ago_dt = self.now_dt - timedelta(hours=1)
         self._2_h_ago_dt = self.now_dt - timedelta(hours=2)
+        self._3_h_ago_dt = self.now_dt - timedelta(hours=3)
 
         self.now = self.now_dt.timestamp()
         self._5_min_ago = self._5_min_ago_dt.timestamp()
         self._30_min_ago = self._30_min_ago_dt.timestamp()
         self._1_h_ago = self._1_h_ago_dt.timestamp()
         self._2_h_ago = self._2_h_ago_dt.timestamp()
+        self._3_h_ago = self._3_h_ago_dt.timestamp()
 
     def make_session(
         self,
@@ -1187,14 +1189,14 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
                 # ignored env
                 self.make_session(environment=test, received=self._30_min_ago),
                 # too old
-                self.make_session(environment=prod, received=self._2_h_ago),
+                self.make_session(environment=prod, received=self._3_h_ago),
                 # counted in p2
                 self.make_session(environment=dev, received=self._5_min_ago, project=p2),
                 # ignored in p2
                 # ignored env
                 self.make_session(environment=test, received=self._5_min_ago, project=p2),
                 # too old
-                self.make_session(environment=prod, received=self._2_h_ago, project=p2),
+                self.make_session(environment=prod, received=self._3_h_ago, project=p2),
                 # ignored p3
                 self.make_session(environment=dev, received=self._5_min_ago, project=p3),
             ]
@@ -1204,7 +1206,7 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
             project_ids=[self.project.id, self.another_project.id],
             environment_ids=[self.dev_env.id, self.prod_env.id],
             rollup=60,
-            start=self._1_h_ago_dt,
+            start=self._2_h_ago_dt,
             end=self.now_dt,
         )
 
