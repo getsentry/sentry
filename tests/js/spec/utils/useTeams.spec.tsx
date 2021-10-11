@@ -90,26 +90,16 @@ describe('useTeams', function () {
       body: [teamFoo],
     });
 
-    const {result} = renderHook(props => useTeams(props), {
+    const {result, waitFor} = renderHook(props => useTeams(props), {
       initialProps: {slugs: ['foo']},
     });
 
     expect(result.current.initiallyLoaded).toBe(false);
-
-    await act(async () => {
-      // @ts-expect-error
-      await tick();
-    });
-
     expect(mockRequest).toHaveBeenCalled();
 
-    await act(async () => {
-      // @ts-expect-error
-      await tick();
-    });
+    await waitFor(() => expect(result.current.teams.length).toBe(1));
 
     const {teams} = result.current;
-    expect(teams.length).toBe(1);
     expect(teams).toEqual(expect.arrayContaining([teamFoo]));
   });
 
