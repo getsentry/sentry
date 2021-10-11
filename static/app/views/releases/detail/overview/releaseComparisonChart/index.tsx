@@ -1028,7 +1028,8 @@ const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
   }
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: repeat(4, minmax(min-content, 1fr)) 75px;
+    grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
+        p.withExpanders ? '75px' : ''};
   }
 `;
 
