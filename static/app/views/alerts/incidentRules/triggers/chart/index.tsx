@@ -9,6 +9,7 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import OptionSelector from 'app/components/charts/optionSelector';
+import SessionsRequest from 'app/components/charts/sessionsRequest';
 import {
   ChartControls,
   InlineContainer,
@@ -19,7 +20,7 @@ import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project, SessionApiResponse} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 import {getCount, getCrashFreeRateSeries} from 'app/utils/sessions';
 import withApi from 'app/utils/withApi';
@@ -146,9 +147,6 @@ const getBucketSize = (timeWindow: TimeWindow, dataPoints: number): number => {
 type State = {
   statsPeriod: TimePeriod;
   totalCount: number | null;
-  sessionTimeSeries: Series[] | null;
-  sessionsLoading: boolean;
-  sessionsReloading: boolean;
 };
 
 /**
@@ -159,35 +157,25 @@ class TriggersChart extends React.PureComponent<Props, State> {
   state: State = {
     statsPeriod: TimePeriod.ONE_DAY,
     totalCount: null,
-    sessionTimeSeries: null,
-    sessionsLoading: false,
-    sessionsReloading: false,
   };
 
   componentDidMount() {
-    if (isSessionAggregate(this.props.aggregate)) {
-      this.fetchSessionTimeSeries();
-      return;
+    if (!isSessionAggregate(this.props.aggregate)) {
+      this.fetchTotalCount();
     }
-
-    this.fetchTotalCount();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
     const {query, environment, timeWindow, aggregate, projects} = this.props;
     const {statsPeriod} = this.state;
     if (
-      prevProps.projects !== projects ||
-      prevProps.environment !== environment ||
-      prevProps.query !== query ||
-      prevProps.timeWindow !== timeWindow ||
-      prevState.statsPeriod !== statsPeriod
+      !isSessionAggregate(aggregate) &&
+      (prevProps.projects !== projects ||
+        prevProps.environment !== environment ||
+        prevProps.query !== query ||
+        prevProps.timeWindow !== timeWindow ||
+        prevState.statsPeriod !== statsPeriod)
     ) {
-      if (isSessionAggregate(aggregate)) {
-        this.fetchSessionTimeSeries();
-        return;
-      }
-
       this.fetchTotalCount();
     }
   }
@@ -236,62 +224,15 @@ class TriggersChart extends React.PureComponent<Props, State> {
     }
   }
 
-  async fetchSessionTimeSeries() {
-    const {api, organization, environment, projects, query, timeWindow, aggregate} =
-      this.props;
-    try {
-      this.setState(state => ({
-        sessionsLoading: state.sessionTimeSeries === null,
-        sessionsReloading: state.sessionTimeSeries !== null,
-      }));
-      const {groups, intervals}: SessionApiResponse = await api.requestPromise(
-        `/organizations/${organization.slug}/sessions/`,
-        {
-          query: {
-            project: projects.map(({id}) => id),
-            environment: environment ? [environment] : [],
-            statsPeriod: this.getStatsPeriod(),
-            field: SESSION_AGGREGATE_TO_FIELD[aggregate],
-            interval: TIME_WINDOW_TO_SESSION_INTERVAL[timeWindow],
-            groupBy: ['session.status'],
-            query,
-          },
-        }
-      );
-      const totalCount = getCount(groups, SESSION_AGGREGATE_TO_FIELD[aggregate]);
-      const sessionTimeSeries = [
-        {
-          seriesName:
-            AlertWizardAlertNames[
-              getAlertTypeFromAggregateDataset({aggregate, dataset: Dataset.SESSIONS})
-            ],
-          data: getCrashFreeRateSeries(
-            groups,
-            intervals,
-            SESSION_AGGREGATE_TO_FIELD[aggregate]
-          ),
-        },
-      ];
-      this.setState({
-        sessionTimeSeries,
-        totalCount,
-        sessionsLoading: false,
-        sessionsReloading: false,
-      });
-    } catch (e) {
-      this.setState({
-        sessionTimeSeries: null,
-        totalCount: null,
-        sessionsLoading: false,
-        sessionsReloading: false,
-      });
-    }
-  }
-
-  renderChart(timeseriesData: Series[] = [], isLoading: boolean, isReloading: boolean) {
+  renderChart(
+    timeseriesData: Series[] = [],
+    isLoading: boolean,
+    isReloading: boolean,
+    totalCount: number | null
+  ) {
     const {triggers, resolveThreshold, thresholdType, header, timeWindow, aggregate} =
       this.props;
-    const {statsPeriod, totalCount} = this.state;
+    const {statsPeriod} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = this.getStatsPeriod();
     return (
@@ -343,12 +284,46 @@ class TriggersChart extends React.PureComponent<Props, State> {
   render() {
     const {api, organization, projects, timeWindow, query, aggregate, environment} =
       this.props;
-    const {sessionTimeSeries, sessionsLoading, sessionsReloading} = this.state;
+    const {totalCount} = this.state;
 
     const period = this.getStatsPeriod();
 
     return isSessionAggregate(aggregate) ? (
-      this.renderChart(sessionTimeSeries ?? undefined, sessionsLoading, sessionsReloading)
+      <SessionsRequest
+        api={api}
+        organization={organization}
+        project={projects.map(({id}) => Number(id))}
+        environment={environment ? [environment] : undefined}
+        statsPeriod={period}
+        query={query}
+        interval={TIME_WINDOW_TO_SESSION_INTERVAL[timeWindow]}
+        field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
+        groupBy={['session.status']}
+      >
+        {({loading, reloading, response}) => {
+          const {groups, intervals} = response || {};
+          const sessionTimeSeries = [
+            {
+              seriesName:
+                AlertWizardAlertNames[
+                  getAlertTypeFromAggregateDataset({aggregate, dataset: Dataset.SESSIONS})
+                ],
+              data: getCrashFreeRateSeries(
+                groups,
+                intervals,
+                SESSION_AGGREGATE_TO_FIELD[aggregate]
+              ),
+            },
+          ];
+
+          return this.renderChart(
+            sessionTimeSeries,
+            loading,
+            reloading,
+            getCount(groups, SESSION_AGGREGATE_TO_FIELD[aggregate])
+          );
+        }}
+      </SessionsRequest>
     ) : (
       <Feature features={['metric-alert-builder-aggregate']} organization={organization}>
         {({hasFeature}) => {
@@ -363,7 +338,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
               period={period}
               yAxis={aggregate}
               includePrevious={false}
-              currentSeriesName={aggregate}
+              currentSeriesNames={[aggregate]}
               partial={false}
             >
               {({loading, reloading, timeseriesData}) => {
@@ -401,7 +376,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
                   }
                 }
 
-                return this.renderChart(timeseriesData, loading, reloading);
+                return this.renderChart(timeseriesData, loading, reloading, totalCount);
               }}
             </EventsRequest>
           );
