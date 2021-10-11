@@ -669,6 +669,11 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
             published=True,
             verify_install=False,
             name="Super Awesome App",
+            schema={
+                "elements": [
+                    self.create_alert_rule_action_schema(),
+                ]
+            },
         )
 
     @fixture
@@ -920,29 +925,13 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
             {"sentryApp": ["Missing paramater: sentry_app_installation_uuid"]},
         )
 
-        self.run_fail_validation_test(
-            {
-                "type": AlertRuleTriggerAction.get_registered_type(
-                    AlertRuleTriggerAction.Type.SENTRY_APP
-                ).slug,
-                "target_type": action_target_type_to_string[
-                    AlertRuleTriggerAction.TargetType.SENTRY_APP
-                ],
-                "target_identifier": "1",
-                "sentry_app": self.sentry_app.id,
-                "sentry_app_config": {"tag": "asdfasdfads"},
-                "sentry_app_installation_uuid": self.sentry_app_installation.uuid,
-            },
-            {"sentryApp": ["Missing paramater: sentry_app_uri"]},
-        )
-
     @responses.activate
     def test_sentry_app_action_creator_fails(self):
         responses.add(
             method=responses.POST,
-            url="https://example.com/alert-rule",
+            url="https://example.com/sentry/alert-rule",
             status=400,
-            body="Invalid tag.",
+            body="Invalid channel.",
         )
         self.run_fail_validation_test(
             {
@@ -954,18 +943,17 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 ],
                 "target_identifier": "1",
                 "sentry_app": self.sentry_app.id,
-                "sentry_app_config": {"tag": "asdfasdfads"},
+                "sentry_app_config": {"channel": "#santry"},
                 "sentry_app_installation_uuid": self.sentry_app_installation.uuid,
-                "sentry_app_uri": "/alert-rule",
             },
-            {"sentryApp": ["Super Awesome App: Invalid tag."]},
+            {"sentryApp": ["Super Awesome App: Invalid channel."]},
         )
 
     @responses.activate
     def test_create_and_update_sentry_app_action_success(self):
         responses.add(
             method=responses.POST,
-            url="https://example.com/alert-rule",
+            url="https://example.com/sentry/alert-rule",
             status=200,
             json={},
         )
@@ -981,9 +969,8 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 ],
                 "target_identifier": "1",
                 "sentry_app": self.sentry_app.id,
-                "sentry_app_config": {"tag": "task"},
+                "sentry_app_config": {"channel": "#general"},
                 "sentry_app_installation_uuid": self.sentry_app_installation.uuid,
-                "sentry_app_uri": "/alert-rule",
             },
         )
         assert serializer.is_valid()
@@ -1009,9 +996,8 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 ],
                 "target_identifier": "1",
                 "sentry_app": self.sentry_app.id,
-                "sentry_app_config": {"tag": "epic"},
+                "sentry_app_config": {"channel": "#announcements"},
                 "sentry_app_installation_uuid": self.sentry_app_installation.uuid,
-                "sentry_app_uri": "/alert-rule",
             },
             instance=alert_rule_trigger_actions[0],
         )
@@ -1024,4 +1010,4 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         alert_rule_trigger_action = AlertRuleTriggerAction.objects.get(sentry_app=self.sentry_app)
 
         # Make sure the changes got applied
-        assert alert_rule_trigger_action.sentry_app_config == {"tag": "epic"}
+        assert alert_rule_trigger_action.sentry_app_config == {"channel": "#announcements"}

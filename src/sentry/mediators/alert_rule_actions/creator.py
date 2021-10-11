@@ -1,3 +1,4 @@
+from sentry.coreapi import APIError
 from sentry.mediators import Mediator, Param, external_requests
 from sentry.models import SentryAppComponent
 from sentry.utils.cache import memoize
@@ -16,9 +17,13 @@ class AlertRuleActionCreator(Mediator):
         component = SentryAppComponent.objects.get(
             type="alert-rule-action", sentry_app=self.sentry_app
         )
-        return component.schema.get("uri")
+        settings = component.schema.get("settings", {})
+        return settings.get("uri")
 
-    def _make_external_request(self, uri):
+    def _make_external_request(self, uri=None):
+        if uri is None:
+            raise APIError("Sentry App request url not found")
+
         self.response = external_requests.AlertRuleActionRequester.run(
             install=self.install,
             uri=uri,
