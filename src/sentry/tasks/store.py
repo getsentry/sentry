@@ -118,7 +118,9 @@ def should_demote_symbolication(project_id: int) -> bool:
         )
 
 
-def submit_symbolicate(is_low_priority, from_reprocessing, cache_key, event_id, start_time, data):
+def submit_symbolicate(
+    is_low_priority, from_reprocessing, cache_key, event_id, start_time, data, changed_queue_times=0
+):
     if is_low_priority:
         task = (
             symbolicate_event_from_reprocessing_low_priority
@@ -128,7 +130,12 @@ def submit_symbolicate(is_low_priority, from_reprocessing, cache_key, event_id, 
     else:
         task = symbolicate_event_from_reprocessing if from_reprocessing else symbolicate_event
 
-    task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
+    task.delay(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        changed_queue_times=changed_queue_times,
+    )
 
 
 def submit_save_event(project_id, from_reprocessing, cache_key, event_id, start_time, data):
@@ -240,7 +247,9 @@ def preprocess_event_from_reprocessing(
     )
 
 
-def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, data=None):
+def _do_symbolicate_event(
+    cache_key, start_time, event_id, symbolicate_task, data=None, changed_queue_times=0
+):
     from sentry.lang.native.processing import get_symbolication_function
 
     if data is None:
@@ -265,18 +274,26 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
         or symbolicate_task is symbolicate_event_from_reprocessing_low_priority
     )
 
-    is_low_priority = symbolicate_task in [
-        symbolicate_event_low_priority,
-        symbolicate_event_from_reprocessing_low_priority,
-    ]
-    should_be_low_priority = should_demote_symbolication(project_id)
+    # check whether the event is in the wrong queue and if so, move it to the other one.
+    # we do this at most three times.
+    if changed_queue_times < 3:
+        is_low_priority = symbolicate_task in [
+            symbolicate_event_low_priority,
+            symbolicate_event_from_reprocessing_low_priority,
+        ]
+        should_be_low_priority = should_demote_symbolication(project_id)
 
-    # if the event is in the wrong queue, move it to the other one
-    if is_low_priority != should_be_low_priority:
-        submit_symbolicate.delay(
-            should_be_low_priority, from_reprocessing, cache_key, event_id, start_time, data
-        )
-        return
+        if is_low_priority != should_be_low_priority:
+            submit_symbolicate.delay(
+                should_be_low_priority,
+                from_reprocessing,
+                cache_key,
+                event_id,
+                start_time,
+                data,
+                changed_queue_times + 1,
+            )
+            return
 
     def _continue_to_process_event():
         process_task = process_event_from_reprocessing if from_reprocessing else process_event
@@ -418,7 +435,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
     acks_late=True,
 )
-def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
+def symbolicate_event(cache_key, start_time=None, event_id=None, changed_queue_times=0, **kwargs):
     """
     Handles event symbolication using the external service: symbolicator.
 
@@ -431,6 +448,7 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
         start_time=start_time,
         event_id=event_id,
         symbolicate_task=symbolicate_event,
+        changed_queue_times=changed_queue_times,
     )
 
 
@@ -441,7 +459,9 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
     acks_late=True,
 )
-def symbolicate_event_low_priority(cache_key, start_time=None, event_id=None, **kwargs):
+def symbolicate_event_low_priority(
+    cache_key, start_time=None, event_id=None, changed_queue_times=0, **kwargs
+):
     """
     Handles event symbolication using the external service: symbolicator.
 
@@ -457,6 +477,7 @@ def symbolicate_event_low_priority(cache_key, start_time=None, event_id=None, **
         start_time=start_time,
         event_id=event_id,
         symbolicate_task=symbolicate_event_low_priority,
+        changed_queue_times=changed_queue_times,
     )
 
 
@@ -467,12 +488,15 @@ def symbolicate_event_low_priority(cache_key, start_time=None, event_id=None, **
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
     acks_late=True,
 )
-def symbolicate_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
+def symbolicate_event_from_reprocessing(
+    cache_key, start_time=None, event_id=None, changed_queue_times=0, **kwargs
+):
     return _do_symbolicate_event(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
         symbolicate_task=symbolicate_event_from_reprocessing,
+        changed_queue_times=changed_queue_times,
     )
 
 
@@ -484,13 +508,14 @@ def symbolicate_event_from_reprocessing(cache_key, start_time=None, event_id=Non
     acks_late=True,
 )
 def symbolicate_event_from_reprocessing_low_priority(
-    cache_key, start_time=None, event_id=None, **kwargs
+    cache_key, start_time=None, event_id=None, changed_queue_times=0, **kwargs
 ):
     return _do_symbolicate_event(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
         symbolicate_task=symbolicate_event_from_reprocessing_low_priority,
+        changed_queue_times=changed_queue_times,
     )
 
 
