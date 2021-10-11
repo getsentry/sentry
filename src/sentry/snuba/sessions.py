@@ -690,7 +690,6 @@ def _get_release_sessions_time_bounds(project_id, release, org_id, environments=
         # P.S. To avoid confusion the `0` timestamp which is '1970-01-01 00:00:00'
         # is rendered as '0000-00-00 00:00:00' in clickhouse shell
         if set(rv.values()) != {formatted_unix_start_time}:
-
             release_sessions_time_bounds = {
                 "sessions_lower_bound": iso_format_snuba_datetime(rv["first_session_started"]),
                 "sessions_upper_bound": iso_format_snuba_datetime(rv["last_session_started"]),
@@ -803,3 +802,27 @@ def get_current_and_previous_crash_free_rates(
             {"previousCrashFreeRate": calculate_crash_free_percentage(row)}
         )
     return projects_crash_free_rate_dict
+
+
+def _get_project_sessions_count(
+    project_id: int,
+    rollup: int,  # rollup in seconds
+    start: datetime,
+    end: datetime,
+    environment_id: Optional[int] = None,
+) -> int:
+    filters = {"project_id": [project_id]}
+    if environment_id:
+        filters["environment"] = [environment_id]
+
+    result_totals = raw_query(
+        selected_columns=["sessions"],
+        rollup=rollup,
+        dataset=Dataset.Sessions,
+        start=start,
+        end=end,
+        filter_keys=filters,
+        referrer="sessions.get_project_sessions_count",
+    )["data"]
+
+    return result_totals[0]["sessions"] if result_totals else 0
