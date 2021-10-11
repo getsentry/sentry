@@ -6,11 +6,11 @@ from django import forms
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import tsdb
+from sentry import release_health, tsdb
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.rules.conditions.base import EventCondition
 from sentry.utils import metrics
-from sentry.utils.snuba import Dataset, options_override, raw_query
+from sentry.utils.snuba import options_override
 
 standard_intervals = {
     "1m": ("one minute", timedelta(minutes=1)),
@@ -246,21 +246,14 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         cache_key = f"r.c.spc:{project_id}-{environment_id}"
         session_count_last_hour = cache.get(cache_key)
         if session_count_last_hour is None:
-            filters = {"project_id": [project_id]}
-            if environment_id:
-                filters["environment"] = [environment_id]
             with options_override({"consistent": False}):
-                result_totals = raw_query(
-                    selected_columns=["sessions"],
+                session_count_last_hour = release_health.get_project_sessions_count(
+                    project_id=project_id,
+                    environment_id=environment_id,
                     rollup=60,
-                    dataset=Dataset.Sessions,
                     start=end - timedelta(minutes=60),
                     end=end,
-                    filter_keys=filters,
-                    referrer="rules.conditions.event_frequency.EventFrequencyPercentCondition",
-                )["data"]
-
-            session_count_last_hour = result_totals[0]["sessions"] if result_totals else 0
+                )
 
             cache.set(cache_key, session_count_last_hour, 600)
 
