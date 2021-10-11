@@ -6,7 +6,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from sentry.auth.authenticators import RecoveryCodeInterface, SmsInterface, TotpInterface
-from sentry.models import Authenticator, Organization, OrganizationMember, User
+from sentry.models import Authenticator, Organization, User
 from sentry.testutils import APITestCase
 from sentry.utils.compat import mock
 
@@ -56,8 +56,8 @@ class UserAuthenticatorDetailsTestBase(APITestCase):
         self.login_as(user=self.user)
 
     def _require_2fa_for_organization(self) -> None:
-        self.organization = self.create_organization(name="test monkey", owner=self.user)
-        self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        organization = self.create_organization(name="test monkey", owner=self.user)
+        organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
 
 
 class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
@@ -235,9 +235,6 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
         superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.login_as(user=superuser, superuser=True)
-        OrganizationMember.objects.create(
-            organization=self.organization, user=superuser, role="owner"
-        )
 
         # enroll in one auth method
         interface = TotpInterface()
