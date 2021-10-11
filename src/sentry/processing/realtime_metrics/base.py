@@ -121,19 +121,27 @@ class RealtimeMetricsStore(Service):  # type: ignore
         This registers an intent to redirect all symbolication events triggered by the specified
         project to be redirected to the low priority queue.
 
+        Applies a backoff timer to the project which prevents it from being automatically evicted
+        from the queue while that timer is active.
+
         Returns True if the project was a new addition to the list. Returns False if it was already
-        assigned to the low priority queue.
+        assigned to the low priority queue. This may throw an exception if there is some sort of
+        issue registering the project with the queue.
         """
         raise NotImplementedError
 
     def remove_projects_from_lpq(self, project_ids: Set[int]) -> int:
         """
-        Removes projects from the low priority queue.
+        Unassigns projects from the low priority queue.
 
         This registers an intent to restore all specified projects back to the regular queue.
 
+        Applies a backoff timer to the project which prevents it from being automatically assigned
+        to the queue while that timer is active.
+
         Returns the number of projects that were actively removed from the queue. Any projects that
         were not assigned to the low priority queue to begin with will be omitted from the return
-        value.
+        value. This may throw an exception if there is some sort of issue deregistering the projects
+        from the queue.
         """
         raise NotImplementedError

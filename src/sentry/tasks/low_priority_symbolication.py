@@ -42,13 +42,13 @@ def _scan_for_suspect_projects() -> None:
     # `update_lpq_eligibility` should handle removing suspect projects from the list if it turns
     # out they need to be evicted.
     current_lpq_projects = realtime_metrics.get_lpq_projects() or set()
-    deleted_projects = current_lpq_projects.difference(suspect_projects)
-    if len(deleted_projects) == 0:
+    expired_projects = current_lpq_projects.difference(suspect_projects)
+    if not expired_projects:
         return
 
-    realtime_metrics.remove_projects_from_lpq(deleted_projects)
+    realtime_metrics.remove_projects_from_lpq(expired_projects)
 
-    for project_id in deleted_projects:
+    for project_id in expired_projects:
         # TODO: add metrics!
         logger.warning("Moved project out of symbolicator's low priority queue: %s", project_id)
 

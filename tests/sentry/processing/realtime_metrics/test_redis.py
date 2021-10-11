@@ -32,6 +32,7 @@ def config() -> Dict[str, Any]:
         "counter_time_window": 0,
         "duration_bucket_size": 10,
         "duration_time_window": 0,
+        "backoff_timer": 1,
     }
 
 
@@ -65,6 +66,7 @@ def test_invalid_config() -> None:
         "counter_time_window": -1,
         "duration_bucket_size": -10,
         "duration_time_window": 0,
+        "backoff_timer": -100,
     }
     RedisRealtimeMetricsStore(**invalid_config)
 
@@ -195,6 +197,27 @@ def test_add_project_to_lpq_filled(
     assert in_lpq == {"1", "11"}
 
 
+def test_add_project_to_lpq_backing_off_adding(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+) -> None:
+    redis_cluster.set(f"{store._backoff_key_prefix()}:1", 1)
+
+    added = store.add_project_to_lpq(1)
+    assert not added
+
+
+def test_add_project_to_lpq_backing_off_readding(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+) -> None:
+    store.add_project_to_lpq(1)
+    in_lpq = redis_cluster.smembers("store.symbolicate-event-lpq-selected")
+    assert in_lpq == {"1"}
+    assert redis_cluster.get(f"{store._backoff_key_prefix()}:1") == "1"
+
+    added = store.add_project_to_lpq(1)
+    assert not added
+
+
 #
 # remove_projects_from_lpq()
 #
@@ -282,6 +305,27 @@ def test_remove_projects_from_lpq_no_members(
 
     remaining = redis_cluster.smembers("store.symbolicate-event-lpq-selected")
     assert remaining == {"1"}
+
+
+def test_remove_projects_from_lpq_backing_off_removing(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+) -> None:
+    store.add_project_to_lpq(1)
+    in_lpq = redis_cluster.smembers("store.symbolicate-event-lpq-selected")
+    assert in_lpq == {"1"}
+    assert redis_cluster.get(f"{store._backoff_key_prefix()}:1") == "1"
+
+    removed = store.remove_projects_from_lpq({1})
+    assert not removed
+
+
+def test_remove_projects_from_lpq_backing_off_reremoving(
+    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
+) -> None:
+    redis_cluster.set(f"{store._backoff_key_prefix()}:1", 1)
+
+    removed = store.remove_projects_from_lpq({1})
+    assert not removed
 
 
 #
