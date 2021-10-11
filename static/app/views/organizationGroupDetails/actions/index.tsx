@@ -323,7 +323,7 @@ class Actions extends React.Component<Props, State> {
           {displayReprocessEventAction(organization.features, event) && (
             <MenuItemActionLink
               title={t('Reprocess events')}
-              onAction={this.handleClick(disabled, this.onReprocessEvent)}
+              onAction={() => this.handleClick(disabled, this.onReprocessEvent)}
             >
               {t('Reprocess events')}
             </MenuItemActionLink>
