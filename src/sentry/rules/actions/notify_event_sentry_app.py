@@ -33,10 +33,6 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
     # Required field for EventAction, value is ignored
     label = ""
 
-    # TODO(Leander): As there is no form_cls (e.g. NotifyEventSentryAppActionForm) the form data will
-    # not be validated on the backend. This is tricky to do since the schema form is dynamic, and will
-    # be implemented on it's own in the future. Frontend validation is still in place in the mean time.
-
     def get_custom_actions(self, project: Project) -> Sequence[Mapping[str, Any]]:
         action_list = []
         for install in SentryAppInstallation.get_installed_for_org(project.organization_id):
@@ -68,8 +64,8 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
 
         return None
 
-    def self_validate(self, data):
-        sentry_app_installation_uuid = data.get("sentryAppInstallationUuid")
+    def self_validate(self):
+        sentry_app_installation_uuid = self.data.get("sentryAppInstallationUuid")
         if not sentry_app_installation_uuid:
             raise ValidationError("Missing attribute 'sentryAppInstallationUuid'")
 
@@ -87,7 +83,7 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
                 f"Alert Rule Actions are not enabled for the {sentry_app.name} integration."
             )
 
-        incoming_settings = data.get("settings")
+        incoming_settings = self.data.get("settings")
         if not incoming_settings:
             raise ValidationError(f"{sentry_app.name} requires settings to configure alert rules.")
 
@@ -117,8 +113,6 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
                 raise ValidationError(
                     f"Unexpected setting '{key}' configured for {sentry_app.name}"
                 )
-
-        return data
 
     def after(self, event: Event, state: str) -> Any:
         sentry_app = self.get_sentry_app(event)

@@ -37,7 +37,8 @@ class RuleNodeField(serializers.Field):
         if node.id in SCHEMA_FORM_ACTIONS:
             if not data.get("hasSchemaFormConfig"):
                 raise ValidationError("Please configure your integration settings below.")
-            return node.self_validate(data)
+            node.self_validate()
+            return data
 
         if not node.form_cls:
             return data
