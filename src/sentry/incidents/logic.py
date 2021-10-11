@@ -1567,6 +1567,4 @@ def rewrite_trigger_action_fields(action_data):
 
     if "settings" in action_data:
         action_data["sentry_app_config"] = action_data.pop("settings")
-    if "uri" in action_data:
-        action_data["sentry_app_uri"] = action_data.pop("uri")
     return action_data

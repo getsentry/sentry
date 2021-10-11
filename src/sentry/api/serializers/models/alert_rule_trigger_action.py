@@ -53,6 +53,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
             "desc": self.human_desc(obj),
         }
 
+        # Check if action is a Sentry App that has Alert Rule UI Component settings
         if obj.sentry_app_id and obj.sentry_app_config:
             result["settings"] = obj.sentry_app_config
 

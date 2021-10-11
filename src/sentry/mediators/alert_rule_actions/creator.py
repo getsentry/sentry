@@ -1,27 +1,27 @@
 from sentry.mediators import Mediator, Param, external_requests
+from sentry.models import SentryAppComponent
 from sentry.utils.cache import memoize
 
 
 class AlertRuleActionCreator(Mediator):
     install = Param("sentry.models.SentryAppInstallation")
     fields = Param(object)
-    uri = Param((str,))
-    rule = Param("sentry.models.Rule", required=False, default=None)
 
     def call(self):
-        self._make_external_request()
-        self._save_alert_rule_action()
+        uri = self._fetch_sentry_app_uri()
+        self._make_external_request(uri)
         return self.response
 
-    def _save_alert_rule_action(self):
-        # Save Issue Alert Rules
-        if self.rule is not None:
-            self.rule.save()
+    def _fetch_sentry_app_uri(self):
+        component = SentryAppComponent.objects.get(
+            type="alert-rule-action", sentry_app=self.sentry_app
+        )
+        return component.schema.get("uri")
 
-    def _make_external_request(self):
+    def _make_external_request(self, uri):
         self.response = external_requests.AlertRuleActionRequester.run(
             install=self.install,
-            uri=self.uri,
+            uri=uri,
             fields=self.fields,
         )
 

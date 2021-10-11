@@ -89,7 +89,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     target_type = serializers.CharField()
     sentry_app_config = serializers.JSONField(required=False)
     sentry_app_installation_uuid = serializers.CharField(required=False)
-    sentry_app_uri = serializers.CharField(required=False)
 
     class Meta:
         model = AlertRuleTriggerAction
@@ -102,7 +101,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             "sentry_app",
             "sentry_app_config",
             "sentry_app_installation_uuid",
-            "sentry_app_uri",
         ]
         extra_kwargs = {
             "target_identifier": {"required": True},
@@ -111,7 +109,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             "sentry_app": {"required": False, "allow_null": True},
             "sentry_app_config": {"required": False, "allow_null": True},
             "sentry_app_installation_uuid": {"required": False, "allow_null": True},
-            "sentry_app_uri": {"required": False, "allow_null": True},
         }
 
     def validate_type(self, type):
@@ -187,10 +184,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     raise serializers.ValidationError(
                         {"sentry_app": "Missing paramater: sentry_app_installation_uuid"}
                     )
-                if not attrs.get("sentry_app_uri"):
-                    raise serializers.ValidationError(
-                        {"sentry_app": "Missing paramater: sentry_app_uri"}
-                    )
 
                 try:
                     install = SentryAppInstallation.objects.get(
@@ -204,7 +197,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 result = alert_rule_actions.AlertRuleActionCreator.run(
                     install=install,
                     fields=attrs.get("sentry_app_config"),
-                    uri=attrs.get("sentry_app_uri"),
                 )
 
                 if not result["success"]:
@@ -213,7 +205,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     )
 
                 del attrs["sentry_app_installation_uuid"]
-                del attrs["sentry_app_uri"]
 
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
         attrs["input_channel_id"] = self.context.get("input_channel_id")
