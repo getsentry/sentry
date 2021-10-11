@@ -72,13 +72,13 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         if len(project_ids) == 0 or self._backoff_timer == 0:
             return
 
-        pipeline = self.cluster.pipeline()
-        for project_id in project_ids:
-            key = f"{self._backoff_key_prefix()}:{project_id}"
-            # Can't use mset because it doesn't allow also specifying an expiry
-            pipeline.set(name=key, value="1", ex=self._backoff_timer)
+        with self.cluster.pipeline(transaction=False) as pipeline:
+            for project_id in project_ids:
+                key = f"{self._backoff_key_prefix()}:{project_id}"
+                # Can't use mset because it doesn't allow also specifying an expiry
+                pipeline.set(name=key, value="1", ex=self._backoff_timer)
 
-        pipeline.execute()
+                pipeline.execute()
 
     def _is_backing_off(self, project_id: int) -> bool:
         """
@@ -277,7 +277,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         """
         removable = [project for project in project_ids if not self._is_backing_off(project)]
 
-        if len(removable) == 0:
+        if not removable:
             return 0
 
         # This returns the number of projects removed, and throws an exception if there's a problem.

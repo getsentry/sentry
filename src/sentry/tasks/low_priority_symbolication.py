@@ -43,7 +43,7 @@ def _scan_for_suspect_projects() -> None:
     # out they need to be evicted.
     current_lpq_projects = realtime_metrics.get_lpq_projects() or set()
     expired_projects = current_lpq_projects.difference(suspect_projects)
-    if len(expired_projects) == 0:
+    if not expired_projects:
         return
 
     realtime_metrics.remove_projects_from_lpq(expired_projects)
