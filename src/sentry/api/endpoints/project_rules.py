@@ -1,6 +1,6 @@
 from typing import Mapping, Sequence
 
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -33,13 +33,19 @@ def trigger_alert_rule_action_creators(
         if not action.get("hasSchemaFormConfig"):
             continue
 
-        alert_rule_actions.AlertRuleActionCreator.run(
-            install=SentryAppInstallation.objects.get(uuid=action.get("sentryAppInstallationUuid")),
+        install = SentryAppInstallation.objects.get(uuid=action.get("sentryAppInstallationUuid"))
+        result = alert_rule_actions.AlertRuleActionCreator.run(
+            install=install,
             fields=action.get("settings"),
             uri=action.get("uri"),
             rule=rule,
             request=request,
         )
+        # Bubble up errors from Sentry App to the UI
+        if not result["success"]:
+            raise serializers.ValidationError(
+                {"sentry_app": f'{install.sentry_app.name}: {result["message"]}'}
+            )
 
 
 class ProjectRulesEndpoint(ProjectEndpoint):
