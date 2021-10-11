@@ -1200,6 +1200,7 @@ def create_alert_rule_trigger_action(
     sentry_app=None,
     use_async_lookup=False,
     input_channel_id=None,
+    sentry_app_config=None,
 ):
     """
     Creates an AlertRuleTriggerAction
@@ -1240,6 +1241,7 @@ def create_alert_rule_trigger_action(
         target_display=target_display,
         integration=integration,
         sentry_app=sentry_app,
+        sentry_app_config=sentry_app_config,
     )
 
 
@@ -1252,6 +1254,7 @@ def update_alert_rule_trigger_action(
     sentry_app=None,
     use_async_lookup=False,
     input_channel_id=None,
+    sentry_app_config=None,
 ):
     """
     Updates values on an AlertRuleTriggerAction
@@ -1274,6 +1277,8 @@ def update_alert_rule_trigger_action(
         updated_fields["integration"] = integration
     if sentry_app is not None:
         updated_fields["sentry_app"] = sentry_app
+    if sentry_app_config is not None:
+        updated_fields["sentry_app_config"] = sentry_app_config
     if target_identifier is not None:
         type = updated_fields.get("type", trigger_action.type)
 
@@ -1560,4 +1565,8 @@ def rewrite_trigger_action_fields(action_data):
     elif "sentryAppId" in action_data:
         action_data["sentry_app"] = action_data.pop("sentryAppId")
 
+    if "settings" in action_data:
+        action_data["sentry_app_config"] = action_data.pop("settings")
+    if "uri" in action_data:
+        action_data["sentry_app_uri"] = action_data.pop("uri")
     return action_data
