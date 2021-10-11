@@ -110,11 +110,11 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
         data,
       });
       this.props.router.push(`/settings/account/security/mfa/${authenticator.authId}`);
-      addSuccessMessage(t('%s has been renamed', deviceName));
+      addSuccessMessage(t('Device was renamed'));
     } catch {
       // Error deleting authenticator
       this.setState({loading: false});
-      addErrorMessage(t('Error Renaming to %s', deviceName));
+      addErrorMessage(t('Error renaming the device'));
     }
   };
 
