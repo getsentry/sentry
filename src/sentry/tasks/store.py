@@ -274,7 +274,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     # if the event is in the wrong queue, move it to the other one
     if is_low_priority != should_be_low_priority:
         submit_symbolicate.delay(
-            is_low_priority, from_reprocessing, cache_key, event_id, start_time, data
+            should_be_low_priority, from_reprocessing, cache_key, event_id, start_time, data
         )
         return
 
