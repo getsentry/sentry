@@ -266,8 +266,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     )
 
     is_low_priority = (
-        symbolicate_task is symbolicate_event_low_priority
-        or symbolicate_task is symbolicate_event_from_reprocessing_low_priority
+        symbolicate_task in [symbolicate_event_low_priority, symbolicate_event_from_reprocessing_low_priority]
     )
     should_be_low_priority = should_demote_symbolication(project_id)
 
