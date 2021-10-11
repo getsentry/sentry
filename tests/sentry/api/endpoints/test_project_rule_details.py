@@ -811,7 +811,7 @@ class UpdateProjectRuleTest(APITestCase):
         actions = [
             {
                 "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-                "settings": {"assignee": "Team Rocket", "priority": 27},
+                "settings": {"title": "Team Rocket", "summary": "We're blasting off again."},
                 "sentryAppInstallationUuid": install.uuid,
                 "hasSchemaFormConfig": True,
             },

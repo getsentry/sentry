@@ -20,7 +20,7 @@ def validate_field(value: str, field: Mapping[str, Any], app_name: str):
     # Only validate synchronous select fields
     if field.get("type") == "select" and not field.get("uri"):
         allowed_values = [option[0] for option in field.get("options")]
-        if value not in allowed_values:
+        if value and value not in allowed_values:
             field_label = field.get("label")
             allowed_values_message = ", ".join(allowed_values)
             raise ValidationError(
