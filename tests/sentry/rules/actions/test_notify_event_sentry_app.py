@@ -75,7 +75,6 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
                 "settings": self.schema_data,
             }
         )
-        print(self.schema)
 
         action_list = rule.get_custom_actions(self.project)
         assert len(action_list) == 1

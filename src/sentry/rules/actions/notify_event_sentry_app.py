@@ -8,8 +8,7 @@ from rest_framework import serializers
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.sentry_app_component import SentryAppAlertRuleActionSerializer
 from sentry.eventstore.models import Event
-from sentry.models import Project, SentryApp, SentryAppInstallation
-from sentry.models.sentryappcomponent import SentryAppComponent
+from sentry.models import Project, SentryApp, SentryAppComponent, SentryAppInstallation
 from sentry.rules.actions.base import EventAction
 from sentry.tasks.sentry_apps import notify_sentry_app
 
@@ -72,7 +71,7 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
         try:
             sentry_app = SentryApp.objects.get(installations__uuid=sentry_app_installation_uuid)
         except SentryApp.DoesNotExist:
-            raise ValidationError("Could not identify sentry app from the installation uuid.")
+            raise ValidationError("Could not identify integration from the installation uuid.")
 
         try:
             alert_rule_component = SentryAppComponent.objects.get(
@@ -90,7 +89,7 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
         schema = alert_rule_component.schema.get("settings")
         all_fields = {}
         # Ensure required fields are provided and valid
-        for required_field in schema.get("required_fields"):
+        for required_field in schema.get("required_fields", []):
             field_name = required_field.get("name")
             field_value = incoming_settings.get(field_name)
             if not field_value:
