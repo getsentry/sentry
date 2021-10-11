@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 import {OrganizationContext} from 'app/views/organizationContext';
 import VitalDetail from 'app/views/performance/vitalDetail/';
 
@@ -39,6 +40,7 @@ const WrappedComponent = ({organization, ...rest}) => {
 
 describe('Performance > VitalDetail', function () {
   beforeEach(function () {
+    act(() => void TeamStore.loadInitialData([]));
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

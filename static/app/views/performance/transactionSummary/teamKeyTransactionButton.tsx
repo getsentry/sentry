@@ -8,7 +8,7 @@ import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTr
 import Tooltip from 'app/components/tooltip';
 import {IconStar} from 'app/icons';
 import {t, tn} from 'app/locale';
-import {Organization, Project, Team} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
 import Teams from 'app/utils/teams';
@@ -45,7 +45,6 @@ class TitleButton extends Component<TitleProps> {
 type BaseProps = {
   organization: Organization;
   transactionName: string;
-  teams: Team[];
 };
 
 type Props = BaseProps &

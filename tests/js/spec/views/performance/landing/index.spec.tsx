@@ -1,6 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
+import {act} from 'sentry-test/reactTestingLibrary';
 
+import TeamStore from 'app/stores/teamStore';
 import EventView from 'app/utils/discover/eventView';
 import {OrganizationContext} from 'app/views/organizationContext';
 import {PerformanceLanding} from 'app/views/performance/landing';
@@ -28,6 +30,7 @@ const WrappedComponent = ({data}) => {
 describe('Performance > Landing > Index', function () {
   let eventStatsMock: any;
   let eventsV2Mock: any;
+  act(() => void TeamStore.loadInitialData([]));
   beforeEach(function () {
     // @ts-expect-error
     MockApiClient.addMockResponse({
