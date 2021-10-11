@@ -3,15 +3,13 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {update} from 'app/actionCreators/projects';
-import {Client} from 'app/api';
 import {IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 
 type Props = {
-  api: Client;
   organization: Organization;
   project: Project;
   /* used to override when under local state */
@@ -21,13 +19,14 @@ type Props = {
 };
 
 const BookmarkStar = ({
-  api,
   isBookmarked: isBookmarkedProp,
   className,
   organization,
   project,
   onToggle,
 }: Props) => {
+  const api = useApi();
+
   const isBookmarked = defined(isBookmarkedProp)
     ? isBookmarkedProp
     : project.isBookmarked;
@@ -69,4 +68,4 @@ const Star = styled(IconStar, {shouldForwardProp: p => p !== 'isBookmarked'})<{
   cursor: pointer;
 `;
 
-export default withApi(BookmarkStar);
+export default BookmarkStar;
