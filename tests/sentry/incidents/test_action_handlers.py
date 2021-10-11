@@ -190,6 +190,26 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             self.project, incident, action.alert_rule_trigger, status
         )
 
+    def test_context_for_crash_rate_alert(self):
+        """
+        Test that ensures the metric name for Crash rate alerts excludes the alias
+        """
+        status = TriggerStatus.ACTIVE
+        incident = self.create_incident()
+        alert_rule = self.create_alert_rule(
+            aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
+        )
+        alert_rule_trigger = self.create_alert_rule_trigger(alert_rule)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
+        )
+        assert (
+            generate_incident_trigger_email_context(
+                self.project, incident, action.alert_rule_trigger, status
+            )["aggregate"]
+            == "percentage(sessions_crashed, sessions)"
+        )
+
     def test_environment(self):
         status = TriggerStatus.ACTIVE
         environments = [
