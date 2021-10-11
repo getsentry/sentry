@@ -92,7 +92,7 @@ def get_referrer_qstring(notification: BaseNotification, recipient: Union["Team"
     return (
         "?referrer="
         + re.sub("Notification$", "Slack", notification.__class__.__name__)
-        + recipient.__class__.__name__
+        + str(recipient.__class__.__name__)
     )
 
 
