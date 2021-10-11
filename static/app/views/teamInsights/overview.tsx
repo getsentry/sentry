@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
@@ -59,6 +60,7 @@ function TeamInsightsOverview({
   location,
   router,
 }: Props) {
+  const theme = useTheme();
   const query = location?.query ?? {};
   const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
 
@@ -176,12 +178,30 @@ function TeamInsightsOverview({
         {!loadingTeams && (
           <Layout.Main fullWidth>
             <ControlsWrapper>
-              <TeamSelector
+              <StyledTeamSelector
                 name="select-team"
+                inFieldLabel={t('Team: ')}
                 value={currentTeam?.slug}
                 isLoading={loadingTeams}
                 onChange={choice => handleChangeTeam(choice.actor.id)}
                 teamFilter={filterTeam => filterTeam.isMember}
+                styles={{
+                  singleValue(provided: any) {
+                    const custom = {
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: theme.fontSizeMedium,
+                      ':before': {
+                        ...provided[':before'],
+                        color: theme.textColor,
+                        marginRight: space(1.5),
+                        marginLeft: space(0.5),
+                      },
+                    };
+                    return {...provided, ...custom};
+                  },
+                }}
               />
               <StyledPageTimeRangeSelector
                 organization={organization}
@@ -323,8 +343,18 @@ const ControlsWrapper = styled('div')`
   }
 `;
 
+const StyledTeamSelector = styled(TeamSelector)`
+  & > div {
+    box-shadow: ${p => p.theme.dropShadowLight};
+  }
+`;
+
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
-  flex-grow: 1;
+  height: 40px;
+
+  div {
+    min-height: unset;
+  }
 `;
 
 const SectionTitle = styled(Layout.Title)`
