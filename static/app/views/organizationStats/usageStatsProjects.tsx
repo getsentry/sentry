@@ -13,7 +13,7 @@ import {t} from 'app/locale';
 import {DataCategory, Organization, Project} from 'app/types';
 import withProjects from 'app/utils/withProjects';
 
-import {UsageSeries} from './types';
+import {Outcome, UsageSeries} from './types';
 import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
 
 type Props = {
@@ -334,15 +334,17 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
           stats[projectId] = {...baseStat};
         }
 
-        stats[projectId].total += group.totals['sum(quantity)'];
+        if (outcome !== Outcome.CLIENT_DISCARD) {
+          stats[projectId].total += group.totals['sum(quantity)'];
+        }
 
-        if (
-          outcome === SortBy.ACCEPTED ||
-          outcome === SortBy.FILTERED ||
-          outcome === SortBy.DROPPED
-        ) {
+        if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
           stats[projectId][outcome] += group.totals['sum(quantity)'];
-        } else {
+        } else if (
+          outcome === Outcome.RATE_LIMITED ||
+          outcome === Outcome.INVALID ||
+          outcome === Outcome.DROPPED
+        ) {
           stats[projectId][SortBy.DROPPED] += group.totals['sum(quantity)'];
         }
       });

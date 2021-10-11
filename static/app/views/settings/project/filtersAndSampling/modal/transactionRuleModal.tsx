@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {css, withTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
@@ -17,7 +17,6 @@ import {
   DynamicSamplingRuleType,
 } from 'app/types/dynamicSampling';
 import {defined} from 'app/utils';
-import {Theme} from 'app/utils/theme';
 import Field from 'app/views/settings/components/forms/field';
 
 import {DYNAMIC_SAMPLING_DOC_LINK} from '../utils';
@@ -36,18 +35,13 @@ type Props = Omit<
   | 'emptyMessage'
   | 'onChage'
 > & {
-  theme: Theme;
   errorRules: DynamicSamplingRules;
   transactionRules: DynamicSamplingRules;
 };
 
-function TransactionRuleModal({
-  rule,
-  errorRules,
-  transactionRules,
-  theme,
-  ...props
-}: Props) {
+function TransactionRuleModal({rule, errorRules, transactionRules, ...props}: Props) {
+  const theme = useTheme();
+
   const [tracing, setTracing] = useState(
     rule ? rule.type === DynamicSamplingRuleType.TRACE : true
   );
@@ -113,15 +107,15 @@ function TransactionRuleModal({
       conditionCategories={
         tracing
           ? [
-              [DynamicSamplingInnerName.TRACE_RELEASE, t('Releases')],
-              [DynamicSamplingInnerName.TRACE_ENVIRONMENT, t('Environments')],
+              [DynamicSamplingInnerName.TRACE_RELEASE, t('Release')],
+              [DynamicSamplingInnerName.TRACE_ENVIRONMENT, t('Environment')],
               [DynamicSamplingInnerName.TRACE_USER_ID, t('User Id')],
               [DynamicSamplingInnerName.TRACE_USER_SEGMENT, t('User Segment')],
-              [DynamicSamplingInnerName.TRACE_TRANSACTION, t('Transactions')],
+              [DynamicSamplingInnerName.TRACE_TRANSACTION, t('Transaction')],
             ]
           : [
-              [DynamicSamplingInnerName.EVENT_RELEASE, t('Releases')],
-              [DynamicSamplingInnerName.EVENT_ENVIRONMENT, t('Environments')],
+              [DynamicSamplingInnerName.EVENT_RELEASE, t('Release')],
+              [DynamicSamplingInnerName.EVENT_ENVIRONMENT, t('Environment')],
               [DynamicSamplingInnerName.EVENT_USER_ID, t('User Id')],
               [DynamicSamplingInnerName.EVENT_USER_SEGMENT, t('User Segment')],
               [
@@ -129,12 +123,12 @@ function TransactionRuleModal({
                 t('Browser Extensions'),
               ],
               [DynamicSamplingInnerName.EVENT_LOCALHOST, t('Localhost')],
-              [DynamicSamplingInnerName.EVENT_LEGACY_BROWSER, t('Legacy Browsers')],
+              [DynamicSamplingInnerName.EVENT_LEGACY_BROWSER, t('Legacy Browser')],
               [DynamicSamplingInnerName.EVENT_WEB_CRAWLERS, t('Web Crawlers')],
-              [DynamicSamplingInnerName.EVENT_IP_ADDRESSES, t('IP Addresses')],
+              [DynamicSamplingInnerName.EVENT_IP_ADDRESSES, t('IP Address')],
               [DynamicSamplingInnerName.EVENT_CSP, t('Content Security Policy')],
-              [DynamicSamplingInnerName.EVENT_ERROR_MESSAGES, t('Error Messages')],
-              [DynamicSamplingInnerName.EVENT_TRANSACTION, t('Transactions')],
+              [DynamicSamplingInnerName.EVENT_ERROR_MESSAGES, t('Error Message')],
+              [DynamicSamplingInnerName.EVENT_TRANSACTION, t('Transaction')],
             ]
       }
       rule={rule}
@@ -180,7 +174,7 @@ function TransactionRuleModal({
   );
 }
 
-export default withTheme(TransactionRuleModal);
+export default TransactionRuleModal;
 
 const TracingWrapper = styled('div')`
   display: grid;

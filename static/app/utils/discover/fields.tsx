@@ -125,6 +125,7 @@ export const AGGREGATIONS = {
       {
         kind: 'column',
         columnTypes: ['string', 'integer', 'number', 'duration', 'date', 'boolean'],
+        defaultValue: 'user',
         required: true,
       },
     ],
@@ -217,6 +218,7 @@ export const AGGREGATIONS = {
           'date',
           'percentage',
         ]),
+        defaultValue: 'transaction.duration',
         required: true,
       },
     ],
@@ -235,6 +237,7 @@ export const AGGREGATIONS = {
           'date',
           'percentage',
         ]),
+        defaultValue: 'transaction.duration',
         required: true,
       },
     ],
@@ -248,6 +251,7 @@ export const AGGREGATIONS = {
         kind: 'column',
         columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
         required: true,
+        defaultValue: 'transaction.duration',
       },
     ],
     outputType: null,
@@ -260,6 +264,7 @@ export const AGGREGATIONS = {
         kind: 'column',
         columnTypes: ['string', 'integer', 'number', 'duration', 'date', 'boolean'],
         required: true,
+        defaultValue: 'transaction.duration',
       },
     ],
     outputType: null,
@@ -717,7 +722,6 @@ export const TRACING_FIELDS = [
   'user_misery',
   'eps',
   'epm',
-  'key_transaction',
   'team_key_transaction',
   ...Object.keys(MEASUREMENTS),
   ...SPAN_OP_BREAKDOWN_FIELDS,
@@ -846,6 +850,14 @@ export function isEquationAlias(field: string): boolean {
   return EQUATION_ALIAS_PATTERN.test(field);
 }
 
+export function maybeEquationAlias(field: string): boolean {
+  return field.includes(EQUATION_PREFIX);
+}
+
+export function stripEquationPrefix(field: string): string {
+  return field.replace(EQUATION_PREFIX, '');
+}
+
 export function getEquationAliasIndex(field: string): number {
   const results = field.match(EQUATION_ALIAS_PATTERN);
 
@@ -967,6 +979,10 @@ export function getAggregateAlias(field: string): string {
  */
 export function isAggregateField(field: string): boolean {
   return parseFunction(field) !== null;
+}
+
+export function isAggregateFieldOrEquation(field: string): boolean {
+  return isAggregateField(field) || isAggregateEquation(field);
 }
 
 export function getAggregateFields(fields: string[]): string[] {

@@ -173,6 +173,7 @@ class TeamStability extends AsyncComponent<Props, State> {
 
     return (
       <StyledPanelTable
+        isEmpty={projects.length === 0}
         headers={[
           t('Project'),
           <RightAligned key="last">{tct('Last [period]', {period})}</RightAligned>,
@@ -203,6 +204,10 @@ const StyledPanelTable = styled(PanelTable)`
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
+
+  & > div {
+    padding: ${space(1)} ${space(2)};
+  }
 `;
 
 const RightAligned = styled('span')`

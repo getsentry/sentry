@@ -312,6 +312,7 @@ class CreateProjectRuleTest(APITestCase):
                     "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
                     "workspace": str(integration.id),
                     "channel": "#team-team-team",
+                    "channel_id": "",
                     "tags": "",
                 }
             ],
@@ -411,3 +412,68 @@ class CreateProjectRuleTest(APITestCase):
             str(response.data["conditions"][0])
             == "Select a valid choice. bad data is not one of the available choices."
         )
+
+    @patch("sentry.mediators.alert_rule_actions.AlertRuleActionCreator.run")
+    def test_runs_alert_rule_action_creator(self, mock_alert_rule_action_creator):
+        """
+        Ensures that Sentry Apps with schema forms (UI components)
+        receive a payload when an alert rule is created with them.
+        """
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        self.create_sentry_app(name="Pied Piper", organization=project.organization)
+        install = self.create_sentry_app_installation(
+            slug="pied-piper", organization=project.organization
+        )
+
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "settings": {"assignee": "Team Rocket", "priority": 27},
+                "uri": "/sentry/alerts/",
+                "sentryAppInstallationUuid": install.uuid,
+                "hasSchemaFormConfig": True,
+            },
+        ]
+
+        url = reverse(
+            "sentry-api-0-project-rules",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        response = self.client.post(
+            url,
+            data={
+                "name": "my super cool rule",
+                "owner": f"user:{self.user.id}",
+                "conditions": [],
+                "filters": [],
+                "actions": actions,
+                "filterMatch": "any",
+                "actionMatch": "any",
+                "frequency": 30,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"]
+
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.data["actions"] == actions
+
+        kwargs = {
+            "install": install,
+            "fields": actions[0].get("settings"),
+            "uri": actions[0].get("uri"),
+            "rule": rule,
+        }
+
+        call_kwargs = mock_alert_rule_action_creator.call_args[1]
+
+        assert call_kwargs["install"].id == kwargs["install"].id
+        assert call_kwargs["fields"] == kwargs["fields"]
+        assert call_kwargs["uri"] == kwargs["uri"]
+        assert call_kwargs["rule"].id == kwargs["rule"].id

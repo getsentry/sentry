@@ -453,14 +453,21 @@ class OrganizationReleaseDetailsEndpoint(
 
             refs = result.get("refs")
             if not refs:
-                refs = [
-                    {
-                        "repository": r["repository"],
-                        "previousCommit": r.get("previousId"),
-                        "commit": r["currentId"],
-                    }
-                    for r in result.get("headCommits", [])
-                ]
+                # Handle legacy
+                if result.get("headCommits", []):
+                    refs = [
+                        {
+                            "repository": r["repository"],
+                            "previousCommit": r.get("previousId"),
+                            "commit": r["currentId"],
+                        }
+                        for r in result.get("headCommits", [])
+                    ]
+                # Clear commits in release
+                else:
+                    if result.get("refs") == []:
+                        release.clear_commits()
+
             scope.set_tag("has_refs", bool(refs))
             if refs:
                 if not request.user.is_authenticated:

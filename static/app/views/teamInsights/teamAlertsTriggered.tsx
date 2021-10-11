@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import moment from 'moment';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import BarChart from 'app/components/charts/barChart';
@@ -9,6 +8,8 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+
+import {convertDaySeriesToWeeks, convertDayValueObjectToSeries} from './utils';
 
 type AlertsTriggered = Record<string, number>;
 
@@ -21,7 +22,7 @@ type State = AsyncComponent['state'] & {
   alertsTriggered: AlertsTriggered | null;
 };
 
-class TeamIssues extends AsyncComponent<Props, State> {
+class TeamAlertsTriggered extends AsyncComponent<Props, State> {
   shouldRenderBadRequests = true;
 
   getDefaultState(): State {
@@ -72,6 +73,8 @@ class TeamIssues extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {alertsTriggered} = this.state;
+    const data = convertDayValueObjectToSeries(alertsTriggered ?? {});
+    const seriesData = convertDaySeriesToWeeks(data);
 
     return (
       <ChartWrapper>
@@ -79,24 +82,17 @@ class TeamIssues extends AsyncComponent<Props, State> {
           <BarChart
             style={{height: 190}}
             isGroupedByDate
+            useShortDate
+            period="7d"
             legend={{right: 0, top: 0}}
             yAxis={{minInterval: 1}}
             xAxis={{
               type: 'time',
-              axisTick: {
-                alignWithLabel: true,
-              },
-              axisLabel: {
-                formatter: (value: number) => moment(new Date(value)).format('MMM D'),
-              },
             }}
             series={[
               {
                 seriesName: t('Alerts Triggered'),
-                data: Object.entries(alertsTriggered).map(([bucket, count]) => ({
-                  value: count,
-                  name: bucket,
-                })),
+                data: seriesData,
               },
             ].reverse()}
           />
@@ -106,7 +102,7 @@ class TeamIssues extends AsyncComponent<Props, State> {
   }
 }
 
-export default TeamIssues;
+export default TeamAlertsTriggered;
 
 const ChartWrapper = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};

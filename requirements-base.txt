@@ -1,6 +1,6 @@
 beautifulsoup4==4.7.1
-boto3==1.10.49
-botocore==1.13.50
+boto3==1.13.16
+botocore==1.16.16
 celery==4.4.7
 click==7.1.2
 confluent-kafka==1.5.0; python_version <= '3.8'
@@ -35,9 +35,7 @@ Pillow==8.2.0; python_version == '3.6'
 Pillow==8.3.1; python_version > '3.6'
 progressbar2==3.32.0
 python-rapidjson==1.4
-psycopg2-binary==2.8.6; python_version == '3.6'
-# For development only: This version removes needing to setting flags for Apple's M1 chipset
-psycopg2-binary==2.9.1; python_version > '3.6'
+psycopg2-binary==2.8.6
 PyJWT==2.1.0
 python-dateutil==2.8.1
 python-memcached==1.59

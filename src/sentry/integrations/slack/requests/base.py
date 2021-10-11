@@ -4,10 +4,9 @@ from rest_framework import status as status_
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.integrations.slack.util.auth import check_signing_secret
-from sentry.models import Integration
+from sentry.models import Identity, IdentityProvider, Integration
 
-from ..utils import logger
+from ..utils import check_signing_secret, logger
 
 
 class SlackRequestError(Exception):
@@ -112,6 +111,18 @@ class SlackRequest:
 
         return {k: v for k, v in data.items() if v}
 
+    def get_identity(self) -> Optional[Identity]:
+        try:
+            idp = IdentityProvider.objects.get(type="slack", external_id=self.team_id)
+        except IdentityProvider.DoesNotExist as e:
+            logger.error("slack.action.invalid-team-id", extra={"slack_team": self.team_id})
+            raise e
+
+        try:
+            return Identity.objects.select_related("user").get(idp=idp, external_id=self.user_id)
+        except Identity.DoesNotExist:
+            return None
+
     def _validate_data(self) -> None:
         try:
             self._data = self.request.data
@@ -141,7 +152,9 @@ class SlackRequest:
         if not (signature and timestamp):
             return False
 
-        return check_signing_secret(signing_secret, self.request.body, timestamp, signature)
+        # Explicitly typing to satisfy mypy.
+        valid: bool = check_signing_secret(signing_secret, self.request.body, timestamp, signature)
+        return valid
 
     def _check_verification_token(self, verification_token: str) -> bool:
         return self.data.get("token") == verification_token

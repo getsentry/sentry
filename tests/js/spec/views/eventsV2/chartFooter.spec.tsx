@@ -43,6 +43,8 @@ describe('EventsV2 > ChartFooter', function () {
         displayMode={DisplayModes.DEFAULT}
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
         onDisplayChange={() => undefined}
+        onTopEventsChange={() => undefined}
+        topEvents="5"
       />,
       initialData.routerContext
     );
@@ -82,6 +84,8 @@ describe('EventsV2 > ChartFooter', function () {
         displayMode={DisplayModes.DEFAULT}
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
         onDisplayChange={() => undefined}
+        onTopEventsChange={() => undefined}
+        topEvents="5"
       />,
       initialData.routerContext
     );
@@ -93,5 +97,45 @@ describe('EventsV2 > ChartFooter', function () {
     const optionCheckboxSelector = wrapper.find('OptionCheckboxSelector').last();
     expect(optionCheckboxSelector.props().title).toEqual(t('Y-Axis'));
     expect(optionCheckboxSelector.props().selected).toEqual(yAxisValue);
+  });
+
+  it('renders display limits with default limit when top 5 mode is selected', async function () {
+    // @ts-expect-error
+    const organization = TestStubs.Organization({
+      features: [...features, 'discover-top-events'],
+    });
+
+    // Start off with an invalid view (empty is invalid)
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {query: 'tag:value'}},
+      },
+      project: 1,
+      projects: [],
+    });
+
+    const wrapper = mountWithTheme(
+      <ChartFooter
+        organization={organization}
+        total={100}
+        yAxisValue={yAxisValue}
+        yAxisOptions={yAxisOptions}
+        onAxisChange={() => undefined}
+        displayMode={DisplayModes.TOP5}
+        displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
+        onDisplayChange={() => undefined}
+        onTopEventsChange={() => undefined}
+        topEvents="5"
+      />,
+      initialData.routerContext
+    );
+
+    // @ts-expect-error
+    await tick();
+    wrapper.update();
+
+    const optionSelector = wrapper.find('OptionSelector[title="Limit"]');
+    expect(optionSelector.props().selected).toEqual('5');
   });
 });
