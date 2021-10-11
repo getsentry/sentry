@@ -39,9 +39,15 @@
 
         <tbody>
         <tr>
-          <td>
-            {{ threshold_direction_string }} {{ threshold }}
-          </td>
+          {% if 'percentage' in aggregate %}
+            <td>
+              {{ threshold_direction_string }} {{ threshold }}%
+            </td>
+          {% else %}
+            <td>
+              {{ threshold_direction_string }} {{ threshold }}
+            </td>
+          {% endif %}
           <td>
             {{ aggregate }}
           </td>
