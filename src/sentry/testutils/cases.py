@@ -934,9 +934,6 @@ class SnubaTestCase(BaseTestCase):
         )
 
 
-NIL_UUID = "00000000-0000-0000-0000-000000000000"
-
-
 @requires_snuba_metrics
 class SessionMetricsTestCase(SnubaTestCase):
     """Store metrics instead of sessions"""
@@ -951,10 +948,10 @@ class SessionMetricsTestCase(SnubaTestCase):
         and emitting an additional one if the session is fatal
         https://github.com/getsentry/relay/blob/e3c064e213281c36bde5d2b6f3032c6d36e22520/relay-server/src/actors/envelopes.rs#L357
         """
-        user = session.get("distinct_id", NIL_UUID)
+        user = session.get("distinct_id")
 
         # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
-        user_is_nil = user == NIL_UUID
+        user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"
 
         # seq=0 is equivalent to relay's session.init, init=True is transformed
         # to seq=0 in Relay.
