@@ -51,7 +51,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         return Response(response)
 
     @sudo_required
-    def put(self, request, user, auth_id):
+    def put(self, request, user, auth_id, interface_device_id=None):
         """
         Modify authenticator interface
         ``````````````````````````````
@@ -63,26 +63,36 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
 
         :auth required:
         """
-
+        # temporary solution for both renaming and regenerating recovery code
         try:
             authenticator = Authenticator.objects.get(user=user, id=auth_id)
         except (ValueError, Authenticator.DoesNotExist):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        interface = authenticator.interface
+        if request.data.get("name"):
+            devices = authenticator.config
+            for device in devices["devices"]:
+                if device["binding"]["keyHandle"] == interface_device_id:
+                    device["name"] = request.data.get("name")
+                    authenticator.save()
 
-        if interface.interface_id == "recovery":
-            interface.regenerate_codes()
+            return Response(status=status.HTTP_201_CREATED)
 
-            capture_security_activity(
-                account=user,
-                type="recovery-codes-regenerated",
-                actor=request.user,
-                ip_address=request.META["REMOTE_ADDR"],
-                context={"authenticator": authenticator},
-                send_email=True,
-            )
-        return Response(serialize(interface))
+        else:
+            interface = authenticator.interface
+
+            if interface.interface_id == "recovery":
+                interface.regenerate_codes()
+
+                capture_security_activity(
+                    account=user,
+                    type="recovery-codes-regenerated",
+                    actor=request.user,
+                    ip_address=request.META["REMOTE_ADDR"],
+                    context={"authenticator": authenticator},
+                    send_email=True,
+                )
+            return Response(serialize(interface))
 
     @sudo_required
     def delete(self, request, user, auth_id, interface_device_id=None):
