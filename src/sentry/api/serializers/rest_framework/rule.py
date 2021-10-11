@@ -36,7 +36,7 @@ class RuleNodeField(serializers.Field):
         # Nodes with user-declared fields will manage their own validation
         if node.id in SCHEMA_FORM_ACTIONS:
             if not data.get("hasSchemaFormConfig"):
-                raise ValidationError("Please configure your integration settings below.")
+                raise ValidationError("Please configure your integration settings.")
             node.self_validate()
             return data
 
