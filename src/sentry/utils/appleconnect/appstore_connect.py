@@ -2,7 +2,7 @@ import logging
 import time
 from collections import namedtuple
 from http import HTTPStatus
-from typing import Any, Dict, Generator, List, Mapping, Optional, Union
+from typing import Any, Dict, Generator, List, Mapping, NewType, Optional, Tuple
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date
@@ -140,6 +140,48 @@ def _get_appstore_info_paged(
         next_url = _get_next_page(response)
 
 
+_RelType = NewType("_RelType", str)
+_RelId = NewType("_RelId", str)
+
+
+class _IncludedRelations:
+    """Related data which was returned with a page.
+
+    The API allows to add an ``&include=some,types`` query parameter to the URLs which will
+    automatically include related data of those types which are referred in the data of the
+    page to be returned in the same request.  This class extracts this information from the
+    page and makes it available to look up.
+
+    :param data: The entire page data, the constructor will extract the included relations
+       from this.
+    """
+
+    def __init__(self, page_data: JSONData):
+        self._items: Dict[Tuple[_RelType, _RelId], JSONData] = {}
+        for relation in page_data.get("included", []):
+            rel_type = _RelType(relation["type"])
+            rel_id = _RelId(relation["id"])
+            self._items[(rel_type, rel_id)] = relation
+
+    def get_related(self, data: JSONData, relation: str) -> Optional[JSONData]:
+        """Returns the named relation of the object.
+
+        ``data`` must be a JSON object which has a ``relationships`` object and
+        ``relation`` is the key of the specific related data in this list required.  This
+        function will read the object type and id from the relationships and look up the
+        actual object in the page's related data.
+        """
+        rel_ptr_data = safe.get_path(data, "relationships", relation, "data")
+        if rel_ptr_data is None:
+            # E.g. a query asks for both the appStoreVersion and preReleaseVersion relations
+            # to be included.  However for each build there could be only one of these that
+            # will have the data with type and id, the other will have None for data.
+            return None
+        rel_type = _RelType(rel_ptr_data["type"])
+        rel_id = _RelId(rel_ptr_data["id"])
+        return self._items[(rel_type, rel_id)]
+
+
 def get_build_info(
     session: Session, credentials: AppConnectCredentials, app_id: str
 ) -> List[Dict[str, Any]]:
@@ -179,38 +221,12 @@ def get_build_info(
 
         for page in pages:
 
-            # Collect the related data sent in this page so we can look it up by (type, id).
-            included_relations = {}
-            for relation in page["included"]:
-                rel_type = relation["type"]
-                rel_id = relation["id"]
-                included_relations[(rel_type, rel_id)] = relation
-
-            def get_related(data: JSONData, relation: str) -> Union[None, JSONData]:
-                """Returns related data by looking it up in all the related data included in the page.
-
-                This first looks up the related object in the data provided under the
-                `relationships` key.  Then it uses the `type` and `id` of this key to look up
-                the actual data in `included_relations` which is an index of all related data
-                returned with the page.
-
-                If the `relation` does not exist in `data` then `None` is returned.
-                """
-                rel_ptr_data = safe.get_path(data, "relationships", relation, "data")
-                if rel_ptr_data is None:
-                    # The query asks for both the appStoreVersion and preReleaseVersion
-                    # relations to be included.  However for each build there could be only one
-                    # of these that will have the data with type and id, the other will have
-                    # None for data.
-                    return None
-                rel_type = rel_ptr_data["type"]
-                rel_id = rel_ptr_data["id"]
-                return included_relations[(rel_type, rel_id)]
+            relations = _IncludedRelations(page)
 
             for build in page["data"]:
                 try:
-                    related_appstore_version = get_related(build, "appStoreVersion")
-                    related_prerelease_version = get_related(build, "preReleaseVersion")
+                    related_appstore_version = relations.get_related(build, "appStoreVersion")
+                    related_prerelease_version = relations.get_related(build, "preReleaseVersion")
 
                     # Normally release versions also have a matching prerelease version, the
                     # platform and version number for them should be identical.  Nevertheless
