@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {openModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
 import ListItem from 'app/components/list/listItem';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {PanelItem} from 'app/components/panels';
-import {IconAdd} from 'app/icons';
+import {IconAdd, IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, SelectValue} from 'app/types';
@@ -27,6 +28,7 @@ import {
   TargetLabel,
   Trigger,
 } from 'app/views/alerts/incidentRules/types';
+import SentryAppRuleModal from 'app/views/alerts/issueRuleEditor/sentryAppRuleModal';
 
 type Props = {
   availableActions: MetricActionTemplate[] | null;
@@ -211,6 +213,30 @@ class ActionsPanel extends PureComponent<Props> {
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   };
 
+  /**
+   * Update the Trigger's Action fields from the SentryAppRuleModal together
+   * only after the user clicks "Save Changes".
+   * @param formData Form data
+   */
+  updateParentFromSentryAppRule = (
+    triggerIndex: number,
+    actionIndex: number,
+    formData: {[key: string]: string}
+  ): void => {
+    const {triggers, onChange} = this.props;
+    const {actions} = triggers[triggerIndex];
+    const newAction = {
+      ...actions[actionIndex],
+      ...formData,
+    };
+
+    onChange(
+      triggerIndex,
+      triggers,
+      replaceAtArrayIndex(actions, actionIndex, newAction)
+    );
+  };
+
   render() {
     const {
       availableActions,
@@ -314,6 +340,39 @@ class ActionsPanel extends PureComponent<Props> {
                           actionIdx
                         )}
                       />
+                    ) : availableAction &&
+                      availableAction.type === 'sentry_app' &&
+                      availableAction.settings ? (
+                      <Button
+                        icon={<IconSettings />}
+                        type="button"
+                        onClick={() => {
+                          openModal(
+                            deps => (
+                              <SentryAppRuleModal
+                                {...deps}
+                                // Using ! for keys that will exist for sentryapps
+                                sentryAppInstallationUuid={
+                                  availableAction.sentryAppInstallationUuid!
+                                }
+                                config={availableAction.settings!}
+                                appName={availableAction.sentryAppName!}
+                                onSubmitSuccess={this.updateParentFromSentryAppRule.bind(
+                                  this,
+                                  triggerIndex,
+                                  actionIdx
+                                )}
+                                resetValues={
+                                  triggers[triggerIndex].actions[actionIdx] || {}
+                                }
+                              />
+                            ),
+                            {allowClickClose: false}
+                          );
+                        }}
+                      >
+                        {t('Settings')}
+                      </Button>
                     ) : null}
                     <ActionTargetSelector
                       action={action}
