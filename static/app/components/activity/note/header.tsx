@@ -12,14 +12,14 @@ import EditorTools from './editorTools';
 
 type Props = {
   authorName: string;
-  user: User;
+  user?: User;
   onEdit: () => void;
   onDelete: () => void;
 };
 
 const NoteHeader = ({authorName, user, onEdit, onDelete}: Props) => {
   const activeUser = ConfigStore.get('user');
-  const canEdit = activeUser && (activeUser.isSuperuser || user.id === activeUser.id);
+  const canEdit = activeUser && (activeUser.isSuperuser || user?.id === activeUser.id);
 
   return (
     <div>
