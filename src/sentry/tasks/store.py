@@ -284,7 +284,7 @@ def _do_symbolicate_event(
         should_be_low_priority = should_demote_symbolication(project_id)
 
         if is_low_priority != should_be_low_priority:
-            submit_symbolicate.delay(
+            submit_symbolicate(
                 should_be_low_priority,
                 from_reprocessing,
                 cache_key,
