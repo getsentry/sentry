@@ -16,7 +16,7 @@ def bulk_insert_on_conflict_do_nothing(Model, rows):
         cursor.execute(
             f"""
             INSERT INTO {Model._meta.db_table}
-                (','.join(cols))
+                ({','.join(cols)})
             VALUES
                 {','.join(['(%s, %s, %s, %s)'] * len(rows))}
             ON CONFLICT DO NOTHING;
