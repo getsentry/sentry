@@ -51,10 +51,6 @@ class UserIdentityConfig:
         category_key = _IDENTITY_CATEGORY_KEYS[type(identity)]
         return UserIdentityConfig(category_key, identity.id, provider_name, status, organization)
 
-    @property
-    def compound_key(self):
-        return (self.category, self.id)
-
     def get_model_type_for_category(self) -> type:
         return _IDENTITY_CATEGORIES_BY_KEY[self.category]
 
