@@ -894,7 +894,7 @@ class Release(Model):
                         patch_set_rows = [
                             {
                                 "organization_id": self.organization.id,
-                                "commit": commit,
+                                "commit_id": commit.id,
                                 "filename": patched_file["path"],
                                 "type": patched_file["type"],
                             }
