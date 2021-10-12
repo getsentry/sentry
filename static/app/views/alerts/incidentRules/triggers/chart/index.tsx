@@ -24,6 +24,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
+import {MINUTE} from 'app/utils/formatters';
 import {getCrashFreeRateSeries} from 'app/utils/sessions';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
@@ -214,6 +215,78 @@ class TriggersChart extends React.PureComponent<Props, State> {
     return period;
   };
 
+  makeComparisonMarkLines(
+    timeseriesData: Series[] = [],
+    comparisonTimeseriesData: Series[] = []
+  ): LineChartSeries[] {
+    const changeStatuses: {name: number | string; status: string}[] = [];
+
+    if (
+      timeseriesData?.[0]?.data !== undefined &&
+      timeseriesData[0].data.length > 1 &&
+      comparisonTimeseriesData?.[0]?.data !== undefined &&
+      comparisonTimeseriesData[0].data.length > 1
+    ) {
+      const changeData = comparisonTimeseriesData[0].data;
+      const baseData = timeseriesData[0].data;
+
+      if (
+        this.props.triggers.some(({alertThreshold}) => typeof alertThreshold === 'number')
+      ) {
+        const lastPointLimit = (baseData[changeData.length - 1].name as number) - MINUTE;
+        changeData.forEach(({name, value: comparisonValue}, idx) => {
+          const baseValue = baseData[idx].value;
+          const comparisonPercentage =
+            comparisonValue === 0
+              ? baseValue === 0
+                ? 0
+                : Infinity
+              : ((baseValue - comparisonValue) / comparisonValue) * 100;
+          const status = this.checkChangeStatus(comparisonPercentage);
+          if (
+            idx === 0 ||
+            idx === changeData.length - 1 ||
+            status !== changeStatuses[changeStatuses.length - 1].status
+          ) {
+            changeStatuses.push({name, status});
+          }
+        });
+
+        return changeStatuses.slice(0, -1).map(({name, status}, idx) => ({
+          seriesName: 'Status Area',
+          type: 'line',
+          markLine: MarkLine({
+            silent: true,
+            lineStyle: {
+              color:
+                status === 'critical'
+                  ? theme.red300
+                  : status === 'warning'
+                  ? theme.yellow300
+                  : theme.green300,
+              type: 'solid',
+              width: 4,
+            },
+            data: [
+              [
+                {coord: [name, 0]},
+                {
+                  coord: [
+                    Math.min(changeStatuses[idx + 1].name as number, lastPointLimit),
+                    0,
+                  ],
+                },
+              ] as any,
+            ],
+          }),
+          data: [],
+        }));
+      }
+    }
+
+    return [];
+  }
+
   async fetchTotalCount() {
     const {api, organization, environment, projects, query} = this.props;
     const statsPeriod = this.getStatsPeriod();
@@ -264,112 +337,11 @@ class TriggersChart extends React.PureComponent<Props, State> {
     return '';
   }
 
-  renderChangeChart(
-    chartTimeseriesData: Series[] = [],
-    chartIsLoading: boolean,
-    chartIsReloading: boolean
-  ) {
-    const {
-      api,
-      organization,
-      projects,
-      timeWindow,
-      query,
-      aggregate,
-      environment,
-      comparisonDelta,
-    } = this.props;
-    const period = this.getStatsPeriod();
-
-    return (
-      <EventsRequest
-        api={api}
-        organization={organization}
-        query={query}
-        environment={environment ? [environment] : undefined}
-        project={projects.map(({id}) => Number(id))}
-        interval={`${timeWindow}m`}
-        comparisonDelta={comparisonDelta}
-        period={period}
-        yAxis={aggregate}
-        includePrevious={false}
-        currentSeriesNames={[aggregate]}
-        partial={false}
-      >
-        {({loading, reloading, timeseriesData}) => {
-          const changeStatuses: {name: number | string; status: string}[] = [];
-          let changeDataSeries: LineChartSeries[] = [];
-
-          if (
-            !loading &&
-            !reloading &&
-            timeseriesData?.[0]?.data !== undefined &&
-            timeseriesData[0].data.length > 1
-          ) {
-            const changeData = timeseriesData[0].data;
-
-            if (
-              this.props.triggers.some(
-                ({alertThreshold}) => typeof alertThreshold === 'number'
-              )
-            ) {
-              changeData.forEach(({name, value}, idx) => {
-                const status = this.checkChangeStatus(value);
-
-                if (
-                  idx === 0 ||
-                  idx === changeData.length - 1 ||
-                  status !== changeStatuses[changeStatuses.length - 1].status
-                ) {
-                  changeStatuses.push({name, status});
-                }
-              });
-
-              changeDataSeries = changeStatuses
-                .slice(0, -1)
-                .map(({name, status}, idx) => ({
-                  seriesName: 'Status Area',
-                  type: 'line',
-                  markLine: MarkLine({
-                    silent: true,
-                    lineStyle: {
-                      color:
-                        status === 'critical'
-                          ? theme.red300
-                          : status === 'warning'
-                          ? theme.yellow300
-                          : theme.green300,
-                      type: 'solid',
-                      width: 4,
-                    },
-                    data: [
-                      [
-                        {coord: [name, 0]},
-                        {coord: [changeStatuses[idx + 1].name, 0]},
-                      ] as any,
-                    ],
-                  }),
-                  data: [],
-                }));
-            }
-          }
-
-          return this.renderChart(
-            chartTimeseriesData,
-            chartIsLoading,
-            chartIsReloading,
-            changeDataSeries
-          );
-        }}
-      </EventsRequest>
-    );
-  }
-
   renderChart(
     timeseriesData: Series[] = [],
     isLoading: boolean,
     isReloading: boolean,
-    changeDataSeries?: LineChartSeries[]
+    comparisonMarkLines?: LineChartSeries[]
   ) {
     const {
       triggers,
@@ -395,7 +367,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
             minValue={minBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             maxValue={maxBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             data={timeseriesData}
-            changeDataSeries={changeDataSeries}
+            comparisonMarkLines={comparisonMarkLines ?? []}
             hideThresholdLines={comparisonType === AlertRuleComparisonType.CHANGE}
             triggers={triggers}
             resolveThreshold={resolveThreshold}
@@ -444,6 +416,8 @@ class TriggersChart extends React.PureComponent<Props, State> {
     } = this.props;
 
     const period = this.getStatsPeriod();
+    const renderComparisonStats =
+      organization.features.includes('change-alerts') && comparisonDelta;
 
     return isSessionAggregate(aggregate) ? (
       <SessionsRequest
@@ -487,13 +461,22 @@ class TriggersChart extends React.PureComponent<Props, State> {
               environment={environment ? [environment] : undefined}
               project={projects.map(({id}) => Number(id))}
               interval={`${timeWindow}m`}
+              comparisonDelta={comparisonDelta}
               period={period}
               yAxis={aggregate}
               includePrevious={false}
               currentSeriesNames={[aggregate]}
               partial={false}
             >
-              {({loading, reloading, timeseriesData}) => {
+              {({loading, reloading, timeseriesData, comparisonTimeseriesData}) => {
+                let comparisonMarkLines: LineChartSeries[] = [];
+                if (renderComparisonStats && comparisonTimeseriesData) {
+                  comparisonMarkLines = this.makeComparisonMarkLines(
+                    timeseriesData,
+                    comparisonTimeseriesData
+                  );
+                }
+
                 let timeseriesLength: number | undefined;
                 if (timeseriesData?.[0]?.data !== undefined) {
                   timeseriesLength = timeseriesData[0].data.length;
@@ -528,11 +511,12 @@ class TriggersChart extends React.PureComponent<Props, State> {
                   }
                 }
 
-                if (organization.features.includes('change-alerts') && comparisonDelta) {
-                  return this.renderChangeChart(timeseriesData, loading, reloading);
-                }
-
-                return this.renderChart(timeseriesData, loading, reloading);
+                return this.renderChart(
+                  timeseriesData,
+                  loading,
+                  reloading,
+                  comparisonMarkLines
+                );
               }}
             </EventsRequest>
           );

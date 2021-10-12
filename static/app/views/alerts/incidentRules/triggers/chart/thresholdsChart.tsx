@@ -21,7 +21,7 @@ import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
 
 type DefaultProps = {
   data: Series[];
-  changeDataSeries: LineChartSeries[];
+  comparisonMarkLines: LineChartSeries[];
 };
 
 type Props = DefaultProps & {
@@ -62,7 +62,7 @@ const COLOR = {
 export default class ThresholdsChart extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     data: [],
-    changeDataSeries: [],
+    comparisonMarkLines: [],
   };
 
   state: State = {
@@ -80,7 +80,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
     if (
       this.props.triggers !== prevProps.triggers ||
       this.props.data !== prevProps.data ||
-      this.props.changeDataSeries !== prevProps.changeDataSeries
+      this.props.comparisonMarkLines !== prevProps.comparisonMarkLines
     ) {
       this.handleUpdateChartAxis();
     }
@@ -289,7 +289,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
   }
 
   render() {
-    const {data, triggers, period, aggregate, changeDataSeries} = this.props;
+    const {data, triggers, period, aggregate, comparisonMarkLines} = this.props;
     const dataWithoutRecentBucket: LineChartSeries[] = data?.map(
       ({data: eventData, ...restOfData}) => ({
         ...restOfData,
@@ -342,7 +342,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             ])
           ),
         })}
-        series={[...dataWithoutRecentBucket, ...changeDataSeries]}
+        series={[...dataWithoutRecentBucket, ...comparisonMarkLines]}
         onFinished={() => {
           // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
           // any graphics related to the triggers (e.g. the threshold areas + boundaries)
