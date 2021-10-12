@@ -1404,4 +1404,4 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             query, referrer="release_health.metrics.get_num_sessions_per_project"
         )["data"]
 
-        return [(row["project_id"], row["value"])) for row in rows]
+        return [(row["project_id"], row["value"]) for row in rows]
