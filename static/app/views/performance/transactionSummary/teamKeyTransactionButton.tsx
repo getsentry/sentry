@@ -11,7 +11,7 @@ import {t, tn} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
-import Teams from 'app/utils/teams';
+import useTeams from 'app/utils/useTeams';
 import withProjects from 'app/utils/withProjects';
 
 /**
@@ -83,6 +83,8 @@ function TeamKeyTransactionButtonWrapper({
   projects,
   ...props
 }: WrapperProps) {
+  const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
+
   if (eventView.project.length !== 1) {
     return <TitleButton isOpen={false} disabled keyedTeams={null} />;
   }
@@ -94,27 +96,24 @@ function TeamKeyTransactionButtonWrapper({
   }
 
   return (
-    <Teams provideUserTeams>
-      {({teams}) => (
-        <TeamKeyTransactionManager.Provider
-          organization={organization}
-          teams={teams}
-          selectedTeams={['myteams']}
-          selectedProjects={[String(projectId)]}
-        >
-          <TeamKeyTransactionManager.Consumer>
-            {results => (
-              <TeamKeyTransactionButton
-                organization={organization}
-                project={project}
-                {...props}
-                {...results}
-              />
-            )}
-          </TeamKeyTransactionManager.Consumer>
-        </TeamKeyTransactionManager.Provider>
-      )}
-    </Teams>
+    <TeamKeyTransactionManager.Provider
+      organization={organization}
+      teams={teams}
+      selectedTeams={['myteams']}
+      selectedProjects={[String(projectId)]}
+    >
+      <TeamKeyTransactionManager.Consumer>
+        {({isLoading, ...results}) => (
+          <TeamKeyTransactionButton
+            organization={organization}
+            project={project}
+            isLoading={isLoading || !initiallyLoaded}
+            {...props}
+            {...results}
+          />
+        )}
+      </TeamKeyTransactionManager.Consumer>
+    </TeamKeyTransactionManager.Provider>
   );
 }
 
