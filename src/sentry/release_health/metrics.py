@@ -1018,8 +1018,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             # No need to query snuba with an empty list
             return generate_defaults
 
-        status_init = tag_value(org_id, "init")
-        status_crashed = tag_value(org_id, "crashed")
+        status_init = try_get_string_index(org_id, "init")
+        status_crashed = try_get_string_index(org_id, "crashed")
 
         conditions = [
             Condition(Column("org_id"), Op.EQ, org_id),
@@ -1122,9 +1122,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         now = datetime.now(pytz.utc)
         start = now - timedelta(days=3)
 
-        projects_ids = list(project_ids)
+        project_ids = list(project_ids)
 
-        if len(projects_ids) == 0:
+        if len(project_ids) == 0:
             return []
 
         org_id = self._get_org_id(project_ids)
