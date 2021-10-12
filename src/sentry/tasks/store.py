@@ -287,7 +287,7 @@ def _do_symbolicate_event(
         should_be_low_priority = should_demote_symbolication(project_id)
 
         if is_low_priority != should_be_low_priority:
-            metrics.gauge("tasks.store.symbolicate_event.low_priority.max_queue_switches", 1)
+            metrics.gauge("tasks.store.symbolicate_event.low_priority.wrong_queue", 1)
             submit_symbolicate(
                 should_be_low_priority,
                 from_reprocessing,
