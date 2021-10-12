@@ -4,7 +4,10 @@ import {EChartOption} from 'echarts';
 
 const DEFAULT = {
   type: 'inside',
-  zoomOnMouseWheel: 'shift',
+  /** Mouse wheel can not trigger zoom. */
+  zoomOnMouseWheel: false,
+  /** The translation (by mouse drag or touch drag) is avialable but zoom is not */
+  zoomLock: true,
   throttle: 50,
 };
 

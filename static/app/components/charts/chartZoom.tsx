@@ -282,7 +282,7 @@ class ChartZoom extends React.Component<Props> {
       utc,
       start,
       end,
-      dataZoom: DataZoomInside({xAxisIndex, zoomLock: true}),
+      dataZoom: DataZoomInside({xAxisIndex}),
       showTimeInTooltip: true,
       toolBox: ToolBox(
         {},
