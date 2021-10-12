@@ -265,6 +265,10 @@ reset-db() {
     apply-migrations
 }
 
+prerequisites() {
+    brew update -q && brew bundle -q
+}
+
 direnv-help() {
     cat >&2 <<EOF
 If you're a Sentry employee and you're stuck or have questions, ask in #discuss-dev-tooling.

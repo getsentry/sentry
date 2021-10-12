@@ -34,7 +34,7 @@ describe('EventsV2 > ResultsChart', function () {
     eventView = EventView.fromSavedQueryOrLocation(undefined, location);
   });
 
-  it('only allows default and daily display modes when multiple y axis are selected', async function () {
+  it('only allows default, daily, and previous period display modes when multiple y axis are selected', async function () {
     const wrapper = mountWithTheme(
       <ResultsChart
         // @ts-expect-error
@@ -53,7 +53,9 @@ describe('EventsV2 > ResultsChart', function () {
     );
     const displayOptions = wrapper.find('ChartFooter').props().displayOptions;
     displayOptions.forEach(({value, disabled}) => {
-      if (![DisplayModes.DEFAULT, DisplayModes.DAILY].includes(value)) {
+      if (
+        ![DisplayModes.DEFAULT, DisplayModes.DAILY, DisplayModes.PREVIOUS].includes(value)
+      ) {
         expect(disabled).toBe(true);
       }
     });

@@ -1,18 +1,16 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
 import EditableText from 'app/components/editableText';
 import {Title} from 'app/components/layouts/thirds';
 import {t} from 'app/locale';
 import {Organization, SavedQuery} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 
 import {handleUpdateQueryName} from './savedQuery/utils';
 
 type Props = {
-  api: Client;
   organization: Organization;
   eventView: EventView;
   savedQuery?: SavedQuery;
@@ -24,7 +22,9 @@ const NAME_DEFAULT = t('Untitled query');
  * Allows user to edit the name of the query.
  * By pressing Enter or clicking outside the component, the changes will be saved, if valid.
  */
-function EventInputName({api, organization, eventView, savedQuery}: Props) {
+function EventInputName({organization, eventView, savedQuery}: Props) {
+  const api = useApi();
+
   function handleChange(nextQueryName: string) {
     // Do not update automatically if
     // 1) It is a new query
@@ -70,4 +70,4 @@ const StyledTitle = styled(Title)`
   overflow: unset;
 `;
 
-export default withApi(EventInputName);
+export default EventInputName;

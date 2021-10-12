@@ -25,8 +25,8 @@ import space from 'app/styles/space';
 import {Member, Organization, Team} from 'app/types';
 import isMemberDisabledFromLimit from 'app/utils/isMemberDisabledFromLimit';
 import recreateRoute from 'app/utils/recreateRoute';
+import Teams from 'app/utils/teams';
 import withOrganization from 'app/utils/withOrganization';
-import withTeams from 'app/utils/withTeams';
 import AsyncView from 'app/views/asyncView';
 import Field from 'app/views/settings/components/forms/field';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -48,7 +48,6 @@ type RouteParams = {
 
 type Props = {
   organization: Organization;
-  teams: Team[];
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
@@ -234,7 +233,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, teams} = this.props;
+    const {organization} = this.props;
     const {member} = this.state;
 
     if (!member) {
@@ -362,15 +361,18 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
           setRole={slug => this.setState({member: {...member, role: slug}})}
         />
 
-        <TeamSelect
-          organization={organization}
-          selectedTeams={member.teams
-            .map(teamSlug => teams.find(team => team.slug === teamSlug)!)
-            .filter(team => team !== undefined)}
-          disabled={!canEdit}
-          onAddTeam={this.handleAddTeam}
-          onRemoveTeam={this.handleRemoveTeam}
-        />
+        <Teams slugs={member.teams}>
+          {({teams, initiallyLoaded}) => (
+            <TeamSelect
+              organization={organization}
+              selectedTeams={teams}
+              disabled={!canEdit}
+              onAddTeam={this.handleAddTeam}
+              onRemoveTeam={this.handleRemoveTeam}
+              loadingTeams={!initiallyLoaded}
+            />
+          )}
+        </Teams>
 
         <Footer>
           <Button
@@ -387,7 +389,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
   }
 }
 
-export default withTeams(withOrganization(OrganizationMemberDetail));
+export default withOrganization(OrganizationMemberDetail);
 
 const ExtraHeaderText = styled('div')`
   color: ${p => p.theme.gray300};

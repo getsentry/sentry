@@ -103,7 +103,9 @@ class ResultsChart extends Component<ResultsChartProps> {
               confirmedQuery={confirmedQuery}
               withoutZerofill={hasPerformanceChartInterpolation}
               chartComponent={
-                hasConnectDiscoverAndDashboards && !isDaily ? AreaChart : undefined
+                hasConnectDiscoverAndDashboards && yAxisValue.length > 1 && !isDaily
+                  ? AreaChart
+                  : undefined
               }
               referrer={referrer}
             />
@@ -192,7 +194,9 @@ class ResultsChartContainer extends Component<ContainerProps> {
         }
         if (
           yAxis.length > 1 &&
-          ![DisplayModes.DEFAULT, DisplayModes.DAILY].includes(opt.value as DisplayModes)
+          ![DisplayModes.DEFAULT, DisplayModes.DAILY, DisplayModes.PREVIOUS].includes(
+            opt.value as DisplayModes
+          )
         ) {
           return {
             ...opt,

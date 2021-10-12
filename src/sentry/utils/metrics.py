@@ -154,6 +154,24 @@ def incr(
         logger.exception("Unable to record backend metric")
 
 
+def gauge(
+    key: str,
+    value,
+    instance: Optional[str] = None,
+    tags: Optional[Mapping[str, str]] = None,
+    sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+) -> None:
+    current_tags = _get_current_global_tags()
+    if tags is not None:
+        current_tags.update(tags)
+
+    try:
+        backend.gauge(key, value, instance, current_tags, sample_rate)
+    except Exception:
+        logger = logging.getLogger("sentry.errors")
+        logger.exception("Unable to record backend metric")
+
+
 def timing(key, value, instance=None, tags=None, sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE):
     current_tags = _get_current_global_tags()
     if tags is not None:
