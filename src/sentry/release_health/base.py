@@ -170,7 +170,8 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "is_metrics_based",
     )
 
-    is_metrics_based = False
+    def is_metrics_based(self) -> bool:
+        return False
 
     def get_current_and_previous_crash_free_rates(
         self,

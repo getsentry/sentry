@@ -197,6 +197,11 @@ export function getSessionsInterval(
 
   // limit on backend for sub-hour session resolution is set to six hours
   if (highFidelity && diffInMinutes < 360) {
+    if (diffInMinutes <= 10) {
+      // This only works for metrics-based session stats.
+      // Backend will silently replace with '1m' for session-based stats.
+      return '10s';
+    }
     if (diffInMinutes <= 30) {
       return '1m';
     }

@@ -228,10 +228,15 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(
             {"project": [-1], "statsPeriod": "2h", "interval": "5m", "field": ["sum(session)"]}
         )
-        assert response.status_code == 400, response.content
-        assert response.data == {
-            "detail": "The interval has to be a multiple of the minimum interval of one hour."
-        }
+
+        from sentry.api.endpoints.organization_sessions import release_health
+
+        expected_status_code = 200 if release_health.is_metrics_based else 400
+        assert response.status_code == expected_status_code, response.content
+        if not release_health.is_metrics_based:
+            assert response.data == {
+                "detail": "The interval has to be a multiple of the minimum interval of one hour."
+            }
 
         response = self.do_request(
             {"project": [-1], "statsPeriod": "2h", "interval": "1h", "field": ["sum(session)"]}

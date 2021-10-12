@@ -28,7 +28,7 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             raise NoProjects("No projects available")  # give it a description
 
-        if release_health.is_metrics_based:
+        if release_health.is_metrics_based():
             allowed_resolution = AllowedResolution.ten_seconds
         elif features.has(
             "organizations:minute-resolution-sessions", organization, actor=request.user
