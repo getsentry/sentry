@@ -17,10 +17,13 @@ class AccountConfirmationView(BaseView):
         if not verification_value:
             return render_to_response("sentry/idp_account_not_verified.html", request=request)
 
-        member = OrganizationMember.objects.filter(id=verification_value["member_id"])
-        if not member.exists():
+        try:
+            org = OrganizationMember.objects.get(
+                id=verification_value["member_id"]
+            ).organization.slug
+        except OrganizationMember.DoesNotExist:
             org = None
-        org = member[0].organization.slug
+
         context = {"org": org}
 
         if verification_value and org:
