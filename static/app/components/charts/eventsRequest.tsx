@@ -16,6 +16,7 @@ import {
   OrganizationSummary,
 } from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
+import {stripEquationPrefix} from 'app/utils/discover/fields';
 
 export type TimeSeriesData = {
   // timeseries data
@@ -437,7 +438,11 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       const sortedTimeseriesData = Object.keys(timeseriesData)
         .map((seriesName: string, index: number): [number, Series, Series | null] => {
           const seriesData: EventsStats = timeseriesData[seriesName];
-          const processedData = this.processData(seriesData, index, seriesName);
+          const processedData = this.processData(
+            seriesData,
+            index,
+            stripEquationPrefix(seriesName)
+          );
           if (!timeframe) {
             timeframe = processedData.timeframe;
           }
