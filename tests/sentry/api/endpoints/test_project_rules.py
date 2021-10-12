@@ -423,7 +423,15 @@ class CreateProjectRuleTest(APITestCase):
 
         project = self.create_project()
 
-        self.create_sentry_app(name="Pied Piper", organization=project.organization)
+        self.create_sentry_app(
+            name="Pied Piper",
+            organization=project.organization,
+            schema={
+                "elements": [
+                    self.create_alert_rule_action_schema(),
+                ]
+            },
+        )
         install = self.create_sentry_app_installation(
             slug="pied-piper", organization=project.organization
         )
@@ -432,7 +440,6 @@ class CreateProjectRuleTest(APITestCase):
             {
                 "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
                 "settings": {"assignee": "Team Rocket", "priority": 27},
-                "uri": "/sentry/alerts/",
                 "sentryAppInstallationUuid": install.uuid,
                 "hasSchemaFormConfig": True,
             },
@@ -467,13 +474,9 @@ class CreateProjectRuleTest(APITestCase):
         kwargs = {
             "install": install,
             "fields": actions[0].get("settings"),
-            "uri": actions[0].get("uri"),
-            "rule": rule,
         }
 
         call_kwargs = mock_alert_rule_action_creator.call_args[1]
 
         assert call_kwargs["install"].id == kwargs["install"].id
         assert call_kwargs["fields"] == kwargs["fields"]
-        assert call_kwargs["uri"] == kwargs["uri"]
-        assert call_kwargs["rule"].id == kwargs["rule"].id
