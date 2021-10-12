@@ -53,7 +53,7 @@ def _scan_for_suspect_projects() -> None:
         # TODO: add metrics!
         logger.warning("Moved project out of symbolicator's low priority queue: %s", project_id)
 
-    project_count = len(list(realtime_metrics.projects()))
+    project_count = len(list(realtime_metrics.get_lpq_projects()))
     metrics.gauge(
         "tasks.store.symbolicate_event.low_priority.projects",
         project_count,
@@ -91,7 +91,7 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
         was_added = realtime_metrics.add_project_to_lpq(project_id)
         if was_added:
             logger.warning("Moved project to symbolicator's low priority queue: %s", project_id)
-            project_count = len(list(realtime_metrics.projects()))
+            project_count = len(list(realtime_metrics.get_lpq_projects()))
             metrics.gauge(
                 "tasks.store.symbolicate_event.low_priority.projects",
                 project_count,
@@ -101,7 +101,7 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
         was_removed = realtime_metrics.remove_projects_from_lpq({project_id})
         if was_removed:
             logger.warning("Moved project out of symbolicator's low priority queue: %s", project_id)
-            project_count = len(list(realtime_metrics.projects()))
+            project_count = len(list(realtime_metrics.get_lpq_projects()))
             metrics.gauge(
                 "tasks.store.symbolicate_event.low_priority.projects",
                 project_count,
