@@ -20,7 +20,6 @@ from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.idpmigration import (
-    get_redis_key,
     get_verification_value_from_key,
     send_one_time_account_confirm_link,
 )
@@ -386,13 +385,10 @@ class AuthIdentityHandler:
     def has_verified_account(self, identity: Identity, verification_value: Dict[str, Any]) -> bool:
         acting_user = self._get_user(identity)
 
-        if (
-            verification_value["email"] != identity["email"]
-            or verification_value["user_id"] != acting_user.id
-        ):
-            return False
-
-        return True
+        return (
+            verification_value["email"] == identity["email"]
+            and verification_value["user_id"] == acting_user.id
+        )
 
     def handle_unknown_identity(
         self,
@@ -428,9 +424,7 @@ class AuthIdentityHandler:
         # we don't trust all IDP email verification, so users can also confirm via one time email link
         is_account_verified = False
         if self.request.session.get("confirm_account_verification_key"):
-            verification_key = get_redis_key(
-                self.request.session.get("confirm_account_verification_key")
-            )
+            verification_key = self.request.session.get("confirm_account_verification_key")
             verification_value = get_verification_value_from_key(verification_key)
             is_account_verified = self.has_verified_account(identity, verification_value)
 

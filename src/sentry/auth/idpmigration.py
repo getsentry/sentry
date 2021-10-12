@@ -57,7 +57,7 @@ class AccountConfirmLink:
 
     def __post_init__(self):
         self.verification_code = get_random_string(32, string.ascii_letters + string.digits)
-        self.verification_key = get_redis_key(self.verification_code)
+        self.verification_key = f"auth:one-time-key:{self.verification_code}"
 
     def send_confirm_email(self) -> None:
         context = {
@@ -99,38 +99,21 @@ class AccountConfirmLink:
         )
 
 
-def get_redis_key(verification_key: str) -> str:
-    return f"auth:one-time-key:{verification_key}"
-
-
 def get_org(key: str) -> str:
-    verification_key = get_redis_key(key)
-    verification_value = get_verification_value_from_key(verification_key)
+    verification_value = get_verification_value_from_key(key)
+
+    if (
+        not verification_value
+        or not OrganizationMember.objects.filter(id=verification_value["member_id"]).exists()
+    ):
+        return "No organization found"
     return OrganizationMember.objects.get(id=verification_value["member_id"]).organization.slug
 
 
-def get_verification_value_from_key(verification_key: str) -> Dict[str, Any]:
+def get_verification_value_from_key(key: str) -> Dict[str, Any]:
     cluster = get_redis_cluster()
+    verification_key = f"auth:one-time-key:{key}"
     verification_value = cluster.get(verification_key)
     if verification_value:
         return json.loads(verification_value)
     return verification_value
-
-
-def verify_account(key: str) -> bool:
-    """Verify a key to migrate a user to a new IdP.
-
-    If the provided one-time key is valid, create a new auth identity
-    linking the user to the organization's SSO provider.
-
-    :param user: the user profile to link
-    :param org: the organization whose SSO provider is being used
-    :param key: the one-time verification key
-    :return: whether the key is valid
-    """
-    verification_key = get_redis_key(key)
-    verification_value = get_verification_value_from_key(verification_key)
-    if not verification_value:
-        return False
-
-    return True
