@@ -5,11 +5,13 @@ import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select-new';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {removeGlobalSelectionStorage} from 'app/components/organizations/globalSelectionHeader/utils';
 import ProjectsStore from 'app/stores/projectsStore';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
 
 jest.mock('app/actionCreators/indicator');
+jest.mock('app/components/organizations/globalSelectionHeader/utils');
 
 describe('projectGeneralSettings', function () {
   const org = TestStubs.Organization();
@@ -136,6 +138,8 @@ describe('projectGeneralSettings', function () {
     modal.find('Button[priority="danger"]').simulate('click');
 
     expect(deleteMock).toHaveBeenCalled();
+
+    expect(removeGlobalSelectionStorage).toHaveBeenCalledWith('org-slug');
   });
 
   it('project admins can transfer project', async function () {

@@ -9,6 +9,7 @@ import {
 import ProjectActions from 'app/actions/projectActions';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import {removeGlobalSelectionStorage} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
 import {fields} from 'app/data/forms/projectGeneralSettings';
 import {t, tct} from 'app/locale';
@@ -59,6 +60,9 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
   handleRemoveProject = () => {
     const {orgId} = this.props.params;
     const project = this.state.data;
+
+    removeGlobalSelectionStorage(orgId);
+
     if (!project) {
       return;
     }
