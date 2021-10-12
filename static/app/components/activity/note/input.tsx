@@ -60,6 +60,10 @@ class NoteInputComponent extends React.Component<Props, State> {
     teamMentions: [],
   };
 
+  get canSubmit() {
+    return this.state.value.trim() !== '';
+  }
+
   cleanMarkdown(text: string) {
     return text
       .replace(/\[sentry\.strip:member\]/g, '@')
@@ -131,8 +135,8 @@ class NoteInputComponent extends React.Component<Props, State> {
   };
 
   handleKeyDown: MentionsInputProps['onKeyDown'] = e => {
-    // Auto submit the form on [meta] + Enter
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    // Auto submit the form on [meta,ctrl] + Enter
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && this.canSubmit) {
       this.submitForm();
     }
   };
@@ -236,7 +240,11 @@ class NoteInputComponent extends React.Component<Props, State> {
                 {t('Cancel')}
               </FooterButton>
             )}
-            <FooterButton error={errorMessage} type="submit" disabled={busy}>
+            <FooterButton
+              error={errorMessage}
+              type="submit"
+              disabled={busy || !this.canSubmit}
+            >
               {btnText}
             </FooterButton>
           </div>
