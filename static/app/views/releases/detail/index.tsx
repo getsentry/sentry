@@ -23,9 +23,11 @@ import {
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
+  SessionField,
 } from 'app/types';
 import {formatVersion} from 'app/utils/formatters';
 import routeTitleGen from 'app/utils/routeTitle';
+import {getCount} from 'app/utils/sessions';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
@@ -189,7 +191,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
               deploys,
               releaseMeta,
               refetchData: this.fetchData,
-              hasHealthData: !!sessions?.groups[0].totals['sum(session)'],
+              hasHealthData: getCount(sessions?.groups, SessionField.SESSIONS) > 0,
               releaseBounds,
             }}
           >
