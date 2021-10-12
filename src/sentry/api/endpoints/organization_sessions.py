@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 
 import sentry_sdk
+from django.utils.datastructures import MultiValueDict
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
@@ -28,6 +29,11 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             raise NoProjects("No projects available")  # give it a description
 
+        # HACK to prevent front-end crash when release health is sessions-based:
+        query_params = MultiValueDict(request.GET)
+        if not release_health.is_metrics_based() and request.GET.get("interval") == "10s":
+            query_params["interval"] = "1m"
+
         if release_health.is_metrics_based():
             allowed_resolution = AllowedResolution.ten_seconds
         elif features.has(
@@ -37,7 +43,7 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
         else:
             allowed_resolution = AllowedResolution.one_hour
 
-        return QueryDefinition(request.GET, params, allowed_resolution=allowed_resolution)
+        return QueryDefinition(query_params, params, allowed_resolution=allowed_resolution)
 
     @contextmanager
     def handle_query_errors(self):
