@@ -24,8 +24,7 @@ const TeamCrumb = ({params, routes, route, ...props}: Props) => {
   const hasMenu = teams.length > 1;
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    onSearch(query);
+    onSearch(e.target.value);
   };
   const debouncedHandleSearch = debounce(handleSearchChange, DEFAULT_DEBOUNCE_DURATION);
 
