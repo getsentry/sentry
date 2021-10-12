@@ -355,6 +355,8 @@ const StyledPanelTable = styled(PanelTable)<{disableTopBorder: boolean}>`
 
 const StyledPanelItem = styled(PanelItem)`
   display: block;
+  white-space: nowrap;
+  width: 100%;
 `;
 
 const SubTitle = styled('div')`
