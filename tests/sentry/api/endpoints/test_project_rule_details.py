@@ -798,11 +798,7 @@ class UpdateProjectRuleTest(APITestCase):
         self.create_sentry_app(
             name="Pied Piper",
             organization=project.organization,
-            schema={
-                "elements": [
-                    self.create_alert_rule_action_schema(),
-                ]
-            },
+            schema={"elements": [self.create_alert_rule_action_schema()]},
         )
         install = self.create_sentry_app_installation(
             slug="pied-piper", organization=project.organization
@@ -811,7 +807,7 @@ class UpdateProjectRuleTest(APITestCase):
         actions = [
             {
                 "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-                "settings": {"assignee": "Team Rocket", "priority": 27},
+                "settings": {"title": "Team Rocket", "summary": "We're blasting off again."},
                 "sentryAppInstallationUuid": install.uuid,
                 "hasSchemaFormConfig": True,
             },
