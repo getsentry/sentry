@@ -109,6 +109,8 @@ def _model_environment_ids_to_environment_names(
 class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     """Gets release health results from the metrics dataset"""
 
+    is_metrics_based = True
+
     def get_current_and_previous_crash_free_rates(
         self,
         project_ids: Sequence[int],

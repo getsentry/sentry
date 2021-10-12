@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry import features, release_health
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.snuba.sessions_v2 import InvalidField, InvalidParams, QueryDefinition
+from sentry.snuba.sessions_v2 import AllowedResolution, InvalidField, InvalidParams, QueryDefinition
 
 
 # NOTE: this currently extends `OrganizationEventsEndpointBase` for `handle_query_errors` only, which should ideally be decoupled from the base class.
@@ -28,10 +28,16 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             raise NoProjects("No projects available")  # give it a description
 
-        allow_minute_resolution = features.has(
+        if release_health.is_metrics_based:
+            allowed_resolution = AllowedResolution.ten_seconds
+        elif features.has(
             "organizations:minute-resolution-sessions", organization, actor=request.user
-        )
-        return QueryDefinition(request.GET, params, allow_minute_resolution=allow_minute_resolution)
+        ):
+            allowed_resolution = AllowedResolution.one_minute
+        else:
+            allowed_resolution = AllowedResolution.one_hour
+
+        return QueryDefinition(request.GET, params, allowed_resolution=allowed_resolution)
 
     @contextmanager
     def handle_query_errors(self):

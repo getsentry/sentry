@@ -167,7 +167,10 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "get_oldest_health_data_for_releases",
         "get_project_releases_count",
         "get_project_sessions_count",
+        "is_metrics_based",
     )
+
+    is_metrics_based = False
 
     def get_current_and_previous_crash_free_rates(
         self,
