@@ -24,7 +24,7 @@ class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
         per_project_average_releases = (
             Release.objects.filter(
                 id__in=ReleaseProject.objects.filter(project__in=project_list).values("release_id"),
-                date_added__gte=now() - timedelta(days=90),
+                date_added__gte=now() - timedelta(days=84),
                 date_added__lte=now(),
             )
             .values("projects")
