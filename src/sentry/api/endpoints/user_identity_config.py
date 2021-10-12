@@ -22,26 +22,26 @@ def get_identities(user: User) -> Iterable[UserIdentityConfig]:
     """
 
     has_password = user.has_usable_password()
-
-    social_identities = (
-        UserIdentityConfig.wrap(obj, Status.CAN_DISCONNECT)
-        for obj in UserSocialAuth.objects.filter(user=user)
-    )
-
-    # Allow global auth credentials to be deleted if the user has a
-    # password or at least one other global identity to fall back on.
-    # AuthIdentities don't count, because we don't want to risk the
-    # user getting locked out of their profile if they're kicked from
-    # the organization.
     global_identity_objs = list(Identity.objects.filter(user=user))
-    global_id_status = (
-        Status.CAN_DISCONNECT
-        if (has_password or len(global_identity_objs) > 1)
-        else Status.NEEDED_FOR_GLOBAL_AUTH
-    )
-    global_identities = (
-        UserIdentityConfig.wrap(obj, global_id_status) for obj in global_identity_objs
-    )
+
+    def get_social_identities() -> Iterable[UserIdentityConfig]:
+        return (
+            UserIdentityConfig.wrap(obj, Status.CAN_DISCONNECT)
+            for obj in UserSocialAuth.objects.filter(user=user)
+        )
+
+    def get_global_identities() -> Iterable[UserIdentityConfig]:
+        # Allow global auth credentials to be deleted if the user has a
+        # password or at least one other global identity to fall back on.
+        # AuthIdentities don't count, because we don't want to risk the
+        # user getting locked out of their profile if they're kicked from
+        # the organization.
+        global_id_status = (
+            Status.CAN_DISCONNECT
+            if (has_password or len(global_identity_objs) > 1)
+            else Status.NEEDED_FOR_GLOBAL_AUTH
+        )
+        return (UserIdentityConfig.wrap(obj, global_id_status) for obj in global_identity_objs)
 
     def get_org_identity_status(obj: AuthIdentity) -> Status:
         if not obj.auth_provider.flags.allow_unlinked:
@@ -55,12 +55,17 @@ def get_identities(user: User) -> Iterable[UserIdentityConfig]:
             # and weird that we don't care.)
             return Status.NEEDED_FOR_GLOBAL_AUTH
 
-    org_identities = (
-        UserIdentityConfig.wrap(obj, get_org_identity_status(obj))
-        for obj in AuthIdentity.objects.filter(user=user)
-    )
+    def get_org_identities() -> Iterable[UserIdentityConfig]:
+        return (
+            UserIdentityConfig.wrap(obj, get_org_identity_status(obj))
+            for obj in AuthIdentity.objects.filter(user=user)
+        )
 
-    return itertools.chain(social_identities, global_identities, org_identities)
+    return itertools.chain(
+        get_social_identities(),
+        get_global_identities(),
+        get_org_identities(),
+    )
 
 
 class UserIdentityConfigEndpoint(UserEndpoint):
