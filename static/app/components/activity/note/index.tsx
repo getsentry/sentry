@@ -190,11 +190,9 @@ const StyledActivityItem = styled(ActivityItem)`
 
   blockquote {
     font-size: 15px;
-    background: ${p => p.theme.gray200};
-
-    p:last-child {
-      margin-bottom: 0;
-    }
+    border-left: 5px solid ${p => p.theme.innerBorder};
+    padding-left: ${space(1)};
+    margin-left: 0;
   }
 `;
 
