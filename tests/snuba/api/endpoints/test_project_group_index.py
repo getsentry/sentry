@@ -106,7 +106,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert links["previous"]["results"] == "true"
         assert links["next"]["results"] == "false"
 
-    def test_stats_period(self):
+    @patch("sentry.api.helpers.group_index.ratelimiter.is_limited")
+    def test_stats_period(self, mock_rate_limiter):
+        mock_rate_limiter.return_value = False  # Never rate limit
         # TODO(dcramer): this test really only checks if validation happens
         # on statsPeriod
         self.create_group(checksum="a" * 32, last_seen=before_now(seconds=1))
