@@ -15,10 +15,11 @@ from sentry.tasks.sentry_apps import notify_sentry_app
 ValidationError = serializers.ValidationError
 
 
-def validate_field(value: str, field: Mapping[str, Any], app_name: str):
+def validate_field(value: Optional[str], field: Mapping[str, Any], app_name: str):
     # Only validate synchronous select fields
     if field.get("type") == "select" and not field.get("uri"):
         allowed_values = [option[0] for option in field.get("options")]
+        # Reject None values and empty strings
         if value and value not in allowed_values:
             field_label = field.get("label")
             allowed_values_message = ", ".join(allowed_values)
@@ -63,7 +64,7 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
 
         return None
 
-    def self_validate(self):
+    def self_validate(self) -> None:
         sentry_app_installation_uuid = self.data.get("sentryAppInstallationUuid")
         if not sentry_app_installation_uuid:
             raise ValidationError("Missing attribute 'sentryAppInstallationUuid'")
@@ -72,6 +73,14 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
             sentry_app = SentryApp.objects.get(installations__uuid=sentry_app_installation_uuid)
         except SentryApp.DoesNotExist:
             raise ValidationError("Could not identify integration from the installation uuid.")
+
+        # Ensure the uuid does not match a deleted installation
+        try:
+            SentryAppInstallation.objects.get(uuid=sentry_app_installation_uuid, date_deleted=None)
+        except SentryAppInstallation.DoesNotExist:
+            raise ValidationError(
+                f"The installation provided is out of date, please reinstall the {sentry_app.name} integration."
+            )
 
         try:
             alert_rule_component = SentryAppComponent.objects.get(
@@ -86,9 +95,9 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
         if not incoming_settings:
             raise ValidationError(f"{sentry_app.name} requires settings to configure alert rules.")
 
-        schema = alert_rule_component.schema.get("settings")
-        all_fields = {}
         # Ensure required fields are provided and valid
+        valid_fields = set()
+        schema = alert_rule_component.schema.get("settings")
         for required_field in schema.get("required_fields", []):
             field_name = required_field.get("name")
             field_value = incoming_settings.get(field_name)
@@ -97,21 +106,22 @@ class NotifyEventSentryAppAction(EventAction):  # type: ignore
                     f"{sentry_app.name} is missing required settings field: '{field_name}'"
                 )
             validate_field(field_value, required_field, sentry_app.name)
-            all_fields[field_name] = field_value
+            valid_fields.add(field_name)
 
         # Ensure optional fields are valid
         for optional_field in schema.get("optional_fields", []):
             field_name = optional_field.get("name")
             field_value = incoming_settings.get(field_name)
             validate_field(field_value, optional_field, sentry_app.name)
-            all_fields[field_name] = field_value
+            valid_fields.add(field_name)
 
         # Ensure the payload we send matches the expectations set in the schema
-        for key in incoming_settings.keys():
-            if key not in all_fields:
-                raise ValidationError(
-                    f"Unexpected setting '{key}' configured for {sentry_app.name}"
-                )
+        extra_keys = incoming_settings.keys() - valid_fields
+        if extra_keys:
+            extra_keys_string = ", ".join(extra_keys)
+            raise ValidationError(
+                f"Unexpected setting(s) '{extra_keys_string}' configured for {sentry_app.name}"
+            )
 
     def after(self, event: Event, state: str) -> Any:
         sentry_app = self.get_sentry_app(event)
