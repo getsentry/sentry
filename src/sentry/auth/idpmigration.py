@@ -99,17 +99,6 @@ class AccountConfirmLink:
         )
 
 
-def get_org(key: str) -> str:
-    verification_value = get_verification_value_from_key(key)
-
-    if (
-        not verification_value
-        or not OrganizationMember.objects.filter(id=verification_value["member_id"]).exists()
-    ):
-        return "No organization found"
-    return OrganizationMember.objects.get(id=verification_value["member_id"]).organization.slug
-
-
 def get_verification_value_from_key(key: str) -> Dict[str, Any]:
     cluster = get_redis_cluster()
     verification_key = f"auth:one-time-key:{key}"

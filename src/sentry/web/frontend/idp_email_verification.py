@@ -1,7 +1,8 @@
 from django.http.response import HttpResponse
 from rest_framework.request import Request
 
-from sentry.auth.idpmigration import SSO_VERIFICATION_KEY, get_org, get_verification_value_from_key
+from sentry.auth.idpmigration import SSO_VERIFICATION_KEY, get_verification_value_from_key
+from sentry.models import OrganizationMember
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
@@ -11,9 +12,18 @@ class AccountConfirmationView(BaseView):
     auth_required = False
 
     def handle(self, request: Request, key: str) -> HttpResponse:
-        org = get_org(key)
+        verification_value = get_verification_value_from_key(key)
+
+        if not verification_value:
+            return render_to_response("sentry/idp_account_not_verified.html", request=request)
+
+        member = OrganizationMember.objects.filter(id=verification_value["member_id"])
+        if not member.exists():
+            org = None
+        org = member[0].organization.slug
         context = {"org": org}
-        if get_verification_value_from_key(key) and org != "No organization found":
+
+        if verification_value and org:
             request.session[SSO_VERIFICATION_KEY] = key
             return render_to_response(
                 "sentry/idp_account_verified.html", context=context, request=request
