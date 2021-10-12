@@ -4,9 +4,9 @@ import {EChartOption} from 'echarts';
 
 const DEFAULT = {
   type: 'inside',
-  /** Mouse wheel can not trigger zoom. */
+  // Mouse wheel can not trigger zoom
   zoomOnMouseWheel: false,
-  /** The translation (by mouse drag or touch drag) is avialable but zoom is not */
+  // The translation (by mouse drag or touch drag) is avialable but zoom is not
   zoomLock: true,
   throttle: 50,
 };
