@@ -135,6 +135,7 @@ def submit_symbolicate(
         start_time=start_time,
         event_id=event_id,
         changed_queue_times=changed_queue_times,
+        data=data,
     )
 
 
@@ -438,7 +439,9 @@ def _do_symbolicate_event(
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
     acks_late=True,
 )
-def symbolicate_event(cache_key, start_time=None, event_id=None, changed_queue_times=0, **kwargs):
+def symbolicate_event(
+    cache_key, start_time=None, event_id=None, changed_queue_times=0, data=None, **kwargs
+):
     """
     Handles event symbolication using the external service: symbolicator.
 
@@ -452,6 +455,7 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, changed_queue_t
         event_id=event_id,
         symbolicate_task=symbolicate_event,
         changed_queue_times=changed_queue_times,
+        data=data,
     )
 
 
@@ -463,7 +467,7 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, changed_queue_t
     acks_late=True,
 )
 def symbolicate_event_low_priority(
-    cache_key, start_time=None, event_id=None, changed_queue_times=0, **kwargs
+    cache_key, start_time=None, event_id=None, changed_queue_times=0, data=None, **kwargs
 ):
     """
     Handles event symbolication using the external service: symbolicator.
@@ -481,6 +485,7 @@ def symbolicate_event_low_priority(
         event_id=event_id,
         symbolicate_task=symbolicate_event_low_priority,
         changed_queue_times=changed_queue_times,
+        data=data,
     )
 
 
@@ -492,7 +497,7 @@ def symbolicate_event_low_priority(
     acks_late=True,
 )
 def symbolicate_event_from_reprocessing(
-    cache_key, start_time=None, event_id=None, changed_queue_times=0, **kwargs
+    cache_key, start_time=None, event_id=None, changed_queue_times=0, data=None, **kwargs
 ):
     return _do_symbolicate_event(
         cache_key=cache_key,
@@ -500,6 +505,7 @@ def symbolicate_event_from_reprocessing(
         event_id=event_id,
         symbolicate_task=symbolicate_event_from_reprocessing,
         changed_queue_times=changed_queue_times,
+        data=data,
     )
 
 
@@ -511,7 +517,7 @@ def symbolicate_event_from_reprocessing(
     acks_late=True,
 )
 def symbolicate_event_from_reprocessing_low_priority(
-    cache_key, start_time=None, event_id=None, changed_queue_times=0, **kwargs
+    cache_key, start_time=None, event_id=None, changed_queue_times=0, data=None, **kwargs
 ):
     return _do_symbolicate_event(
         cache_key=cache_key,
@@ -519,6 +525,7 @@ def symbolicate_event_from_reprocessing_low_priority(
         event_id=event_id,
         symbolicate_task=symbolicate_event_from_reprocessing_low_priority,
         changed_queue_times=changed_queue_times,
+        data=data,
     )
 
 
