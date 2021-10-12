@@ -1,5 +1,28 @@
 import psycopg2
+from django.db import connections, router
 from django.db.utils import DatabaseError, InterfaceError
+
+
+def bulk_insert_on_conflict_do_nothing(Model, rows):
+    """
+    Bulk insert, ignoring conflicts. Does not trigger pre/post save signals.
+
+    `rows` should be supplied as list of mappings, with collumn names as keys.
+    """
+    if not rows:
+        return
+    cols = rows[0].keys()
+    with connections[router.db_for_write(Model)].cursor() as cursor:
+        cursor.execute(
+            f"""
+            INSERT INTO {Model._meta.db_table}
+                (','.join(cols))
+            VALUES
+                {','.join(['(%s, %s, %s, %s)'] * len(rows))}
+            ON CONFLICT DO NOTHING;
+            """,
+            [row[col] for row in rows for col in cols],
+        )
 
 
 def can_reconnect(exc):

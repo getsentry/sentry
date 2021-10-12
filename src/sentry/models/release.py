@@ -25,6 +25,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.db.postgres.helpers import bulk_insert_on_conflict_do_nothing
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Activity,
@@ -889,17 +890,17 @@ class Release(Model):
 
                     # Guard against patch_set being None
                     patch_set = data.get("patch_set") or []
-                    for patched_file in patch_set:
-                        try:
-                            with atomic_transaction(using=router.db_for_write(CommitFileChange)):
-                                CommitFileChange.objects.create(
-                                    organization_id=self.organization.id,
-                                    commit=commit,
-                                    filename=patched_file["path"],
-                                    type=patched_file["type"],
-                                )
-                        except IntegrityError:
-                            pass
+                    if patch_set:
+                        patch_set_rows = [
+                            {
+                                "organization_id": self.organization.id,
+                                "commit": commit,
+                                "filename": patched_file["path"],
+                                "type": patched_file["type"],
+                            }
+                            for patched_file in patch_set
+                        ]
+                        bulk_insert_on_conflict_do_nothing(CommitFileChange, patch_set_rows)
 
                     try:
                         with atomic_transaction(using=router.db_for_write(ReleaseCommit)):
