@@ -47,6 +47,7 @@ def build_action_response(
     elif sentry_app_installation:
         action_response["sentryAppName"] = sentry_app_installation.sentry_app.name
         action_response["sentryAppId"] = sentry_app_installation.sentry_app_id
+        action_response["sentryAppInstallationUuid"] = sentry_app_installation.uuid
         action_response["status"] = SentryAppStatus.as_str(
             sentry_app_installation.sentry_app.status
         )

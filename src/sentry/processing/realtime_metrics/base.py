@@ -75,17 +75,28 @@ class RealtimeMetricsStore(Service):  # type: ignore
         """
         raise NotImplementedError
 
-    def get_counts_for_project(self, project_id: int) -> Iterable[BucketedCount]:
+    def get_counts_for_project(self, project_id: int, timestamp: int) -> Iterable[BucketedCount]:
         """
         Returns a sorted list of bucketed timestamps paired with the count of symbolicator requests
         made during that time for some given project.
         """
         raise NotImplementedError
 
-    def get_durations_for_project(self, project_id: int) -> Iterable[DurationHistogram]:
+    def get_durations_for_project(
+        self, project_id: int, timestamp: int
+    ) -> Iterable[DurationHistogram]:
         """
-        Returns a sorted list of bucketed timestamps paired with a dictionary of symbolicator
-        durations grouped in 10 second durations made during that time for some given project.
+        Returns a sorted list of bucketed timestamps paired with a histogram-like dictionary of
+        symbolication durations made during some timestamp for some given project.
+
+        For a given `{duration:count}` entry in the dictionary bound to a specific `timestamp`:
+
+        - `duration` represents the amount of time it took for a symbolication request to complete.
+        Durations are bucketed by 10secs, meaning that a `duration` of `30` covers all requests that
+        took between 30-39 seconds.
+
+        - `count` is the number of symbolication requests that took some amount of time within the
+        range of `[duration, duration+10)` to complete.
         """
         raise NotImplementedError
 
@@ -110,19 +121,27 @@ class RealtimeMetricsStore(Service):  # type: ignore
         This registers an intent to redirect all symbolication events triggered by the specified
         project to be redirected to the low priority queue.
 
+        Applies a backoff timer to the project which prevents it from being automatically evicted
+        from the queue while that timer is active.
+
         Returns True if the project was a new addition to the list. Returns False if it was already
-        assigned to the low priority queue.
+        assigned to the low priority queue. This may throw an exception if there is some sort of
+        issue registering the project with the queue.
         """
         raise NotImplementedError
 
     def remove_projects_from_lpq(self, project_ids: Set[int]) -> int:
         """
-        Removes projects from the low priority queue.
+        Unassigns projects from the low priority queue.
 
         This registers an intent to restore all specified projects back to the regular queue.
 
+        Applies a backoff timer to the project which prevents it from being automatically assigned
+        to the queue while that timer is active.
+
         Returns the number of projects that were actively removed from the queue. Any projects that
         were not assigned to the low priority queue to begin with will be omitted from the return
-        value.
+        value. This may throw an exception if there is some sort of issue deregistering the projects
+        from the queue.
         """
         raise NotImplementedError

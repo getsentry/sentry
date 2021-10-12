@@ -994,8 +994,12 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
-    # Allow orgs to view the Teamwork plugin
+    # Allow orgs to use the deprecated Teamwork plugin
     "organizations:integrations-ignore-teamwork-deprecation": False,
+    # Allow orgs to use the deprecated Clubhouse/Shortcut plugin
+    "organizations:integrations-ignore-clubhouse-deprecation": False,
+    # Allow orgs to use the deprecated VSTS (Azure DevOps) plugin
+    "organizations:integrations-ignore-vsts-deprecation": False,
     # Allow orgs to debug internal/unpublished sentry apps with logging
     "organizations:sentry-app-debugging": False,
     # Temporary safety measure, turned on for specific orgs only if
@@ -1380,6 +1384,7 @@ SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefix
 # Metrics product
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
+SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 
 # Release Health
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
@@ -2361,7 +2366,7 @@ SENTRY_REALTIME_METRICS_BACKEND = (
 SENTRY_REALTIME_METRICS_OPTIONS = {
     # The redis cluster used for the realtime store redis backend.
     "cluster": "default",
-    # The bucket size of the counter.
+    # The bucket size of the event counter.
     #
     # The size (in seconds) of the buckets that events are sorted into.
     "counter_bucket_size": 10,
@@ -2371,20 +2376,24 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # so that projects that exceed a reasonable rate can be sent to the low
     # priority queue. This setting determines how long we keep these rates
     # around.
-    # Note that the time is counted after the last time a counter is incremented.
-    "counter_ttl": timedelta(seconds=300),
-    # The bucket size of the histogram.
+    "counter_time_window": 300,
+    # The bucket size of the processing duration histogram.
     #
     # The size (in seconds) of the buckets that events are sorted into.
-    "histogram_bucket_size": 10,
+    "duration_bucket_size": 10,
     # Number of seconds to keep symbolicate_event durations per project.
     #
     # symbolicate_event tasks report the processing durations of events per project to redis
     # so that projects that exceed a reasonable duration can be sent to the low
     # priority queue. This setting determines how long we keep these duration values
     # around.
-    # Note that the time is counted after the last time a counter is incremented.
-    "histogram_ttl": timedelta(seconds=900),
+    "duration_time_window": 900,
+    # Number of seconds to wait after a project is made eligible or ineligible for the LPQ
+    # before its eligibility can be changed again.
+    #
+    # This backoff is only applied to automatic changes to project eligibility, and has zero effect
+    # on any manually-triggered changes to a project's presence in the LPQ.
+    "backoff_timer": 5 * 60,
 }
 
 # XXX(meredith): Temporary metrics indexer
