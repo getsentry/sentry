@@ -1817,7 +1817,6 @@ SENTRY_DEVSERVICES = {
                 "clickhouse_dist"
                 if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
                 else "clickhouse": {"bind": "/var/lib/clickhouse"},
-                "clickhouse_logs": {"bind": "/var/log/clickhouse-server"},
                 os.path.join(
                     settings.DEVSERVICES_CONFIG_DIR,
                     "clickhouse",
