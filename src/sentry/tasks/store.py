@@ -277,7 +277,7 @@ def _do_symbolicate_event(
     # check whether the event is in the wrong queue and if so, move it to the other one.
     # we do this at most three times.
     if changed_queue_times >= 3:
-        metrics.incr("tasks.store.symbolicate_event.low_priority.max_queue_switches")
+        metrics.gauge("tasks.store.symbolicate_event.low_priority.max_queue_switches", 1)
     else:
         is_low_priority = symbolicate_task in [
             symbolicate_event_low_priority,
@@ -286,7 +286,7 @@ def _do_symbolicate_event(
         should_be_low_priority = should_demote_symbolication(project_id)
 
         if is_low_priority != should_be_low_priority:
-            metrics.incr("tasks.store.symbolicate_event.low_priority.wrong_queue")
+            metrics.gauge("tasks.store.symbolicate_event.low_priority.max_queue_switches", 1)
             submit_symbolicate(
                 should_be_low_priority,
                 from_reprocessing,
