@@ -208,9 +208,8 @@ function ReleaseComparisonChart({
   });
 
   const isMobileProject = isProjectMobileForReleases(project.platform);
-  const adoptionStage = release.adoptionStages?.[project.slug].stage;
-  const adoptionStageLabel =
-    Boolean(adoptionStage) && ADOPTION_STAGE_LABELS[adoptionStage];
+  const adoptionStage = release.adoptionStages?.[project.slug]?.stage;
+  const adoptionStageLabel = ADOPTION_STAGE_LABELS[adoptionStage];
   const multipleEnvironments = environment.length === 0 || environment.length > 1;
 
   return (
