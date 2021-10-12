@@ -42,7 +42,7 @@ class AlertRuleActionRequester(Mediator):
                 data=self.body,
             )
             body = safe_urlread(req)
-            response = json.loads(body)
+            response = {"success": True, "message": "", "body": json.loads(body)}
         except Exception as e:
             logger.info(
                 "alert_rule_action.error",
@@ -53,7 +53,8 @@ class AlertRuleActionRequester(Mediator):
                     "error_message": str(e),
                 },
             )
-            response = {}
+            # Bubble up error message from Sentry App to the UI for the user.
+            response = {"success": False, "message": str(e.response.text), "body": {}}
 
         return response
 
