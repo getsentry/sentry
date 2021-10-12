@@ -385,11 +385,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     zerofill_results=zerofill_results,
                 )
             else:
+                extra_columns = None
+                if comparison_delta:
+                    extra_columns = ["comparisonCount"]
                 serialized_result = serializer.serialize(
                     result,
                     resolve_axis_column(query_columns[0]),
                     allow_partial_buckets=allow_partial_buckets,
                     zerofill_results=zerofill_results,
+                    extra_columns=extra_columns,
                 )
 
             return serialized_result

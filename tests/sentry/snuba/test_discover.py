@@ -5738,7 +5738,9 @@ class TimeseriesQueryTest(TimeseriesBase):
         )
         assert len(result.data["data"]) == 3
         # Values should all be 0, since there is no comparison period data at all.
-        assert [0, 0, 0] == [val["count"] for val in result.data["data"] if "count" in val]
+        assert [(0, 0), (3, 0), (0, 0)] == [
+            (val.get("count", 0), val.get("comparisonCount", 0)) for val in result.data["data"]
+        ]
 
         self.store_event(
             data={
@@ -5775,7 +5777,9 @@ class TimeseriesQueryTest(TimeseriesBase):
         assert len(result.data["data"]) == 3
         # In the second bucket we have 3 events in the current period and 2 in the comparison, so
         # we get a result of 50% increase
-        assert [0, 50, 0] == [val["count"] for val in result.data["data"] if "count" in val]
+        assert [(0, 0), (3, 2), (0, 0)] == [
+            (val.get("count", 0), val.get("comparisonCount", 0)) for val in result.data["data"]
+        ]
 
         result = discover.timeseries_query(
             selected_columns=["count_unique(user)"],
@@ -5791,8 +5795,9 @@ class TimeseriesQueryTest(TimeseriesBase):
         assert len(result.data["data"]) == 3
         # In the second bucket we have 1 unique user in the current period and 2 in the comparison, so
         # we get a result of -50%
-        assert [0, -50, 0] == [
-            val["count_unique_user"] for val in result.data["data"] if "count_unique_user" in val
+        assert [(0, 0), (1, 2), (0, 0)] == [
+            (val.get("count_unique_user", 0), val.get("comparisonCount", 0))
+            for val in result.data["data"]
         ]
 
     def test_count_miserable(self):
