@@ -1,11 +1,14 @@
 import Reflux from 'reflux';
 
+import SidebarPanelActions from 'app/actions/sidebarPanelActions';
 import {SidebarPanelKey} from 'app/components/sidebar/types';
 
-import SidebarPanelActions from '../actions/sidebarPanelActions';
+import {CommonStoreInterface} from './types';
 
-type SidebarPanelStoreInterface = {
-  activePanel: SidebarPanelKey | '';
+type ActivePanelType = SidebarPanelKey | '';
+
+type SidebarPanelStoreInterface = CommonStoreInterface<ActivePanelType> & {
+  activePanel: ActivePanelType;
 
   onActivatePanel(panel: SidebarPanelKey): void;
   onTogglePanel(panel: SidebarPanelKey): void;
@@ -37,6 +40,10 @@ const storeConfig: Reflux.StoreDefinition & SidebarPanelStoreInterface = {
   onHidePanel() {
     this.activePanel = '';
     this.trigger(this.activePanel);
+  },
+
+  getState() {
+    return this.activePanel;
   },
 };
 
