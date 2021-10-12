@@ -201,6 +201,21 @@ function TeamInsightsOverview({
                     };
                     return {...provided, ...custom};
                   },
+                  input: (provided: any, state: any) => ({
+                    ...provided,
+                    display: 'grid',
+                    gridTemplateColumns: 'max-content 1fr',
+                    alignItems: 'center',
+                    gridGap: space(1),
+                    ':before': {
+                      backgroundColor: state.theme.backgroundSecondary,
+                      height: 24,
+                      width: 38,
+                      borderRadius: 3,
+                      content: '""',
+                      display: 'block',
+                    },
+                  }),
                 }}
               />
               <StyledPageTimeRangeSelector
