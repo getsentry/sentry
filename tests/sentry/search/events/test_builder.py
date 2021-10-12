@@ -85,6 +85,18 @@ class QueryBuilderTest(TestCase):
         )
         query.get_snql_query().validate()
 
+    def test_orderby_duplicate_columns(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            selected_columns=["user.email", "user.email"],
+            orderby=["user.email"],
+        )
+        self.assertCountEqual(
+            query.orderby,
+            [OrderBy(Column("email"), Direction.ASC)],
+        )
+
     def test_simple_limitby(self):
         query = QueryBuilder(
             dataset=Dataset.Discover,
@@ -359,3 +371,41 @@ class QueryBuilderTest(TestCase):
                     "",
                     selected_columns=[],
                 )
+
+    def test_array_combinator(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=["sumArray(measurements_value)"],
+            functions_acl=["sumArray"],
+        )
+        self.assertCountEqual(
+            query.columns,
+            [
+                Function(
+                    "sum",
+                    [Function("arrayJoin", [Column("measurements.value")])],
+                    "sumArray_measurements_value",
+                )
+            ],
+        )
+
+    def test_array_combinator_is_private(self):
+        with self.assertRaisesRegexp(InvalidSearchQuery, "sum: no access to private function"):
+            QueryBuilder(
+                Dataset.Discover,
+                self.params,
+                "",
+                selected_columns=["sumArray(measurements_value)"],
+            )
+
+    def test_array_combinator_with_non_array_arg(self):
+        with self.assertRaisesRegexp(InvalidSearchQuery, "stuff is not a valid array column"):
+            QueryBuilder(
+                Dataset.Discover,
+                self.params,
+                "",
+                selected_columns=["sumArray(stuff)"],
+                functions_acl=["sumArray"],
+            )

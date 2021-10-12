@@ -528,7 +528,7 @@ type Preferences = typeof PreferencesStore.prefs;
 
 class SidebarContainer extends React.Component<ContainerProps, ContainerState> {
   state: ContainerState = {
-    collapsed: PreferencesStore.getInitialState().collapsed,
+    collapsed: !!PreferencesStore.getInitialState().collapsed,
     activePanel: '',
   };
 
@@ -552,7 +552,7 @@ class SidebarContainer extends React.Component<ContainerProps, ContainerState> {
       return;
     }
 
-    this.setState({collapsed: preferences.collapsed});
+    this.setState({collapsed: !!preferences.collapsed});
   }
 
   onSidebarPanelChange(activePanel: ActivePanelType) {
