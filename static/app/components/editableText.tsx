@@ -52,17 +52,21 @@ function EditableText({
 
   // check to see if the user clicked outside of this component
   useOnClickOutside(innerWrapperRef, () => {
-    if (isEditing) {
-      if (isEmpty) {
-        displayStatusMessage('error');
-        return;
-      }
-      if (inputValue !== value) {
-        onChange(inputValue);
-        displayStatusMessage('success');
-      }
-      setIsEditing(false);
+    if (!isEditing) {
+      return;
     }
+
+    if (isEmpty) {
+      displayStatusMessage('error');
+      return;
+    }
+
+    if (inputValue !== value) {
+      onChange(inputValue);
+      displayStatusMessage('success');
+    }
+
+    setIsEditing(false);
   });
 
   const onEnter = useCallback(() => {
