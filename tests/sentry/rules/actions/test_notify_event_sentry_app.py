@@ -65,10 +65,6 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
             slug="test-application", organization=event.organization
         )
 
-        # self.component = self.create_sentry_app_component(
-        #     sentry_app=self.app, schema=self.create_alert_rule_action_schema()
-        # )
-
         rule = self.get_rule(
             data={
                 "sentryAppInstallationUuid": self.install.uuid,

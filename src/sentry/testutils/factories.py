@@ -73,7 +73,6 @@ from sentry.models import (
     Repository,
     RepositoryProjectPathConfig,
     Rule,
-    SentryAppComponent,
     Team,
     User,
     UserEmail,
