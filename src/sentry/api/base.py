@@ -174,6 +174,7 @@ class Endpoint(APIView):
 
             request_user = getattr(self.request, "user", None)
             user_id = getattr(request_user, "id", None)
+            is_app = getattr(request_user, "is_sentry_app", None)
 
             request_access = getattr(self.request, "access", None)
             org_id = getattr(request_access, "organization_id", None)
@@ -182,15 +183,17 @@ class Endpoint(APIView):
             auth_id = getattr(request_auth, "id", None)
 
             log_metrics = dict(
-                method=self.request.method,
+                method=str(self.request.method),
                 view=f"{view_obj.__module__}.{view_obj.__class__.__name__}",
                 response=self.response.status_code,
-                user_id=user_id,
-                token_type=token_name,
-                organization_id=org_id,
-                auth_id=auth_id,
-                path=self.request.path,
-                caller_ip=self.request.META.get("REMOTE_ADDR"),
+                user_id=str(user_id),
+                is_app=str(is_app),
+                token_type=str(token_name),
+                organization_id=str(org_id),
+                auth_id=str(auth_id),
+                path=str(self.request.path),
+                caller_ip=str(self.request.META.get("REMOTE_ADDR")),
+                user_agent=str(self.request.META.get("HTTP_USER_AGENT")),
             )
             api_access_logger.info("api.access", extra=log_metrics)
         except Exception:

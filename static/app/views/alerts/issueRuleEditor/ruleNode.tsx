@@ -65,17 +65,15 @@ class RuleNode extends React.Component<Props> {
     let initialVal;
     if (data) {
       if (data[name] === undefined && !!fieldConfig.choices.length) {
-        if (fieldConfig.initial) {
-          initialVal = fieldConfig.initial;
-        } else {
-          initialVal = fieldConfig.choices[0][0];
-        }
+        initialVal = fieldConfig.initial
+          ? `${fieldConfig.initial}`
+          : `${fieldConfig.choices[0][0]}`;
       } else {
-        initialVal = data[name];
+        initialVal = `${data[name]}`;
       }
     }
 
-    // Cast `value` to string
+    // All `value`s are cast to string
     // There are integrations that give the form field choices with the value as number, but
     // when the integration configuration gets saved, it gets saved and returned as a string
     const options = fieldConfig.choices.map(([value, label]) => ({
@@ -272,6 +270,22 @@ class RuleNode extends React.Component<Props> {
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/issue-alert-config/" />
+              ),
+            }
+          )}
+        </MarginlessAlert>
+      );
+    }
+    if (data.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction') {
+      return (
+        <MarginlessAlert type="warning">
+          {tct(
+            'Having rate limiting problems? Enter a channel or user ID. Read more [rateLimiting].',
+            {
+              rateLimiting: (
+                <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
+                  {t('here')}
+                </ExternalLink>
               ),
             }
           )}

@@ -14,6 +14,7 @@ import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
+import SessionsRequest from 'app/components/charts/sessionsRequest';
 import {SectionHeading} from 'app/components/charts/styles';
 import {
   parseStatsPeriod,
@@ -26,16 +27,25 @@ import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {AvatarProject, DateString, Organization, Project} from 'app/types';
-import {ReactEchartsRef} from 'app/types/echarts';
+import {ReactEchartsRef, Series} from 'app/types/echarts';
 import {getUtcDateString} from 'app/utils/dates';
+import {getCrashFreeRateSeries} from 'app/utils/sessions';
 import theme from 'app/utils/theme';
 import {alertDetailsLink} from 'app/views/alerts/details';
 import {makeDefaultCta} from 'app/views/alerts/incidentRules/incidentRulePresets';
-import {IncidentRule} from 'app/views/alerts/incidentRules/types';
+import {Dataset, IncidentRule} from 'app/views/alerts/incidentRules/types';
 import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
+import {
+  ALERT_CHART_MIN_MAX_BUFFER,
+  alertAxisFormatter,
+  alertTooltipValueFormatter,
+  isSessionAggregate,
+  SESSION_AGGREGATE_TO_FIELD,
+  shouldScaleAlertChart,
+} from '../../utils';
 
 import {TimePeriodType} from './constants';
 
@@ -88,7 +98,8 @@ function createThresholdSeries(lineColor: string, threshold: number): LineChartS
 function createStatusAreaSeries(
   lineColor: string,
   startTime: number,
-  endTime: number
+  endTime: number,
+  yPosition: number
 ): LineChartSeries {
   return {
     seriesName: 'Status Area',
@@ -96,7 +107,7 @@ function createStatusAreaSeries(
     markLine: MarkLine({
       silent: true,
       lineStyle: {color: lineColor, type: 'solid', width: 4},
-      data: [[{coord: [startTime, 0]}, {coord: [endTime, 0]}] as any],
+      data: [[{coord: [startTime, yPosition]}, {coord: [endTime, yPosition]}] as any],
     }),
     data: [],
   };
@@ -207,8 +218,8 @@ class MetricChart extends React.PureComponent<Props, State> {
     }
 
     const seriesData = data[0].data;
-    const seriesStart = seriesData[0].name as number;
-    const seriesEnd = seriesData[seriesData.length - 1].name as number;
+    const seriesStart = moment(seriesData[0].name).valueOf();
+    const seriesEnd = moment(seriesData[seriesData.length - 1].name).valueOf();
     const ruleChanged = moment(dateModified).valueOf();
 
     if (ruleChanged < seriesStart) {
@@ -293,103 +304,307 @@ class MetricChart extends React.PureComponent<Props, State> {
             </StatItem>
           </SummaryStats>
         </ChartSummary>
-        <Feature features={['discover-basic']}>
-          <Button size="small" {...props}>
-            {buttonText}
-          </Button>
-        </Feature>
+        {!isSessionAggregate(rule.aggregate) && (
+          <Feature features={['discover-basic']}>
+            <Button size="small" {...props}>
+              {buttonText}
+            </Button>
+          </Feature>
+        )}
       </ChartActions>
     );
   }
 
-  renderChart(
-    data: LineChartSeries[],
-    series: LineChartSeries[],
-    areaSeries: any[],
-    maxThresholdValue: number,
-    maxSeriesValue: number
-  ) {
+  renderChart(loading: boolean, timeseriesData?: Series[]) {
     const {
       router,
+      selectedIncident,
       interval,
       handleZoom,
+      filter,
+      query,
+      incidents,
+      rule,
+      organization,
       timePeriod: {start, end},
     } = this.props;
-    const {dateModified, timeWindow} = this.props.rule || {};
+    const {dateModified, timeWindow, aggregate} = rule;
+
+    if (loading || !timeseriesData) {
+      return this.renderEmpty();
+    }
+
+    const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
+    const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
+
+    const series: LineChartSeries[] = [...timeseriesData];
+    const areaSeries: any[] = [];
+    // Ensure series data appears above incident lines
+    series[0].z = 100;
+    const dataArr = timeseriesData[0].data;
+    const maxSeriesValue = dataArr.reduce(
+      (currMax, coord) => Math.max(currMax, coord.value),
+      0
+    );
+    // find the lowest value between chart data points, warning threshold,
+    // critical threshold and then apply some breathing space
+    const minChartValue = shouldScaleAlertChart(aggregate)
+      ? Math.floor(
+          Math.min(
+            dataArr.reduce((currMax, coord) => Math.min(currMax, coord.value), Infinity),
+            typeof warningTrigger?.alertThreshold === 'number'
+              ? warningTrigger.alertThreshold
+              : Infinity,
+            typeof criticalTrigger?.alertThreshold === 'number'
+              ? criticalTrigger.alertThreshold
+              : Infinity
+          ) / ALERT_CHART_MIN_MAX_BUFFER
+        )
+      : 0;
+    const firstPoint = moment(dataArr[0].name).valueOf();
+    const lastPoint = moment(dataArr[dataArr.length - 1].name).valueOf();
+    const totalDuration = lastPoint - firstPoint;
+    let criticalDuration = 0;
+    let warningDuration = 0;
+
+    series.push(
+      createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
+    );
+    if (incidents) {
+      // select incidents that fall within the graph range
+      const periodStart = moment.utc(firstPoint);
+
+      incidents
+        .filter(
+          incident =>
+            !incident.dateClosed || moment(incident.dateClosed).isAfter(periodStart)
+        )
+        .forEach(incident => {
+          const statusChanges = incident.activities
+            ?.filter(
+              ({type, value}) =>
+                type === IncidentActivityType.STATUS_CHANGE &&
+                value &&
+                [`${IncidentStatus.WARNING}`, `${IncidentStatus.CRITICAL}`].includes(
+                  value
+                )
+            )
+            .sort(
+              (a, b) => moment(a.dateCreated).valueOf() - moment(b.dateCreated).valueOf()
+            );
+
+          const incidentEnd = incident.dateClosed ?? moment().valueOf();
+
+          const timeWindowMs = rule.timeWindow * 60 * 1000;
+          const incidentColor =
+            warningTrigger &&
+            statusChanges &&
+            !statusChanges.find(({value}) => value === `${IncidentStatus.CRITICAL}`)
+              ? theme.yellow300
+              : theme.red300;
+
+          const incidentStartDate = moment(incident.dateStarted).valueOf();
+          const incidentCloseDate = incident.dateClosed
+            ? moment(incident.dateClosed).valueOf()
+            : lastPoint;
+          const incidentStartValue = dataArr.find(
+            point => point.name >= incidentStartDate
+          );
+          series.push(
+            createIncidentSeries(
+              router,
+              organization,
+              incidentColor,
+              incidentStartDate,
+              incident,
+              incidentStartValue,
+              series[0].seriesName
+            )
+          );
+          const areaStart = Math.max(moment(incident.dateStarted).valueOf(), firstPoint);
+          const areaEnd = Math.min(
+            statusChanges?.length && statusChanges[0].dateCreated
+              ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs
+              : moment(incidentEnd).valueOf(),
+            lastPoint
+          );
+          const areaColor = warningTrigger ? theme.yellow300 : theme.red300;
+          if (areaEnd > areaStart) {
+            series.push(
+              createStatusAreaSeries(areaColor, areaStart, areaEnd, minChartValue)
+            );
+
+            if (areaColor === theme.yellow300) {
+              warningDuration += Math.abs(areaEnd - areaStart);
+            } else {
+              criticalDuration += Math.abs(areaEnd - areaStart);
+            }
+          }
+
+          statusChanges?.forEach((activity, idx) => {
+            const statusAreaStart = Math.max(
+              moment(activity.dateCreated).valueOf() - timeWindowMs,
+              firstPoint
+            );
+            const statusAreaEnd = Math.min(
+              idx === statusChanges.length - 1
+                ? moment(incidentEnd).valueOf()
+                : moment(statusChanges[idx + 1].dateCreated).valueOf() - timeWindowMs,
+              lastPoint
+            );
+            const statusAreaColor =
+              activity.value === `${IncidentStatus.CRITICAL}`
+                ? theme.red300
+                : theme.yellow300;
+            if (statusAreaEnd > statusAreaStart) {
+              series.push(
+                createStatusAreaSeries(
+                  statusAreaColor,
+                  statusAreaStart,
+                  statusAreaEnd,
+                  minChartValue
+                )
+              );
+              if (statusAreaColor === theme.yellow300) {
+                warningDuration += Math.abs(statusAreaEnd - statusAreaStart);
+              } else {
+                criticalDuration += Math.abs(statusAreaEnd - statusAreaStart);
+              }
+            }
+          });
+
+          if (selectedIncident && incident.id === selectedIncident.id) {
+            const selectedIncidentColor =
+              incidentColor === theme.yellow300 ? theme.yellow100 : theme.red100;
+
+            areaSeries.push({
+              type: 'line',
+              markArea: MarkArea({
+                silent: true,
+                itemStyle: {
+                  color: color(selectedIncidentColor).alpha(0.42).rgb().string(),
+                },
+                data: [[{xAxis: incidentStartDate}, {xAxis: incidentCloseDate}]] as any,
+              }),
+              data: [],
+            });
+          }
+        });
+    }
+
+    let maxThresholdValue = 0;
+    if (warningTrigger?.alertThreshold) {
+      const {alertThreshold} = warningTrigger;
+      const warningThresholdLine = createThresholdSeries(theme.yellow300, alertThreshold);
+      series.push(warningThresholdLine);
+      maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
+    }
+
+    if (criticalTrigger?.alertThreshold) {
+      const {alertThreshold} = criticalTrigger;
+      const criticalThresholdLine = createThresholdSeries(theme.red300, alertThreshold);
+      series.push(criticalThresholdLine);
+      maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
+    }
 
     return (
-      <ChartZoom
-        router={router}
-        start={start}
-        end={end}
-        onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
-      >
-        {zoomRenderProps => (
-          <LineChart
-            {...zoomRenderProps}
-            isGroupedByDate
-            showTimeInTooltip
-            forwardedRef={this.handleRef}
-            grid={{
-              left: 0,
-              right: space(2),
-              top: space(2),
-              bottom: 0,
-            }}
-            yAxis={
-              maxThresholdValue > maxSeriesValue ? {max: maxThresholdValue} : undefined
-            }
-            series={[...series, ...areaSeries]}
-            graphic={Graphic({
-              elements: this.getRuleChangeThresholdElements(data),
-            })}
-            tooltip={{
-              formatter: seriesParams => {
-                // seriesParams can be object instead of array
-                const pointSeries = Array.isArray(seriesParams)
-                  ? seriesParams
-                  : [seriesParams];
-                const {marker, data: pointData, seriesName} = pointSeries[0];
-                const [pointX, pointY] = pointData as [number, number];
-                const isModified =
-                  dateModified && pointX <= new Date(dateModified).getTime();
+      <ChartPanel>
+        <StyledPanelBody withPadding>
+          <ChartHeader>
+            <ChartTitle>
+              {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
+            </ChartTitle>
+            {query ? filter : null}
+          </ChartHeader>
+          <ChartZoom
+            router={router}
+            start={start}
+            end={end}
+            onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
+          >
+            {zoomRenderProps => (
+              <LineChart
+                {...zoomRenderProps}
+                isGroupedByDate
+                showTimeInTooltip
+                forwardedRef={this.handleRef}
+                grid={{
+                  left: 0,
+                  right: space(2),
+                  top: space(2),
+                  bottom: 0,
+                }}
+                yAxis={{
+                  axisLabel: {
+                    formatter: (value: number) =>
+                      alertAxisFormatter(
+                        value,
+                        timeseriesData[0].seriesName,
+                        rule.aggregate
+                      ),
+                  },
+                  max: maxThresholdValue > maxSeriesValue ? maxThresholdValue : undefined,
+                  min: minChartValue || undefined,
+                }}
+                series={[...series, ...areaSeries]}
+                graphic={Graphic({
+                  elements: this.getRuleChangeThresholdElements(timeseriesData),
+                })}
+                tooltip={{
+                  formatter: seriesParams => {
+                    // seriesParams can be object instead of array
+                    const pointSeries = Array.isArray(seriesParams)
+                      ? seriesParams
+                      : [seriesParams];
+                    const {marker, data: pointData, seriesName} = pointSeries[0];
+                    const [pointX, pointY] = pointData as [number, number];
+                    const pointYFormatted = alertTooltipValueFormatter(
+                      pointY,
+                      seriesName ?? '',
+                      rule.aggregate
+                    );
+                    const isModified =
+                      dateModified && pointX <= new Date(dateModified).getTime();
 
-                const startTime = formatTooltipDate(moment(pointX), 'MMM D LT');
-                const {period, periodLength} = parseStatsPeriod(interval) ?? {
-                  periodLength: 'm',
-                  period: `${timeWindow}`,
-                };
-                const endTime = formatTooltipDate(
-                  moment(pointX).add(
-                    parseInt(period, 10),
-                    periodLength as StatsPeriodType
-                  ),
-                  'MMM D LT'
-                );
-                const title = isModified
-                  ? `<strong>${t('Alert Rule Modified')}</strong>`
-                  : `${marker} <strong>${seriesName}</strong>`;
-                const value = isModified
-                  ? `${seriesName} ${pointY.toLocaleString()}`
-                  : pointY.toLocaleString();
+                    const startTime = formatTooltipDate(moment(pointX), 'MMM D LT');
+                    const {period, periodLength} = parseStatsPeriod(interval) ?? {
+                      periodLength: 'm',
+                      period: `${timeWindow}`,
+                    };
+                    const endTime = formatTooltipDate(
+                      moment(pointX).add(
+                        parseInt(period, 10),
+                        periodLength as StatsPeriodType
+                      ),
+                      'MMM D LT'
+                    );
+                    const title = isModified
+                      ? `<strong>${t('Alert Rule Modified')}</strong>`
+                      : `${marker} <strong>${seriesName}</strong>`;
+                    const value = isModified
+                      ? `${seriesName} ${pointYFormatted}`
+                      : pointYFormatted;
 
-                return [
-                  `<div class="tooltip-series"><div>`,
-                  `<span class="tooltip-label">${title}</span>${value}`,
-                  `</div></div>`,
-                  `<div class="tooltip-date">${startTime} &mdash; ${endTime}</div>`,
-                  `<div class="tooltip-arrow"></div>`,
-                ].join('');
-              },
-            }}
-            onFinished={() => {
-              // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
-              // any graphics related to the triggers (e.g. the threshold areas + boundaries)
-              this.updateDimensions();
-            }}
-          />
-        )}
-      </ChartZoom>
+                    return [
+                      `<div class="tooltip-series"><div>`,
+                      `<span class="tooltip-label">${title}</span>${value}`,
+                      `</div></div>`,
+                      `<div class="tooltip-date">${startTime} &mdash; ${endTime}</div>`,
+                      `<div class="tooltip-arrow"></div>`,
+                    ].join('');
+                  },
+                }}
+                onFinished={() => {
+                  // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
+                  // any graphics related to the triggers (e.g. the threshold areas + boundaries)
+                  this.updateDimensions();
+                }}
+              />
+            )}
+          </ChartZoom>
+        </StyledPanelBody>
+        {this.renderChartActions(totalDuration, criticalDuration, warningDuration)}
+      </ChartPanel>
     );
   }
 
@@ -404,244 +619,70 @@ class MetricChart extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {
-      api,
-      router,
-      rule,
-      organization,
-      timePeriod,
-      selectedIncident,
-      projects,
-      interval,
-      filter,
-      query,
-      incidents,
-    } = this.props;
-
-    const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
-    const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
+    const {api, rule, organization, timePeriod, projects, interval, query} = this.props;
+    const {aggregate, timeWindow, environment, dataset} = rule;
 
     // If the chart duration isn't as long as the rollup duration the events-stats
     // endpoint will return an invalid timeseriesData data set
     const viableStartDate = getUtcDateString(
       moment.min(
         moment.utc(timePeriod.start),
-        moment.utc(timePeriod.end).subtract(rule.timeWindow, 'minutes')
+        moment.utc(timePeriod.end).subtract(timeWindow, 'minutes')
       )
     );
 
     const viableEndDate = getUtcDateString(
-      moment.utc(timePeriod.end).add(rule.timeWindow, 'minutes')
+      moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
-    return (
+    return dataset === Dataset.SESSIONS ? (
+      <SessionsRequest
+        api={api}
+        organization={organization}
+        project={projects.filter(p => p.id).map(p => Number(p.id))}
+        environment={environment ? [environment] : undefined}
+        start={viableStartDate}
+        end={viableEndDate}
+        query={query}
+        interval={interval}
+        field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
+        groupBy={['session.status']}
+      >
+        {({loading, response}) =>
+          this.renderChart(loading, [
+            {
+              seriesName:
+                AlertWizardAlertNames[
+                  getAlertTypeFromAggregateDataset({aggregate, dataset: Dataset.SESSIONS})
+                ],
+              data: getCrashFreeRateSeries(
+                response?.groups,
+                response?.intervals,
+                SESSION_AGGREGATE_TO_FIELD[aggregate]
+              ),
+            },
+          ])
+        }
+      </SessionsRequest>
+    ) : (
       <EventsRequest
         api={api}
         organization={organization}
         query={query}
-        environment={rule.environment ? [rule.environment] : undefined}
+        environment={environment ? [environment] : undefined}
         project={(projects as Project[])
           .filter(p => p && p.slug)
           .map(project => Number(project.id))}
         interval={interval}
         start={viableStartDate}
         end={viableEndDate}
-        yAxis={rule.aggregate}
+        yAxis={aggregate}
         includePrevious={false}
-        currentSeriesName={rule.aggregate}
+        currentSeriesNames={[aggregate]}
         partial={false}
         referrer="api.alerts.alert-rule-chart"
       >
-        {({loading, timeseriesData}) => {
-          if (loading || !timeseriesData) {
-            return this.renderEmpty();
-          }
-
-          const series: LineChartSeries[] = [...timeseriesData];
-          const areaSeries: any[] = [];
-          // Ensure series data appears above incident lines
-          series[0].z = 100;
-          const dataArr = timeseriesData[0].data;
-          const maxSeriesValue = dataArr.reduce(
-            (currMax, coord) => Math.max(currMax, coord.value),
-            0
-          );
-          const firstPoint = Number(dataArr[0].name);
-          const lastPoint = dataArr[dataArr.length - 1].name as number;
-          const totalDuration = lastPoint - firstPoint;
-          let criticalDuration = 0;
-          let warningDuration = 0;
-
-          series.push(createStatusAreaSeries(theme.green300, firstPoint, lastPoint));
-          if (incidents) {
-            // select incidents that fall within the graph range
-            const periodStart = moment.utc(firstPoint);
-
-            incidents
-              .filter(
-                incident =>
-                  !incident.dateClosed || moment(incident.dateClosed).isAfter(periodStart)
-              )
-              .forEach(incident => {
-                const statusChanges = incident.activities
-                  ?.filter(
-                    ({type, value}) =>
-                      type === IncidentActivityType.STATUS_CHANGE &&
-                      value &&
-                      [
-                        `${IncidentStatus.WARNING}`,
-                        `${IncidentStatus.CRITICAL}`,
-                      ].includes(value)
-                  )
-                  .sort(
-                    (a, b) =>
-                      moment(a.dateCreated).valueOf() - moment(b.dateCreated).valueOf()
-                  );
-
-                const incidentEnd = incident.dateClosed ?? moment().valueOf();
-
-                const timeWindowMs = rule.timeWindow * 60 * 1000;
-                const incidentColor =
-                  warningTrigger &&
-                  statusChanges &&
-                  !statusChanges.find(({value}) => value === `${IncidentStatus.CRITICAL}`)
-                    ? theme.yellow300
-                    : theme.red300;
-
-                const incidentStartDate = moment(incident.dateStarted).valueOf();
-                const incidentCloseDate = incident.dateClosed
-                  ? moment(incident.dateClosed).valueOf()
-                  : lastPoint;
-                const incidentStartValue = dataArr.find(
-                  point => point.name >= incidentStartDate
-                );
-                series.push(
-                  createIncidentSeries(
-                    router,
-                    organization,
-                    incidentColor,
-                    incidentStartDate,
-                    incident,
-                    incidentStartValue,
-                    series[0].seriesName
-                  )
-                );
-                const areaStart = Math.max(
-                  moment(incident.dateStarted).valueOf(),
-                  firstPoint
-                );
-                const areaEnd = Math.min(
-                  statusChanges?.length && statusChanges[0].dateCreated
-                    ? moment(statusChanges[0].dateCreated).valueOf() - timeWindowMs
-                    : moment(incidentEnd).valueOf(),
-                  lastPoint
-                );
-                const areaColor = warningTrigger ? theme.yellow300 : theme.red300;
-                if (areaEnd > areaStart) {
-                  series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
-
-                  if (areaColor === theme.yellow300) {
-                    warningDuration += Math.abs(areaEnd - areaStart);
-                  } else {
-                    criticalDuration += Math.abs(areaEnd - areaStart);
-                  }
-                }
-
-                statusChanges?.forEach((activity, idx) => {
-                  const statusAreaStart = Math.max(
-                    moment(activity.dateCreated).valueOf() - timeWindowMs,
-                    firstPoint
-                  );
-                  const statusAreaEnd = Math.min(
-                    idx === statusChanges.length - 1
-                      ? moment(incidentEnd).valueOf()
-                      : moment(statusChanges[idx + 1].dateCreated).valueOf() -
-                          timeWindowMs,
-                    lastPoint
-                  );
-                  const statusAreaColor =
-                    activity.value === `${IncidentStatus.CRITICAL}`
-                      ? theme.red300
-                      : theme.yellow300;
-                  if (statusAreaEnd > statusAreaStart) {
-                    series.push(
-                      createStatusAreaSeries(
-                        statusAreaColor,
-                        statusAreaStart,
-                        statusAreaEnd
-                      )
-                    );
-                    if (statusAreaColor === theme.yellow300) {
-                      warningDuration += Math.abs(statusAreaEnd - statusAreaStart);
-                    } else {
-                      criticalDuration += Math.abs(statusAreaEnd - statusAreaStart);
-                    }
-                  }
-                });
-
-                if (selectedIncident && incident.id === selectedIncident.id) {
-                  const selectedIncidentColor =
-                    incidentColor === theme.yellow300 ? theme.yellow100 : theme.red100;
-
-                  areaSeries.push({
-                    type: 'line',
-                    markArea: MarkArea({
-                      silent: true,
-                      itemStyle: {
-                        color: color(selectedIncidentColor).alpha(0.42).rgb().string(),
-                      },
-                      data: [
-                        [{xAxis: incidentStartDate}, {xAxis: incidentCloseDate}],
-                      ] as any,
-                    }),
-                    data: [],
-                  });
-                }
-              });
-          }
-
-          let maxThresholdValue = 0;
-          if (warningTrigger?.alertThreshold) {
-            const {alertThreshold} = warningTrigger;
-            const warningThresholdLine = createThresholdSeries(
-              theme.yellow300,
-              alertThreshold
-            );
-            series.push(warningThresholdLine);
-            maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
-          }
-
-          if (criticalTrigger?.alertThreshold) {
-            const {alertThreshold} = criticalTrigger;
-            const criticalThresholdLine = createThresholdSeries(
-              theme.red300,
-              alertThreshold
-            );
-            series.push(criticalThresholdLine);
-            maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
-          }
-
-          return (
-            <ChartPanel>
-              <StyledPanelBody withPadding>
-                <ChartHeader>
-                  <ChartTitle>
-                    {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
-                  </ChartTitle>
-                  {filter}
-                </ChartHeader>
-                {this.renderChart(
-                  timeseriesData,
-                  series,
-                  areaSeries,
-                  maxThresholdValue,
-                  maxSeriesValue
-                )}
-              </StyledPanelBody>
-              {this.renderChartActions(totalDuration, criticalDuration, warningDuration)}
-            </ChartPanel>
-          );
-        }}
+        {({loading, timeseriesData}) => this.renderChart(loading, timeseriesData)}
       </EventsRequest>
     );
   }

@@ -5,6 +5,8 @@ import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
 import {Organization} from 'app/types';
 import RequestError from 'app/utils/requestError/requestError';
 
+import {CommonStoreInterface} from './types';
+
 type UpdateOptions = {
   replace?: boolean;
 };
@@ -17,12 +19,12 @@ type State = {
   error?: RequestError | null;
 };
 
-type OrganizationStoreInterface = {
-  init: () => void;
-  reset: () => void;
-  onUpdate: (org: Organization, options: UpdateOptions) => void;
-  onFetchOrgError: (err: RequestError) => void;
-  get: () => State;
+type OrganizationStoreInterface = CommonStoreInterface<State> & {
+  init(): void;
+  reset(): void;
+  onUpdate(org: Organization, options: UpdateOptions): void;
+  onFetchOrgError(err: RequestError): void;
+  get(): State;
 };
 
 const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {
@@ -78,6 +80,10 @@ const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {
       errorType: this.errorType,
       dirty: this.dirty,
     };
+  },
+
+  getState() {
+    return this.get();
   },
 };
 

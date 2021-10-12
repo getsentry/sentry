@@ -16,7 +16,7 @@ from sentry.snuba import discover
 Alias = namedtuple("Alias", "converter aggregate")
 
 
-# This is to flip conditions beteween trend types
+# This is to flip conditions between trend types
 CORRESPONDENCE_MAP = {
     ">": "<",
     ">=": "<=",
@@ -256,7 +256,9 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
         self, request, organization, params, trend_function, selected_columns, orderby, query
     ):
         def on_results(events_results):
-            def get_event_stats(query_columns, query, params, rollup, zerofill_results):
+            def get_event_stats(
+                query_columns, query, params, rollup, zerofill_results, comparison_delta=None
+            ):
                 return discover.top_events_timeseries(
                     query_columns,
                     selected_columns,

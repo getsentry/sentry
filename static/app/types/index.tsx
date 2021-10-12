@@ -1624,8 +1624,8 @@ export type SentryAppComponent = {
       | 'rookout'
       | 'shortcut'
       | 'spikesh'
-      | 'teamwork'
-      | 'zepel';
+      | 'taskcall'
+      | 'teamwork';
     name: string;
   };
 };
@@ -1655,6 +1655,7 @@ export type NewQuery = {
   // Graph
   yAxis?: string[];
   display?: string;
+  topEvents?: string;
 
   teams?: Readonly<('myteams' | number)[]>;
 };
@@ -2233,4 +2234,24 @@ export type CodeownersFile = {
   raw: string;
   filepath: string;
   html_url: string;
+};
+
+// Response from ShortIdLookupEndpoint
+// /organizations/${orgId}/shortids/${query}/
+export type ShortIdResponse = {
+  organizationSlug: string;
+  projectSlug: string;
+  groupId: string;
+  group: Group;
+  shortId: string;
+};
+
+// Response from EventIdLookupEndpoint
+// /organizations/${orgSlug}/eventids/${eventId}/
+export type EventIdResponse = {
+  organizationSlug: string;
+  projectSlug: string;
+  groupId: string;
+  eventId: string;
+  event: Event;
 };

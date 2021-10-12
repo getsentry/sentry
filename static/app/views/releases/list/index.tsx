@@ -9,9 +9,9 @@ import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import PageHeading from 'app/components/pageHeading';
@@ -32,7 +32,6 @@ import {
   Project,
   Release,
   ReleaseStatus,
-  SessionApiResponse,
   Tag,
 } from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -94,7 +93,6 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   releases: Release[];
-  hasSessions: boolean | null;
 } & AsyncView['state'];
 
 class ReleasesList extends AsyncView<Props, State> {
@@ -135,18 +133,8 @@ class ReleasesList extends AsyncView<Props, State> {
     return endpoints;
   }
 
-  componentDidMount() {
-    if (this.props.location.query.project) {
-      this.fetchSessionsExistence();
-    }
-  }
-
   componentDidUpdate(prevProps: Props, prevState: State) {
     super.componentDidUpdate(prevProps, prevState);
-
-    if (prevProps.location.query.project !== this.props.location.query.project) {
-      this.fetchSessionsExistence();
-    }
 
     if (prevState.releases !== this.state.releases) {
       /**
@@ -215,35 +203,8 @@ class ReleasesList extends AsyncView<Props, State> {
     return projects?.find(p => p.id === `${selectedProjectId}`);
   }
 
-  async fetchSessionsExistence() {
-    const {organization, location} = this.props;
-    const projectId = location.query.project;
-    if (!projectId) {
-      return;
-    }
-
-    this.setState({
-      hasSessions: null,
-    });
-
-    try {
-      const response: SessionApiResponse = await this.api.requestPromise(
-        `/organizations/${organization.slug}/sessions/`,
-        {
-          query: {
-            project: projectId,
-            field: 'sum(session)',
-            statsPeriod: '90d',
-            interval: '1d',
-          },
-        }
-      );
-      this.setState({
-        hasSessions: response.groups[0].totals['sum(session)'] > 0,
-      });
-    } catch {
-      // do nothing
-    }
+  get projectHasSessions() {
+    return this.getSelectedProject()?.hasSessions ?? null;
   }
 
   handleSearch = (query: string) => {
@@ -409,11 +370,11 @@ class ReleasesList extends AsyncView<Props, State> {
 
   renderHealthCta() {
     const {organization} = this.props;
-    const {hasSessions, releases} = this.state;
+    const {releases} = this.state;
 
     const selectedProject = this.getSelectedProject();
 
-    if (!selectedProject || hasSessions !== false || !releases?.length) {
+    if (!selectedProject || this.projectHasSessions !== false || !releases?.length) {
       return null;
     }
 
@@ -452,7 +413,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
   renderInnerBody(activeDisplay: DisplayOption, showReleaseAdoptionStages: boolean) {
     const {location, selection, organization, router} = this.props;
-    const {hasSessions, releases, reloading, releasesPageLinks} = this.state;
+    const {releases, reloading, releasesPageLinks} = this.state;
 
     if (this.shouldShowLoadingIndicator()) {
       return <LoadingIndicator />;
@@ -483,7 +444,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
           return (
             <Fragment>
-              {singleProjectSelected && hasSessions && isMobileProject && (
+              {singleProjectSelected && this.projectHasSessions && isMobileProject && (
                 <Feature features={['organizations:release-adoption-chart']}>
                   <ReleaseAdoptionChart
                     organization={organization}
@@ -544,7 +505,7 @@ class ReleasesList extends AsyncView<Props, State> {
         )}
       >
         <PageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
             <PageHeader>
               <PageHeading>{t('Releases')}</PageHeading>
             </PageHeader>
@@ -608,7 +569,7 @@ class ReleasesList extends AsyncView<Props, State> {
             {error
               ? super.renderError(new Error('Unable to load all required endpoints'))
               : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
     );

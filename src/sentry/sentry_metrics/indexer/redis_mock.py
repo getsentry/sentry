@@ -23,15 +23,15 @@ class RedisMockIndexer(StringIndexer):
     Temporary mock string indexer that uses Redis to store data.
     """
 
-    def _get_key(self, org_id: int, instance: Union[str, int]) -> str:
+    def _get_key(self, instance: Union[str, int]) -> str:
         if isinstance(instance, str):
-            return f"temp-metrics-indexer:{org_id}:1:str:{instance}"
+            return f"temp-metrics-indexer:1:str:{instance}"
         elif isinstance(instance, int):
-            return f"temp-metrics-indexer:{org_id}:1:int:{instance}"
+            return f"temp-metrics-indexer:1:int:{instance}"
         else:
             raise Exception("Invalid: must be string or int")
 
-    def _bulk_record(self, org_id: int, unmapped: Dict[str, None]) -> Dict[str, int]:
+    def _bulk_record(self, unmapped: Dict[str, None]) -> Dict[str, int]:
         """
         Take a mapping of strings {"metric_id`": None} and populate the ints
         for the corresponding strings.
@@ -50,15 +50,15 @@ class RedisMockIndexer(StringIndexer):
             int_value = get_int(string)
             mapped_ints[string] = int_value
 
-            int_key = self._get_key(org_id, int_value)
-            string_key = self._get_key(org_id, string)
+            int_key = self._get_key(int_value)
+            string_key = self._get_key(string)
 
             client.set(string_key, int_value, ex=INDEXER_TTL)
             client.set(int_key, string, ex=INDEXER_TTL)
 
         return mapped_ints
 
-    def bulk_record(self, org_id: int, strings: List[str]) -> Dict[str, int]:
+    def bulk_record(self, strings: List[str]) -> Dict[str, int]:
         """
         Takes a list of strings that could be a metric names, tag keys or values
         and returns a string -> int mapping.
@@ -94,7 +94,7 @@ class RedisMockIndexer(StringIndexer):
 
         """
         client = get_client()
-        string_keys = [self._get_key(org_id, s) for s in strings]
+        string_keys = [self._get_key(s) for s in strings]
         results = client.mget(string_keys)
 
         resolved: Dict[str, int] = {}
@@ -108,37 +108,37 @@ class RedisMockIndexer(StringIndexer):
         if len(unresolved.keys()) == 0:
             return resolved
 
-        newly_resolved = self._bulk_record(org_id, unresolved)
+        newly_resolved = self._bulk_record(unresolved)
         resolved.update(newly_resolved)
         return resolved
 
-    def record(self, org_id: int, string: str) -> int:
+    def record(self, string: str) -> int:
         """
         If key already exists, grab that value, otherwise record both the
         string to int and int to string relationships.
         """
         client = get_client()
 
-        string_key = f"temp-metrics-indexer:{org_id}:1:str:{string}"
+        string_key = f"temp-metrics-indexer:1:str:{string}"
         value: Any = client.get(string_key)
         if value is None:
             value = get_int(string)
             client.set(string_key, value)
 
             # reverse record (int to string)
-            int_key = f"temp-metrics-indexer:{org_id}:1:int:{value}"
+            int_key = f"temp-metrics-indexer:1:int:{value}"
             client.set(int_key, string)
 
         return int(value)
 
-    def resolve(self, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, string: str) -> Optional[int]:
         try:
-            return int(get_client().get(f"temp-metrics-indexer:{org_id}:1:str:{string}"))
+            return int(get_client().get(f"temp-metrics-indexer:1:str:{string}"))
         except TypeError:
             return None
 
-    def reverse_resolve(self, org_id: int, id: int) -> Optional[str]:
-        result: Optional[str] = get_client().get(f"temp-metrics-indexer:{org_id}:1:int:{id}")
+    def reverse_resolve(self, id: int) -> Optional[str]:
+        result: Optional[str] = get_client().get(f"temp-metrics-indexer:1:int:{id}")
         return result
 
     def delete_records(self) -> None:

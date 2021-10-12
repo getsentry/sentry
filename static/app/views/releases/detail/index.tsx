@@ -6,8 +6,8 @@ import moment from 'moment';
 
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import PickProjectToContinue from 'app/components/pickProjectToContinue';
@@ -25,9 +25,11 @@ import {
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
+  SessionField,
 } from 'app/types';
 import {formatVersion} from 'app/utils/formatters';
 import routeTitleGen from 'app/utils/routeTitle';
+import {getCount} from 'app/utils/sessions';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
@@ -196,7 +198,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
     }
 
     return (
-      <LightWeightNoProjectMessage organization={organization}>
+      <NoProjectMessage organization={organization}>
         <StyledPageContent>
           <ReleaseHeader
             location={location}
@@ -216,14 +218,14 @@ class ReleasesDetail extends AsyncView<Props, State> {
               defaultStatsPeriod,
               getHealthData,
               isHealthLoading,
-              hasHealthData: !!sessions?.groups[0].totals['sum(session)'],
+              hasHealthData: getCount(sessions?.groups, SessionField.SESSIONS) > 0,
               releaseBounds,
             }}
           >
             {this.props.children}
           </ReleaseContext.Provider>
         </StyledPageContent>
-      </LightWeightNoProjectMessage>
+      </NoProjectMessage>
     );
   }
 }

@@ -6,7 +6,7 @@ from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op, Or
 from snuba_sdk.function import Function
-from snuba_sdk.orderby import Direction, OrderBy
+from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder import QueryBuilder
@@ -84,6 +84,31 @@ class QueryBuilderTest(TestCase):
             [OrderBy(Column("email"), Direction.DESC)],
         )
         query.get_snql_query().validate()
+
+    def test_orderby_duplicate_columns(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            selected_columns=["user.email", "user.email"],
+            orderby=["user.email"],
+        )
+        self.assertCountEqual(
+            query.orderby,
+            [OrderBy(Column("email"), Direction.ASC)],
+        )
+
+    def test_simple_limitby(self):
+        query = QueryBuilder(
+            dataset=Dataset.Discover,
+            params=self.params,
+            query="",
+            selected_columns=["message"],
+            orderby="message",
+            limitby=("message", 1),
+            limit=4,
+        )
+
+        assert query.limitby == LimitBy(Column("message"), 1)
 
     def test_environment_filter(self):
         query = QueryBuilder(
@@ -319,6 +344,23 @@ class QueryBuilderTest(TestCase):
                 ),
             ],
         )
+
+    def test_array_join(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=["array_join(measurements_key)", "count()"],
+            functions_acl=["array_join"],
+        )
+        array_join_column = Function(
+            "arrayJoin",
+            [Column("measurements.key")],
+            "array_join_measurements_key",
+        )
+        self.assertCountEqual(query.columns, [array_join_column, Function("count", [], "count")])
+        # make sure the the array join columns are present in gropuby
+        self.assertCountEqual(query.groupby, [array_join_column])
 
     def test_retention(self):
         with self.options({"system.event-retention-days": 10}):

@@ -1,3 +1,5 @@
+from typing import Any, Mapping, Optional
+
 from django.http import HttpResponse
 
 from sentry.integrations import (
@@ -7,9 +9,9 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.issues import IssueSyncMixin
+from sentry.integrations.issues import IssueSyncMixin, ResolveSyncAction
 from sentry.mediators.plugins import Migrator
-from sentry.models import User
+from sentry.models import ExternalIssue, User
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 
@@ -65,7 +67,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def create_comment(self, issue_id, user_id, group_note):
         user = User.objects.get(id=user_id)
-        attribution = "%s wrote:\n\n" % user.name
+        attribution = f"{user.name} wrote:\n\n"
         comment = {
             "id": "123456789",
             "text": "{}<blockquote>{}</blockquote>".format(attribution, group_note.data["text"]),
@@ -127,20 +129,27 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_unmigratable_repositories(self):
         return []
 
-    def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
+    def sync_assignee_outbound(
+        self,
+        external_issue: "ExternalIssue",
+        user: Optional["User"],
+        assign: bool = True,
+        **kwargs: Any,
+    ) -> None:
         pass
 
     def sync_status_outbound(self, external_issue, is_resolved, project_id):
         pass
 
-    def should_unresolve(self, data):
-        return data["status"]["category"] != "done"
-
-    def should_resolve(self, data):
-        return data["status"]["category"] == "done"
+    def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
+        category = data["status"]["category"]
+        return ResolveSyncAction.from_resolve_unresolve(
+            should_resolve=category == "done",
+            should_unresolve=category != "done",
+        )
 
     def get_issue_display_name(self, external_issue):
-        return "display name: %s" % external_issue.key
+        return f"display name: {external_issue.key}"
 
     def get_stacktrace_link(self, repo, path, default, version):
         pass

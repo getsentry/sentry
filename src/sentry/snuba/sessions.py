@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import List, Optional, Set
+from typing import List, Optional, Sequence, Set
 
 import pytz
 from snuba_sdk.column import Column
@@ -31,7 +31,7 @@ def _get_conditions_and_filter_keys(project_releases, environments):
     return conditions, filter_keys
 
 
-def get_changed_project_release_model_adoptions(project_ids):
+def _get_changed_project_release_model_adoptions(project_ids):
     """Returns the last 72 hours worth of releases."""
     start = datetime.now(pytz.utc) - timedelta(days=3)
     rv = []
@@ -50,7 +50,7 @@ def get_changed_project_release_model_adoptions(project_ids):
     return rv
 
 
-def get_oldest_health_data_for_releases(project_releases):
+def _get_oldest_health_data_for_releases(project_releases):
     """Returns the oldest health data we have observed in a release
     in 90 days.  This is used for backfilling.
     """
@@ -201,12 +201,12 @@ def get_project_releases_by_stability(
     return rv
 
 
-def get_project_releases_count(
+def _get_project_releases_count(
     organization_id: int,
-    project_ids: List[int],
+    project_ids: Sequence[int],
     scope: str,
     stats_period: Optional[str] = None,
-    environments: Optional[str] = None,
+    environments: Optional[Sequence[str]] = None,
 ) -> int:
     """
     Fetches the total count of releases/project combinations
@@ -355,7 +355,7 @@ def extract_duration_quantiles(raw_stats):
         }
 
 
-def get_release_health_data_overview(
+def _get_release_health_data_overview(
     project_releases,
     environments=None,
     summary_stats_period=None,
@@ -422,7 +422,7 @@ def get_release_health_data_overview(
 
     # Add releases without data points
     if missing_releases:
-        # If we're already looking at a 90 day horizont we don't need to
+        # If we're already looking at a 90 day horizon we don't need to
         # fire another query, we can already assume there is no data.
         if summary_stats_period != "90d":
             has_health_data = release_health.check_has_health_data(missing_releases)
@@ -480,7 +480,7 @@ def get_release_health_data_overview(
     return rv
 
 
-def get_crash_free_breakdown(project_id, release, start, environments=None):
+def _get_crash_free_breakdown(project_id, release, start, environments=None):
     filter_keys = {"project_id": [project_id]}
     conditions = [["release", "=", release]]
     if environments is not None:
@@ -690,7 +690,6 @@ def _get_release_sessions_time_bounds(project_id, release, org_id, environments=
         # P.S. To avoid confusion the `0` timestamp which is '1970-01-01 00:00:00'
         # is rendered as '0000-00-00 00:00:00' in clickhouse shell
         if set(rv.values()) != {formatted_unix_start_time}:
-
             release_sessions_time_bounds = {
                 "sessions_lower_bound": iso_format_snuba_datetime(rv["first_session_started"]),
                 "sessions_upper_bound": iso_format_snuba_datetime(rv["last_session_started"]),
@@ -803,3 +802,27 @@ def get_current_and_previous_crash_free_rates(
             {"previousCrashFreeRate": calculate_crash_free_percentage(row)}
         )
     return projects_crash_free_rate_dict
+
+
+def _get_project_sessions_count(
+    project_id: int,
+    rollup: int,  # rollup in seconds
+    start: datetime,
+    end: datetime,
+    environment_id: Optional[int] = None,
+) -> int:
+    filters = {"project_id": [project_id]}
+    if environment_id:
+        filters["environment"] = [environment_id]
+
+    result_totals = raw_query(
+        selected_columns=["sessions"],
+        rollup=rollup,
+        dataset=Dataset.Sessions,
+        start=start,
+        end=end,
+        filter_keys=filters,
+        referrer="sessions.get_project_sessions_count",
+    )["data"]
+
+    return result_totals[0]["sessions"] if result_totals else 0

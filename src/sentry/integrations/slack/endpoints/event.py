@@ -15,17 +15,18 @@ from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
+from sentry.utils.urls import parse_link
 from sentry.web.decorators import transaction_start
 
-from ..utils import logger, parse_link
+from ..utils import logger
 from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
 
-# XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will
-# need refactored
-
 
 class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
+    """
+    XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will need refactoring
+    """
 
     authentication_classes = ()
     permission_classes = ()
@@ -45,7 +46,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
     def reply(self, slack_request: SlackRequest, message: str) -> Response:
         client = SlackClient()
         access_token = self._get_access_token(slack_request.integration)
-        headers = {"Authorization": "Bearer %s" % access_token}
+        headers = {"Authorization": f"Bearer {access_token}"}
         data = slack_request.data.get("event")
         channel = data["channel"]
         payload = {"channel": channel, "text": message}
@@ -123,7 +124,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         if self.is_bot(data) or not command:
             return self.respond()
         access_token = self._get_access_token(integration)
-        headers = {"Authorization": "Bearer %s" % access_token}
+        headers = {"Authorization": f"Bearer {access_token}"}
         payload = {"channel": channel, **SlackEventMessageBuilder(integration, command).build()}
         client = SlackClient()
         try:

@@ -40,13 +40,7 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.filter import handle_operator_negation, parse_semver
 from sentry.signals import release_created
-from sentry.snuba.sessions import (
-    STATS_PERIODS,
-    get_changed_project_release_model_adoptions,
-    get_oldest_health_data_for_releases,
-    get_project_releases_by_stability,
-    get_project_releases_count,
-)
+from sentry.snuba.sessions import STATS_PERIODS, get_project_releases_by_stability
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip as izip
 from sentry.utils.sdk import bind_organization_context, configure_scope
@@ -166,7 +160,9 @@ def debounce_update_release_health_data(organization, project_ids):
     # health data over the last days. It will miss releases where the last
     # date is longer than what `get_changed_project_release_model_adoptions`
     # considers recent.
-    project_releases = get_changed_project_release_model_adoptions(should_update.keys())
+    project_releases = release_health.get_changed_project_release_model_adoptions(
+        should_update.keys()
+    )
 
     # Check which we already have rows for.
     existing = set(
@@ -181,7 +177,7 @@ def debounce_update_release_health_data(organization, project_ids):
             to_upsert.append(key)
 
     if to_upsert:
-        dates = get_oldest_health_data_for_releases(to_upsert)
+        dates = release_health.get_oldest_health_data_for_releases(to_upsert)
 
         for project_id, version in to_upsert:
             project = projects.get(project_id)
@@ -356,7 +352,7 @@ class OrganizationReleasesEndpoint(
                     stats_period=summary_stats_period,
                     limit=limit,
                 ),
-                data_count_func=lambda: get_project_releases_count(
+                data_count_func=lambda: release_health.get_project_releases_count(
                     organization_id=organization.id,
                     project_ids=filter_params["project_id"],
                     environments=filter_params.get("environment"),

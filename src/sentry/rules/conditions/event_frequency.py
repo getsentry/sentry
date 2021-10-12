@@ -6,11 +6,11 @@ from django import forms
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import tsdb
+from sentry import release_health, tsdb
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.rules.conditions.base import EventCondition
 from sentry.utils import metrics
-from sentry.utils.snuba import Dataset, options_override, raw_query
+from sentry.utils.snuba import options_override
 
 standard_intervals = {
     "1m": ("one minute", timedelta(minutes=1)),
@@ -22,7 +22,6 @@ standard_intervals = {
     "30d": ("30 days", timedelta(days=30)),
 }
 comparison_intervals = {
-    "1m": ("one minute", timedelta(minutes=1)),
     "5m": ("5 minutes", timedelta(minutes=5)),
     "15m": ("15 minutes", timedelta(minutes=15)),
     "1h": ("one hour", timedelta(hours=1)),
@@ -247,27 +246,15 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         cache_key = f"r.c.spc:{project_id}-{environment_id}"
         session_count_last_hour = cache.get(cache_key)
         if session_count_last_hour is None:
-            filters = {"project_id": [project_id]}
-            if environment_id:
-                filters["environment"] = [environment_id]
             with options_override({"consistent": False}):
-                result_totals = raw_query(
-                    selected_columns=["sessions"],
+                session_count_last_hour = release_health.get_project_sessions_count(
+                    project_id=project_id,
+                    environment_id=environment_id,
                     rollup=60,
-                    dataset=Dataset.Sessions,
                     start=end - timedelta(minutes=60),
                     end=end,
-                    filter_keys=filters,
-                    groupby=["bucketed_started"],
-                    referrer="rules.conditions.event_frequency.EventFrequencyPercentCondition",
                 )
 
-            if result_totals["data"]:
-                session_count_last_hour = sum(
-                    bucket["sessions"] for bucket in result_totals["data"]
-                )
-            else:
-                session_count_last_hour = False
             cache.set(cache_key, session_count_last_hour, 600)
 
         if session_count_last_hour >= MIN_SESSIONS_TO_FIRE:
