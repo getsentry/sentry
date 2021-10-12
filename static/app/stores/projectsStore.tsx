@@ -194,15 +194,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface =
   },
 
   getAll() {
-    return Object.values(this.itemsById).sort((a: Project, b: Project) => {
-      if (a.slug > b.slug) {
-        return 1;
-      }
-      if (a.slug < b.slug) {
-        return -1;
-      }
-      return 0;
-    });
+    return Object.values(this.itemsById).sort((a, b) => a.slug.localeCompare(b.slug));
   },
 
   getById(id) {
