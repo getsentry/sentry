@@ -91,6 +91,20 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
         assert identity["category"] == "org-identity"
         assert identity["status"] == "needed_for_global_auth"
 
+    def test_org_requirement_precedes_global_auth(self):
+        """Check that needed_for_org_auth takes precedence over
+        needed_for_global_auth if both are true.
+        """
+
+        self.user.update(password="")
+        AuthIdentity.objects.create(user=self.user, auth_provider=self.org_provider)
+        self.login_as(self.user)
+
+        response = self.get_success_response(self.user.id, status_code=200)
+        (identity,) = response.data
+        assert identity["category"] == "org-identity"
+        assert identity["status"] == "needed_for_org_auth"
+
 
 class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
     endpoint = "sentry-api-0-user-identity-config-details"
