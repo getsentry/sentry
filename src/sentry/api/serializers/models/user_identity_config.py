@@ -35,7 +35,7 @@ class UserIdentityConfig:
     organization: Optional[Organization]
 
     @staticmethod
-    def wrap(identity: IdentityType, status: Status):
+    def wrap(identity: IdentityType, status: Status) -> "UserIdentityConfig":
         if isinstance(identity, UserSocialAuth):
             provider_name = user_social_auth.get_provider_label(identity)
             organization = None
