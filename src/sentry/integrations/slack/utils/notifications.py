@@ -88,15 +88,19 @@ def send_confirmation(
         )
 
 
-def get_referrer_qstring(notification: BaseNotification) -> str:
-    return "?referrer=" + re.sub("Notification$", "Slack", notification.__class__.__name__)
+def get_referrer_qstring(notification: BaseNotification, recipient: Union["Team", "User"]) -> str:
+    return (
+        "?referrer="
+        + re.sub("Notification$", "Slack", notification.__class__.__name__)
+        + str(recipient.__class__.__name__)
+    )
 
 
-def get_settings_url(notification: BaseNotification) -> str:
+def get_settings_url(notification: BaseNotification, recipient: Union["Team", "User"]) -> str:
     url_str = "/settings/account/notifications/"
     if notification.fine_tuning_key:
         url_str += f"{notification.fine_tuning_key}/"
-    return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
+    return str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification, recipient)))
 
 
 def build_notification_footer(
@@ -105,9 +109,11 @@ def build_notification_footer(
     if isinstance(recipient, Team):
         team = Team.objects.get(id=recipient.id)
         url_str = f"/settings/{notification.organization.slug}/teams/{team.slug}/notifications/"
-        settings_url = str(urljoin(absolute_uri(url_str), get_referrer_qstring(notification)))
+        settings_url = str(
+            urljoin(absolute_uri(url_str), get_referrer_qstring(notification, recipient))
+        )
     else:
-        settings_url = get_settings_url(notification)
+        settings_url = get_settings_url(notification, recipient)
 
     if isinstance(notification, ReleaseActivityNotification):
         # no environment related to a deploy
