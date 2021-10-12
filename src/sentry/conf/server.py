@@ -2376,7 +2376,11 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # so that projects that exceed a reasonable rate can be sent to the low
     # priority queue. This setting determines how long we keep these rates
     # around.
-    "counter_time_window": 300,
+    #
+    # The LPQ compares the average rate of the last minute and if it is more than 5 times
+    # the average rate of the total time window and is greater than 50 events/s a project is
+    # moved to the Low Priority Queue.
+    "counter_time_window": 10 * 60,
     # The bucket size of the processing duration histogram.
     #
     # The size (in seconds) of the buckets that events are sorted into.
@@ -2387,7 +2391,11 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # so that projects that exceed a reasonable duration can be sent to the low
     # priority queue. This setting determines how long we keep these duration values
     # around.
-    "duration_time_window": 900,
+    #
+    # The LPQ computes the p75 duration of this time window and if it is greater than 6
+    # minutes and the rate is more than 15 events/s a project is moved to the Low Priority
+    # Queue.
+    "duration_time_window": 3 * 60,
     # Number of seconds to wait after a project is made eligible or ineligible for the LPQ
     # before its eligibility can be changed again.
     #

@@ -48,16 +48,18 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
     def validate(self) -> None:
         if self._counter_bucket_size <= 0:
-            raise InvalidConfiguration("counter bucket size must be at least 1")
+            raise InvalidConfiguration("counter bucket size must be at least 1 second")
+        if self._counter_bucket_size > 60:
+            raise InvalidConfiguration("counter bucket size must be less than 1 minute")
 
         if self._duration_bucket_size <= 0:
             raise InvalidConfiguration("duration bucket size must be at least 1")
 
-        if self._counter_time_window < 0:
-            raise InvalidConfiguration("counter time window must be nonnegative")
+        if self._counter_time_window < 60:
+            raise InvalidConfiguration("counter time window must be at least a minute")
 
-        if self._duration_time_window < 0:
-            raise InvalidConfiguration("duration time window must be nonnegative")
+        if self._duration_time_window < 60:
+            raise InvalidConfiguration("duration time window must be at least a minute")
 
     def _counter_key_prefix(self) -> str:
         return f"{self._prefix}:counter:{self._counter_bucket_size}"
@@ -157,11 +159,11 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
     def get_counts_for_project(
         self, project_id: int, timestamp: int
     ) -> Iterable[base.BucketedCount]:
-        """
-        Returns a sorted list of bucketed timestamps paired with the count of symbolicator requests
+        """Returns a sorted list of bucketed timestamps paired with the count of symbolicator requests
         made during that time for some given project.
 
-        The first bucket returned is the one that `timestamp - self._counter_time_window` falls into. The last bucket returned is the one that `timestamp` falls into.
+        The first bucket returned is the one that `timestamp - self._counter_time_window`
+        falls into. The last bucket returned is the one that `timestamp` falls into.
 
         This may throw an exception if there is some sort of issue fetching counts from the redis
         store.
@@ -183,11 +185,11 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
     def get_durations_for_project(
         self, project_id: int, timestamp: int
     ) -> Iterable[base.DurationHistogram]:
-        """
-        Returns a sorted list of bucketed timestamps paired with a histogram-like dictionary of
+        """Returns a sorted list of bucketed timestamps paired with a histogram-like dictionary of
         symbolication durations made during some timestamp for some given project.
 
-        The first bucket returned is the one that `timestamp - self._duration_time_window` falls into. The last bucket returned is the one that `timestamp` falls into.
+        The first bucket returned is the one that `timestamp - self._duration_time_window`
+        falls into. The last bucket returned is the one that `timestamp` falls into.
 
         For a given `{duration:count}` entry in the dictionary bound to a specific `timestamp`:
 

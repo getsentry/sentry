@@ -8,9 +8,10 @@ This has three major tasks, executed in the following general order:
 3. Remove some specified project from the LPQ.
 """
 
+import collections
 import logging
 import time
-from typing import Iterable
+from typing import Dict, Iterable, MutableSequence
 
 from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.base import BucketedCount, DurationHistogram
@@ -92,4 +93,55 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
 def calculation_magic(
     invocations: Iterable[BucketedCount], durations: Iterable[DurationHistogram]
 ) -> bool:
+    ################################################################
+    # The rate metrics: compare the average rate of the entire time window with the average
+    # rate of the last minute.
+
+    # We need somewhere to keep the recent buckets to compute the rate at.  We only get an
+    # iterator as input so keep the last few buckets seen, once the iterator is exhausted
+    # this will have the most recent buckets.
+    recent_bucket_count = 60 / realtime_metrics.realtime_metrics_store._counter_bucket_size
+    recent_buckets: MutableSequence[BucketedCount] = collections.deque(maxlen=recent_bucket_count)
+
+    # We need to know the average rate over the total time period.
+    total_count = 0
+    total_time = 0
+
+    # Calculate total rate
+    for bucket in invocations:
+        recent_buckets.append(bucket)
+        total_count += bucket.count
+        total_time += realtime_metrics.realtime_metrics_store._counter_bucket_size
+    total_rate = total_count / total_time
+
+    # Calculate recent rate
+    recent_count = sum(bucket.count for bucket in recent_buckets)
+    recent_time = recent_bucket_count * realtime_metrics.realtime_metrics_store._counter_bucket_size
+    recent_rate = recent_count / recent_time
+
+    if recent_rate > 50 and recent_rate > 5 * total_rate:
+        return True
+
+    ################################################################
+    # The duration metrics: compute p75 and compare with an absolute value.
+
+    total_histogram: Dict[int, int] = collections.defaultdict(lambda: 0)
+    total_count = 0
+    for duration_bucket in durations:
+        for duration, count in duration_bucket.histogram.items():
+            total_histogram[duration] += count
+            total_count += count
+    p75_count = int(0.75 * total_count)
+
+    counter = 0
+    for duration in sorted(total_histogram.keys()):
+        counter += total_histogram[duration]
+        if counter >= p75_count:
+            p75_duration = duration
+
+    events_per_minute = counter / realtime_metrics.realtime_metrics_store._duration_time_window / 60
+
+    if events_per_minute > 15 and p75_duration > 6 * 60:
+        return True
+
     return False
