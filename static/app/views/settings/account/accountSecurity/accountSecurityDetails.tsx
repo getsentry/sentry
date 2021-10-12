@@ -93,10 +93,10 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
   handleRename = async (device: AuthenticatorDevice, deviceName: string) => {
     const {authenticator} = this.state;
 
-    if (!authenticator || !authenticator.authId) {
+    if (!authenticator?.authId) {
       return;
     }
-    // if the device is defined, it means that U2f is being removed
+    // if the device is defined, it means that U2f is being renamed
     const deviceId = device ? `${device.key_handle}/` : '';
 
     this.setState({loading: true});
@@ -112,7 +112,6 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
       this.props.router.push(`/settings/account/security/mfa/${authenticator.authId}`);
       addSuccessMessage(t('Device was renamed'));
     } catch {
-      // Error deleting authenticator
       this.setState({loading: false});
       addErrorMessage(t('Error renaming the device'));
     }
