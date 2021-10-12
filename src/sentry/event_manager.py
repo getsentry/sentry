@@ -1693,6 +1693,7 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
     return hashes
 
 
+@metrics.wraps("save_event.calculate_span_grouping")
 def _calculate_span_grouping(jobs, projects):
     for job in jobs:
         # Make sure this snippet doesn't crash ingestion
