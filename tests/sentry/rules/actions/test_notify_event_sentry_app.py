@@ -113,6 +113,17 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         with self.assertRaises(ValidationError):
             rule.self_validate()
 
+        # Test deleted Sentry App Installation uuid
+        test_install = self.create_sentry_app_installation(
+            organization=self.organization, slug="test-application"
+        )
+        test_install.delete()
+        rule = self.get_rule(
+            data={"hasSchemaFormConfig": True, "sentryAppInstallationUuid": test_install.uuid}
+        )
+        with self.assertRaises(ValidationError):
+            rule.self_validate()
+
         # Test Sentry Apps without alert rules configured in their schema
         self.create_sentry_app(organization=self.organization, name="No Alert Rule Action")
         test_install = self.create_sentry_app_installation(
