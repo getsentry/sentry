@@ -97,7 +97,7 @@ export async function fetchOrganizationDetails(
   isInitialFetch?: boolean
 ) {
   if (!silent) {
-    OrganizationActions.fetchOrg();
+    OrganizationActions.reset();
     ProjectActions.reset();
     GlobalSelectionActions.reset();
   }

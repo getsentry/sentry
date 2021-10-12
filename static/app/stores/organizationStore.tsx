@@ -31,7 +31,7 @@ const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {
   init() {
     this.reset();
     this.listenTo(OrganizationActions.update, this.onUpdate);
-    this.listenTo(OrganizationActions.fetchOrg, this.reset);
+    this.listenTo(OrganizationActions.reset, this.reset);
     this.listenTo(OrganizationActions.fetchOrgError, this.onFetchOrgError);
   },
 

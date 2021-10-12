@@ -19,7 +19,7 @@ describe('OrganizationActionCreator', function () {
     MockApiClient.clearMockResponses();
     jest.spyOn(TeamActions, 'loadTeams');
     jest.spyOn(ProjectActions, 'loadProjects');
-    jest.spyOn(OrganizationActions, 'fetchOrg');
+    jest.spyOn(OrganizationActions, 'reset');
     jest.spyOn(OrganizationActions, 'update');
     jest.spyOn(OrganizationActions, 'fetchOrgError');
     jest.spyOn(OrganizationsActionCreator, 'setActiveOrganization');
@@ -47,7 +47,7 @@ describe('OrganizationActionCreator', function () {
     fetchOrganizationDetails(api, org.slug, false);
     await tick();
     await tick();
-    expect(OrganizationActions.fetchOrg).toHaveBeenCalled();
+    expect(OrganizationActions.reset).toHaveBeenCalled();
 
     expect(getOrgMock).toHaveBeenCalledWith(
       `/organizations/${org.slug}/`,
@@ -86,7 +86,7 @@ describe('OrganizationActionCreator', function () {
 
     fetchOrganizationDetails(api, org.slug, true, true);
     await tick();
-    expect(OrganizationActions.fetchOrg).not.toHaveBeenCalled();
+    expect(OrganizationActions.reset).not.toHaveBeenCalled();
 
     expect(getOrgMock).toHaveBeenCalledWith(
       `/organizations/${org.slug}/`,
@@ -116,7 +116,7 @@ describe('OrganizationActionCreator', function () {
 
     fetchOrganizationDetails(api, org.slug, false);
     await tick();
-    expect(OrganizationActions.fetchOrg).toHaveBeenCalled();
+    expect(OrganizationActions.reset).toHaveBeenCalled();
     expect(getOrgMock).toHaveBeenCalledWith(
       `/organizations/${org.slug}/`,
       expect.anything()
