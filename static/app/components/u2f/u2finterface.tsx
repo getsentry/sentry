@@ -49,18 +49,7 @@ class U2fInterface extends React.Component<Props, State> {
     }
   }
 
-  invokeU2fFlow() {
-    let promise: Promise<u2f.SignResponse | u2f.RegisterResponse>;
-
-    if (this.props.flowMode === 'sign') {
-      promise = u2f.sign(this.props.challengeData.authenticateRequests);
-    } else if (this.props.flowMode === 'enroll') {
-      const {registerRequests, authenticateRequests} = this.props.challengeData;
-      promise = u2f.register(registerRequests, authenticateRequests);
-    } else {
-      throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
-    }
-
+  invokeU2fSetupFlow(promise) {
     promise
       .then(data => {
         this.setState(
@@ -120,6 +109,37 @@ class U2fInterface extends React.Component<Props, State> {
           hasBeenTapped: false,
         });
       });
+  }
+
+  invokeU2fFlow() {
+    let promise: Promise<u2f.SignResponse | u2f.RegisterResponse>;
+
+    if (this.props.flowMode === 'sign') {
+      promise = u2f.sign(this.props.challengeData.authenticateRequests);
+    } else if (this.props.flowMode === 'enroll') {
+      const {registerRequests, authenticateRequests, registeredKeys} =
+        this.props.challengeData;
+      if (registeredKeys.length !== 0) {
+        u2f
+          .register(registerRequests, registeredKeys)
+          .then(() => {
+            this.invokeU2fSetupFlow(promise);
+          })
+          .catch(err => {
+            const failure = 'DUPLICATE_DEVICE';
+            Sentry.captureException(err);
+            this.setState({
+              deviceFailure: failure,
+              hasBeenTapped: false,
+            });
+          });
+      } else {
+        promise = u2f.register(registerRequests, authenticateRequests);
+        this.invokeU2fSetupFlow(promise);
+      }
+    } else {
+      throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
+    }
   }
 
   onTryAgain = () => {
