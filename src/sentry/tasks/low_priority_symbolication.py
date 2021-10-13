@@ -12,6 +12,8 @@ import logging
 import time
 from typing import Iterable
 
+from sentry import options
+from sentry.killswitches import normalize_value
 from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.base import BucketedCount, DurationHistogram
 from sentry.tasks.base import instrumented_task
@@ -29,6 +31,7 @@ logger = logging.getLogger(__name__)
 def scan_for_suspect_projects() -> None:
     """Scans and updates the list of projects assigned to the low priority queue."""
     _scan_for_suspect_projects()
+    _record_metrics()
 
 
 def _scan_for_suspect_projects() -> None:
@@ -77,6 +80,7 @@ def update_lpq_eligibility(project_id: int, cutoff: int) -> None:
     before `cutoff` should be considered.
     """
     _update_lpq_eligibility(project_id, cutoff)
+    _record_metrics()
 
 
 def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
@@ -107,6 +111,32 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
                 project_count,
                 tags={"reason": "removed"},
             )
+
+
+def _record_metrics() -> None:
+    project_count = list(realtime_metrics.get_lpq_projects())
+    metrics.gauge(
+        "tasks.store.symbolicate_event.low_priority.projects.auto",
+        project_count,
+    )
+
+    always_included_raw = options.get(
+        "store.symbolicate-event-lpq-always",
+    )
+    always_included = normalize_value("store.symbolicate-event-lpq-always", always_included_raw)
+    metrics.gauge(
+        "tasks.store.symbolicate_event.low_priority.projects.manual.always",
+        always_included,
+    )
+
+    never_included_raw = options.get(
+        "store.symbolicate-event-lpq-never",
+    )
+    never_included = normalize_value("store.symbolicate-event-lpq-never", never_included_raw)
+    metrics.gauge(
+        "tasks.store.symbolicate_event.low_priority.projects.manual.never",
+        never_included,
+    )
 
 
 def calculation_magic(
