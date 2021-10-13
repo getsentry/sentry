@@ -144,7 +144,6 @@ def _do_preprocess_event(
 
         is_low_priority = should_demote_symbolication(project_id)
         submit_symbolicate(
-            project,
             is_low_priority,
             from_reprocessing,
             cache_key,
