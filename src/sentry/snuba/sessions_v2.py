@@ -312,7 +312,7 @@ def get_now():
 
 def get_constrained_date_range(
     params,
-    allowed_resolution: AllowedResolution,
+    allowed_resolution: AllowedResolution = AllowedResolution.one_hour,
     max_points=MAX_POINTS,
 ) -> Tuple[datetime, datetime, int]:
     interval = parse_stats_period(params.get("interval", "1h"))
