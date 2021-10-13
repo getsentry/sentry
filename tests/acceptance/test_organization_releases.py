@@ -1,10 +1,12 @@
+from datetime import datetime
+
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
 
 
 class OrganizationReleasesTest(AcceptanceTestCase):
-    release_date = timezone.now().replace(year=2020)
+    release_date = datetime(2020, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)
 
     def setUp(self):
         super().setUp()
