@@ -2055,19 +2055,21 @@ export type ExceptionType = {
   values?: Array<ExceptionValue>;
 };
 
-/**
- * UserIdentityConfig is used in Account Identities
- */
 export enum UserIdentityCategory {
   SOCIAL_IDENTITY = 'social-identity',
   GLOBAL_IDENTITY = 'global-identity',
   ORG_IDENTITY = 'org-identity',
 }
+
 export enum UserIdentityStatus {
   CAN_DISCONNECT = 'can_disconnect',
   NEEDED_FOR_GLOBAL_AUTH = 'needed_for_global_auth',
   NEEDED_FOR_ORG_AUTH = 'needed_for_org_auth',
 }
+
+/**
+ * UserIdentityConfig is used in Account Identities
+ */
 export type UserIdentityConfig = {
   category: UserIdentityCategory;
   id: string;
