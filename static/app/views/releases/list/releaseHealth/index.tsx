@@ -9,7 +9,7 @@ import {tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, Release} from 'app/types';
 
-import {ReleaseHealthRequestRenderProps} from '../../utils/releaseHealthRequest';
+import {ReleaseListRequestRenderProps} from '../releaseListRequest';
 import {DisplayOption} from '../utils';
 
 import Content from './content';
@@ -23,7 +23,7 @@ type Props = {
   selection: GlobalSelection;
   reloading: boolean;
   isTopRelease: boolean;
-  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
+  getHealthData: ReleaseListRequestRenderProps['getHealthData'];
   showReleaseAdoptionStages: boolean;
 };
 

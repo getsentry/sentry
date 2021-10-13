@@ -43,11 +43,11 @@ import withProjects from 'app/utils/withProjects';
 import AsyncView from 'app/views/asyncView';
 
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
-import ReleaseHealthRequest from '../utils/releaseHealthRequest';
 
 import ReleaseAdoptionChart from './releaseAdoptionChart';
 import ReleaseCard from './releaseCard';
 import ReleaseDisplayOptions from './releaseDisplayOptions';
+import ReleaseListRequest from './releaseListRequest';
 import ReleaseListSortOptions from './releaseListSortOptions';
 import ReleaseListStatusOptions from './releaseListStatusOptions';
 import ReleasePromo from './releasePromo';
@@ -424,7 +424,7 @@ class ReleasesList extends AsyncView<Props, State> {
     }
 
     return (
-      <ReleaseHealthRequest
+      <ReleaseListRequest
         releases={releases.map(({version}) => version)}
         organization={organization}
         selection={selection}
@@ -475,7 +475,7 @@ class ReleasesList extends AsyncView<Props, State> {
             </Fragment>
           );
         }}
-      </ReleaseHealthRequest>
+      </ReleaseListRequest>
     );
   }
 

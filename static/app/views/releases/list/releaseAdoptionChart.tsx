@@ -37,11 +37,11 @@ import {GlobalSelection, Organization, SessionApiResponse} from 'app/types';
 import {percent} from 'app/utils';
 import {formatVersion} from 'app/utils/formatters';
 import withApi from 'app/utils/withApi';
-import {DisplayOption} from 'app/views/releases/list/utils';
 import {
   reduceTimeSeriesGroups,
   sessionDisplayToField,
-} from 'app/views/releases/utils/releaseHealthRequest';
+} from 'app/views/releases/list/releaseListRequest';
+import {DisplayOption} from 'app/views/releases/list/utils';
 
 type Props = AsyncComponent['props'] & {
   api: Client;
