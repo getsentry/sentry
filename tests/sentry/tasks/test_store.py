@@ -11,10 +11,12 @@ from sentry.tasks.store import (
     process_event,
     save_event,
     should_demote_symbolication,
+    submit_symbolicate,
     symbolicate_event,
     time_synthetic_monitoring_event,
 )
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.utils.compat import mock
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -90,6 +92,21 @@ def mock_refund():
 @pytest.fixture
 def mock_metrics_timing():
     with mock.patch("sentry.tasks.store.metrics.timing") as m:
+        yield m
+
+
+@pytest.fixture
+def mock_should_demote_symbolication():
+    with mock.patch(
+        "sentry.tasks.store.should_demote_symbolication",
+        side_effect=[True, False, True, False, True],
+    ) as m:
+        yield m
+
+
+@pytest.fixture
+def mock_submit_symbolicate():
+    with mock.patch("sentry.tasks.store.submit_symbolicate", wraps=submit_symbolicate) as m:
         yield m
 
 
@@ -472,3 +489,30 @@ def test_should_demote_symbolication_always_and_never(default_project):
         }
     ):
         assert not should_demote_symbolication(default_project.id)
+
+
+@pytest.mark.django_db
+def test_submit_symbolicate_queue_switch(
+    default_project, mock_should_demote_symbolication, mock_submit_symbolicate
+):
+    data = {
+        "project": default_project.id,
+        "platform": "native",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+    }
+
+    is_low_priority = mock_should_demote_symbolication(default_project.id)
+    assert is_low_priority
+
+    with TaskRunner():
+        mock_submit_symbolicate(
+            is_low_priority=is_low_priority,
+            from_reprocessing=False,
+            cache_key="e:1",
+            event_id=EVENT_ID,
+            start_time=0,
+            data=data,
+        )
+    assert mock_submit_symbolicate.call_count == 4
