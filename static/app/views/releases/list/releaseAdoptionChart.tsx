@@ -39,8 +39,8 @@ import {formatVersion} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import {getAdoptionSeries, getCount} from 'app/utils/sessions';
 import withApi from 'app/utils/withApi';
+import {sessionDisplayToField} from 'app/views/releases/list/releaseListRequest';
 import {DisplayOption} from 'app/views/releases/list/utils';
-import {sessionDisplayToField} from 'app/views/releases/utils/releaseHealthRequest';
 
 type Props = {
   api: Client;
