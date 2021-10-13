@@ -114,7 +114,7 @@ def _report_change(project_id, change: Literal["added", "removed"], reason: Opti
 
 
 def _record_metrics() -> None:
-    project_count = list(realtime_metrics.get_lpq_projects())
+    project_count = sum(1 for _p in realtime_metrics.get_lpq_projects())
     metrics.gauge(
         "tasks.store.symbolicate_event.low_priority.projects.auto",
         project_count,
