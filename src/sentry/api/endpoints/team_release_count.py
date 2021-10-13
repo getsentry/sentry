@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import timedelta
 
 from django.db.models import Count
@@ -24,35 +25,38 @@ class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
         per_project_average_releases = (
             Release.objects.filter(
                 id__in=ReleaseProject.objects.filter(project__in=project_list).values("release_id"),
-                date_added__gte=now() - timedelta(days=84),
-                date_added__lte=now(),
-            )
-            .values("projects")
-            .annotate(count=Count("id"))
-        )
-        # TODO: Also need "this week" count for each project. Should i just bucket by week and average in python?
-        project_avgs = {}
-        for row in per_project_average_releases:
-            project_avgs[row["projects"]] = row["count"] / 12
-
-        bucketed_total_releases = (
-            Release.objects.filter(
-                id__in=ReleaseProject.objects.filter(project__in=project_list).values("release_id"),
                 date_added__gte=start,
                 date_added__lte=end,
             )
             .annotate(bucket=TruncDay("date_added"))
             .order_by("bucket")
-            .values("bucket")
+            .values("projects", "bucket")
             .annotate(count=Count("id"))
         )
 
-        current_day, agg_project_counts = start, {}
+        agg_project_counts = {}
+        project_avgs = defaultdict(int)
+        this_week_start = now() - timedelta(days=7)
+        this_week_totals = {}
+        for row in per_project_average_releases:
+            project_avgs[row["projects"]] += row["count"]
+            agg_project_counts[str(row["bucket"].date())] = row["count"]
+            this_week_totals.setdefault(row["projects"], 0)  # zero-fill for each project
+            if row["bucket"] >= this_week_start:
+                this_week_totals[row["projects"]] += row["count"]
+
+        for row in project_avgs:
+            project_avgs[row] = (project_avgs[row] / (end - start).days) * 7
+
+        current_day = start
         while current_day < end:
-            agg_project_counts[str(current_day)] = 0
+            agg_project_counts.setdefault(str(current_day), 0)
             current_day += timedelta(days=1)
 
-        for bucket in bucketed_total_releases:
-            agg_project_counts[str(bucket["bucket"].date())] = bucket["count"]
-
-        return Response({"release_counts": agg_project_counts, "project_avgs": project_avgs})
+        return Response(
+            {
+                "release_counts": agg_project_counts,
+                "project_avgs": project_avgs,
+                "last_week_totals": this_week_totals,
+            }
+        )
