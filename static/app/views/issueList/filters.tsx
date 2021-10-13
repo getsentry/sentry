@@ -3,6 +3,7 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import ProjectsStore from 'app/stores/projectsStore';
 import space from 'app/styles/space';
 import {Organization, SavedSearch} from 'app/types';
 
@@ -21,7 +22,6 @@ type Props = {
   sort: string;
   query: string;
   isSearchDisabled: boolean;
-  hasSessions: boolean;
   selectedProjects: number[];
 
   onDisplayChange: (display: string) => void;
@@ -41,7 +41,6 @@ class IssueListFilters extends React.Component<Props> {
       isSearchDisabled,
       sort,
       display,
-      hasSessions,
       selectedProjects,
 
       onSidebarToggle,
@@ -55,7 +54,11 @@ class IssueListFilters extends React.Component<Props> {
     const hasIssuePercentDisplay = organization.features.includes(
       'issue-percent-display'
     );
-
+    const hasMultipleProjectsSelected =
+      selectedProjects.length !== 1 || selectedProjects[0] === -1;
+    const hasSessions =
+      !hasMultipleProjectsSelected &&
+      (ProjectsStore.getById(`${selectedProjects[0]}`)?.hasSessions ?? false);
     return (
       <SearchContainer hasIssuePercentDisplay={hasIssuePercentDisplay}>
         <ClassNames>
@@ -88,10 +91,8 @@ class IssueListFilters extends React.Component<Props> {
             <IssueListDisplayOptions
               onDisplayChange={onDisplayChange}
               display={display}
+              hasMultipleProjectsSelected={hasMultipleProjectsSelected}
               hasSessions={hasSessions}
-              hasMultipleProjectsSelected={
-                selectedProjects.length !== 1 || selectedProjects[0] === -1
-              }
             />
           )}
           <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
