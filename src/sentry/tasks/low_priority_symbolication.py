@@ -139,7 +139,9 @@ def calculation_magic(
         if counter >= p75_count:
             p75_duration = duration
 
-    events_per_minute = counter / realtime_metrics.realtime_metrics_store._duration_time_window / 60
+    events_per_minute = counter / (
+        realtime_metrics.realtime_metrics_store._duration_time_window / 60
+    )
 
     if events_per_minute > 15 and p75_duration > 6 * 60:
         return True

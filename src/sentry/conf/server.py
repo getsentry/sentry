@@ -2393,8 +2393,8 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # around.
     #
     # The LPQ computes the p75 duration of this time window and if it is greater than 6
-    # minutes and the rate is more than 15 events/s a project is moved to the Low Priority
-    # Queue.
+    # minutes and the rate is more than 15 events per minute a project is moved to the Low
+    # Priority Queue.
     "duration_time_window": 3 * 60,
     # Number of seconds to wait after a project is made eligible or ineligible for the LPQ
     # before its eligibility can be changed again.
