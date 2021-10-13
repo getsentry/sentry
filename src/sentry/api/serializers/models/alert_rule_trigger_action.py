@@ -33,6 +33,12 @@ class AlertRuleTriggerActionSerializer(Serializer):
             action.target_display if action.target_display is not None else action.target_identifier
         )
 
+    def get_input_channel_id(self, action):
+        """
+        Don't pass an inputChannelId value unless the action is for Slack
+        """
+        return action.target_identifier if action.type == action.Type.SLACK.value else None
+
     def serialize(self, obj, attrs, user):
         from sentry.incidents.endpoints.serializers import action_target_type_to_string
 
@@ -46,7 +52,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
                 AlertRuleTriggerAction.TargetType(obj.target_type)
             ],
             "targetIdentifier": self.get_identifier_from_action(obj),
-            "inputChannelId": obj.target_identifier,
+            "inputChannelId": self.get_input_channel_id(obj),
             "integrationId": obj.integration_id,
             "sentryAppId": obj.sentry_app_id,
             "dateCreated": obj.date_added,
