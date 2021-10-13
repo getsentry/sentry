@@ -2,7 +2,12 @@ import Reflux from 'reflux';
 
 import {SentryAppInstallation} from 'app/types';
 
-const SentryAppInstallationStore = Reflux.createStore({
+type SentryAppInstallationStoreInterface = {
+  load(items: SentryAppInstallation[]): void;
+  getInitialState(): SentryAppInstallation[];
+};
+
+const storeConfig: Reflux.StoreDefinition & SentryAppInstallationStoreInterface = {
   init() {
     this.items = [];
   },
@@ -24,11 +29,9 @@ const SentryAppInstallationStore = Reflux.createStore({
   getAll(): SentryAppInstallation[] {
     return this.items;
   },
-});
-
-type SentryAppInstallationStoreType = Reflux.Store & {
-  load: (items: SentryAppInstallation[]) => void;
-  getInitialState: () => SentryAppInstallation[];
 };
 
-export default SentryAppInstallationStore as SentryAppInstallationStoreType;
+const SentryAppInstallationStore = Reflux.createStore(storeConfig) as Reflux.Store &
+  SentryAppInstallationStoreInterface;
+
+export default SentryAppInstallationStore;

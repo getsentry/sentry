@@ -11,7 +11,14 @@ import * as types from 'app/views/dashboardsV2/types';
 
 const stubEl = props => <div>{props.children}</div>;
 
-function mountModal({initialData, onAddWidget, onUpdateWidget, widget, fromDiscover}) {
+function mountModal({
+  initialData,
+  onAddWidget,
+  onUpdateWidget,
+  widget,
+  fromDiscover,
+  defaultWidgetQuery,
+}) {
   return mountWithTheme(
     <AddDashboardWidgetModal
       Header={stubEl}
@@ -23,6 +30,7 @@ function mountModal({initialData, onAddWidget, onUpdateWidget, widget, fromDisco
       widget={widget}
       closeModal={() => void 0}
       fromDiscover={fromDiscover}
+      defaultWidgetQuery={defaultWidgetQuery}
     />,
     initialData.routerContext
   );
@@ -233,6 +241,37 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+    wrapper.unmount();
+  });
+
+  it('can add equation fields', async function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+
+    // Click the add button
+    const add = wrapper.find('button[aria-label="Add an Equation"]');
+    add.simulate('click');
+    wrapper.update();
+
+    // Should be another field input.
+    expect(wrapper.find('QueryField')).toHaveLength(2);
+
+    expect(wrapper.find('ArithmeticInput')).toHaveLength(1);
+
+    wrapper
+      .find('QueryFieldWrapper input[name="arithmetic"]')
+      .simulate('change', {target: {value: 'count() + 100'}})
+      .simulate('blur');
+
+    wrapper.update();
+
+    await clickSubmit(wrapper);
+
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['count()', 'equation|count() + 100']);
     wrapper.unmount();
   });
 
@@ -863,6 +902,30 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       1
     );
 
+    wrapper.unmount();
+  });
+
+  it('should use defaultWidgetQuery Y-Axis and Conditions if given a defaultWidgetQuery', async function () {
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: () => undefined,
+      onUpdateWidget: () => undefined,
+      widget: undefined,
+      fromDiscover: true,
+      defaultWidgetQuery: {
+        name: '',
+        fields: ['count()', 'failure_count()', 'count_unique(user)'],
+        conditions: 'tag:value',
+        orderby: '',
+      },
+    });
+
+    expect(wrapper.find('SearchBar').props().query).toEqual('tag:value');
+    const queryFields = wrapper.find('QueryField');
+    expect(queryFields.length).toEqual(3);
+    expect(queryFields.at(0).props().fieldValue.function[0]).toEqual('count');
+    expect(queryFields.at(1).props().fieldValue.function[0]).toEqual('failure_count');
+    expect(queryFields.at(2).props().fieldValue.function[0]).toEqual('count_unique');
     wrapper.unmount();
   });
 });

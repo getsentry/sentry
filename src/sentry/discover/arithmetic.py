@@ -351,3 +351,15 @@ def strip_equation(field: str) -> str:
     """remove the equation prefix from a public field alias"""
     assert is_equation(field), f"{field} does not start with {EQUATION_PREFIX}"
     return field[len(EQUATION_PREFIX) :]
+
+
+def categorize_columns(columns) -> Tuple[List[str], List[str]]:
+    """equations have a prefix so that they can be easily included alongside our existing fields"""
+    equations = []
+    fields = []
+    for column in columns:
+        if is_equation(column):
+            equations.append(strip_equation(column))
+        else:
+            fields.append(column)
+    return equations, fields

@@ -61,4 +61,57 @@ describe('useTeams', function () {
     expect(mockRequest).toHaveBeenCalled();
     expect(result.current.teams).toEqual([...mockTeams, newTeam2, newTeam3]);
   });
+
+  it('provides only the users teams', async function () {
+    // @ts-expect-error
+    const userTeams = [TestStubs.Team({isMember: true})];
+    // @ts-expect-error
+    const nonUserTeams = [TestStubs.Team({isMember: false})];
+    act(() => void TeamStore.loadInitialData([...userTeams, ...nonUserTeams]));
+
+    const {result} = renderHook(props => useTeams(props), {
+      initialProps: {provideUserTeams: true},
+    });
+    const {teams} = result.current;
+
+    expect(teams.length).toBe(1);
+    expect(teams).toEqual(expect.arrayContaining(userTeams));
+  });
+
+  it('provides only the specified slugs', async function () {
+    act(() => void TeamStore.loadInitialData(mockTeams));
+    // @ts-expect-error
+    const teamFoo = TestStubs.Team({slug: 'foo'});
+    // @ts-expect-error
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      method: 'GET',
+      query: {slug: 'foo'},
+      body: [teamFoo],
+    });
+
+    const {result, waitFor} = renderHook(props => useTeams(props), {
+      initialProps: {slugs: ['foo']},
+    });
+
+    expect(result.current.initiallyLoaded).toBe(false);
+    expect(mockRequest).toHaveBeenCalled();
+
+    await waitFor(() => expect(result.current.teams.length).toBe(1));
+
+    const {teams} = result.current;
+    expect(teams).toEqual(expect.arrayContaining([teamFoo]));
+  });
+
+  it('only loads slugs when needed', async function () {
+    act(() => void TeamStore.loadInitialData(mockTeams));
+
+    const {result} = renderHook(props => useTeams(props), {
+      initialProps: {slugs: [mockTeams[0].slug]},
+    });
+
+    const {teams, initiallyLoaded} = result.current;
+    expect(initiallyLoaded).toBe(true);
+    expect(teams).toEqual(expect.arrayContaining(mockTeams));
+  });
 });

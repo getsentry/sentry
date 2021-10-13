@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
@@ -24,8 +25,9 @@ import withTeamsForUser from 'app/utils/withTeamsForUser';
 import DescriptionCard from './descriptionCard';
 import HeaderTabs from './headerTabs';
 import TeamAlertsTriggered from './teamAlertsTriggered';
+import TeamIssuesReviewed from './teamIssuesReviewed';
 import TeamMisery from './teamMisery';
-import TeamReleases from './teamReleases';
+import TeamResolutionTime from './teamResolutionTime';
 import TeamStability from './teamStability';
 
 const INSIGHTS_DEFAULT_STATS_PERIOD = '8w';
@@ -58,6 +60,7 @@ function TeamInsightsOverview({
   location,
   router,
 }: Props) {
+  const theme = useTheme();
   const query = location?.query ?? {};
   const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
 
@@ -175,12 +178,45 @@ function TeamInsightsOverview({
         {!loadingTeams && (
           <Layout.Main fullWidth>
             <ControlsWrapper>
-              <TeamSelector
+              <StyledTeamSelector
                 name="select-team"
+                inFieldLabel={t('Team: ')}
                 value={currentTeam?.slug}
                 isLoading={loadingTeams}
                 onChange={choice => handleChangeTeam(choice.actor.id)}
                 teamFilter={filterTeam => filterTeam.isMember}
+                styles={{
+                  singleValue(provided: any) {
+                    const custom = {
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: theme.fontSizeMedium,
+                      ':before': {
+                        ...provided[':before'],
+                        color: theme.textColor,
+                        marginRight: space(1.5),
+                        marginLeft: space(0.5),
+                      },
+                    };
+                    return {...provided, ...custom};
+                  },
+                  input: (provided: any, state: any) => ({
+                    ...provided,
+                    display: 'grid',
+                    gridTemplateColumns: 'max-content 1fr',
+                    alignItems: 'center',
+                    gridGap: space(1),
+                    ':before': {
+                      backgroundColor: state.theme.backgroundSecondary,
+                      height: 24,
+                      width: 38,
+                      borderRadius: 3,
+                      content: '""',
+                      display: 'block',
+                    },
+                  }),
+                }}
               />
               <StyledPageTimeRangeSelector
                 organization={organization}
@@ -250,18 +286,35 @@ function TeamInsightsOverview({
 
             <SectionTitle>{t('Team Activity')}</SectionTitle>
             <DescriptionCard
-              title={t('Number of Releases')}
+              title={t('Issues Reviewed')}
               description={t(
-                'Projects that had the largest difference of releases deployed compared to the 12 week average.'
+                'Issues that were triaged by your team taking an action on them such as resolving, ignoring, marking as reviewed, or deleting.'
               )}
             >
-              <TeamReleases
-                projects={projects}
+              <TeamIssuesReviewed
                 organization={organization}
+                projects={projects}
+                teamSlug={currentTeam!.slug}
                 period={period}
-                start={start}
-                end={end}
-                utc={utc}
+                start={start?.toString()}
+                end={end?.toString()}
+                location={location}
+              />
+            </DescriptionCard>
+            <DescriptionCard
+              title={t('Time to Resolution')}
+              description={t(
+                `This shows the mean time it took for issues to be resolved by your team.
+                 If issues took a long time to resolve, this could be a problem that your team needs to fix.`
+              )}
+            >
+              <TeamResolutionTime
+                organization={organization}
+                teamSlug={currentTeam!.slug}
+                period={period}
+                start={start?.toString()}
+                end={end?.toString()}
+                location={location}
               />
             </DescriptionCard>
           </Layout.Main>
@@ -296,14 +349,27 @@ const StyledLayoutTitle = styled(Layout.Title)`
 
 const ControlsWrapper = styled('div')`
   display: grid;
-  grid-template-columns: 0.5fr 1fr;
   align-items: center;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 246px 1fr;
+  }
+`;
+
+const StyledTeamSelector = styled(TeamSelector)`
+  & > div {
+    box-shadow: ${p => p.theme.dropShadowLight};
+  }
 `;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
-  flex-grow: 1;
+  height: 40px;
+
+  div {
+    min-height: unset;
+  }
 `;
 
 const SectionTitle = styled(Layout.Title)`

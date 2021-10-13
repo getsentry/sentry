@@ -1,5 +1,5 @@
 import {withRouter, WithRouterProps} from 'react-router';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
@@ -24,7 +24,6 @@ import {
   SessionField,
 } from 'app/types';
 import {getAdoptionSeries, getCount} from 'app/utils/sessions';
-import {Theme} from 'app/utils/theme';
 import {isProjectMobileForReleases} from 'app/views/releases/list';
 import {ADOPTION_STAGE_LABELS} from 'app/views/releases/list/releaseHealth/content';
 
@@ -42,7 +41,6 @@ type Props = {
   loading: boolean;
   reloading: boolean;
   errored: boolean;
-  theme: Theme;
 } & WithRouterProps;
 
 function ReleaseComparisonChart({
@@ -54,10 +52,11 @@ function ReleaseComparisonChart({
   loading,
   reloading,
   errored,
-  theme,
   router,
   location,
 }: Props) {
+  const theme = useTheme();
+
   const hasUsers = !!getCount(releaseSessions?.groups, SessionField.USERS);
 
   function getSeries() {
@@ -209,9 +208,8 @@ function ReleaseComparisonChart({
   });
 
   const isMobileProject = isProjectMobileForReleases(project.platform);
-  const adoptionStage = release.adoptionStages?.[project.slug].stage;
-  const adoptionStageLabel =
-    Boolean(adoptionStage) && ADOPTION_STAGE_LABELS[adoptionStage];
+  const adoptionStage = release.adoptionStages?.[project.slug]?.stage;
+  const adoptionStageLabel = ADOPTION_STAGE_LABELS[adoptionStage];
   const multipleEnvironments = environment.length === 0 || environment.length > 1;
 
   return (
@@ -339,4 +337,4 @@ const ChartLabel = styled('div')<{top: string}>`
   right: 0;
 `;
 
-export default withTheme(withRouter(ReleaseComparisonChart));
+export default withRouter(ReleaseComparisonChart);

@@ -51,7 +51,7 @@ EMPTY = object()
 @freeze_time()
 class ProcessUpdateTest(TestCase, SnubaTestCase):
     metrics = patcher("sentry.incidents.subscription_processor.metrics")
-    slack_client = patcher("sentry.integrations.slack.utils.SlackClient.post")
+    slack_client = patcher("sentry.integrations.slack.SlackClient.post")
 
     def setUp(self):
         super().setUp()

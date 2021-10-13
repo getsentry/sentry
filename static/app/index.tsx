@@ -64,6 +64,11 @@
 //    <OrganizationDetails>    <-- Most routes live within the
 //                                 OrganizationDetails, which handles loading
 //                                 details for the org, projects, and teams.
+//
+//
+// Did you read through this whole thing and don't even work here? [1]
+//
+// [1]: https://sentry.io/careers/
 
 async function app() {
   // We won't need initalizeMainImport until we complete bootstrapping.

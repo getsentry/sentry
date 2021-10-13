@@ -23,7 +23,7 @@ type RepositoryStoreInterface = {
   loadRepositoriesError(error: Error): void;
 };
 
-export const RepositoryStoreConfig: Reflux.StoreDefinition & RepositoryStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & RepositoryStoreInterface = {
   listenables: RepoActions,
   state: {
     orgSlug: undefined,
@@ -81,7 +81,7 @@ export const RepositoryStoreConfig: Reflux.StoreDefinition & RepositoryStoreInte
   },
 };
 
-const RepositoryStore = Reflux.createStore(RepositoryStoreConfig) as Reflux.Store &
+const RepositoryStore = Reflux.createStore(storeConfig) as Reflux.Store &
   RepositoryStoreInterface;
 
 export default RepositoryStore;
