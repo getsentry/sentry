@@ -5,7 +5,7 @@ import partition from 'lodash/partition';
 import ConfigStore from 'app/stores/configStore';
 import {Organization, Project} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
-import withProjectsSpecified from 'app/utils/withProjectsSpecified';
+import withProjects from 'app/utils/withProjects';
 
 import GlobalSelectionHeader from './globalSelectionHeader';
 import InitializeGlobalSelectionHeader from './initializeGlobalSelectionHeader';
@@ -35,27 +35,25 @@ function GlobalSelectionHeaderContainer({
   forceProject,
   shouldForceProject,
   skipLoadLastUsed,
+  specificProjectSlugs,
   showAbsolute,
   ...props
 }: Props) {
-  function getProjects() {
-    const {isSuperuser} = ConfigStore.get('user');
-    const isOrgAdmin = organization.access.includes('org:admin');
+  const {isSuperuser} = ConfigStore.get('user');
+  const isOrgAdmin = organization.access.includes('org:admin');
 
-    const [memberProjects, nonMemberProjects] = partition(
-      projects,
-      project => project.isMember
-    );
+  const specifiedProjects = specificProjectSlugs
+    ? projects.filter(project => specificProjectSlugs.includes(project.slug))
+    : projects;
 
-    if (isSuperuser || isOrgAdmin) {
-      return [memberProjects, nonMemberProjects];
-    }
+  const [memberProjects, otherProjects] = partition(
+    specifiedProjects,
+    project => project.isMember
+  );
 
-    return [memberProjects, []];
-  }
+  const nonMemberProjects = isSuperuser || isOrgAdmin ? otherProjects : [];
 
   const enforceSingleProject = !organization.features.includes('global-views');
-  const [memberProjects, nonMemberProjects] = getProjects();
 
   // We can initialize before ProjectsStore is fully loaded if we don't need to enforce single project.
   return (
@@ -93,6 +91,4 @@ function GlobalSelectionHeaderContainer({
   );
 }
 
-export default withOrganization(
-  withProjectsSpecified(withRouter(GlobalSelectionHeaderContainer))
-);
+export default withOrganization(withProjects(withRouter(GlobalSelectionHeaderContainer)));

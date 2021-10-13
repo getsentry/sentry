@@ -1,15 +1,17 @@
 import Reflux from 'reflux';
 
-import PreferencesActions from '../actions/preferencesActions';
+import PreferencesActions from 'app/actions/preferencesActions';
+
+import {CommonStoreInterface} from './types';
 
 type Preferences = {
   /**
    * Is the sidebar collapsed to the side
    */
-  collapsed: boolean;
+  collapsed?: boolean;
 };
 
-type PreferenceStoreInterface = {
+type PreferenceStoreInterface = CommonStoreInterface<Preferences> & {
   prefs: Preferences;
 
   getInitialState(): Preferences;
@@ -17,8 +19,8 @@ type PreferenceStoreInterface = {
   loadInitialState(prefs: Preferences): void;
 };
 
-const preferenceStoreConfig: Reflux.StoreDefinition & PreferenceStoreInterface = {
-  prefs: {} as Preferences,
+const storeConfig: Reflux.StoreDefinition & PreferenceStoreInterface = {
+  prefs: {},
 
   init() {
     this.reset();
@@ -52,13 +54,17 @@ const preferenceStoreConfig: Reflux.StoreDefinition & PreferenceStoreInterface =
     this.prefs.collapsed = false;
     this.trigger(this.prefs);
   },
+
+  getState() {
+    return this.prefs;
+  },
 };
 
 /**
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
-const PreferenceStore = Reflux.createStore(preferenceStoreConfig) as Reflux.Store &
+const PreferenceStore = Reflux.createStore(storeConfig) as Reflux.Store &
   PreferenceStoreInterface;
 
 export default PreferenceStore;

@@ -42,6 +42,7 @@ import slack from 'sentry-logos/logo-slack.svg';
 import spikesh from 'sentry-logos/logo-spikesh.svg';
 import split from 'sentry-logos/logo-split.svg';
 import taiga from 'sentry-logos/logo-taiga.svg';
+import taskcall from 'sentry-logos/logo-taskcall.svg';
 import teamwork from 'sentry-logos/logo-teamwork.svg';
 import trello from 'sentry-logos/logo-trello.svg';
 import twilio from 'sentry-logos/logo-twilio.svg';
@@ -49,7 +50,6 @@ import vercel from 'sentry-logos/logo-vercel.svg';
 import victorops from 'sentry-logos/logo-victorops.svg';
 import visualstudio from 'sentry-logos/logo-visualstudio.svg';
 import youtrack from 'sentry-logos/logo-youtrack.svg';
-import zepel from 'sentry-logos/logo-zepel.svg';
 import zulip from 'sentry-logos/logo-zulip.svg';
 
 // Map of plugin id -> logo filename
@@ -107,6 +107,7 @@ export const ICON_PATHS = {
   spikesh,
   split,
   taiga,
+  taskcall,
   teamwork,
   trello,
   twilio,
@@ -115,7 +116,6 @@ export const ICON_PATHS = {
   youtrack,
   vercel,
   victorops,
-  zepel,
   zulip,
 };
 

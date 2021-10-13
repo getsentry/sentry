@@ -232,7 +232,7 @@ def _patch_artifact_manifest(path, org, release, project=None, extra_files=None)
     return json.dumps(manifest)
 
 
-# TODO(dcramer): consider moving to something more scaleable like factoryboy
+# TODO(dcramer): consider moving to something more scalable like factoryboy
 class Factories:
     @staticmethod
     def create_organization(name=None, owner=None, **kwargs):
@@ -787,7 +787,24 @@ class Factories:
             "settings": {
                 "type": "alert-rule-settings",
                 "uri": "/sentry/alert-rule",
-                "required_fields": [{"type": "text", "name": "channel", "label": "Channel"}],
+                "required_fields": [
+                    {"type": "text", "name": "title", "label": "Title"},
+                    {"type": "text", "name": "summary", "label": "Summary"},
+                ],
+                "optional_fields": [
+                    {
+                        "type": "select",
+                        "name": "points",
+                        "label": "Points",
+                        "options": [["1", "1"], ["2", "2"], ["3", "3"], ["5", "5"], ["8", "8"]],
+                    },
+                    {
+                        "type": "select",
+                        "name": "assignee",
+                        "label": "Assignee",
+                        "uri": "/sentry/members",
+                    },
+                ],
             },
         }
 

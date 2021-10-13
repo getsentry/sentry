@@ -1,24 +1,23 @@
 import * as React from 'react';
-import {keyframes, withTheme} from '@emotion/react';
+import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {uniqueId} from 'app/utils/guid';
-import {Theme} from 'app/utils/theme';
 
 import SvgIcon from './svgIcon';
 
 type WrappedProps = {
   forwardRef: React.Ref<SVGSVGElement>;
-  theme: Theme;
 } & Props;
 
 function IconBusinessComponent({
   gradient = false,
   withShine = false,
   forwardRef,
-  theme,
   ...props
 }: WrappedProps) {
+  const theme = useTheme();
+
   const uid = React.useMemo(() => uniqueId(), []);
   const maskId = `icon-business-mask-${uid}`;
   const gradientId = `icon-business-gradient-${uid}`;
@@ -57,8 +56,6 @@ function IconBusinessComponent({
   );
 }
 
-const ThemedIconBusiness = withTheme(IconBusinessComponent);
-
 type Props = {
   /**
    * Renders a pink purple gradient on the icon
@@ -72,7 +69,7 @@ type Props = {
 } & React.ComponentProps<typeof SvgIcon>;
 
 const IconBusiness = React.forwardRef((props: Props, ref: React.Ref<SVGSVGElement>) => (
-  <ThemedIconBusiness {...props} forwardRef={ref} />
+  <IconBusinessComponent {...props} forwardRef={ref} />
 ));
 
 IconBusiness.displayName = 'IconBusiness';
