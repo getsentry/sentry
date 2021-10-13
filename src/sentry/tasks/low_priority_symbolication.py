@@ -115,7 +115,10 @@ def calculation_magic(
         recent_buckets.append(bucket)
         total_count += bucket.count
         total_time += realtime_metrics.realtime_metrics_store._counter_bucket_size
-    total_rate = total_count / total_time
+    if total_time > 0:
+        total_rate = total_count / total_time
+    else:
+        total_rate = 0
 
     # Calculate recent rate
     recent_count = sum(bucket.count for bucket in recent_buckets)
