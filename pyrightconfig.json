@@ -1,0 +1,14 @@
+{
+  "include": [
+    "src"
+  ],
+
+  "exclude": [
+    ".volta/**"
+  ],
+
+  "typeCheckingMode": "off",
+  "reportMissingImports": "none",
+  "reportUndefinedVariable": "none",
+  "reportUnboundVariable": "error"
+}
