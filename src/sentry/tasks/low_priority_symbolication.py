@@ -57,7 +57,7 @@ def _scan_for_suspect_projects() -> None:
     realtime_metrics.remove_projects_from_lpq(expired_projects)
 
     for project_id in expired_projects:
-        _log_change(project_id=project_id, change="removed", reason="no metrics")
+        _report_change(project_id=project_id, change="removed", reason="no metrics")
 
 
 @instrumented_task(  # type: ignore
@@ -90,14 +90,14 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
     if is_eligible:
         was_added = realtime_metrics.add_project_to_lpq(project_id)
         if was_added:
-            _log_change(project_id=project_id, change="added", reason="eligible")
+            _report_change(project_id=project_id, change="added", reason="eligible")
     else:
         was_removed = realtime_metrics.remove_projects_from_lpq({project_id})
         if was_removed:
-            _log_change(project_id=project_id, change="removed", reason="ineligible")
+            _report_change(project_id=project_id, change="removed", reason="ineligible")
 
 
-def _log_change(project_id, change: Literal["added", "removed"], reason: Optional[str]) -> None:
+def _report_change(project_id, change: Literal["added", "removed"], reason: Optional[str]) -> None:
     if not reason:
         reason = "unknown"
 
