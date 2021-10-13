@@ -102,7 +102,7 @@ function createStatusAreaSeries(
   yPosition: number
 ): LineChartSeries {
   return {
-    seriesName: 'Status Area',
+    seriesName: '',
     type: 'line',
     markLine: MarkLine({
       silent: true,

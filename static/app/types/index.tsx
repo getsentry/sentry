@@ -449,7 +449,7 @@ export type ProjectSdkUpdates = {
   suggestions: SDKUpdatesSuggestion[];
 };
 
-export type EventsStatsData = [number, {count: number}[]][];
+export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
 
 // API response format for a single series
 export type EventsStats = {
