@@ -727,8 +727,8 @@ export type Authenticator = {
 
 export type ChallengeData = {
   // will have only authenticateRequest or registerRequest
-  authenticateRequests?: u2f.SignRequest[];
-  registerRequests?: u2f.RegisterRequest[];
+  authenticateRequests: u2f.SignRequest;
+  registerRequests: u2f.RegisterRequest;
   registeredKeys: u2f.RegisteredKey[];
 };
 
