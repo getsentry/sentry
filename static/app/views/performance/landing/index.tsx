@@ -53,7 +53,7 @@ const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
   [LandingDisplayField.MOBILE]: MobileView,
 };
 
-function _PerformanceLanding(props: Props) {
+export function PerformanceLanding(props: Props) {
   const {
     organization,
     location,
@@ -151,8 +151,6 @@ function _PerformanceLanding(props: Props) {
     </div>
   );
 }
-
-export const PerformanceLanding = _PerformanceLanding;
 
 const StyledHeading = styled(PageHeading)`
   line-height: 40px;
