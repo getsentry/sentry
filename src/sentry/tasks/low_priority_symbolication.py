@@ -34,8 +34,10 @@ logger = logging.getLogger(__name__)
 )
 def scan_for_suspect_projects() -> None:
     """Scans and updates the list of projects assigned to the low priority queue."""
-    _scan_for_suspect_projects()
-    _record_metrics()
+    try:
+        _scan_for_suspect_projects()
+    finally:
+        _record_metrics()
 
 
 def _scan_for_suspect_projects() -> None:
@@ -75,8 +77,10 @@ def update_lpq_eligibility(project_id: int, cutoff: int) -> None:
     should consider when calculating a project's eligibility. In other words, only data recorded
     before `cutoff` should be considered.
     """
-    _update_lpq_eligibility(project_id, cutoff)
-    _record_metrics()
+    try:
+        _update_lpq_eligibility(project_id, cutoff)
+    finally:
+        _record_metrics()
 
 
 def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
