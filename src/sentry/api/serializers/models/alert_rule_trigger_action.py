@@ -36,7 +36,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         from sentry.incidents.endpoints.serializers import action_target_type_to_string
 
-        return {
+        result = {
             "id": str(obj.id),
             "alertRuleTriggerId": str(obj.alert_rule_trigger_id),
             "type": AlertRuleTriggerAction.get_registered_type(
@@ -52,3 +52,9 @@ class AlertRuleTriggerActionSerializer(Serializer):
             "dateCreated": obj.date_added,
             "desc": self.human_desc(obj),
         }
+
+        # Check if action is a Sentry App that has Alert Rule UI Component settings
+        if obj.sentry_app_id and obj.sentry_app_config:
+            result["settings"] = obj.sentry_app_config
+
+        return result

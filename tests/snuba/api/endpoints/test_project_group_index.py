@@ -1,3 +1,4 @@
+import time
 from datetime import timedelta
 from urllib.parse import quote
 from uuid import uuid4
@@ -123,6 +124,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get(f"{self.path}?statsPeriod=", format="json")
         assert response.status_code == 200
 
+        time.sleep(1)
         response = self.client.get(f"{self.path}?statsPeriod=48h", format="json")
         assert response.status_code == 400
 
