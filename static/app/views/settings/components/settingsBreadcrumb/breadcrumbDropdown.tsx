@@ -9,6 +9,11 @@ import {RouteWithName} from './types';
 
 const EXIT_DELAY = 0;
 
+type AdditionalDropdownProps = Pick<
+  React.ComponentProps<typeof DropdownAutoCompleteMenu>,
+  'onChange' | 'busyItemsStillVisible'
+>;
+
 type Props = {
   route: RouteWithName;
   hasMenu?: boolean;
@@ -17,7 +22,7 @@ type Props = {
   name: React.ReactNode;
   items: Item[];
   onSelect: (item: Item) => void;
-};
+} & AdditionalDropdownProps;
 
 type State = {
   isOpen: boolean;
@@ -80,7 +85,7 @@ class BreadcrumbDropdown extends React.Component<Props, State> {
   };
 
   render() {
-    const {hasMenu, route, isLast, name, items, onSelect} = this.props;
+    const {hasMenu, route, isLast, name, items, onSelect, ...dropdownProps} = this.props;
     return (
       <DropdownAutoCompleteMenu
         blendCorner={false}
@@ -94,6 +99,7 @@ class BreadcrumbDropdown extends React.Component<Props, State> {
         items={items}
         onSelect={onSelect}
         virtualizedHeight={41}
+        {...dropdownProps}
       >
         {({getActorProps, actions, isOpen}) => (
           <Crumb
