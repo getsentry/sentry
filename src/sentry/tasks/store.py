@@ -32,6 +32,10 @@ REPROCESSING_DEFAULT = False
 
 SYMBOLICATOR_MAX_RETRY_AFTER = settings.SYMBOLICATOR_MAX_RETRY_AFTER
 
+# The maximum number of times an event will be moved between the normal
+# and low priority queues
+SYMBOLICATOR_MAX_QUEUE_SWITCHES = 3
+
 
 class RetryProcessing(Exception):
     pass
@@ -119,7 +123,7 @@ def should_demote_symbolication(project_id: int) -> bool:
 
 
 def submit_symbolicate(
-    is_low_priority, from_reprocessing, cache_key, event_id, start_time, data, changed_queue_times=0
+    is_low_priority, from_reprocessing, cache_key, event_id, start_time, data, queue_switches=0
 ):
     if is_low_priority:
         task = (
@@ -134,8 +138,8 @@ def submit_symbolicate(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
-        changed_queue_times=changed_queue_times,
         data=data,
+        queue_switches=queue_switches,
     )
 
 
@@ -249,7 +253,7 @@ def preprocess_event_from_reprocessing(
 
 
 def _do_symbolicate_event(
-    cache_key, start_time, event_id, symbolicate_task, data=None, changed_queue_times=0
+    cache_key, start_time, event_id, symbolicate_task, data=None, queue_switches=0
 ):
     from sentry.lang.native.processing import get_symbolication_function
 
@@ -276,8 +280,8 @@ def _do_symbolicate_event(
     )
 
     # check whether the event is in the wrong queue and if so, move it to the other one.
-    # we do this at most three times.
-    if changed_queue_times >= 3:
+    # we do this at most SYMBOLICATOR_MAX_QUEUE_SWITCHES times.
+    if queue_switches >= SYMBOLICATOR_MAX_QUEUE_SWITCHES:
         metrics.gauge("tasks.store.symbolicate_event.low_priority.max_queue_switches", 1)
     else:
         is_low_priority = symbolicate_task in [
@@ -295,7 +299,7 @@ def _do_symbolicate_event(
                 event_id,
                 start_time,
                 data,
-                changed_queue_times + 1,
+                queue_switches + 1,
             )
             return
 
@@ -440,7 +444,7 @@ def _do_symbolicate_event(
     acks_late=True,
 )
 def symbolicate_event(
-    cache_key, start_time=None, event_id=None, changed_queue_times=0, data=None, **kwargs
+    cache_key, start_time=None, event_id=None, data=None, queue_switches=0, **kwargs
 ):
     """
     Handles event symbolication using the external service: symbolicator.
@@ -454,8 +458,8 @@ def symbolicate_event(
         start_time=start_time,
         event_id=event_id,
         symbolicate_task=symbolicate_event,
-        changed_queue_times=changed_queue_times,
         data=data,
+        queue_switches=queue_switches,
     )
 
 
@@ -467,7 +471,7 @@ def symbolicate_event(
     acks_late=True,
 )
 def symbolicate_event_low_priority(
-    cache_key, start_time=None, event_id=None, changed_queue_times=0, data=None, **kwargs
+    cache_key, start_time=None, event_id=None, data=None, queue_switches=0, **kwargs
 ):
     """
     Handles event symbolication using the external service: symbolicator.
@@ -484,8 +488,8 @@ def symbolicate_event_low_priority(
         start_time=start_time,
         event_id=event_id,
         symbolicate_task=symbolicate_event_low_priority,
-        changed_queue_times=changed_queue_times,
         data=data,
+        queue_switches=queue_switches,
     )
 
 
@@ -497,15 +501,15 @@ def symbolicate_event_low_priority(
     acks_late=True,
 )
 def symbolicate_event_from_reprocessing(
-    cache_key, start_time=None, event_id=None, changed_queue_times=0, data=None, **kwargs
+    cache_key, start_time=None, event_id=None, data=None, queue_switches=0, **kwargs
 ):
     return _do_symbolicate_event(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
         symbolicate_task=symbolicate_event_from_reprocessing,
-        changed_queue_times=changed_queue_times,
         data=data,
+        queue_switches=queue_switches,
     )
 
 
@@ -517,15 +521,15 @@ def symbolicate_event_from_reprocessing(
     acks_late=True,
 )
 def symbolicate_event_from_reprocessing_low_priority(
-    cache_key, start_time=None, event_id=None, changed_queue_times=0, data=None, **kwargs
+    cache_key, start_time=None, event_id=None, data=None, queue_switches=0, **kwargs
 ):
     return _do_symbolicate_event(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
         symbolicate_task=symbolicate_event_from_reprocessing_low_priority,
-        changed_queue_times=changed_queue_times,
         data=data,
+        queue_switches=queue_switches,
     )
 
 
