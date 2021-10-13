@@ -889,17 +889,19 @@ class Release(Model):
 
                     # Guard against patch_set being None
                     patch_set = data.get("patch_set") or []
-                    for patched_file in patch_set:
-                        try:
-                            with atomic_transaction(using=router.db_for_write(CommitFileChange)):
-                                CommitFileChange.objects.create(
+                    if patch_set:
+                        CommitFileChange.objects.bulk_create(
+                            [
+                                CommitFileChange(
                                     organization_id=self.organization.id,
                                     commit=commit,
                                     filename=patched_file["path"],
                                     type=patched_file["type"],
                                 )
-                        except IntegrityError:
-                            pass
+                                for patched_file in patch_set
+                            ],
+                            ignore_conflicts=True,
+                        )
 
                     try:
                         with atomic_transaction(using=router.db_for_write(ReleaseCommit)):
