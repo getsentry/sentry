@@ -13,7 +13,6 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask):
             Identity,
             IntegrationExternalProject,
             PagerDutyService,
-            RepositoryProjectPathConfig,
         )
 
         relations = [
@@ -26,9 +25,6 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask):
             ),
             ModelRelation(IntegrationExternalProject, {"organization_integration_id": instance.id}),
             ModelRelation(PagerDutyService, {"organization_integration_id": instance.id}),
-            ModelRelation(
-                RepositoryProjectPathConfig, {"organization_integration_id": instance.id}
-            ),
         ]
 
         # delete the identity attached through the default_auth_id
@@ -38,11 +34,16 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask):
         return relations
 
     def delete_instance(self, instance):
-        from sentry.models import Repository
+        from sentry.models import Repository, RepositoryProjectPathConfig
 
         # Dissociate repos from the integration being deleted. integration
         Repository.objects.filter(
             organization_id=instance.organization_id, integration_id=instance.integration_id
         ).update(integration_id=None)
+
+        # Detach path mappings from the integration as well.
+        RepositoryProjectPathConfig.objects.filter(organization_integration_id=instance.id).update(
+            organization_integration_id=None
+        )
 
         return super().delete_instance(instance)

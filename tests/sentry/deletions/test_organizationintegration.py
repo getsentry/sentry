@@ -8,6 +8,8 @@ from sentry.models import (
     Repository,
     ScheduledDeletion,
 )
+from sentry.models.integration import RepositoryProjectPathConfig
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TransactionTestCase
 
@@ -75,3 +77,31 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase):
 
         repo = Repository.objects.get(id=repository.id)
         assert repo.integration_id is None
+
+    def test_codeowner_links(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        integration = Integration.objects.create(provider="example", name="Example")
+        repository = self.create_repo(
+            project=project, name="testrepo", provider="gitlab", integration_id=integration.id
+        )
+        organization_integration = integration.add_organization(org, self.user)
+
+        code_mapping = self.create_code_mapping(
+            project=project, repo=repository, organization_integration=organization_integration
+        )
+        code_owner = self.create_codeowners(project=project, code_mapping=code_mapping)
+
+        organization_integration.update(status=ObjectStatus.PENDING_DELETION)
+        deletion = ScheduledDeletion.schedule(organization_integration, days=0)
+        deletion.update(in_progress=True)
+
+        with self.tasks():
+            run_deletion(deletion.id)
+
+        assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
+        assert ProjectCodeOwners.objects.filter(id=code_owner.id).exists()
+        assert ProjectCodeOwners.objects.filter(id=code_owner.id).exists()
+
+        updated = RepositoryProjectPathConfig.objects.get(id=code_mapping.id)
+        assert updated.organization_integration_id is None
