@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import groupBy from 'lodash/groupBy';
 import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
 
@@ -13,19 +12,20 @@ import Placeholder from 'app/components/placeholder';
 import {IconArrow} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project, Release} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {Color} from 'app/utils/theme';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
+  teamSlug: string;
   projects: Project[];
 } & DateTimeObject;
 
 type State = AsyncComponent['state'] & {
   /** weekly selected date range */
-  periodReleases: Release[] | null;
+  periodReleases: {project_avgs: object; release_counts: object} | null;
   /** Locked to last 7 days */
-  weekReleases: Release[] | null;
+  weekReleases: {project_avgs: object; release_counts: object} | null;
 };
 
 class TeamReleases extends AsyncComponent<Props, State> {
@@ -40,7 +40,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
   }
 
   getEndpoints() {
-    const {organization, start, end, period, utc, projects} = this.props;
+    const {organization, start, end, period, utc, projects, teamSlug} = this.props;
 
     const datetime = {start, end, period, utc};
     const commonQuery = {
@@ -51,7 +51,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
       [
         'periodReleases',
-        `/organizations/${organization.slug}/releases/`,
+        `/teams/${organization.slug}/${teamSlug}/release-count/`,
         {
           query: {
             ...commonQuery,
@@ -61,7 +61,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
       ],
       [
         'weekReleases',
-        `/organizations/${organization.slug}/releases/`,
+        `/teams/${organization.slug}/${teamSlug}/release-count/`,
         {
           query: {
             ...commonQuery,
@@ -91,18 +91,11 @@ class TeamReleases extends AsyncComponent<Props, State> {
   getReleaseCount(projectId: number, dataset: 'week' | 'period'): number | null {
     const {periodReleases, weekReleases} = this.state;
     const releasesPeriod = dataset === 'week' ? weekReleases : periodReleases;
+    const projectsReleaseCount = releasesPeriod?.project_avgs;
 
-    const releaseCount: any[] = [];
-    releasesPeriod?.forEach(release =>
-      release.projects.map(project => {
-        releaseCount.push({id: project.id, version: release.version});
-      })
-    );
-
-    const projectGroup = Object.fromEntries(
-      Object.entries(groupBy(releaseCount, 'id')).map(([key, val]) => [key, val])
-    );
-    const count = projectGroup[projectId] ? projectGroup[projectId].length : 0;
+    const count = projectsReleaseCount?.[projectId]
+      ? projectsReleaseCount?.[projectId] * 12
+      : 0;
 
     return count;
   }

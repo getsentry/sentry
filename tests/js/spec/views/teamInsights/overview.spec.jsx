@@ -40,11 +40,6 @@ describe('TeamInsightsOverview', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/releases/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {
@@ -81,6 +76,11 @@ describe('TeamInsightsOverview', () => {
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/issue-breakdown/`,
       body: TestStubs.TeamIssuesReviewed(),
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/teams/org-slug/${team1.slug}/release-count/`,
+      body: [],
     });
     act(() => void TeamStore.loadInitialData([team1, team2]));
   });
