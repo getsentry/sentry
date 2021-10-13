@@ -30,7 +30,13 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.SeparateDatabaseAndState(
-            database_operations=[],
+            database_operations=[
+                migrations.RunSQL(
+                    sql="ALTER TABLE sentry_scheduleddeletion ALTER COLUMN aborted DROP NOT NULL",
+                    reverse_sql="ALTER TABLE sentry_scheduleddeletion ALTER COLUMN aborted SET NOT NULL",
+                    hints={"tables": ["sentry_scheduleddeletion"]},
+                )
+            ],
             state_operations=[
                 migrations.RemoveField(
                     model_name="scheduleddeletion",
