@@ -11,7 +11,7 @@ This has three major tasks, executed in the following general order:
 import collections
 import logging
 import time
-from typing import Deque, Dict, Iterable
+from typing import Deque, Dict, Iterable, Optional
 
 from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.base import BucketedCount, DurationHistogram
@@ -136,9 +136,10 @@ def calculation_magic(
     p75_count = int(0.75 * total_count)
 
     counter = 0
+    p75_duration: Optional[int] = None
     for duration in sorted(total_histogram.keys()):
         counter += total_histogram[duration]
-        if counter >= p75_count:
+        if p75_duration is None and counter >= p75_count:
             p75_duration = duration
 
     events_per_minute = counter / (
