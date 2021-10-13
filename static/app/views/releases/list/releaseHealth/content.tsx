@@ -24,10 +24,10 @@ import {Theme} from 'app/utils/theme';
 import {isProjectMobileForReleases} from 'app/views/releases/list';
 
 import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
-import {ReleaseHealthRequestRenderProps} from '../../utils/releaseHealthRequest';
 import CrashFree from '../crashFree';
 import HealthStatsChart from '../healthStatsChart';
 import HealthStatsPeriod from '../healthStatsPeriod';
+import {ReleaseListRequestRenderProps} from '../releaseListRequest';
 import {DisplayOption} from '../utils';
 
 import Header from './header';
@@ -75,7 +75,7 @@ type Props = {
   location: Location;
   showPlaceholders: boolean;
   isTopRelease: boolean;
-  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
+  getHealthData: ReleaseListRequestRenderProps['getHealthData'];
   showReleaseAdoptionStages: boolean;
   adoptionStages?: Release['adoptionStages'];
 };
