@@ -89,7 +89,7 @@ type Props = {
   className?: string;
 
   /**
-   * Slugs of projects to display in project selector (this affects the ^^^projects returned from HoC)
+   * Slugs of projects to display in project selector
    */
   specificProjectSlugs?: string[];
 

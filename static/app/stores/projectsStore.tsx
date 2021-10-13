@@ -4,6 +4,8 @@ import ProjectActions from 'app/actions/projectActions';
 import TeamActions from 'app/actions/teamActions';
 import {Project, Team} from 'app/types';
 
+import {CommonStoreInterface} from './types';
+
 type State = {
   projects: Project[];
   loading: boolean;
@@ -19,7 +21,7 @@ type Internals = {
   loading: boolean;
 };
 
-type ProjectsStoreInterface = {
+type ProjectsStoreInterface = CommonStoreInterface<State> & {
   init(): void;
   reset(): void;
   loadInitialData(projects: Project[]): void;
@@ -31,10 +33,9 @@ type ProjectsStoreInterface = {
   onRemoveTeam(teamSlug: string, projectSlug: string): void;
   onAddTeam(team: Team, projectSlug: string): void;
   removeTeamFromProject(teamSlug: string, project: Project): void;
+  isLoading(): boolean;
   getWithTeam(teamSlug: string): Project[];
   getAll(): Project[];
-  getBySlugs(slug: string[]): Project[];
-  getState(slugs?: string[]): State;
   getById(id?: string): Project | undefined;
   getBySlug(slug?: string): Project | undefined;
 };
@@ -193,6 +194,10 @@ const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface =
     return this.getAll().filter(({teams}) => teams.find(({slug}) => slug === teamSlug));
   },
 
+  isLoading() {
+    return this.loading;
+  },
+
   getAll() {
     return Object.values(this.itemsById).sort((a, b) => a.slug.localeCompare(b.slug));
   },
@@ -205,13 +210,9 @@ const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface =
     return this.getAll().find(project => project.slug === slug);
   },
 
-  getBySlugs(slugs: string[]) {
-    return this.getAll().filter(project => slugs.includes(project.slug));
-  },
-
-  getState(slugs?: string[]): State {
+  getState() {
     return {
-      projects: slugs ? this.getBySlugs(slugs) : this.getAll(),
+      projects: this.getAll(),
       loading: this.loading,
     };
   },

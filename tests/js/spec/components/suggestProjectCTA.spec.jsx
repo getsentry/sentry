@@ -9,10 +9,8 @@ jest.mock('app/actionCreators/modal');
 function generateWrapperAndSetMocks(inputProps, mobileEventResp, promptResp) {
   const projects = inputProps?.projects ?? [TestStubs.Project({platform: 'javascript'})];
 
-  jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
-    projects,
-    loading: false,
-  }));
+  jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => projects);
+  jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
 
   const organization = TestStubs.Organization();
 
