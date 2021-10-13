@@ -120,10 +120,17 @@ def _record_metrics() -> None:
         project_count,
     )
 
+    # The manual kill switch is a list of configurations where each config item corresponds to one
+    # project affected by the switch. The general idea is to grab the raw option, validate its
+    # contents, and then assume that the length of the validated list corresponds to the number of
+    # projects in that switch.
+
     always_included_raw = options.get(
         "store.symbolicate-event-lpq-always",
     )
-    always_included = normalize_value("store.symbolicate-event-lpq-always", always_included_raw)
+    always_included = len(
+        normalize_value("store.symbolicate-event-lpq-always", always_included_raw)
+    )
     metrics.gauge(
         "tasks.store.symbolicate_event.low_priority.projects.manual.always",
         always_included,
@@ -132,7 +139,7 @@ def _record_metrics() -> None:
     never_included_raw = options.get(
         "store.symbolicate-event-lpq-never",
     )
-    never_included = normalize_value("store.symbolicate-event-lpq-never", never_included_raw)
+    never_included = len(normalize_value("store.symbolicate-event-lpq-never", never_included_raw))
     metrics.gauge(
         "tasks.store.symbolicate_event.low_priority.projects.manual.never",
         never_included,
