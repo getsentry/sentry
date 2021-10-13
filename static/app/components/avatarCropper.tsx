@@ -54,7 +54,7 @@ class AvatarCropper extends React.Component<Props, State> {
   // These values must be synced with the avatar endpoint in backend.
   MIN_DIMENSION = 256;
   MAX_DIMENSION = 1024;
-  ALLOWED_MIMETYPES = 'image/gif,image/jpeg,image/png,image/svg+xml';
+  ALLOWED_MIMETYPES = 'image/gif,image/jpeg,image/png';
 
   onSelectFile = (ev: React.ChangeEvent<HTMLInputElement>) => {
     const file = ev.target.files && ev.target.files[0];
@@ -276,17 +276,17 @@ class AvatarCropper extends React.Component<Props, State> {
       return null;
     }
 
-    // if (img.naturalWidth < this.MIN_DIMENSION || img.naturalHeight < this.MIN_DIMENSION) {
-    //   return tct('Please upload an image larger than [size]px by [size]px.', {
-    // size: this.MIN_DIMENSION - 1,
-    //   });
-    // }
+    if (img.naturalWidth < this.MIN_DIMENSION || img.naturalHeight < this.MIN_DIMENSION) {
+      return tct('Please upload an image larger than [size]px by [size]px.', {
+        size: this.MIN_DIMENSION - 1,
+      });
+    }
 
-    // if (img.naturalWidth > this.MAX_DIMENSION || img.naturalHeight > this.MAX_DIMENSION) {
-    //   return tct('Please upload an image smaller than [size]px by [size]px.', {
-    //     size: this.MAX_DIMENSION,
-    //   });
-    // }
+    if (img.naturalWidth > this.MAX_DIMENSION || img.naturalHeight > this.MAX_DIMENSION) {
+      return tct('Please upload an image smaller than [size]px by [size]px.', {
+        size: this.MAX_DIMENSION,
+      });
+    }
 
     return null;
   }
