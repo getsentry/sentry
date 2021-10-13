@@ -215,7 +215,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
     return period;
   };
 
-  makeComparisonMarkLines(
+  getComparisonMarkLines(
     timeseriesData: Series[] = [],
     comparisonTimeseriesData: Series[] = []
   ): LineChartSeries[] {
@@ -255,7 +255,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
         });
 
         return changeStatuses.slice(0, -1).map(({name, status}, idx) => ({
-          seriesName: 'Status Area',
+          seriesName: t('status'),
           type: 'line',
           markLine: MarkLine({
             silent: true,
@@ -482,7 +482,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
               {({loading, reloading, timeseriesData, comparisonTimeseriesData}) => {
                 let comparisonMarkLines: LineChartSeries[] = [];
                 if (renderComparisonStats && comparisonTimeseriesData) {
-                  comparisonMarkLines = this.makeComparisonMarkLines(
+                  comparisonMarkLines = this.getComparisonMarkLines(
                     timeseriesData,
                     comparisonTimeseriesData
                   );

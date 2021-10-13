@@ -123,7 +123,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       resolveThreshold: rule.resolveThreshold,
       thresholdType: rule.thresholdType,
       comparisonDelta: rule.comparisonDelta,
-      comparisonType: AlertRuleComparisonType.COUNT,
+      comparisonType:
+        rule.comparisonDelta === undefined
+          ? AlertRuleComparisonType.COUNT
+          : AlertRuleComparisonType.CHANGE,
       projects: [this.props.project],
       owner: rule.owner,
     };

@@ -309,6 +309,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       right: 10,
       top: 0,
       selected,
+      data: data.map(d => ({name: d.seriesName})),
     };
 
     const chartOptions = {
