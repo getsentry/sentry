@@ -7,6 +7,7 @@ import moment from 'moment';
 import {restoreRelease} from 'app/actionCreators/release';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import SessionsRequest from 'app/components/charts/sessionsRequest';
 import {DateTimeObject} from 'app/components/charts/utils';
 import DateTime from 'app/components/dateTime';
 import PerformanceCardTable from 'app/components/discover/performanceCardTable';
@@ -18,7 +19,13 @@ import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {GlobalSelection, NewQuery, Organization, ReleaseProject} from 'app/types';
+import {
+  GlobalSelection,
+  NewQuery,
+  Organization,
+  ReleaseProject,
+  SessionField,
+} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
@@ -44,7 +51,6 @@ import ProjectReleaseDetails from './projectReleaseDetails';
 import ReleaseAdoption from './releaseAdoption';
 import ReleaseArchivedNotice from './releaseArchivedNotice';
 import ReleaseComparisonChart from './releaseComparisonChart';
-import ReleaseDetailsRequest from './releaseDetailsRequest';
 import ReleaseStats from './releaseStats';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
 
@@ -290,156 +296,184 @@ class ReleaseOverview extends AsyncView<Props> {
             ),
           };
 
+          const sessionsRequestProps: Omit<SessionsRequest['props'], 'children'> = {
+            api,
+            organization,
+            field: [SessionField.USERS, SessionField.SESSIONS, SessionField.DURATION],
+            groupBy: ['session.status'],
+            ...getReleaseParams({location, releaseBounds}),
+            shouldFilterSessionsInTimeWindow: true,
+          };
+
           return (
-            <ReleaseDetailsRequest
-              organization={organization}
-              location={location}
-              version={version}
-              releaseBounds={releaseBounds}
-            >
-              {({thisRelease, allReleases, loading, reloading, errored}) => (
-                <Body>
-                  <Main>
-                    {isReleaseArchived(release) && (
-                      <ReleaseArchivedNotice
-                        onRestore={() => this.handleRestore(project, refetchData)}
-                      />
-                    )}
+            <SessionsRequest {...sessionsRequestProps}>
+              {({
+                loading: allReleasesLoading,
+                reloading: allReleasesReloading,
+                errored: allReleasesErrored,
+                response: allReleases,
+              }) => (
+                <SessionsRequest {...sessionsRequestProps} query={`release:"${version}"`}>
+                  {({
+                    loading: thisReleaseLoading,
+                    reloading: thisReleaseReloading,
+                    errored: thisReleaseErrored,
+                    response: thisRelease,
+                  }) => {
+                    const loading = allReleasesLoading || thisReleaseLoading;
+                    const reloading = allReleasesReloading || thisReleaseReloading;
+                    const errored = allReleasesErrored || thisReleaseErrored;
+                    return (
+                      <Body>
+                        <Main>
+                          {isReleaseArchived(release) && (
+                            <ReleaseArchivedNotice
+                              onRestore={() => this.handleRestore(project, refetchData)}
+                            />
+                          )}
 
-                    <StyledPageTimeRangeSelector
-                      organization={organization}
-                      relative={period ?? ''}
-                      start={start ?? null}
-                      end={end ?? null}
-                      utc={utc ?? null}
-                      onUpdate={this.handleDateChange}
-                      relativeOptions={{
-                        [RELEASE_PERIOD_KEY]: (
-                          <Fragment>
-                            {t('Entire Release Period')} (
-                            <DateTime
-                              date={releaseBounds.releaseStart}
-                              timeAndDate
-                            /> - <DateTime date={releaseBounds.releaseEnd} timeAndDate />)
-                          </Fragment>
-                        ),
-                        ...DEFAULT_RELATIVE_PERIODS,
-                      }}
-                      defaultPeriod={RELEASE_PERIOD_KEY}
-                    />
+                          <StyledPageTimeRangeSelector
+                            organization={organization}
+                            relative={period ?? ''}
+                            start={start ?? null}
+                            end={end ?? null}
+                            utc={utc ?? null}
+                            onUpdate={this.handleDateChange}
+                            relativeOptions={{
+                              [RELEASE_PERIOD_KEY]: (
+                                <Fragment>
+                                  {t('Entire Release Period')} (
+                                  <DateTime
+                                    date={releaseBounds.releaseStart}
+                                    timeAndDate
+                                  />{' '}
+                                  -{' '}
+                                  <DateTime date={releaseBounds.releaseEnd} timeAndDate />
+                                  )
+                                </Fragment>
+                              ),
+                              ...DEFAULT_RELATIVE_PERIODS,
+                            }}
+                            defaultPeriod={RELEASE_PERIOD_KEY}
+                          />
 
-                    {(hasDiscover || hasPerformance || hasHealthData) && (
-                      <ReleaseComparisonChart
-                        release={release}
-                        releaseSessions={thisRelease}
-                        allSessions={allReleases}
-                        platform={project.platform}
-                        location={location}
-                        loading={loading}
-                        reloading={reloading}
-                        errored={errored}
-                        project={project}
-                        organization={organization}
-                        api={api}
-                        hasHealthData={hasHealthData}
-                      />
-                    )}
+                          {(hasDiscover || hasPerformance || hasHealthData) && (
+                            <ReleaseComparisonChart
+                              release={release}
+                              releaseSessions={thisRelease}
+                              allSessions={allReleases}
+                              platform={project.platform}
+                              location={location}
+                              loading={loading}
+                              reloading={reloading}
+                              errored={errored}
+                              project={project}
+                              organization={organization}
+                              api={api}
+                              hasHealthData={hasHealthData}
+                            />
+                          )}
 
-                    <Issues
-                      organization={organization}
-                      selection={selection}
-                      version={version}
-                      location={location}
-                      releaseBounds={releaseBounds}
-                      queryFilterDescription={t('In this release')}
-                      withChart
-                    />
+                          <Issues
+                            organization={organization}
+                            selection={selection}
+                            version={version}
+                            location={location}
+                            releaseBounds={releaseBounds}
+                            queryFilterDescription={t('In this release')}
+                            withChart
+                          />
 
-                    <Feature features={['performance-view']}>
-                      {hasReleaseComparisonPerformance ? (
-                        <PerformanceCardTable
-                          organization={organization}
-                          project={project}
-                          isLoading={loading}
-                          // TODO(kelly): hardcoding this until I have data
-                          isEmpty={false}
-                        />
-                      ) : (
-                        <TransactionsList
-                          location={location}
-                          organization={organization}
-                          eventView={releaseEventView}
-                          trendView={releaseTrendView}
-                          selected={selectedSort}
-                          options={sortOptions}
-                          handleDropdownChange={this.handleTransactionsListSortChange}
-                          titles={titles}
-                          generateLink={generateLink}
-                        />
-                      )}
-                    </Feature>
-                  </Main>
-                  <Side>
-                    <ReleaseStats
-                      organization={organization}
-                      release={release}
-                      project={project}
-                    />
-                    {hasHealthData && (
-                      <ReleaseAdoption
-                        releaseSessions={thisRelease}
-                        allSessions={allReleases}
-                        loading={loading}
-                        reloading={reloading}
-                        errored={errored}
-                        release={release}
-                        project={project}
-                        environment={environments}
-                      />
-                    )}
-                    <ProjectReleaseDetails
-                      release={release}
-                      releaseMeta={releaseMeta}
-                      orgSlug={organization.slug}
-                      projectSlug={project.slug}
-                    />
-                    {commitCount > 0 && (
-                      <CommitAuthorBreakdown
-                        version={version}
-                        orgId={organization.slug}
-                        projectSlug={project.slug}
-                      />
-                    )}
-                    {releaseMeta.projects.length > 1 && (
-                      <OtherProjects
-                        projects={releaseMeta.projects.filter(
-                          p => p.slug !== project.slug
-                        )}
-                        location={location}
-                        version={version}
-                        organization={organization}
-                      />
-                    )}
-                    {hasHealthData && (
-                      <TotalCrashFreeUsers
-                        organization={organization}
-                        version={version}
-                        projectSlug={project.slug}
-                        location={location}
-                      />
-                    )}
-                    {deploys.length > 0 && (
-                      <Deploys
-                        version={version}
-                        orgSlug={organization.slug}
-                        deploys={deploys}
-                        projectId={project.id}
-                      />
-                    )}
-                  </Side>
-                </Body>
+                          <Feature features={['performance-view']}>
+                            {hasReleaseComparisonPerformance ? (
+                              <PerformanceCardTable
+                                organization={organization}
+                                project={project}
+                                isLoading={loading}
+                                // TODO(kelly): hardcoding this until I have data
+                                isEmpty={false}
+                              />
+                            ) : (
+                              <TransactionsList
+                                location={location}
+                                organization={organization}
+                                eventView={releaseEventView}
+                                trendView={releaseTrendView}
+                                selected={selectedSort}
+                                options={sortOptions}
+                                handleDropdownChange={
+                                  this.handleTransactionsListSortChange
+                                }
+                                titles={titles}
+                                generateLink={generateLink}
+                              />
+                            )}
+                          </Feature>
+                        </Main>
+                        <Side>
+                          <ReleaseStats
+                            organization={organization}
+                            release={release}
+                            project={project}
+                          />
+                          {hasHealthData && (
+                            <ReleaseAdoption
+                              releaseSessions={thisRelease}
+                              allSessions={allReleases}
+                              loading={loading}
+                              reloading={reloading}
+                              errored={errored}
+                              release={release}
+                              project={project}
+                              environment={environments}
+                            />
+                          )}
+                          <ProjectReleaseDetails
+                            release={release}
+                            releaseMeta={releaseMeta}
+                            orgSlug={organization.slug}
+                            projectSlug={project.slug}
+                          />
+                          {commitCount > 0 && (
+                            <CommitAuthorBreakdown
+                              version={version}
+                              orgId={organization.slug}
+                              projectSlug={project.slug}
+                            />
+                          )}
+                          {releaseMeta.projects.length > 1 && (
+                            <OtherProjects
+                              projects={releaseMeta.projects.filter(
+                                p => p.slug !== project.slug
+                              )}
+                              location={location}
+                              version={version}
+                              organization={organization}
+                            />
+                          )}
+                          {hasHealthData && (
+                            <TotalCrashFreeUsers
+                              organization={organization}
+                              version={version}
+                              projectSlug={project.slug}
+                              location={location}
+                            />
+                          )}
+                          {deploys.length > 0 && (
+                            <Deploys
+                              version={version}
+                              orgSlug={organization.slug}
+                              deploys={deploys}
+                              projectId={project.id}
+                            />
+                          )}
+                        </Side>
+                      </Body>
+                    );
+                  }}
+                </SessionsRequest>
               )}
-            </ReleaseDetailsRequest>
+            </SessionsRequest>
           );
         }}
       </ReleaseContext.Consumer>
