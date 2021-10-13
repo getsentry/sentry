@@ -73,6 +73,11 @@ from sentry.utils.hashlib import md5_text
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
+# Bulk mutations are limited to 1000 items.
+# TODO(dcramer): It'd be nice to support more than this, but it's a bit too
+#  complicated right now.
+BULK_MUTATION_LIMIT = 1000
+
 
 class ValidationError(Exception):
     pass
@@ -413,10 +418,12 @@ def delete_groups(request, projects, organization_id, search_fn):
         )
     else:
         try:
-            # bulk mutations are limited to 1000 items
-            # TODO(dcramer): it'd be nice to support more than this, but its
-            # a bit too complicated right now
-            cursor_result, _ = search_fn({"limit": 1000, "paginator_options": {"max_limit": 1000}})
+            cursor_result, _ = search_fn(
+                {
+                    "limit": BULK_MUTATION_LIMIT,
+                    "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
+                }
+            )
         except ValidationError as exc:
             return Response({"detail": str(exc)}, status=400)
 
@@ -591,10 +598,12 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
 
     if not group_ids:
         try:
-            # bulk mutations are limited to 1000 items
-            # TODO(dcramer): it'd be nice to support more than this, but its
-            # a bit too complicated right now
-            cursor_result, _ = search_fn({"limit": 1000, "paginator_options": {"max_limit": 1000}})
+            cursor_result, _ = search_fn(
+                {
+                    "limit": BULK_MUTATION_LIMIT,
+                    "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
+                }
+            )
         except ValidationError as exc:
             return Response({"detail": str(exc)}, status=400)
 
