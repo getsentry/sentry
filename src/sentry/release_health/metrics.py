@@ -7,6 +7,7 @@ from snuba_sdk import Column, Condition, Entity, Function, Op, Query
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.query import SelectableExpression
 
+from sentry.models import Environment
 from sentry.models.project import Project
 from sentry.release_health.base import (
     CrashFreeBreakdown,
@@ -93,6 +94,21 @@ def filter_releases_by_project_release(
         Op.IN,
         get_tag_values_list(org_id, [x for _, x in project_releases]),
     )
+
+
+def _model_environment_ids_to_environment_names(
+    environment_ids: Sequence[int],
+) -> Mapping[int, Optional[str]]:
+    """
+    Maps Environment Model ids to the environment name
+    Note: this does a Db lookup
+    """
+    empty_string_to_none: Callable[[Any], Optional[Any]] = lambda v: None if v == "" else v
+    id_to_name: Mapping[int, Optional[str]] = {
+        k: empty_string_to_none(v)
+        for k, v in Environment.objects.filter(id__in=environment_ids).values_list("id", "name")
+    }
+    return defaultdict(lambda: None, id_to_name)
 
 
 class MetricsReleaseHealthBackend(ReleaseHealthBackend):
@@ -1007,8 +1023,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             # No need to query snuba with an empty list
             return generate_defaults
 
-        status_init = tag_value(org_id, "init")
-        status_crashed = tag_value(org_id, "crashed")
+        status_init = try_get_string_index(org_id, "init")
+        status_crashed = try_get_string_index(org_id, "crashed")
 
         conditions = [
             Condition(Column("org_id"), Op.EQ, org_id),
@@ -1111,9 +1127,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         now = datetime.now(pytz.utc)
         start = now - timedelta(days=3)
 
-        projects_ids = list(project_ids)
+        project_ids = list(project_ids)
 
-        if len(projects_ids) == 0:
+        if len(project_ids) == 0:
             return []
 
         org_id = self._get_org_id(project_ids)
@@ -1132,7 +1148,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         query = Query(
             dataset=Dataset.Metrics.value,
-            match=Entity("metrics_counters"),
+            match=Entity(EntityKey.MetricsCounters.value),
             select=query_cols,
             where=where_clause,
             groupby=group_by,
@@ -1188,7 +1204,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         query = Query(
             dataset=Dataset.Metrics.value,
-            match=Entity("metrics_counters"),
+            match=Entity(EntityKey.MetricsCounters.value),
             select=query_cols,
             where=where_clause,
             groupby=group_by,
@@ -1252,9 +1268,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         # Filter out releases with zero users when sorting by either `users` or `crash_free_users`
         if scope in ["users", "crash_free_users"]:
             having.append(Condition(Column("value"), Op.GT, 0))
-            match = Entity("metrics_sets")
+            match = Entity(EntityKey.MetricsSets.value)
         else:
-            match = Entity("metrics_counters")
+            match = Entity(EntityKey.MetricsCounters.value)
 
         query_columns = [
             Function(
@@ -1268,12 +1284,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select=query_columns,
             where=where,
             having=having,
-            granularity=granularity,
+            granularity=Granularity(granularity),
         )
 
-        rows = raw_snql_query(
-            query, referrer="release_health.metrics.sessions.get_project_releases_count"
-        )["data"]
+        rows = raw_snql_query(query, referrer="release_health.metrics.get_project_releases_count")[
+            "data"
+        ]
 
         ret_val: int = rows[0]["count"] if rows else 0
         return ret_val
@@ -1329,3 +1345,61 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         }
 
         raise NotImplementedError()
+
+    def get_project_sessions_count(
+        self,
+        project_id: ProjectId,
+        rollup: int,  # rollup in seconds
+        start: datetime,
+        end: datetime,
+        environment_id: Optional[int] = None,
+    ) -> int:
+
+        org_id = self._get_org_id([project_id])
+        columns = [Column("value")]
+
+        try:
+            status_key = tag_key(org_id, "session.status")
+            status_init = tag_value(org_id, "init")
+        except MetricIndexNotFound:
+            return 0
+
+        where_clause = [
+            Condition(Column("org_id"), Op.EQ, org_id),
+            Condition(Column("project_id"), Op.EQ, project_id),
+            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, end),
+            Condition(Column(status_key), Op.EQ, status_init),
+        ]
+
+        if environment_id is not None:
+            # convert the PosgreSQL environmentID into the clickhouse string index
+            # for the environment name
+            env_names = _model_environment_ids_to_environment_names([environment_id])
+            env_name = env_names[environment_id]
+            if env_name is None:
+                return 0  # could not find the requested environment
+
+            try:
+                snuba_env_id = tag_value(org_id, env_name)
+                env_id = tag_key(org_id, "environment")
+            except MetricIndexNotFound:
+                return 0
+
+            where_clause.append(Condition(Column(env_id), Op.EQ, snuba_env_id))
+
+        query = Query(
+            dataset=Dataset.Metrics.value,
+            match=Entity(EntityKey.MetricsCounters.value),
+            select=columns,
+            where=where_clause,
+            granularity=Granularity(rollup),
+        )
+
+        rows = raw_snql_query(query, referrer="release_health.metrics.get_project_sessions_count")[
+            "data"
+        ]
+
+        ret_val: int = rows[0]["value"] if rows else 0
+        return ret_val

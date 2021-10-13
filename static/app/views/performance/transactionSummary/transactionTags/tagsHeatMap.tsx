@@ -1,7 +1,6 @@
 import React, {useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import {Popper} from 'react-popper';
-import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {truncate} from '@sentry/utils';
 import classNames from 'classnames';
@@ -36,7 +35,6 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {TableData as TagTableData} from 'app/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import TagTransactionsQuery from 'app/utils/performance/segmentExplorer/tagTransactionsQuery';
 import {decodeScalar} from 'app/utils/queryString';
-import {Theme} from 'app/utils/theme';
 
 import {getPerformanceDuration, PerformanceDuration} from '../../utils';
 import {eventsRouteWithQuery} from '../transactionEvents/utils';
@@ -88,7 +86,6 @@ const getPortal = memoize((): HTMLElement => {
 
 const TagsHeatMap = (
   props: Props & {
-    theme: Theme;
     tableData: TagTableData | null;
     isLoading: boolean;
   }
@@ -488,4 +485,4 @@ const StyledPanel = styled(Panel)`
 
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)``;
 
-export default withTheme(TagsHeatMap);
+export default TagsHeatMap;

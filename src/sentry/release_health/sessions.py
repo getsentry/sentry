@@ -30,6 +30,7 @@ from sentry.snuba.sessions import (
     _get_oldest_health_data_for_releases,
     _get_project_release_stats,
     _get_project_releases_count,
+    _get_project_sessions_count,
     _get_release_adoption,
     _get_release_health_data_overview,
     _get_release_sessions_time_bounds,
@@ -184,4 +185,24 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
             start=start,
             end=end,
             environments=environments,
+        )
+
+    def get_project_sessions_count(
+        self,
+        project_id: ProjectId,
+        rollup: int,  # rollup in seconds
+        start: datetime,
+        end: datetime,
+        environment_id: Optional[int] = None,
+    ) -> int:
+        """
+        Returns the number of sessions in the specified period (optionally
+        filtered by environment)
+        """
+        return _get_project_sessions_count(  # type: ignore
+            project_id,
+            rollup,
+            start,
+            end,
+            environment_id,
         )

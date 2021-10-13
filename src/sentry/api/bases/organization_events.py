@@ -146,7 +146,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):  # type: ignore
             yield
         except discover.InvalidSearchQuery as error:
             message = str(error)
-            sentry_sdk.set_tag("query.error_reason", message)
+            # Special case the project message since it has so many variants so tagging is messy otherwise
+            if message.endswith("do not exist or are not actively selected."):
+                sentry_sdk.set_tag(
+                    "query.error_reason", "Project in query does not exist or not selected"
+                )
+            else:
+                sentry_sdk.set_tag("query.error_reason", message)
             raise ParseError(detail=message)
         except ArithmeticError as error:
             message = str(error)
@@ -379,11 +385,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     zerofill_results=zerofill_results,
                 )
             else:
+                extra_columns = None
+                if comparison_delta:
+                    extra_columns = ["comparisonCount"]
                 serialized_result = serializer.serialize(
                     result,
                     resolve_axis_column(query_columns[0]),
                     allow_partial_buckets=allow_partial_buckets,
                     zerofill_results=zerofill_results,
+                    extra_columns=extra_columns,
                 )
 
             return serialized_result

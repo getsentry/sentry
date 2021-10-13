@@ -12,7 +12,6 @@ ReleaseName = str
 EnvironmentName = str
 DateString = str
 
-
 #: The functions supported by `run_sessions_query`
 SessionsQueryFunction = Literal[
     "sum(session)",
@@ -66,7 +65,6 @@ FormattedIsoTime = str
 
 ProjectRelease = Tuple[ProjectId, ReleaseName]
 ProjectOrRelease = TypeVar("ProjectOrRelease", ProjectId, ProjectRelease)
-
 
 # taken from sentry.snuba.sessions.STATS_PERIODS
 StatsPeriod = Literal[
@@ -196,6 +194,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "get_oldest_health_data_for_releases",
         "get_project_releases_count",
         "get_project_release_stats",
+        "get_project_sessions_count",
     )
 
     def get_current_and_previous_crash_free_rates(
@@ -414,4 +413,18 @@ class ReleaseHealthBackend(Service):  # type: ignore
         end: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
+        raise NotImplementedError()
+
+    def get_project_sessions_count(
+        self,
+        project_id: ProjectId,
+        rollup: int,  # rollup in seconds
+        start: datetime,
+        end: datetime,
+        environment_id: Optional[int] = None,
+    ) -> int:
+        """
+        Returns the number of sessions in the specified period (optionally
+        filtered by environment)
+        """
         raise NotImplementedError()

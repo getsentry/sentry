@@ -4,6 +4,7 @@ from django.db.models import Max
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Dashboard,
@@ -66,6 +67,13 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         conditions = self._get_attr(data, "conditions", "")
         fields = self._get_attr(data, "fields", []).copy()
         orderby = self._get_attr(data, "orderby", "")
+        equations, fields = categorize_columns(fields)
+
+        if equations is not None:
+            resolved_equations, _ = resolve_equation_list(equations, fields)
+        else:
+            resolved_equations = []
+
         try:
             # When using the eps/epm functions, they require an interval argument
             # or to provide the start/end so that the interval can be computed.
@@ -85,7 +93,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         if orderby:
             snuba_filter.orderby = get_function_alias(orderby)
         try:
-            resolve_field_list(fields, snuba_filter)
+            resolve_field_list(fields, snuba_filter, resolved_equations=resolved_equations)
         except InvalidSearchQuery as err:
             raise serializers.ValidationError({"fields": f"Invalid fields: {err}"})
         return data
