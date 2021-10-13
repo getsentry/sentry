@@ -900,8 +900,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert [attrs for time, attrs in response.data["data"]] == [
-            [{"count": -50}],
-            [{"count": 100}],
+            [{"count": 1, "comparisonCount": 2}],
+            [{"count": 2, "comparisonCount": 1}],
         ]
 
     def test_comparison_invalid(self):
