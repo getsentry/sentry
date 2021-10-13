@@ -319,25 +319,32 @@ class TriggersChart extends React.PureComponent<Props, State> {
         ? warningTrigger.alertThreshold
         : undefined;
 
+    // Need to catch the critical threshold cases before warning threshold cases
     if (
       thresholdType === AlertRuleThresholdType.ABOVE &&
       criticalTriggerAlertThreshold &&
       value >= criticalTriggerAlertThreshold
     ) {
       return 'critical';
-    } else if (
+    }
+    if (
       thresholdType === AlertRuleThresholdType.ABOVE &&
       warningTriggerAlertThreshold &&
       value >= warningTriggerAlertThreshold
     ) {
       return 'warning';
-    } else if (
+    }
+    // When threshold is below(lower than in comparison alerts) the % diff value is negative
+    // It crosses the threshold if its abs value is greater than threshold
+    // -80% change crosses below 60% threshold -1 * (-80) > 60
+    if (
       thresholdType === AlertRuleThresholdType.BELOW &&
       criticalTriggerAlertThreshold &&
       -1 * value >= criticalTriggerAlertThreshold
     ) {
       return 'critical';
-    } else if (
+    }
+    if (
       thresholdType === AlertRuleThresholdType.BELOW &&
       warningTriggerAlertThreshold &&
       -1 * value >= warningTriggerAlertThreshold
