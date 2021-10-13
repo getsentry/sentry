@@ -50,14 +50,26 @@ class TeamReleaseCountTest(APITestCase):
         release5.add_project(project3)
         response = self.get_valid_response(org.slug, team1.slug)
 
-        assert len(response.data) == 2
+        assert len(response.data) == 3
         assert len(response.data["release_counts"]) == 90
         assert len(response.data["project_avgs"]) == 2
+        assert len(response.data["last_week_totals"]) == 1
+        assert response.data["last_week_totals"][project3.id] == 2
 
         assert response.data["release_counts"][str(before_now(days=0).date())] == 0
         assert response.data["release_counts"][str(before_now(days=5).date())] == 2
         assert response.data["release_counts"][str(before_now(days=10).date())] == 1
         assert response.data["release_counts"][str(before_now(days=15).date())] == 1
+
+        release4.add_project(project1)  # up the last week total for project1 by 1
+
+        response = self.get_valid_response(org.slug, team1.slug)
+        assert len(response.data) == 3
+        assert len(response.data["release_counts"]) == 90
+        assert len(response.data["project_avgs"]) == 2
+        assert len(response.data["last_week_totals"]) == 2
+        assert response.data["last_week_totals"][project1.id] == 1
+        assert response.data["last_week_totals"][project3.id] == 2
 
     def test_multi_project_release(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -104,9 +116,10 @@ class TeamReleaseCountTest(APITestCase):
         release5.add_project(project3)
         response = self.get_valid_response(org.slug, team1.slug)
 
-        assert len(response.data) == 2
+        assert len(response.data) == 3
         assert len(response.data["release_counts"]) == 90
         assert len(response.data["project_avgs"]) == 2
+        assert len(response.data["last_week_totals"]) == 1
 
         assert response.data["release_counts"][str(before_now(days=0).date())] == 0
         assert response.data["release_counts"][str(before_now(days=5).date())] == 2
