@@ -303,7 +303,7 @@ def symbolicate_event(
     cache_key: str,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
-    data: Optional[Event]=None,
+    data: Optional[Event] = None,
     queue_switches: int = 0,
     **kwargs: Any,
 ) -> None:
@@ -335,7 +335,7 @@ def symbolicate_event_low_priority(
     cache_key: str,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
-    data: Optional[Event]=None,
+    data: Optional[Event] = None,
     queue_switches: int = 0,
     **kwargs: Any,
 ) -> None:
@@ -370,7 +370,7 @@ def symbolicate_event_from_reprocessing(
     cache_key: str,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
-    data: Optional[Event]=None,
+    data: Optional[Event] = None,
     queue_switches: int = 0,
     **kwargs: Any,
 ) -> None:
@@ -395,7 +395,7 @@ def symbolicate_event_from_reprocessing_low_priority(
     cache_key: str,
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
-    data: Optional[Event]=None,
+    data: Optional[Event] = None,
     queue_switches: int = 0,
     **kwargs: Any,
 ) -> None:
