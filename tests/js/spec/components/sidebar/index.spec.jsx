@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import * as incidentActions from 'app/actionCreators/serviceIncidents';
 import SidebarContainer from 'app/components/sidebar';
@@ -144,7 +145,7 @@ describe('Sidebar', function () {
     });
 
     it('can open "Switch Organization" sub-menu', function () {
-      ConfigStore.set('features', new Set(['organizations:create']));
+      act(() => void ConfigStore.set('features', new Set(['organizations:create'])));
       jest.useFakeTimers();
       wrapper = createWrapper();
       wrapper.find('SidebarDropdownActor').simulate('click');

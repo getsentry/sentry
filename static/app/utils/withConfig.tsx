@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import ConfigStore from 'app/stores/configStore';
+import {useLegacyStore} from 'app/stores/useLegacyStore';
 import {Config} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
 
@@ -8,42 +9,25 @@ type InjectedConfigProps = {
   config: Config;
 };
 
-type State = {
-  config: Config;
-};
-
 /**
- * Higher order component that passes the config object to the wrapped component
+ * Higher order component that passes the config object to the wrapped
+ * component
  */
 function withConfig<P extends InjectedConfigProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithConfig extends React.Component<
-    Omit<P, keyof InjectedConfigProps> & Partial<InjectedConfigProps>,
-    State
-  > {
-    static displayName = `withConfig(${getDisplayName(WrappedComponent)})`;
+  type Props = Omit<P, keyof InjectedConfigProps> & Partial<InjectedConfigProps>;
 
-    state = {config: ConfigStore.getConfig()};
+  const Wrapper: React.FC<Props> = props => {
+    const config = useLegacyStore(ConfigStore);
+    const allProps = {config, ...props} as P;
 
-    componentWillUnmount() {
-      this.unsubscribe();
-    }
+    return <WrappedComponent {...allProps} />;
+  };
 
-    unsubscribe = ConfigStore.listen(
-      () => this.setState({config: ConfigStore.getConfig()}),
-      undefined
-    );
+  Wrapper.displayName = `withConfig(${getDisplayName(WrappedComponent)})`;
 
-    render() {
-      const {config, ...props} = this.props as P;
-      return (
-        <WrappedComponent {...({config: config ?? this.state.config, ...props} as P)} />
-      );
-    }
-  }
-
-  return WithConfig;
+  return Wrapper;
 }
 
 export default withConfig;
