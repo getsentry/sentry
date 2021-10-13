@@ -44,7 +44,7 @@ type ReleaseStoreInterface = {
 export const getReleaseStoreKey = (projectSlug: string, releaseVersion: string) =>
   `${projectSlug}${releaseVersion}`;
 
-const ReleaseStoreConfig: Reflux.StoreDefinition & ReleaseStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & ReleaseStoreInterface = {
   state: {
     orgSlug: undefined,
     release: new Map() as StoreRelease,
@@ -222,7 +222,7 @@ const ReleaseStoreConfig: Reflux.StoreDefinition & ReleaseStoreInterface = {
   },
 };
 
-const ReleaseStore = Reflux.createStore(ReleaseStoreConfig) as Reflux.Store &
+const ReleaseStore = Reflux.createStore(storeConfig) as Reflux.Store &
   ReleaseStoreInterface;
 
 export default ReleaseStore;

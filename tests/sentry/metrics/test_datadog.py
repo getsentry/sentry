@@ -22,3 +22,10 @@ class DatadogMetricsBackendTest(TestCase):
         mock_timing.assert_called_once_with(
             "sentrytest.foo", 30, sample_rate=1, tags=["instance:bar"], host=get_hostname()
         )
+
+    @patch("datadog.threadstats.base.ThreadStats.gauge")
+    def test_gauge(self, mock_gauge):
+        self.backend.gauge("foo", 5, instance="bar")
+        mock_gauge.assert_called_once_with(
+            "sentrytest.foo", 5, sample_rate=1, tags=["instance:bar"], host=get_hostname()
+        )

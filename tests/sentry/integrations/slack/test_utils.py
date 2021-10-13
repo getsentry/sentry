@@ -1,7 +1,8 @@
 import pytest
 import responses
 
-from sentry.integrations.slack.utils import CHANNEL_PREFIX, MEMBER_PREFIX, get_channel_id
+from sentry.integrations.slack.utils import get_channel_id
+from sentry.integrations.slack.utils.channel import CHANNEL_PREFIX, MEMBER_PREFIX
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.testutils import TestCase
