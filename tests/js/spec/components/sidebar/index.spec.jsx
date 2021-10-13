@@ -321,7 +321,7 @@ describe('Sidebar', function () {
         location: {...router.location, pathname: 'new-path-name'},
       });
 
-      // XXX(epurkhsier): Due to a bug in enzyme [0], componentDidUpdate is not
+      // XXX(epurkhiser): Due to a bug in enzyme [0], componentDidUpdate is not
       // called after props have updated, it still receives _old_ `this.props`.
       // We manually call it here after the props have been correctly updated.
       //
