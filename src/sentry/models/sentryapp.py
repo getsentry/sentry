@@ -17,6 +17,7 @@ from sentry.constants import (
 )
 from sentry.db.models import (
     ArrayField,
+    BaseManager,
     BoundedPositiveIntegerField,
     EncryptedJsonField,
     FlexibleForeignKey,
@@ -26,6 +27,7 @@ from sentry.db.models import (
 from sentry.models.apiscopes import HasApiScopes
 from sentry.models.sentryappinstallation import SentryAppInstallation
 from sentry.utils import metrics
+from . import AvatarBase
 
 if TYPE_CHECKING:
     from sentry.models import Project, User
@@ -112,6 +114,27 @@ class SentryAppManager(ParanoidManager):
         # if the user exists, so should the sentry_app
         sentry_app = self.get(proxy_user=user)
         return sentry_app.is_installed_on(project.organization)
+
+class SentryAppLogo(AvatarBase):
+    """
+    A SentryAppLogo associates a SentryApp with its logo photo File
+    """
+
+    AVATAR_TYPES = ((1, "upload"))
+
+    FILE_TYPE = "avatar.file"
+
+    sentry_app = FlexibleForeignKey("sentry.SentryApp", unique=True, related_name="logo")
+    avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)
+
+    objects = BaseManager(cache_fields=["user"])
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_sentryapplogo"
+
+    def get_cache_key(self, size):
+        return f"avatar:{self.sentry_app_id}:{size}"
 
 
 class SentryApp(ParanoidModel, HasApiScopes):
