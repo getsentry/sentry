@@ -2,11 +2,7 @@ from typing import Any, Dict, List, Mapping, Union
 
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
-from sentry.integrations.slack.message_builder.issues import (
-    SlackIssuesMessageBuilder,
-    build_attachment_title,
-    get_title_link,
-)
+from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.models import Team, User
 from sentry.notifications.notifications.activity.new_processing_issues import (
     NewProcessingIssuesActivityNotification,
@@ -79,10 +75,11 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
             )
 
         return self._build(
-            title=build_attachment_title(group),
-            title_link=get_title_link(group, None, False, True, self.notification),
+            title=self.notification.build_attachment_title(),
+            title_link=self.notification.get_title_link(),
             text=self.notification.get_message_description(),
-            footer=build_notification_footer(self.notification, self.recipient),
+            footer=self.notification.build_notification_footer(self.recipient),
+            actions=self.notification.get_actions(),
             color="info",
         )
 

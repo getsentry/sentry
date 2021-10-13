@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, MutableMapping, Optional, Tuple, Union
 
 from sentry.utils.http import absolute_uri
 
@@ -60,3 +60,24 @@ class BaseNotification:
 
     def get_unsubscribe_key(self) -> Optional[Tuple[str, int, Optional[str]]]:
         return None
+
+    # TODO: move to different classes
+    def build_attachment_title(self) -> str:
+        from sentry.integrations.slack.message_builder.issues import build_attachment_title
+
+        return build_attachment_title(self.group)
+
+    def get_title_link(self) -> str:
+        from sentry.integrations.slack.message_builder.issues import get_title_link
+
+        return get_title_link(self.group, None, False, True, self)
+
+    def build_notification_footer(self, recipient: Union["Team", "User"]) -> str:
+        from sentry.integrations.slack.message_builder.notifications import (
+            build_notification_footer,
+        )
+
+        return build_notification_footer(self, recipient)
+
+    def get_actions(self) -> List[Dict[str, str]]:
+        return []
