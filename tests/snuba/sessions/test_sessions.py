@@ -735,9 +735,15 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             end=end,
         )
 
+        one_day = 24 * 60 * 60
+        day0 = one_day * int(start.timestamp() / one_day)
+
+        def ts(days: int) -> int:
+            return day0 + days * one_day
+
         assert stats == [
             [
-                1633219200,
+                ts(1),
                 {
                     "duration_p50": None,
                     "duration_p90": None,
@@ -749,7 +755,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 },
             ],
             [
-                1633305600,
+                ts(2),
                 {
                     "duration_p50": None,
                     "duration_p90": None,
@@ -761,7 +767,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 },
             ],
             [
-                1633392000,
+                ts(3),
                 {
                     "duration_p50": None,
                     "duration_p90": None,
@@ -773,7 +779,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 },
             ],
             [
-                1633478400,
+                ts(4),
                 {
                     "duration_p50": 45.0,
                     "duration_p90": 57.0,
@@ -806,9 +812,15 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             end=end,
         )
 
+        one_day = 24 * 60 * 60
+        day0 = one_day * int(start.timestamp() / one_day)
+
+        def ts(days: int) -> int:
+            return day0 + days * one_day
+
         assert stats == [
             [
-                1633219200,
+                ts(1),
                 {
                     "duration_p50": None,
                     "duration_p90": None,
@@ -820,7 +832,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 },
             ],
             [
-                1633305600,
+                ts(2),
                 {
                     "duration_p50": None,
                     "duration_p90": None,
@@ -832,7 +844,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 },
             ],
             [
-                1633392000,
+                ts(3),
                 {
                     "duration_p50": None,
                     "duration_p90": None,
@@ -844,7 +856,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 },
             ],
             [
-                1633478400,
+                ts(4),
                 {
                     "duration_p50": 45.0,
                     "duration_p90": 57.0,
