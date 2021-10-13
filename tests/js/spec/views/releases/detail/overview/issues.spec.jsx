@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import Issues from 'app/views/releases/detail/overview/issues';
+import {getReleaseBounds} from 'app/views/releases/utils';
 
 describe('Release Issues', function () {
   let newIssuesEndpoint,
@@ -13,8 +13,9 @@ describe('Release Issues', function () {
     orgId: 'org',
     organization: TestStubs.Organization(),
     version: '1.0.0',
-    selection: {projects: [], environments: [], datetime: {period: '14d'}},
-    location: {href: ''},
+    selection: {projects: [], environments: [], datetime: {}},
+    location: {href: '', query: {}},
+    releaseBounds: getReleaseBounds(TestStubs.Release({version: '1.0.0'})),
   };
 
   beforeEach(function () {
@@ -26,7 +27,7 @@ describe('Release Issues', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A%221.0.0%22&query=release%3A%221.0.0%22&query=error.handled%3A0%20release%3A%221.0.0%22&statsPeriod=14d`,
+      url: `/organizations/${props.organization.slug}/issues-count/?end=2020-03-24T02%3A04%3A59Z&query=first-release%3A%221.0.0%22&query=release%3A%221.0.0%22&query=error.handled%3A0%20release%3A%221.0.0%22&start=2020-03-23T01%3A02%3A00Z`,
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A%221.0.0%22&query=release%3A%221.0.0%22&query=error.handled%3A0%20release%3A%221.0.0%22&statsPeriod=24h`,
@@ -36,7 +37,7 @@ describe('Release Issues', function () {
     });
 
     newIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0&sort=freq&statsPeriod=14d`,
+      url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -44,11 +45,11 @@ describe('Release Issues', function () {
       body: [],
     });
     resolvedIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/?groupStatsPeriod=auto&limit=10&query=&sort=freq&statsPeriod=14d`,
+      url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
       body: [],
     });
     unhandledIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=release%3A1.0.0%20error.handled%3A0&sort=freq&statsPeriod=14d`,
+      url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=release%3A1.0.0%20error.handled%3A0&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -56,30 +57,26 @@ describe('Release Issues', function () {
       body: [],
     });
     allIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=release%3A1.0.0&sort=freq&statsPeriod=14d`,
+      url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
       body: [],
     });
   });
 
   const filterIssues = (wrapper, filter) => {
-    wrapper.find('DropdownControl').first().simulate('click');
-
-    wrapper
-      .find(`StyledDropdownItem[data-test-id="filter-${filter}"] span`)
-      .simulate('click');
+    wrapper.find(`ButtonBar Button[data-test-id="filter-${filter}"]`).simulate('click');
   };
 
   it('shows an empty state', async function () {
     const wrapper = mountWithTheme(<Issues {...props} />);
     const wrapper2 = mountWithTheme(
-      <Issues {...props} location={{query: {statsPeriod: '24h'}}} />
+      <Issues {...props} location={{query: {pageStatsPeriod: '24h'}}} />
     );
 
     await tick();
 
     wrapper.update();
     expect(wrapper.find('EmptyStateWarning').text()).toBe(
-      'No new issues for the last 14 days.'
+      'No new issues in this release.'
     );
 
     wrapper2.update();
@@ -105,9 +102,9 @@ describe('Release Issues', function () {
   it('filters the issues', async function () {
     const wrapper = mountWithTheme(<Issues {...props} />);
 
-    const filterOptions = wrapper.find('DropdownControl StyledDropdownItem');
+    const filterOptions = wrapper.find('ButtonBar Button');
 
-    expect(filterOptions).toHaveLength(4);
+    expect(filterOptions).toHaveLength(5); // fifth one is "Open Issues" button
     expect(filterOptions.at(2).text()).toEqual('Unhandled Issues');
 
     filterIssues(wrapper, 'new');
@@ -123,42 +120,6 @@ describe('Release Issues', function () {
     expect(allIssuesEndpoint).toHaveBeenCalledTimes(1);
   });
 
-  it('renders link to Discover', function () {
-    const initializationObj = initializeOrg({
-      organization: {
-        features: ['discover-basic'],
-      },
-    });
-
-    const wrapperNoAccess = mountWithTheme(<Issues {...props} />);
-    const wrapper = mountWithTheme(
-      <Issues {...props} />,
-      initializationObj.routerContext
-    );
-
-    expect(
-      wrapper.find('Link[data-test-id="discover-button"]').first().prop('to')
-    ).toEqual({
-      pathname: `/organizations/${props.organization.slug}/discover/results/`,
-      query: {
-        id: undefined,
-        name: `Release ${props.version}`,
-        field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
-        widths: [],
-        sort: ['-count'],
-        environment: [],
-        project: [],
-        query: `release:${props.version} !event.type:transaction`,
-        yAxis: 'count()',
-        display: undefined,
-        interval: undefined,
-        statsPeriod: props.selection.datetime.period,
-      },
-    });
-
-    expect(wrapperNoAccess.find('Link[data-test-id="discover-button"]').length).toBe(0);
-  });
-
   it('renders link to Issues', function () {
     const wrapper = mountWithTheme(<Issues {...props} />);
 
@@ -169,7 +130,8 @@ describe('Release Issues', function () {
         query: 'firstRelease:1.0.0',
         cursor: undefined,
         limit: undefined,
-        statsPeriod: '14d',
+        start: '2020-03-23T01:02:00Z',
+        end: '2020-03-24T02:04:59Z',
         groupStatsPeriod: 'auto',
       },
     });
@@ -182,7 +144,8 @@ describe('Release Issues', function () {
         query: 'release:1.0.0',
         cursor: undefined,
         limit: undefined,
-        statsPeriod: '14d',
+        start: '2020-03-23T01:02:00Z',
+        end: '2020-03-24T02:04:59Z',
         groupStatsPeriod: 'auto',
       },
     });
@@ -195,7 +158,8 @@ describe('Release Issues', function () {
         query: 'release:1.0.0 error.handled:0',
         cursor: undefined,
         limit: undefined,
-        statsPeriod: '14d',
+        start: '2020-03-23T01:02:00Z',
+        end: '2020-03-24T02:04:59Z',
         groupStatsPeriod: 'auto',
       },
     });
@@ -208,7 +172,8 @@ describe('Release Issues', function () {
         query: 'release:1.0.0',
         cursor: undefined,
         limit: undefined,
-        statsPeriod: '14d',
+        start: '2020-03-23T01:02:00Z',
+        end: '2020-03-24T02:04:59Z',
         groupStatsPeriod: 'auto',
       },
     });
