@@ -72,7 +72,7 @@ type DefaultProps = {
    */
   interval: string;
   /**
-   *
+   * Time delta for comparing intervals  alert metrics, value in minutes
    */
   comparisonDelta?: number;
   /**

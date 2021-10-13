@@ -310,28 +310,21 @@ class TriggersChart extends React.PureComponent<Props, State> {
     const warningTrigger = triggers?.find(trig => trig.label === 'warning');
     const criticalTriggerAlertThreshold =
       typeof criticalTrigger?.alertThreshold === 'number'
-        ? criticalTrigger?.alertThreshold
+        ? criticalTrigger.alertThreshold
         : undefined;
     const warningTriggerAlertThreshold =
       typeof warningTrigger?.alertThreshold === 'number'
-        ? warningTrigger?.alertThreshold
+        ? warningTrigger.alertThreshold
         : undefined;
 
-    if (thresholdType === AlertRuleThresholdType.ABOVE) {
-      if (criticalTriggerAlertThreshold && value >= criticalTriggerAlertThreshold) {
-        return 'critical';
-      } else if (warningTriggerAlertThreshold && value >= warningTriggerAlertThreshold) {
+    if (thresholdType === AlertRuleThresholdType.ABOVE && criticalTriggerAlertThreshold && value >= criticalTriggerAlertThreshold) {
+      return 'critical';
+    } else if (thresholdType === AlertRuleThresholdType.ABOVE && warningTriggerAlertThreshold && value >= warningTriggerAlertThreshold) {
         return 'warning';
-      }
-    } else {
-      if (criticalTriggerAlertThreshold && -1 * value >= criticalTriggerAlertThreshold) {
+    } else if (thresholdType === AlertRuleThresholdType.BELOW && criticalTriggerAlertThreshold && -1 * value >= criticalTriggerAlertThreshold) {
         return 'critical';
-      } else if (
-        warningTriggerAlertThreshold &&
-        -1 * value >= warningTriggerAlertThreshold
-      ) {
+    } else if (thresholdType === AlertRuleThresholdType.BELOW && warningTriggerAlertThreshold && -1 * value >= warningTriggerAlertThreshold) {
         return 'warning';
-      }
     }
 
     return '';
