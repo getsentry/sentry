@@ -11,7 +11,7 @@ This has three major tasks, executed in the following general order:
 import collections
 import logging
 import time
-from typing import Dict, Iterable, MutableSequence
+from typing import Deque, Dict, Iterable
 
 from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.base import BucketedCount, DurationHistogram
@@ -101,7 +101,7 @@ def calculation_magic(
     # iterator as input so keep the last few buckets seen, once the iterator is exhausted
     # this will have the most recent buckets.
     recent_bucket_count = 60 / realtime_metrics.realtime_metrics_store._counter_bucket_size
-    recent_buckets: MutableSequence[BucketedCount] = collections.deque(maxlen=recent_bucket_count)
+    recent_buckets: Deque[BucketedCount] = collections.deque(maxlen=recent_bucket_count)
 
     # We need to know the average rate over the total time period.
     total_count = 0
