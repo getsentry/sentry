@@ -22,6 +22,7 @@ import {
   HealthStatsPeriodOption,
   Organization,
   SessionApiResponse,
+  SessionField,
 } from 'app/types';
 import {defined, percent} from 'app/utils';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
@@ -73,10 +74,10 @@ export function reduceTimeSeriesGroups(
 export function sessionDisplayToField(display: DisplayOption) {
   switch (display) {
     case DisplayOption.USERS:
-      return 'count_unique(user)';
+      return SessionField.USERS;
     case DisplayOption.SESSIONS:
     default:
-      return 'sum(session)';
+      return SessionField.SESSIONS;
   }
 }
 
