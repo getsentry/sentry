@@ -101,7 +101,9 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
             _report_change(project_id=project_id, change="removed", reason="ineligible")
 
 
-def _report_change(project_id, change: Literal["added", "removed"], reason: Optional[str]) -> None:
+def _report_change(
+    project_id: int, change: Literal["added", "removed"], reason: Optional[str]
+) -> None:
     if not reason:
         reason = "unknown"
 
