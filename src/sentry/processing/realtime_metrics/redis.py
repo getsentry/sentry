@@ -47,13 +47,11 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         self.validate()
 
     def validate(self) -> None:
-        if self._counter_bucket_size <= 0:
-            raise InvalidConfiguration("counter bucket size must be at least 1 second")
-        if self._counter_bucket_size > 60:
-            raise InvalidConfiguration("counter bucket size must be less than 1 minute")
+        if not 60 >= self._counter_bucket_size > 0:
+            raise InvalidConfiguration("counter bucket size must be 1-60 seconds")
 
-        if self._duration_bucket_size <= 0:
-            raise InvalidConfiguration("duration bucket size must be at least 1")
+        if not 60 >= self._duration_bucket_size > 0:
+            raise InvalidConfiguration("duration bucket size must be 1-60 seconds")
 
         if self._counter_time_window < 60:
             raise InvalidConfiguration("counter time window must be at least a minute")
