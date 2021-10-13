@@ -17,7 +17,7 @@ DESCRIPTION = """
 Trigger outgoing HTTP POST requests from Sentry.
 
 Note: To configure webhooks over multiple projects, we recommend setting up an
-[Internal Integration](https://docs.sentry.io/workflow/integrations/integration-platform/#internal-integrations).
+Internal Integration.
 """
 
 
@@ -54,6 +54,10 @@ class WebHooksPlugin(notify.NotificationPlugin):
         (
             "View Source",
             "https://github.com/getsentry/sentry/tree/master/src/sentry/plugins/sentry_webhooks",
+        ),
+        (
+            "Internal Integrations",
+            "https://docs.sentry.io/workflow/integrations/integration-platform/#internal-integrations",
         ),
     ]
 

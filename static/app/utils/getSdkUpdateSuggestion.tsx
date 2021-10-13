@@ -80,10 +80,10 @@ function getSdkUpdateSuggestion({
         return {
           href: suggestion?.integrationUrl,
           content: capitalized
-            ? tct('Enable to [recommended-integration-name]', {
+            ? tct('Enable the [recommended-integration-name]', {
                 'recommended-integration-name': suggestion.integrationName,
               })
-            : tct('enable to the integration [recommended-integration-name]', {
+            : tct('enable the [recommended-integration-name] integration', {
                 'recommended-integration-name': suggestion.integrationName,
               }),
         };
