@@ -219,6 +219,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
     timeseriesData: Series[] = [],
     comparisonTimeseriesData: Series[] = []
   ): LineChartSeries[] {
+    const {timeWindow} = this.props;
     const changeStatuses: {name: number | string; status: string}[] = [];
 
     if (
@@ -233,7 +234,8 @@ class TriggersChart extends React.PureComponent<Props, State> {
       if (
         this.props.triggers.some(({alertThreshold}) => typeof alertThreshold === 'number')
       ) {
-        const lastPointLimit = (baseData[changeData.length - 1].name as number) - MINUTE;
+        const lastPointLimit =
+          (baseData[changeData.length - 1].name as number) - timeWindow * MINUTE;
         changeData.forEach(({name, value: comparisonValue}, idx) => {
           const baseValue = baseData[idx].value;
           const comparisonPercentage =
@@ -317,14 +319,30 @@ class TriggersChart extends React.PureComponent<Props, State> {
         ? warningTrigger.alertThreshold
         : undefined;
 
-    if (thresholdType === AlertRuleThresholdType.ABOVE && criticalTriggerAlertThreshold && value >= criticalTriggerAlertThreshold) {
+    if (
+      thresholdType === AlertRuleThresholdType.ABOVE &&
+      criticalTriggerAlertThreshold &&
+      value >= criticalTriggerAlertThreshold
+    ) {
       return 'critical';
-    } else if (thresholdType === AlertRuleThresholdType.ABOVE && warningTriggerAlertThreshold && value >= warningTriggerAlertThreshold) {
-        return 'warning';
-    } else if (thresholdType === AlertRuleThresholdType.BELOW && criticalTriggerAlertThreshold && -1 * value >= criticalTriggerAlertThreshold) {
-        return 'critical';
-    } else if (thresholdType === AlertRuleThresholdType.BELOW && warningTriggerAlertThreshold && -1 * value >= warningTriggerAlertThreshold) {
-        return 'warning';
+    } else if (
+      thresholdType === AlertRuleThresholdType.ABOVE &&
+      warningTriggerAlertThreshold &&
+      value >= warningTriggerAlertThreshold
+    ) {
+      return 'warning';
+    } else if (
+      thresholdType === AlertRuleThresholdType.BELOW &&
+      criticalTriggerAlertThreshold &&
+      -1 * value >= criticalTriggerAlertThreshold
+    ) {
+      return 'critical';
+    } else if (
+      thresholdType === AlertRuleThresholdType.BELOW &&
+      warningTriggerAlertThreshold &&
+      -1 * value >= warningTriggerAlertThreshold
+    ) {
+      return 'warning';
     }
 
     return '';
