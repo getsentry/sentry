@@ -59,10 +59,8 @@ describe('GlobalSelectionHeader', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
-      projects: organization.projects,
-      loading: false,
-    }));
+    jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => organization.projects);
+    jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
 
     getItem.mockImplementation(() => null);
     MockApiClient.addMockResponse({
@@ -231,10 +229,8 @@ describe('GlobalSelectionHeader', function () {
         params: {orgId: 'org-slug'},
       },
     });
-    jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
-      projects: initialData.projects,
-      loading: false,
-    }));
+    jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => initialData.projects);
+    jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
 
     wrapper = mountWithTheme(
       <GlobalSelectionHeader
@@ -387,7 +383,9 @@ describe('GlobalSelectionHeader', function () {
         features: ['global-views'],
       },
       router: {
-        params: {orgId: 'org-slug'}, // we need this to be set to make sure org in context is same as current org in URL
+        // we need this to be set to make sure org in context is same as
+        // current org in URL
+        params: {orgId: 'org-slug'},
       },
     });
 
@@ -421,7 +419,9 @@ describe('GlobalSelectionHeader', function () {
         features: ['global-views'],
       },
       router: {
-        params: {orgId: 'org-slug'}, // we need this to be set to make sure org in context is same as current org in URL
+        // we need this to be set to make sure org in context is same as
+        // current org in URL
+        params: {orgId: 'org-slug'},
         location: {query: {project: [1, 2]}},
       },
     });
@@ -445,7 +445,9 @@ describe('GlobalSelectionHeader', function () {
         features: ['global-views'],
       },
       router: {
-        params: {orgId: 'org-slug'}, // we need this to be set to make sure org in context is same as current org in URL
+        // we need this to be set to make sure org in context is same as
+        // current org in URL
+        params: {orgId: 'org-slug'},
         location: {query: {project: [1, 2]}},
       },
     });
@@ -469,7 +471,9 @@ describe('GlobalSelectionHeader', function () {
         features: ['global-views'],
       },
       router: {
-        params: {orgId: 'org-slug'}, // we need this to be set to make sure org in context is same as current org in URL
+        // we need this to be set to make sure org in context is same as
+        // current org in URL
+        params: {orgId: 'org-slug'},
         location: {query: {}},
       },
     });
@@ -487,32 +491,43 @@ describe('GlobalSelectionHeader', function () {
    * GSH: (no global-views)
    * - mounts with no state from router
    *   - params org id === org.slug
-   * - updateProjects should not be called (enforceSingleProject should not be called)
-   * - componentDidUpdate with loadingProjects === true, and pass in list of projects (via projects store)
-   * - enforceProject should be called and updateProjects() called with the new project
+   *
+   * - updateProjects should not be called (enforceSingleProject should not be
+   *   called)
+   *
+   * - componentDidUpdate with loadingProjects === true, and pass in list of
+   *   projects (via projects store)
+   *
+   * - enforceProject should be called and updateProjects() called with the new
+   *   project
    *   - variation:
    *     - params.orgId !== org.slug (e.g. just switched orgs)
    *
    * When switching orgs when not in Issues view, the issues view gets rendered
    * with params.orgId !== org.slug
-   * Global selection header gets unmounted and mounted, and in this case nothing should be done
-   * until it gets updated and params.orgId === org.slug
+   *
+   * Global selection header gets unmounted and mounted, and in this case
+   * nothing should be done until it gets updated and params.orgId === org.slug
    *
    * Separate issue:
-   * IssuesList ("child view") renders before a single project is enforced, will require refactoring
-   * views so that they depend on GSH enforcing a single project first IF they don't have required feature
-   * (and no project id in URL).
+   *
+   * IssuesList ("child view") renders before a single project is enforced,
+   * will require refactoring views so that they depend on GSH enforcing a
+   * single project first IF they don't have required feature (and no project id
+   * in URL).
    */
   describe('Single project selection mode', function () {
     it('does not do anything while organization is switching in single project', async function () {
       const initialData = initializeOrg({
         organization: {slug: 'old-org-slug'},
         router: {
-          params: {orgId: 'org-slug'}, // we need this to be set to make sure org in context is same as current org in URL
+          // we need this to be set to make sure org in context is same as
+          // current org in URL
+          params: {orgId: 'org-slug'},
           location: {query: {project: [1]}},
         },
       });
-      ProjectsStore.getState.mockRestore();
+      ProjectsStore.isLoading.mockRestore();
       ProjectsStore.getAll.mockRestore();
 
       MockApiClient.addMockResponse({
@@ -520,8 +535,8 @@ describe('GlobalSelectionHeader', function () {
         body: [],
       });
 
-      // This can happen when you switch organization so params.orgId !== the current org in context
-      // In this case params.orgId = 'org-slug'
+      // This can happen when you switch organization so params.orgId !== the
+      // current org in context In this case params.orgId = 'org-slug'
       wrapper = mountWithTheme(
         <GlobalSelectionHeader organization={initialData.organization} />,
         initialData.routerContext
@@ -540,8 +555,8 @@ describe('GlobalSelectionHeader', function () {
         body: updatedOrganization,
       });
 
-      // Eventually OrganizationContext will fetch org details for `org-slug` and update `organization` prop
-      // emulate fetchOrganizationDetails
+      // Eventually OrganizationContext will fetch org details for `org-slug`
+      // and update `organization` prop emulate fetchOrganizationDetails
       OrganizationActions.update(updatedOrganization);
       wrapper.setContext({
         organization: updatedOrganization,
@@ -565,7 +580,9 @@ describe('GlobalSelectionHeader', function () {
     it('selects first project if more than one is requested', function () {
       const initializationObj = initializeOrg({
         router: {
-          params: {orgId: 'org-slug'}, // we need this to be set to make sure org in context is same as current org in URL
+          // we need this to be set to make sure org in context is same as
+          // current org in URL
+          params: {orgId: 'org-slug'},
           location: {query: {project: [1, 2]}},
         },
       });
@@ -585,9 +602,9 @@ describe('GlobalSelectionHeader', function () {
     it('selects first project if none (i.e. all) is requested', async function () {
       const project = TestStubs.Project({id: '3'});
       const org = TestStubs.Organization({projects: [project]});
-      jest
-        .spyOn(ProjectsStore, 'getState')
-        .mockImplementation(() => ({projects: org.projects, loading: false}));
+
+      jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => org.projects);
+      jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
 
       const initializationObj = initializeOrg({
         organization: org,
@@ -626,16 +643,15 @@ describe('GlobalSelectionHeader', function () {
           location: {query: {}},
         },
       });
-      jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
-        projects: initialData.organization.projects,
-        loadingProjects: false,
-      }));
+
+      jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => initialData.projects);
+      jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
 
       wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
           shouldForceProject
-          forceProject={initialData.organization.projects[0]}
+          forceProject={initialData.projects[0]}
           showIssueStreamLink
         />,
         initialData.routerContext
@@ -684,10 +700,11 @@ describe('GlobalSelectionHeader', function () {
       };
 
       beforeEach(function () {
-        jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
-          projects: initialData.organization.projects,
-          loading: false,
-        }));
+        jest
+          .spyOn(ProjectsStore, 'getAll')
+          .mockImplementation(() => initialData.projects);
+        jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
+
         initialData.router.push.mockClear();
         initialData.router.replace.mockClear();
       });
@@ -705,25 +722,24 @@ describe('GlobalSelectionHeader', function () {
       });
 
       it('appends projectId to URL when `forceProject` becomes available (async)', async function () {
-        const mockProjectsStoreState = {
-          projects: [],
-          loading: true,
-        };
-
-        jest
-          .spyOn(ProjectsStore, 'getState')
-          .mockImplementation(() => mockProjectsStoreState);
+        jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => []);
+        jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => true);
 
         // forceProject generally starts undefined
         createWrapper({shouldForceProject: true});
 
         // load the projects
-        mockProjectsStoreState.projects = initialData.organization.projects;
-        mockProjectsStoreState.loading = false;
+        jest
+          .spyOn(ProjectsStore, 'getAll')
+          .mockImplementation(() => initialData.projects);
+        jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
 
         wrapper.setProps({
-          forceProject: initialData.organization.projects[1],
+          forceProject: initialData.projects[1],
         });
+
+        // Force the withProjects HoC to re-render
+        ProjectsStore.trigger();
 
         wrapper.update();
 
@@ -751,7 +767,7 @@ describe('GlobalSelectionHeader', function () {
           },
         });
         wrapper.setProps({
-          forceProject: initialData.organization.projects[1],
+          forceProject: initialData.projects[1],
         });
 
         wrapper.update();
@@ -763,7 +779,7 @@ describe('GlobalSelectionHeader', function () {
         // forceProject generally starts undefined
         createWrapper({
           shouldForceProject: true,
-          forceProject: initialData.organization.projects[1],
+          forceProject: initialData.projects[1],
         });
 
         wrapper.update();
@@ -787,9 +803,7 @@ describe('GlobalSelectionHeader', function () {
           params: {orgId: 'org-slug'},
         },
       });
-      jest
-        .spyOn(ProjectsStore, 'getAll')
-        .mockImplementation(() => initialData.organization.projects);
+      jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => initialData.projects);
 
       const createWrapper = props => {
         wrapper = mountWithTheme(
@@ -812,7 +826,7 @@ describe('GlobalSelectionHeader', function () {
         // forceProject generally starts undefined
         createWrapper({
           shouldForceProject: true,
-          forceProject: initialData.organization.projects[1],
+          forceProject: initialData.projects[1],
         });
 
         wrapper.update();
@@ -856,10 +870,11 @@ describe('GlobalSelectionHeader', function () {
       };
 
       beforeEach(function () {
-        jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
-          projects: initialData.organization.projects,
-          loading: false,
-        }));
+        jest
+          .spyOn(ProjectsStore, 'getAll')
+          .mockImplementation(() => initialData.projects);
+        jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
+
         initialData.router.push.mockClear();
         initialData.router.replace.mockClear();
       });
@@ -874,50 +889,46 @@ describe('GlobalSelectionHeader', function () {
       });
 
       it('does not append projectId to URL when `loadingProjects` changes and finishes loading', async function () {
-        const mockProjectsStoreState = {
-          projects: [],
-          loading: true,
-        };
-
-        jest
-          .spyOn(ProjectsStore, 'getState')
-          .mockImplementation(() => mockProjectsStoreState);
+        jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => []);
+        jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => true);
 
         createWrapper();
 
         // load the projects
-        mockProjectsStoreState.projects = initialData.organization.projects;
-        mockProjectsStoreState.loading = false;
+        jest
+          .spyOn(ProjectsStore, 'getAll')
+          .mockImplementation(() => initialData.projects);
+        jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
 
-        wrapper.update();
+        wrapper.setProps({
+          forceProject: initialData.projects[1],
+        });
+
+        // Force the withProjects HoC to re-render
+        ProjectsStore.trigger();
 
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
 
       it('appends projectId to URL when `forceProject` becomes available (async)', async function () {
-        const mockProjectsStoreState = {
-          projects: [],
-          loading: true,
-        };
-
-        jest
-          .spyOn(ProjectsStore, 'getState')
-          .mockImplementation(() => mockProjectsStoreState);
+        jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => []);
+        jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => true);
 
         // forceProject generally starts undefined
         createWrapper({shouldForceProject: true});
 
-        await tick();
-
         // load the projects
-        mockProjectsStoreState.projects = initialData.organization.projects;
-        mockProjectsStoreState.loading = false;
+        jest
+          .spyOn(ProjectsStore, 'getAll')
+          .mockImplementation(() => initialData.projects);
+        jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
 
         wrapper.setProps({
-          forceProject: initialData.organization.projects[1],
+          forceProject: initialData.projects[1],
         });
 
-        wrapper.update();
+        // Force the withProjects HoC to re-render
+        ProjectsStore.trigger();
 
         expect(initialData.router.replace).toHaveBeenLastCalledWith({
           pathname: undefined,
@@ -937,7 +948,7 @@ describe('GlobalSelectionHeader', function () {
         await tick();
 
         wrapper.setProps({
-          forceProject: initialData.organization.projects[1],
+          forceProject: initialData.projects[1],
         });
 
         wrapper.update();
@@ -953,9 +964,7 @@ describe('GlobalSelectionHeader', function () {
       memberProject = TestStubs.Project({id: '3', isMember: true});
       nonMemberProject = TestStubs.Project({id: '4', isMember: false});
       initialData = initializeOrg({
-        organization: {
-          projects: [memberProject, nonMemberProject],
-        },
+        projects: [memberProject, nonMemberProject],
         router: {
           location: {query: {}},
           params: {
@@ -964,10 +973,8 @@ describe('GlobalSelectionHeader', function () {
         },
       });
 
-      jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
-        projects: initialData.organization.projects,
-        loading: false,
-      }));
+      jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => initialData.projects);
+      jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
 
       wrapper = mountWithTheme(
         <GlobalSelectionHeader organization={initialData.organization} />,
@@ -1007,7 +1014,7 @@ describe('GlobalSelectionHeader', function () {
       wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
-          projects={initialData.organization.projects}
+          projects={initialData.projects}
         />,
         initialData.routerContext
       );
@@ -1033,7 +1040,7 @@ describe('GlobalSelectionHeader', function () {
       wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
-          projects={initialData.organization.projects}
+          projects={initialData.projects}
         />,
         initialData.routerContext
       );
@@ -1058,7 +1065,7 @@ describe('GlobalSelectionHeader', function () {
       wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
-          projects={initialData.organization.projects}
+          projects={initialData.projects}
         />,
         initialData.routerContext
       );
@@ -1084,7 +1091,7 @@ describe('GlobalSelectionHeader', function () {
       wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
-          projects={initialData.organization.projects}
+          projects={initialData.projects}
         />,
         changeQuery(initialData.routerContext, {project: -1})
       );
@@ -1118,17 +1125,15 @@ describe('GlobalSelectionHeader', function () {
     });
 
     beforeEach(function () {
-      jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
-        projects: initialData.organization.projects,
-        loading: false,
-      }));
+      jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => initialData.projects);
+      jest.spyOn(ProjectsStore, 'isLoading').mockImplementation(() => false);
     });
 
     it('shows IconProject when no projects are selected', async function () {
       wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
-          projects={initialData.organization.projects}
+          projects={initialData.projects}
         />,
         changeQuery(initialData.routerContext, {project: -1})
       );
@@ -1148,7 +1153,7 @@ describe('GlobalSelectionHeader', function () {
       wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
-          projects={initialData.organization.projects}
+          projects={initialData.projects}
         />,
         changeQuery(initialData.routerContext, {project: 1})
       );
@@ -1169,7 +1174,7 @@ describe('GlobalSelectionHeader', function () {
       wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
-          projects={initialData.organization.projects}
+          projects={initialData.projects}
         />,
         initialData.routerContext
       );

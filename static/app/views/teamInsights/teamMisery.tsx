@@ -254,7 +254,7 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
-  box-shadow: none;
+  box-shadow: unset;
 
   & > div {
     padding: ${space(1)} ${space(2)};
