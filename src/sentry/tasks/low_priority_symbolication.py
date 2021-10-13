@@ -101,7 +101,7 @@ def calculation_magic(
     # iterator as input so keep the last few buckets seen, once the iterator is exhausted
     # this will have the most recent buckets.
     recent_time_window = 60
-    recent_bucket_count = (
+    recent_bucket_count = int(
         recent_time_window / realtime_metrics.realtime_metrics_store._counter_bucket_size
     )
     recent_buckets: Deque[BucketedCount] = collections.deque(maxlen=recent_bucket_count)
