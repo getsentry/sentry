@@ -123,6 +123,7 @@ class U2fInterface extends React.Component<Props, State> {
         u2f
           .register(registerRequests as any, registeredKeys as any)
           .then(() => {
+            promise = u2f.register(registerRequests, authenticateRequests);
             this.invokeU2fSetupFlow(promise);
           })
           .catch(err => {
