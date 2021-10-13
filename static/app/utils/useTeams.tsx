@@ -8,6 +8,7 @@ import OrganizationStore from 'app/stores/organizationStore';
 import TeamStore from 'app/stores/teamStore';
 import {useLegacyStore} from 'app/stores/useLegacyStore';
 import {Team} from 'app/types';
+import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import RequestError from 'app/utils/requestError/requestError';
 import useApi from 'app/utils/useApi';
@@ -273,7 +274,8 @@ function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   if (slugs) {
     filteredTeams = filteredTeams.filter(t => slugs.includes(t.slug));
   } else if (provideUserTeams) {
-    filteredTeams = filteredTeams.filter(t => t.isMember);
+    const isSuperuser = isActiveSuperuser();
+    filteredTeams = filteredTeams.filter(t => t.isMember || isSuperuser);
   }
 
   const result: Result = {
