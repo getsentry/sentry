@@ -7,13 +7,14 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api import ApiClient, client
 from sentry.api.base import Endpoint
+from sentry.api.helpers.group_index import update_groups
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.models import ApiKey, Group, Identity, IdentityProvider, Integration, Project
+from sentry.models import Group, Identity, IdentityProvider, Integration, Project
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.web.decorators import transaction_start
@@ -39,6 +40,23 @@ RESOLVE_SELECTOR = {
         {"label": "In the current release", "value": "resolved:inCurrentRelease"},
     ],
 }
+
+
+def update_group(
+    group: Group,
+    identity: Identity,
+    data: Mapping[str, str],
+    request: Request,
+) -> Response:
+    return update_groups(
+        request=request,
+        group_ids=[group.id],
+        projects=[group.project],
+        organization_id=group.organization.id,
+        search_fn=None,
+        user=identity.user,
+        data=data,
+    )
 
 
 class SlackActionEndpoint(Endpoint):  # type: ignore
@@ -70,7 +88,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if assignee == "none":
             assignee = None
 
-        self.update_group(group, identity, {"assignedTo": assignee})
+        update_group(group, identity, {"assignedTo": assignee}, request)
         analytics.record("integrations.slack.assign", actor_id=identity.user_id)
 
     def on_status(
@@ -94,26 +112,13 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         elif resolve_type == "inCurrentRelease":
             status.update({"statusDetails": {"inRelease": "latest"}})
 
-        self.update_group(group, identity, status)
+        update_group(group, identity, status, request)
 
         analytics.record(
             "integrations.slack.status",
             status=status["status"],
             resolve_type=resolve_type,
             actor_id=identity.user_id,
-        )
-
-    def update_group(self, group: Group, identity: Identity, data: Mapping[str, str]) -> Response:
-        event_write_key = ApiKey(
-            organization=group.project.organization, scope_list=["event:write"]
-        )
-
-        return client.put(
-            path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
-            params={"id": group.id},
-            data=data,
-            user=identity.user,
-            auth=event_write_key,
         )
 
     def open_resolve_dialog(
