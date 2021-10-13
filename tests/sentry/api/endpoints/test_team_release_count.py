@@ -53,8 +53,7 @@ class TeamReleaseCountTest(APITestCase):
         assert len(response.data) == 3
         assert len(response.data["release_counts"]) == 90
         assert len(response.data["project_avgs"]) == 2
-        assert len(response.data["last_week_totals"]) == 2
-        assert response.data["last_week_totals"][project1.id] == 0
+        assert len(response.data["last_week_totals"]) == 1
         assert response.data["last_week_totals"][project3.id] == 2
 
         assert response.data["release_counts"][str(before_now(days=0).date())] == 0
@@ -120,7 +119,7 @@ class TeamReleaseCountTest(APITestCase):
         assert len(response.data) == 3
         assert len(response.data["release_counts"]) == 90
         assert len(response.data["project_avgs"]) == 2
-        assert len(response.data["last_week_totals"]) == 2
+        assert len(response.data["last_week_totals"]) == 1
 
         assert response.data["release_counts"][str(before_now(days=0).date())] == 0
         assert response.data["release_counts"][str(before_now(days=5).date())] == 2

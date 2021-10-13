@@ -22,7 +22,7 @@ class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
         end = end.date() + timedelta(days=1)
         start = start.date() + timedelta(days=1)
 
-        per_project_average_releases = (
+        per_project_daily_release_counts = (
             Release.objects.filter(
                 id__in=ReleaseProject.objects.filter(project__in=project_list).values("release_id"),
                 date_added__gte=start,
@@ -36,12 +36,11 @@ class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
 
         agg_project_counts = {}
         project_avgs = defaultdict(int)
+        this_week_totals = defaultdict(int)
         this_week_start = now() - timedelta(days=7)
-        this_week_totals = {}
-        for row in per_project_average_releases:
+        for row in per_project_daily_release_counts:
             project_avgs[row["projects"]] += row["count"]
             agg_project_counts[str(row["bucket"].date())] = row["count"]
-            this_week_totals.setdefault(row["projects"], 0)  # zero-fill for each project
             if row["bucket"] >= this_week_start:
                 this_week_totals[row["projects"]] += row["count"]
 
