@@ -100,7 +100,10 @@ def calculation_magic(
     # We need somewhere to keep the recent buckets to compute the rate at.  We only get an
     # iterator as input so keep the last few buckets seen, once the iterator is exhausted
     # this will have the most recent buckets.
-    recent_bucket_count = 60 / realtime_metrics.realtime_metrics_store._counter_bucket_size
+    recent_time_window = 60
+    recent_bucket_count = (
+        recent_time_window / realtime_metrics.realtime_metrics_store._counter_bucket_size
+    )
     recent_buckets: Deque[BucketedCount] = collections.deque(maxlen=recent_bucket_count)
 
     # We need to know the average rate over the total time period.
@@ -116,8 +119,7 @@ def calculation_magic(
 
     # Calculate recent rate
     recent_count = sum(bucket.count for bucket in recent_buckets)
-    recent_time = recent_bucket_count * realtime_metrics.realtime_metrics_store._counter_bucket_size
-    recent_rate = recent_count / recent_time
+    recent_rate = recent_count / recent_time_window
 
     if recent_rate > 50 and recent_rate > 5 * total_rate:
         return True
