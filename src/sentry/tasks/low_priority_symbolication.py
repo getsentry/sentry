@@ -10,7 +10,10 @@ This has three major tasks, executed in the following general order:
 
 import logging
 import time
-from typing import Iterable
+from typing import Iterable, Optional
+
+from sentry_sdk import capture_message
+from typing_extensions import Literal
 
 from sentry import options
 from sentry.killswitches import normalize_value
@@ -18,6 +21,7 @@ from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.base import BucketedCount, DurationHistogram
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.sdk import configure_scope
 
 logger = logging.getLogger(__name__)
 
@@ -53,15 +57,7 @@ def _scan_for_suspect_projects() -> None:
     realtime_metrics.remove_projects_from_lpq(expired_projects)
 
     for project_id in expired_projects:
-        # TODO: add metrics!
-        logger.warning("Moved project out of symbolicator's low priority queue: %s", project_id)
-
-    project_count = len(list(realtime_metrics.get_lpq_projects()))
-    metrics.gauge(
-        "tasks.store.symbolicate_event.low_priority.projects",
-        project_count,
-        tags={"reason": "expired"},
-    )
+        _log_change(project_id=project_id, change="removed", reason="no metrics")
 
 
 @instrumented_task(  # type: ignore
@@ -94,23 +90,27 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
     if is_eligible:
         was_added = realtime_metrics.add_project_to_lpq(project_id)
         if was_added:
-            logger.warning("Moved project to symbolicator's low priority queue: %s", project_id)
-            project_count = len(list(realtime_metrics.get_lpq_projects()))
-            metrics.gauge(
-                "tasks.store.symbolicate_event.low_priority.projects",
-                project_count,
-                tags={"reason": "added"},
-            )
-    elif not is_eligible:
+            _log_change(project_id=project_id, change="added", reason="eligible")
+    else:
         was_removed = realtime_metrics.remove_projects_from_lpq({project_id})
         if was_removed:
-            logger.warning("Moved project out of symbolicator's low priority queue: %s", project_id)
-            project_count = len(list(realtime_metrics.get_lpq_projects()))
-            metrics.gauge(
-                "tasks.store.symbolicate_event.low_priority.projects",
-                project_count,
-                tags={"reason": "removed"},
-            )
+            _log_change(project_id=project_id, change="removed", reason="ineligible")
+
+
+def _log_change(project_id, change: Literal["added", "removed"], reason: Optional[str]) -> None:
+    if not reason:
+        reason = "unknown"
+
+    if change == "added":
+        message = "Added project to symbolicator's low priority queue"
+    else:
+        message = "Removed project from symbolicator's low priority queue"
+
+    with configure_scope() as scope:
+        scope.set_level("warning")
+        scope.set_tag("project", project_id)
+        scope.set_tag("reason", reason)
+        capture_message(message)
 
 
 def _record_metrics() -> None:
