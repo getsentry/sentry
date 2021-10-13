@@ -28,7 +28,7 @@ import {shouldFetchPreviousPeriod} from '../utils';
 const omitIgnoredProps = (props: Props) =>
   omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
 
-type ReleaseStatsRequestRenderProps = {
+type ProjectSessionsChartRequestRenderProps = {
   loading: boolean;
   reloading: boolean;
   errored: boolean;
@@ -41,7 +41,7 @@ type Props = {
   api: Client;
   organization: Organization;
   selection: GlobalSelection;
-  children: (renderProps: ReleaseStatsRequestRenderProps) => React.ReactNode;
+  children: (renderProps: ProjectSessionsChartRequestRenderProps) => React.ReactNode;
   onTotalValuesChange: (value: number | null) => void;
   displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
   theme: Theme;
@@ -57,7 +57,7 @@ type State = {
   totalSessions: number | null;
 };
 
-class SessionsRequest extends React.Component<Props, State> {
+class ProjectSessionsChartRequest extends React.Component<Props, State> {
   state: State = {
     reloading: false,
     errored: false,
@@ -339,4 +339,4 @@ class SessionsRequest extends React.Component<Props, State> {
   }
 }
 
-export default withTheme(SessionsRequest);
+export default withTheme(ProjectSessionsChartRequest);
