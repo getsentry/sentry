@@ -10,7 +10,7 @@ from sentry.api.exceptions import SentryAPIException
 # These values must be synced with the avatar cropper in frontend.
 MIN_DIMENSION = 256
 MAX_DIMENSION = 1024
-ALLOWED_MIMETYPES = ("image/gif", "image/jpeg", "image/png", "image/svg+xml")
+ALLOWED_MIMETYPES = ("image/gif", "image/jpeg", "image/png")
 
 
 class ImageTooLarge(SentryAPIException):
@@ -49,8 +49,8 @@ class AvatarField(serializers.Field):
                 raise serializers.ValidationError("Invalid image format.")
 
             width, height = img.size
-            # if not self.is_valid_size(width, height):
-            #     raise serializers.ValidationError("Invalid image dimensions.")
+            if not self.is_valid_size(width, height):
+                raise serializers.ValidationError("Invalid image dimensions.")
 
         return BytesIO(data)
 
