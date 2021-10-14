@@ -623,6 +623,7 @@ class SmartSearchBar extends React.Component<Props, State> {
    */
   get hasValidSearch() {
     const {parsedQuery} = this.state;
+
     // If we fail to parse be optimistic that it's valid
     if (parsedQuery === null) {
       return true;
