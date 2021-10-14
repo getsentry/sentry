@@ -1,7 +1,7 @@
 import logging
 import re
 from operator import attrgetter
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Tuple
 
 from django.conf import settings
 from django.urls import reverse
@@ -651,6 +651,14 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     "required": bool(issue_type_choices),  # required if we have any type choices
                 }
             ]
+            + [
+                {
+                    "name": "_sentry_project_id",
+                    "type": "hidden",
+                    "default": group.project.id,
+                    "updatesForm": True,
+                }
+            ]
         )
 
         # title is renamed to summary before sending to Jira
@@ -694,30 +702,35 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             elif field["name"] == "labels":
                 field["default"] = defaults.get("labels", "")
             elif field["name"] == "reporter":
-                reporter_id = defaults.get("reporter", "")
-                if not reporter_id:
-                    continue
-                try:
-                    reporter_info = client.get_user(reporter_id)
-                except ApiError as e:
-                    logger.info(
-                        "jira.get-create-issue-config.no-matching-reporter",
-                        extra={
-                            "integration_id": self.model.id,
-                            "organization_id": self.organization_id,
-                            "persisted_reporter_id": reporter_id,
-                            "error": str(e),
-                        },
-                    )
-                    continue
-                reporter_tuple = build_user_choice(reporter_info, client.user_id_field())
+                reporter_tuple = self.get_default_reporter(defaults)
                 if not reporter_tuple:
                     continue
                 reporter_id, reporter_label = reporter_tuple
+
                 field["default"] = reporter_id
                 field["choices"] = [(reporter_id, reporter_label)]
 
         return fields
+
+    def get_default_reporter(self, defaults: Mapping[str, Any]) -> Optional[Tuple]:
+        client = self.get_client()
+        reporter_id = defaults.get("reporter", "")
+        if not reporter_id:
+            return None
+        try:
+            reporter_info = client.get_user(reporter_id)
+        except ApiError as e:
+            logger.info(
+                "jira.get-create-issue-config.no-matching-reporter",
+                extra={
+                    "integration_id": self.model.id,
+                    "organization_id": self.organization_id,
+                    "persisted_reporter_id": reporter_id,
+                    "error": str(e),
+                },
+            )
+            return None
+        return build_user_choice(reporter_info, client.user_id_field())
 
     def create_issue(self, data, **kwargs):
         """

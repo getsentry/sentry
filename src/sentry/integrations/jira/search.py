@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models import Integration
+from sentry.models import Integration, Project, UserOption
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.utils.compat import filter
 
@@ -59,6 +59,19 @@ class JiraSearchEndpoint(IntegrationEndpoint):
                 None, [build_user_choice(user, jira_client.user_id_field()) for user in response]
             )
             users = [{"value": user_id, "label": display} for user_id, display in user_tuples]
+
+            # If the project_id is specified, we can search the user's default options to prevent
+            # the label disappearing on the frontend
+            project_id = request.GET.get("_sentry_project_id")
+            if project_id and field == "reporter":
+                project = Project.objects.get(id=project_id)
+                defaults = installation.get_defaults(project, request.user)
+                reporter_tuple = installation.get_default_reporter(defaults)
+                if not reporter_tuple:
+                    Response(users)
+                reporter_id, reporter_label = reporter_tuple
+                users.append({"value": reporter_id, "label": f"[Default] {reporter_label}"})
+
             return Response(users)
 
         try:

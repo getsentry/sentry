@@ -154,6 +154,6 @@ class JiraServer:
 
     def user_id_get_param(self):
         """
-        Jira-Server doesn't require compliant API usage so we can use `username
+        Jira-Server doesn't require compliant API usage so we can use `username`
         """
         return "username"
