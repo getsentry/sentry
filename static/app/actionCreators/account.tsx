@@ -3,7 +3,10 @@ import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
 import {User, UserIdentityConfig} from 'app/types';
 
-export async function disconnectIdentity(identity: UserIdentityConfig) {
+export async function disconnectIdentity(
+  identity: UserIdentityConfig,
+  onSuccess: {(): void}
+) {
   const api = new Client();
 
   try {
@@ -14,6 +17,7 @@ export async function disconnectIdentity(identity: UserIdentityConfig) {
       }
     );
     addSuccessMessage(`Disconnected ${identity.providerName}`);
+    onSuccess();
   } catch {
     addErrorMessage('Error disconnecting identity');
   }

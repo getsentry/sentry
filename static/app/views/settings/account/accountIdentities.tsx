@@ -74,8 +74,7 @@ class AccountIdentities extends AsyncView<Props, State> {
   }
 
   handleDisconnect = (identity: UserIdentityConfig) => {
-    disconnectIdentity(identity);
-    this.reloadData(); // TODO: Avoid this if request fails
+    disconnectIdentity(identity, this.reloadData);
   };
 
   renderBody() {
