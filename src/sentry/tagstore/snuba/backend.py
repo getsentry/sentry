@@ -1041,11 +1041,7 @@ class SnubaTagStorage(TagStorage):
                 # numeric keys like measurements and breakdowns are nullable
                 # so filter out the None values from the results
                 results = OrderedDict(
-                    [
-                        (value, data)
-                        for value, data in results.items()
-                        if value is not None
-                    ]
+                    [(value, data) for value, data in results.items() if value is not None]
                 )
 
         tag_values = [
