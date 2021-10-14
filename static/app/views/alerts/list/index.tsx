@@ -56,7 +56,7 @@ type State = {
 
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {params, location, organization} = this.props;
+    const {params, location} = this.props;
     const {query} = location;
 
     const status = this.getQueryStatus(query.status);
@@ -66,10 +66,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     }
 
     query.team = getTeamParams(query.team);
-
-    if (organization.features.includes('alert-details-redesign')) {
-      query.expand = ['original_alert_rule'];
-    }
+    query.expand = ['original_alert_rule'];
 
     return [['incidentList', `/organizations/${params?.orgId}/incidents/`, {query}]];
   }
@@ -305,14 +302,9 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
                 <Fragment>
-                  <Feature
-                    features={['alert-details-redesign']}
-                    organization={organization}
-                  >
-                    <StyledAlert icon={<IconInfo />}>
-                      {t('This page only shows metric alerts.')}
-                    </StyledAlert>
-                  </Feature>
+                  <StyledAlert icon={<IconInfo />}>
+                    {t('This page only shows metric alerts.')}
+                  </StyledAlert>
                   {this.renderFilterBar()}
                 </Fragment>
               )}

@@ -327,26 +327,19 @@ class Sidebar extends React.Component<Props, State> {
     );
 
     const alerts = hasOrganization && (
-      <Feature features={['incidents', 'alert-details-redesign']} requireAll={false}>
-        {({features}) => {
-          const hasIncidents = features.includes('incidents');
-          const hasAlertList = features.includes('alert-details-redesign');
-          const alertsPath =
-            hasIncidents && !hasAlertList
-              ? `/organizations/${organization.slug}/alerts/`
-              : `/organizations/${organization.slug}/alerts/rules/`;
-          return (
-            <SidebarItem
-              {...sidebarItemProps}
-              onClick={(_id, evt) => this.navigateWithGlobalSelection(alertsPath, evt)}
-              icon={<IconSiren size="md" />}
-              label={t('Alerts')}
-              to={alertsPath}
-              id="alerts"
-            />
-          );
-        }}
-      </Feature>
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={(_id, evt) =>
+          this.navigateWithGlobalSelection(
+            `/organizations/${organization.slug}/alerts/rules/`,
+            evt
+          )
+        }
+        icon={<IconSiren size="md" />}
+        label={t('Alerts')}
+        to={`/organizations/${organization.slug}/alerts/rules/`}
+        id="alerts"
+      />
     );
 
     const monitors = hasOrganization && (

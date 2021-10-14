@@ -58,12 +58,7 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
             incident=crit_incident, alert_rule_trigger=trigger, status=TriggerStatus.ACTIVE.value
         )
 
-        with self.feature(
-            [
-                "organizations:incidents",
-                "organizations:alert-details-redesign",
-            ]
-        ):
+        with self.feature(["organizations:incidents"]):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading-indicator")
             self.browser.snapshot("alert rules - alert list")
