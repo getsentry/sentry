@@ -26,6 +26,7 @@ type Props = AsyncComponent['props'] & {
 type ProjectReleaseCount = {
   project_avgs: Record<string, number>;
   release_counts: Record<string, number>;
+  last_week_totals: Record<string, number>;
 };
 
 type State = AsyncComponent['state'] & {
@@ -91,11 +92,12 @@ class TeamReleases extends AsyncComponent<Props, State> {
 
   getReleaseCount(projectId: number, dataset: 'week' | 'period'): number | null {
     const {periodReleases, weekReleases} = this.state;
-    const releasesPeriod = dataset === 'week' ? weekReleases : periodReleases;
-    const projectsReleaseCount = releasesPeriod?.project_avgs;
 
-    const count = projectsReleaseCount?.[projectId]
-      ? projectsReleaseCount?.[projectId] * 12
+    const releasesPeriod =
+      dataset === 'week' ? weekReleases?.last_week_totals : periodReleases?.project_avgs;
+
+    const count = releasesPeriod?.[projectId]
+      ? Math.ceil(releasesPeriod?.[projectId])
       : 0;
 
     return count;
@@ -167,7 +169,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
 
     const data = Object.entries(periodReleases?.release_counts ?? {})
       .map(([bucket, count]) => ({
-        value: count,
+        value: Math.ceil(count),
         name: new Date(bucket).getTime(),
       }))
       .sort((a, b) => a.name - b.name);
@@ -184,10 +186,10 @@ class TeamReleases extends AsyncComponent<Props, State> {
       };
     });
 
-    const avgSeriesData = chunk(data, 7).map(week => {
+    const prevSeriesData = chunk(data, 7).map(week => {
       return {
         name: week[0].name,
-        value: Math.ceil(projectAvgData),
+        value: Math.ceil(projectAvgData / projects.length),
       };
     });
 
@@ -212,8 +214,8 @@ class TeamReleases extends AsyncComponent<Props, State> {
             ]}
             previousPeriod={[
               {
-                seriesName: t('12 Week Average'),
-                data: avgSeriesData ?? [],
+                seriesName: t(`Last ${period} Average`),
+                data: prevSeriesData ?? [],
               },
             ]}
           />
