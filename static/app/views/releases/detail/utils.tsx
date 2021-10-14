@@ -4,7 +4,6 @@ import moment from 'moment';
 
 import MarkLine from 'app/components/charts/components/markLine';
 import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {
@@ -248,8 +247,6 @@ export function generateReleaseMarkLines(
   const {statsPeriod, ...releaseParamsRest} = getReleaseParams({
     location,
     releaseBounds: getReleaseBounds(release),
-    defaultStatsPeriod: DEFAULT_STATS_PERIOD, // this will be removed once we get rid off legacy release details
-    allowEmptyPeriod: true,
   });
   let {start, end} = releaseParamsRest;
   const isDefaultPeriod = !(

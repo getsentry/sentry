@@ -1,5 +1,6 @@
 import warnings
 from collections import defaultdict
+from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
 
 from django.conf import settings
 from django.db import IntegrityError, connections, models, router, transaction
@@ -18,9 +19,18 @@ from sentry.db.models.utils import slugify_instance
 from sentry.tasks.code_owners import update_code_owners_schema
 from sentry.utils.retries import TimedRetryPolicy
 
+if TYPE_CHECKING:
+    from sentry.models import Organization, Project, User
+
 
 class TeamManager(BaseManager):
-    def get_for_user(self, organization, user, scope=None, with_projects=False):
+    def get_for_user(
+        self,
+        organization: "Organization",
+        user: "User",
+        scope: Optional[str] = None,
+        with_projects: bool = False,
+    ) -> Union[Sequence["Team"], Sequence[Tuple["Team", Sequence["Project"]]]]:
         """
         Returns a list of all teams a user has some level of access to.
         """

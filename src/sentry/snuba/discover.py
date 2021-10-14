@@ -8,7 +8,7 @@ from typing import Dict, Optional, Sequence
 import sentry_sdk
 
 from sentry import options
-from sentry.discover.arithmetic import is_equation, resolve_equation_list, strip_equation
+from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
 from sentry.models import Group
 from sentry.models.transaction_threshold import ProjectTransactionThreshold
 from sentry.search.events.builder import QueryBuilder
@@ -404,14 +404,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params):
     if not snuba_filter.start and not snuba_filter.end:
         raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
 
-    columns = []
-    equations = []
-
-    for column in selected_columns:
-        if is_equation(column):
-            equations.append(strip_equation(column))
-        else:
-            columns.append(column)
+    equations, columns = categorize_columns(selected_columns)
 
     if len(equations) > 0:
         resolved_equations, updated_columns = resolve_equation_list(
@@ -532,7 +525,7 @@ def timeseries_query(
             comp_query_params.start -= comparison_delta
             comp_query_params.end -= comparison_delta
             query_params_list.append(comp_query_params)
-        query_results = bulk_raw_query(query_params_list)
+        query_results = bulk_raw_query(query_params_list, referrer=referrer)
 
     with sentry_sdk.start_span(
         op="discover.discover", description="timeseries.transform_results"
@@ -553,11 +546,8 @@ def timeseries_query(
         # If we have two sets of results then we're doing a comparison queries. Divide the primary
         # results by the comparison results.
         for result, cmp_result in zip(results[0], results[1]):
-            result_val, cmp_result_val = result.get(col_name, 0), cmp_result.get(col_name, 0)
-            comparison_value = 0
-            if cmp_result_val:
-                comparison_value = ((result_val / cmp_result_val) - 1) * 100
-            result[col_name] = comparison_value
+            cmp_result_val = cmp_result.get(col_name, 0)
+            result["comparisonCount"] = cmp_result_val
 
     results = results[0]
 

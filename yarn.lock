@@ -5585,7 +5585,7 @@ core-js@^1.0.0:
   resolved "https://registry.yarnpkg.com/core-js/-/core-js-1.2.7.tgz#652294c14651db28fa93bd2d5ff2983a4f08c636"
   integrity sha1-ZSKUwUZR2yj6k70tX/KYOk8IxjY=
 
-core-js@^3.0.4, core-js@^3.1.2, core-js@^3.15.2, core-js@^3.6.5, core-js@^3.8.2:
+core-js@^3.0.4, core-js@^3.15.2, core-js@^3.6.5, core-js@^3.8.2:
   version "3.16.4"
   resolved "https://registry.yarnpkg.com/core-js/-/core-js-3.16.4.tgz#0fb1029a554fc2688c0963d7c900e188188a78e0"
   integrity sha512-Tq4GVE6XCjE+hcyW6hPy0ofN3hwtLudz5ZRdrlCnsnD/xkm/PWQRudzYHiKgZKUcefV6Q57fhDHjZHJP5dpfSg==
@@ -12117,6 +12117,11 @@ puppeteer@^10.1.0:
     unbzip2-stream "1.3.3"
     ws "7.4.6"
 
+pyright@^1.1.178:
+  version "1.1.178"
+  resolved "https://registry.yarnpkg.com/pyright/-/pyright-1.1.178.tgz#0c3db46989ae59c01643f5b9778c6b43a56696c7"
+  integrity sha512-OhEoC5HfKZqvY5GVCsHeroYDx85xp4CZwevhNsePxNzZyW+W491K4bfLTvuOBnvcnMWip+aMQ7zzFDkw74Gtkg==
+
 qr.js@0.0.0:
   version "0.0.0"
   resolved "https://registry.yarnpkg.com/qr.js/-/qr.js-0.0.0.tgz#cace86386f59a0db8050fa90d9b6b0e88a1e364f"
@@ -12405,13 +12410,6 @@ react-is@^16.7.0, react-is@^16.8.1, react-is@^16.8.4:
   version "16.13.1"
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.13.1.tgz#789729a4dc36de2999dc156dd6c1d9c18cea56a4"
   integrity sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==
-
-react-keydown@^1.9.7:
-  version "1.9.12"
-  resolved "https://registry.yarnpkg.com/react-keydown/-/react-keydown-1.9.12.tgz#9e10157775c9e3f21e124987e14af45a2ed52384"
-  integrity sha512-KnQdVCTlPeJJ5FcnaqT4LJFHFUWbr/P+KnUtKA3xOc2JuJy738LyNM8jdnkWNkexHWEXt/021ufR5l9e3fzUCQ==
-  dependencies:
-    core-js "^3.1.2"
 
 react-lazyload@^2.3.0:
   version "2.6.5"

@@ -21,7 +21,7 @@ type Internals = {
   pathMap: Record<string, string>;
 };
 
-const storeConfig: Reflux.StoreDefinition & SettingsBreadcrumbStoreInterface & Internals =
+const storeConfig: Reflux.StoreDefinition & Internals & SettingsBreadcrumbStoreInterface =
   {
     pathMap: {},
     init() {

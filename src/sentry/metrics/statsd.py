@@ -20,3 +20,6 @@ class StatsdMetricsBackend(MetricsBackend):
 
     def timing(self, key, value, instance=None, tags=None, sample_rate=1):
         self.client.timing(self._full_key(self._get_key(key)), value, sample_rate)
+
+    def gauge(self, key, value, instance=None, tags=None, sample_rate=1):
+        self.client.gauge(self._full_key(self._get_key(key)), value, sample_rate)

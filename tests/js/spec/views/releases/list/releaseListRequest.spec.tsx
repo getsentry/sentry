@@ -4,10 +4,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {HealthStatsPeriodOption} from 'app/types';
+import ReleaseListRequest from 'app/views/releases/list/releaseListRequest';
 import {DisplayOption} from 'app/views/releases/list/utils';
-import ReleaseHealthRequest from 'app/views/releases/utils/releaseHealthRequest';
 
-describe('ReleaseHealthRequest', function () {
+describe('ReleaseListRequest', function () {
   const {organization, routerContext, router} = initializeOrg();
   const projectId = 123;
   const selection = {
@@ -219,7 +219,7 @@ describe('ReleaseHealthRequest', function () {
     let healthData;
 
     const wrapper = mountWithTheme(
-      <ReleaseHealthRequest
+      <ReleaseListRequest
         releases={[
           '7a82c130be9143361f20bc77252df783cf91e4fc',
           'e102abb2c46e7fe8686441091005c12aed90da99',
@@ -238,7 +238,7 @@ describe('ReleaseHealthRequest', function () {
           healthData = getHealthData;
           return null;
         }}
-      </ReleaseHealthRequest>,
+      </ReleaseListRequest>,
       routerContext
     );
 
@@ -451,7 +451,7 @@ describe('ReleaseHealthRequest', function () {
     let healthData;
 
     const wrapper = mountWithTheme(
-      <ReleaseHealthRequest
+      <ReleaseListRequest
         releases={[
           '7a82c130be9143361f20bc77252df783cf91e4fc',
           'e102abb2c46e7fe8686441091005c12aed90da99',
@@ -470,7 +470,7 @@ describe('ReleaseHealthRequest', function () {
           healthData = getHealthData;
           return null;
         }}
-      </ReleaseHealthRequest>,
+      </ReleaseListRequest>,
       routerContext
     );
 
@@ -677,7 +677,7 @@ describe('ReleaseHealthRequest', function () {
     let healthData;
 
     const wrapper = mountWithTheme(
-      <ReleaseHealthRequest
+      <ReleaseListRequest
         releases={[
           '7a82c130be9143361f20bc77252df783cf91e4fc',
           'e102abb2c46e7fe8686441091005c12aed90da99',
@@ -697,7 +697,7 @@ describe('ReleaseHealthRequest', function () {
           healthData = getHealthData;
           return null;
         }}
-      </ReleaseHealthRequest>,
+      </ReleaseListRequest>,
       routerContext
     );
 
