@@ -2167,9 +2167,13 @@ class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
     def __init__(
-        self, dataset: Dataset, params: ParamsType, functions_acl: Optional[List[str]] = None
+        self,
+        dataset: Dataset,
+        params: ParamsType,
+        auto_fields: bool = False,
+        functions_acl: Optional[List[str]] = None,
     ):
-        super().__init__(dataset, params, functions_acl)
+        super().__init__(dataset, params, auto_fields, functions_acl)
 
         self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
@@ -2674,6 +2678,15 @@ class QueryFields(QueryBase):
             resolved_column = self.resolve_column(column, alias=True)
             if resolved_column not in self.columns:
                 resolved_columns.append(resolved_column)
+
+        # Happens after resolving columns to check if there any aggregates
+        if self.auto_fields and not self.aggregates:
+            # Ensure fields we require to build a functioning interface
+            # are present.
+            if "id" not in stripped_columns:
+                resolved_columns.append(self.resolve_column("id", alias=True))
+            if "project.id" not in stripped_columns:
+                resolved_columns.append(self.resolve_column("project.id", alias=True))
 
         return resolved_columns
 
