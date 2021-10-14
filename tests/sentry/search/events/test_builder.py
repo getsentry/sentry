@@ -409,3 +409,28 @@ class QueryBuilderTest(TestCase):
                 selected_columns=["sumArray(stuff)"],
                 functions_acl=["sumArray"],
             )
+
+    def test_spans_columns(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "array_join(spans_op)",
+                "array_join(spans_group)",
+                "sumArray(spans_exclusive_time)",
+            ],
+            functions_acl=["array_join", "sumArray"],
+        )
+        self.assertCountEqual(
+            query.columns,
+            [
+                Function("arrayJoin", [Column("spans.op")], "array_join_spans_op"),
+                Function("arrayJoin", [Column("spans.group")], "array_join_spans_group"),
+                Function(
+                    "sum",
+                    [Function("arrayJoin", [Column("spans.exclusive_time")])],
+                    "sumArray_spans_exclusive_time",
+                ),
+            ],
+        )
