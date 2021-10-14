@@ -1527,14 +1527,18 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         org_id = self._get_org_id([project_id])
 
-        start = to_datetime((to_timestamp(start) // rollup + 1) * rollup)
+        new_start = to_datetime((to_timestamp(start) // rollup + 1) * rollup)
+        assert new_start is not None  # typing
+        start = new_start
 
         # since snuba end queries are exclusive of the time and we're bucketing to
         # 10 seconds, we need to round to the next 10 seconds since snuba is
         # exclusive on the end.
-        end = to_datetime(
+        new_end = to_datetime(
             (to_timestamp(end) // SMALLEST_METRICS_BUCKET + 1) * SMALLEST_METRICS_BUCKET
         )
+        assert new_end is not None  # typing
+        end = new_end
 
         times: List[datetime] = []
         time = start

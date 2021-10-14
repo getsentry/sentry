@@ -33,16 +33,6 @@ def to_timestamp(value: datetime) -> float:
     return (value - epoch).total_seconds()
 
 
-@overload
-def to_datetime(value: None) -> None:
-    ...
-
-
-@overload
-def to_datetime(value: Union[float, int]) -> datetime:
-    ...
-
-
 def to_datetime(value: Optional[Union[float, int]]) -> Optional[datetime]:
     """
     Convert a POSIX timestamp to a time zone aware datetime.
