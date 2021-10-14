@@ -176,17 +176,9 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
 type GetReleaseParams = {
   location: Location;
   releaseBounds: ReleaseBounds;
-  defaultStatsPeriod: string;
-  allowEmptyPeriod: boolean;
 };
 
-// these options are here only temporarily while we still support older and newer release details page
-export function getReleaseParams({
-  location,
-  releaseBounds,
-  defaultStatsPeriod,
-  allowEmptyPeriod,
-}: GetReleaseParams) {
+export function getReleaseParams({location, releaseBounds}: GetReleaseParams) {
   const params = getParams(
     pick(location.query, [
       ...Object.values(URL_PARAM),
@@ -195,8 +187,7 @@ export function getReleaseParams({
     ]),
     {
       allowAbsolutePageDatetime: true,
-      defaultStatsPeriod,
-      allowEmptyPeriod,
+      allowEmptyPeriod: true,
     }
   );
   if (

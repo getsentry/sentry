@@ -37,10 +37,8 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
 )
 from sentry.integrations.slack.utils import validate_channel_id
-from sentry.models import ActorTuple
-from sentry.models.organizationmember import OrganizationMember
-from sentry.models.team import Team
-from sentry.models.user import User
+from sentry.mediators import alert_rule_actions
+from sentry.models import ActorTuple, OrganizationMember, SentryAppInstallation, Team, User
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
@@ -89,15 +87,28 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     id = serializers.IntegerField(required=False)
     type = serializers.CharField()
     target_type = serializers.CharField()
+    sentry_app_config = serializers.JSONField(required=False)
+    sentry_app_installation_uuid = serializers.CharField(required=False)
 
     class Meta:
         model = AlertRuleTriggerAction
-        fields = ["id", "type", "target_type", "target_identifier", "integration", "sentry_app"]
+        fields = [
+            "id",
+            "type",
+            "target_type",
+            "target_identifier",
+            "integration",
+            "sentry_app",
+            "sentry_app_config",
+            "sentry_app_installation_uuid",
+        ]
         extra_kwargs = {
             "target_identifier": {"required": True},
             "target_display": {"required": False},
             "integration": {"required": False, "allow_null": True},
             "sentry_app": {"required": False, "allow_null": True},
+            "sentry_app_config": {"required": False, "allow_null": True},
+            "sentry_app_installation_uuid": {"required": False, "allow_null": True},
         }
 
     def validate_type(self, type):
@@ -168,6 +179,33 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 raise serializers.ValidationError(
                     {"sentry_app": "SentryApp must be provided for sentry_app"}
                 )
+            if attrs.get("sentry_app_config"):
+                if attrs.get("sentry_app_installation_uuid") is None:
+                    raise serializers.ValidationError(
+                        {"sentry_app": "Missing paramater: sentry_app_installation_uuid"}
+                    )
+
+                try:
+                    install = SentryAppInstallation.objects.get(
+                        uuid=attrs.get("sentry_app_installation_uuid")
+                    )
+                except SentryAppInstallation.DoesNotExist:
+                    raise serializers.ValidationError(
+                        {"sentry_app": "The installation does not exist."}
+                    )
+                # Check response from creator and bubble up errors from providers as a ValidationError
+                result = alert_rule_actions.AlertRuleActionCreator.run(
+                    install=install,
+                    fields=attrs.get("sentry_app_config"),
+                )
+
+                if not result["success"]:
+                    raise serializers.ValidationError(
+                        {"sentry_app": f'{install.sentry_app.name}: {result["message"]}'}
+                    )
+
+                del attrs["sentry_app_installation_uuid"]
+
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
         attrs["input_channel_id"] = self.context.get("input_channel_id")
         should_validate_channel_id = self.context.get("validate_channel_id", True)
@@ -273,7 +311,6 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                     instance=action_instance,
                     data=action_data,
                 )
-
                 if action_serializer.is_valid():
                     try:
                         action_serializer.save()

@@ -8,12 +8,14 @@ import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
+import {parseArithmetic} from 'app/components/arithmeticInput/parser';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Banner from 'app/components/banner';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import DropdownControl from 'app/components/dropdownControl';
+import FeatureBadge from 'app/components/featureBadge';
 import Hovercard from 'app/components/hovercard';
 import MenuItem from 'app/components/menuItem';
 import {IconDelete, IconStar} from 'app/icons';
@@ -21,7 +23,9 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'app/utils/discover/eventView';
+import {getEquation, isEquation} from 'app/utils/discover/fields';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
@@ -226,12 +230,30 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
   handleAddDashboardWidget = () => {
     const {organization, eventView, savedQuery, yAxis} = this.props;
+    // If a Y-Axis value is an equation, we need to check if functions used in the equation also exist in the Y-Axis list
+    const validYAxis = yAxis.filter(field => {
+      if (isEquation(field)) {
+        const parsed = parseArithmetic(getEquation(field));
+        return (
+          !parsed.error &&
+          parsed.tc.functions.every(
+            ({term}) => typeof term === 'string' && yAxis.includes(term)
+          )
+        );
+      }
+      return true;
+    });
     const defaultWidgetQuery: WidgetQuery = {
       name: '',
-      fields: yAxis ?? ['count()'],
+      fields: validYAxis && validYAxis.length > 0 ? validYAxis : ['count()'],
       conditions: eventView.query,
       orderby: '',
     };
+
+    trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
+      organization,
+      saved_query: !!savedQuery,
+    });
 
     openAddDashboardWidgetModal({
       organization,
@@ -361,12 +383,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   renderDiscoverQueryMenu() {
     const menuOptions: React.ReactNode[] = [];
     menuOptions.push(
-      <MenuItem
+      <StyledMenuItem
         key="add-dashboard-widget-from-discover"
         onClick={this.handleAddDashboardWidget}
       >
-        {t('Add to Dashboard')}
-      </MenuItem>
+        {t('Add to Dashboard')} <FeatureBadge type="beta" noTooltip />
+      </StyledMenuItem>
     );
     return <DiscoverQueryMenu>{menuOptions}</DiscoverQueryMenu>;
   }
@@ -445,6 +467,13 @@ const IconUpdate = styled('div')`
   margin-right: ${space(0.75)};
   border-radius: 5px;
   background-color: ${p => p.theme.yellow300};
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  white-space: nowrap;
+  span {
+    align-items: baseline;
+  }
 `;
 
 export default withProjects(withApi(SavedQueryButtonGroup));

@@ -13,7 +13,6 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import SidebarSectionTitle from 'app/components/sidebarSectionTitle';
 import Tag from 'app/components/tag';
 import Tooltip from 'app/components/tooltip';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -203,14 +202,11 @@ function ReleaseComparisonChart({
   } = getReleaseParams({
     location,
     releaseBounds: getReleaseBounds(release),
-    defaultStatsPeriod: DEFAULT_STATS_PERIOD, // this will be removed once we get rid off legacy release details
-    allowEmptyPeriod: true,
   });
 
   const isMobileProject = isProjectMobileForReleases(project.platform);
-  const adoptionStage = release.adoptionStages?.[project.slug].stage;
-  const adoptionStageLabel =
-    Boolean(adoptionStage) && ADOPTION_STAGE_LABELS[adoptionStage];
+  const adoptionStage = release.adoptionStages?.[project.slug]?.stage;
+  const adoptionStageLabel = ADOPTION_STAGE_LABELS[adoptionStage];
   const multipleEnvironments = environment.length === 0 || environment.length > 1;
 
   return (
