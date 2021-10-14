@@ -1,9 +1,8 @@
-import * as React from 'react';
+import {Fragment, useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 import * as queryString from 'query-string';
 
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
@@ -32,11 +31,12 @@ import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import PreferencesStore from 'app/stores/preferencesStore';
 import SidebarPanelStore from 'app/stores/sidebarPanelStore';
+import {useLegacyStore} from 'app/stores/useLegacyStore';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import theme from 'app/utils/theme';
-import withOrganization from 'app/utils/withOrganization';
+import useMedia from 'app/utils/useMedia';
 
 import Broadcasts from './broadcasts';
 import SidebarHelp from './help';
@@ -48,131 +48,63 @@ import {SidebarOrientation, SidebarPanelKey} from './types';
 
 const SidebarOverride = HookOrDefault({
   hookName: 'sidebar:item-override',
-  defaultComponent: ({children}) => <React.Fragment>{children({})}</React.Fragment>,
+  defaultComponent: ({children}) => <Fragment>{children({})}</Fragment>,
 });
 
-type ActivePanelType = SidebarPanelKey | '';
-
 type Props = {
-  organization: Organization;
-  activePanel: ActivePanelType;
-  collapsed: boolean;
+  organization?: Organization;
   location?: Location;
-  children?: never;
 };
 
-type State = {
-  horizontal: boolean;
-};
+function Sidebar({location, organization}: Props) {
+  const config = useLegacyStore(ConfigStore);
+  const preferences = useLegacyStore(PreferencesStore);
+  const activePanel = useLegacyStore(SidebarPanelStore);
 
-class Sidebar extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
+  const collapsed = !!preferences.collapsed;
+  const horizontal = useMedia(`(max-width: ${theme.breakpoints[1]})`);
 
-    if (!window.matchMedia) {
-      return;
-    }
-
-    // TODO(billy): We should consider moving this into a component
-    this.mq = window.matchMedia(`(max-width: ${theme.breakpoints[1]})`);
-    this.mq.addListener(this.handleMediaQueryChange);
-    this.state.horizontal = this.mq.matches;
-  }
-
-  state: State = {
-    horizontal: false,
+  const toggleCollapse = () => {
+    const action = collapsed ? showSidebar : hideSidebar;
+    action();
   };
 
-  componentDidMount() {
-    document.body.classList.add('body-sidebar');
+  const togglePanel = (panel: SidebarPanelKey) => SidebarPanelActions.togglePanel(panel);
+  const hidePanel = () => SidebarPanelActions.hidePanel();
 
-    this.checkHash();
-    this.doCollapse(this.props.collapsed);
-  }
+  const bcl = document.body.classList;
 
-  // Sidebar doesn't use children, so don't use it to compare
-  // Also ignore location, will re-render when routes change (instead of query params)
-  //
-  // NOTE(epurkhiser): The comment above is why I added `children?: never` as a
-  // type to this component. I'm not sure the implications of removing this so
-  // I've just left it for now.
-  shouldComponentUpdate(
-    {children: _children, location: _location, ...nextPropsToCompare}: Props,
-    nextState: State
-  ) {
-    const {
-      children: _childrenCurrent,
-      location: _locationCurrent,
-      ...currentPropsToCompare
-    } = this.props;
+  // Close panel on any navigation
+  useEffect(() => void hidePanel(), [location?.pathname]);
 
-    return (
-      !isEqual(currentPropsToCompare, nextPropsToCompare) ||
-      !isEqual(this.state, nextState)
-    );
-  }
+  // Add classname to body
+  useEffect(() => {
+    bcl.add('body-sidebar');
+    return () => bcl.remove('body-sidebar');
+  }, []);
 
-  componentDidUpdate(prevProps: Props) {
-    const {collapsed, location} = this.props;
-
-    // Close active panel if we navigated anywhere
-    if (location?.pathname !== prevProps.location?.pathname) {
-      this.hidePanel();
-    }
-
-    // Collapse
-    if (collapsed !== prevProps.collapsed) {
-      this.doCollapse(collapsed);
-    }
-  }
-
-  componentWillUnmount() {
-    document.body.classList.remove('body-sidebar');
-
-    if (this.mq) {
-      this.mq.removeListener(this.handleMediaQueryChange);
-      this.mq = null;
-    }
-  }
-
-  mq: MediaQueryList | null = null;
-  sidebarRef = React.createRef<HTMLDivElement>();
-
-  doCollapse(collapsed: boolean) {
+  // Add sidebar collapse classname to body
+  useEffect(() => {
     if (collapsed) {
-      document.body.classList.add('collapsed');
+      bcl.add('collapsed');
     } else {
-      document.body.classList.remove('collapsed');
+      bcl.remove('collapsed');
     }
-  }
 
-  toggleSidebar = () => {
-    const {collapsed} = this.props;
+    return () => bcl.remove('collapsed');
+  }, [collapsed]);
 
-    if (!collapsed) {
-      hideSidebar();
-    } else {
-      showSidebar();
+  // Trigger panels depending on the location hash
+  useEffect(() => {
+    if (location?.hash === '#welcome') {
+      togglePanel(SidebarPanelKey.OnboardingWizard);
     }
-  };
+  }, [location?.hash]);
 
-  checkHash = () => {
-    if (window.location.hash === '#welcome') {
-      this.togglePanel(SidebarPanelKey.OnboardingWizard);
-    }
-  };
-
-  handleMediaQueryChange = (changed: MediaQueryListEvent) => {
-    this.setState({
-      horizontal: changed.matches,
-    });
-  };
-
-  togglePanel = (panel: SidebarPanelKey) => SidebarPanelActions.togglePanel(panel);
-  hidePanel = () => SidebarPanelActions.hidePanel();
-
-  // Keep the global selection querystring values in the path
-  navigateWithGlobalSelection = (
+  /**
+   * Navigate to a path, but keep the global selection query strings.
+   */
+  const navigateWithGlobalSelection = (
     pathname: string,
     evt: React.MouseEvent<HTMLAnchorElement>
   ) => {
@@ -186,11 +118,11 @@ class Sidebar extends React.Component<Props, State> {
       'discover',
       'discover/results', // Team plans do not have query landing page
       'performance',
-    ].map(route => `/organizations/${this.props.organization.slug}/${route}/`);
+    ].map(route => `/organizations/${organization?.slug}/${route}/`);
 
     // Only keep the querystring if the current route matches one of the above
     if (globalSelectionRoutes.includes(pathname)) {
-      const query = extractSelectionParameters(this.props.location?.query);
+      const query = extractSelectionParameters(location?.query);
 
       // Handle cmd-click (mac) and meta-click (linux)
       if (evt.metaKey) {
@@ -202,370 +134,306 @@ class Sidebar extends React.Component<Props, State> {
       evt.preventDefault();
       browserHistory.push({pathname, query});
     }
-
-    this.hidePanel();
   };
 
-  render() {
-    const {activePanel, organization, collapsed} = this.props;
-    const {horizontal} = this.state;
-    const config = ConfigStore.getConfig();
-    const user = ConfigStore.get('user');
-    const hasPanel = !!activePanel;
-    const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
-    const sidebarItemProps = {
-      orientation,
-      collapsed,
-      hasPanel,
-    };
-    const hasOrganization = !!organization;
+  const hasPanel = !!activePanel;
+  const hasOrganization = !!organization;
+  const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
 
-    const projects = hasOrganization && (
+  const sidebarItemProps = {
+    orientation,
+    collapsed,
+    hasPanel,
+  };
+
+  const projects = hasOrganization && (
+    <SidebarItem
+      {...sidebarItemProps}
+      index
+      icon={<IconProject size="md" />}
+      label={<GuideAnchor target="projects">{t('Projects')}</GuideAnchor>}
+      to={`/organizations/${organization.slug}/projects/`}
+      id="projects"
+    />
+  );
+
+  const issues = hasOrganization && (
+    <SidebarItem
+      {...sidebarItemProps}
+      onClick={(_id, evt) =>
+        navigateWithGlobalSelection(`/organizations/${organization.slug}/issues/`, evt)
+      }
+      icon={<IconIssues size="md" />}
+      label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
+      to={`/organizations/${organization.slug}/issues/`}
+      id="issues"
+    />
+  );
+
+  const discover2 = hasOrganization && (
+    <Feature
+      hookName="feature-disabled:discover2-sidebar-item"
+      features={['discover-basic']}
+      organization={organization}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={(_id, evt) =>
+          navigateWithGlobalSelection(getDiscoverLandingUrl(organization), evt)
+        }
+        icon={<IconTelescope size="md" />}
+        label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
+        to={getDiscoverLandingUrl(organization)}
+        id="discover-v2"
+      />
+    </Feature>
+  );
+
+  const performance = hasOrganization && (
+    <Feature
+      hookName="feature-disabled:performance-sidebar-item"
+      features={['performance-view']}
+      organization={organization}
+    >
+      <SidebarOverride id="performance-override">
+        {(overideProps: Partial<React.ComponentProps<typeof SidebarItem>>) => (
+          <SidebarItem
+            {...sidebarItemProps}
+            onClick={(_id, evt) =>
+              navigateWithGlobalSelection(
+                `/organizations/${organization.slug}/performance/`,
+                evt
+              )
+            }
+            icon={<IconLightning size="md" />}
+            label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
+            to={`/organizations/${organization.slug}/performance/`}
+            id="performance"
+            {...overideProps}
+          />
+        )}
+      </SidebarOverride>
+    </Feature>
+  );
+
+  const releases = hasOrganization && (
+    <SidebarItem
+      {...sidebarItemProps}
+      onClick={(_id, evt) =>
+        navigateWithGlobalSelection(`/organizations/${organization.slug}/releases/`, evt)
+      }
+      icon={<IconReleases size="md" />}
+      label={<GuideAnchor target="releases">{t('Releases')}</GuideAnchor>}
+      to={`/organizations/${organization.slug}/releases/`}
+      id="releases"
+    />
+  );
+
+  const userFeedback = hasOrganization && (
+    <SidebarItem
+      {...sidebarItemProps}
+      onClick={(_id, evt) =>
+        navigateWithGlobalSelection(
+          `/organizations/${organization.slug}/user-feedback/`,
+          evt
+        )
+      }
+      icon={<IconSupport size="md" />}
+      label={t('User Feedback')}
+      to={`/organizations/${organization.slug}/user-feedback/`}
+      id="user-feedback"
+    />
+  );
+
+  const alerts = hasOrganization && (
+    <SidebarItem
+      {...sidebarItemProps}
+      onClick={(_id, evt) =>
+        navigateWithGlobalSelection(
+          `/organizations/${organization.slug}/alerts/rules/`,
+          evt
+        )
+      }
+      icon={<IconSiren size="md" />}
+      label={t('Alerts')}
+      to={`/organizations/${organization.slug}/alerts/rules/`}
+      id="alerts"
+    />
+  );
+
+  const monitors = hasOrganization && (
+    <Feature features={['monitors']} organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={(_id, evt) =>
+          navigateWithGlobalSelection(
+            `/organizations/${organization.slug}/monitors/`,
+            evt
+          )
+        }
+        icon={<IconLab size="md" />}
+        label={t('Monitors')}
+        to={`/organizations/${organization.slug}/monitors/`}
+        id="monitors"
+      />
+    </Feature>
+  );
+
+  const dashboards = hasOrganization && (
+    <Feature
+      hookName="feature-disabled:dashboards-sidebar-item"
+      features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
+      organization={organization}
+      requireAll={false}
+    >
       <SidebarItem
         {...sidebarItemProps}
         index
-        onClick={this.hidePanel}
-        icon={<IconProject size="md" />}
-        label={<GuideAnchor target="projects">{t('Projects')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/projects/`}
-        id="projects"
-      />
-    );
-
-    const issues = hasOrganization && (
-      <SidebarItem
-        {...sidebarItemProps}
         onClick={(_id, evt) =>
-          this.navigateWithGlobalSelection(
-            `/organizations/${organization.slug}/issues/`,
+          navigateWithGlobalSelection(
+            `/organizations/${organization.slug}/dashboards/`,
             evt
           )
         }
-        icon={<IconIssues size="md" />}
-        label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/issues/`}
-        id="issues"
+        icon={<IconGraph size="md" />}
+        label={t('Dashboards')}
+        to={`/organizations/${organization.slug}/dashboards/`}
+        id="customizable-dashboards"
+        isNew
       />
-    );
+    </Feature>
+  );
 
-    const discover2 = hasOrganization && (
-      <Feature
-        hookName="feature-disabled:discover2-sidebar-item"
-        features={['discover-basic']}
-        organization={organization}
-      >
-        <SidebarItem
-          {...sidebarItemProps}
-          onClick={(_id, evt) =>
-            this.navigateWithGlobalSelection(getDiscoverLandingUrl(organization), evt)
-          }
-          icon={<IconTelescope size="md" />}
-          label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
-          to={getDiscoverLandingUrl(organization)}
-          id="discover-v2"
-        />
-      </Feature>
-    );
+  const activity = hasOrganization && (
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<IconActivity size="md" />}
+      label={t('Activity')}
+      to={`/organizations/${organization.slug}/activity/`}
+      id="activity"
+    />
+  );
 
-    const performance = hasOrganization && (
-      <Feature
-        hookName="feature-disabled:performance-sidebar-item"
-        features={['performance-view']}
-        organization={organization}
-      >
-        <SidebarOverride id="performance-override">
-          {(overideProps: Partial<React.ComponentProps<typeof SidebarItem>>) => (
-            <SidebarItem
-              {...sidebarItemProps}
-              onClick={(_id, evt) =>
-                this.navigateWithGlobalSelection(
-                  `/organizations/${organization.slug}/performance/`,
-                  evt
-                )
-              }
-              icon={<IconLightning size="md" />}
-              label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
-              to={`/organizations/${organization.slug}/performance/`}
-              id="performance"
-              {...overideProps}
-            />
+  const stats = hasOrganization && (
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<IconStats size="md" />}
+      label={t('Stats')}
+      to={`/organizations/${organization.slug}/stats/`}
+      id="stats"
+    />
+  );
+
+  const settings = hasOrganization && (
+    <SidebarItem
+      {...sidebarItemProps}
+      icon={<IconSettings size="md" />}
+      label={t('Settings')}
+      to={`/settings/${organization.slug}/`}
+      id="settings"
+    />
+  );
+
+  return (
+    <SidebarWrapper collapsed={collapsed}>
+      <SidebarSectionGroupPrimary>
+        <SidebarSection>
+          <SidebarDropdown
+            orientation={orientation}
+            collapsed={collapsed}
+            org={organization}
+            user={config.user}
+            config={config}
+          />
+        </SidebarSection>
+
+        <PrimaryItems>
+          {hasOrganization && (
+            <Fragment>
+              <SidebarSection>
+                {projects}
+                {issues}
+                {performance}
+                {releases}
+                {userFeedback}
+                {alerts}
+                {discover2}
+                {dashboards}
+              </SidebarSection>
+
+              <SidebarSection>{monitors}</SidebarSection>
+
+              <SidebarSection>
+                {activity}
+                {stats}
+              </SidebarSection>
+
+              <SidebarSection>{settings}</SidebarSection>
+            </Fragment>
           )}
-        </SidebarOverride>
-      </Feature>
-    );
+        </PrimaryItems>
+      </SidebarSectionGroupPrimary>
 
-    const releases = hasOrganization && (
-      <SidebarItem
-        {...sidebarItemProps}
-        onClick={(_id, evt) =>
-          this.navigateWithGlobalSelection(
-            `/organizations/${organization.slug}/releases/`,
-            evt
-          )
-        }
-        icon={<IconReleases size="md" />}
-        label={<GuideAnchor target="releases">{t('Releases')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/releases/`}
-        id="releases"
-      />
-    );
-
-    const userFeedback = hasOrganization && (
-      <SidebarItem
-        {...sidebarItemProps}
-        onClick={(_id, evt) =>
-          this.navigateWithGlobalSelection(
-            `/organizations/${organization.slug}/user-feedback/`,
-            evt
-          )
-        }
-        icon={<IconSupport size="md" />}
-        label={t('User Feedback')}
-        to={`/organizations/${organization.slug}/user-feedback/`}
-        id="user-feedback"
-      />
-    );
-
-    const alerts = hasOrganization && (
-      <SidebarItem
-        {...sidebarItemProps}
-        onClick={(_id, evt) =>
-          this.navigateWithGlobalSelection(
-            `/organizations/${organization.slug}/alerts/rules/`,
-            evt
-          )
-        }
-        icon={<IconSiren size="md" />}
-        label={t('Alerts')}
-        to={`/organizations/${organization.slug}/alerts/rules/`}
-        id="alerts"
-      />
-    );
-
-    const monitors = hasOrganization && (
-      <Feature features={['monitors']} organization={organization}>
-        <SidebarItem
-          {...sidebarItemProps}
-          onClick={(_id, evt) =>
-            this.navigateWithGlobalSelection(
-              `/organizations/${organization.slug}/monitors/`,
-              evt
-            )
-          }
-          icon={<IconLab size="md" />}
-          label={t('Monitors')}
-          to={`/organizations/${organization.slug}/monitors/`}
-          id="monitors"
-        />
-      </Feature>
-    );
-
-    const dashboards = hasOrganization && (
-      <Feature
-        hookName="feature-disabled:dashboards-sidebar-item"
-        features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
-        organization={organization}
-        requireAll={false}
-      >
-        <SidebarItem
-          {...sidebarItemProps}
-          index
-          onClick={(_id, evt) =>
-            this.navigateWithGlobalSelection(
-              `/organizations/${organization.slug}/dashboards/`,
-              evt
-            )
-          }
-          icon={<IconGraph size="md" />}
-          label={t('Dashboards')}
-          to={`/organizations/${organization.slug}/dashboards/`}
-          id="customizable-dashboards"
-          isNew
-        />
-      </Feature>
-    );
-
-    const activity = hasOrganization && (
-      <SidebarItem
-        {...sidebarItemProps}
-        onClick={this.hidePanel}
-        icon={<IconActivity size="md" />}
-        label={t('Activity')}
-        to={`/organizations/${organization.slug}/activity/`}
-        id="activity"
-      />
-    );
-
-    const stats = hasOrganization && (
-      <SidebarItem
-        {...sidebarItemProps}
-        onClick={this.hidePanel}
-        icon={<IconStats size="md" />}
-        label={t('Stats')}
-        to={`/organizations/${organization.slug}/stats/`}
-        id="stats"
-      />
-    );
-
-    const settings = hasOrganization && (
-      <SidebarItem
-        {...sidebarItemProps}
-        onClick={this.hidePanel}
-        icon={<IconSettings size="md" />}
-        label={t('Settings')}
-        to={`/settings/${organization.slug}/`}
-        id="settings"
-      />
-    );
-
-    return (
-      <SidebarWrapper ref={this.sidebarRef} collapsed={collapsed}>
-        <SidebarSectionGroupPrimary>
-          <SidebarSection>
-            <SidebarDropdown
-              orientation={orientation}
-              collapsed={collapsed}
+      {hasOrganization && (
+        <SidebarSectionGroup>
+          <SidebarSection noMargin noPadding>
+            <OnboardingStatus
               org={organization}
-              user={user}
-              config={config}
+              currentPanel={activePanel}
+              onShowPanel={() => togglePanel(SidebarPanelKey.OnboardingWizard)}
+              hidePanel={hidePanel}
+              {...sidebarItemProps}
             />
           </SidebarSection>
 
-          <PrimaryItems>
-            {hasOrganization && (
-              <React.Fragment>
-                <SidebarSection>
-                  {projects}
-                  {issues}
-                  {performance}
-                  {releases}
-                  {userFeedback}
-                  {alerts}
-                  {discover2}
-                  {dashboards}
-                </SidebarSection>
+          <SidebarSection>
+            {HookStore.get('sidebar:bottom-items').length > 0 &&
+              HookStore.get('sidebar:bottom-items')[0]({
+                organization,
+                ...sidebarItemProps,
+              })}
+            <SidebarHelp
+              orientation={orientation}
+              collapsed={collapsed}
+              hidePanel={hidePanel}
+              organization={organization}
+            />
+            <Broadcasts
+              orientation={orientation}
+              collapsed={collapsed}
+              currentPanel={activePanel}
+              onShowPanel={() => togglePanel(SidebarPanelKey.Broadcasts)}
+              hidePanel={hidePanel}
+              organization={organization}
+            />
+            <ServiceIncidents
+              orientation={orientation}
+              collapsed={collapsed}
+              currentPanel={activePanel}
+              onShowPanel={() => togglePanel(SidebarPanelKey.StatusUpdate)}
+              hidePanel={hidePanel}
+            />
+          </SidebarSection>
 
-                <SidebarSection>{monitors}</SidebarSection>
-
-                <SidebarSection>
-                  {activity}
-                  {stats}
-                </SidebarSection>
-
-                <SidebarSection>{settings}</SidebarSection>
-              </React.Fragment>
-            )}
-          </PrimaryItems>
-        </SidebarSectionGroupPrimary>
-
-        {hasOrganization && (
-          <SidebarSectionGroup>
-            <SidebarSection noMargin noPadding>
-              <OnboardingStatus
-                org={organization}
-                currentPanel={activePanel}
-                onShowPanel={() => this.togglePanel(SidebarPanelKey.OnboardingWizard)}
-                hidePanel={this.hidePanel}
-                {...sidebarItemProps}
-              />
-            </SidebarSection>
-
+          {!horizontal && (
             <SidebarSection>
-              {HookStore.get('sidebar:bottom-items').length > 0 &&
-                HookStore.get('sidebar:bottom-items')[0]({
-                  organization,
-                  ...sidebarItemProps,
-                })}
-              <SidebarHelp
-                orientation={orientation}
-                collapsed={collapsed}
-                hidePanel={this.hidePanel}
-                organization={organization}
-              />
-              <Broadcasts
-                orientation={orientation}
-                collapsed={collapsed}
-                currentPanel={activePanel}
-                onShowPanel={() => this.togglePanel(SidebarPanelKey.Broadcasts)}
-                hidePanel={this.hidePanel}
-                organization={organization}
-              />
-              <ServiceIncidents
-                orientation={orientation}
-                collapsed={collapsed}
-                currentPanel={activePanel}
-                onShowPanel={() => this.togglePanel(SidebarPanelKey.StatusUpdate)}
-                hidePanel={this.hidePanel}
+              <SidebarCollapseItem
+                id="collapse"
+                data-test-id="sidebar-collapse"
+                {...sidebarItemProps}
+                icon={<StyledIconChevron collapsed={collapsed} />}
+                label={collapsed ? t('Expand') : t('Collapse')}
+                onClick={toggleCollapse}
               />
             </SidebarSection>
-
-            {!horizontal && (
-              <SidebarSection>
-                <SidebarCollapseItem
-                  id="collapse"
-                  data-test-id="sidebar-collapse"
-                  {...sidebarItemProps}
-                  icon={<StyledIconChevron collapsed={collapsed} />}
-                  label={collapsed ? t('Expand') : t('Collapse')}
-                  onClick={this.toggleSidebar}
-                />
-              </SidebarSection>
-            )}
-          </SidebarSectionGroup>
-        )}
-      </SidebarWrapper>
-    );
-  }
+          )}
+        </SidebarSectionGroup>
+      )}
+    </SidebarWrapper>
+  );
 }
 
-type ContainerProps = Omit<Props, 'collapsed' | 'activePanel'>;
-
-type ContainerState = {
-  collapsed: boolean;
-  activePanel: ActivePanelType;
-};
-type Preferences = typeof PreferencesStore.prefs;
-
-class SidebarContainer extends React.Component<ContainerProps, ContainerState> {
-  state: ContainerState = {
-    collapsed: !!PreferencesStore.getInitialState().collapsed,
-    activePanel: '',
-  };
-
-  componentWillUnmount() {
-    this.preferenceUnsubscribe();
-    this.sidebarUnsubscribe();
-  }
-
-  preferenceUnsubscribe = PreferencesStore.listen(
-    (preferences: Preferences) => this.onPreferenceChange(preferences),
-    undefined
-  );
-
-  sidebarUnsubscribe = SidebarPanelStore.listen(
-    (activePanel: ActivePanelType) => this.onSidebarPanelChange(activePanel),
-    undefined
-  );
-
-  onPreferenceChange(preferences: Preferences) {
-    if (preferences.collapsed === this.state.collapsed) {
-      return;
-    }
-
-    this.setState({collapsed: !!preferences.collapsed});
-  }
-
-  onSidebarPanelChange(activePanel: ActivePanelType) {
-    this.setState({activePanel});
-  }
-
-  render() {
-    const {activePanel, collapsed} = this.state;
-    return <Sidebar {...this.props} {...{activePanel, collapsed}} />;
-  }
-}
-
-export default withOrganization(SidebarContainer);
+export default Sidebar;
 
 const responsiveFlex = css`
   display: flex;
@@ -576,7 +444,7 @@ const responsiveFlex = css`
   }
 `;
 
-export const SidebarWrapper = styled('div')<{collapsed: boolean}>`
+export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
   background: ${p => p.theme.sidebar.background};
   background: ${p => p.theme.sidebarGradient};
   color: ${p => p.theme.sidebar.color};
