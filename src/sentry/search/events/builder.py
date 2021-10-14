@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple
 from snuba_sdk.column import Column
 from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Limit, Offset
+from snuba_sdk.function import CurriedFunction
 from snuba_sdk.orderby import LimitBy
 from snuba_sdk.query import Query
 
@@ -70,9 +71,34 @@ class QueryBuilder(QueryFilter):
     @property
     def groupby(self) -> Optional[List[SelectType]]:
         if self.aggregates:
+            self.validate_aggregate_arguments()
             return [c for c in self.columns if c not in self.aggregates]
         else:
             return []
+
+    def validate_aggregate_arguments(self):
+        for column in self.columns:
+            conflicting_functions: List[CurriedFunction] = []
+            for aggregate in self.aggregates:
+                if column in aggregate.parameters:
+                    conflicting_functions.append(aggregate)
+            if conflicting_functions:
+                raise InvalidSearchQuery(
+                    "A single field cannot be used both inside and outside a function in the same query. To use {field} you must first remove the function(s): {function_msg}".format(
+                        field=column.alias,
+                        function_msg=", ".join(
+                            [
+                                self.get_public_alias(function)
+                                for function in conflicting_functions[:2]
+                            ]
+                        )
+                        + (
+                            f" and {len(conflicting_functions) - 2} more."
+                            if len(conflicting_functions) > 2
+                            else ""
+                        ),
+                    )
+                )
 
     def validate_having_clause(self):
         error_extra = ", and could not be automatically added" if self.auto_aggregations else ""
