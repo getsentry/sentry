@@ -23,6 +23,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'app/utils/discover/eventView';
 import {getEquation, isEquation} from 'app/utils/discover/fields';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
@@ -248,6 +249,11 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       conditions: eventView.query,
       orderby: '',
     };
+
+    trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
+      organization,
+      saved_query: !!savedQuery,
+    });
 
     openAddDashboardWidgetModal({
       organization,

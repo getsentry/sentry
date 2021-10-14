@@ -20,6 +20,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -153,6 +154,10 @@ class WidgetCard extends React.Component<Props> {
                 }
                 browserHistory.push(discoverLocation);
               } else {
+                trackAdvancedAnalyticsEvent('dashboards_views.query_selector.opened', {
+                  organization,
+                  widget_type: widget.displayType,
+                });
                 openDashboardWidgetQuerySelectorModal({organization, widget});
               }
             }}

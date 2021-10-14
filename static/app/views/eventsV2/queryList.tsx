@@ -21,6 +21,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'app/utils/discover/eventView';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import {decodeList} from 'app/utils/queryString';
@@ -102,6 +103,11 @@ class QueryList extends React.Component<Props> {
         conditions: eventView.query,
         orderby: '',
       };
+
+      trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
+        organization,
+        saved_query: !!savedQuery,
+      });
 
       openAddDashboardWidgetModal({
         organization,

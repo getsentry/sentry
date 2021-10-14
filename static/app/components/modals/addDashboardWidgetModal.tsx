@@ -220,6 +220,11 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         title: widgetData.title,
         ...queryData,
       };
+
+      trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.confirm', {
+        organization,
+      });
+
       if (selectedDashboard.value === 'new') {
         browserHistory.push({
           pathname: `/organizations/${organization.slug}/dashboards/new/`,
