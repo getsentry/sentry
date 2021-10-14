@@ -471,13 +471,10 @@ class SmartSearchBar extends React.Component<Props, State> {
 
     callIfFunction(onKeyDown, evt);
 
-    if (!this.state.searchGroups.length) {
-      return;
-    }
-
+    const hasSearchGroups = this.state.searchGroups.length > 0;
     const isSelectingDropdownItems = this.state.activeSearchItem !== -1;
 
-    if (key === 'ArrowDown' || key === 'ArrowUp') {
+    if ((key === 'ArrowDown' || key === 'ArrowUp') && hasSearchGroups) {
       evt.preventDefault();
 
       const {flatSearchItems, activeSearchItem} = this.state;
@@ -529,7 +526,11 @@ class SmartSearchBar extends React.Component<Props, State> {
       this.setState({searchGroups, activeSearchItem: nextActiveSearchItem});
     }
 
-    if ((key === 'Tab' || key === 'Enter') && isSelectingDropdownItems) {
+    if (
+      (key === 'Tab' || key === 'Enter') &&
+      isSelectingDropdownItems &&
+      hasSearchGroups
+    ) {
       evt.preventDefault();
 
       const {activeSearchItem, searchGroups} = this.state;
@@ -622,7 +623,6 @@ class SmartSearchBar extends React.Component<Props, State> {
    */
   get hasValidSearch() {
     const {parsedQuery} = this.state;
-
     // If we fail to parse be optimistic that it's valid
     if (parsedQuery === null) {
       return true;
