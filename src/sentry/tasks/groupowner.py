@@ -19,13 +19,9 @@ MIN_COMMIT_SCORE = 2
 logger = logging.getLogger("tasks.groupowner")
 
 
-@instrumented_task(
-    name="sentry.tasks.process_suspect_commits",
-    queue="group_owners.process_suspect_commits",
-    default_retry_delay=5,
-    max_retries=5,
-)
-def process_suspect_commits(event_id, event_platform, event_frames, group_id, project_id, **kwargs):
+def _process_suspect_commits(
+    event_id, event_platform, event_frames, group_id, project_id, **kwargs
+):
     metrics.incr("sentry.tasks.process_suspect_commits.start")
     set_current_event_project(project_id)
 
@@ -68,29 +64,26 @@ def process_suspect_commits(event_id, event_platform, event_frames, group_id, pr
                 for owner_id in sorted(owner_scores, reverse=True, key=owner_scores.get)[
                     :PREFERRED_GROUP_OWNERS
                 ]:
-                    # Lock to prevent duplicate GroupOwners
-                    lock = locks.get(f"groupowner:{group_id}-{owner_id}", duration=10)
                     try:
-                        with lock.acquire():
-                            go, created = GroupOwner.objects.update_or_create(
-                                group_id=group_id,
-                                type=GroupOwnerType.SUSPECT_COMMIT.value,
-                                user_id=owner_id,
-                                project=project,
-                                organization_id=project.organization_id,
-                                defaults={
-                                    "date_added": timezone.now()
-                                },  # Updates date of an existing owner, since we just matched them with this new event
-                            )
-                            if created:
-                                owner_count += 1
-                                if owner_count > PREFERRED_GROUP_OWNERS:
-                                    try:
-                                        owner = owners[0]
-                                    except IndexError:
-                                        pass
-                                    else:
-                                        owner.delete()
+                        go, created = GroupOwner.objects.update_or_create(
+                            group_id=group_id,
+                            type=GroupOwnerType.SUSPECT_COMMIT.value,
+                            user_id=owner_id,
+                            project=project,
+                            organization_id=project.organization_id,
+                            defaults={
+                                "date_added": timezone.now()
+                            },  # Updates date of an existing owner, since we just matched them with this new event
+                        )
+                        if created:
+                            owner_count += 1
+                            if owner_count > PREFERRED_GROUP_OWNERS:
+                                try:
+                                    owner = owners[0]
+                                except IndexError:
+                                    pass
+                                else:
+                                    owner.delete()
                     except GroupOwner.MultipleObjectsReturned:
                         GroupOwner.objects.filter(
                             group_id=group_id,
@@ -99,8 +92,6 @@ def process_suspect_commits(event_id, event_platform, event_frames, group_id, pr
                             project=project,
                             organization_id=project.organization_id,
                         )[0].delete()
-                    except UnableToAcquireLock:
-                        pass
 
         except Commit.DoesNotExist:
             logger.info(
@@ -112,3 +103,20 @@ def process_suspect_commits(event_id, event_platform, event_frames, group_id, pr
                 "process_suspect_commits.skipped",
                 extra={"event": event_id, "reason": "no_release"},
             )
+
+
+@instrumented_task(
+    name="sentry.tasks.process_suspect_commits",
+    queue="group_owners.process_suspect_commits",
+    default_retry_delay=5,
+    max_retries=5,
+)
+def process_suspect_commits(event_id, event_platform, event_frames, group_id, project_id, **kwargs):
+    lock = locks.get(f"process-suspect-commits:{group_id}", duration=10)
+    try:
+        with lock.acquire():
+            _process_suspect_commits(
+                event_id, event_platform, event_frames, group_id, project_id, **kwargs
+            )
+    except UnableToAcquireLock:
+        pass
