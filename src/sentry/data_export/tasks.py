@@ -308,8 +308,8 @@ def merge_export_blobs(data_export_id, **kwargs):
             return
 
         with sentry_sdk.configure_scope() as scope:
-            user = {}
             if data_export.user:
+                user = {}
                 if data_export.user.id:
                     user["id"] = data_export.user.id
                 if data_export.user.username:
@@ -317,7 +317,6 @@ def merge_export_blobs(data_export_id, **kwargs):
                 if data_export.user.email:
                     user["email"] = data_export.user.email
                 scope.user = user
-            scope.user = user
             scope.set_tag("organization.slug", data_export.organization.slug)
             scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
             scope.set_extra("export.query", data_export.query_info)
