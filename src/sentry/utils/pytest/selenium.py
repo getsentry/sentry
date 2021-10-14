@@ -320,7 +320,7 @@ class Browser:
         if not os.path.exists(snapshot_dir):
             os.makedirs(snapshot_dir)
 
-        filename = slugify(name)
+        filename = slugify(f"{name}-py{sys.version_info[:3]}")
 
         # XXX: Unfortunately order matters here else snapshots in CI will be a tiny bit different.
         #      Otherwise we could do mobile_viewport first and early return if mobile_only.
