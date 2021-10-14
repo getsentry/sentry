@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Set, Tuple, TypeVar, Union, overload
+from typing import Mapping, Optional, Sequence, Set, Tuple, TypeVar, Union
 
 from typing_extensions import Literal, TypedDict
 
@@ -151,12 +151,12 @@ class CrashFreeBreakdown(TypedDict):
     crash_free_sessions: Optional[float]
 
 
-class ProjectReleaseDurationPercentiles(TypedDict):
+class DurationPercentiles(TypedDict):
     duration_p50: Optional[float]
     duration_p90: Optional[float]
 
 
-class ProjectReleaseUserCounts(TypedDict):
+class UserCounts(TypedDict):
     users: int
     users_healthy: int
     users_crashed: int
@@ -164,11 +164,11 @@ class ProjectReleaseUserCounts(TypedDict):
     users_errored: int
 
 
-class ProjectReleaseUserSeries(ProjectReleaseDurationPercentiles, ProjectReleaseUserCounts):
+class UserCountsAndPercentiles(DurationPercentiles, UserCounts):
     pass
 
 
-class ProjectReleaseSessionCounts(TypedDict):
+class SessionCounts(TypedDict):
     sessions: int
     sessions_healthy: int
     sessions_crashed: int
@@ -176,18 +176,16 @@ class ProjectReleaseSessionCounts(TypedDict):
     sessions_errored: int
 
 
-class ProjectReleaseSessionSeries(ProjectReleaseDurationPercentiles, ProjectReleaseSessionCounts):
+class SessionCountsAndPercentiles(DurationPercentiles, SessionCounts):
     pass
 
 
 # NOTE: Tuple is the wrong type, it's a fixed-length list. Unfortunately mypy
 # is too opinionated to support fixed-length lists.
-ProjectReleaseUserStats = Tuple[
-    Sequence[Tuple[int, ProjectReleaseUserSeries]], ProjectReleaseUserCounts
-]
+ProjectReleaseUserStats = Tuple[Sequence[Tuple[int, UserCountsAndPercentiles]], UserCounts]
 ProjectReleaseSessionStats = Tuple[
-    Sequence[Tuple[int, ProjectReleaseSessionSeries]],
-    ProjectReleaseSessionCounts,
+    Sequence[Tuple[int, SessionCountsAndPercentiles]],
+    SessionCounts,
 ]
 
 
@@ -389,32 +387,6 @@ class ReleaseHealthBackend(Service):  # type: ignore
         Fetches the total count of releases/project combinations
         """
         raise NotImplementedError()
-
-    @overload
-    def get_project_release_stats(
-        self,
-        project_id: ProjectId,
-        release: ReleaseName,
-        stat: Literal["users"],
-        rollup: int,
-        start: datetime,
-        end: datetime,
-        environments: Optional[Sequence[EnvironmentName]] = None,
-    ) -> ProjectReleaseUserStats:
-        ...
-
-    @overload
-    def get_project_release_stats(
-        self,
-        project_id: ProjectId,
-        release: ReleaseName,
-        stat: Literal["sessions"],
-        rollup: int,
-        start: datetime,
-        end: datetime,
-        environments: Optional[Sequence[EnvironmentName]] = None,
-    ) -> ProjectReleaseSessionStats:
-        ...
 
     def get_project_release_stats(
         self,

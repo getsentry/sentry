@@ -1,11 +1,25 @@
+import itertools
+import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 from operator import itemgetter
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 import pytz
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query
-from snuba_sdk.expressions import Granularity
+from snuba_sdk.expressions import Expression, Granularity
 from snuba_sdk.query import SelectableExpression
 
 from sentry.models import Environment
@@ -13,13 +27,13 @@ from sentry.models.project import Project
 from sentry.release_health.base import (
     CrashFreeBreakdown,
     CurrentAndPreviousCrashFreeRates,
+    DurationPercentiles,
     EnvironmentName,
     OrganizationId,
     OverviewStat,
     ProjectId,
     ProjectOrRelease,
     ProjectRelease,
-    ProjectReleaseSessionSeries,
     ProjectReleaseSessionStats,
     ProjectReleaseUserStats,
     ReleaseAdoption,
@@ -28,8 +42,12 @@ from sentry.release_health.base import (
     ReleaseName,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
+    SessionCounts,
+    SessionCountsAndPercentiles,
     SessionsQueryResult,
     StatsPeriod,
+    UserCounts,
+    UserCountsAndPercentiles,
 )
 from sentry.release_health.metrics_sessions_v2 import run_sessions_query
 from sentry.sentry_metrics import indexer
@@ -40,6 +58,9 @@ from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.snuba import QueryOutsideRetentionError, raw_snql_query
 
 SMALLEST_METRICS_BUCKET = 10
+
+
+logger = logging.getLogger(__name__)
 
 
 class MetricIndexNotFound(Exception):
@@ -1298,15 +1319,20 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     @staticmethod
     def _convert_project_release_stats_series(
-        series: Mapping[datetime, ProjectReleaseSessionSeries]
-    ) -> List[Tuple[int, ProjectReleaseSessionSeries]]:
+        series: Mapping[datetime, Any]
+    ) -> List[Tuple[int, Any]]:
         rv = [(int(to_timestamp(dt)), data) for dt, data in series.items()]
         rv.sort(key=itemgetter(0))
         return rv
 
     def _add_project_release_stats_durations(
-        self, org_id, where, session_status_key, rollup, series, totals
-    ):
+        self,
+        org_id: OrganizationId,
+        where: List[Expression],
+        session_status_key: str,
+        rollup: int,
+        series: Mapping[datetime, DurationPercentiles],
+    ) -> None:
         session_status_healthy = try_get_string_index(org_id, "exited")
         if session_status_healthy is not None:
             duration_series_data = raw_snql_query(
@@ -1329,18 +1355,22 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             )["data"]
             for row in duration_series_data:
                 dt = parse_snuba_datetime(row["bucketed_time"])
+                quantiles: Sequence[Optional[float]] = row["quantiles"]
                 target = series[dt]
-                p50, p90 = row["quantiles"]
+                p50, p90 = quantiles
                 target["duration_p50"] = p50
                 target["duration_p90"] = p90
 
     def _get_project_release_stats_sessions(
-        self, org_id, where, session_status_key, rollup, series, totals
-    ):
+        self,
+        org_id: OrganizationId,
+        where: List[Expression],
+        session_status_key: str,
+        rollup: int,
+        series: MutableMapping[datetime, SessionCountsAndPercentiles],
+    ) -> ProjectReleaseSessionStats:
 
-        self._add_project_release_stats_durations(
-            org_id, where, session_status_key, rollup, series, totals
-        )
+        self._add_project_release_stats_durations(org_id, where, session_status_key, rollup, series)
 
         session_series_data = raw_snql_query(
             Query(
@@ -1364,10 +1394,16 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 target["sessions"] = value
                 # Set same value for 'healthy', this will later be subtracted by errors
                 target["sessions_healthy"] = value
-            else:
-                target[f"sessions_{status}"] = value
+            elif status == "abnormal":
+                target["sessions_abnormal"] = value
                 # This is an error state, so subtract from total error count
                 target["sessions_errored"] -= value
+            elif status == "crashed":
+                target["sessions_crashed"] = value
+                # This is an error state, so subtract from total error count
+                target["sessions_errored"] -= value
+            else:
+                logger.warning("Unexpected session.status '%s'", status)
 
         session_error_series_data = raw_snql_query(
             Query(
@@ -1392,17 +1428,28 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             # Subtract from healthy:
             target["sessions_healthy"] = max(0, target["sessions_healthy"] - value)
 
-        totals = {key: sum(data[key] for data in series.values()) for key in totals.keys()}
+        totals: SessionCounts = {
+            # Thank mypy for the code duplication
+            "sessions": sum(data["sessions"] for data in series.values()),
+            "sessions_healthy": sum(data["sessions_healthy"] for data in series.values()),
+            "sessions_crashed": sum(data["sessions_crashed"] for data in series.values()),
+            "sessions_abnormal": sum(data["sessions_abnormal"] for data in series.values()),
+            "sessions_errored": sum(data["sessions_errored"] for data in series.values()),
+        }
 
         return self._convert_project_release_stats_series(series), totals
 
     def _get_project_release_stats_users(
-        self, org_id, where, session_status_key, rollup, series, totals
-    ):
+        self,
+        org_id: OrganizationId,
+        where: List[Expression],
+        session_status_key: str,
+        rollup: int,
+        series: MutableMapping[datetime, UserCountsAndPercentiles],
+        totals: UserCounts,
+    ) -> ProjectReleaseUserStats:
 
-        self._add_project_release_stats_durations(
-            org_id, where, session_status_key, rollup, series, totals
-        )
+        self._add_project_release_stats_durations(org_id, where, session_status_key, rollup, series)
 
         user_series_data = raw_snql_query(
             Query(
@@ -1445,20 +1492,23 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 # Set same value for 'healthy', this will later be subtracted by errors
                 target["users_healthy"] += value
             else:
-                target[f"users_{status}"] += value
-                if status == "errored":
-                    # NOTE: "errored" might appear before "init", so this value might become negative
-                    target["users_healthy"] -= value
-                elif status in ("abnormal", "crashed"):
-                    # This is an error state, so subtract from total error count
+                if status == "abnormal":
+                    # Subtract this special error state from sum of all errors
+                    target["users_abnormal"] += value
                     target["users_errored"] -= value
+                elif status == "crashed":
+                    # Subtract this special error state from sum of all errors
+                    target["users_crashed"] += value
+                    target["users_errored"] -= value
+                elif status == "errored":
+                    # Subtract sum of all errors from healthy sessions
+                    target["users_errored"] += value
+                    target["users_healthy"] -= value
 
         # Replace negative values
-        totals = {k: v if v is None else max(0, v) for k, v in totals.items()}
-        series = {
-            ts: {k: v if v is None else max(0, v) for k, v in data.items()}
-            for ts, data in series.items()
-        }
+        for data in itertools.chain(series.values(), [totals]):
+            data["users_healthy"] = max(0, data["users_healthy"])
+            data["users_errored"] = max(0, data["users_errored"])
 
         return self._convert_project_release_stats_series(series), totals
 
@@ -1517,7 +1567,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             release_value = tag_value(org_id, release)
         except MetricIndexNotFound:
             # No data for this release
-            return self._convert_project_release_stats_series(series), totals
+            return self._convert_project_release_stats_series(series), totals  # type: ignore
 
         where = [
             Condition(Column("org_id"), Op.EQ, org_id),
@@ -1540,11 +1590,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         if stat == "users":
             return self._get_project_release_stats_users(
-                org_id, where, session_status_key, rollup, series, totals
+                org_id, where, session_status_key, rollup, series, totals  # type: ignore
             )
         else:
             return self._get_project_release_stats_sessions(
-                org_id, where, session_status_key, rollup, series, totals
+                org_id, where, session_status_key, rollup, series  # type: ignore
             )
 
     def get_project_sessions_count(
