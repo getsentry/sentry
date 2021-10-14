@@ -12,6 +12,7 @@ import logging
 import time
 from typing import Iterable
 
+import sentry_sdk
 from typing_extensions import Literal
 
 from sentry import options
@@ -20,7 +21,6 @@ from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.base import BucketedCount, DurationHistogram
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.sdk import capture_message, push_scope
 
 logger = logging.getLogger(__name__)
 
@@ -109,11 +109,11 @@ def _report_change(project_id: int, change: Literal["added", "removed"], reason:
     else:
         message = "Removed project from symbolicator's low priority queue"
 
-    with push_scope() as scope:
+    with sentry_sdk.push_scope() as scope:
         scope.set_level("warning")
         scope.set_tag("project", project_id)
         scope.set_tag("reason", reason)
-        capture_message(message)
+        sentry_sdk.capture_message(message)
 
 
 def _record_metrics() -> None:
