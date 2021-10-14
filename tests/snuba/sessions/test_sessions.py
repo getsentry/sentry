@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import pytz
 from django.utils import timezone
 
+from sentry.release_health.base import OverviewStat
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions import _make_stats, get_project_releases_by_stability
@@ -723,27 +724,38 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             (new_proj_id, "foo@3.0.0"),
         }
 
-    def test_get_project_release_stats_users(self):
-        end = timezone.now()
-        start = end - timedelta(days=4)
-        stats, totals = self.backend.get_project_release_stats(
-            self.project.id,
-            release=self.session_release,
-            stat="users",
-            rollup=86400,
-            start=start,
-            end=end,
-        )
-
+    @staticmethod
+    def _add_timestamps_to_series(series, start: datetime):
         one_day = 24 * 60 * 60
         day0 = one_day * int(start.timestamp() / one_day)
 
         def ts(days: int) -> int:
             return day0 + days * one_day
 
-        assert stats == [
+        return [[ts(i + 1), data] for i, data in enumerate(series)]
+
+    def _test_get_project_release_stats(
+        self, stat: OverviewStat, release: str, expected_series, expected_totals
+    ):
+        end = timezone.now()
+        start = end - timedelta(days=4)
+        stats, totals = self.backend.get_project_release_stats(
+            self.project.id,
+            release=release,
+            stat=stat,
+            rollup=86400,
+            start=start,
+            end=end,
+        )
+
+        assert stats == self._add_timestamps_to_series(expected_series, start)
+        assert totals == expected_totals
+
+    def test_get_project_release_stats_users(self):
+        self._test_get_project_release_stats(
+            "users",
+            self.session_release,
             [
-                ts(1),
                 {
                     "duration_p50": None,
                     "duration_p90": None,
@@ -753,9 +765,6 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                     "users_errored": 0,
                     "users_healthy": 0,
                 },
-            ],
-            [
-                ts(2),
                 {
                     "duration_p50": None,
                     "duration_p90": None,
@@ -765,9 +774,6 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                     "users_errored": 0,
                     "users_healthy": 0,
                 },
-            ],
-            [
-                ts(3),
                 {
                     "duration_p50": None,
                     "duration_p90": None,
@@ -777,9 +783,6 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                     "users_errored": 0,
                     "users_healthy": 0,
                 },
-            ],
-            [
-                ts(4),
                 {
                     "duration_p50": 45.0,
                     "duration_p90": 57.0,
@@ -790,37 +793,71 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                     "users_healthy": 1,
                 },
             ],
-        ]
-
-        assert totals == {
-            "users": 1,
-            "users_abnormal": 0,
-            "users_crashed": 0,
-            "users_errored": 0,
-            "users_healthy": 1,
-        }
-
-    def test_get_project_release_stats_sessions(self):
-        end = timezone.now()
-        start = end - timedelta(days=4)
-        stats, totals = self.backend.get_project_release_stats(
-            self.project.id,
-            release=self.session_release,
-            stat="sessions",
-            rollup=86400,
-            start=start,
-            end=end,
+            {
+                "users": 1,
+                "users_abnormal": 0,
+                "users_crashed": 0,
+                "users_errored": 0,
+                "users_healthy": 1,
+            },
         )
 
-        one_day = 24 * 60 * 60
-        day0 = one_day * int(start.timestamp() / one_day)
+    def test_get_project_release_stats_users_crashed(self):
+        self._test_get_project_release_stats(
+            "users",
+            self.session_crashed_release,
+            [
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 1,
+                    "users_abnormal": 0,
+                    "users_crashed": 1,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                },
+            ],
+            {
+                "users": 1,
+                "users_abnormal": 0,
+                "users_crashed": 1,
+                "users_errored": 0,
+                "users_healthy": 0,
+            },
+        )
 
-        def ts(days: int) -> int:
-            return day0 + days * one_day
-
-        assert stats == [
+    def test_get_project_release_stats_sessions(self):
+        self._test_get_project_release_stats(
+            "sessions",
+            self.session_release,
             [
-                ts(1),
                 {
                     "duration_p50": None,
                     "duration_p90": None,
@@ -830,9 +867,6 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
                 },
-            ],
-            [
-                ts(2),
                 {
                     "duration_p50": None,
                     "duration_p90": None,
@@ -842,9 +876,6 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
                 },
-            ],
-            [
-                ts(3),
                 {
                     "duration_p50": None,
                     "duration_p90": None,
@@ -854,9 +885,6 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
                 },
-            ],
-            [
-                ts(4),
                 {
                     "duration_p50": 45.0,
                     "duration_p90": 57.0,
@@ -867,14 +895,65 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                     "sessions_healthy": 2,
                 },
             ],
-        ]
-        assert totals == {
-            "sessions": 2,
-            "sessions_abnormal": 0,
-            "sessions_crashed": 0,
-            "sessions_errored": 0,
-            "sessions_healthy": 2,
-        }
+            {
+                "sessions": 2,
+                "sessions_abnormal": 0,
+                "sessions_crashed": 0,
+                "sessions_errored": 0,
+                "sessions_healthy": 2,
+            },
+        )
+
+    def test_get_project_release_stats_sessions_crashed(self):
+        self._test_get_project_release_stats(
+            "sessions",
+            self.session_crashed_release,
+            [
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 1,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 1,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                },
+            ],
+            {
+                "sessions": 1,
+                "sessions_abnormal": 0,
+                "sessions_crashed": 1,
+                "sessions_errored": 0,
+                "sessions_healthy": 0,
+            },
+        )
 
 
 class SnubaSessionsTestMetrics(ReleaseHealthMetricsTestCase, SnubaSessionsTest):
