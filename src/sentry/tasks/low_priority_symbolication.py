@@ -10,9 +10,8 @@ This has three major tasks, executed in the following general order:
 
 import logging
 import time
-from typing import Iterable, Optional
+from typing import Iterable
 
-from sentry_sdk import capture_message
 from typing_extensions import Literal
 
 from sentry import options
@@ -21,7 +20,7 @@ from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.base import BucketedCount, DurationHistogram
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import capture_message, push_scope
 
 logger = logging.getLogger(__name__)
 
@@ -101,9 +100,7 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
             _report_change(project_id=project_id, change="removed", reason="ineligible")
 
 
-def _report_change(
-    project_id: int, change: Literal["added", "removed"], reason: Optional[str]
-) -> None:
+def _report_change(project_id: int, change: Literal["added", "removed"], reason: str) -> None:
     if not reason:
         reason = "unknown"
 
@@ -112,7 +109,7 @@ def _report_change(
     else:
         message = "Removed project from symbolicator's low priority queue"
 
-    with configure_scope() as scope:
+    with push_scope() as scope:
         scope.set_level("warning")
         scope.set_tag("project", project_id)
         scope.set_tag("reason", reason)
@@ -120,7 +117,7 @@ def _report_change(
 
 
 def _record_metrics() -> None:
-    project_count = sum(1 for _p in realtime_metrics.get_lpq_projects())
+    project_count = len(realtime_metrics.get_lpq_projects())
     metrics.gauge(
         "tasks.store.symbolicate_event.low_priority.projects.auto",
         project_count,
