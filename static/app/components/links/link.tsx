@@ -24,7 +24,16 @@ type Props = WithRouterProps & {
  * A context-aware version of Link (from react-router) that falls
  * back to <a> if there is no router present
  */
-const BaseLink: React.FC<Props> = ({location, disabled, to, ref, ...props}) => {
+const BaseLink: React.FC<Props> = ({
+  location,
+  disabled,
+  to,
+  ref,
+  router: _router,
+  params: _params,
+  routes: _routes,
+  ...props
+}) => {
   useEffect(() => {
     // check if the router is present
     if (!location) {
