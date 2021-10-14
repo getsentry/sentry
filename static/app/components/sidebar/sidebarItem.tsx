@@ -126,7 +126,7 @@ const SidebarItem = ({
         className={className}
         onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
           !(to || href) && event.preventDefault();
-          typeof onClick === 'function' && onClick(id, event);
+          onClick?.(id, event);
           showIsNew && localStorage.setItem(isNewSeenKey, 'true');
         }}
       >
