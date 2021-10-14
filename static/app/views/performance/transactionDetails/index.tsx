@@ -44,7 +44,7 @@ class EventDetails extends Component<Props> {
                 }
                 const project = projects.find(p => p.slug === projectSlug) as Project;
                 // only render setup alert if the project has no real transactions
-                if (project?.firstTransactionEvent) {
+                if (!project || project.firstTransactionEvent) {
                   return null;
                 }
                 return <FinishSetupAlert organization={organization} project={project} />;
