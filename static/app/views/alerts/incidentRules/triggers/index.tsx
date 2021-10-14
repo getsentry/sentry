@@ -4,7 +4,6 @@ import {Panel, PanelBody} from 'app/components/panels';
 import {Organization, Project} from 'app/types';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
-import withProjects from 'app/utils/withProjects';
 import ActionsPanel from 'app/views/alerts/incidentRules/triggers/actionsPanel';
 import TriggerForm from 'app/views/alerts/incidentRules/triggers/form';
 
@@ -145,4 +144,4 @@ class Triggers extends Component<Props> {
   }
 }
 
-export default withProjects(Triggers);
+export default Triggers;
