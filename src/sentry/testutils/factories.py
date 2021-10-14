@@ -1013,9 +1013,16 @@ class Factories:
         target_identifier=None,
         integration=None,
         sentry_app=None,
+        sentry_app_config=None,
     ):
         return create_alert_rule_trigger_action(
-            trigger, type, target_type, target_identifier, integration, sentry_app
+            trigger,
+            type,
+            target_type,
+            target_identifier,
+            integration,
+            sentry_app,
+            sentry_app_config=sentry_app_config,
         )
 
     @staticmethod

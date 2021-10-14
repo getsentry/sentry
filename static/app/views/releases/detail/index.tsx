@@ -2,7 +2,6 @@ import {createContext} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
-import moment from 'moment';
 
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -11,7 +10,6 @@ import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import PickProjectToContinue from 'app/components/pickProjectToContinue';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {IconInfo, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -34,15 +32,9 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 
-import {DisplayOption} from '../list/utils';
 import {getReleaseBounds, ReleaseBounds} from '../utils';
-import ReleaseHealthRequest, {
-  ReleaseHealthRequestRenderProps,
-} from '../utils/releaseHealthRequest';
 
 import ReleaseHeader from './releaseHeader';
-
-const DEFAULT_FRESH_RELEASE_STATS_PERIOD = '24h';
 
 type ReleaseContextType = {
   release: ReleaseWithHealth;
@@ -50,9 +42,6 @@ type ReleaseContextType = {
   deploys: Deploy[];
   releaseMeta: ReleaseMeta;
   refetchData: () => void;
-  defaultStatsPeriod: string;
-  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
-  isHealthLoading: ReleaseHealthRequestRenderProps['isHealthLoading'];
   hasHealthData: boolean;
   releaseBounds: ReleaseBounds;
 };
@@ -67,9 +56,6 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   selection: GlobalSelection;
   releaseMeta: ReleaseMeta;
-  defaultStatsPeriod: string;
-  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
-  isHealthLoading: ReleaseHealthRequestRenderProps['isHealthLoading'];
 };
 
 type State = {
@@ -105,7 +91,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, location, params, releaseMeta, defaultStatsPeriod} = this.props;
+    const {organization, location, params, releaseMeta} = this.props;
 
     const basePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
       params.release
@@ -118,9 +104,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
         {
           query: {
             adoptionStages: 1,
-            ...getParams(pick(location.query, [...Object.values(URL_PARAM)]), {
-              defaultStatsPeriod,
-            }),
+            ...getParams(pick(location.query, [...Object.values(URL_PARAM)])),
           },
         },
       ],
@@ -176,15 +160,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {
-      organization,
-      location,
-      selection,
-      releaseMeta,
-      defaultStatsPeriod,
-      getHealthData,
-      isHealthLoading,
-    } = this.props;
+    const {organization, location, selection, releaseMeta} = this.props;
     const {release, deploys, sessions, reloading} = this.state;
     const project = release?.projects.find(p => p.id === selection.projects[0]);
     const releaseBounds = getReleaseBounds(release);
@@ -215,9 +191,6 @@ class ReleasesDetail extends AsyncView<Props, State> {
               deploys,
               releaseMeta,
               refetchData: this.fetchData,
-              defaultStatsPeriod,
-              getHealthData,
-              isHealthLoading,
               hasHealthData: getCount(sessions?.groups, SessionField.SESSIONS) > 0,
               releaseBounds,
             }}
@@ -231,7 +204,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
 }
 
 class ReleasesDetailContainer extends AsyncComponent<
-  Omit<Props, 'releaseMeta' | 'getHealthData' | 'isHealthLoading'>,
+  Omit<Props, 'releaseMeta'>,
   {releaseMeta: ReleaseMeta | null} & AsyncComponent['state']
 > {
   shouldReload = true;
@@ -249,10 +222,6 @@ class ReleasesDetailContainer extends AsyncComponent<
     ];
   }
 
-  get hasReleaseComparison() {
-    return this.props.organization.features.includes('release-comparison');
-  }
-
   componentDidMount() {
     this.removeGlobalDateTimeFromUrl();
   }
@@ -265,10 +234,6 @@ class ReleasesDetailContainer extends AsyncComponent<
   removeGlobalDateTimeFromUrl() {
     const {router, location} = this.props;
     const {start, end, statsPeriod, utc, ...restQuery} = location.query;
-
-    if (!this.hasReleaseComparison) {
-      return;
-    }
 
     if (start || end || statsPeriod || utc) {
       router.replace({
@@ -318,7 +283,7 @@ class ReleasesDetailContainer extends AsyncComponent<
   }
 
   renderBody() {
-    const {organization, params, router, location, selection} = this.props;
+    const {organization, params, router} = this.props;
     const {releaseMeta} = this.state;
 
     if (!releaseMeta) {
@@ -326,12 +291,6 @@ class ReleasesDetailContainer extends AsyncComponent<
     }
 
     const {projects} = releaseMeta;
-    const isFreshRelease = moment(releaseMeta.released).isAfter(
-      moment().subtract(24, 'hours')
-    );
-    const defaultStatsPeriod = isFreshRelease
-      ? DEFAULT_FRESH_RELEASE_STATS_PERIOD
-      : DEFAULT_STATS_PERIOD;
 
     if (this.isProjectMissingInUrl()) {
       return (
@@ -362,35 +321,9 @@ class ReleasesDetailContainer extends AsyncComponent<
         disableMultipleProjectSelection
         showProjectSettingsLink
         projectsFooterMessage={this.renderProjectsFooterMessage()}
-        defaultSelection={{
-          datetime: {
-            start: null,
-            end: null,
-            utc: false,
-            period: defaultStatsPeriod,
-          },
-        }}
-        showDateSelector={!this.hasReleaseComparison}
+        showDateSelector={false}
       >
-        <ReleaseHealthRequest
-          releases={[params.release]}
-          organization={organization}
-          selection={selection}
-          location={location}
-          display={[DisplayOption.SESSIONS, DisplayOption.USERS]}
-          defaultStatsPeriod={defaultStatsPeriod}
-          disable={this.hasReleaseComparison}
-        >
-          {({isHealthLoading, getHealthData}) => (
-            <ReleasesDetail
-              {...this.props}
-              releaseMeta={releaseMeta}
-              defaultStatsPeriod={defaultStatsPeriod}
-              getHealthData={getHealthData}
-              isHealthLoading={isHealthLoading}
-            />
-          )}
-        </ReleaseHealthRequest>
+        <ReleasesDetail {...this.props} releaseMeta={releaseMeta} />
       </GlobalSelectionHeader>
     );
   }
