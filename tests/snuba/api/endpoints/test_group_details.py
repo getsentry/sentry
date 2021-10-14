@@ -53,6 +53,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             data={"release": "1.1", "timestamp": iso_format(before_now(minutes=2))},
             project_id=self.project.id,
         )
+        event = None
         for timestamp in last_release.values():
             event = self.store_event(
                 data={"release": "1.0a", "timestamp": iso_format(timestamp)},

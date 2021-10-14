@@ -165,6 +165,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_missing_project(self):
         project_ids = []
+        other_project = None
         for project_name in ["a" * 32, "z" * 32, "m" * 32]:
             other_project = self.create_project(organization=self.organization, slug=project_name)
             project_ids.append(other_project.id)
@@ -174,7 +175,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             )
 
         # delete the last project so its missing
-        other_project.delete()
+        if other_project is not None:
+            other_project.delete()
 
         for use_snql in [False, True]:
             result = discover.query(
@@ -2171,22 +2173,22 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 assert len(data[0]["stack.filename"]) == len(expected_filenames), use_snql
                 assert sorted(data[0]["stack.filename"]) == expected_filenames, use_snql
 
-        result = discover.query(
-            selected_columns=["stack.filename"],
-            query="stack.filename:[raven.js]",
-            params={
-                "organization_id": self.organization.id,
-                "project_id": [self.project.id],
-                "start": before_now(minutes=12),
-                "end": before_now(minutes=8),
-            },
-            use_snql=use_snql,
-        )
+            result = discover.query(
+                selected_columns=["stack.filename"],
+                query="stack.filename:[raven.js]",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": before_now(minutes=12),
+                    "end": before_now(minutes=8),
+                },
+                use_snql=use_snql,
+            )
 
-        data = result["data"]
-        assert len(data) == 1
-        assert len(data[0]["stack.filename"]) == len(expected_filenames)
-        assert sorted(data[0]["stack.filename"]) == expected_filenames
+            data = result["data"]
+            assert len(data) == 1
+            assert len(data[0]["stack.filename"]) == len(expected_filenames)
+            assert sorted(data[0]["stack.filename"]) == expected_filenames
 
     def test_orderby_field_alias(self):
         data = load_data("android-ndk", timestamp=before_now(minutes=10))

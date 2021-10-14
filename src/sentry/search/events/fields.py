@@ -543,6 +543,7 @@ def resolve_field_list(
         if "project.id" not in fields:
             fields.append("project.id")
 
+    field = None
     for field in fields:
         if isinstance(field, str) and field.strip() == "":
             continue
@@ -559,7 +560,7 @@ def resolve_field_list(
                     aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
 
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
-    if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
+    if auto_aggregations and snuba_filter.having and len(aggregations) > 0 and field is not None:
         for agg in snuba_filter.condition_aggregates:
             if agg not in snuba_filter.aliases:
                 function = resolve_field(agg, snuba_filter.params, functions_acl)

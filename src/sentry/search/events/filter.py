@@ -757,6 +757,8 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
     # start or end a query with an operator.
     prev = None
     new_terms = []
+    term = None
+
     for term in terms:
         if prev:
             if SearchBoolean.is_operator(prev) and SearchBoolean.is_operator(term):
@@ -772,7 +774,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
         if term != SearchBoolean.BOOLEAN_AND:
             new_terms.append(term)
         prev = term
-    if SearchBoolean.is_operator(term):
+    if term is not None and SearchBoolean.is_operator(term):
         raise InvalidSearchQuery(f"Condition is missing on the right side of '{term}' operator")
     terms = new_terms
 
@@ -1107,6 +1109,7 @@ class QueryFilter(QueryFields):
         # start or end a query with an operator.
         prev = None
         new_terms = []
+        term = None
         for term in terms:
             if prev:
                 if SearchBoolean.is_operator(prev) and SearchBoolean.is_operator(term):
@@ -1124,7 +1127,7 @@ class QueryFilter(QueryFields):
 
             prev = term
 
-        if SearchBoolean.is_operator(term):
+        if term is not None and SearchBoolean.is_operator(term):
             raise InvalidSearchQuery(f"Condition is missing on the right side of '{term}' operator")
         terms = new_terms
 

@@ -204,6 +204,7 @@ class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
         )
 
     def test_get_baseline_simple(self):
+        data = {}
         for index, event_id in enumerate(["a" * 32, "b" * 32, "c" * 32]):
             data = self.prototype.copy()
             data["start_timestamp"] = iso_format(before_now(minutes=2 + index))
@@ -226,6 +227,7 @@ class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
         assert data["project"] == self.project.slug
 
     def test_get_baseline_duration_tie(self):
+        data = {}
         for index, event_id in enumerate(
             ["b" * 32, "a" * 32]
         ):  # b then a so we know its not id breaking the tie
@@ -249,6 +251,7 @@ class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
         assert data["p50"] == 60000
 
     def test_get_baseline_duration_and_timestamp_tie(self):
+        data = {}
         for event_id in ["b" * 32, "a" * 32]:  # b then a so we know its not id breaking the tie
             data = self.prototype.copy()
             data["start_timestamp"] = iso_format(before_now(minutes=2))
@@ -293,6 +296,7 @@ class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
         assert data["p50"] == "80000"
 
     def test_get_baseline_with_different_function(self):
+        data = {}
         for index, event_id in enumerate(["a" * 32, "b" * 32]):
             data = self.prototype.copy()
             data["start_timestamp"] = iso_format(before_now(minutes=2 + index))
