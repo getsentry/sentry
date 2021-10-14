@@ -158,11 +158,11 @@ export function getAdoptionSeries(
 ): SeriesDataUnit[] {
   return intervals.map((interval, i) => {
     const intervalReleaseSessions = releaseGroups.reduce(
-      (acc, group) => acc + group.series[field][i],
+      (acc, group) => acc + (group.series[field]?.[i] ?? 0),
       0
     );
     const intervalTotalSessions = allGroups.reduce(
-      (acc, group) => acc + group.series[field][i],
+      (acc, group) => acc + (group.series[field]?.[i] ?? 0),
       0
     );
 
