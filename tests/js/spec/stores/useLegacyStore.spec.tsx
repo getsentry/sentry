@@ -1,4 +1,4 @@
-import {act, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {act, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'app/stores/teamStore';
 import {useLegacyStore} from 'app/stores/useLegacyStore';
@@ -17,11 +17,11 @@ describe('useLegacyStore', () => {
   });
 
   it('should update on change to store', () => {
-    const wrapper = mountWithTheme(<TestComponent />);
-    expect(wrapper.getByText('Teams: 0')).toBeTruthy();
+    mountWithTheme(<TestComponent />);
+    expect(screen.getByText('Teams: 0')).toBeTruthy();
 
     act(() => TeamStore.loadInitialData([team]));
 
-    expect(wrapper.getByText('Teams: 1')).toBeTruthy();
+    expect(screen.getByText('Teams: 1')).toBeTruthy();
   });
 });
