@@ -30,6 +30,7 @@ import {
 } from 'app/types';
 import {defined} from 'app/utils';
 import {formatPercentage} from 'app/utils/formatters';
+import getDynamicText from 'app/utils/getDynamicText';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
 import {
   getCount,
@@ -930,36 +931,44 @@ function ReleaseComparisonChart({
             ReleaseComparisonChartType.ERROR_COUNT,
             ReleaseComparisonChartType.TRANSACTION_COUNT,
             ReleaseComparisonChartType.FAILURE_RATE,
-          ].includes(activeChart) ? (
-            <ReleaseEventsChart
-              release={release}
-              project={project}
-              chartType={activeChart}
-              period={period ?? undefined}
-              start={start}
-              end={end}
-              utc={utc === 'true'}
-              value={chart.thisRelease}
-              diff={titleChartDiff}
-            />
-          ) : (
-            <ReleaseSessionsChart
-              releaseSessions={releaseSessions}
-              allSessions={allSessions}
-              release={release}
-              project={project}
-              chartType={activeChart}
-              platform={platform}
-              period={period ?? undefined}
-              start={start}
-              end={end}
-              utc={utc === 'true'}
-              value={chart.thisRelease}
-              diff={titleChartDiff}
-              loading={loading}
-              reloading={reloading}
-            />
-          )}
+          ].includes(activeChart)
+            ? getDynamicText({
+                value: (
+                  <ReleaseEventsChart
+                    release={release}
+                    project={project}
+                    chartType={activeChart}
+                    period={period ?? undefined}
+                    start={start}
+                    end={end}
+                    utc={utc === 'true'}
+                    value={chart.thisRelease}
+                    diff={titleChartDiff}
+                  />
+                ),
+                fixed: 'Events Chart',
+              })
+            : getDynamicText({
+                value: (
+                  <ReleaseSessionsChart
+                    releaseSessions={releaseSessions}
+                    allSessions={allSessions}
+                    release={release}
+                    project={project}
+                    chartType={activeChart}
+                    platform={platform}
+                    period={period ?? undefined}
+                    start={start}
+                    end={end}
+                    utc={utc === 'true'}
+                    value={chart.thisRelease}
+                    diff={titleChartDiff}
+                    loading={loading}
+                    reloading={reloading}
+                  />
+                ),
+                fixed: 'Sessions Chart',
+              })}
         </ChartContainer>
       </ChartPanel>
       <ChartTable
