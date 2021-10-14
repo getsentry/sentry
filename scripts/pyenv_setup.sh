@@ -95,7 +95,7 @@ install_pyenv() {
     fi
     # Only try to patch the source code if:
     # - The user is on Big Sur
-    # - The user is not try to use their own Python version
+    # - The user is not trying to use their own Python version
     # - The version is 3.6.x
     if query-big-sur && [[ -z "${SENTRY_PYTHON_VERSION:-}" ]] && [[ ${PYENV_VERSION} < 3.7.0 ]]; then
       # For Python 3.6.x, we need to patch the source code on Big Sur before building Python
