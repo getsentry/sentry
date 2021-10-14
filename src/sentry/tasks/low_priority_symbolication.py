@@ -8,14 +8,13 @@ This has three major tasks, executed in the following general order:
 3. Remove some specified project from the LPQ.
 """
 
-import collections
 import logging
 import time
-from typing import Deque, Dict, Iterable
 
 from sentry.processing import realtime_metrics
-from sentry.processing.realtime_metrics.base import BucketedCount, DurationHistogram
+from sentry.processing.realtime_metrics.base import DurationsHistogram
 from sentry.tasks.base import instrumented_task
+from sentry.utils import sdk as sentry_sdk
 
 logger = logging.getLogger(__name__)
 
@@ -75,81 +74,58 @@ def update_lpq_eligibility(project_id: int, cutoff: int) -> None:
 def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
     # TODO: It may be a good idea to figure out how to debounce especially if this is
     # executing more than 10s after cutoff.
-    counts = realtime_metrics.get_counts_for_project(project_id, cutoff)
-    durations = realtime_metrics.get_durations_for_project(project_id, cutoff)
+    excessive_rate = excessive_event_rate(project_id, cutoff)
+    excessive_duration = excessive_event_duration(project_id, cutoff)
 
-    is_eligible = calculation_magic(counts, durations)
-
-    if is_eligible:
+    if excessive_rate or excessive_duration:
         was_added = realtime_metrics.add_project_to_lpq(project_id)
         if was_added:
-            logger.warning("Moved project to symbolicator's low priority queue: %s", project_id)
-    elif not is_eligible:
+            if excessive_rate:
+                reason = "excessive event rate"
+            else:
+                reason = "excessive event duration"
+            sentry_sdk.capture_message(
+                f"Moved project {project_id} to symbolicator's LPQ: {reason}"
+            )
+    else:
         was_removed = realtime_metrics.remove_projects_from_lpq({project_id})
         if was_removed:
-            logger.warning("Moved project out of symbolicator's low priority queue: %s", project_id)
+            logger.warning("Moved project %s out of symbolicator's LPQ", project_id)
 
 
-def calculation_magic(
-    invocations: Iterable[BucketedCount], durations: Iterable[DurationHistogram]
-) -> bool:
-    ################################################################
-    # The rate metrics: compare the average rate of the entire time window with the average
-    # rate of the last minute.
-
-    # We need somewhere to keep the recent buckets to compute the rate at.  We only get an
-    # iterator as input so keep the last few buckets seen, once the iterator is exhausted
-    # this will have the most recent buckets.
+def excessive_event_rate(project_id: int, cutoff: int) -> bool:
+    """Whether the project is sending too many symbolication requests."""
     recent_time_window = 60
-    recent_bucket_count = int(
-        recent_time_window / realtime_metrics.realtime_metrics_store._counter_bucket_size
-    )
-    recent_buckets: Deque[BucketedCount] = collections.deque(maxlen=recent_bucket_count)
 
-    # We need to know the average rate over the total time period.
-    total_count = 0
-    total_time = 0
+    buckets = realtime_metrics.get_counts_for_project(project_id, cutoff)
 
-    # Calculate total rate
-    for bucket in invocations:
-        recent_buckets.append(bucket)
-        total_count += bucket.count
-        total_time += realtime_metrics.realtime_metrics_store._counter_bucket_size
-    if total_time > 0:
-        total_rate = total_count / total_time
-    else:
-        total_rate = 0
+    total_rate = buckets.total_count() / buckets.total_time()
 
-    # Calculate recent rate
-    recent_count = sum(bucket.count for bucket in recent_buckets)
-    recent_rate = recent_count / recent_time_window
+    recent_bucket_count = int(recent_time_window / buckets.width)
+    recent_rate = sum(buckets.counts[-recent_bucket_count:]) / recent_time_window
 
     if recent_rate > 50 and recent_rate > 5 * total_rate:
         return True
+    else:
+        return False
 
-    ################################################################
-    # The duration metrics: compute p75 and compare with an absolute value.
 
-    total_histogram: Dict[int, int] = collections.defaultdict(lambda: 0)
-    total_count = 0
-    for duration_bucket in durations:
-        for duration, count in duration_bucket.histogram.items():
-            total_histogram[duration] += count
-            total_count += count
-    p75_count = int(0.75 * total_count)
+def excessive_event_duration(project_id: int, cutoff: int) -> bool:
+    """Whether the project's symbolication requests are taking too long to process."""
 
-    counter = 0
-    p75_set = False
-    for duration in sorted(total_histogram.keys()):
-        counter += total_histogram[duration]
-        if not p75_set and counter >= p75_count:
-            p75_duration = duration
+    buckets = realtime_metrics.get_durations_for_project(project_id, cutoff)
 
-    events_per_minute = counter / (
-        realtime_metrics.realtime_metrics_store._duration_time_window / 60
-    )
+    total_histogram = DurationsHistogram(bucket_size=buckets.histograms[0].bucket_size)
+    for histogram in buckets.histograms:
+        total_histogram.incr_from(histogram)
+
+    try:
+        p75_duration = total_histogram.percentile(0.75)
+    except ValueError:
+        return False
+    events_per_minute = total_histogram.total_count() / (buckets.width / 60)
 
     if events_per_minute > 15 and p75_duration > 6 * 60:
         return True
-
-    return False
+    else:
+        return False

@@ -154,9 +154,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
                 already_seen.add(project_id)
                 yield project_id
 
-    def get_counts_for_project(
-        self, project_id: int, timestamp: int
-    ) -> Iterable[base.BucketedCount]:
+    def get_counts_for_project(self, project_id: int, timestamp: int) -> base.BucketedCounts:
         """Returns a sorted list of bucketed timestamps paired with the count of symbolicator requests
         made during that time for some given project.
 
@@ -174,15 +172,18 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         buckets = range(first_bucket, now_bucket + bucket_size, bucket_size)
         keys = [f"{self._counter_key_prefix()}:{project_id}:{ts}" for ts in buckets]
+        from pprint import pprint
+
+        pprint(keys)
 
         counts = self.cluster.mget(keys)
-        for ts, count_raw in zip(buckets, counts):
-            count = int(count_raw) if count_raw else 0
-            yield base.BucketedCount(timestamp=ts, count=count)
+        return base.BucketedCounts(
+            timestamp=buckets[0], width=bucket_size, counts=[int(c) if c else 0 for c in counts]
+        )
 
     def get_durations_for_project(
         self, project_id: int, timestamp: int
-    ) -> Iterable[base.DurationHistogram]:
+    ) -> base.BucketedDurationsHistograms:
         """Returns a sorted list of bucketed timestamps paired with a histogram-like dictionary of
         symbolication durations made during some timestamp for some given project.
 
@@ -214,13 +215,18 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
                 pipeline.hgetall(f"{self._duration_key_prefix()}:{project_id}:{ts}")
             histograms = pipeline.execute()
 
-        for ts, histogram_redis_raw in zip(buckets, histograms):
-            histogram = {duration: 0 for duration in range(0, 600, 10)}
-            histogram_redis = {
-                int(duration): int(count) for duration, count in histogram_redis_raw.items()
-            }
-            histogram.update(histogram_redis)
-            yield base.DurationHistogram(timestamp=ts, histogram=base.BucketedDurations(histogram))
+        all_histograms = []
+        for ts, histogram_redis in zip(buckets, histograms):
+            histogram = base.DurationsHistogram(bucket_size=10)
+            for duration, count in histogram_redis.items():
+                histogram.incr(int(duration), int(count))
+            all_histograms.append(histogram)
+
+        return base.BucketedDurationsHistograms(
+            timestamp=first_bucket,
+            width=bucket_size,
+            histograms=all_histograms,
+        )
 
     def get_lpq_projects(self) -> Set[int]:
         """
