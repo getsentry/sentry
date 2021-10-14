@@ -93,11 +93,11 @@ install_pyenv() {
       echo >&2 "brew update && brew uninstall pyenv && brew install pyenv"
       exit 1
     fi
-
-    # I'm assuming that SENTRY_PYTHON_VERSION won't be used to specify a 3.6 version to simplify the condition
-    # When a user sets a SENTRY_PYTHON_VERSION they intend to use a non-default version that I assume
-    # is newer, thus, can install with the non-source-patched default pyenv install command
-    if query-big-sur && [[ -z "${SENTRY_PYTHON_VERSION:-}" ]]; then
+    # Only try to patch the source code if:
+    # - The user is on Big Sur
+    # - The user is not try to use their own Python version
+    # - The version is 3.6.x
+    if query-big-sur && [[ -z "${SENTRY_PYTHON_VERSION:-}" ]] && [[ ${PYENV_VERSION} < 3.7.0 ]]; then
       # For Python 3.6.x, we need to patch the source code on Big Sur before building Python
       # We can remove this once we upgrade to newer versions of Python
       # cat is used since pyenv would finish to soon when the Python version is already installed
