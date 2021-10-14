@@ -62,7 +62,6 @@ class GroupRelease(Model):
                     ),
                     False,
                 )
-            cache.set(cache_key, instance, 3600)
         else:
             created = False
 
@@ -74,5 +73,6 @@ class GroupRelease(Model):
                 extra={"last_seen": datetime},
             )
             instance.last_seen = datetime
-            cache.set(cache_key, instance, 3600)
+
+        cache.set(cache_key, instance, 3600)
         return instance
