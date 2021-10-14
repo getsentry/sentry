@@ -77,6 +77,11 @@ describe('TeamInsightsOverview', () => {
       url: `/teams/org-slug/${team1.slug}/issue-breakdown/`,
       body: TestStubs.TeamIssuesReviewed(),
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/teams/org-slug/${team1.slug}/release-count/`,
+      body: [],
+    });
     act(() => void TeamStore.loadInitialData([team1, team2]));
   });
 
