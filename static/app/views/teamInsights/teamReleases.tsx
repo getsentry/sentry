@@ -1,9 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import chunk from 'lodash/chunk';
 import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
 
 import AsyncComponent from 'app/components/asyncComponent';
+import BarChart from 'app/components/charts/barChart';
 import {DateTimeObject} from 'app/components/charts/utils';
 import IdBadge from 'app/components/idBadge';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -21,11 +23,16 @@ type Props = AsyncComponent['props'] & {
   projects: Project[];
 } & DateTimeObject;
 
+type ProjectReleaseCount = {
+  project_avgs: Record<string, number>;
+  release_counts: Record<string, number>;
+};
+
 type State = AsyncComponent['state'] & {
   /** weekly selected date range */
-  periodReleases: {project_avgs: object; release_counts: object} | null;
+  periodReleases: ProjectReleaseCount | null;
   /** Locked to last 7 days */
-  weekReleases: {project_avgs: object; release_counts: object} | null;
+  weekReleases: ProjectReleaseCount | null;
 };
 
 class TeamReleases extends AsyncComponent<Props, State> {
@@ -40,13 +47,9 @@ class TeamReleases extends AsyncComponent<Props, State> {
   }
 
   getEndpoints() {
-    const {organization, start, end, period, utc, projects, teamSlug} = this.props;
+    const {organization, start, end, period, utc, teamSlug} = this.props;
 
     const datetime = {start, end, period, utc};
-    const commonQuery = {
-      environment: [],
-      project: projects.map(p => p.id),
-    };
 
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
       [
@@ -54,7 +57,6 @@ class TeamReleases extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/release-count/`,
         {
           query: {
-            ...commonQuery,
             ...getParams(datetime),
           },
         },
@@ -64,7 +66,6 @@ class TeamReleases extends AsyncComponent<Props, State> {
         `/teams/${organization.slug}/${teamSlug}/release-count/`,
         {
           query: {
-            ...commonQuery,
             statsPeriod: '7d',
           },
         },
@@ -75,14 +76,14 @@ class TeamReleases extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {projects, start, end, period, utc} = this.props;
+    const {teamSlug, start, end, period, utc} = this.props;
 
     if (
       prevProps.start !== start ||
       prevProps.end !== end ||
       prevProps.period !== period ||
       prevProps.utc !== utc ||
-      !isEqual(prevProps.projects, projects)
+      !isEqual(prevProps.teamSlug, teamSlug)
     ) {
       this.remountComponent();
     }
@@ -162,40 +163,109 @@ class TeamReleases extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {projects, period} = this.props;
+    const {periodReleases} = this.state;
+
+    const data = Object.entries(periodReleases?.release_counts ?? {})
+      .map(([bucket, count]) => ({
+        value: count,
+        name: new Date(bucket).getTime(),
+      }))
+      .sort((a, b) => a.name - b.name);
+
+    const projectAvgData = Object.values(periodReleases?.project_avgs ?? {}).reduce(
+      (total, currentData) => total + currentData,
+      0
+    );
+    // Convert from days to 7 day groups
+    const seriesData = chunk(data, 7).map(week => {
+      return {
+        name: week[0].name,
+        value: week.reduce((total, currentData) => total + currentData.value, 0),
+      };
+    });
+
+    const avgSeriesData = chunk(data, 7).map(week => {
+      return {
+        name: week[0].name,
+        value: Math.ceil(projectAvgData),
+      };
+    });
 
     return (
-      <StyledPanelTable
-        isEmpty={projects.length === 0}
-        headers={[
-          t('Project'),
-          <RightAligned key="last">{tct('Last [period]', {period})}</RightAligned>,
-          <RightAligned key="curr">{t('This Week')}</RightAligned>,
-          <RightAligned key="diff">{t('Difference')}</RightAligned>,
-        ]}
-      >
-        {projects.map(project => (
-          <Fragment key={project.id}>
-            <ProjectBadgeContainer>
-              <ProjectBadge avatarSize={18} project={project} />
-            </ProjectBadgeContainer>
+      <div>
+        <ChartWrapper>
+          <StyledBarChart
+            style={{height: 190}}
+            isGroupedByDate
+            useShortDate
+            period="7d"
+            legend={{right: 3, top: 0}}
+            yAxis={{minInterval: 1}}
+            xAxis={{
+              type: 'time',
+            }}
+            series={[
+              {
+                seriesName: t('This Period'),
+                data: seriesData,
+              },
+            ]}
+            previousPeriod={[
+              {
+                seriesName: t('12 Week Average'),
+                data: avgSeriesData ?? [],
+              },
+            ]}
+          />
+        </ChartWrapper>
+        <StyledPanelTable
+          isEmpty={projects.length === 0}
+          headers={[
+            t('Project'),
+            <RightAligned key="last">
+              {tct('Last [period] Average', {period})}
+            </RightAligned>,
+            <RightAligned key="curr">{t('This Week')}</RightAligned>,
+            <RightAligned key="diff">{t('Difference')}</RightAligned>,
+          ]}
+        >
+          {projects.map(project => (
+            <Fragment key={project.id}>
+              <ProjectBadgeContainer>
+                <ProjectBadge avatarSize={18} project={project} />
+              </ProjectBadgeContainer>
 
-            <ScoreWrapper>{this.renderReleaseCount(project.id, 'period')}</ScoreWrapper>
-            <ScoreWrapper>{this.renderReleaseCount(project.id, 'week')}</ScoreWrapper>
-            <ScoreWrapper>{this.renderTrend(project.id)}</ScoreWrapper>
-          </Fragment>
-        ))}
-      </StyledPanelTable>
+              <ScoreWrapper>{this.renderReleaseCount(project.id, 'period')}</ScoreWrapper>
+              <ScoreWrapper>{this.renderReleaseCount(project.id, 'week')}</ScoreWrapper>
+              <ScoreWrapper>{this.renderTrend(project.id)}</ScoreWrapper>
+            </Fragment>
+          ))}
+        </StyledPanelTable>
+      </div>
     );
   }
 }
 
 export default TeamReleases;
 
+const ChartWrapper = styled('div')`
+  padding: ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const StyledBarChart = styled(BarChart)<{previousPeriod: any[]}>``;
+
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr;
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
+  font-size: ${p => p.theme.fontSizeMedium};
+  box-shadow: unset;
+
+  & > div {
+    padding: ${space(1)} ${space(2)};
+  }
 `;
 
 const RightAligned = styled('span')`
