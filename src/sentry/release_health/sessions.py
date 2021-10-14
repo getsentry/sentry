@@ -14,6 +14,7 @@ from sentry.release_health.base import (
     ProjectRelease,
     ProjectReleaseSessionStats,
     ProjectReleaseUserStats,
+    ProjectWithCount,
     ReleaseHealthBackend,
     ReleaseHealthOverview,
     ReleaseName,
@@ -27,6 +28,7 @@ from sentry.snuba.sessions import (
     _check_releases_have_health_data,
     _get_changed_project_release_model_adoptions,
     _get_crash_free_breakdown,
+    _get_num_sessions_per_project,
     _get_oldest_health_data_for_releases,
     _get_project_release_stats,
     _get_project_releases_count,
@@ -205,4 +207,20 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
             start,
             end,
             environment_id,
+        )
+
+    def get_num_sessions_per_project(
+        self,
+        project_ids: Sequence[ProjectId],
+        start: datetime,
+        end: datetime,
+        environment_ids: Optional[Sequence[int]] = None,
+        rollup: Optional[int] = None,  # rollup in seconds
+    ) -> Sequence[ProjectWithCount]:
+        """
+        Returns the number of sessions for each project specified.
+        Additionally
+        """
+        return _get_num_sessions_per_project(  # type: ignore
+            project_ids, start, end, environment_ids, rollup
         )

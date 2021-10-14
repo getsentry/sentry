@@ -46,6 +46,8 @@ class SessionsQuery(TypedDict):
 
 SessionsQueryValue = Union[None, float, int]
 
+ProjectWithCount = Tuple[ProjectId, int]
+
 
 class SessionsQueryGroup(TypedDict):
     by: Mapping[GroupByFieldName, Union[str, int]]
@@ -206,6 +208,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "get_project_releases_count",
         "get_project_release_stats",
         "get_project_sessions_count",
+        "get_num_sessions_per_project",
     )
 
     def get_current_and_previous_crash_free_rates(
@@ -411,5 +414,19 @@ class ReleaseHealthBackend(Service):  # type: ignore
         """
         Returns the number of sessions in the specified period (optionally
         filtered by environment)
+        """
+        raise NotImplementedError()
+
+    def get_num_sessions_per_project(
+        self,
+        project_ids: Sequence[ProjectId],
+        start: datetime,
+        end: datetime,
+        environment_ids: Optional[Sequence[int]] = None,
+        rollup: Optional[int] = None,  # rollup in seconds
+    ) -> Sequence[ProjectWithCount]:
+        """
+        Returns the number of sessions for each project specified.
+        Additionally
         """
         raise NotImplementedError()

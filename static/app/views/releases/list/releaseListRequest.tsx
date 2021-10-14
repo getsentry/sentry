@@ -22,14 +22,15 @@ import {
   HealthStatsPeriodOption,
   Organization,
   SessionApiResponse,
+  SessionField,
 } from 'app/types';
 import {defined, percent} from 'app/utils';
 import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 
-import {DisplayOption} from '../list/utils';
+import {getCrashFreePercent} from '../utils';
 
-import {getCrashFreePercent} from '.';
+import {DisplayOption} from './utils';
 
 function omitIgnoredProps(props: Props) {
   return omit(props, [
@@ -73,24 +74,24 @@ export function reduceTimeSeriesGroups(
 export function sessionDisplayToField(display: DisplayOption) {
   switch (display) {
     case DisplayOption.USERS:
-      return 'count_unique(user)';
+      return SessionField.USERS;
     case DisplayOption.SESSIONS:
     default:
-      return 'sum(session)';
+      return SessionField.SESSIONS;
   }
 }
 
-export type ReleaseHealthRequestRenderProps = {
+export type ReleaseListRequestRenderProps = {
   isHealthLoading: boolean;
   errored: boolean;
-  getHealthData: ReturnType<ReleaseHealthRequest['getHealthData']>;
+  getHealthData: ReturnType<ReleaseListRequest['getHealthData']>;
 };
 
 type Props = {
   api: Client;
   releases: string[];
   organization: Organization;
-  children: (renderProps: ReleaseHealthRequestRenderProps) => React.ReactNode;
+  children: (renderProps: ReleaseListRequestRenderProps) => React.ReactNode;
   selection: GlobalSelection;
   location: Location;
   display: DisplayOption[];
@@ -110,7 +111,7 @@ type State = {
   totalCountByProjectInPeriod: SessionApiResponse | null;
 };
 
-class ReleaseHealthRequest extends React.Component<Props, State> {
+class ReleaseListRequest extends React.Component<Props, State> {
   state: State = {
     loading: false,
     errored: false,
@@ -512,4 +513,4 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
   }
 }
 
-export default withApi(ReleaseHealthRequest);
+export default withApi(ReleaseListRequest);

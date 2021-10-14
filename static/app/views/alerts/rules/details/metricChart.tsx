@@ -102,7 +102,7 @@ function createStatusAreaSeries(
   yPosition: number
 ): LineChartSeries {
   return {
-    seriesName: 'Status Area',
+    seriesName: '',
     type: 'line',
     markLine: MarkLine({
       silent: true,
@@ -120,7 +120,8 @@ function createIncidentSeries(
   incidentTimestamp: number,
   incident: Incident,
   dataPoint?: LineChartSeries['data'][0],
-  seriesName?: string
+  seriesName?: string,
+  aggregate?: string
 ) {
   const series = {
     seriesName: 'Incident Line',
@@ -160,7 +161,15 @@ function createIncidentSeries(
         `<div class="tooltip-series"><div>`,
         `<span class="tooltip-label">${marker} <strong>${t('Alert')} #${
           incident.identifier
-        }</strong></span>${seriesName} ${dataPoint?.value?.toLocaleString()}`,
+        }</strong></span>${
+          dataPoint?.value
+            ? `${seriesName} ${alertTooltipValueFormatter(
+                dataPoint.value,
+                seriesName ?? '',
+                aggregate ?? ''
+              )}`
+            : ''
+        }`,
         `</div></div>`,
         `<div class="tooltip-date">${time}</div>`,
         `<div class="tooltip-arrow"></div>`,
@@ -408,7 +417,7 @@ class MetricChart extends React.PureComponent<Props, State> {
             ? moment(incident.dateClosed).valueOf()
             : lastPoint;
           const incidentStartValue = dataArr.find(
-            point => point.name >= incidentStartDate
+            point => moment(point.name).valueOf() >= incidentStartDate
           );
           series.push(
             createIncidentSeries(
@@ -418,7 +427,8 @@ class MetricChart extends React.PureComponent<Props, State> {
               incidentStartDate,
               incident,
               incidentStartValue,
-              series[0].seriesName
+              series[0].seriesName,
+              aggregate
             )
           );
           const areaStart = Math.max(moment(incident.dateStarted).valueOf(), firstPoint);

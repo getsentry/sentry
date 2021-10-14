@@ -23,9 +23,11 @@ import {
 import {defined} from 'app/utils';
 import {getDuration, getExactDuration} from 'app/utils/formatters';
 import {
+  getCountSeries,
   getCrashFreeRateSeries,
   getSessionP50Series,
   getSessionStatusRateSeries,
+  initSessionsChart,
 } from 'app/utils/sessions';
 import {Theme} from 'app/utils/theme';
 import {displayCrashFreePercent, roundDuration} from 'app/views/releases/utils';
@@ -36,10 +38,6 @@ import {
   releaseComparisonChartTitles,
   releaseMarkLinesLabels,
 } from '../../utils';
-import {
-  fillChartDataFromSessionsResponse,
-  initSessionsBreakdownChartData,
-} from '../chart/utils';
 
 type Props = {
   theme: Theme;
@@ -194,6 +192,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
 
   getSeries(chartType: ReleaseComparisonChartType) {
     const {releaseSessions, allSessions, release, location, project, theme} = this.props;
+    const countCharts = initSessionsChart(theme);
 
     if (!releaseSessions) {
       return {};
@@ -470,14 +469,48 @@ class ReleaseSessionsChart extends React.Component<Props> {
         };
       case ReleaseComparisonChartType.SESSION_COUNT:
         return {
-          series: Object.values(
-            fillChartDataFromSessionsResponse({
-              response: releaseSessions,
-              field: SessionField.SESSIONS,
-              groupBy: 'session.status',
-              chartData: initSessionsBreakdownChartData(theme),
-            })
-          ),
+          series: [
+            {
+              ...countCharts[SessionStatus.HEALTHY],
+              data: getCountSeries(
+                SessionField.SESSIONS,
+                releaseSessions.groups.find(
+                  g => g.by['session.status'] === SessionStatus.HEALTHY
+                ),
+                releaseSessions.intervals
+              ),
+            },
+            {
+              ...countCharts[SessionStatus.ERRORED],
+              data: getCountSeries(
+                SessionField.SESSIONS,
+                releaseSessions.groups.find(
+                  g => g.by['session.status'] === SessionStatus.ERRORED
+                ),
+                releaseSessions.intervals
+              ),
+            },
+            {
+              ...countCharts[SessionStatus.ABNORMAL],
+              data: getCountSeries(
+                SessionField.SESSIONS,
+                releaseSessions.groups.find(
+                  g => g.by['session.status'] === SessionStatus.ABNORMAL
+                ),
+                releaseSessions.intervals
+              ),
+            },
+            {
+              ...countCharts[SessionStatus.CRASHED],
+              data: getCountSeries(
+                SessionField.SESSIONS,
+                releaseSessions.groups.find(
+                  g => g.by['session.status'] === SessionStatus.CRASHED
+                ),
+                releaseSessions.intervals
+              ),
+            },
+          ],
           markLines,
         };
       case ReleaseComparisonChartType.SESSION_DURATION:
@@ -509,14 +542,48 @@ class ReleaseSessionsChart extends React.Component<Props> {
         };
       case ReleaseComparisonChartType.USER_COUNT:
         return {
-          series: Object.values(
-            fillChartDataFromSessionsResponse({
-              response: releaseSessions,
-              field: SessionField.USERS,
-              groupBy: 'session.status',
-              chartData: initSessionsBreakdownChartData(theme),
-            })
-          ),
+          series: [
+            {
+              ...countCharts[SessionStatus.HEALTHY],
+              data: getCountSeries(
+                SessionField.USERS,
+                releaseSessions.groups.find(
+                  g => g.by['session.status'] === SessionStatus.HEALTHY
+                ),
+                releaseSessions.intervals
+              ),
+            },
+            {
+              ...countCharts[SessionStatus.ERRORED],
+              data: getCountSeries(
+                SessionField.USERS,
+                releaseSessions.groups.find(
+                  g => g.by['session.status'] === SessionStatus.ERRORED
+                ),
+                releaseSessions.intervals
+              ),
+            },
+            {
+              ...countCharts[SessionStatus.ABNORMAL],
+              data: getCountSeries(
+                SessionField.USERS,
+                releaseSessions.groups.find(
+                  g => g.by['session.status'] === SessionStatus.ABNORMAL
+                ),
+                releaseSessions.intervals
+              ),
+            },
+            {
+              ...countCharts[SessionStatus.CRASHED],
+              data: getCountSeries(
+                SessionField.USERS,
+                releaseSessions.groups.find(
+                  g => g.by['session.status'] === SessionStatus.CRASHED
+                ),
+                releaseSessions.intervals
+              ),
+            },
+          ],
           markLines,
         };
       default:
