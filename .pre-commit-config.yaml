@@ -57,6 +57,13 @@ repos:
       language: system
       files: requirements-base.txt
       pass_filenames: false
+    - id: pyright
+      name: pyright
+      entry: pyright
+      language: node
+      types: [ python ]
+      pass_filenames: true
+      additional_dependencies: [ "pyright@1.1.178" ]
 
 -   repo: https://github.com/sirosen/check-jsonschema
     rev: 0.3.0

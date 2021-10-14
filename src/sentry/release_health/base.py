@@ -12,7 +12,6 @@ ReleaseName = str
 EnvironmentName = str
 DateString = str
 
-
 #: The functions supported by `run_sessions_query`
 SessionsQueryFunction = Literal[
     "sum(session)",
@@ -47,6 +46,8 @@ class SessionsQuery(TypedDict):
 
 SessionsQueryValue = Union[None, float, int]
 
+ProjectWithCount = Tuple[ProjectId, int]
+
 
 class SessionsQueryGroup(TypedDict):
     by: Mapping[GroupByFieldName, Union[str, int]]
@@ -66,7 +67,6 @@ FormattedIsoTime = str
 
 ProjectRelease = Tuple[ProjectId, ReleaseName]
 ProjectOrRelease = TypeVar("ProjectOrRelease", ProjectId, ProjectRelease)
-
 
 # taken from sentry.snuba.sessions.STATS_PERIODS
 StatsPeriod = Literal[
@@ -168,6 +168,8 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "get_changed_project_release_model_adoptions",
         "get_oldest_health_data_for_releases",
         "get_project_releases_count",
+        "get_project_sessions_count",
+        "get_num_sessions_per_project",
     )
 
     def get_current_and_previous_crash_free_rates(
@@ -347,5 +349,33 @@ class ReleaseHealthBackend(Service):  # type: ignore
     ) -> int:
         """
         Fetches the total count of releases/project combinations
+        """
+        raise NotImplementedError()
+
+    def get_project_sessions_count(
+        self,
+        project_id: ProjectId,
+        rollup: int,  # rollup in seconds
+        start: datetime,
+        end: datetime,
+        environment_id: Optional[int] = None,
+    ) -> int:
+        """
+        Returns the number of sessions in the specified period (optionally
+        filtered by environment)
+        """
+        raise NotImplementedError()
+
+    def get_num_sessions_per_project(
+        self,
+        project_ids: Sequence[ProjectId],
+        start: datetime,
+        end: datetime,
+        environment_ids: Optional[Sequence[int]] = None,
+        rollup: Optional[int] = None,  # rollup in seconds
+    ) -> Sequence[ProjectWithCount]:
+        """
+        Returns the number of sessions for each project specified.
+        Additionally
         """
         raise NotImplementedError()
