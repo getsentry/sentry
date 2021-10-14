@@ -30,9 +30,8 @@ class QueryBuilder(QueryFilter):
         offset: Optional[int] = 0,
         limitby: Optional[Tuple[str, int]] = None,
     ):
-        super().__init__(dataset, params, functions_acl)
+        super().__init__(dataset, params, auto_fields, functions_acl)
 
-        self.auto_fields = auto_fields
         # TODO: implement this in `resolve_select`
         self.auto_aggregations = auto_aggregations
 
