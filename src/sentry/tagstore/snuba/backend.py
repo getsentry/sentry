@@ -60,7 +60,7 @@ DEFAULT_TYPE_CONDITION = ["type", "!=", "transaction"]
 tag_value_data_transformers = {"first_seen": parse_datetime, "last_seen": parse_datetime}
 
 
-def is_fuzzy_numeric_key(key: str) -> bool:
+def is_fuzzy_numeric_key(key):
     return key in FUZZY_NUMERIC_KEYS or snuba.is_measurement(key) or snuba.is_span_op_breakdown(key)
 
 
