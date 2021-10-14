@@ -1,13 +1,13 @@
-Request to Setup Code Owners
+Request to Set Up Code Owners
 
 {% block main %}
 Hey {{ recipient_name }},
 
-Heads up, {{ requester_name }} requested to setup Code Owners for the {{ project_name }} project in {{ organization_name }}. They did ask nicely, if that helps.
+Heads up, {{ requester_name }} requested to set up Code Owners for the {{ project_name }} project in {{ organization_name }}. They did ask nicely, if that helps.
 
     Learn More: https://docs.sentry.io/product/issues/issue-owners/#code-owners
 
-    Setup Now: {{ codeowners_url }}
+    Set Up Now: {{ codeowners_url }}
 
 To Better Software,
 The Sentry Team
