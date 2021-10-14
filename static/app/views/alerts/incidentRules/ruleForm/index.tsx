@@ -122,11 +122,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
       thresholdType: rule.thresholdType,
-      comparisonDelta: rule.comparisonDelta,
-      comparisonType:
-        rule.comparisonDelta === undefined || rule.comparisonDelta === null
-          ? AlertRuleComparisonType.COUNT
-          : AlertRuleComparisonType.CHANGE,
+      comparisonDelta: rule.comparisonDelta ?? undefined,
+      comparisonType: !rule.comparisonDelta
+        ? AlertRuleComparisonType.COUNT
+        : AlertRuleComparisonType.CHANGE,
       projects: [this.props.project],
       owner: rule.owner,
     };
