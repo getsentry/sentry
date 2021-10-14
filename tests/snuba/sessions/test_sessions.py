@@ -748,6 +748,9 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             end=end,
         )
 
+        # Let's not care about lists vs. tuples:
+        stats = [[ts, data] for ts, data in stats]
+
         assert stats == self._add_timestamps_to_series(expected_series, start)
         assert totals == expected_totals
 

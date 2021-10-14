@@ -177,7 +177,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime,
         environments: Optional[Sequence[EnvironmentName]] = None,
     ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
-        return _get_project_release_stats(
+        return _get_project_release_stats(  # type: ignore
             project_id=project_id,
             release=release,
             stat=stat,

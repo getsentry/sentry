@@ -151,12 +151,21 @@ class CrashFreeBreakdown(TypedDict):
     crash_free_sessions: Optional[float]
 
 
+class ProjectReleaseDurationPercentiles(TypedDict):
+    duration_p50: Optional[float]
+    duration_p90: Optional[float]
+
+
 class ProjectReleaseUserCounts(TypedDict):
     users: int
     users_healthy: int
     users_crashed: int
     users_abnormal: int
     users_errored: int
+
+
+class ProjectReleaseUserSeries(ProjectReleaseDurationPercentiles, ProjectReleaseUserCounts):
+    pass
 
 
 class ProjectReleaseSessionCounts(TypedDict):
@@ -167,13 +176,17 @@ class ProjectReleaseSessionCounts(TypedDict):
     sessions_errored: int
 
 
+class ProjectReleaseSessionSeries(ProjectReleaseDurationPercentiles, ProjectReleaseSessionCounts):
+    pass
+
+
 # NOTE: Tuple is the wrong type, it's a fixed-length list. Unfortunately mypy
 # is too opinionated to support fixed-length lists.
 ProjectReleaseUserStats = Tuple[
-    Sequence[Tuple[int, ProjectReleaseUserCounts]], ProjectReleaseUserCounts
+    Sequence[Tuple[int, ProjectReleaseUserSeries]], ProjectReleaseUserCounts
 ]
 ProjectReleaseSessionStats = Tuple[
-    Sequence[Tuple[int, ProjectReleaseSessionCounts]],
+    Sequence[Tuple[int, ProjectReleaseSessionSeries]],
     ProjectReleaseSessionCounts,
 ]
 

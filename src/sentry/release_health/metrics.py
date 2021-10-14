@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
+from operator import itemgetter
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 import pytz
@@ -18,6 +19,7 @@ from sentry.release_health.base import (
     ProjectId,
     ProjectOrRelease,
     ProjectRelease,
+    ProjectReleaseSessionSeries,
     ProjectReleaseSessionStats,
     ProjectReleaseUserStats,
     ReleaseAdoption,
@@ -1294,6 +1296,99 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ret_val: int = rows[0]["count"] if rows else 0
         return ret_val
 
+    @staticmethod
+    def _convert_project_release_stats_series(
+        series: Mapping[datetime, ProjectReleaseSessionSeries]
+    ) -> List[Tuple[int, ProjectReleaseSessionSeries]]:
+        rv = [(int(to_timestamp(dt)), data) for dt, data in series.items()]
+        rv.sort(key=itemgetter(0))
+        return rv
+
+    def _get_project_release_stats_sessions(
+        self, org_id, where, session_status_key, rollup, series, totals
+    ):
+
+        session_status_healthy = try_get_string_index(org_id, "exited")
+        if session_status_healthy is not None:
+            duration_series_data = raw_snql_query(
+                Query(
+                    dataset=Dataset.Metrics.value,
+                    where=where
+                    + [
+                        Condition(
+                            Column("metric_id"), Op.EQ, metric_id(org_id, "session.duration")
+                        ),
+                        Condition(Column(session_status_key), Op.EQ, session_status_healthy),
+                    ],
+                    granularity=Granularity(rollup),
+                    match=Entity(EntityKey.MetricsDistributions.value),
+                    select=[
+                        Function("quantiles(0.5, 0.90)", [Column("value")], alias="quantiles"),
+                    ],
+                    groupby=[Column("bucketed_time")],
+                )
+            )["data"]
+            for row in duration_series_data:
+                dt = parse_snuba_datetime(row["bucketed_time"])
+                target = series[dt]
+                p50, p90 = row["quantiles"]
+                target["duration_p50"] = p50
+                target["duration_p90"] = p90
+
+        session_series_data = raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                where=where + [Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session"))],
+                granularity=Granularity(rollup),
+                match=Entity(EntityKey.MetricsCounters.value),
+                select=[
+                    Function("sum", [Column("value")], alias="value"),
+                ],
+                groupby=[Column("bucketed_time"), Column(session_status_key)],
+            )
+        )["data"]
+
+        for row in session_series_data:
+            dt = parse_snuba_datetime(row["bucketed_time"])
+            target = series[dt]
+            status = reverse_tag_value(org_id, row[session_status_key])
+            value = int(row["value"])
+            if status == "init":
+                target["sessions"] = value
+                # Set same value for 'healthy', this will later be subtracted by errors
+                target["sessions_healthy"] = value
+            else:
+                target[f"sessions_{status}"] = value
+                # This is an error state, so subtract from total error count
+                target["sessions_errored"] -= value
+
+        session_error_series_data = raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                where=where
+                + [Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.error"))],
+                granularity=Granularity(rollup),
+                match=Entity(EntityKey.MetricsSets.value),
+                select=[
+                    Function("uniq", [Column("value")], alias="value"),
+                ],
+                groupby=[Column("bucketed_time")],
+            )
+        )["data"]
+
+        for row in session_error_series_data:
+            dt = parse_snuba_datetime(row["bucketed_time"])
+            target = series[dt]
+            value = int(row["value"])
+            # Add to errored:
+            target["sessions_errored"] = max(0, target["sessions_errored"] + value)
+            # Subtract from healthy:
+            target["sessions_healthy"] = max(0, target["sessions_healthy"] - value)
+
+        totals = {key: sum(data[key] for data in series.values()) for key in totals.keys()}
+
+        return self._convert_project_release_stats_series(series), totals
+
     def get_project_release_stats(
         self,
         project_id: ProjectId,
@@ -1308,6 +1403,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         org_id = self._get_org_id([project_id])
 
+        start = to_datetime((to_timestamp(start) // rollup + 1) * rollup)
+
         # since snuba end queries are exclusive of the time and we're bucketing to
         # 10 seconds, we need to round to the next 10 seconds since snuba is
         # exclusive on the end.
@@ -1315,9 +1412,46 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             (to_timestamp(end) // SMALLEST_METRICS_BUCKET + 1) * SMALLEST_METRICS_BUCKET
         )
 
+        times: List[datetime] = []
+        time = start
+        delta = timedelta(seconds=rollup)
+        while time < end:
+            times.append(time)
+            time += delta
+
+        series = {
+            time: {
+                "duration_p50": None,
+                "duration_p90": None,
+                f"{stat}": 0,
+                f"{stat}_abnormal": 0,
+                f"{stat}_crashed": 0,
+                f"{stat}_errored": 0,
+                f"{stat}_healthy": 0,
+            }
+            for time in times
+        }
+
+        totals = {
+            f"{stat}": 0,
+            f"{stat}_abnormal": 0,
+            f"{stat}_crashed": 0,
+            f"{stat}_errored": 0,
+            f"{stat}_healthy": 0,
+        }
+
+        try:
+            release_value = tag_value(org_id, release)
+        except MetricIndexNotFound:
+            # No data for this release
+            return self._convert_project_release_stats_series(series), totals
+
         where = [
+            Condition(Column("org_id"), Op.EQ, org_id),
             Condition(Column("project_id"), Op.EQ, project_id),
-            Condition(Column(tag_key(org_id, "release")), Op.EQ, release),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, end),
+            Condition(Column(tag_key(org_id, "release")), Op.EQ, release_value),
         ]
 
         if environments is not None:
@@ -1329,22 +1463,16 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 )
             )
 
-        buckets = int((end - start).total_seconds() / rollup)
-        stats = _make_stats(start, rollup, buckets, default=None)
+        session_status_key = tag_key(org_id, "session.status")
 
-        # Due to the nature of the probabilistic data structures some
-        # subtractions can become negative.  As such we're making sure a number
-        # never goes below zero to avoid confusion.
-
-        totals = {
-            stat: 0,
-            stat + "_healthy": 0,
-            stat + "_crashed": 0,
-            stat + "_abnormal": 0,
-            stat + "_errored": 0,
-        }
-
-        raise NotImplementedError()
+        if stat == "users":
+            return self._get_project_release_stats_users(
+                org_id, where, session_status_key, rollup, series, totals
+            )
+        else:
+            return self._get_project_release_stats_sessions(
+                org_id, where, session_status_key, rollup, series, totals
+            )
 
     def get_project_sessions_count(
         self,
