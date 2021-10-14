@@ -426,7 +426,8 @@ class AuthIdentityHandler:
         if self.request.session.get("confirm_account_verification_key"):
             verification_key = self.request.session.get("confirm_account_verification_key")
             verification_value = get_verification_value_from_key(verification_key)
-            is_account_verified = self.has_verified_account(identity, verification_value)
+            if verification_value:
+                is_account_verified = self.has_verified_account(identity, verification_value)
 
         if acting_user and identity.get("email_verified") or is_account_verified:
             # we only allow this flow to happen if the existing user has
