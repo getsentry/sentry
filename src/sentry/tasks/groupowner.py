@@ -3,11 +3,13 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.app import locks
 from sentry.models import Commit, Project, Release
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.committers import get_event_file_committers
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
 
 PREFERRED_GROUP_OWNERS = 2
@@ -66,25 +68,39 @@ def process_suspect_commits(event_id, event_platform, event_frames, group_id, pr
                 for owner_id in sorted(owner_scores, reverse=True, key=owner_scores.get)[
                     :PREFERRED_GROUP_OWNERS
                 ]:
-                    go, created = GroupOwner.objects.update_or_create(
-                        group_id=group_id,
-                        type=GroupOwnerType.SUSPECT_COMMIT.value,
-                        user_id=owner_id,
-                        project=project,
-                        organization_id=project.organization_id,
-                        defaults={
-                            "date_added": timezone.now()
-                        },  # Updates date of an existing owner, since we just matched them with this new event
-                    )
-                    if created:
-                        owner_count += 1
-                        if owner_count > PREFERRED_GROUP_OWNERS:
-                            try:
-                                owner = owners[0]
-                            except IndexError:
-                                pass
-                            else:
-                                owner.delete()
+                    # Lock to prevent duplicate GroupOwners
+                    lock = locks.get(f"groupowner:{group_id}-{owner_id}", duration=10)
+                    try:
+                        with lock.acquire():
+                            go, created = GroupOwner.objects.update_or_create(
+                                group_id=group_id,
+                                type=GroupOwnerType.SUSPECT_COMMIT.value,
+                                user_id=owner_id,
+                                project=project,
+                                organization_id=project.organization_id,
+                                defaults={
+                                    "date_added": timezone.now()
+                                },  # Updates date of an existing owner, since we just matched them with this new event
+                            )
+                            if created:
+                                owner_count += 1
+                                if owner_count > PREFERRED_GROUP_OWNERS:
+                                    try:
+                                        owner = owners[0]
+                                    except IndexError:
+                                        pass
+                                    else:
+                                        owner.delete()
+                    except GroupOwner.MultipleObjectsReturned:
+                        GroupOwner.objects.filter(
+                            group_id=group_id,
+                            type=GroupOwnerType.SUSPECT_COMMIT.value,
+                            user_id=owner_id,
+                            project=project,
+                            organization_id=project.organization_id,
+                        )[0].delete()
+                    except UnableToAcquireLock:
+                        pass
 
         except Commit.DoesNotExist:
             logger.info(

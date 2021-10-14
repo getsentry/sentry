@@ -169,7 +169,12 @@ def handle_group_owners(project, group, owners):
                     )
                 )
         if new_group_owners:
-            GroupOwner.objects.bulk_create(new_group_owners)
+            lock = locks.get(f"groupowner-bulk:{group.id}", duration=10)
+            try:
+                with lock.acquire():
+                    GroupOwner.objects.bulk_create(new_group_owners)
+            except UnableToAcquireLock:
+                pass
 
 
 def update_existing_attachments(event):
