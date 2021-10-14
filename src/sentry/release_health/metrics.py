@@ -1304,10 +1304,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rv.sort(key=itemgetter(0))
         return rv
 
-    def _get_project_release_stats_sessions(
+    def _add_project_release_stats_durations(
         self, org_id, where, session_status_key, rollup, series, totals
     ):
-
         session_status_healthy = try_get_string_index(org_id, "exited")
         if session_status_healthy is not None:
             duration_series_data = raw_snql_query(
@@ -1334,6 +1333,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 p50, p90 = row["quantiles"]
                 target["duration_p50"] = p50
                 target["duration_p90"] = p90
+
+    def _get_project_release_stats_sessions(
+        self, org_id, where, session_status_key, rollup, series, totals
+    ):
+
+        self._add_project_release_stats_durations(
+            org_id, where, session_status_key, rollup, series, totals
+        )
 
         session_series_data = raw_snql_query(
             Query(
@@ -1386,6 +1393,72 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             target["sessions_healthy"] = max(0, target["sessions_healthy"] - value)
 
         totals = {key: sum(data[key] for data in series.values()) for key in totals.keys()}
+
+        return self._convert_project_release_stats_series(series), totals
+
+    def _get_project_release_stats_users(
+        self, org_id, where, session_status_key, rollup, series, totals
+    ):
+
+        self._add_project_release_stats_durations(
+            org_id, where, session_status_key, rollup, series, totals
+        )
+
+        user_series_data = raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                where=where + [Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user"))],
+                granularity=Granularity(rollup),
+                match=Entity(EntityKey.MetricsSets.value),
+                select=[
+                    Function("uniq", [Column("value")], alias="value"),
+                ],
+                groupby=[Column("bucketed_time"), Column(session_status_key)],
+            )
+        )["data"]
+
+        user_totals_data = raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                where=where + [Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user"))],
+                granularity=Granularity(rollup),
+                match=Entity(EntityKey.MetricsSets.value),
+                select=[
+                    Function("uniq", [Column("value")], alias="value"),
+                ],
+                groupby=[Column(session_status_key)],
+            )
+        )["data"]
+
+        for row in user_series_data + user_totals_data:
+            dt = row.get("bucketed_time")
+            if dt is None:
+                target = totals
+                pass
+            else:
+                dt = parse_snuba_datetime(dt)
+                target = series[dt]
+            status = reverse_tag_value(org_id, row[session_status_key])
+            value = int(row["value"])
+            if status == "init":
+                target["users"] = value
+                # Set same value for 'healthy', this will later be subtracted by errors
+                target["users_healthy"] += value
+            else:
+                target[f"users_{status}"] += value
+                if status == "errored":
+                    # NOTE: "errored" might appear before "init", so this value might become negative
+                    target["users_healthy"] -= value
+                elif status in ("abnormal", "crashed"):
+                    # This is an error state, so subtract from total error count
+                    target["users_errored"] -= value
+
+        # Replace negative values
+        totals = {k: v if v is None else max(0, v) for k, v in totals.items()}
+        series = {
+            ts: {k: v if v is None else max(0, v) for k, v in data.items()}
+            for ts, data in series.items()
+        }
 
         return self._convert_project_release_stats_series(series), totals
 
