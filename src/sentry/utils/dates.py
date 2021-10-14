@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional, Tuple, Union, cast, overload
+from typing import Any, Mapping, Optional, Tuple, Union, cast
 
 import pytz
 from dateutil.parser import parse
