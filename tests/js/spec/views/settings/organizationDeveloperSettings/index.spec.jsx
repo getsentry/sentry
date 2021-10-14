@@ -1,7 +1,6 @@
-import {act} from 'react-dom/test-utils';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'app/api';
 import App from 'app/views/app';

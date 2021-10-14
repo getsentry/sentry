@@ -1,6 +1,5 @@
-import {act} from 'react-dom/test-utils';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
 import ProjectsStore from 'app/stores/projectsStore';
