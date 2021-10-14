@@ -243,6 +243,7 @@ class SnubaTagStorage(TagStorage):
         if include_transactions:
             dataset = Dataset.Discover
 
+        cache_key = None
         if should_cache:
             filtering_strings = [f"{key}={value}" for key, value in filters.items()]
             filtering_strings.append(f"dataset={dataset.name}")
@@ -349,14 +350,14 @@ class SnubaTagStorage(TagStorage):
         use_cache=False,
         include_transactions=False,
     ):
-        MAX_UNSAMPLED_PROJECTS = 50
+        max_unsampled_projects = 50
         # We want to disable FINAL in the snuba query to reduce load.
         optimize_kwargs = {"turbo": True}
-        # If we are fetching less than MAX_UNSAMPLED_PROJECTS, then disable
+        # If we are fetching less than max_unsampled_projects, then disable
         # the sampling that turbo enables so that we get more accurate results.
         # We only want sampling when we have a large number of projects, so
         # that we don't cause performance issues for Snuba.
-        if len(projects) <= MAX_UNSAMPLED_PROJECTS:
+        if len(projects) <= max_unsampled_projects:
             optimize_kwargs["sample"] = 1
         return self.__get_tag_keys_for_projects(
             projects,
@@ -940,6 +941,7 @@ class SnubaTagStorage(TagStorage):
             return self._get_tag_values_for_semver_build(projects, environments, query)
 
         conditions = []
+        project_slugs = {}
         # transaction status needs a special case so that the user interacts with the names and not codes
         transaction_status = snuba_key == "transaction_status"
         if include_transactions and transaction_status:

@@ -36,13 +36,3 @@ class GetOrCreateTest(TestCase):
 
         assert grouprelease.first_seen == datetime
         assert grouprelease.last_seen == datetime_new
-
-        datetime_new2 = datetime_new + timedelta(seconds=1)
-
-        # this should not update immediately as the window is too close
-        grouprelease = GroupRelease.get_or_create(
-            group=group, release=release, environment=env, datetime=datetime_new2
-        )
-
-        assert grouprelease.first_seen == datetime
-        assert grouprelease.last_seen == datetime_new

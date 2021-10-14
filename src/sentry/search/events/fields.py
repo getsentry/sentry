@@ -1264,6 +1264,7 @@ class NumericColumn(ColumnArg):
     numeric_array_columns = {
         "measurements_value",
         "span_op_breakdowns_value",
+        "spans_exclusive_time",
     }
 
     def __init__(self, name: str, allow_array_value: Optional[bool] = False, **kwargs):
@@ -1350,8 +1351,17 @@ class DurationColumn(ColumnArg):
 
 
 class StringArrayColumn(ColumnArg):
+    string_array_columns = {
+        "tags.key",
+        "tags.value",
+        "measurements_key",
+        "span_op_breakdowns_key",
+        "spans_op",
+        "spans_group",
+    }
+
     def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
-        if value in ["tags.key", "tags.value", "measurements_key", "span_op_breakdowns_key"]:
+        if value in self.string_array_columns:
             return value
         raise InvalidFunctionArgument(f"{value} is not a valid string array column")
 
