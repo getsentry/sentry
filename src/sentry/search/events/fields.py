@@ -543,6 +543,7 @@ def resolve_field_list(
         if "project.id" not in fields:
             fields.append("project.id")
 
+    field = None
     for field in fields:
         if isinstance(field, str) and field.strip() == "":
             continue
@@ -559,7 +560,7 @@ def resolve_field_list(
                     aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
 
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
-    if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
+    if auto_aggregations and snuba_filter.having and len(aggregations) > 0 and field is not None:
         for agg in snuba_filter.condition_aggregates:
             if agg not in snuba_filter.aliases:
                 function = resolve_field(agg, snuba_filter.params, functions_acl)
@@ -1264,6 +1265,7 @@ class NumericColumn(ColumnArg):
     numeric_array_columns = {
         "measurements_value",
         "span_op_breakdowns_value",
+        "spans_exclusive_time",
     }
 
     def __init__(self, name: str, allow_array_value: Optional[bool] = False, **kwargs):
@@ -1314,6 +1316,8 @@ class NumericColumn(ColumnArg):
         # `measurements.frames_frozen_rate` and `measurements.frames_slow_rate` are aliases
         # to a percentage value, since they are expressions rather than columns, we special
         # case them here
+        # TODO: These are no longer expressions with SnQL, this should be removed once the
+        # migration is done
         if isinstance(value, list):
             for name in self.measurement_aliases:
                 field = FIELD_ALIASES[name]
@@ -1321,6 +1325,8 @@ class NumericColumn(ColumnArg):
                 if expression == value:
                     return field.result_type
 
+        if value in self.measurement_aliases:
+            return "percentage"
         snuba_column = self._normalize(value)
         if is_duration_measurement(snuba_column) or is_span_op_breakdown(snuba_column):
             return "duration"
@@ -1350,8 +1356,17 @@ class DurationColumn(ColumnArg):
 
 
 class StringArrayColumn(ColumnArg):
+    string_array_columns = {
+        "tags.key",
+        "tags.value",
+        "measurements_key",
+        "span_op_breakdowns_key",
+        "spans_op",
+        "spans_group",
+    }
+
     def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
-        if value in ["tags.key", "tags.value", "measurements_key", "span_op_breakdowns_key"]:
+        if value in self.string_array_columns:
             return value
         raise InvalidFunctionArgument(f"{value} is not a valid string array column")
 
@@ -2275,9 +2290,13 @@ class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
     def __init__(
-        self, dataset: Dataset, params: ParamsType, functions_acl: Optional[List[str]] = None
+        self,
+        dataset: Dataset,
+        params: ParamsType,
+        auto_fields: bool = False,
+        functions_acl: Optional[List[str]] = None,
     ):
-        super().__init__(dataset, params, functions_acl)
+        super().__init__(dataset, params, auto_fields, functions_acl)
 
         self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
@@ -2761,18 +2780,42 @@ class QueryFields(QueryBase):
         if selected_columns is None:
             return []
 
-        columns = []
+        resolved_columns = []
+        stripped_columns = [column.strip() for column in selected_columns]
 
-        for column in selected_columns:
-            if column.strip() == "":
+        # Add threshold config alias if there's a function that depends on it
+        # TODO: this should be replaced with an explicit request for the project_threshold_config as a column
+        for column in {
+            "apdex()",
+            "count_miserable(user)",
+            "user_misery()",
+        }:
+            if (
+                column in stripped_columns
+                and PROJECT_THRESHOLD_CONFIG_ALIAS not in stripped_columns
+            ):
+                stripped_columns.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
+                break
+
+        for column in stripped_columns:
+            if column == "":
                 continue
             # need to make sure the column is resolved with the appropriate alias
             # because the resolved snuba name may be different
             resolved_column = self.resolve_column(column, alias=True)
             if resolved_column not in self.columns:
-                columns.append(resolved_column)
+                resolved_columns.append(resolved_column)
 
-        return columns
+        # Happens after resolving columns to check if there any aggregates
+        if self.auto_fields and not self.aggregates:
+            # Ensure fields we require to build a functioning interface
+            # are present.
+            if "id" not in stripped_columns:
+                resolved_columns.append(self.resolve_column("id", alias=True))
+            if "project.id" not in stripped_columns:
+                resolved_columns.append(self.resolve_column("project.id", alias=True))
+
+        return resolved_columns
 
     def resolve_column(self, field: str, alias: bool = False) -> SelectType:
         """Given a public field, construct the corresponding Snql, this
@@ -3274,7 +3317,7 @@ class QueryFields(QueryBase):
             )
         )
 
-    def _resolve_division(self, dividend: str, divisor: str) -> SelectType:
+    def _resolve_division(self, dividend: str, divisor: str, alias: str) -> SelectType:
         return Function(
             "if",
             [
@@ -3291,16 +3334,25 @@ class QueryFields(QueryBase):
                 ),
                 None,
             ],
+            alias,
         )
 
     def _resolve_measurements_frames_slow_rate(self, _: str) -> SelectType:
-        return self._resolve_division("measurements.frames_slow", "measurements.frames_total")
+        return self._resolve_division(
+            "measurements.frames_slow", "measurements.frames_total", MEASUREMENTS_FRAMES_SLOW_RATE
+        )
 
     def _resolve_measurements_frames_frozen_rate(self, _: str) -> SelectType:
-        return self._resolve_division("measurements.frozen_rate", "measurements.frames_total")
+        return self._resolve_division(
+            "measurements.frames_frozen",
+            "measurements.frames_total",
+            MEASUREMENTS_FRAMES_FROZEN_RATE,
+        )
 
     def _resolve_measurements_stall_percentage(self, _: str) -> SelectType:
-        return self._resolve_division("measurements.stall_total_time", "transaction.duration")
+        return self._resolve_division(
+            "measurements.stall_total_time", "transaction.duration", MEASUREMENTS_STALL_PERCENTAGE
+        )
 
     def _resolve_unimplemented_function(
         self,

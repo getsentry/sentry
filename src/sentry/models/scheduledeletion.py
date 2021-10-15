@@ -31,7 +31,6 @@ class ScheduledDeletion(Model):
     actor_id = BoundedBigIntegerField(null=True)
     data = JSONField(default={})
     in_progress = models.BooleanField(default=False)
-    aborted = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (("app_label", "model_name", "object_id"),)

@@ -260,6 +260,7 @@ describe('IncidentsList', function () {
       expect.objectContaining({
         query: {
           title: testQuery,
+          expand: ['original_alert_rule'],
           team: ['myteams', 'unassigned'],
         },
       })

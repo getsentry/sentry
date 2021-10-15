@@ -27,6 +27,7 @@ import HeaderTabs from './headerTabs';
 import TeamAlertsTriggered from './teamAlertsTriggered';
 import TeamIssuesReviewed from './teamIssuesReviewed';
 import TeamMisery from './teamMisery';
+import TeamReleases from './teamReleases';
 import TeamResolutionTime from './teamResolutionTime';
 import TeamStability from './teamStability';
 
@@ -315,6 +316,22 @@ function TeamInsightsOverview({
                 start={start?.toString()}
                 end={end?.toString()}
                 location={location}
+              />
+            </DescriptionCard>
+            <DescriptionCard
+              title={t('Number of Releases')}
+              description={t(
+                'Projects that had the largest difference of releases deployed compared to the 12 week average.'
+              )}
+            >
+              <TeamReleases
+                projects={projects}
+                organization={organization}
+                teamSlug={currentTeam!.slug}
+                period={period}
+                start={start}
+                end={end}
+                utc={utc}
               />
             </DescriptionCard>
           </Layout.Main>
