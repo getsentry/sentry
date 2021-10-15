@@ -22,7 +22,11 @@ type ChartProps = React.ComponentProps<typeof BaseChart>;
 
 type BarChartProps = React.ComponentProps<typeof BarChart>;
 
-type Props = Omit<ChartProps, 'css' | 'colors' | 'series'> & {
+type Props = Omit<ChartProps, 'css' | 'colors' | 'series' | 'height'> & {
+  /**
+   * Chart height
+   */
+  height: number;
   /**
    * Show max/min values on yAxis
    */
@@ -83,6 +87,7 @@ function MiniBarChart({
   colors,
   stacked = false,
   labelYAxisExtents = false,
+  height,
   ...props
 }: Props) {
   const {ref: _ref, ...barChartProps} = props;
@@ -179,10 +184,15 @@ function MiniBarChart({
         : undefined,
     },
     yAxis: {
-      max(value) {
+      max(value: {min: number; max: number}) {
         // This keeps small datasets from looking 'scary'
         // by having full bars for < 10 values.
-        return Math.max(10, value.max);
+        if (value.max < 10) {
+          return 10;
+        }
+        // Adds extra spacing at the top of the chart canvas, ensuring the series doesn't hit the ceiling, leaving more empty space.
+        // When the user hovers over an empty space, a tooltip with all series information is displayed.
+        return (value.max * (height + 10)) / height;
       },
       splitLine: {
         show: false,
@@ -223,7 +233,9 @@ function MiniBarChart({
     },
   };
 
-  return <BarChart series={chartSeries} {...chartOptions} {...barChartProps} />;
+  return (
+    <BarChart series={chartSeries} height={height} {...chartOptions} {...barChartProps} />
+  );
 }
 
 export default MiniBarChart;
