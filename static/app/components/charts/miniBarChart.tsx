@@ -191,7 +191,7 @@ function MiniBarChart({
           return 10;
         }
         // Adds extra spacing at the top of the chart canvas, ensuring the series doesn't hit the ceiling, leaving more empty space.
-        // When the user hovers over an empty space, a tooltip with information from all series is displayed.
+        // When the user hovers over an empty space, a tooltip with all series information is displayed.
         return (value.max * (height + 10)) / height;
       },
       splitLine: {
