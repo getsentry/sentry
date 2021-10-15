@@ -408,12 +408,12 @@ class GetIncidentSessionStatsTest(TestCase, BaseCrashRateAlertsTest, BaseInciden
             self.organization,
             [self.project],
             query="",
-            time_window=1,
+            time_window=4,
             dataset=QueryDatasets.SESSIONS,
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
         )
         incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=120),
+            date_started=self.now - timedelta(minutes=65),
             query="",
             projects=[self.project],
             alert_rule=alert_rule,
@@ -422,8 +422,15 @@ class GetIncidentSessionStatsTest(TestCase, BaseCrashRateAlertsTest, BaseInciden
             self.store_session(self.make_session(status="exited"))
         self.store_session(self.make_session(status="crashed"))
 
+        self._6_min_ago_dt = datetime.utcnow() - timedelta(minutes=6)
+        self._6_min_ago = self._6_min_ago_dt.timestamp()
+        self.store_session(
+            self.make_session(status="crashed", received=self._6_min_ago, started=self._6_min_ago)
+        )
         result = get_incident_session_stats(incident, windowed_stats=False)
-        self.validate_result(incident, result, [75.0], start=None, end=None, windowed_stats=False)
+        self.validate_result(
+            incident, result, [None, 0.0, 75.0], start=None, end=None, windowed_stats=False
+        )
 
 
 class BaseIncidentAggregatesTest(BaseIncidentsTest):
