@@ -38,7 +38,7 @@ payload = {
 }
 
 
-def translate_payload(string_keys=False):
+def translate_payload():
 
     parsed = payload.copy()
     parsed["tags"] = {
