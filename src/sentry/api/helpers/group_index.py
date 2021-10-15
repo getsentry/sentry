@@ -566,11 +566,13 @@ def update_groups(
     projects,
     organization_id,
     search_fn,
-    user: Optional[User] = None,
+    user: Optional["User"] = None,
     data: Optional[Mapping[str, Any]] = None,
 ) -> Response:
-    user |= request.user
-    data |= request.data
+    # If `user` and `data` are passed as parameters then they should override
+    # the values in `request`.
+    user = user or request.user
+    data = data or request.data
 
     if group_ids:
         group_list = Group.objects.filter(
