@@ -543,6 +543,7 @@ def resolve_field_list(
         if "project.id" not in fields:
             fields.append("project.id")
 
+    field = None
     for field in fields:
         if isinstance(field, str) and field.strip() == "":
             continue
@@ -559,7 +560,7 @@ def resolve_field_list(
                     aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
 
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
-    if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
+    if auto_aggregations and snuba_filter.having and len(aggregations) > 0 and field is not None:
         for agg in snuba_filter.condition_aggregates:
             if agg not in snuba_filter.aliases:
                 function = resolve_field(agg, snuba_filter.params, functions_acl)
@@ -1264,6 +1265,7 @@ class NumericColumn(ColumnArg):
     numeric_array_columns = {
         "measurements_value",
         "span_op_breakdowns_value",
+        "spans_exclusive_time",
     }
 
     def __init__(self, name: str, allow_array_value: Optional[bool] = False, **kwargs):
@@ -1350,8 +1352,17 @@ class DurationColumn(ColumnArg):
 
 
 class StringArrayColumn(ColumnArg):
+    string_array_columns = {
+        "tags.key",
+        "tags.value",
+        "measurements_key",
+        "span_op_breakdowns_key",
+        "spans_op",
+        "spans_group",
+    }
+
     def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
-        if value in ["tags.key", "tags.value", "measurements_key", "span_op_breakdowns_key"]:
+        if value in self.string_array_columns:
             return value
         raise InvalidFunctionArgument(f"{value} is not a valid string array column")
 

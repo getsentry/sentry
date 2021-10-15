@@ -58,11 +58,17 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
     except itunes_connect.SessionExpiredError:
         logger.debug("No valid iTunes session, can not download dSYMs")
         metrics.incr(
-            "sentry.tasks.app_store_connect.itunes_session.needed", tags={"valid": "false"}
+            "sentry.tasks.app_store_connect.itunes_session.needed",
+            tags={"valid": "false"},
+            sample_rate=1,
         )
         return
     else:
-        metrics.incr("sentry.tasks.app_store_connect.itunes_session.needed", tags={"valid": "true"})
+        metrics.incr(
+            "sentry.tasks.app_store_connect.itunes_session.needed",
+            tags={"valid": "true"},
+            sample_rate=1,
+        )
     for i, (build, build_state) in enumerate(builds):
         with sdk.configure_scope() as scope:
             scope.set_context("dsym_downloads", {"total": len(builds), "completed": i})
@@ -220,6 +226,6 @@ def inner_refresh_all_builds() -> None:
                                 "config_id": source_id,
                             }
                         )
-                        metrics.incr("sentry.tasks.app_store_connect.refresh_count")
+                        metrics.incr("sentry.tasks.app_store_connect.refresh_count", sample_rate=1)
             except Exception:
                 logger.exception("Failed to refresh AppStoreConnect builds")
