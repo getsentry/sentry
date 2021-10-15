@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme, within} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import EventTagsAndScreenshot from 'app/components/events/eventTagsAndScreenshot';
 import {EventAttachment} from 'app/types';
@@ -145,7 +145,7 @@ describe('EventTagsAndScreenshot ', function () {
 
   describe('renders tags only', function () {
     it('not shared event - without attachments', function () {
-      const {container, queryByText, queryAllByTestId, getByTestId} = mountWithTheme(
+      const {container} = mountWithTheme(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -158,11 +158,11 @@ describe('EventTagsAndScreenshot ', function () {
       );
 
       // Screenshot Container
-      expect(queryByText('Screenshot')).toBeFalsy();
+      expect(screen.queryByText('Screenshot')).toBeFalsy();
 
       // Tags Container
-      expect(queryByText('Tags')).toBeTruthy();
-      const contextItems = queryAllByTestId('context-item');
+      expect(screen.queryByText('Tags')).toBeTruthy();
+      const contextItems = screen.queryAllByTestId('context-item');
       expect(contextItems).toHaveLength(Object.keys(contexts).length);
 
       // Context Item 1
@@ -189,14 +189,14 @@ describe('EventTagsAndScreenshot ', function () {
       );
 
       // Tags
-      const tagsContainer = within(getByTestId('event-tags'));
+      const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.queryAllByRole('listitem')).toHaveLength(tags.length);
 
       expect(container).toSnapshot();
     });
 
     it('shared event - without attachments', function () {
-      const {container, queryByText} = mountWithTheme(
+      const {container} = mountWithTheme(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -210,16 +210,16 @@ describe('EventTagsAndScreenshot ', function () {
       );
 
       // Screenshot Container
-      expect(queryByText('Screenshot')).toBeFalsy();
+      expect(screen.queryByText('Screenshot')).toBeFalsy();
 
       // Tags Container
-      expect(queryByText('Tags')).toBeTruthy();
+      expect(screen.queryByText('Tags')).toBeTruthy();
 
       expect(container).toSnapshot();
     });
 
     it('shared event - with attachments', function () {
-      const {container, queryByText} = mountWithTheme(
+      const {container} = mountWithTheme(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -233,10 +233,10 @@ describe('EventTagsAndScreenshot ', function () {
       );
 
       // Screenshot Container
-      expect(queryByText('Screenshot')).toBeFalsy();
+      expect(screen.queryByText('Screenshot')).toBeFalsy();
 
       // Tags Container
-      expect(queryByText('Tags')).toBeTruthy();
+      expect(screen.queryByText('Tags')).toBeTruthy();
 
       expect(container).toSnapshot();
     });
@@ -244,7 +244,7 @@ describe('EventTagsAndScreenshot ', function () {
 
   describe('renders screenshot only', function () {
     it('no context and no tags', function () {
-      const {container, queryByText, getByText, getByRole} = mountWithTheme(
+      const {container} = mountWithTheme(
         <EventTagsAndScreenshot
           event={event}
           organization={organization}
@@ -257,12 +257,12 @@ describe('EventTagsAndScreenshot ', function () {
       );
 
       // Tags Container
-      expect(queryByText('Tags')).toBeFalsy();
+      expect(screen.queryByText('Tags')).toBeFalsy();
 
       // Screenshot Container
-      expect(queryByText('Screenshot')).toBeTruthy();
-      expect(getByText('View screenshot')).toBeTruthy();
-      expect(getByRole('img')).toHaveAttribute(
+      expect(screen.queryByText('Screenshot')).toBeTruthy();
+      expect(screen.getByText('View screenshot')).toBeTruthy();
+      expect(screen.getByRole('img')).toHaveAttribute(
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
       );
@@ -273,14 +273,7 @@ describe('EventTagsAndScreenshot ', function () {
 
   describe('renders screenshot and tags', function () {
     it('has context, tags and attachments', function () {
-      const {
-        container,
-        queryByText,
-        getByText,
-        getByRole,
-        getByTestId,
-        queryAllByTestId,
-      } = mountWithTheme(
+      const {container} = mountWithTheme(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
           organization={organization}
@@ -293,34 +286,27 @@ describe('EventTagsAndScreenshot ', function () {
       );
 
       // Screenshot Container
-      expect(queryByText('Screenshot')).toBeTruthy();
-      expect(getByText('View screenshot')).toBeTruthy();
-      expect(getByRole('img')).toHaveAttribute(
+      expect(screen.queryByText('Screenshot')).toBeTruthy();
+      expect(screen.getByText('View screenshot')).toBeTruthy();
+      expect(screen.getByRole('img')).toHaveAttribute(
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
       );
 
       // Tags Container
-      expect(queryByText('Tags')).toBeTruthy();
-      const contextItems = queryAllByTestId('context-item');
+      expect(screen.queryByText('Tags')).toBeTruthy();
+      const contextItems = screen.queryAllByTestId('context-item');
       expect(contextItems).toHaveLength(Object.keys(contexts).length);
 
       // Tags
-      const tagsContainer = within(getByTestId('event-tags'));
+      const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.queryAllByRole('listitem')).toHaveLength(tags.length);
 
       expect(container).toSnapshot();
     });
 
     it('has context and attachments only', function () {
-      const {
-        container,
-        queryByText,
-        getByText,
-        getByRole,
-        getByTestId,
-        queryAllByTestId,
-      } = mountWithTheme(
+      const {container} = mountWithTheme(
         <EventTagsAndScreenshot
           event={{...event, contexts}}
           organization={organization}
@@ -333,34 +319,27 @@ describe('EventTagsAndScreenshot ', function () {
       );
 
       // Screenshot Container
-      expect(queryByText('Screenshot')).toBeTruthy();
-      expect(getByText('View screenshot')).toBeTruthy();
-      expect(getByRole('img')).toHaveAttribute(
+      expect(screen.queryByText('Screenshot')).toBeTruthy();
+      expect(screen.getByText('View screenshot')).toBeTruthy();
+      expect(screen.getByRole('img')).toHaveAttribute(
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
       );
 
       // Tags Container
-      expect(queryByText('Tags')).toBeTruthy();
-      const contextItems = queryAllByTestId('context-item');
+      expect(screen.queryByText('Tags')).toBeTruthy();
+      const contextItems = screen.queryAllByTestId('context-item');
       expect(contextItems).toHaveLength(Object.keys(contexts).length);
 
       // Tags
-      const tagsContainer = within(getByTestId('event-tags'));
+      const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.queryAllByRole('listitem')).toHaveLength(0);
 
       expect(container).toSnapshot();
     });
 
     it('has tags and attachments only', function () {
-      const {
-        container,
-        queryByText,
-        getByText,
-        getByRole,
-        getByTestId,
-        queryAllByTestId,
-      } = mountWithTheme(
+      const {container} = mountWithTheme(
         <EventTagsAndScreenshot
           event={{...event, tags}}
           organization={organization}
@@ -373,20 +352,20 @@ describe('EventTagsAndScreenshot ', function () {
       );
 
       // Screenshot Container
-      expect(queryByText('Screenshot')).toBeTruthy();
-      expect(getByText('View screenshot')).toBeTruthy();
-      expect(getByRole('img')).toHaveAttribute(
+      expect(screen.queryByText('Screenshot')).toBeTruthy();
+      expect(screen.getByText('View screenshot')).toBeTruthy();
+      expect(screen.getByRole('img')).toHaveAttribute(
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
       );
 
       // Tags Container
-      expect(queryByText('Tags')).toBeTruthy();
-      const contextItems = queryAllByTestId('context-item');
+      expect(screen.queryByText('Tags')).toBeTruthy();
+      const contextItems = screen.queryAllByTestId('context-item');
       expect(contextItems).toHaveLength(0);
 
       // Tags
-      const tagsContainer = within(getByTestId('event-tags'));
+      const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.queryAllByRole('listitem')).toHaveLength(tags.length);
 
       expect(container).toSnapshot();

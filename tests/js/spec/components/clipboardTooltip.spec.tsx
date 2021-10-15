@@ -1,6 +1,6 @@
 import copy from 'copy-text-to-clipboard';
 
-import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import ClipboardTooltip from 'app/components/clipboardTooltip';
 
@@ -10,18 +10,18 @@ describe('ClipboardTooltip', function () {
   it('renders', async function () {
     const title = 'tooltip content';
     const content = 'This text displays a tooltip when hovering';
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <ClipboardTooltip title={title}>
         <span>{content}</span>
       </ClipboardTooltip>
     );
 
-    expect(wrapper.getByText(content)).toBeInTheDocument();
-    fireEvent.mouseEnter(wrapper.getByText(content));
+    expect(screen.getByText(content)).toBeInTheDocument();
+    fireEvent.mouseEnter(screen.getByText(content));
 
-    await wrapper.findByText(title);
+    await screen.findByText(title);
 
-    const clipboardContent = wrapper.getByLabelText('Copy to clipboard');
+    const clipboardContent = screen.getByLabelText('Copy to clipboard');
     expect(clipboardContent).toBeInTheDocument();
     fireEvent.click(clipboardContent);
 
