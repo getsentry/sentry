@@ -7,11 +7,16 @@ from sentry.integrations.slack.message_builder.notifications import (
     SlackNotificationsMessageBuilder,
     SlackProjectNotificationsMessageBuilder,
 )
+from sentry.mail.notifications import build_subject_prefix
 from sentry.types.integrations import ExternalProviders
+from sentry.utils import json
+from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Project, Team, User
+    from sentry.notifications.notifications.activity.base import ActivityNotification
+    from sentry.notifications.notifications.rules import AlertRuleNotification
 
 
 class BaseNotification:
@@ -76,6 +81,9 @@ class BaseNotification:
     ) -> None:
         raise NotImplementedError
 
+    def get_headers(self) -> Mapping[str, Any]:
+        return {}
+
 
 class ProjectNotification(BaseNotification, abc.ABC):
     SlackMessageBuilderClass = SlackProjectNotificationsMessageBuilder
@@ -98,3 +106,45 @@ class ProjectNotification(BaseNotification, abc.ABC):
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
+
+    def get_log_params(self, recipient: Union["Team", "User"]) -> Mapping[str, Any]:
+        extra = {
+            "project_id": self.project.id,
+            "actor_id": recipient.actor_id,
+        }
+        group = getattr(self, "group", None)
+        if group:
+            extra.update({"group": group.id})
+
+        # TODO: move logic to child classes
+        if isinstance(self, "AlertRuleNotification"):
+            extra.update(
+                {
+                    "target_type": self.target_type,
+                    "target_identifier": self.target_identifier,
+                }
+            )
+        elif isinstance(self, "ActivityNotification"):
+            extra.update({"activity": self.activity})
+
+    def get_headers(self) -> Mapping[str, Any]:
+        headers = {
+            "X-Sentry-Project": self.project.slug,
+            "X-SMTPAPI": json.dumps({"category": self.get_category()}),
+        }
+
+        group = getattr(self, "group", None)
+        if group:
+            headers.update(
+                {
+                    "X-Sentry-Logger": group.logger,
+                    "X-Sentry-Logger-Level": group.get_level_display(),
+                    "X-Sentry-Reply-To": group_id_to_email(group.id),
+                }
+            )
+
+        return headers
+
+    def get_subject_with_prefix(self, context: Optional[Mapping[str, Any]] = None) -> bytes:
+        prefix = build_subject_prefix(self.project)
+        return f"{prefix}{self.get_subject(context)}".encode()

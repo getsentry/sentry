@@ -6,7 +6,7 @@ from django.utils.encoding import force_text
 from sentry import options
 from sentry.models import Project, ProjectOption, Team, User
 from sentry.notifications.notifications.activity.base import ActivityNotification
-from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.types.integrations import ExternalProviders
@@ -36,21 +36,11 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
     return headers
 
 
-def build_subject_prefix(project: "Project", mail_option_key: Optional[str] = None) -> str:
-    key = mail_option_key or "mail:subject_prefix"
+def build_subject_prefix(project: "Project") -> str:
+    key = "mail:subject_prefix"
     return force_text(
         ProjectOption.objects.get_value(project, key) or options.get("mail.subject-prefix")
     )
-
-
-def get_subject_with_prefix(
-    notification: BaseNotification,
-    context: Optional[Mapping[str, Any]] = None,
-    mail_option_key: Optional[str] = None,
-) -> bytes:
-
-    prefix = build_subject_prefix(notification.project, mail_option_key)
-    return f"{prefix}{notification.get_subject(context)}".encode()
 
 
 def get_unsubscribe_link(
@@ -65,24 +55,7 @@ def get_unsubscribe_link(
 
 
 def log_message(notification: BaseNotification, recipient: Union["Team", "User"]) -> None:
-    extra = {
-        "project_id": notification.project.id,
-        "actor_id": recipient.actor_id,
-    }
-    group = getattr(notification, "group", None)
-    if group:
-        extra.update({"group": group.id})
-
-    if isinstance(notification, AlertRuleNotification):
-        extra.update(
-            {
-                "target_type": notification.target_type,
-                "target_identifier": notification.target_identifier,
-            }
-        )
-    elif isinstance(notification, ActivityNotification):
-        extra.update({"activity": notification.activity})
-
+    extra = notification.get_log_params(recipient)
     logger.info("mail.adapter.notify.mail_user", extra=extra)
 
 
@@ -119,25 +92,34 @@ def send_notification_as_email(
     shared_context: Mapping[str, Any],
     extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
 ) -> None:
-    headers = get_headers(notification)
-
     for recipient in recipients:
         if isinstance(recipient, Team):
             # TODO(mgaeta): MessageBuilder only works with Users so filter out Teams for now.
             continue
-        extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
         log_message(notification, recipient)
-        context = get_context(notification, recipient, shared_context, extra_context)
-        subject = get_subject_with_prefix(notification, context=context)
         msg = MessageBuilder(
-            subject=subject,
-            context=context,
-            template=notification.get_template(),
-            html_template=notification.get_html_template(),
-            headers=headers,
-            reference=notification.get_reference(),
-            reply_reference=notification.get_reply_reference(),
-            type=notification.get_type(),
+            **get_builder_args(notification, recipient, shared_context, extra_context_by_user_id)
         )
-        msg.add_users([recipient.id], project=notification.project)
+        if isinstance(notification, ProjectNotification):
+            msg.add_users([recipient.id], project=notification.project)
         msg.send_async()
+
+
+def get_builder_args(
+    notification: BaseNotification,
+    recipient: "User",
+    shared_context: Optional[Mapping[str, Any]],
+    extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
+):
+    extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
+    context = get_context(notification, recipient, shared_context, extra_context)
+    return {
+        "subject": notification.get_subject_with_prefix(context=context),
+        "context": context,
+        "template": notification.get_template(),
+        "html_template": notification.get_html_template(),
+        "headers": notification.get_headers(),
+        "reference": notification.get_reference(),
+        "reply_reference": notification.get_reply_reference(),
+        "type": notification.get_type(),
+    }
