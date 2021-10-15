@@ -1,6 +1,7 @@
 from typing import List, Optional, Tuple
 
 from snuba_sdk.column import Column
+from snuba_sdk.conditions import Condition
 from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Limit, Offset
 from snuba_sdk.orderby import LimitBy
@@ -86,6 +87,9 @@ class QueryBuilder(QueryFilter):
                         error_extra,
                     )
                 )
+
+    def add_conditions(self, conditions: List[Condition]) -> None:
+        self.where += conditions
 
     def get_snql_query(self) -> Query:
         self.validate_having_clause()
