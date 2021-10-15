@@ -94,7 +94,7 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(slack_user={"id": "invalid-id", "domain": "example"})
 
         associate_url = build_linking_url(
-            self.integration, self.organization, "invalid-id", "C065W1189", self.response_url
+            self.integration, "invalid-id", "C065W1189", self.response_url
         )
 
         assert resp.status_code == 200, resp.content

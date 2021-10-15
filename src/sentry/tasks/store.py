@@ -282,7 +282,7 @@ def _do_symbolicate_event(
     # check whether the event is in the wrong queue and if so, move it to the other one.
     # we do this at most SYMBOLICATOR_MAX_QUEUE_SWITCHES times.
     if queue_switches >= SYMBOLICATOR_MAX_QUEUE_SWITCHES:
-        metrics.gauge("tasks.store.symbolicate_event.low_priority.max_queue_switches", 1)
+        metrics.incr("tasks.store.symbolicate_event.low_priority.max_queue_switches", sample_rate=1)
     else:
         is_low_priority = symbolicate_task in [
             symbolicate_event_low_priority,
@@ -291,7 +291,7 @@ def _do_symbolicate_event(
         should_be_low_priority = should_demote_symbolication(project_id)
 
         if is_low_priority != should_be_low_priority:
-            metrics.gauge("tasks.store.symbolicate_event.low_priority.wrong_queue", 1)
+            metrics.incr("tasks.store.symbolicate_event.low_priority.wrong_queue", sample_rate=1)
             submit_symbolicate(
                 should_be_low_priority,
                 from_reprocessing,
@@ -335,10 +335,10 @@ def _do_symbolicate_event(
 
     submission_ratio = options.get("symbolicate-event.low-priority.metrics.submission-rate")
     submit_realtime_metrics = not from_reprocessing and random.random() < submission_ratio
+    timestamp = int(symbolication_start_time)
 
     if submit_realtime_metrics:
         with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics.counter"):
-            timestamp = int(symbolication_start_time)
             try:
                 realtime_metrics.increment_project_event_counter(project_id, timestamp)
             except Exception as e:
