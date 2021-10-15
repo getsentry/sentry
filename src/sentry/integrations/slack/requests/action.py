@@ -1,6 +1,9 @@
+from typing import Mapping, MutableMapping, Optional
+
 from rest_framework.request import Request
 
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
+from sentry.models import Group
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.json import JSONData
@@ -55,3 +58,23 @@ class SlackActionRequest(SlackRequest):
 
     def _log_request(self) -> None:
         self._info("slack.action")
+
+    def get_logging_data(
+        self,
+        group: Optional[Group] = None,
+    ) -> Mapping[str, str]:
+        logging_data: MutableMapping[str, str] = {
+            "channel_id": self.channel_id,
+            "integration_id": self.integration.id,
+            "response_url": self.response_url,
+            "slack_user_id": self.user_id,
+        }
+        if group:
+            logging_data.update(
+                {
+                    "group_id": group.id,
+                    "organization_id": group.organization.id,
+                }
+            )
+
+        return logging_data
