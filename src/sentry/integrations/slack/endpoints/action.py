@@ -241,9 +241,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             return self.respond(status=403)
 
         if not identity:
-            associate_url = build_linking_url(
-                integration, group.organization, user_id, channel_id, response_url
-            )
+            associate_url = build_linking_url(integration, user_id, channel_id, response_url)
             return self.respond(
                 {
                     "response_type": "ephemeral",

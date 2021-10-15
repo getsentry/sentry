@@ -171,11 +171,7 @@ class SlackCommandsLinkUserTest(SlackCommandsTest):
         assert not self.find_identity()
 
         linking_url = build_linking_url(
-            self.integration,
-            self.organization,
-            "UXXXXXXX1",
-            "CXXXXXXX9",
-            "http://example.slack.com/response_url",
+            self.integration, "UXXXXXXX1", "CXXXXXXX9", "http://example.slack.com/response_url"
         )
 
         response = self.client.get(linking_url)

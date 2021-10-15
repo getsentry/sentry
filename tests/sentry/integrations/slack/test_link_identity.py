@@ -32,11 +32,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
     @responses.activate
     def test_basic_flow(self):
         linking_url = build_linking_url(
-            self.integration,
-            self.organization,
-            self.external_id,
-            self.channel_id,
-            self.response_url,
+            self.integration, self.external_id, self.channel_id, self.response_url
         )
 
         # Load page.
@@ -68,11 +64,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         )
 
         linking_url = build_linking_url(
-            self.integration,
-            self.organization,
-            external_id_2,
-            self.channel_id,
-            self.response_url,
+            self.integration, external_id_2, self.channel_id, self.response_url
         )
         self.client.post(linking_url)
 

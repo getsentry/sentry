@@ -60,11 +60,8 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
                 slack_request, ALREADY_LINKED_MESSAGE.format(username=slack_request.identity_str)
             )
 
-        integration = slack_request.integration
-        organization = integration.organizations.all()[0]
         associate_url = build_linking_url(
-            integration=integration,
-            organization=organization,
+            integration=slack_request.integration,
             slack_id=slack_request.user_id,
             channel_id=slack_request.channel_id,
             response_url=slack_request.response_url,
