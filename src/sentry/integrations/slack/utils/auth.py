@@ -2,7 +2,17 @@ import hmac
 import time
 from datetime import datetime
 from hashlib import sha256
-from typing import Mapping
+from typing import TYPE_CHECKING, Mapping
+
+if TYPE_CHECKING:
+    from sentry.models import OrganizationMember
+
+
+ALLOWED_ROLES = ["admin", "manager", "owner"]
+
+
+def is_valid_role(org_member: OrganizationMember) -> bool:
+    return org_member.role in ALLOWED_ROLES
 
 
 def _encode_data(secret: str, data: bytes, timestamp: str) -> str:
