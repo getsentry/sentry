@@ -1030,7 +1030,7 @@ class Release(Model):
                 group = Group.objects.get(id=group_id)
                 group.update(status=GroupStatus.RESOLVED)
                 remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
-                record_group_history(group, GroupHistoryStatus.RESOLVED, actor.actor)
+                record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
 
                 metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
 

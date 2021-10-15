@@ -5,7 +5,6 @@ import sentry_sdk
 from sentry import analytics, features
 from sentry.app import locks
 from sentry.exceptions import PluginError
-from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -415,6 +414,7 @@ def process_snoozes(group):
     otherwise return False.
     """
     from sentry.models import GroupInboxReason, GroupSnooze, GroupStatus, add_group_to_inbox
+    from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 
     key = GroupSnooze.get_cache_key(group.id)
     snooze = cache.get(key)

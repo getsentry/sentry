@@ -68,7 +68,7 @@ class GroupAssigneeManager(BaseManager):
                     "assigneeType": assignee_type,
                 },
             )
-            record_group_history(group, GroupHistoryStatus.ASSIGNED, acting_user.actor)
+            record_group_history(group, GroupHistoryStatus.ASSIGNED, actor=acting_user)
 
             metrics.incr("group.assignee.change", instance="assigned", skip_internal=True)
             # sync Sentry assignee to external issues
@@ -91,7 +91,7 @@ class GroupAssigneeManager(BaseManager):
             activity = Activity.objects.create(
                 project=group.project, group=group, type=Activity.UNASSIGNED, user=acting_user
             )
-            record_group_history(group, GroupHistoryStatus.UNASSIGNED, acting_user.actor)
+            record_group_history(group, GroupHistoryStatus.UNASSIGNED, actor=acting_user)
 
             activity.send_notification()
             metrics.incr("group.assignee.change", instance="deassigned", skip_internal=True)

@@ -192,7 +192,7 @@ def resolved_in_pull_request(instance, created, **kwargs):
                         data={"pull_request": instance.id},
                     )
                     record_group_history(
-                        group, GroupHistoryStatus.RESOLVED_IN_PULL_REQUEST, user_list[0].actor
+                        group, GroupHistoryStatus.RESOLVED_IN_PULL_REQUEST, actor=user_list[0]
                     )
 
                     GroupAssignee.objects.assign(

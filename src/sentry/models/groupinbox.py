@@ -103,7 +103,7 @@ def remove_group_from_inbox(group, action=None, user=None, referrer=None):
                 type=Activity.MARK_REVIEWED,
                 user=user,
             )
-            record_group_history(group, GroupHistoryStatus.REVIEWED.value, user.actor)
+            record_group_history(group, GroupHistoryStatus.REVIEWED, actor=user)
 
         if action:
             inbox_out.send_robust(

@@ -3,7 +3,6 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
-from sentry.models import Activity
 
 
 class GroupHistoryStatus:
@@ -88,7 +87,7 @@ class GroupHistory(Model):
 
 
 def get_prev_history(group):
-    prev_histories = GroupHistory.objects.filter(group=group).orderby("date_added")
+    prev_histories = GroupHistory.objects.filter(group=group).order_by("date_added")
     if prev_histories.exists():
         return prev_histories.first()
     return None
@@ -101,16 +100,18 @@ def record_group_history(group, status, actor=None, release=None):
         group=group,
         project=group.project,
         release=release,
-        actor=actor,
-        status=status.value,
+        actor=actor.actor if actor is not None else None,
+        status=status,
         prev_history=prev_history,
         prev_history_date=prev_history.date_added if prev_history else None,
     )
     return gh
 
 
-def activity_status_to_group_history_status(status):
-    # TODO: This could maybe  share names? Or be defined above...or something else better.
+def activity_type_to_history_status(status):
+    from sentry.models import Activity
+
+    # TODO: This could be improved; defined above at the very least
     if status == Activity.SET_IGNORED:
         return GroupHistoryStatus.IGNORED
     elif status == Activity.SET_RESOLVED:

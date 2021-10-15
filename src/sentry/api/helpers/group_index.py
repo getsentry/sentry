@@ -642,7 +642,6 @@ def update_groups(
     status = result.get("status")
     release = None
     commit = None
-
     if status in ("resolved", "resolvedInNextRelease"):
         if status == "resolvedInNextRelease" or statusDetails.get("inNextRelease"):
             # TODO(jess): We may want to support this for multi project, but punting on it for now
@@ -737,7 +736,6 @@ def update_groups(
                 res_status = GroupResolution.Status.resolved
             except IndexError:
                 release = None
-
         for group in group_list:
             with transaction.atomic():
                 resolution = None
@@ -882,6 +880,10 @@ def update_groups(
                         ident=resolution.id if resolution else None,
                         data=activity_data,
                     )
+                    history_status = activity_type_to_history_status(activity_type)
+                    if history_status is not None:
+                        record_group_history(group, history_status, actor=acting_user)
+
                     # TODO(dcramer): we need a solution for activity rollups
                     # before sending notifications on bulk changes
                     if not is_bulk:
@@ -962,7 +964,6 @@ def update_groups(
                     result["statusDetails"] = {}
             else:
                 result["statusDetails"] = {}
-
         if group_list and happened:
             if new_status == GroupStatus.UNRESOLVED:
                 activity_type = Activity.SET_UNRESOLVED
@@ -1022,8 +1023,8 @@ def update_groups(
                     data=activity_data,
                 )
                 history_status = activity_type_to_history_status(activity_type)
-                if history_status:
-                    record_group_history(group, history_status, acting_user.actor)
+                if history_status is not None:
+                    record_group_history(group, history_status, actor=acting_user)
 
                 # TODO(dcramer): we need a solution for activity rollups
                 # before sending notifications on bulk changes
