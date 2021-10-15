@@ -288,7 +288,7 @@ export default class DetailsBody extends React.Component<Props> {
       return this.renderLoading();
     }
 
-    const {query, projects: projectSlugs} = rule;
+    const {query, projects: projectSlugs, dataset} = rule;
 
     const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
 
@@ -364,15 +364,13 @@ export default class DetailsBody extends React.Component<Props> {
                     projects={projects}
                     interval={this.getInterval()}
                     filter={this.getFilter()}
-                    query={
-                      rule.dataset === Dataset.SESSIONS ? query : queryWithTypeFilter
-                    }
+                    query={dataset === Dataset.SESSIONS ? query : queryWithTypeFilter}
                     orgId={orgId}
                     handleZoom={handleZoom}
                   />
                   <DetailWrapper>
                     <ActivityWrapper>
-                      {rule?.dataset === Dataset.ERRORS && (
+                      {[Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
                         <RelatedIssues
                           organization={organization}
                           rule={rule}
@@ -380,9 +378,16 @@ export default class DetailsBody extends React.Component<Props> {
                             rule.projects.includes(project.slug)
                           )}
                           timePeriod={timePeriod}
+                          query={
+                            dataset === Dataset.ERRORS
+                              ? queryWithTypeFilter
+                              : dataset === Dataset.SESSIONS
+                              ? `${query} error.unhandled:true`
+                              : undefined
+                          }
                         />
                       )}
-                      {rule?.dataset === Dataset.TRANSACTIONS && (
+                      {dataset === Dataset.TRANSACTIONS && (
                         <RelatedTransactions
                           organization={organization}
                           location={location}

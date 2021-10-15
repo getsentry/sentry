@@ -239,7 +239,7 @@ def retry_process_event(process_task_name: str, task_kwargs: Dict[str, Any], **k
     process_task.delay(**task_kwargs)
 
 
-def _do_process_event(
+def do_process_event(
     cache_key: str,
     start_time: Optional[int],
     event_id: Optional[str],
@@ -429,7 +429,7 @@ def process_event(
     :param string event_id: the event identifier
     :param boolean data_has_changed: set to True if the event data was changed in previous tasks
     """
-    return _do_process_event(
+    return do_process_event(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
@@ -451,7 +451,7 @@ def process_event_from_reprocessing(
     data_has_changed: bool = False,
     **kwargs: Any,
 ) -> None:
-    return _do_process_event(
+    return do_process_event(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,

@@ -10,6 +10,7 @@ import {IconChevron, IconSearch} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {Widget} from 'app/views/dashboardsV2/types';
@@ -57,6 +58,10 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
               priority="primary"
               icon={<IconChevron size="xs" direction="right" />}
               onClick={() => {
+                trackAdvancedAnalyticsEvent('dashboards_views.query_selector.selected', {
+                  organization,
+                  widget_type: widget.displayType,
+                });
                 browserHistory.push(discoverLocation);
               }}
             />
