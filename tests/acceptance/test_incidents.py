@@ -33,20 +33,17 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
         )
 
         features = {feature: True for feature in FEATURE_NAME}
-        features["organizations:alert-details-redesign"] = False
         with self.feature(features):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading-indicator")
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.snapshot("incidents - list")
 
-            details_url = (
-                f'[href="/organizations/{self.organization.slug}/alerts/{incident.identifier}/'
-            )
+            details_url = f'[href="/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.id}'
             self.browser.wait_until(details_url)
             self.browser.click(details_url)
             self.browser.wait_until_not(".loading-indicator")
-            self.browser.wait_until_test_id("incident-title")
+            self.browser.wait_until_test_id("incident-rule-title")
 
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.blur()

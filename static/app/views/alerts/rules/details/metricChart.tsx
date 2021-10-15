@@ -102,7 +102,7 @@ function createStatusAreaSeries(
   yPosition: number
 ): LineChartSeries {
   return {
-    seriesName: 'Status Area',
+    seriesName: '',
     type: 'line',
     markLine: MarkLine({
       silent: true,
@@ -283,16 +283,11 @@ class MetricChart extends React.PureComponent<Props, State> {
 
     const {buttonText, ...props} = makeDefaultCta(ctaOpts);
 
-    const resolvedPercent = (
+    const resolvedPercent =
       (100 * Math.max(totalDuration - criticalDuration - warningDuration, 0)) /
-      totalDuration
-    ).toFixed(2);
-    const criticalPercent = (100 * Math.min(criticalDuration / totalDuration, 1)).toFixed(
-      2
-    );
-    const warningPercent = (100 * Math.min(warningDuration / totalDuration, 1)).toFixed(
-      2
-    );
+      totalDuration;
+    const criticalPercent = 100 * Math.min(criticalDuration / totalDuration, 1);
+    const warningPercent = 100 * Math.min(warningDuration / totalDuration, 1);
 
     return (
       <ChartActions>
@@ -301,15 +296,15 @@ class MetricChart extends React.PureComponent<Props, State> {
           <SummaryStats>
             <StatItem>
               <IconCheckmark color="green300" isCircled />
-              <StatCount>{resolvedPercent}%</StatCount>
+              <StatCount>{resolvedPercent ? resolvedPercent.toFixed(2) : 0}%</StatCount>
             </StatItem>
             <StatItem>
               <IconWarning color="yellow300" />
-              <StatCount>{warningPercent}%</StatCount>
+              <StatCount>{warningPercent ? warningPercent.toFixed(2) : 0}%</StatCount>
             </StatItem>
             <StatItem>
               <IconFire color="red300" />
-              <StatCount>{criticalPercent}%</StatCount>
+              <StatCount>{criticalPercent ? criticalPercent.toFixed(2) : 0}%</StatCount>
             </StatItem>
           </SummaryStats>
         </ChartSummary>
@@ -370,8 +365,8 @@ class MetricChart extends React.PureComponent<Props, State> {
           ) / ALERT_CHART_MIN_MAX_BUFFER
         )
       : 0;
-    const firstPoint = moment(dataArr[0].name).valueOf();
-    const lastPoint = moment(dataArr[dataArr.length - 1].name).valueOf();
+    const firstPoint = moment(dataArr[0]?.name).valueOf();
+    const lastPoint = moment(dataArr[dataArr.length - 1]?.name).valueOf();
     const totalDuration = lastPoint - firstPoint;
     let criticalDuration = 0;
     let warningDuration = 0;

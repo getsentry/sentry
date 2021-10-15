@@ -35,9 +35,7 @@ const storeConfig: Reflux.StoreDefinition & PreferenceStoreInterface = {
   },
 
   reset() {
-    this.prefs = {
-      collapsed: false,
-    };
+    this.prefs = {collapsed: false};
   },
 
   loadInitialState(prefs: Preferences) {
@@ -46,12 +44,12 @@ const storeConfig: Reflux.StoreDefinition & PreferenceStoreInterface = {
   },
 
   onHideSidebar() {
-    this.prefs.collapsed = true;
+    this.prefs = {...this.prefs, collapsed: true};
     this.trigger(this.prefs);
   },
 
   onShowSidebar() {
-    this.prefs.collapsed = false;
+    this.prefs = {...this.prefs, collapsed: false};
     this.trigger(this.prefs);
   },
 
