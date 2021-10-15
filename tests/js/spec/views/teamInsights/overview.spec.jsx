@@ -1,4 +1,10 @@
-import {act, fireEvent, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  fireEvent,
+  mountWithTheme,
+  screen,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'app/stores/teamStore';
 import localStorage from 'app/utils/localStorage';
@@ -112,24 +118,24 @@ describe('TeamInsightsOverview', () => {
   }
 
   it('defaults to first team', async () => {
-    const wrapper = createWrapper();
+    createWrapper();
     await waitFor(() => {
-      expect(wrapper.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     });
 
-    expect(wrapper.getByText('#frontend')).toBeInTheDocument();
-    expect(wrapper.getByText('Key transaction')).toBeInTheDocument();
+    expect(screen.getByText('#frontend')).toBeInTheDocument();
+    expect(screen.getByText('Key transaction')).toBeInTheDocument();
   });
 
   it('allows team switching', async () => {
-    const wrapper = createWrapper();
+    createWrapper();
     await waitFor(() => {
-      expect(wrapper.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     });
 
-    fireEvent.mouseDown(wrapper.getByText('#frontend'));
-    expect(wrapper.getByText('#backend')).toBeInTheDocument();
-    fireEvent.click(wrapper.getByText('#backend'));
+    fireEvent.mouseDown(screen.getByText('#frontend'));
+    expect(screen.getByText('#backend')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('#backend'));
     expect(mockRouter.push).toHaveBeenCalledWith({query: {team: team2.id}});
     expect(localStorage.setItem).toHaveBeenCalledWith(
       'teamInsightsSelectedTeamId:org-slug',
