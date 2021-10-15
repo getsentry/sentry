@@ -5,7 +5,8 @@ from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry.sentry_metrics import indexer
-from sentry.utils import json, kafka_config
+from sentry.sentry_metrics.indexer.tasks import process_indexed_metrics
+from sentry.utils import json, kafka_config, metrics
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker, BatchingKafkaConsumer
 from sentry.utils.kafka import create_batching_kafka_consumer
 
@@ -45,7 +46,8 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
             *tags.values(),
         }
 
-        mapping = indexer.bulk_record(list(strings))  # type: ignore
+        with metrics.timer("metrics_consumer.bulk_record"):
+            mapping = indexer.bulk_record(list(strings))  # type: ignore
 
         new_tags = {mapping[k]: mapping[v] for k, v in tags.items()}
 
@@ -63,8 +65,13 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
                 value=json.dumps(message).encode(),
                 on_delivery=self.callback,
             )
+            message_type = message.get("type", "unknown")
+            metrics.incr(
+                "metrics_consumer.producer.messages_seen", tags={"metric_type": message_type}
+            )
+        with metrics.timer("metrics_consumer.producer.flush"):
+            messages_left = self.__producer.flush(5.0)
 
-        messages_left = self.__producer.flush(5.0)
         if messages_left != 0:
             # TODO(meredith): We are not currently keeping track of
             # which callbacks failed. This means could potentially
@@ -74,10 +81,14 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
             # In the future if we know which callback failed, we can
             # commit only up to that point and retry on the remaining
             # messages.
+            metrics.incr("metrics_consumer.producer.messages_left")
             raise Exception(f"didn't get all the callbacks: {messages_left} left")
 
+        # if we have successfully produced messages to the snuba-metrics topic
+        # then enque task to send payload to the product metrics data model
+        process_indexed_metrics.apply_async(kwargs={"messages": batch})
+
     def shutdown(self) -> None:
-        self.__producer.close()
         return
 
     def callback(self, error: Any, message: Any) -> None:
