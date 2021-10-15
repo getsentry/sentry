@@ -186,13 +186,12 @@ class TeamReleases extends AsyncComponent<Props, State> {
       };
     });
 
-    const projectAvgSum = Object.values(periodReleases?.project_avgs ?? {}).reduce(
+    const averageValues = Object.values(periodReleases?.project_avgs ?? {});
+    const projectAvgSum = averageValues.reduce(
       (total, currentData) => total + currentData,
       0
     );
-    const totalPeriodAverage = Math.ceil(
-      projectAvgSum / Object.keys(periodReleases?.project_avgs ?? {}).length
-    );
+    const totalPeriodAverage = Math.ceil(projectAvgSum / averageValues.length);
 
     return (
       <div>
