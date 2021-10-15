@@ -9,11 +9,11 @@ from typing import (
     Dict,
     List,
     Mapping,
-    MutableMapping,
     Optional,
     Sequence,
     Set,
     Tuple,
+    TypeVar,
     Union,
 )
 
@@ -44,11 +44,9 @@ from sentry.release_health.base import (
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
     SessionCounts,
-    SessionCountsAndPercentiles,
     SessionsQueryResult,
     StatsPeriod,
     UserCounts,
-    UserCountsAndPercentiles,
 )
 from sentry.release_health.metrics_sessions_v2 import run_sessions_query
 from sentry.sentry_metrics import indexer
@@ -1319,21 +1317,22 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         return ret_val
 
     @staticmethod
-    def _convert_project_release_stats_series(
-        series: Mapping[datetime, Any]
-    ) -> List[Tuple[int, Any]]:
+    def _sort_by_timestamp(series: Mapping[datetime, Any]) -> List[Tuple[int, Any]]:
+        """Transform a datetime -> X mapping to a sorted list of (ts, X) tuples
+        This is needed to match the output format of get_project_release_stats
+        """
         rv = [(int(to_timestamp(dt)), data) for dt, data in series.items()]
         rv.sort(key=itemgetter(0))
         return rv
 
-    def _add_project_release_stats_durations(
+    def _get_project_release_stats_durations(
         self,
         org_id: OrganizationId,
         where: List[Expression],
         session_status_key: str,
         rollup: int,
-        series: Mapping[datetime, DurationPercentiles],
-    ) -> None:
+    ) -> Mapping[datetime, DurationPercentiles]:
+        series = {}
         session_status_healthy = try_get_string_index(org_id, "exited")
         if session_status_healthy is not None:
             duration_series_data = raw_snql_query(
@@ -1356,11 +1355,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             )["data"]
             for row in duration_series_data:
                 dt = parse_snuba_datetime(row["bucketed_time"])
-                quantiles: Sequence[Optional[float]] = row["quantiles"]
-                target = series[dt]
+                quantiles: Sequence[float] = row["quantiles"]
                 p50, p90 = quantiles
-                target["duration_p50"] = p50
-                target["duration_p90"] = p90
+                series[dt] = {"duration_p50": p50, "duration_p90": p90}
+
+        return series
 
     def _get_project_release_stats_sessions(
         self,
@@ -1368,11 +1367,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         where: List[Expression],
         session_status_key: str,
         rollup: int,
-        series: MutableMapping[datetime, SessionCountsAndPercentiles],
-    ) -> ProjectReleaseSessionStats:
-
-        self._add_project_release_stats_durations(org_id, where, session_status_key, rollup, series)
-
+    ) -> Mapping[datetime, SessionCounts]:
         session_series_data = raw_snql_query(
             Query(
                 dataset=Dataset.Metrics.value,
@@ -1385,6 +1380,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 groupby=[Column("bucketed_time"), Column(session_status_key)],
             )
         )["data"]
+
+        series = defaultdict(lambda: defaultdict(lambda: 0))
 
         for row in session_series_data:
             dt = parse_snuba_datetime(row["bucketed_time"])
@@ -1438,7 +1435,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             "sessions_errored": sum(data["sessions_errored"] for data in series.values()),
         }
 
-        return self._convert_project_release_stats_series(series), totals
+        return series, totals
 
     def _get_project_release_stats_users(
         self,
@@ -1446,11 +1443,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         where: List[Expression],
         session_status_key: str,
         rollup: int,
-        series: MutableMapping[datetime, UserCountsAndPercentiles],
-        totals: UserCounts,
-    ) -> ProjectReleaseUserStats:
-
-        self._add_project_release_stats_durations(org_id, where, session_status_key, rollup, series)
+    ) -> Mapping[datetime, UserCounts]:
 
         user_series_data = raw_snql_query(
             Query(
@@ -1478,40 +1471,57 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             )
         )["data"]
 
-        for row in user_series_data + user_totals_data:
-            dt = row.get("bucketed_time")
-            if dt is None:
-                target = totals
-                pass
-            else:
-                dt = parse_snuba_datetime(dt)
-                target = series[dt]
-            status = reverse_tag_value(org_id, row[session_status_key])
-            value = int(row["value"])
-            if status == "init":
-                target["users"] = value
-                # Set same value for 'healthy', this will later be subtracted by errors
-                target["users_healthy"] += value
-            else:
-                if status == "abnormal":
-                    # Subtract this special error state from sum of all errors
-                    target["users_abnormal"] += value
-                    target["users_errored"] -= value
-                elif status == "crashed":
-                    # Subtract this special error state from sum of all errors
-                    target["users_crashed"] += value
-                    target["users_errored"] -= value
-                elif status == "errored":
-                    # Subtract sum of all errors from healthy sessions
-                    target["users_errored"] += value
-                    target["users_healthy"] -= value
+        series = defaultdict(lambda: defaultdict(lambda: 0))
+        totals = defaultdict(lambda: 0)
+
+        for is_totals, data in [(False, user_series_data), (True, user_totals_data)]:
+            for row in data:
+                if is_totals:
+                    target = totals
+                else:
+                    dt = parse_snuba_datetime(row["bucketed_time"])
+                    target = series[dt]
+                status = reverse_tag_value(org_id, row[session_status_key])
+                value = int(row["value"])
+                if status == "init":
+                    target["users"] = value
+                    # Set same value for 'healthy', this will later be subtracted by errors
+                    target["users_healthy"] += value
+                else:
+                    if status == "abnormal":
+                        # Subtract this special error state from sum of all errors
+                        target["users_abnormal"] += value
+                        target["users_errored"] -= value
+                    elif status == "crashed":
+                        # Subtract this special error state from sum of all errors
+                        target["users_crashed"] += value
+                        target["users_errored"] -= value
+                    elif status == "errored":
+                        # Subtract sum of all errors from healthy sessions
+                        target["users_errored"] += value
+                        target["users_healthy"] -= value
 
         # Replace negative values
         for data in itertools.chain(series.values(), [totals]):
             data["users_healthy"] = max(0, data["users_healthy"])
             data["users_errored"] = max(0, data["users_errored"])
 
-        return self._convert_project_release_stats_series(series), totals
+        return series, totals
+
+    _K1 = TypeVar("_K1")
+    _K2 = TypeVar("_K2")
+    _V = TypeVar("_V")
+
+    @staticmethod
+    def _merge_dict_values(
+        *dicts: Mapping[_K1, Mapping[_K2, _V]]
+    ) -> Mapping[_K1, Mapping[_K2, _V]]:
+        rv = {}
+        for dct in dicts:
+            for key, value in dct.items():
+                rv.setdefault(key, {}).update(value)
+
+        return rv
 
     def get_project_release_stats(
         self,
@@ -1547,7 +1557,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             times.append(time)
             time += delta
 
-        series = {
+        # Generate skeleton for the returned data:
+        base_series = {
             time: {
                 "duration_p50": None,
                 "duration_p90": None,
@@ -1559,8 +1570,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             }
             for time in times
         }
-
-        totals = {
+        base_totals = {
             f"{stat}": 0,
             f"{stat}_abnormal": 0,
             f"{stat}_crashed": 0,
@@ -1572,7 +1582,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             release_value = tag_value(org_id, release)
         except MetricIndexNotFound:
             # No data for this release
-            return self._convert_project_release_stats_series(series), totals  # type: ignore
+            return self._sort_by_timestamp(base_series), base_totals  # type: ignore
 
         where = [
             Condition(Column("org_id"), Op.EQ, org_id),
@@ -1593,14 +1603,27 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         session_status_key = tag_key(org_id, "session.status")
 
+        duration_series = self._get_project_release_stats_durations(
+            org_id, where, session_status_key, rollup
+        )
+
         if stat == "users":
-            return self._get_project_release_stats_users(
-                org_id, where, session_status_key, rollup, series, totals  # type: ignore
+            series, totals = self._get_project_release_stats_users(
+                org_id, where, session_status_key, rollup
             )
         else:
-            return self._get_project_release_stats_sessions(
-                org_id, where, session_status_key, rollup, series  # type: ignore
+            series, totals = self._get_project_release_stats_sessions(
+                org_id, where, session_status_key, rollup
             )
+
+        # Merge data:
+        series = self._merge_dict_values(base_series, duration_series, series)
+        totals = dict(base_totals, **totals)
+
+        # Convert series to desired output format:
+        series = self._sort_by_timestamp(series)
+
+        return series, totals
 
     def get_project_sessions_count(
         self,
