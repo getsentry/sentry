@@ -20,7 +20,7 @@ export const experimentList = [
     assignments: [0, 1],
   },
   {
-    key: 'TrialLabelTest',
+    key: 'TrialLabelExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],
