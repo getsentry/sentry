@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timezone
+from unittest import mock
 from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
@@ -18,7 +19,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import wait_for_topics
-from sentry.utils.compat import mock
 
 logger = logging.getLogger(__name__)
 
