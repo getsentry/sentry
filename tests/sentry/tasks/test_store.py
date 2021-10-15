@@ -12,13 +12,6 @@ from sentry.tasks.store import (
     save_event,
     time_synthetic_monitoring_event,
 )
-from sentry.tasks.symbolication import (
-    should_demote_symbolication,
-    submit_symbolicate,
-    symbolicate_event,
-)
-from sentry.testutils.helpers.options import override_options
-from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.utils.compat import mock
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -97,21 +90,6 @@ def mock_metrics_timing():
         yield m
 
 
-@pytest.fixture
-def mock_should_demote_symbolication():
-    with mock.patch(
-        "sentry.tasks.symbolication.should_demote_symbolication",
-        side_effect=[True, False, True, False, True],
-    ) as m:
-        yield m
-
-
-@pytest.fixture
-def mock_submit_symbolicate():
-    with mock.patch("sentry.tasks.symbolication.submit_symbolicate", wraps=submit_symbolicate) as m:
-        yield m
-
-
 @pytest.mark.django_db
 def test_move_to_process_event(
     default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
@@ -130,97 +108,6 @@ def test_move_to_process_event(
     assert mock_symbolicate_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 1
     assert mock_save_event.delay.call_count == 0
-
-
-@pytest.mark.django_db
-def test_move_to_symbolicate_event(
-    default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
-):
-    register_plugin(globals(), BasicPreprocessorPlugin)
-    data = {
-        "project": default_project.id,
-        "platform": "native",
-        "logentry": {"formatted": "test"},
-        "event_id": EVENT_ID,
-        "extra": {"foo": "bar"},
-    }
-
-    preprocess_event(data=data)
-
-    assert mock_symbolicate_event.delay.call_count == 1
-    assert mock_process_event.delay.call_count == 0
-    assert mock_save_event.delay.call_count == 0
-
-
-@pytest.mark.django_db
-def test_move_to_symbolicate_event_low_priority(
-    default_project,
-    mock_process_event,
-    mock_save_event,
-    mock_symbolicate_event,
-    mock_symbolicate_event_low_priority,
-    register_plugin,
-):
-    with override_options({"store.symbolicate-event-lpq-always": [default_project.id]}):
-        register_plugin(globals(), BasicPreprocessorPlugin)
-        data = {
-            "project": default_project.id,
-            "platform": "native",
-            "logentry": {"formatted": "test"},
-            "event_id": EVENT_ID,
-            "extra": {"foo": "bar"},
-        }
-
-        preprocess_event(data=data)
-
-        assert mock_symbolicate_event_low_priority.delay.call_count == 1
-        assert mock_symbolicate_event.delay.call_count == 0
-        assert mock_process_event.delay.call_count == 0
-        assert mock_save_event.delay.call_count == 0
-
-
-@pytest.mark.django_db
-def test_symbolicate_event_call_process_inline(
-    default_project,
-    mock_event_processing_store,
-    mock_process_event,
-    mock_save_event,
-    mock_get_symbolication_function,
-    register_plugin,
-):
-    register_plugin(globals(), BasicPreprocessorPlugin)
-    data = {
-        "project": default_project.id,
-        "platform": "native",
-        "event_id": EVENT_ID,
-        "extra": {"foo": "bar"},
-    }
-    mock_event_processing_store.get.return_value = data
-    mock_event_processing_store.store.return_value = "e:1"
-
-    symbolicated_data = {"type": "error"}
-
-    mock_get_symbolication_function.return_value = lambda _: symbolicated_data
-
-    with mock.patch("sentry.tasks.store.do_process_event") as mock_do_process_event:
-        symbolicate_event(cache_key="e:1", start_time=1)
-
-    # The event mutated, so make sure we save it back
-    ((_, (event,), _),) = mock_event_processing_store.store.mock_calls
-
-    assert event == symbolicated_data
-
-    assert mock_save_event.delay.call_count == 0
-    assert mock_process_event.delay.call_count == 0
-    mock_do_process_event.assert_called_once_with(
-        cache_key="e:1",
-        start_time=1,
-        event_id=EVENT_ID,
-        process_task=mock_process_event,
-        data=symbolicated_data,
-        data_has_changed=True,
-        from_symbolicate=True,
-    )
 
 
 @pytest.mark.django_db
@@ -463,58 +350,3 @@ def test_time_synthetic_monitoring_event_in_save_event(mock_metrics_timing):
         mock.ANY,
     )
     assert to_process.kwargs == {"tags": tags, "sample_rate": 1.0}
-
-
-@pytest.mark.django_db
-def test_should_demote_symbolication_empty(default_project):
-    assert not should_demote_symbolication(default_project.id)
-
-
-@pytest.mark.django_db
-def test_should_demote_symbolication_always(default_project):
-    with override_options({"store.symbolicate-event-lpq-always": [default_project.id]}):
-        assert should_demote_symbolication(default_project.id)
-
-
-@pytest.mark.django_db
-def test_should_demote_symbolication_never(default_project):
-    with override_options({"store.symbolicate-event-lpq-never": [default_project.id]}):
-        assert not should_demote_symbolication(default_project.id)
-
-
-@pytest.mark.django_db
-def test_should_demote_symbolication_always_and_never(default_project):
-    with override_options(
-        {
-            "store.symbolicate-event-lpq-never": [default_project.id],
-            "store.symbolicate-event-lpq-always": [default_project.id],
-        }
-    ):
-        assert not should_demote_symbolication(default_project.id)
-
-
-@pytest.mark.django_db
-def test_submit_symbolicate_queue_switch(
-    default_project, mock_should_demote_symbolication, mock_submit_symbolicate
-):
-    data = {
-        "project": default_project.id,
-        "platform": "native",
-        "logentry": {"formatted": "test"},
-        "event_id": EVENT_ID,
-        "extra": {"foo": "bar"},
-    }
-
-    is_low_priority = mock_should_demote_symbolication(default_project.id)
-    assert is_low_priority
-
-    with TaskRunner():
-        mock_submit_symbolicate(
-            is_low_priority=is_low_priority,
-            from_reprocessing=False,
-            cache_key="e:1",
-            event_id=EVENT_ID,
-            start_time=0,
-            data=data,
-        )
-    assert mock_submit_symbolicate.call_count == 4
