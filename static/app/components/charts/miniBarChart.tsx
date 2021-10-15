@@ -234,7 +234,7 @@ function MiniBarChart({
   };
 
   return (
-    <BarChart series={chartSeries} height={height} {...chartOptions} {...barChartProps}  />
+    <BarChart series={chartSeries} height={height} {...chartOptions} {...barChartProps} />
   );
 }
 
