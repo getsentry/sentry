@@ -49,7 +49,7 @@ class U2fInterface extends React.Component<Props, State> {
     }
   }
 
-  invokeU2fSetupFlow(promise) {
+  submitU2fResponse(promise) {
     promise
       .then(data => {
         this.setState(
@@ -116,32 +116,13 @@ class U2fInterface extends React.Component<Props, State> {
 
     if (this.props.flowMode === 'sign') {
       promise = u2f.sign(this.props.challengeData.authenticateRequests);
-      this.invokeU2fSetupFlow(promise);
     } else if (this.props.flowMode === 'enroll') {
-      const {registerRequests, authenticateRequests, registeredKeys} =
-        this.props.challengeData;
-      if (registeredKeys.length !== 0) {
-        u2f
-          .register(registerRequests as any, registeredKeys as any)
-          .then(() => {
-            promise = u2f.register(registerRequests, authenticateRequests);
-            this.invokeU2fSetupFlow(promise);
-          })
-          .catch(err => {
-            const failure = 'DUPLICATE_DEVICE';
-            Sentry.captureException(err);
-            this.setState({
-              deviceFailure: failure,
-              hasBeenTapped: false,
-            });
-          });
-      } else {
-        promise = u2f.register(registerRequests, authenticateRequests);
-        this.invokeU2fSetupFlow(promise);
-      }
+      const {registerRequests, registeredKeys} = this.props.challengeData;
+      promise = u2f.register(registerRequests as any, registeredKeys as any);
     } else {
       throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
     }
+    this.submitU2fResponse(promise);
   }
 
   onTryAgain = () => {
