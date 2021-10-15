@@ -365,7 +365,7 @@ class StatusActionTest(BaseEventTest):
             403, '{"detail":"You do not have permission to perform this action."}'
         )
 
-        resp = self.post_webhook(
+        response = self.post_webhook(
             type="dialog_submission",
             callback_id=dialog["callback_id"],
             data={"submission": {"resolve_type": "resolved"}},
@@ -374,13 +374,16 @@ class StatusActionTest(BaseEventTest):
         # TODO(mgaeta): `assert_called` is deprecated. Find a replacement.
         # client_put.assert_called()
 
-        associate_url = build_unlinking_url(
-            self.integration.id, self.external_id, "C065W1189", self.response_url
-        )
-
-        assert resp.status_code == 200, resp.content
-        assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
-            associate_url=associate_url, user_email=self.user.email, org_name=self.organization.name
+        assert response.status_code == 200, response.content
+        assert response.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
+            associate_url=build_unlinking_url(
+                integration_id=self.integration.id,
+                slack_id=self.external_id,
+                channel_id="C065W1189",
+                response_url=self.response_url,
+            ),
+            user_email=self.user.email,
+            org_name=self.organization.name,
         )
 
     @patch(

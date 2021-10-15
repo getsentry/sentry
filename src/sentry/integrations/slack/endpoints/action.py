@@ -22,10 +22,15 @@ from sentry.web.decorators import transaction_start
 from ..message_builder import SlackBody
 from ..utils import logger
 
-LINK_IDENTITY_MESSAGE = "Looks like you haven't linked your Sentry account with your Slack identity yet! <{associate_url}|Link your identity now> to perform actions in Sentry through Slack."
-
-UNLINK_IDENTITY_MESSAGE = "Looks like this Slack identity is linked to the Sentry user *{user_email}* who is not a member of organization *{org_name}* used with this Slack integration. <{associate_url}|Unlink your identity now>."
-
+LINK_IDENTITY_MESSAGE = (
+    "Looks like you haven't linked your Sentry account with your Slack identity yet! "
+    "<{associate_url}|Link your identity now> to perform actions in Sentry through Slack. "
+)
+UNLINK_IDENTITY_MESSAGE = (
+    "Looks like this Slack identity is linked to the Sentry user *{user_email}* "
+    "who is not a member of organization *{org_name}* used with this Slack integration. "
+    "<{associate_url}|Unlink your identity now>. "
+)
 DEFAULT_ERROR_MESSAGE = "Sentry can't perform that action right now on your behalf!"
 
 RESOLVE_SELECTOR = {
