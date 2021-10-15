@@ -116,6 +116,7 @@ class U2fInterface extends React.Component<Props, State> {
 
     if (this.props.flowMode === 'sign') {
       promise = u2f.sign(this.props.challengeData.authenticateRequests);
+      this.invokeU2fSetupFlow(promise);
     } else if (this.props.flowMode === 'enroll') {
       const {registerRequests, authenticateRequests, registeredKeys} =
         this.props.challengeData;
