@@ -91,7 +91,7 @@ def _do_symbolicate_event(
     cache_key, start_time, event_id, symbolicate_task, data=None, queue_switches=0
 ):
     from sentry.lang.native.processing import get_symbolication_function
-    from sentry.tasks.store import _do_process_event, process_event, process_event_from_reprocessing
+    from sentry.tasks.store import do_process_event, process_event, process_event_from_reprocessing
 
     if data is None:
         data = processing.event_processing_store.get(cache_key)
@@ -141,8 +141,8 @@ def _do_symbolicate_event(
 
     def _continue_to_process_event():
         process_task = process_event_from_reprocessing if from_reprocessing else process_event
-        # TODO: this uses a private "store" function. is there a way to not do this?
-        _do_process_event(
+        # TODO: figure out a way to do this without directly invoking do_process_event
+        do_process_event(
             cache_key=cache_key,
             start_time=start_time,
             event_id=event_id,

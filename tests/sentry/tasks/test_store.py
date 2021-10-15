@@ -202,7 +202,7 @@ def test_symbolicate_event_call_process_inline(
 
     mock_get_symbolication_function.return_value = lambda _: symbolicated_data
 
-    with mock.patch("sentry.tasks.store._do_process_event") as mock_do_process_event:
+    with mock.patch("sentry.tasks.store.do_process_event") as mock_do_process_event:
         symbolicate_event(cache_key="e:1", start_time=1)
 
     # The event mutated, so make sure we save it back
