@@ -90,14 +90,16 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
         organization_memberships = OrganizationMember.objects.get_for_integration(
             integration, identity.user
         )
-        if not organization_memberships:
-            return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
 
-        organization = organization_memberships[0].organization
-        if is_team_linked_to_channel(organization, slack_request):
-            return self.reply(slack_request, CHANNEL_ALREADY_LINKED_MESSAGE)
+        has_valid_role = False
+        for organization_memberships in organization_memberships:
+            if is_team_linked_to_channel(organization_memberships.organization, slack_request):
+                return self.reply(slack_request, CHANNEL_ALREADY_LINKED_MESSAGE)
 
-        if not is_valid_role(organization_memberships[0]):
+            if is_valid_role(organization_memberships):
+                has_valid_role = True
+
+        if not has_valid_role:
             return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
 
         associate_url = build_team_linking_url(
@@ -121,19 +123,21 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
         organization_memberships = OrganizationMember.objects.get_for_integration(
             integration, identity.user
         )
-        if not organization_memberships:
-            return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
 
-        organization = organization_memberships[0].organization
-        if not is_team_linked_to_channel(organization, slack_request):
+        organization_membership = None
+        for organization_membership in organization_memberships:
+            if is_team_linked_to_channel(organization_memberships.organization, slack_request):
+                organization_membership = organization_membership
+
+        if not organization_membership:
             return self.reply(slack_request, TEAM_NOT_LINKED_MESSAGE)
 
-        if not is_valid_role(organization_memberships[0]):
+        if not is_valid_role(organization_membership):
             return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
 
         associate_url = build_team_unlinking_url(
             integration=integration,
-            organization_id=organization.id,
+            organization_id=organization_membership.organization.id,
             slack_id=slack_request.user_id,
             channel_id=slack_request.channel_id,
             channel_name=slack_request.channel_name,
