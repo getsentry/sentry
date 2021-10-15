@@ -63,6 +63,9 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
 
+    def respond_ephemeral(self, text: str) -> Response:
+        return self.respond({"response_type": "ephemeral", "replace_original": False, "text": text})
+
     def api_error(
         self,
         error: ApiClient.ApiError,
@@ -249,13 +252,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             associate_url = build_linking_url(
                 integration, group.organization, user_id, channel_id, response_url
             )
-            return self.respond(
-                {
-                    "response_type": "ephemeral",
-                    "replace_original": False,
-                    "text": LINK_IDENTITY_MESSAGE.format(associate_url=associate_url),
-                }
-            )
+            return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
 
         # Handle status dialog submission
         if slack_request.type == "dialog_submission" and "resolve_type" in data["submission"]:
