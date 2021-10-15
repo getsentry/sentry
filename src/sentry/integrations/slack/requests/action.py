@@ -62,13 +62,12 @@ class SlackActionRequest(SlackRequest):
     def get_logging_data(
         self,
         group: Optional[Group] = None,
-    ) -> Mapping[str, str]:
-        logging_data: MutableMapping[str, str] = {
-            "channel_id": self.channel_id,
-            "integration_id": self.integration.id,
+    ) -> Mapping[str, Optional[str]]:
+        logging_data: MutableMapping[str, Optional[str]] = {
+            **self.logging_data,
             "response_url": self.response_url,
-            "slack_user_id": self.user_id,
         }
+
         if group:
             logging_data.update(
                 {
