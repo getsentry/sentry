@@ -23,6 +23,7 @@ class QueryBuilder(QueryFilter):
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
+        auto_fields: bool = False,
         auto_aggregations: bool = False,
         use_aggregate_conditions: bool = False,
         functions_acl: Optional[List[str]] = None,
@@ -30,7 +31,7 @@ class QueryBuilder(QueryFilter):
         offset: Optional[int] = 0,
         limitby: Optional[Tuple[str, int]] = None,
     ):
-        super().__init__(dataset, params, functions_acl)
+        super().__init__(dataset, params, auto_fields, functions_acl)
 
         # TODO: implement this in `resolve_select`
         self.auto_aggregations = auto_aggregations

@@ -1040,9 +1040,13 @@ class QueryFilter(QueryFields):
     """Filter logic for a snql query"""
 
     def __init__(
-        self, dataset: Dataset, params: ParamsType, functions_acl: Optional[List[str]] = None
+        self,
+        dataset: Dataset,
+        params: ParamsType,
+        auto_fields: bool = False,
+        functions_acl: Optional[List[str]] = None,
     ):
-        super().__init__(dataset, params, functions_acl)
+        super().__init__(dataset, params, auto_fields, functions_acl)
 
         self.search_filter_converter: Mapping[
             str, Callable[[SearchFilter], Optional[WhereType]]
@@ -1646,12 +1650,7 @@ class QueryFilter(QueryFields):
 
         organization_id: int = self.params["organization_id"]
         project_ids: Optional[list[int]] = self.params.get("project_id")
-        environment_ids: Optional[list[int]] = self.params.get("environment_id", [])
-        environments = list(
-            Environment.objects.filter(
-                organization_id=organization_id, id__in=environment_ids
-            ).values_list("name", flat=True)
-        )
+        environments: Optional[list[Environment]] = self.params.get("environment_objects", [])
         qs = (
             Release.objects.filter_by_stage(
                 organization_id,
