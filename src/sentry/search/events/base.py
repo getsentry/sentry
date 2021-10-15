@@ -13,10 +13,15 @@ from sentry.utils.snuba import Dataset, resolve_column
 
 class QueryBase:
     def __init__(
-        self, dataset: Dataset, params: ParamsType, functions_acl: Optional[List[str]] = None
+        self,
+        dataset: Dataset,
+        params: ParamsType,
+        auto_fields: bool = False,
+        functions_acl: Optional[List[str]] = None,
     ):
         self.dataset = dataset
         self.params = params
+        self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
 
         # Function is a subclass of CurriedFunction

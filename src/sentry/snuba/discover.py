@@ -241,6 +241,7 @@ def query(
             query=query,
             selected_columns=selected_columns,
             orderby=orderby,
+            auto_fields=auto_fields,
             auto_aggregations=auto_aggregations,
             use_aggregate_conditions=use_aggregate_conditions,
             functions_acl=functions_acl,
