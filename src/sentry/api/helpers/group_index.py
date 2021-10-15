@@ -1,6 +1,7 @@
 import logging
 from collections import defaultdict
 from datetime import timedelta
+from typing import Any, Mapping, Optional
 from uuid import uuid4
 
 import sentry_sdk
@@ -566,7 +567,20 @@ def get_current_release_version_of_group(group, follows_semver=False):
     return current_release_version
 
 
-def update_groups(request, group_ids, projects, organization_id, search_fn):
+def update_groups(
+    request,
+    group_ids,
+    projects,
+    organization_id,
+    search_fn,
+    user: Optional["User"] = None,
+    data: Optional[Mapping[str, Any]] = None,
+) -> Response:
+    # If `user` and `data` are passed as parameters then they should override
+    # the values in `request`.
+    user = user or request.user
+    data = data or request.data
+
     if group_ids:
         group_list = Group.objects.filter(
             project__organization_id=organization_id, project__in=projects, id__in=group_ids
@@ -582,7 +596,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
     # because of the assignee validation. Punting on this for now.
     for project in projects:
         serializer = GroupValidator(
-            data=request.data,
+            data=data,
             partial=True,
             context={"project": project, "access": getattr(request, "access", None)},
         )
@@ -594,7 +608,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
     # so we won't have to requery for each group
     project_lookup = {p.id: p for p in projects}
 
-    acting_user = request.user if request.user.is_authenticated else None
+    acting_user = user if user.is_authenticated else None
 
     if not group_ids:
         try:
@@ -651,7 +665,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
             }
             status_details = {
                 "inNextRelease": True,
-                "actor": serialize(extract_lazy_object(request.user), request.user),
+                "actor": serialize(extract_lazy_object(user), user),
             }
             res_type = GroupResolution.Type.in_next_release
             res_type_str = "in_next_release"
@@ -672,7 +686,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
             }
             status_details = {
                 "inRelease": release.version,
-                "actor": serialize(extract_lazy_object(request.user), request.user),
+                "actor": serialize(extract_lazy_object(user), user),
             }
             res_type = GroupResolution.Type.in_release
             res_type_str = "in_release"
@@ -688,8 +702,8 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
             activity_type = Activity.SET_RESOLVED_IN_COMMIT
             activity_data = {"commit": commit.id}
             status_details = {
-                "inCommit": serialize(commit, request.user),
-                "actor": serialize(extract_lazy_object(request.user), request.user),
+                "inCommit": serialize(commit, user),
+                "actor": serialize(extract_lazy_object(user), user),
             }
             res_type_str = "in_commit"
         else:
@@ -731,7 +745,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
                         "release": release,
                         "type": res_type,
                         "status": res_status,
-                        "actor_id": request.user.id if request.user.is_authenticated else None,
+                        "actor_id": user.id if user.is_authenticated else None,
                     }
 
                     # We only set `current_release_version` if GroupResolution type is
@@ -874,7 +888,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
 
             issue_resolved.send_robust(
                 organization_id=organization_id,
-                user=acting_user or request.user,
+                user=acting_user or user,
                 group=group,
                 project=project_lookup[group.project_id],
                 resolution_type=res_type_str,
@@ -930,9 +944,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
                                 "user_count": ignore_user_count,
                                 "user_window": ignore_user_window,
                                 "state": state,
-                                "actor_id": request.user.id
-                                if request.user.is_authenticated
-                                else None,
+                                "actor_id": user.id if user.is_authenticated else None,
                             },
                         )
                         result["statusDetails"] = {
@@ -941,7 +953,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
                             "ignoreUserCount": ignore_user_count,
                             "ignoreUserWindow": ignore_user_window,
                             "ignoreWindow": ignore_window,
-                            "actor": serialize(extract_lazy_object(request.user), request.user),
+                            "actor": serialize(extract_lazy_object(user), user),
                         }
                 else:
                     GroupSnooze.objects.filter(group__in=group_ids).delete()
@@ -1042,8 +1054,8 @@ def update_groups(request, group_ids, projects, organization_id, search_fn):
     if "assignedTo" in result:
         assigned_actor = result["assignedTo"]
         assigned_by = (
-            request.data.get("assignedBy")
-            if request.data.get("assignedBy") in ["assignee_selector", "suggested_assignee"]
+            data.get("assignedBy")
+            if data.get("assignedBy") in ["assignee_selector", "suggested_assignee"]
             else None
         )
         if assigned_actor:
