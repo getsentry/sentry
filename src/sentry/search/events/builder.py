@@ -83,21 +83,17 @@ class QueryBuilder(QueryFilter):
                 if column in aggregate.parameters:
                     conflicting_functions.append(aggregate)
             if conflicting_functions:
+                # The first two functions and then a trailing count of remaining functions
+                function_msg = ", ".join(
+                    [self.get_public_alias(function) for function in conflicting_functions[:2]]
+                )
+                +(
+                    f" and {len(conflicting_functions) - 2} more."
+                    if len(conflicting_functions) > 2
+                    else ""
+                ),
                 raise InvalidSearchQuery(
-                    "A single field cannot be used both inside and outside a function in the same query. To use {field} you must first remove the function(s): {function_msg}".format(
-                        field=column.alias,
-                        function_msg=", ".join(
-                            [
-                                self.get_public_alias(function)
-                                for function in conflicting_functions[:2]
-                            ]
-                        )
-                        + (
-                            f" and {len(conflicting_functions) - 2} more."
-                            if len(conflicting_functions) > 2
-                            else ""
-                        ),
-                    )
+                    f"A single field cannot be used both inside and outside a function in the same query. To use{column.alias} you must first remove the function(s): {function_msg}"
                 )
 
     def validate_having_clause(self):
