@@ -39,7 +39,6 @@ def build_deploy_buttons(notification: ReleaseActivityNotification) -> List[Dict
     return buttons
 
 
-# TODO: We should break up SlackNotificationsMessageBuilder into multiple builders
 class SlackNotificationsMessageBuilder(SlackMessageBuilder):
     def __init__(
         self,
@@ -52,13 +51,21 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
         self.context = context
         self.recipient = recipient
 
-    def build(self) -> SlackBody:
-        # TODO: remove this check when we fix some downstream typings
-        if not isinstance(self.notification, ProjectNotification):
-            raise NotImplementedError
 
+class SlackProjectNotificationsMessageBuilder(SlackNotificationsMessageBuilder):
+    def __init__(
+        self,
+        notification: ProjectNotification,
+        context: Mapping[str, Any],
+        recipient: Union["Team", "User"],
+    ) -> None:
+        super().__init__(notification, context, recipient)
+        # TODO: use generics here to do this
+        self.notification: ProjectNotification = notification
+
+    def build(self) -> SlackBody:
         group = getattr(self.notification, "group", None)
-        # TODO: refactor so we don't call SlackIssuesMessageBuilder through SlackNotificationsMessageBuilder
+        # TODO: refactor so we don't call SlackIssuesMessageBuilder through SlackProjectNotificationsMessageBuilder
         if self.notification.is_message_issue_unfurl:
             return SlackIssuesMessageBuilder(
                 group=group,

@@ -3,7 +3,10 @@ from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Tuple,
 
 from sentry import analytics
 from sentry.integrations.slack.message_builder import SlackAttachment
-from sentry.integrations.slack.message_builder.notifications import SlackNotificationsMessageBuilder
+from sentry.integrations.slack.message_builder.notifications import (
+    SlackNotificationsMessageBuilder,
+    SlackProjectNotificationsMessageBuilder,
+)
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 
@@ -75,7 +78,7 @@ class BaseNotification:
 
 
 class ProjectNotification(BaseNotification, abc.ABC):
-    SlackMessageBuilderClass = SlackNotificationsMessageBuilder
+    SlackMessageBuilderClass = SlackProjectNotificationsMessageBuilder
     is_message_issue_unfurl = False
 
     def __init__(self, project: "Project") -> None:
