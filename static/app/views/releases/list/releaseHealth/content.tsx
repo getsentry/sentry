@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import color from 'color';
+import {Location} from 'history';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
