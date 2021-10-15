@@ -18,6 +18,7 @@ from sentry.models import (
     UserOption,
     remove_group_from_inbox,
 )
+from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
@@ -190,6 +191,10 @@ def resolved_in_pull_request(instance, created, **kwargs):
                         user=user_list[0],
                         data={"pull_request": instance.id},
                     )
+                    record_group_history(
+                        group, GroupHistoryStatus.RESOLVED_IN_PULL_REQUEST, user_list[0].actor
+                    )
+
                     GroupAssignee.objects.assign(
                         group=group, assigned_to=user_list[0], acting_user=user_list[0]
                     )

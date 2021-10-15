@@ -34,6 +34,7 @@ from sentry.models import (
     GroupInboxRemoveAction,
     remove_group_from_inbox,
 )
+from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -1029,6 +1030,8 @@ class Release(Model):
                 group = Group.objects.get(id=group_id)
                 group.update(status=GroupStatus.RESOLVED)
                 remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
+                record_group_history(group, GroupHistoryStatus.RESOLVED, actor.actor)
+
                 metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
 
             issue_resolved.send_robust(

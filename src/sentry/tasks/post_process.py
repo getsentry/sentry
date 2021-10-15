@@ -5,6 +5,7 @@ import sentry_sdk
 from sentry import analytics, features
 from sentry.app import locks
 from sentry.exceptions import PluginError
+from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -436,6 +437,8 @@ def process_snoozes(group):
             "user_window": snooze.user_window,
         }
         add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
+        record_group_history(group, GroupHistoryStatus.UNIGNORED)
+
         snooze.delete()
         group.update(status=GroupStatus.UNRESOLVED)
         issue_unignored.send_robust(

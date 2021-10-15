@@ -3,11 +3,15 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.models import Activity
 
 
 class GroupHistoryStatus:
     UNRESOLVED = 0
     RESOLVED = 1
+    SET_RESOLVED_IN_RELEASE = 11
+    SET_RESOLVED_IN_COMMIT = 12
+    SET_RESOLVED_IN_PULL_REQUEST = 13
     AUTO_RESOLVED = 2
     IGNORED = 3
     UNIGNORED = 4
@@ -21,6 +25,9 @@ class GroupHistoryStatus:
 
 ACTIONED_STATUSES = [
     GroupHistoryStatus.RESOLVED,
+    GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
+    GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+    GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST,
     GroupHistoryStatus.IGNORED,
     GroupHistoryStatus.REVIEWED,
     GroupHistoryStatus.DELETED,
@@ -59,6 +66,9 @@ class GroupHistory(Model):
             (GroupHistoryStatus.DELETED, _("Deleted")),
             (GroupHistoryStatus.DELETED_AND_DISCARDED, _("Deleted and Discarded")),
             (GroupHistoryStatus.REVIEWED, _("Reviewed")),
+            (GroupHistoryStatus.SET_RESOLVED_IN_RELEASE, _("Resolved in Release")),
+            (GroupHistoryStatus.SET_RESOLVED_IN_COMMIT, _("Resolved in Commit")),
+            (GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST, _("Resolved in Pull Request")),
         ),
     )
     prev_history = FlexibleForeignKey(
@@ -75,3 +85,41 @@ class GroupHistory(Model):
         index_together = (("project", "status", "release"),)
 
     __repr__ = sane_repr("group_id", "release_id")
+
+
+def get_prev_history(group):
+    prev_histories = GroupHistory.objects.filter(group=group).orderby("date_added")
+    if prev_histories.exists():
+        return prev_histories.first()
+    return None
+
+
+def record_group_history(group, status, actor=None, release=None):
+    prev_history = get_prev_history(group)
+    gh = GroupHistory.objects.create(
+        organization=group.project.organization,
+        group=group,
+        project=group.project,
+        release=release,
+        actor=actor,
+        status=status.value,
+        prev_history=prev_history,
+        prev_history_date=prev_history.date_added if prev_history else None,
+    )
+    return gh
+
+
+def activity_status_to_group_history_status(status):
+    # TODO: This could maybe  share names? Or be defined above...or something else better.
+    if status == Activity.SET_IGNORED:
+        return GroupHistoryStatus.IGNORED
+    elif status == Activity.SET_RESOLVED:
+        return GroupHistoryStatus.RESOLVED
+    elif status == Activity.SET_RESOLVED_IN_COMMIT:
+        return GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
+    elif status == Activity.SET_RESOLVED_IN_RELEASE:
+        return GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
+    elif status == Activity.SET_UNRESOLVED:
+        return GroupHistoryStatus.UNRESOLVED
+
+    return None
