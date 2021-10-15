@@ -12,7 +12,7 @@ import logging
 import time
 
 from sentry.processing import realtime_metrics
-from sentry.processing.realtime_metrics.base import DurationsHistogram
+from sentry.processing.realtime_metrics.base import DurationsHistogram, BucketedCounts, BucketedDurationsHistograms
 from sentry.tasks.base import instrumented_task
 from sentry.utils import sdk as sentry_sdk
 
@@ -74,8 +74,12 @@ def update_lpq_eligibility(project_id: int, cutoff: int) -> None:
 def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
     # TODO: It may be a good idea to figure out how to debounce especially if this is
     # executing more than 10s after cutoff.
-    excessive_rate = excessive_event_rate(project_id, cutoff)
-    excessive_duration = excessive_event_duration(project_id, cutoff)
+
+    event_counts = realtime_metrics.get_counts_for_project(project_id, cutoff)
+    durations = realtime_metrics.get_durations_for_project(project_id, cutoff)
+
+    excessive_rate = excessive_event_rate(event_counts)
+    excessive_duration = excessive_event_duration(durations)
 
     if excessive_rate or excessive_duration:
         was_added = realtime_metrics.add_project_to_lpq(project_id)
@@ -93,16 +97,16 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
             logger.warning("Moved project %s out of symbolicator's LPQ", project_id)
 
 
-def excessive_event_rate(project_id: int, cutoff: int) -> bool:
+def excessive_event_rate(event_counts: BucketedCounts) -> bool:
     """Whether the project is sending too many symbolication requests."""
     recent_time_window = 60
 
-    buckets = realtime_metrics.get_counts_for_project(project_id, cutoff)
+    total_rate = event_counts.total_count() / event_counts.total_time()
 
-    total_rate = buckets.total_count() / buckets.total_time()
-
-    recent_bucket_count = int(recent_time_window / buckets.width)
-    recent_rate = sum(buckets.counts[-recent_bucket_count:]) / recent_time_window
+    print(total_rate)
+    recent_bucket_count = int(recent_time_window / event_counts.width)
+    recent_rate = sum(event_counts.counts[-recent_bucket_count:]) / recent_time_window
+    print(recent_rate)
 
     if recent_rate > 50 and recent_rate > 5 * total_rate:
         return True
@@ -110,20 +114,17 @@ def excessive_event_rate(project_id: int, cutoff: int) -> bool:
         return False
 
 
-def excessive_event_duration(project_id: int, cutoff: int) -> bool:
+def excessive_event_duration(durations: BucketedDurationsHistograms) -> bool:
     """Whether the project's symbolication requests are taking too long to process."""
-
-    buckets = realtime_metrics.get_durations_for_project(project_id, cutoff)
-
-    total_histogram = DurationsHistogram(bucket_size=buckets.histograms[0].bucket_size)
-    for histogram in buckets.histograms:
+    total_histogram = DurationsHistogram(bucket_size=durations.histograms[0].bucket_size)
+    for histogram in durations.histograms:
         total_histogram.incr_from(histogram)
 
     try:
         p75_duration = total_histogram.percentile(0.75)
     except ValueError:
         return False
-    events_per_minute = total_histogram.total_count() / (buckets.width / 60)
+    events_per_minute = total_histogram.total_count() / (durations.width / 60)
 
     if events_per_minute > 15 and p75_duration > 6 * 60:
         return True
