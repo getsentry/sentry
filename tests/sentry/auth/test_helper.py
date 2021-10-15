@@ -390,3 +390,38 @@ class AuthHelperTest(TestCase):
     def test_setup_provider(self, mock_messages):
         final_step = self._test_pipeline(AuthHelper.FLOW_SETUP_PROVIDER)
         assert final_step.url == f"/settings/{self.organization.slug}/auth/"
+
+
+class HasVerifiedAccountTest(AuthIdentityHandlerTest):
+    def setUp(self):
+        super().setUp()
+        member = OrganizationMember.objects.get(organization=self.organization, user=self.user)
+        self.identity_id = self.identity["id"]
+        self.verification_value = {
+            "user_id": self.user.id,
+            "email": self.email,
+            "member_id": member.id,
+            "identity_id": self.identity_id,
+        }
+
+    @mock.patch("sentry.auth.helper.AuthIdentityHandler._get_user")
+    def test_has_verified_account_success(self, mock_get_user):
+        mock_get_user.return_value = self.user
+        assert self.handler.has_verified_account(self.identity, self.verification_value) is True
+
+    @mock.patch("sentry.auth.helper.AuthIdentityHandler._get_user")
+    def test_has_verified_account_fail_email(self, mock_get_user):
+        mock_get_user.return_value = self.user
+        identity = {
+            "id": "1234",
+            "email": "b@test.com",
+            "name": "Morty",
+            "data": {"foo": "bar"},
+        }
+        assert self.handler.has_verified_account(identity, self.verification_value) is False
+
+    @mock.patch("sentry.auth.helper.AuthIdentityHandler._get_user")
+    def test_has_verified_account_fail_user_id(self, mock_get_user):
+        mock_get_user.return_value = self.create_user()
+        self.wrong_user_flag = True
+        assert self.handler.has_verified_account(self.identity, self.verification_value) is False

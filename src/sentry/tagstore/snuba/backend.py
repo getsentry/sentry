@@ -60,6 +60,10 @@ DEFAULT_TYPE_CONDITION = ["type", "!=", "transaction"]
 tag_value_data_transformers = {"first_seen": parse_datetime, "last_seen": parse_datetime}
 
 
+def is_fuzzy_numeric_key(key):
+    return key in FUZZY_NUMERIC_KEYS or snuba.is_measurement(key) or snuba.is_span_op_breakdown(key)
+
+
 def fix_tag_value_data(data):
     for key, transformer in tag_value_data_transformers.items():
         if key in data:
@@ -952,7 +956,7 @@ class SnubaTagStorage(TagStorage):
                 conditions.append([snuba_key, "IN", status_codes])
             else:
                 return SequencePaginator([])
-        elif key in FUZZY_NUMERIC_KEYS:
+        elif is_fuzzy_numeric_key(key):
             converted_query = int(query) if query is not None and query.isdigit() else None
             if converted_query is not None:
                 conditions.append([snuba_key, ">=", converted_query - FUZZY_NUMERIC_DISTANCE])
@@ -1034,6 +1038,12 @@ class SnubaTagStorage(TagStorage):
                         for value, data in results.items()
                         if value in project_slugs
                     ]
+                )
+            elif is_fuzzy_numeric_key(key):
+                # numeric keys like measurements and breakdowns are nullable
+                # so filter out the None values from the results
+                results = OrderedDict(
+                    [(value, data) for value, data in results.items() if value is not None]
                 )
 
         tag_values = [

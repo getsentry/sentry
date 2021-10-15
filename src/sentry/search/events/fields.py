@@ -1316,6 +1316,8 @@ class NumericColumn(ColumnArg):
         # `measurements.frames_frozen_rate` and `measurements.frames_slow_rate` are aliases
         # to a percentage value, since they are expressions rather than columns, we special
         # case them here
+        # TODO: These are no longer expressions with SnQL, this should be removed once the
+        # migration is done
         if isinstance(value, list):
             for name in self.measurement_aliases:
                 field = FIELD_ALIASES[name]
@@ -1323,6 +1325,8 @@ class NumericColumn(ColumnArg):
                 if expression == value:
                     return field.result_type
 
+        if value in self.measurement_aliases:
+            return "percentage"
         snuba_column = self._normalize(value)
         if is_duration_measurement(snuba_column) or is_span_op_breakdown(snuba_column):
             return "duration"
