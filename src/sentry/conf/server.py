@@ -1076,7 +1076,7 @@ SENTRY_FEATURES = {
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": True,
     # Enable percent-based conditions on issue rules
-    "organizations:issue-percent-filters": False,
+    "organizations:issue-percent-filters": True,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": True,
     # Enable the new images loaded design and features

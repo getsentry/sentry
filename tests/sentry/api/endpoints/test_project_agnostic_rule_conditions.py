@@ -11,7 +11,7 @@ class ProjectAgnosticRuleConditionsTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 9
+        assert len(response.data) == 10
 
     def test_percent_condition_flag(self):
         self.login_as(user=self.user)
