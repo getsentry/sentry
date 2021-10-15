@@ -6,14 +6,14 @@ const DEFAULT_SIZE = '13px';
 
 function getLevelColor({level = '', theme}) {
   const COLORS = {
-    error: theme.orange400,
+    error: theme.pink300,
     info: theme.blue300,
-    warning: theme.orange300,
+    warning: theme.yellow300,
     fatal: theme.red300,
     sample: theme.purple300,
   };
 
-  return `background-color: ${COLORS[level] || theme.orange400};`;
+  return `background-color: ${COLORS[level] || theme.pink300};`;
 }
 
 type Props = {
