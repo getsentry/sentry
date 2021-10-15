@@ -889,17 +889,19 @@ class Release(Model):
 
                     # Guard against patch_set being None
                     patch_set = data.get("patch_set") or []
-                    for patched_file in patch_set:
-                        try:
-                            with atomic_transaction(using=router.db_for_write(CommitFileChange)):
-                                CommitFileChange.objects.create(
+                    if patch_set:
+                        CommitFileChange.objects.bulk_create(
+                            [
+                                CommitFileChange(
                                     organization_id=self.organization.id,
                                     commit=commit,
                                     filename=patched_file["path"],
                                     type=patched_file["type"],
                                 )
-                        except IntegrityError:
-                            pass
+                                for patched_file in patch_set
+                            ],
+                            ignore_conflicts=True,
+                        )
 
                     try:
                         with atomic_transaction(using=router.db_for_write(ReleaseCommit)):
@@ -1078,6 +1080,25 @@ class Release(Model):
         """
         counts = get_artifact_counts([self.id])
         return counts.get(self.id, 0)
+
+    def clear_commits(self):
+        """
+        Delete all release-specific commit data associated to this release. We will not delete the Commit model values because other releases may use these commits.
+        """
+        with sentry_sdk.start_span(op="clear_commits"):
+            from sentry.models import ReleaseCommit, ReleaseHeadCommit
+
+            ReleaseHeadCommit.objects.get(
+                organization_id=self.organization_id, release=self
+            ).delete()
+            ReleaseCommit.objects.filter(
+                organization_id=self.organization_id, release=self
+            ).delete()
+
+            self.authors = []
+            self.commit_count = 0
+            self.last_commit_id = None
+            self.save()
 
 
 def get_artifact_counts(release_ids: List[int]) -> Mapping[int, int]:

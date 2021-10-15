@@ -9,8 +9,8 @@ from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.sessions import (
     _make_stats,
-    get_project_releases_count,
-    get_release_health_data_overview,
+    _get_project_releases_count,
+    _get_release_health_data_overview,
 )
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase
@@ -361,7 +361,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         }
 
     def test_get_release_health_data_overview_users(self):
-        data = get_release_health_data_overview(
+        data = self.backend.get_release_health_data_overview(
             [
                 (self.project.id, self.session_release),
                 (self.project.id, self.session_crashed_release),
@@ -415,7 +415,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         }
 
     def test_get_release_health_data_overview_sessions(self):
-        data = get_release_health_data_overview(
+        data = self.backend.get_release_health_data_overview(
             [
                 (self.project.id, self.session_release),
                 (self.project.id, self.session_crashed_release),
@@ -887,12 +887,16 @@ class GetCrashFreeRateTestCaseMetrics(ReleaseHealthMetricsTestCase, GetCrashFree
 
 
 class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
+    backend = SessionsReleaseHealthBackend()
+
     def test_empty(self):
         # Test no errors when no session data
         org = self.create_organization()
         proj = self.create_project(organization=org)
         assert (
-            get_project_releases_count(org.id, [proj.id], "crash_free_users", stats_period="14d")
+            self.backend.get_project_releases_count(
+                org.id, [proj.id], "crash_free_users", stats_period="14d"
+            )
             == 0
         )
 
@@ -912,22 +916,34 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
                 ),
             ]
         )
-        assert get_project_releases_count(self.organization.id, [self.project.id], "sessions") == 1
-        assert get_project_releases_count(self.organization.id, [self.project.id], "users") == 1
         assert (
-            get_project_releases_count(
+            self.backend.get_project_releases_count(
+                self.organization.id, [self.project.id], "sessions"
+            )
+            == 1
+        )
+        assert (
+            self.backend.get_project_releases_count(
+                self.organization.id, [self.project.id], "users"
+            )
+            == 1
+        )
+        assert (
+            self.backend.get_project_releases_count(
                 self.organization.id, [self.project.id, other_project.id], "sessions"
             )
             == 2
         )
         assert (
-            get_project_releases_count(
-                self.organization.id, [self.project.id, other_project.id], "users"
+            self.backend.get_project_releases_count(
+                self.organization.id,
+                [self.project.id, other_project.id],
+                "users",
             )
             == 2
         )
         assert (
-            get_project_releases_count(
+            self.backend.get_project_releases_count(
                 self.organization.id,
                 [self.project.id, other_project.id],
                 "sessions",
@@ -935,6 +951,10 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
             )
             == 1
         )
+
+
+class GetProjectReleasesCountTestMetrics(ReleaseHealthMetricsTestCase, GetProjectReleasesCountTest):
+    """Repeat tests with metric backend"""
 
 
 class CheckReleasesHaveHealthDataTest(TestCase, SnubaTestCase):
@@ -985,5 +1005,163 @@ class CheckReleasesHaveHealthDataTestMetrics(
     ReleaseHealthMetricsTestCase, CheckReleasesHaveHealthDataTest
 ):
     """Repeat tests with metrics backend"""
+
+    pass
+
+
+class CheckNumberOfSessions(TestCase, SnubaTestCase):
+    backend = SessionsReleaseHealthBackend()
+
+    def setUp(self):
+        super().setUp()
+        self.dev_env = self.create_environment(name="development", project=self.project)
+        self.prod_env = self.create_environment(name="production", project=self.project)
+        self.another_project = self.create_project()
+
+        self.now_dt = datetime.utcnow()
+        self._5_min_ago_dt = self.now_dt - timedelta(minutes=5)
+        self._30_min_ago_dt = self.now_dt - timedelta(minutes=30)
+        self._1_h_ago_dt = self.now_dt - timedelta(hours=1)
+        self._2_h_ago_dt = self.now_dt - timedelta(hours=2)
+
+        self.now = self.now_dt.timestamp()
+        self._5_min_ago = self._5_min_ago_dt.timestamp()
+        self._30_min_ago = self._30_min_ago_dt.timestamp()
+        self._1_h_ago = self._1_h_ago_dt.timestamp()
+        self._2_h_ago = self._2_h_ago_dt.timestamp()
+
+    def make_session(
+        self,
+        environment,
+        received=None,
+        started=None,
+        status="ok",
+        release="foo@1.0.0",
+        project=None,
+    ):
+        if received is None:
+            received = time.time()
+        if started is None:
+            started = received
+        if project is None:
+            project = self.project
+
+        return {
+            "session_id": str(uuid.uuid4()),
+            "distinct_id": str(uuid.uuid4()),
+            "status": status,
+            "seq": 0,
+            "release": release,
+            "environment": environment,
+            "retention_days": 90,
+            "org_id": self.project.organization_id,
+            "project_id": project.id,
+            "duration": 60.0,
+            "errors": 0,
+            "started": started,
+            "received": received,
+        }
+
+    def test_no_sessions(self):
+        """
+        Tests that when there are no sessions the function behaves and returns 0
+        """
+        actual = self.backend.get_project_sessions_count(
+            project_id=self.project.id,
+            environment_id=None,
+            rollup=60,
+            start=self._30_min_ago_dt,
+            end=self.now_dt,
+        )
+        assert 0 == actual
+
+    def test_sessions_in_environment(self):
+        """
+        Tests that it correctly picks up the sessions for the selected environment
+        in the selected time, not counting other environments and other times
+
+        """
+
+        dev = self.dev_env.name
+        prod = self.prod_env.name
+
+        self.bulk_store_sessions(
+            [
+                self.make_session(environment=dev, received=self._5_min_ago),
+                self.make_session(environment=prod, received=self._5_min_ago),
+                self.make_session(environment=prod, received=self._5_min_ago),
+                self.make_session(environment=prod, received=self._2_h_ago),
+            ]
+        )
+
+        actual = self.backend.get_project_sessions_count(
+            project_id=self.project.id,
+            environment_id=self.prod_env.id,
+            rollup=60,
+            start=self._1_h_ago_dt,
+            end=self.now_dt,
+        )
+
+        assert actual == 2
+
+    def test_sessions_in_all_environments(self):
+        """
+        When the environment is not specified sessions from all environments are counted
+        """
+        dev = self.dev_env.name
+        prod = self.prod_env.name
+
+        self.bulk_store_sessions(
+            [
+                self.make_session(environment=dev, received=self._5_min_ago),
+                self.make_session(environment=prod, received=self._5_min_ago),
+                self.make_session(environment=prod, received=self._5_min_ago),
+                self.make_session(environment=prod, received=self._2_h_ago),
+                self.make_session(environment=dev, received=self._2_h_ago),
+            ]
+        )
+
+        actual = self.backend.get_project_sessions_count(
+            project_id=self.project.id,
+            environment_id=None,
+            rollup=60,
+            start=self._1_h_ago_dt,
+            end=self.now_dt,
+        )
+
+        assert actual == 3
+
+    def test_sessions_from_multiple_projects(self):
+        """
+        Only sessions from the specified project are considered
+        """
+        dev = self.dev_env.name
+        prod = self.prod_env.name
+
+        self.bulk_store_sessions(
+            [
+                self.make_session(environment=dev, received=self._5_min_ago),
+                self.make_session(environment=prod, received=self._5_min_ago),
+                self.make_session(
+                    environment=prod, received=self._5_min_ago, project=self.another_project
+                ),
+            ]
+        )
+
+        actual = self.backend.get_project_sessions_count(
+            project_id=self.project.id,
+            environment_id=None,
+            rollup=60,
+            start=self._1_h_ago_dt,
+            end=self.now_dt,
+        )
+
+        assert actual == 2
+
+
+class CheckNumberOfSessionsMetrics(ReleaseHealthMetricsTestCase, CheckNumberOfSessions):
+    """
+    Repeat CheckNumberOfSessions tests with the release backend
+    """
 
     pass

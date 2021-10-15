@@ -42,7 +42,7 @@ type ChartProps = {
   currentSeriesNames: string[];
   releaseSeries?: Series[];
   previousSeriesNames: string[];
-  previousTimeseriesData?: Series | null;
+  previousTimeseriesData?: Series[] | null;
   /**
    * A callback to allow for post-processing of the series data.
    * Can be used to rename series or even insert a new series.
@@ -180,7 +180,8 @@ class Chart extends React.Component<ChartProps, State> {
 
     const releasesLegend = t('Releases');
 
-    if (topEvents && topEvents + 1 === timeseriesData.length) {
+    const hasOther = topEvents && topEvents + 1 === timeseriesData.length;
+    if (hasOther) {
       data.push('Other');
     }
 
@@ -221,14 +222,20 @@ class Chart extends React.Component<ChartProps, State> {
     }
 
     if (previousSeriesTransformer) {
-      previousSeries = previousSeriesTransformer(previousTimeseriesData);
+      previousSeries = previousSeries?.map(
+        prev => previousSeriesTransformer(prev) as Series
+      );
+    }
+    const chartColors = timeseriesData.length
+      ? colors?.slice(0, series.length) ?? [
+          ...theme.charts.getColorPalette(timeseriesData.length - 2 - (hasOther ? 1 : 0)),
+        ]
+      : undefined;
+    if (chartColors && chartColors.length && hasOther) {
+      chartColors.push(theme.chartOther);
     }
     const chartOptions = {
-      colors: timeseriesData.length
-        ? colors?.slice(0, series.length) ?? [
-            ...theme.charts.getColorPalette(timeseriesData.length - 2),
-          ]
-        : undefined,
+      colors: chartColors,
       grid: {
         left: '24px',
         right: '24px',
@@ -267,7 +274,7 @@ class Chart extends React.Component<ChartProps, State> {
         legend={legend}
         onLegendSelectChanged={this.handleLegendSelectChanged}
         series={series}
-        previousPeriod={previousSeries ? [previousSeries] : undefined}
+        previousPeriod={previousSeries ? previousSeries : undefined}
         height={height}
       />
     );
@@ -395,7 +402,7 @@ type ChartDataProps = {
   reloading: boolean;
   results?: Series[];
   timeseriesData?: Series[];
-  previousTimeseriesData?: Series | null;
+  previousTimeseriesData?: Series[] | null;
   releaseSeries?: Series[];
   timeframe?: {start: number; end: number};
   topEvents?: number;
@@ -462,10 +469,10 @@ class EventsChart extends React.Component<EventsChartProps> {
       return yAxisLabel;
     });
 
-    const previousSeriesName = previousName
+    const previousSeriesNames = previousName
       ? [previousName]
       : yAxisSeriesNames.map(name => t('previous %s', name));
-    const currentSeriesName = currentName ? [currentName] : yAxisSeriesNames;
+    const currentSeriesNames = currentName ? [currentName] : yAxisSeriesNames;
 
     const intervalVal = showDaily ? '1d' : interval || getInterval(this.props, 'high');
 
@@ -507,8 +514,8 @@ class EventsChart extends React.Component<EventsChartProps> {
             releaseSeries={releaseSeries || []}
             timeseriesData={seriesData ?? []}
             previousTimeseriesData={previousTimeseriesData}
-            currentSeriesNames={currentSeriesName}
-            previousSeriesNames={previousSeriesName}
+            currentSeriesNames={currentSeriesNames}
+            previousSeriesNames={previousSeriesNames}
             seriesTransformer={seriesTransformer}
             previousSeriesTransformer={previousSeriesTransformer}
             stacked={this.isStacked()}
@@ -568,8 +575,8 @@ class EventsChart extends React.Component<EventsChartProps> {
             interval={intervalVal}
             query={query}
             includePrevious={includePrevious}
-            currentSeriesName={currentSeriesName[0]}
-            previousSeriesName={previousSeriesName[0]}
+            currentSeriesNames={currentSeriesNames}
+            previousSeriesNames={previousSeriesNames}
             yAxis={yAxis}
             field={field}
             orderby={orderby}

@@ -1693,6 +1693,7 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
     return hashes
 
 
+@metrics.wraps("save_event.calculate_span_grouping")
 def _calculate_span_grouping(jobs, projects):
     for job in jobs:
         # Make sure this snippet doesn't crash ingestion
@@ -1702,9 +1703,8 @@ def _calculate_span_grouping(jobs, projects):
             project = projects[job["project_id"]]
 
             if not features.has(
-                "organizations:performance-suspect-spans-ingestion",
-                project.organization,
-                actor=None,
+                "projects:performance-suspect-spans-ingestion",
+                project=project,
             ):
                 continue
 

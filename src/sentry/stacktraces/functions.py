@@ -141,6 +141,7 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
         function.replace("operator<<", "operator⟨⟨")
         .replace("operator<", "operator⟨")
         .replace("operator()", "operator◯")
+        .replace("operator->", "operator⟿")
         .replace(" -> ", " ⟿ ")
         .replace("`anonymous namespace'", "〔anonymousnamespace〕")
     )
@@ -189,6 +190,14 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
 
     function = replace_enclosed_string(function, "<", ">", process_generics)
 
+    # Remove special `[clone .foo]` annotations for cloned/split functions
+    def process_brackets(value, start):
+        if value.startswith("clone ."):
+            return ""
+        return "[%s]" % value
+
+    function = replace_enclosed_string(function, "[", "]", process_brackets)
+
     is_thunk = "thunk for " in function  # swift
 
     tokens = split_func_tokens(function)
@@ -203,7 +212,7 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
     # find the token which is the function name.  Since we chopped of C++
     # trailers there are only two cases we care about: the token left to
     # the -> return marker which is for instance used in Swift and if that
-    # is not found, the last token in the last.
+    # is not found, consider the last token to be the function.
     #
     # ["unsigned", "int", "whatever"] -> whatever
     # ["@objc", "whatever", "->", "int"] -> whatever
@@ -223,7 +232,7 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
         function = (
             func_token.replace("⟨", "<")
             .replace("◯", "()")
-            .replace(" ⟿ ", " -> ")
+            .replace("⟿", "->")
             .replace("〔anonymousnamespace〕", "`anonymous namespace'")
         )
 

@@ -114,15 +114,6 @@ export class SentryAppExternalForm extends Component<Props, State> {
       this.debouncedOptionLoad(field, input, resolve);
     });
 
-  getSubmitEndpoint() {
-    const {sentryAppInstallationUuid, element} = this.props;
-    if (element === 'alert-rule-action') {
-      // TODO(leander): Send request to the correct endpoint
-      return '/404/';
-    }
-    return `/sentry-app-installations/${sentryAppInstallationUuid}/external-issue-actions/`;
-  }
-
   getElementText = () => {
     const {element} = this.props;
     switch (element) {
@@ -329,12 +320,11 @@ export class SentryAppExternalForm extends Component<Props, State> {
   };
 
   handleAlertRuleSubmit = (formData, onSubmitSuccess) => {
-    const {config, sentryAppInstallationUuid} = this.props;
+    const {sentryAppInstallationUuid} = this.props;
     if (this.model.validateForm()) {
       onSubmitSuccess({
         // The form data must be nested in 'settings' to ensure they don't overlap with any other field names.
         settings: formData,
-        uri: config.uri,
         sentryAppInstallationUuid,
         // Used on the backend to explicitly associate with a different rule than those without a custom form.
         hasSchemaFormConfig: true,

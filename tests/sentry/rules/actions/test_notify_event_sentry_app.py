@@ -1,47 +1,55 @@
+from unittest.mock import patch
+
+from exam import before
+from rest_framework import serializers
+
 from sentry.rules.actions.notify_event_sentry_app import NotifyEventSentryAppAction
 from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.testutils.cases import RuleTestCase
 
+ValidationError = serializers.ValidationError
 SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 
 
 class NotifyEventSentryAppActionTest(RuleTestCase):
     rule_cls = NotifyEventSentryAppAction
-    schema = {
-        "elements": [
-            {
-                "type": "alert-rule-action",
-                "title": "Create Alert Rule UI Example Task",
-                "settings": {
-                    "type": "alert-rule-settings",
-                    "uri": "/test/",
-                    "required_fields": [
-                        {"type": "text", "label": "Title", "name": "title"},
-                        {"type": "textarea", "label": "Description", "name": "description"},
-                    ],
-                },
-            }
-        ]
-    }
+    schema_data = {"title": "Squid Game", "summary": "circle triangle square"}
+
+    @before
+    def create_schema(self):
+        self.schema = {"elements": [self.create_alert_rule_action_schema()]}
 
     def test_applies_correctly_for_sentry_apps(self):
         event = self.get_event()
 
-        self.create_sentry_app(
+        self.app = self.create_sentry_app(
             organization=event.organization,
             name="Test Application",
             is_alertable=True,
             schema=self.schema,
         )
 
-        rule = self.get_rule()
+        self.install = self.create_sentry_app_installation(
+            slug="test-application", organization=event.organization
+        )
+
+        rule = self.get_rule(
+            data={
+                "sentryAppInstallationUuid": self.install.uuid,
+                "settings": self.schema_data,
+            }
+        )
+
         assert rule.id == SENTRY_APP_ALERT_ACTION
 
         futures = list(rule.after(event=event, state=self.get_state()))
         assert len(futures) == 1
         assert futures[0].callback is notify_sentry_app
+        assert futures[0].kwargs["sentry_app"].id == self.app.id
+        assert futures[0].kwargs["schema_defined_settings"] == self.schema_data
 
-    def test_sentry_app_installed(self):
+    @patch("sentry.mediators.sentry_app_components.Preparer.run")
+    def test_sentry_app_actions(self, mock_sentry_app_component_preparer):
         event = self.get_event()
 
         self.project = self.create_project(organization=event.organization)
@@ -60,7 +68,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         rule = self.get_rule(
             data={
                 "sentryAppInstallationUuid": self.install.uuid,
-                "settings": {"title": "foo", "description": "bar"},
+                "settings": self.schema_data,
             }
         )
 
@@ -76,3 +84,93 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         assert action["enabled"]
         assert action["formFields"] == alert_element["settings"]
         assert alert_element["title"] in action["label"]
+
+    def test_self_validate(self):
+        self.organization = self.create_organization()
+        self.app = self.create_sentry_app(
+            organization=self.organization,
+            name="Test Application",
+            is_alertable=True,
+            schema=self.schema,
+        )
+        self.install = self.create_sentry_app_installation(
+            slug="test-application", organization=self.organization
+        )
+
+        # Test no Sentry App Installation uuid
+        rule = self.get_rule(data={"hasSchemaFormConfig": True})
+        with self.assertRaises(ValidationError):
+            rule.self_validate()
+
+        # Test invalid Sentry App Installation uuid
+        rule = self.get_rule(
+            data={"hasSchemaFormConfig": True, "sentryAppInstallationUuid": "not_a_real_uuid"}
+        )
+        with self.assertRaises(ValidationError):
+            rule.self_validate()
+
+        # Test deleted Sentry App Installation uuid
+        test_install = self.create_sentry_app_installation(
+            organization=self.organization, slug="test-application"
+        )
+        test_install.delete()
+        rule = self.get_rule(
+            data={"hasSchemaFormConfig": True, "sentryAppInstallationUuid": test_install.uuid}
+        )
+        with self.assertRaises(ValidationError):
+            rule.self_validate()
+
+        # Test Sentry Apps without alert rules configured in their schema
+        self.create_sentry_app(organization=self.organization, name="No Alert Rule Action")
+        test_install = self.create_sentry_app_installation(
+            organization=self.organization, slug="no-alert-rule-action"
+        )
+        rule = self.get_rule(
+            data={"hasSchemaFormConfig": True, "sentryAppInstallationUuid": test_install.uuid}
+        )
+        with self.assertRaises(ValidationError):
+            rule.self_validate()
+
+        # Test without providing settings in rule data
+        rule = self.get_rule(
+            data={"hasSchemaFormConfig": True, "sentryAppInstallationUuid": self.install.uuid}
+        )
+        with self.assertRaises(ValidationError):
+            rule.self_validate()
+
+        # Test without providing required field values
+        rule = self.get_rule(
+            data={
+                "hasSchemaFormConfig": True,
+                "sentryAppInstallationUuid": self.install.uuid,
+                "settings": {"title": "Lamy"},
+            }
+        )
+        with self.assertRaises(ValidationError):
+            rule.self_validate()
+
+        # Test with additional fields not on the app's schema
+        rule = self.get_rule(
+            data={
+                "hasSchemaFormConfig": True,
+                "sentryAppInstallationUuid": self.install.uuid,
+                "settings": {"title": "Lamy", "summary": "Safari", "invalidField": "Invalid Value"},
+            }
+        )
+        with self.assertRaises(ValidationError):
+            rule.self_validate()
+
+        # Test with invalid value on Select field
+        rule = self.get_rule(
+            data={
+                "hasSchemaFormConfig": True,
+                "sentryAppInstallationUuid": self.install.uuid,
+                "settings": {
+                    "title": "Lamy",
+                    "summary": "Safari",
+                    "points": "Invalid Select Value",
+                },
+            }
+        )
+        with self.assertRaises(ValidationError):
+            rule.self_validate()

@@ -276,6 +276,22 @@ class RuleNode extends React.Component<Props> {
         </MarginlessAlert>
       );
     }
+    if (data.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction') {
+      return (
+        <MarginlessAlert type="warning">
+          {tct(
+            'Having rate limiting problems? Enter a channel or user ID. Read more [rateLimiting].',
+            {
+              rateLimiting: (
+                <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
+                  {t('here')}
+                </ExternalLink>
+              ),
+            }
+          )}
+        </MarginlessAlert>
+      );
+    }
     /**
      * Would prefer to check if data is of `IssueAlertRuleAction` type, however we can't do typechecking at runtime as
      * user defined types are erased through transpilation.

@@ -16,11 +16,11 @@ type State = {
 
 type OrganizationEnvironmentsStoreInterface = {
   state: State;
-  init: () => void;
-  onFetchEnvironments: () => void;
-  onFetchEnvironmentsSuccess: (environments: Environment[]) => void;
-  onFetchEnvironmentsError: (error: Error) => void;
-  get: () => State;
+  init(): void;
+  onFetchEnvironments(): void;
+  onFetchEnvironmentsSuccess(environments: Environment[]): void;
+  onFetchEnvironmentsError(error: Error): void;
+  get(): State;
 };
 
 const storeConfig: Reflux.StoreDefinition & OrganizationEnvironmentsStoreInterface = {

@@ -1624,8 +1624,8 @@ export type SentryAppComponent = {
       | 'rookout'
       | 'shortcut'
       | 'spikesh'
-      | 'teamwork'
-      | 'zepel';
+      | 'taskcall'
+      | 'teamwork';
     name: string;
   };
 };
@@ -1655,6 +1655,7 @@ export type NewQuery = {
   // Graph
   yAxis?: string[];
   display?: string;
+  topEvents?: string;
 
   teams?: Readonly<('myteams' | number)[]>;
 };
