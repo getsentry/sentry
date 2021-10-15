@@ -173,6 +173,7 @@ function ReleaseEventsChart({
           disableReleases
           disablePrevious
           showLegend
+          addSecondsToTimeFormat
           projects={projects}
           environments={environments}
           start={start as DateString}

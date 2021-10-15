@@ -11,6 +11,7 @@ type ChartProps = React.ComponentProps<typeof BaseChart>;
 type HelperProps =
   | 'isGroupedByDate'
   | 'useShortDate'
+  | 'addSecondsToTimeFormat'
   | 'start'
   | 'end'
   | 'period'
@@ -18,9 +19,10 @@ type HelperProps =
 
 type Props = ChartProps['xAxis'] & Pick<ChartProps, HelperProps> & {theme: Theme};
 
-export default function XAxis({
+function XAxis({
   isGroupedByDate,
   useShortDate,
+  addSecondsToTimeFormat,
   theme,
 
   start,
@@ -31,17 +33,19 @@ export default function XAxis({
 }: Props): EChartOption.XAxis {
   const axisLabelFormatter = (value: string, index: number) => {
     if (isGroupedByDate) {
-      const timeFormat = getTimeFormat();
+      const timeFormat = getTimeFormat(addSecondsToTimeFormat);
       const dateFormat = useShortDate ? 'MMM Do' : `MMM D ${timeFormat}`;
       const firstItem = index === 0;
       const format =
         useShortInterval({start, end, period}) && !firstItem ? timeFormat : dateFormat;
       return getFormattedDate(value, format, {local: !utc});
-    } else if (props.truncate) {
-      return truncationFormatter(value, props.truncate);
-    } else {
-      return undefined;
     }
+
+    if (props.truncate) {
+      return truncationFormatter(value, props.truncate);
+    }
+
+    return undefined;
   };
 
   return merge(
@@ -87,3 +91,5 @@ export default function XAxis({
     props
   );
 }
+
+export default XAxis;

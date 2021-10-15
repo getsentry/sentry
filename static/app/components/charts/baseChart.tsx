@@ -199,6 +199,10 @@ type Props = {
    */
   isGroupedByDate?: boolean;
   /**
+   * optional, used to add seconds to the xAxis datetime format if `isGroupedByDate == true`
+   */
+  addSecondsToTimeFormat?: boolean;
+  /**
    * Format timestamp with date AND time
    */
   showTimeInTooltip?: boolean;
@@ -282,6 +286,7 @@ function BaseChartUnwrapped({
   notMerge = true,
   lazyUpdate = false,
   isGroupedByDate = false,
+  addSecondsToTimeFormat = false,
   transformSinglePointToBar = false,
   onChartReady = () => {},
 }: Props) {
@@ -350,12 +355,23 @@ function BaseChartUnwrapped({
           end,
           period,
           isGroupedByDate,
+          addSecondsToTimeFormat,
           utc,
         })
       : undefined
     : Array.isArray(xAxes)
     ? xAxes.map(axis =>
-        XAxis({...axis, theme, useShortDate, start, end, period, isGroupedByDate, utc})
+        XAxis({
+          ...axis,
+          theme,
+          useShortDate,
+          start,
+          end,
+          period,
+          isGroupedByDate,
+          addSecondsToTimeFormat,
+          utc,
+        })
       )
     : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
 
@@ -370,6 +386,7 @@ function BaseChartUnwrapped({
       ? Tooltip({
           showTimeInTooltip,
           isGroupedByDate,
+          addSecondsToTimeFormat,
           utc,
           bucketSize,
           ...tooltip,

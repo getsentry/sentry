@@ -225,4 +225,10 @@ export function statsPeriodToDays(
 
 export const use24Hours = () => ConfigStore.get('user')?.options?.clock24Hours;
 
-export const getTimeFormat = () => (use24Hours() ? 'HH:mm' : 'LT');
+export function getTimeFormat(seconds = false) {
+  if (use24Hours()) {
+    return seconds ? 'HH:mm:ss' : 'HH:mm';
+  }
+
+  return seconds ? 'LTS' : 'LT';
+}

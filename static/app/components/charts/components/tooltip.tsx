@@ -15,6 +15,7 @@ function defaultFormatAxisLabel(
   isTimestamp: boolean,
   utc: boolean,
   showTimeInTooltip: boolean,
+  addSecondsToTimeFormat: boolean,
   bucketSize?: number
 ) {
   if (!isTimestamp) {
@@ -22,7 +23,9 @@ function defaultFormatAxisLabel(
   }
 
   if (!bucketSize) {
-    const format = `MMM D, YYYY ${showTimeInTooltip ? getTimeFormat() : ''}`.trim();
+    const format = `MMM D, YYYY ${
+      showTimeInTooltip ? getTimeFormat(addSecondsToTimeFormat) : ''
+    }`.trim();
     return getFormattedDate(value, format, {local: !utc});
   }
 
@@ -34,10 +37,10 @@ function defaultFormatAxisLabel(
   const showEndDate = bucketStart.date() !== bucketEnd.date();
 
   const formatStart = `MMM D${showYear ? ', YYYY' : ''} ${
-    showTimeInTooltip ? getTimeFormat() : ''
+    showTimeInTooltip ? getTimeFormat(addSecondsToTimeFormat) : ''
   }`.trim();
   const formatEnd = `${showEndDate ? `MMM D${showYear ? ', YYYY' : ''} ` : ''}${
-    showTimeInTooltip ? getTimeFormat() : ''
+    showTimeInTooltip ? getTimeFormat(addSecondsToTimeFormat) : ''
   }`.trim();
 
   return `${getFormattedDate(bucketStart, formatStart, {
@@ -71,7 +74,12 @@ function getSeriesValue(series: EChartOption.Tooltip.Format, offset: number) {
   return undefined;
 }
 
-type NeededChartProps = 'isGroupedByDate' | 'showTimeInTooltip' | 'utc' | 'bucketSize';
+type NeededChartProps =
+  | 'isGroupedByDate'
+  | 'showTimeInTooltip'
+  | 'addSecondsToTimeFormat'
+  | 'utc'
+  | 'bucketSize';
 
 type TooltipFormatters =
   | 'truncate'
@@ -92,6 +100,7 @@ function getFormatter({
   filter,
   isGroupedByDate,
   showTimeInTooltip,
+  addSecondsToTimeFormat,
   truncate,
   formatAxisLabel,
   utc,
@@ -134,6 +143,7 @@ function getFormatter({
         !!isGroupedByDate,
         !!utc,
         !!showTimeInTooltip,
+        !!addSecondsToTimeFormat,
         bucketSize
       );
       // eCharts sets seriesName as null when `componentType` !== 'series'
@@ -180,6 +190,7 @@ function getFormatter({
         !!isGroupedByDate,
         !!utc,
         !!showTimeInTooltip,
+        !!addSecondsToTimeFormat,
         bucketSize
       );
 
@@ -215,6 +226,7 @@ export default function Tooltip({
   filter,
   isGroupedByDate,
   showTimeInTooltip,
+  addSecondsToTimeFormat,
   formatter,
   truncate,
   utc,
@@ -232,6 +244,7 @@ export default function Tooltip({
       filter,
       isGroupedByDate,
       showTimeInTooltip,
+      addSecondsToTimeFormat,
       truncate,
       utc,
       bucketSize,
