@@ -355,18 +355,6 @@ def _entity_stats_snapshot_func_factory(
 ) -> ENTITY_STATS_SNAPSHOT_FUNC:
     time_col: str = "bucketed_started" if dataset == QueryDatasets.SESSIONS else "time"
 
-    if dataset == QueryDatasets.SESSIONS:
-
-        def convert_to_unix(time):
-            return to_timestamp(
-                datetime.strptime(time, "%Y-%m-%dT%H:%M:%S+00:00").astimezone(pytz.utc)
-            )
-
-    else:
-
-        def convert_to_unix(time):
-            return time
-
     def create_entity_stat_snapshot(
         incident: Incident, windowed_stats: bool = False
     ) -> TimeSeriesSnapshot:
@@ -375,9 +363,7 @@ def _entity_stats_snapshot_func_factory(
         return TimeSeriesSnapshot.objects.create(
             start=start,
             end=end,
-            values=[
-                [convert_to_unix(row[time_col]), row["count"]] for row in entity_stats.data["data"]
-            ],
+            values=[[row[time_col], row["count"]] for row in entity_stats.data["data"]],
             period=entity_stats.rollup,
         )
 
@@ -494,7 +480,14 @@ def _incident_entity_stats_func_factory(dataset: QueryDatasets):
 
         def format_count_in_data(data):
             for elem in data:
-                elem["count"] = round((1 - elem["count"]) * 100, 3)
+                if elem["count"] is not None:
+                    elem["count"] = round((1 - elem["count"]) * 100, 3)
+                if isinstance(elem[time_col], str):
+                    elem[time_col] = to_timestamp(
+                        datetime.strptime(elem[time_col], "%Y-%m-%dT%H:%M:%S+00:00").astimezone(
+                            pytz.utc
+                        )
+                    )
 
     else:
         time_col = "time"
