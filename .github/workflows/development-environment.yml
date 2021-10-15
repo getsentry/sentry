@@ -2,6 +2,7 @@ name: dev env
 on:
   pull_request:
     paths:
+      - '.pre-commit-config.yaml'
       - 'Makefile'
       - '.github/actions/*'
       - '.github/workflows/development-environment.yml'

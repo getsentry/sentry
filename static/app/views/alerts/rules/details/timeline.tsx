@@ -15,7 +15,6 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {alertDetailsLink} from 'app/views/alerts/details';
-import {getTriggerName} from 'app/views/alerts/details/activity/statusItem';
 import {IncidentRule} from 'app/views/alerts/incidentRules/types';
 import {
   ActivityType,
@@ -24,6 +23,19 @@ import {
   IncidentStatus,
   IncidentStatusMethod,
 } from 'app/views/alerts/types';
+
+export function getTriggerName(value: string | null) {
+  if (value === `${IncidentStatus.WARNING}`) {
+    return t('Warning');
+  }
+
+  if (value === `${IncidentStatus.CRITICAL}`) {
+    return t('Critical');
+  }
+
+  // Otherwise, activity type is not status change
+  return '';
+}
 
 type IncidentProps = {
   api: Client;
