@@ -178,10 +178,6 @@ class TeamReleases extends AsyncComponent<Props, State> {
       }))
       .sort((a, b) => a.name - b.name);
 
-    const projectAvgData = Object.values(periodReleases?.project_avgs ?? {}).reduce(
-      (total, currentData) => total + currentData,
-      0
-    );
     // Convert from days to 7 day groups
     const seriesData = chunk(data, 7).map(week => {
       return {
@@ -190,8 +186,12 @@ class TeamReleases extends AsyncComponent<Props, State> {
       };
     });
 
+    const projectAvgSum = Object.values(periodReleases?.project_avgs ?? {}).reduce(
+      (total, currentData) => total + currentData,
+      0
+    );
     const totalPeriodAverage = Math.ceil(
-      projectAvgData / Object.keys(periodReleases?.project_avgs ?? {}).length
+      projectAvgSum / Object.keys(periodReleases?.project_avgs ?? {}).length
     );
 
     return (
