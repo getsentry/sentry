@@ -18,6 +18,7 @@ from sentry.processing.realtime_metrics.base import (
     DurationsHistogram,
 )
 from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
 from sentry.utils import sdk as sentry_sdk
 
 logger = logging.getLogger(__name__)
@@ -82,8 +83,8 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
     event_counts = realtime_metrics.get_counts_for_project(project_id, cutoff)
     durations = realtime_metrics.get_durations_for_project(project_id, cutoff)
 
-    excessive_rate = excessive_event_rate(event_counts)
-    excessive_duration = excessive_event_duration(durations)
+    excessive_rate = excessive_event_rate(project_id, event_counts)
+    excessive_duration = excessive_event_duration(project_id, durations)
 
     if excessive_rate or excessive_duration:
         was_added = realtime_metrics.add_project_to_lpq(project_id)
@@ -101,7 +102,7 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
             logger.warning("Moved project %s out of symbolicator's LPQ", project_id)
 
 
-def excessive_event_rate(event_counts: BucketedCounts) -> bool:
+def excessive_event_rate(project_id: int, event_counts: BucketedCounts) -> bool:
     """Whether the project is sending too many symbolication requests."""
     recent_time_window = 60
 
@@ -110,13 +111,20 @@ def excessive_event_rate(event_counts: BucketedCounts) -> bool:
     recent_bucket_count = int(recent_time_window / event_counts.width)
     recent_rate = sum(event_counts.counts[-recent_bucket_count:]) / recent_time_window
 
+    metrics.gauge(
+        "symbolication.lpq.computation.rate.total", total_rate, tags={"project_id": project_id}
+    )
+    metrics.gauge(
+        "symbolication.lpq.computation.rate.recent", recent_rate, tags={"project_id": project_id}
+    )
+
     if recent_rate > 50 and recent_rate > 5 * total_rate:
         return True
     else:
         return False
 
 
-def excessive_event_duration(durations: BucketedDurationsHistograms) -> bool:
+def excessive_event_duration(project_id: int, durations: BucketedDurationsHistograms) -> bool:
     """Whether the project's symbolication requests are taking too long to process."""
     total_histogram = DurationsHistogram(bucket_size=durations.histograms[0].bucket_size)
     for histogram in durations.histograms:
@@ -128,6 +136,15 @@ def excessive_event_duration(durations: BucketedDurationsHistograms) -> bool:
         return False
     events_per_minute = total_histogram.total_count() / (
         durations.width * len(durations.histograms) / 60
+    )
+
+    metrics.gauge(
+        "symbolication.lpq.computation.durations.p75", p75_duration, tags={"project_id": project_id}
+    )
+    metrics.gauge(
+        "symbolication.lpq.computation.durations.events_per_minutes",
+        events_per_minute,
+        tags={"project_id": project_id},
     )
 
     if events_per_minute > 15 and p75_duration > 6 * 60:
