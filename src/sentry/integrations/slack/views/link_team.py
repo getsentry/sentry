@@ -11,6 +11,7 @@ from sentry.models import (
     IdentityProvider,
     Integration,
     NotificationSetting,
+    OrganizationMember,
     Team,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
@@ -20,7 +21,7 @@ from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from ..utils import logger, send_confirmation
+from ..utils import is_valid_role, logger, send_confirmation
 from . import build_linking_url as base_build_linking_url
 from . import never_cache, render_error_page
 
@@ -73,18 +74,32 @@ class SlackLinkTeamView(BaseView):  # type: ignore
             )
 
         integration = Integration.objects.get(id=params["integration_id"])
-        organization = integration.organizations.all()[0]
-        teams = Team.objects.get_for_user(organization, request.user)
+        organization_memberships = OrganizationMember.objects.get_for_integration(
+            integration, request.user
+        )
+        # Filter to organizations where we have sufficient role.
+        organizations = [
+            organization_membership.organization
+            for organization_membership in organization_memberships
+            if is_valid_role(organization_membership)
+        ]
+
+        teams_by_id = {
+            team.id: team
+            for organization in organizations
+            for team in Team.objects.get_for_user(organization, request.user)
+        }
+
         channel_name = params["channel_name"]
         channel_id = params["channel_id"]
-        form = SelectTeamForm(teams, request.POST or None)
+        form = SelectTeamForm(list(teams_by_id.values()), request.POST or None)
 
         if request.method == "GET":
             return self.respond(
                 "sentry/integrations/slack/link-team.html",
                 {
                     "form": form,
-                    "teams": teams,
+                    "teams": teams_by_id.values(),
                     "channel_name": channel_name,
                     "provider": integration.get_provider(),
                 },
@@ -93,10 +108,8 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         if not form.is_valid():
             return render_error_page(request, body_text="HTTP 400: Bad request")
 
-        team_id = form.cleaned_data["team"]
-        try:
-            team = Team.objects.get(id=team_id, organization=organization)
-        except Team.DoesNotExist:
+        team = teams_by_id.get(form.cleaned_data["team"])
+        if not team:
             return render_error_page(request, body_text="HTTP 404: Team does not exist")
 
         try:
@@ -112,7 +125,7 @@ class SlackLinkTeamView(BaseView):  # type: ignore
 
         external_team, created = ExternalActor.objects.get_or_create(
             actor_id=team.actor_id,
-            organization=organization,
+            organization=team.organization,
             integration=integration,
             provider=ExternalProviders.SLACK.value,
             defaults=dict(
