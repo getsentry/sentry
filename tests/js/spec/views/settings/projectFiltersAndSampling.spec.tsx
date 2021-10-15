@@ -2,10 +2,9 @@ import {Fragment} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  BoundFunctions,
-  FindByRole,
   fireEvent,
   mountWithTheme,
+  screen,
   waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
@@ -55,14 +54,10 @@ describe('Filters and Sampling', function () {
     );
   }
 
-  async function renderModal(
-    screen2: BoundFunctions<{findByRole: FindByRole}>,
-    actionElement: HTMLElement,
-    takeScreenshot = false
-  ) {
+  async function renderModal(actionElement: HTMLElement, takeScreenshot = false) {
     // Open Modal
     fireEvent.click(actionElement);
-    const dialog = await screen2.findByRole('dialog');
+    const dialog = await screen.findByRole('dialog');
     expect(dialog).toBeInTheDocument();
 
     if (takeScreenshot) {
@@ -75,46 +70,50 @@ describe('Filters and Sampling', function () {
   describe('renders', function () {
     it('empty', async function () {
       const component = renderComponent(false);
-      const {container, getByRole, getByText, queryAllByRole, queryAllByText} = component;
+      const {container} = component;
 
       // Title
-      expect(getByText('Filters & Sampling')).toBeTruthy();
+      expect(screen.getByText('Filters & Sampling')).toBeTruthy();
 
       // Error rules container
       expect(
         await findByTextContent(
-          component,
+          screen,
           'Manage the inbound data you want to store. To change the sampling rate or rate limits, update your SDK configuration. The rules added below will apply on top of your SDK configuration. Any new rule may take a few minutes to propagate.'
         )
       ).toBeTruthy();
 
       expect(
-        getByRole('link', {
+        screen.getByRole('link', {
           name: 'update your SDK configuration',
         })
       ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
 
-      expect(getByText('There are no error rules to display')).toBeTruthy();
-      expect(getByText('Add error rule')).toBeTruthy();
+      expect(screen.getByText('There are no error rules to display')).toBeTruthy();
+      expect(screen.getByText('Add error rule')).toBeTruthy();
 
       // Transaction traces and individual transactions rules container
       expect(
-        getByText('Rules for traces should precede rules for individual transactions.')
+        screen.getByText(
+          'Rules for traces should precede rules for individual transactions.'
+        )
       ).toBeTruthy();
 
-      expect(getByText('There are no transaction rules to display')).toBeTruthy();
-      expect(getByText('Add transaction rule')).toBeTruthy();
+      expect(screen.getByText('There are no transaction rules to display')).toBeTruthy();
+      expect(screen.getByText('Add transaction rule')).toBeTruthy();
 
-      const readDocsButtonLinks = queryAllByRole('button', {name: 'Read the docs'});
+      const readDocsButtonLinks = screen.queryAllByRole('button', {
+        name: 'Read the docs',
+      });
       expect(readDocsButtonLinks).toHaveLength(2);
 
       for (const readDocsButtonLink of readDocsButtonLinks) {
         expect(readDocsButtonLink).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
       }
 
-      expect(queryAllByText('Type')).toHaveLength(2);
-      expect(queryAllByText('Conditions')).toHaveLength(2);
-      expect(queryAllByText('Rate')).toHaveLength(2);
+      expect(screen.queryAllByText('Type')).toHaveLength(2);
+      expect(screen.queryAllByText('Conditions')).toHaveLength(2);
+      expect(screen.queryAllByText('Rate')).toHaveLength(2);
 
       expect(container).toSnapshot();
     });
@@ -189,62 +188,59 @@ describe('Filters and Sampling', function () {
       });
 
       const component = renderComponent(false);
-      const {
-        container,
-        getByRole,
-        getByText,
-        queryAllByRole,
-        queryAllByText,
-        queryByText,
-      } = component;
+      const {container} = component;
 
       // Title
-      expect(getByText('Filters & Sampling')).toBeTruthy();
+      expect(screen.getByText('Filters & Sampling')).toBeTruthy();
 
       // Error rules container
       expect(
         await findByTextContent(
-          component,
+          screen,
           'Manage the inbound data you want to store. To change the sampling rate or rate limits, update your SDK configuration. The rules added below will apply on top of your SDK configuration. Any new rule may take a few minutes to propagate.'
         )
       ).toBeTruthy();
 
       expect(
-        getByRole('link', {
+        screen.getByRole('link', {
           name: 'update your SDK configuration',
         })
       ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
 
-      expect(queryByText('There are no error rules to display')).toBeFalsy();
-      const errorRules = queryAllByText('Errors only');
+      expect(screen.queryByText('There are no error rules to display')).toBeFalsy();
+      const errorRules = screen.queryAllByText('Errors only');
       expect(errorRules).toHaveLength(1);
 
-      expect(getByText('Add error rule')).toBeTruthy();
+      expect(screen.getByText('Add error rule')).toBeTruthy();
 
       // Transaction traces and individual transactions rules container
       expect(
-        getByText('Rules for traces should precede rules for individual transactions.')
+        screen.getByText(
+          'Rules for traces should precede rules for individual transactions.'
+        )
       ).toBeTruthy();
 
-      expect(queryByText('There are no transaction rules to display')).toBeFalsy();
-      const transactionTraceRules = queryAllByText('Transaction traces');
+      expect(screen.queryByText('There are no transaction rules to display')).toBeFalsy();
+      const transactionTraceRules = screen.queryAllByText('Transaction traces');
       expect(transactionTraceRules).toHaveLength(1);
 
-      const individualTransactionRules = queryAllByText('Individual transactions');
+      const individualTransactionRules = screen.queryAllByText('Individual transactions');
       expect(individualTransactionRules).toHaveLength(1);
 
-      expect(getByText('Add transaction rule')).toBeTruthy();
+      expect(screen.getByText('Add transaction rule')).toBeTruthy();
 
-      const readDocsButtonLinks = queryAllByRole('button', {name: 'Read the docs'});
+      const readDocsButtonLinks = screen.queryAllByRole('button', {
+        name: 'Read the docs',
+      });
       expect(readDocsButtonLinks).toHaveLength(2);
 
       for (const readDocsButtonLink of readDocsButtonLinks) {
         expect(readDocsButtonLink).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
       }
 
-      expect(queryAllByText('Type')).toHaveLength(2);
-      expect(queryAllByText('Conditions')).toHaveLength(2);
-      expect(queryAllByText('Rate')).toHaveLength(2);
+      expect(screen.queryAllByText('Type')).toHaveLength(2);
+      expect(screen.queryAllByText('Conditions')).toHaveLength(2);
+      expect(screen.queryAllByText('Rate')).toHaveLength(2);
 
       expect(container).toSnapshot();
     });
@@ -347,24 +343,23 @@ describe('Filters and Sampling', function () {
         body: [{value: '[I3].[0-9]'}],
       });
 
-      const component = renderComponent();
-      const {queryAllByText, queryByText, getByText, queryAllByLabelText} = component;
+      renderComponent();
 
       // Error rules container
-      expect(queryByText('There are no error rules to display')).toBeFalsy();
-      const errorRules = queryAllByText('Errors only');
+      expect(screen.queryByText('There are no error rules to display')).toBeFalsy();
+      const errorRules = screen.queryAllByText('Errors only');
       expect(errorRules).toHaveLength(1);
 
       // Transaction traces and individual transactions rules container
-      expect(queryByText('There are no transaction rules to display')).toBeFalsy();
-      const transactionTraceRules = queryAllByText('Transaction traces');
+      expect(screen.queryByText('There are no transaction rules to display')).toBeFalsy();
+      const transactionTraceRules = screen.queryAllByText('Transaction traces');
       expect(transactionTraceRules).toHaveLength(1);
 
-      const editRuleButtons = queryAllByLabelText('Edit Rule');
+      const editRuleButtons = screen.queryAllByLabelText('Edit Rule');
       expect(editRuleButtons).toHaveLength(2);
 
       // Open rule modal - edit error rule
-      const modal = await renderModal(component, editRuleButtons[0]);
+      const modal = await renderModal(editRuleButtons[0]);
 
       // Modal content
       expect(modal.getByText('Edit Error Sampling Rule')).toBeTruthy();
@@ -445,21 +440,21 @@ describe('Filters and Sampling', function () {
       fireEvent.click(saveRuleButtonEnabled);
 
       // Modal will close
-      await waitForElementToBeRemoved(() => getByText('Edit Error Sampling Rule'));
+      await waitForElementToBeRemoved(() => screen.getByText('Edit Error Sampling Rule'));
 
       // Error rules panel is updated
       expect(errorRules).toHaveLength(1);
 
-      expect(getByText('Errors only')).toBeTruthy();
-      expect(queryAllByText('Release')).toHaveLength(2);
+      expect(screen.getByText('Errors only')).toBeTruthy();
+      expect(screen.queryAllByText('Release')).toHaveLength(2);
 
       // Old values
-      expect(queryByText('1*')).toBeFalsy();
-      expect(queryByText('10%')).toBeFalsy();
+      expect(screen.queryByText('1*')).toBeFalsy();
+      expect(screen.queryByText('10%')).toBeFalsy();
 
       // New values
-      expect(getByText('[I3].[0-9]')).toBeTruthy();
-      expect(getByText('50%')).toBeTruthy();
+      expect(screen.getByText('[I3].[0-9]')).toBeTruthy();
+      expect(screen.getByText('50%')).toBeTruthy();
     });
 
     it('transaction trace rule', async function () {
@@ -558,24 +553,23 @@ describe('Filters and Sampling', function () {
         body: [{value: '[0-9]'}],
       });
 
-      const component = renderComponent();
-      const {queryAllByText, queryByText, getByText, queryAllByLabelText} = component;
+      renderComponent();
 
       // Error rules container
-      expect(queryByText('There are no error rules to display')).toBeFalsy();
-      const errorRules = queryAllByText('Errors only');
+      expect(screen.queryByText('There are no error rules to display')).toBeFalsy();
+      const errorRules = screen.queryAllByText('Errors only');
       expect(errorRules).toHaveLength(1);
 
       // Transaction traces and individual transactions rules container
-      expect(queryByText('There are no transaction rules to display')).toBeFalsy();
-      const transactionTraceRules = queryAllByText('Transaction traces');
+      expect(screen.queryByText('There are no transaction rules to display')).toBeFalsy();
+      const transactionTraceRules = screen.queryAllByText('Transaction traces');
       expect(transactionTraceRules).toHaveLength(1);
 
-      const editRuleButtons = queryAllByLabelText('Edit Rule');
+      const editRuleButtons = screen.queryAllByLabelText('Edit Rule');
       expect(editRuleButtons).toHaveLength(2);
 
       // Open rule modal - edit transaction rule
-      const modal = await renderModal(component, editRuleButtons[1]);
+      const modal = await renderModal(editRuleButtons[1]);
 
       // Modal content
       expect(modal.getByText('Edit Transaction Sampling Rule')).toBeTruthy();
@@ -657,21 +651,23 @@ describe('Filters and Sampling', function () {
       fireEvent.click(saveRuleButtonEnabled);
 
       // Modal will close
-      await waitForElementToBeRemoved(() => getByText('Edit Transaction Sampling Rule'));
+      await waitForElementToBeRemoved(() =>
+        screen.getByText('Edit Transaction Sampling Rule')
+      );
 
       // Error rules panel is updated
       expect(errorRules).toHaveLength(1);
 
-      expect(getByText('Transaction traces')).toBeTruthy();
-      expect(queryAllByText('Release')).toHaveLength(2);
+      expect(screen.getByText('Transaction traces')).toBeTruthy();
+      expect(screen.queryAllByText('Release')).toHaveLength(2);
 
       // Old values
-      expect(queryByText('1.2.3')).toBeFalsy();
-      expect(queryByText('20%')).toBeFalsy();
+      expect(screen.queryByText('1.2.3')).toBeFalsy();
+      expect(screen.queryByText('20%')).toBeFalsy();
 
       // New values
-      expect(getByText('[0-9]')).toBeTruthy();
-      expect(getByText('60%')).toBeTruthy();
+      expect(screen.getByText('[0-9]')).toBeTruthy();
+      expect(screen.getByText('60%')).toBeTruthy();
     });
 
     it('individual transaction rule', async function () {
@@ -770,24 +766,23 @@ describe('Filters and Sampling', function () {
         body: [{value: '[0-9]'}],
       });
 
-      const component = renderComponent();
-      const {queryAllByText, queryByText, getByText, queryAllByLabelText} = component;
+      renderComponent();
 
       // Error rules container
-      expect(queryByText('There are no error rules to display')).toBeFalsy();
-      const errorRules = queryAllByText('Errors only');
+      expect(screen.queryByText('There are no error rules to display')).toBeFalsy();
+      const errorRules = screen.queryAllByText('Errors only');
       expect(errorRules).toHaveLength(1);
 
       // Transaction traces and individual transactions rules container
-      expect(queryByText('There are no transaction rules to display')).toBeFalsy();
-      const transactionTraceRules = queryAllByText('Individual transactions');
+      expect(screen.queryByText('There are no transaction rules to display')).toBeFalsy();
+      const transactionTraceRules = screen.queryAllByText('Individual transactions');
       expect(transactionTraceRules).toHaveLength(1);
 
-      const editRuleButtons = queryAllByLabelText('Edit Rule');
+      const editRuleButtons = screen.queryAllByLabelText('Edit Rule');
       expect(editRuleButtons).toHaveLength(2);
 
       // Open rule modal - edit transaction rule
-      const modal = await renderModal(component, editRuleButtons[1]);
+      const modal = await renderModal(editRuleButtons[1]);
 
       // Modal content
       expect(modal.getByText('Edit Transaction Sampling Rule')).toBeTruthy();
@@ -868,21 +863,23 @@ describe('Filters and Sampling', function () {
       fireEvent.click(saveRuleButtonEnabled);
 
       // Modal will close
-      await waitForElementToBeRemoved(() => getByText('Edit Transaction Sampling Rule'));
+      await waitForElementToBeRemoved(() =>
+        screen.getByText('Edit Transaction Sampling Rule')
+      );
 
       // Error rules panel is updated
       expect(errorRules).toHaveLength(1);
 
-      expect(getByText('Individual transactions')).toBeTruthy();
-      expect(queryAllByText('Release')).toHaveLength(2);
+      expect(screen.getByText('Individual transactions')).toBeTruthy();
+      expect(screen.queryAllByText('Release')).toHaveLength(2);
 
       // Old values
-      expect(queryByText('1.2.3')).toBeFalsy();
-      expect(queryByText('20%')).toBeFalsy();
+      expect(screen.queryByText('1.2.3')).toBeFalsy();
+      expect(screen.queryByText('20%')).toBeFalsy();
 
       // New values
-      expect(getByText('[0-9]')).toBeTruthy();
-      expect(getByText('60%')).toBeTruthy();
+      expect(screen.getByText('[0-9]')).toBeTruthy();
+      expect(screen.getByText('60%')).toBeTruthy();
     });
   });
 
@@ -961,24 +958,23 @@ describe('Filters and Sampling', function () {
         }),
       });
 
-      const component = renderComponent();
-      const {queryAllByText, queryByText, getByText, queryAllByLabelText} = component;
+      renderComponent();
 
       // Error rules container
-      expect(queryByText('There are no error rules to display')).toBeFalsy();
-      const errorRules = queryAllByText('Errors only');
+      expect(screen.queryByText('There are no error rules to display')).toBeFalsy();
+      const errorRules = screen.queryAllByText('Errors only');
       expect(errorRules).toHaveLength(1);
 
       // Transaction traces and individual transactions rules container
-      expect(queryByText('There are no transaction rules to display')).toBeFalsy();
-      const transactionTraceRules = queryAllByText('Transaction traces');
+      expect(screen.queryByText('There are no transaction rules to display')).toBeFalsy();
+      const transactionTraceRules = screen.queryAllByText('Transaction traces');
       expect(transactionTraceRules).toHaveLength(1);
 
-      const deleteRuleButtons = queryAllByLabelText('Delete Rule');
+      const deleteRuleButtons = screen.queryAllByLabelText('Delete Rule');
       expect(deleteRuleButtons).toHaveLength(2);
 
       // Open deletion confirmation modal - delete error rule
-      const modal = await renderModal(component, deleteRuleButtons[0]);
+      const modal = await renderModal(deleteRuleButtons[0]);
 
       expect(
         modal.getByText('Are you sure you wish to delete this dynamic sampling rule?')
@@ -994,11 +990,11 @@ describe('Filters and Sampling', function () {
 
       // Confirmation modal will close
       await waitForElementToBeRemoved(() =>
-        getByText('Are you sure you wish to delete this dynamic sampling rule?')
+        screen.getByText('Are you sure you wish to delete this dynamic sampling rule?')
       );
 
       // Error rules panel is updated
-      expect(queryByText('There are no error rules to display')).toBeTruthy();
+      expect(screen.queryByText('There are no error rules to display')).toBeTruthy();
 
       // There is still one transaction rule
       expect(transactionTraceRules).toHaveLength(1);
@@ -1007,11 +1003,10 @@ describe('Filters and Sampling', function () {
 
   describe('error rule modal', function () {
     it('renders modal', async function () {
-      const component = renderComponent();
-      const {getByText, getByLabelText} = component;
+      renderComponent();
 
       // Open Modal
-      const modal = await renderModal(component, getByText('Add error rule'), true);
+      const modal = await renderModal(screen.getByText('Add error rule'), true);
 
       // Modal content
       expect(modal.getByText('Add Error Sampling Rule')).toBeTruthy();
@@ -1027,22 +1022,21 @@ describe('Filters and Sampling', function () {
       expect(saveRuleButton).toBeDisabled();
 
       // Close Modal
-      fireEvent.click(getByLabelText('Close Modal'));
-      await waitForElementToBeRemoved(() => getByText('Add Error Sampling Rule'));
+      fireEvent.click(screen.getByLabelText('Close Modal'));
+      await waitForElementToBeRemoved(() => screen.getByText('Add Error Sampling Rule'));
     });
 
     it('condition options', async function () {
-      const component = renderComponent();
-      const {getByText, findByTestId, getByLabelText} = component;
+      renderComponent();
 
       // Open Modal
-      const modal = await renderModal(component, getByText('Add error rule'));
+      const modal = await renderModal(screen.getByText('Add error rule'));
 
       // Click on 'Add condition'
       fireEvent.click(modal.getByText('Add Condition'));
 
       // Autocomplete
-      const autoCompleteList = await findByTestId('autocomplete-list');
+      const autoCompleteList = await screen.findByTestId('autocomplete-list');
       expect(autoCompleteList).toBeInTheDocument();
 
       // Condition Options
@@ -1056,8 +1050,8 @@ describe('Filters and Sampling', function () {
       }
 
       // Close Modal
-      fireEvent.click(getByLabelText('Close Modal'));
-      await waitForElementToBeRemoved(() => getByText('Add Error Sampling Rule'));
+      fireEvent.click(screen.getByLabelText('Close Modal'));
+      await waitForElementToBeRemoved(() => screen.getByText('Add Error Sampling Rule'));
     });
 
     it('save rule', async function () {
@@ -1102,7 +1096,7 @@ describe('Filters and Sampling', function () {
       const {getByText, queryByText, queryAllByText} = component;
 
       // Open Modal
-      const modal = await renderModal(component, getByText('Add error rule'));
+      const modal = await renderModal(getByText('Add error rule'));
 
       // Click on 'Add condition'
       fireEvent.click(modal.getByText('Add Condition'));
@@ -1179,11 +1173,10 @@ describe('Filters and Sampling', function () {
     ];
 
     it('renders modal', async function () {
-      const component = renderComponent();
-      const {getByText, getByLabelText} = component;
+      renderComponent();
 
       // Open Modal
-      const modal = await renderModal(component, getByText('Add transaction rule'), true);
+      const modal = await renderModal(screen.getByText('Add transaction rule'), true);
 
       // Modal content
       expect(modal.getByText('Add Transaction Sampling Rule')).toBeTruthy();
@@ -1211,8 +1204,10 @@ describe('Filters and Sampling', function () {
       expect(saveRuleButton).toBeDisabled();
 
       // Close Modal
-      fireEvent.click(getByLabelText('Close Modal'));
-      await waitForElementToBeRemoved(() => getByText('Add Transaction Sampling Rule'));
+      fireEvent.click(screen.getByLabelText('Close Modal'));
+      await waitForElementToBeRemoved(() =>
+        screen.getByText('Add Transaction Sampling Rule')
+      );
     });
 
     it('condition options', async function () {
@@ -1220,7 +1215,7 @@ describe('Filters and Sampling', function () {
       const {getByText, getByLabelText} = component;
 
       // Open Modal
-      const modal = await renderModal(component, getByText('Add transaction rule'));
+      const modal = await renderModal(getByText('Add transaction rule'));
 
       // Click on 'Add condition'
       fireEvent.click(modal.getByText('Add Condition'));
@@ -1299,11 +1294,10 @@ describe('Filters and Sampling', function () {
           body: [{value: '1.2.3'}],
         });
 
-        const component = renderComponent();
-        const {getByText, queryByText, queryAllByText} = component;
+        renderComponent();
 
         // Open Modal
-        const modal = await renderModal(component, getByText('Add transaction rule'));
+        const modal = await renderModal(screen.getByText('Add transaction rule'));
 
         // Checked tracing checkbox
         expect(modal.getByRole('checkbox')).toBeChecked();
@@ -1363,15 +1357,19 @@ describe('Filters and Sampling', function () {
         fireEvent.click(saveRuleButtonEnabled);
 
         // Modal will close
-        await waitForElementToBeRemoved(() => getByText('Add Transaction Sampling Rule'));
+        await waitForElementToBeRemoved(() =>
+          screen.getByText('Add Transaction Sampling Rule')
+        );
 
         // Transaction rules panel is updated
-        expect(queryByText('There are no transaction rules to display')).toBeFalsy();
-        const transactionTraceRules = queryAllByText('Transaction traces');
+        expect(
+          screen.queryByText('There are no transaction rules to display')
+        ).toBeFalsy();
+        const transactionTraceRules = screen.queryAllByText('Transaction traces');
         expect(transactionTraceRules).toHaveLength(1);
-        expect(getByText('Release')).toBeTruthy();
-        expect(getByText('1.2.3')).toBeTruthy();
-        expect(getByText('20%')).toBeTruthy();
+        expect(screen.getByText('Release')).toBeTruthy();
+        expect(screen.getByText('1.2.3')).toBeTruthy();
+        expect(screen.getByText('20%')).toBeTruthy();
       });
 
       describe('individual transaction', function () {
@@ -1413,11 +1411,10 @@ describe('Filters and Sampling', function () {
             body: [{value: '1.2.3'}],
           });
 
-          const component = renderComponent();
-          const {getByText, queryByText, queryAllByText, findByTestId} = component;
+          renderComponent();
 
           // Open Modal
-          const modal = await renderModal(component, getByText('Add transaction rule'));
+          const modal = await renderModal(screen.getByText('Add transaction rule'));
 
           // Unchecked tracing checkbox
           fireEvent.click(modal.getByRole('checkbox'));
@@ -1426,7 +1423,7 @@ describe('Filters and Sampling', function () {
           fireEvent.click(modal.getByText('Add Condition'));
 
           // Autocomplete
-          const autoCompleteList = await findByTestId('autocomplete-list');
+          const autoCompleteList = await screen.findByTestId('autocomplete-list');
           expect(autoCompleteList).toBeInTheDocument();
 
           // Condition Options
@@ -1481,16 +1478,20 @@ describe('Filters and Sampling', function () {
 
           // Modal will close
           await waitForElementToBeRemoved(() =>
-            getByText('Add Transaction Sampling Rule')
+            screen.getByText('Add Transaction Sampling Rule')
           );
 
           // Transaction rules panel is updated
-          expect(queryByText('There are no transaction rules to display')).toBeFalsy();
-          const individualTransactionRules = queryAllByText('Individual transactions');
+          expect(
+            screen.queryByText('There are no transaction rules to display')
+          ).toBeFalsy();
+          const individualTransactionRules = screen.queryAllByText(
+            'Individual transactions'
+          );
           expect(individualTransactionRules).toHaveLength(1);
-          expect(getByText('Release')).toBeTruthy();
-          expect(getByText('1.2.3')).toBeTruthy();
-          expect(getByText('20%')).toBeTruthy();
+          expect(screen.getByText('Release')).toBeTruthy();
+          expect(screen.getByText('1.2.3')).toBeTruthy();
+          expect(screen.getByText('20%')).toBeTruthy();
         });
 
         it('legacy browser', async function () {
@@ -1533,11 +1534,10 @@ describe('Filters and Sampling', function () {
               }),
           });
 
-          const component = renderComponent();
-          const {getByText, queryByText, queryAllByText, findByTestId} = component;
+          renderComponent();
 
           // Open Modal
-          const modal = await renderModal(component, getByText('Add transaction rule'));
+          const modal = await renderModal(screen.getByText('Add transaction rule'));
           const checkedCheckbox = modal.getByRole('checkbox');
 
           // Checked tracing checkbox
@@ -1553,7 +1553,7 @@ describe('Filters and Sampling', function () {
           fireEvent.click(modal.getByText('Add Condition'));
 
           // Autocomplete
-          const autoCompleteList = await findByTestId('autocomplete-list');
+          const autoCompleteList = await screen.findByTestId('autocomplete-list');
           expect(autoCompleteList).toBeInTheDocument();
 
           // Condition Options
@@ -1612,19 +1612,23 @@ describe('Filters and Sampling', function () {
 
           // Modal will close
           await waitForElementToBeRemoved(() =>
-            getByText('Add Transaction Sampling Rule')
+            screen.getByText('Add Transaction Sampling Rule')
           );
 
           // Transaction rules panel is updated
-          expect(queryByText('There are no transaction rules to display')).toBeFalsy();
-          const individualTransactionRules = queryAllByText('Individual transactions');
+          expect(
+            screen.queryByText('There are no transaction rules to display')
+          ).toBeFalsy();
+          const individualTransactionRules = screen.queryAllByText(
+            'Individual transactions'
+          );
           expect(individualTransactionRules).toHaveLength(1);
-          expect(getByText('Legacy Browser')).toBeTruthy();
+          expect(screen.getByText('Legacy Browser')).toBeTruthy();
           for (const legacyBrowser of legacyBrowsers) {
             const {title} = LEGACY_BROWSER_LIST[legacyBrowser];
-            expect(getByText(title)).toBeTruthy();
+            expect(screen.getByText(title)).toBeTruthy();
           }
-          expect(getByText('20%')).toBeTruthy();
+          expect(screen.getByText('20%')).toBeTruthy();
         });
       });
     });

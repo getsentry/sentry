@@ -1762,24 +1762,17 @@ SENTRY_DEVSERVICES = {
     ),
     "zookeeper": lambda settings, options: (
         {
-            # On Apple arm64, we upgrade to version 6.x allows zookeeper to run properly on Apple's arm64
+            # On Apple arm64, we upgrade to version 6.x to allow zookeeper to run properly on Apple's arm64
             # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
-            # I'm selectively upgrading the version on Apple's arm64 since there was a bug that only affects
-            # Intel machines. For more details see: https://github.com/getsentry/sentry/pull/28672
-            "image": "confluentinc/cp-zookeeper:6.2.0"
-            if APPLE_ARM64
-            else "confluentinc/cp-zookeeper:5.1.2",
+            "image": "confluentinc/cp-zookeeper:6.2.0",
             "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
-            "volumes": {"zookeeper": {"bind": "/var/lib/zookeeper"}},
+            "volumes": {"zookeeper_6": {"bind": "/var/lib/zookeeper/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
         }
     ),
     "kafka": lambda settings, options: (
         {
-            # On Apple arm64, we upgrade to version 6.x to match zookeeper's version (I believe they both release together)
-            "image": "confluentinc/cp-kafka:6.2.0"
-            if APPLE_ARM64
-            else "confluentinc/cp-kafka:5.1.2",
+            "image": "confluentinc/cp-kafka:6.2.0",
             "ports": {"9092/tcp": 9092},
             "environment": {
                 "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
@@ -1794,7 +1787,7 @@ SENTRY_DEVSERVICES = {
                 "KAFKA_MESSAGE_MAX_BYTES": "50000000",
                 "KAFKA_MAX_REQUEST_SIZE": "50000000",
             },
-            "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
+            "volumes": {"kafka_6": {"bind": "/var/lib/kafka/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
             or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS,
@@ -1802,12 +1795,11 @@ SENTRY_DEVSERVICES = {
     ),
     "clickhouse": lambda settings, options: (
         {
+            "image": "yandex/clickhouse-server:20.3.9.70" if not APPLE_ARM64
             # altinity provides clickhouse support to other companies
             # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
             # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
-            "image": "yandex/clickhouse-server:20.3.9.70"
-            if not APPLE_ARM64
-            else "altinity/clickhouse-server:20.10.1.4844-testing-arm",
+            else "altinity/clickhouse-server:21.6.1.6734-testing-arm",
             "pull": True,
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],

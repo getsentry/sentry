@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import List, Optional, Sequence, Set
+from typing import List, Optional, Sequence, Set, Tuple
 
 import pytz
 from snuba_sdk.column import Column
@@ -826,3 +826,33 @@ def _get_project_sessions_count(
     )["data"]
 
     return result_totals[0]["sessions"] if result_totals else 0
+
+
+def _get_num_sessions_per_project(
+    project_ids: Sequence[int],
+    start: datetime,
+    end: datetime,
+    environment_ids: Optional[Sequence[int]] = None,
+    rollup: Optional[int] = None,  # rollup in seconds
+) -> Sequence[Tuple[int, int]]:
+
+    filters = {"project_id": list(project_ids)}
+
+    if environment_ids:
+        filters["environment"] = environment_ids
+
+    result_totals = raw_query(
+        selected_columns=["sessions"],
+        dataset=Dataset.Sessions,
+        start=start,
+        end=end,
+        filter_keys=filters,
+        groupby=["project_id"],
+        referrer="sessions.get_num_sessions_per_project",
+        rollup=rollup,
+    )
+
+    ret_val = []
+    for data in result_totals["data"]:
+        ret_val.append((data["project_id"], data["sessions"]))
+    return ret_val
