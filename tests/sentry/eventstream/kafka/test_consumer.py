@@ -691,6 +691,7 @@ class BatchedConsumerTest(TestCase):
 
         eventstream = KafkaEventStream()
         consumer = eventstream._build_consumer(
+            entity="all",
             consumer_group=consumer_group,
             commit_log_topic=self.commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,

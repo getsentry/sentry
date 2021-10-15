@@ -13,6 +13,7 @@ _DEFAULT_DAEMONS = {
         "sentry",
         "run",
         "post-process-forwarder",
+        "--entity=all",
         "--loglevel=debug",
         "--commit-batch-size=1",
     ],
