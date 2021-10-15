@@ -26,6 +26,7 @@ import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Actor, DateString, Organization, Project} from 'app/types';
+import getDynamicText from 'app/utils/getDynamicText';
 import Projects from 'app/utils/projects';
 import {
   AlertRuleThresholdType,
@@ -314,7 +315,12 @@ export default class DetailsBody extends React.Component<Props> {
                       <HeaderItem>
                         <Heading noMargin>{t('Display')}</Heading>
                         <ChartControls>
-                          <DropdownControl label={timePeriod.display}>
+                          <DropdownControl
+                            label={getDynamicText({
+                              fixed: 'Oct 14, 2:56 PM — Oct 14, 4:55 PM',
+                              value: timePeriod.display,
+                            })}
+                          >
                             {TIME_OPTIONS.map(({label, value}) => (
                               <DropdownItem
                                 key={value}

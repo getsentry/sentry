@@ -22,7 +22,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("incidents - empty state")
 
     def test_incidents_list(self):
-        alert_rule = self.create_alert_rule()
+        alert_rule = self.create_alert_rule(name="Alert Rule #1")
         incident = self.create_incident(
             self.organization,
             title="Incident #1",
