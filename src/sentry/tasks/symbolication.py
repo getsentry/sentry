@@ -7,12 +7,12 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry import options
-from sentry.eventstore.processing import event_processing_store
+from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
 from sentry.processing import realtime_metrics
+from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.store import do_process_event, process_event, process_event_from_reprocessing
 from sentry.utils import metrics
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.utils.sdk import set_current_event_project
@@ -107,7 +107,7 @@ def _do_symbolicate_event(
     from sentry.lang.native.processing import get_symbolication_function
 
     if data is None:
-        data = event_processing_store.get(cache_key)
+        data = processing.event_processing_store.get(cache_key)
 
     if data is None:
         metrics.incr(
@@ -157,8 +157,10 @@ def _do_symbolicate_event(
             return
 
     def _continue_to_process_event() -> None:
-        process_task = process_event_from_reprocessing if from_reprocessing else process_event
-        do_process_event(
+        process_task = (
+            store.process_event_from_reprocessing if from_reprocessing else store.process_event
+        )
+        store.do_process_event(
             cache_key=cache_key,
             start_time=start_time,
             event_id=event_id,
@@ -291,7 +293,7 @@ def _do_symbolicate_event(
         data = dict(data.items())
 
     if has_changed:
-        cache_key = event_processing_store.store(data)
+        cache_key = processing.event_processing_store.store(data)
 
     return _continue_to_process_event()
 
