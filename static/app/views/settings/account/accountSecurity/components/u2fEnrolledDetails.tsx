@@ -65,6 +65,7 @@ class U2fEnrolledDetails extends React.Component<Props, State> {
                     }}
                     message={
                       <Fragment>
+                        <ConfirmHeader>{t('Rename this U2F device')}</ConfirmHeader>
                         <Input
                           type="text"
                           placeholder=""
