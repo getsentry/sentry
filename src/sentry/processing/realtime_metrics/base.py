@@ -82,6 +82,9 @@ class DurationsHistogram:
         """Returns the sum of the counts of all the buckets in the histogram."""
         return sum(self._data.values())
 
+    def __repr__(self) -> str:
+        return f"<DurationsHistogram [{sorted(self._data.items())}]>"
+
 
 @dataclasses.dataclass(frozen=True)
 class BucketedDurationsHistograms:

@@ -12,7 +12,11 @@ import logging
 import time
 
 from sentry.processing import realtime_metrics
-from sentry.processing.realtime_metrics.base import DurationsHistogram, BucketedCounts, BucketedDurationsHistograms
+from sentry.processing.realtime_metrics.base import (
+    BucketedCounts,
+    BucketedDurationsHistograms,
+    DurationsHistogram,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.utils import sdk as sentry_sdk
 
@@ -103,10 +107,8 @@ def excessive_event_rate(event_counts: BucketedCounts) -> bool:
 
     total_rate = event_counts.total_count() / event_counts.total_time()
 
-    print(total_rate)
     recent_bucket_count = int(recent_time_window / event_counts.width)
     recent_rate = sum(event_counts.counts[-recent_bucket_count:]) / recent_time_window
-    print(recent_rate)
 
     if recent_rate > 50 and recent_rate > 5 * total_rate:
         return True
@@ -124,7 +126,9 @@ def excessive_event_duration(durations: BucketedDurationsHistograms) -> bool:
         p75_duration = total_histogram.percentile(0.75)
     except ValueError:
         return False
-    events_per_minute = total_histogram.total_count() / (durations.width / 60)
+    events_per_minute = total_histogram.total_count() / (
+        durations.width * len(durations.histograms) / 60
+    )
 
     if events_per_minute > 15 and p75_duration > 6 * 60:
         return True
