@@ -12,7 +12,7 @@ from sentry.notifications.notifications.activity.new_processing_issues import (
     NewProcessingIssuesActivityNotification,
 )
 from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
-from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.utils import get_release
 from sentry.utils.http import absolute_uri
 
@@ -39,6 +39,7 @@ def build_deploy_buttons(notification: ReleaseActivityNotification) -> List[Dict
     return buttons
 
 
+# TODO: We should break up SlackNotificationsMessageBuilder into multiple builders
 class SlackNotificationsMessageBuilder(SlackMessageBuilder):
     def __init__(
         self,
@@ -52,7 +53,12 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
         self.recipient = recipient
 
     def build(self) -> SlackBody:
+        # TODO: remove this check when we fix some downstream typings
+        if not isinstance(self.notification, ProjectNotification):
+            raise NotImplementedError
+
         group = getattr(self.notification, "group", None)
+        # TODO: refactor so we don't call SlackIssuesMessageBuilder through SlackNotificationsMessageBuilder
         if self.notification.is_message_issue_unfurl:
             return SlackIssuesMessageBuilder(
                 group=group,
@@ -93,4 +99,4 @@ def build_notification_attachment(
     recipient: Union["Team", "User"],
 ) -> SlackBody:
     """@deprecated"""
-    return SlackNotificationsMessageBuilder(notification, context, recipient).build()
+    return notification.build_slack_attachment(context, recipient)
