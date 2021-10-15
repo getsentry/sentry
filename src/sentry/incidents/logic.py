@@ -489,7 +489,18 @@ def _incident_entity_stats_func_factory(dataset: QueryDatasets):
     Function factory that returns a function responsible for returning incident entity specific
     stats
     """
-    time_col: str = "bucketed_started" if dataset == QueryDatasets.SESSIONS else "time"
+    if dataset == QueryDatasets.SESSIONS:
+        time_col: str = "bucketed_started"
+
+        def format_count_in_data(data):
+            for elem in data:
+                elem["count"] = round((1 - elem["count"]) * 100, 3)
+
+    else:
+        time_col = "time"
+
+        def format_count_in_data(data):
+            ...
 
     def get_incident_entity_stats(
         incident: Incident,
@@ -553,6 +564,9 @@ def _incident_entity_stats_func_factory(dataset: QueryDatasets):
         for extra_start, result in zip(extra_buckets, results[1:]):
             result["data"][0][time_col] = int(to_timestamp(extra_start))
         merged_data = list(chain(*(r["data"] for r in results)))
+        # Used to format the count field when it is just a ratio into a percentage for crash rate
+        # alerts
+        format_count_in_data(merged_data)
         merged_data.sort(key=lambda row: row[time_col])
         results[0]["data"] = merged_data
         # When an incident has just been created it's possible for the actual incident start

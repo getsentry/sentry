@@ -423,7 +423,7 @@ class GetIncidentSessionStatsTest(TestCase, BaseCrashRateAlertsTest, BaseInciden
         self.store_session(self.make_session(status="crashed"))
 
         result = get_incident_session_stats(incident, windowed_stats=False)
-        self.validate_result(incident, result, [0.25], start=None, end=None, windowed_stats=False)
+        self.validate_result(incident, result, [75.0], start=None, end=None, windowed_stats=False)
 
 
 class BaseIncidentAggregatesTest(BaseIncidentsTest):
@@ -452,7 +452,7 @@ class GetCrashRateIncidentAggregatesTest(TestCase, BaseCrashRateAlertsTest):
 
     def test_sessions(self):
         incident = self.create_incident(
-            date_started=self.now_dt - timedelta(minutes=120), query="", projects=[self.project]
+            date_started=self.now - timedelta(minutes=120), query="", projects=[self.project]
         )
         alert_rule = self.create_alert_rule(
             self.organization,
@@ -520,13 +520,13 @@ class CreateSessionStatTest(TestCase, BaseCrashRateAlertsTest):
         snapshot = create_session_stat_snapshot(incident, windowed_stats=False)
         assert snapshot.start == incident.date_started - timedelta(minutes=1)
         assert snapshot.end == incident.current_end_date + timedelta(minutes=1)
-        assert [row[1] for row in snapshot.values] == [1.0, 0.3333333333333333]
+        assert [row[1] for row in snapshot.values] == [0.0, 66.667]
 
         snapshot = create_session_stat_snapshot(incident, windowed_stats=True)
         expected_start, expected_end = calculate_incident_time_range(incident, windowed_stats=True)
         assert snapshot.start == expected_start
         assert snapshot.end == expected_end
-        assert [row[1] for row in snapshot.values] == [1.0, 0.3333333333333333]
+        assert [row[1] for row in snapshot.values] == [0.0, 66.667]
 
 
 @freeze_time()
