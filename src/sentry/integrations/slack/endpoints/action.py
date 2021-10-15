@@ -53,6 +53,11 @@ def update_group(
     data: Mapping[str, str],
     request: Request,
 ) -> Response:
+    if not group.organization.has_access(identity.user):
+        raise ApiClient.ApiError(
+            status_code=403, body="The user does not have access to the organization."
+        )
+
     return update_groups(
         request=request,
         group_ids=[group.id],
