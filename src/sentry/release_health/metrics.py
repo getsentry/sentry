@@ -6,9 +6,11 @@ from operator import itemgetter
 from typing import (
     Any,
     Callable,
+    DefaultDict,
     Dict,
     List,
     Mapping,
+    MutableMapping,
     Optional,
     Sequence,
     Set,
@@ -64,6 +66,11 @@ logger = logging.getLogger(__name__)
 
 class MetricIndexNotFound(Exception):
     pass
+
+
+_K1 = TypeVar("_K1")
+_K2 = TypeVar("_K2")
+_V = TypeVar("_V")
 
 
 def get_tag_values_list(org_id: int, values: Sequence[str]) -> Sequence[int]:
@@ -1317,7 +1324,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         return ret_val
 
     @staticmethod
-    def _sort_by_timestamp(series: Mapping[datetime, Any]) -> List[Tuple[int, Any]]:
+    def _sort_by_timestamp(series: Mapping[datetime, _V]) -> Sequence[Tuple[int, _V]]:
         """Transform a datetime -> X mapping to a sorted list of (ts, X) tuples
         This is needed to match the output format of get_project_release_stats
         """
@@ -1332,7 +1339,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         session_status_key: str,
         rollup: int,
     ) -> Mapping[datetime, DurationPercentiles]:
-        series = {}
+        series: MutableMapping[datetime, DurationPercentiles] = {}
         session_status_healthy = try_get_string_index(org_id, "exited")
         if session_status_healthy is not None:
             duration_series_data = raw_snql_query(
@@ -1361,13 +1368,23 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         return series
 
+    @staticmethod
+    def _default_session_counts() -> SessionCounts:
+        return {
+            "sessions": 0,
+            "sessions_healthy": 0,
+            "sessions_crashed": 0,
+            "sessions_abnormal": 0,
+            "sessions_errored": 0,
+        }
+
     def _get_project_release_stats_sessions(
         self,
         org_id: OrganizationId,
         where: List[Expression],
         session_status_key: str,
         rollup: int,
-    ) -> Mapping[datetime, SessionCounts]:
+    ) -> Tuple[Mapping[datetime, SessionCounts], SessionCounts]:
         session_series_data = raw_snql_query(
             Query(
                 dataset=Dataset.Metrics.value,
@@ -1381,7 +1398,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             )
         )["data"]
 
-        series = defaultdict(lambda: defaultdict(lambda: 0))
+        series: DefaultDict[datetime, SessionCounts] = defaultdict(self._default_session_counts)
 
         for row in session_series_data:
             dt = parse_snuba_datetime(row["bucketed_time"])
@@ -1437,13 +1454,23 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         return series, totals
 
+    @staticmethod
+    def _default_user_counts() -> UserCounts:
+        return {
+            "users": 0,
+            "users_abnormal": 0,
+            "users_crashed": 0,
+            "users_errored": 0,
+            "users_healthy": 0,
+        }
+
     def _get_project_release_stats_users(
         self,
         org_id: OrganizationId,
         where: List[Expression],
         session_status_key: str,
         rollup: int,
-    ) -> Mapping[datetime, UserCounts]:
+    ) -> Tuple[Mapping[datetime, UserCounts], UserCounts]:
 
         user_series_data = raw_snql_query(
             Query(
@@ -1471,8 +1498,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             )
         )["data"]
 
-        series = defaultdict(lambda: defaultdict(lambda: 0))
-        totals = defaultdict(lambda: 0)
+        series: DefaultDict[datetime, UserCounts] = defaultdict(self._default_user_counts)
+        totals: UserCounts = self._default_user_counts()
 
         for is_totals, data in [(False, user_series_data), (True, user_totals_data)]:
             for row in data:
@@ -1508,15 +1535,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         return series, totals
 
-    _K1 = TypeVar("_K1")
-    _K2 = TypeVar("_K2")
-    _V = TypeVar("_V")
-
     @staticmethod
     def _merge_dict_values(
         *dicts: Mapping[_K1, Mapping[_K2, _V]]
     ) -> Mapping[_K1, Mapping[_K2, _V]]:
-        rv = {}
+        rv: MutableMapping[_K1, MutableMapping[_K2, _V]] = {}
         for dct in dicts:
             for key, value in dct.items():
                 rv.setdefault(key, {}).update(value)
@@ -1607,6 +1630,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             org_id, where, session_status_key, rollup
         )
 
+        series: Mapping[datetime, Union[UserCounts, SessionCounts]]
+        totals: Union[UserCounts, SessionCounts]
+
         if stat == "users":
             series, totals = self._get_project_release_stats_users(
                 org_id, where, session_status_key, rollup
@@ -1617,13 +1643,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             )
 
         # Merge data:
-        series = self._merge_dict_values(base_series, duration_series, series)
-        totals = dict(base_totals, **totals)
+        merged_series = self._merge_dict_values(base_series, duration_series, series)
+        merged_totals = dict(base_totals, **totals)
 
         # Convert series to desired output format:
-        series = self._sort_by_timestamp(series)
+        sorted_series = self._sort_by_timestamp(merged_series)
 
-        return series, totals
+        return sorted_series, merged_totals  # type: ignore
 
     def get_project_sessions_count(
         self,
