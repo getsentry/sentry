@@ -3,16 +3,7 @@ from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 import pytz
-from snuba_sdk import (
-    Column,
-    Condition,
-    Direction,
-    Entity,
-    Function,
-    Op,
-    OrderBy,
-    Query,
-)
+from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
 from snuba_sdk.expressions import Granularity, Limit, Offset
 from snuba_sdk.query import SelectableExpression
 
@@ -1366,9 +1357,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         environments: Optional[Sequence[str]] = None,
     ) -> Sequence[ProjectRelease]:
 
-        # TODO remove, just testing
-        scope = "crash_free_sessions"
-
         if len(project_ids) == 0:
             return []
 
@@ -1399,15 +1387,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         now = datetime.now(pytz.utc)
         _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
 
-        status_init = tag_value(org_id, "init")
-        status_crashed = tag_value(org_id, "crashed")
-        session_status_column_name = tag_key(org_id, "session.status")
-
         query_cols = [
             Column("project_id"),
             Column(release_column_name),
-            # Function("sumMergeIf", parameters =[Column("value"),Function("equals", [Column(session_status_column_name), status_init])]),
-            # Function("sumMergeIf", parameters =[Column("value"),Function("equals", [Column(session_status_column_name), status_crashed])]),
         ]
         group_by = [
             Column("project_id"),
@@ -1417,7 +1399,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         where_clause = [
             Condition(Column("org_id"), Op.EQ, org_id),
             Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
             Condition(Column("timestamp"), Op.GTE, stats_start),
             Condition(Column("timestamp"), Op.LT, now),
         ]
@@ -1440,16 +1421,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                         "divide",
                         parameters=[
                             Function(
-                                "sumMergeIf",
-                                parameters=[
-                                    Column("value"),
-                                    Function(
-                                        "equals", [Column(session_status_column_name), status_init]
-                                    ),
-                                ],
-                            ),
-                            Function(
-                                "sumMergeIf",
+                                "sumIf",
                                 parameters=[
                                     Column("value"),
                                     Function(
@@ -1458,30 +1430,67 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                                     ),
                                 ],
                             ),
+                            Function(
+                                "sumIf",
+                                parameters=[
+                                    Column("value"),
+                                    Function(
+                                        "equals", [Column(session_status_column_name), status_init]
+                                    ),
+                                ],
+                            ),
                         ],
                     ),
                     direction=Direction.DESC,
                 )
             ]
-            entity = Entity("metrics_counters")
+            where_clause.append(Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")))
+            entity = Entity(EntityKey.MetricsCounters.value)
         elif scope == "sessions":
-            order_by_clause = [OrderBy(Column("value"), direction=Direction.DESC)]
-            entity = Entity("metrics_counters")
-        elif scope == "crash_free_usrers":
+            order_by_clause = [
+                OrderBy(exp=Function("sum", [Column("value")], "value"), direction=Direction.DESC)
+            ]
+            where_clause.append(Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")))
+            entity = Entity(EntityKey.MetricsCounters.value)
+        elif scope == "crash_free_users":
             order_by_clause = [
                 OrderBy(
                     exp=Function(
-                        "divide", parameters=[Column("sessions_crashed"), Column("sessions")]
+                        "divide",
+                        parameters=[
+                            Function(
+                                "uniqIf",
+                                parameters=[
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [Column(session_status_column_name), status_crashed],
+                                    ),
+                                ],
+                            ),
+                            Function(
+                                "uniqIf",
+                                parameters=[
+                                    Column("value"),
+                                    Function(
+                                        "equals", [Column(session_status_column_name), status_init]
+                                    ),
+                                ],
+                            ),
+                        ],
                     ),
                     direction=Direction.DESC,
                 )
             ]
-            entity = Entity("metrics_sets")
-            having_clause = [Condition(Column("users"), Op.GT, 0)]
+            where_clause.append(Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")))
+            entity = Entity(EntityKey.MetricsSets.value)
+            having_clause = [Condition(Function("uniq", [Column("value")], "users"), Op.GT, 0)]
         else:  # users
-            order_by_clause = [OrderBy(Column("value"), direction=Direction.DESC)]
-            entity = Entity("metrics_sets")
-            having_clause = [Condition(Column("users"), Op.GT, 0)]
+            users_column = Function("uniq", [Column("value")], "users")
+            order_by_clause = [OrderBy(exp=users_column, direction=Direction.DESC)]
+            where_clause.append(Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")))
+            entity = Entity(EntityKey.MetricsSets.value)
+            having_clause = [Condition(users_column, Op.GT, 0)]
 
         query = Query(
             dataset=Dataset.Metrics.value,

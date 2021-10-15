@@ -7,11 +7,7 @@ from django.utils import timezone
 
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
-from sentry.snuba.sessions import (
-    _make_stats,
-    _get_project_releases_count,
-    _get_release_health_data_overview,
-)
+from sentry.snuba.sessions import _make_stats
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.utils.dates import to_timestamp
@@ -60,10 +56,14 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         self.session_started = time.time() // 60 * 60
         self.session_release = "foo@1.0.0"
         self.session_crashed_release = "foo@2.0.0"
+        session_1 = "5d52fd05-fcc9-4bf3-9dc9-267783670341"
+        session_2 = "5e910c1a-6941-460e-9843-24103fb6a63c"
+        session_3 = "a148c0c5-06a2-423b-8901-6b43b812cf82"
+        user_1 = "39887d89-13b2-4c84-8c23-5d13d2102666"
         self.store_session(
             {
-                "session_id": "5d52fd05-fcc9-4bf3-9dc9-267783670341",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                "session_id": session_1,
+                "distinct_id": user_1,
                 "status": "exited",
                 "seq": 0,
                 "release": self.session_release,
@@ -80,8 +80,8 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
 
         self.store_session(
             {
-                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                "session_id": session_2,
+                "distinct_id": user_1,
                 "status": "ok",
                 "seq": 0,
                 "release": self.session_release,
@@ -98,8 +98,8 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
 
         self.store_session(
             {
-                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                "session_id": session_2,
+                "distinct_id": user_1,
                 "status": "exited",
                 "seq": 1,
                 "release": self.session_release,
@@ -116,8 +116,8 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
 
         self.store_session(
             {
-                "session_id": "a148c0c5-06a2-423b-8901-6b43b812cf82",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                "session_id": session_3,
+                "distinct_id": user_1,
                 "status": "crashed",
                 "seq": 0,
                 "release": self.session_crashed_release,
@@ -240,6 +240,26 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         Test that ensures that using crash free rate sort options, returns a list of ASC releases
         according to the chosen crash_free sort option
         """
+
+        # add another user to session_release to make sure that they are sorted correctly
+        self.store_session(
+            {
+                "session_id": str(uuid.uuid4()),
+                "distinct_id": str(uuid.uuid4()),
+                "status": "exited",
+                "seq": 0,
+                "release": self.session_release,
+                "environment": "prod",
+                "retention_days": 90,
+                "org_id": self.project.organization_id,
+                "project_id": self.project.id,
+                "duration": 60.0,
+                "errors": 0,
+                "started": self.session_started,
+                "received": self.received,
+            }
+        )
+
         for scope in "crash_free_sessions", "crash_free_users":
             data = self.backend.get_project_releases_by_stability(
                 [self.project.id], offset=0, limit=100, scope=scope, stats_period="24h"
