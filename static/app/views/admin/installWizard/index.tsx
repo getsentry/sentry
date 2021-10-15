@@ -5,12 +5,12 @@ import styled from '@emotion/styled';
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
 import Alert from 'app/components/alert';
-import {ApiForm} from 'app/components/forms';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import AsyncView from 'app/views/asyncView';
+import {ApiForm} from 'app/views/settings/components/forms';
 
 import {getForm, getOptionDefault, getOptionField} from '../options';
 
