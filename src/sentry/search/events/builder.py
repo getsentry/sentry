@@ -79,9 +79,11 @@ class QueryBuilder(QueryFilter):
 
     def validate_aggregate_arguments(self):
         for column in self.columns:
+            if column in self.aggregates:
+                continue
             conflicting_functions: List[CurriedFunction] = []
             for aggregate in self.aggregates:
-                if column in aggregate.parameters and column not in self.aggregates:
+                if column in aggregate.parameters:
                     conflicting_functions.append(aggregate)
             if conflicting_functions:
                 # The first two functions and then a trailing count of remaining functions
