@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import features
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 
 
@@ -93,9 +94,21 @@ def get_prev_history(group):
     return None
 
 
+def record_group_history_from_activity_type(group, activity_type, actor=None, release=None):
+    """
+    Writes a `GroupHistory` row for an activity type if there's a relevant `GroupHistoryStatus` that
+    maps to it
+    """
+    status = activity_type_to_history_status(activity_type)
+    if status:
+        return record_group_history(group, status, actor, release)
+
+
 def record_group_history(group, status, actor=None, release=None):
     prev_history = get_prev_history(group)
-    gh = GroupHistory.objects.create(
+    if not features.has("organizations:group-history"):
+        return
+    return GroupHistory.objects.create(
         organization=group.project.organization,
         group=group,
         project=group.project,
@@ -105,7 +118,6 @@ def record_group_history(group, status, actor=None, release=None):
         prev_history=prev_history,
         prev_history_date=prev_history.date_added if prev_history else None,
     )
-    return gh
 
 
 def activity_type_to_history_status(status):

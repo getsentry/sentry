@@ -51,7 +51,11 @@ from sentry.models import (
     remove_group_from_inbox,
 )
 from sentry.models.group import STATUS_UPDATE_CHOICES, looks_like_short_id
-from sentry.models.grouphistory import activity_type_to_history_status, record_group_history
+from sentry.models.grouphistory import (
+    activity_type_to_history_status,
+    record_group_history,
+    record_group_history_from_activity_type,
+)
 from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, add_group_to_inbox
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.signals import (
@@ -1022,9 +1026,7 @@ def update_groups(
                     user=acting_user,
                     data=activity_data,
                 )
-                history_status = activity_type_to_history_status(activity_type)
-                if history_status is not None:
-                    record_group_history(group, history_status, actor=acting_user)
+                record_group_history_from_activity_type(group, activity_type, actor=acting_user)
 
                 # TODO(dcramer): we need a solution for activity rollups
                 # before sending notifications on bulk changes

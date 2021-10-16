@@ -18,7 +18,11 @@ from sentry.models import (
     UserOption,
     remove_group_from_inbox,
 )
-from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.grouphistory import (
+    GroupHistoryStatus,
+    record_group_history,
+    record_group_history_from_activity_type,
+)
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
@@ -46,6 +50,9 @@ def remove_resolved_link(link):
                 group_id=link.group_id,
                 type=Activity.SET_UNRESOLVED,
                 ident=link.group_id,
+            )
+            record_group_history_from_activity_type(
+                Group.objects.get(id=link.group_id), Activity.SET_UNRESOLVED
             )
 
 
