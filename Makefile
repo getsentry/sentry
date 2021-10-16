@@ -9,6 +9,7 @@ run-dependent-services \
 drop-db \
 create-db \
 apply-migrations \
+create-user \
 reset-db \
 setup-git \
 node-version-check \
