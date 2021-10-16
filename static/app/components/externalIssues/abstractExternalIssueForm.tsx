@@ -4,12 +4,13 @@ import * as queryString from 'query-string';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
+import QuestionTooltip from 'app/components/questionTooltip';
 import {tct} from 'app/locale';
 import {Choices, IntegrationIssueConfig, IssueConfigField} from 'app/types';
 import {FormField} from 'app/views/alerts/issueRuleEditor/ruleNode';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
-import {FieldValue} from 'app/views/settings/components/forms/model';
+import FormModel, {FieldValue} from 'app/views/settings/components/forms/model';
 
 export type ExternalIssueAction = 'create' | 'link';
 
@@ -42,6 +43,8 @@ export default class AbstractExternalIssueForm<
   S extends State = State
 > extends AsyncComponent<P, S> {
   shouldRenderBadRequests = true;
+  model = new FormModel();
+
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -112,13 +115,13 @@ export default class AbstractExternalIssueForm<
   };
 
   /**
-   * If this field should updateFrom, updateForm. Otherwise, do nothing.
+   * If this field should updateForm, updateForm. Otherwise, do nothing.
    */
-  onFieldChange = (label: string, value: FieldValue) => {
+  onFieldChange = (fieldName: string, value: FieldValue) => {
     const {dynamicFieldValues} = this.state;
     const dynamicFields = this.getDynamicFields();
-    if (dynamicFields.hasOwnProperty(label) && dynamicFieldValues) {
-      dynamicFieldValues[label] = value;
+    if (dynamicFields.hasOwnProperty(fieldName) && dynamicFieldValues) {
+      dynamicFieldValues[fieldName] = value;
       this.setState(
         {
           dynamicFieldValues,
@@ -147,6 +150,40 @@ export default class AbstractExternalIssueForm<
     });
   };
 
+  cleanOptionsResult = (field: IssueConfigField, result) => {
+    const currentOption = this.getDefaultOptions(field).find(
+      option => option.value === this.model.getValue(field.name)
+    );
+    if (!currentOption) {
+      return result;
+    }
+    const modifiedLabel = (
+      <React.Fragment>
+        <QuestionTooltip
+          title={tct('This is your current default [label].', {
+            label: field.label,
+          })}
+          size="xs"
+        />{' '}
+        {currentOption.label}
+      </React.Fragment>
+    );
+    currentOption.label =
+      typeof currentOption.label === 'string' ? modifiedLabel : currentOption.label;
+    const currentOptionResultIndex = result.findIndex(
+      obj => obj.value === currentOption?.value
+    );
+    // Has a selected option, and it is in API results
+    if (currentOptionResultIndex >= 0) {
+      result[currentOptionResultIndex] = currentOption;
+      return result;
+    }
+    // Has a selected option, and it is not in API results
+    else {
+      return [...result, currentOption];
+    }
+  };
+
   /**
    * Get the list of options for a field via debounced API call. For example,
    * the list of users that match the input string. The Promise rejects if there
@@ -161,6 +198,7 @@ export default class AbstractExternalIssueForm<
         if (err) {
           reject(err);
         } else {
+          result = this.cleanOptionsResult(field, result);
           this.updateFetchedFieldOptionsCache(field, result);
           resolve(result);
         }
@@ -196,7 +234,9 @@ export default class AbstractExternalIssueForm<
   );
 
   getDefaultOptions = (field: IssueConfigField) => {
-    const choices = (field.choices as Array<[number | string, number | string]>) || [];
+    const choices =
+      (field.choices as Array<[number | string, number | string | React.ReactElement]>) ||
+      [];
     return choices.map(([value, label]) => ({value, label}));
   };
 
@@ -236,6 +276,7 @@ export default class AbstractExternalIssueForm<
       footerClass: 'modal-footer',
       onFieldChange: this.onFieldChange,
       submitDisabled: this.state.reloading,
+      model: this.model,
       // Other form props implemented by child classes.
     };
   };
