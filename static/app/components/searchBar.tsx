@@ -16,11 +16,9 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  placeholder?: string;
-  className?: string;
-  onChange?: (query: string) => void;
   width?: string;
-};
+  onChange?: (query: string) => void;
+} & React.ComponentProps<typeof Input>;
 
 type State = {
   query: string;
@@ -86,16 +84,16 @@ class SearchBar extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {className, width} = this.props;
+    const {className, width, defaultQuery, ...props} = this.props;
 
     return (
       <div className={classNames('search', className)}>
         <form className="form-horizontal" onSubmit={this.onSubmit}>
           <div>
             <StyledInput
+              {...props} // Ensure that onChange and onBlur are overwritten
               type="text"
               className="search-input"
-              placeholder={this.props.placeholder}
               name="query"
               ref={this.searchInputRef}
               autoComplete="off"
@@ -105,7 +103,7 @@ class SearchBar extends React.PureComponent<Props, State> {
               width={width}
             />
             <StyledIconSearch className="search-input-icon" size="sm" color="gray300" />
-            {this.state.query !== this.props.defaultQuery && (
+            {this.state.query !== defaultQuery && (
               <SearchClearButton
                 type="button"
                 className="search-clear-form"
