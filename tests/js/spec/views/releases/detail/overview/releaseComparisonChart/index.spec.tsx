@@ -16,6 +16,8 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
   // @ts-expect-error
   const allSessions = TestStubs.SessionUserCountByStatus2();
 
+  const sessionsInterval = '10s';
+
   it('displays correct all/release/change data', () => {
     mountWithTheme(
       <ReleaseComparisonChart
@@ -30,6 +32,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         project={project}
         organization={organization}
         api={api}
+        sessionsInterval={sessionsInterval}
         hasHealthData
       />,
       {context: routerContext}
@@ -65,6 +68,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         project={project}
         organization={organization}
         api={api}
+        sessionsInterval={sessionsInterval}
         hasHealthData
       />,
       {context: routerContext}
@@ -87,6 +91,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         project={project}
         organization={organization}
         api={api}
+        sessionsInterval={sessionsInterval}
         hasHealthData
       />
     );
@@ -109,6 +114,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         project={project}
         organization={organization}
         api={api}
+        sessionsInterval={sessionsInterval}
         hasHealthData
       />,
       {context: routerContext}
@@ -154,6 +160,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
           features: [...organization.features, 'discover-basic'],
         }}
         api={api}
+        sessionsInterval={sessionsInterval}
         hasHealthData={false}
       />,
       {context: routerContext}

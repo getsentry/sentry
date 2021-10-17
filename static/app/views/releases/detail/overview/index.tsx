@@ -422,7 +422,14 @@ class ReleaseOverview extends AsyncView<Props> {
               version={version}
               releaseBounds={releaseBounds}
             >
-              {({thisRelease, allReleases, loading, reloading, errored}) => (
+              {({
+                thisRelease,
+                allReleases,
+                sessionsInterval,
+                loading,
+                reloading,
+                errored,
+              }) => (
                 <Body>
                   <Main>
                     {isReleaseArchived(release) && (
@@ -470,6 +477,7 @@ class ReleaseOverview extends AsyncView<Props> {
                                 location={location}
                                 loading={loading}
                                 reloading={reloading}
+                                sessionsInterval={sessionsInterval}
                                 errored={errored}
                                 project={project}
                                 organization={organization}

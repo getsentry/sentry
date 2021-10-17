@@ -16,6 +16,7 @@ export type ReleaseHealthRequestRenderProps = {
   loading: boolean;
   reloading: boolean;
   errored: boolean;
+  sessionsInterval: string;
   thisRelease: SessionApiResponse | null;
   allReleases: SessionApiResponse | null;
 };
@@ -156,12 +157,14 @@ class ReleaseDetailsRequest extends React.Component<Props, State> {
     const {reloading, errored, thisRelease, allReleases} = this.state;
     const {children} = this.props;
 
+    const sessionsInterval = this.baseQueryParams.interval;
     const loading = thisRelease === null && allReleases === null;
 
     return children({
       loading,
       reloading,
       errored,
+      sessionsInterval,
       thisRelease,
       allReleases,
     });

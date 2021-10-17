@@ -315,7 +315,7 @@ class MetricChart extends React.PureComponent<Props, State> {
     );
   }
 
-  renderChart(loading: boolean, timeseriesData?: Series[]) {
+  renderChart(loading: boolean, timeseriesData?: Series[], sessionsInterval?: string) {
     const {
       router,
       selectedIncident,
@@ -527,6 +527,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                 {...zoomRenderProps}
                 isGroupedByDate
                 showTimeInTooltip
+                addSecondsToTimeFormat={sessionsInterval === '10s'}
                 forwardedRef={this.handleRef}
                 grid={{
                   left: 0,
@@ -648,20 +649,27 @@ class MetricChart extends React.PureComponent<Props, State> {
         field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
         groupBy={['session.status']}
       >
-        {({loading, response}) =>
-          this.renderChart(loading, [
-            {
-              seriesName:
-                AlertWizardAlertNames[
-                  getAlertTypeFromAggregateDataset({aggregate, dataset: Dataset.SESSIONS})
-                ],
-              data: getCrashFreeRateSeries(
-                response?.groups,
-                response?.intervals,
-                SESSION_AGGREGATE_TO_FIELD[aggregate]
-              ),
-            },
-          ])
+        {({loading, sessionsInterval, response}) =>
+          this.renderChart(
+            loading,
+            [
+              {
+                seriesName:
+                  AlertWizardAlertNames[
+                    getAlertTypeFromAggregateDataset({
+                      aggregate,
+                      dataset: Dataset.SESSIONS,
+                    })
+                  ],
+                data: getCrashFreeRateSeries(
+                  response?.groups,
+                  response?.intervals,
+                  SESSION_AGGREGATE_TO_FIELD[aggregate]
+                ),
+              },
+            ],
+            sessionsInterval
+          )
         }
       </SessionsRequest>
     ) : (

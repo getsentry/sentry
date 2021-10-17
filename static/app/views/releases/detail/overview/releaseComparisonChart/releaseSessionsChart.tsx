@@ -51,6 +51,7 @@ type Props = {
   platform: PlatformKey;
   value: React.ReactNode;
   diff: React.ReactNode;
+  sessionsInterval: string;
   loading: boolean;
   reloading: boolean;
   period?: string;
@@ -525,8 +526,19 @@ class ReleaseSessionsChart extends React.Component<Props> {
   }
 
   render() {
-    const {chartType, router, period, start, end, utc, value, diff, loading, reloading} =
-      this.props;
+    const {
+      chartType,
+      router,
+      period,
+      start,
+      end,
+      utc,
+      value,
+      diff,
+      loading,
+      reloading,
+      sessionsInterval,
+    } = this.props;
 
     const Chart = this.getChart();
     const {series, previousSeries, markLines} = this.getSeries(chartType);
@@ -575,6 +587,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
                 top: '70px',
                 bottom: '0px',
               }}
+              addSecondsToTimeFormat={sessionsInterval === '10s'}
               yAxis={this.getYAxis()}
               tooltip={{valueFormatter: this.formatTooltipValue}}
               colors={this.getColors()}

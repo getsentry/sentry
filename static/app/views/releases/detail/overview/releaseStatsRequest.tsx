@@ -112,6 +112,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
 
     return {
       query: new MutableSearch([`release:"${version}"`]).formatString(),
+      // Todo(Priscila): should we replace this interval with app/utils/sessions.tsx ?
       interval: getInterval(selection.datetime, {
         highFidelity: organization.features.includes('minute-resolution-sessions'),
       }),

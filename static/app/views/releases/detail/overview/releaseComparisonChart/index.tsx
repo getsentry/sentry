@@ -74,6 +74,7 @@ type Props = {
   loading: boolean;
   reloading: boolean;
   errored: boolean;
+  sessionsInterval: string;
   api: Client;
   organization: Organization;
   hasHealthData: boolean;
@@ -103,6 +104,7 @@ function ReleaseComparisonChart({
   loading,
   reloading,
   errored,
+  sessionsInterval,
   api,
   organization,
   hasHealthData,
@@ -961,6 +963,7 @@ function ReleaseComparisonChart({
               diff={titleChartDiff}
               loading={loading}
               reloading={reloading}
+              sessionsInterval={sessionsInterval}
             />
           )}
         </ChartContainer>

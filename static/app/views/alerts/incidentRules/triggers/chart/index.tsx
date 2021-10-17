@@ -228,7 +228,8 @@ class TriggersChart extends React.PureComponent<Props, State> {
     timeseriesData: Series[] = [],
     isLoading: boolean,
     isReloading: boolean,
-    totalCount: number | null
+    totalCount: number | null,
+    sessionsInterval?: string
   ) {
     const {triggers, resolveThreshold, thresholdType, header, timeWindow, aggregate} =
       this.props;
@@ -251,6 +252,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
             resolveThreshold={resolveThreshold}
             thresholdType={thresholdType}
             aggregate={aggregate}
+            sessionsInterval={sessionsInterval}
           />
         )}
         <ChartControls>
@@ -300,7 +302,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
         field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
         groupBy={['session.status']}
       >
-        {({loading, reloading, response}) => {
+        {({loading, reloading, sessionsInterval, response}) => {
           const {groups, intervals} = response || {};
           const sessionTimeSeries = [
             {
@@ -320,7 +322,8 @@ class TriggersChart extends React.PureComponent<Props, State> {
             sessionTimeSeries,
             loading,
             reloading,
-            getCount(groups, SESSION_AGGREGATE_TO_FIELD[aggregate])
+            getCount(groups, SESSION_AGGREGATE_TO_FIELD[aggregate]),
+            sessionsInterval
           );
         }}
       </SessionsRequest>
