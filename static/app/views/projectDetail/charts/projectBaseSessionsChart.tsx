@@ -302,7 +302,6 @@ class Chart extends Component<ChartProps, ChartState> {
         previousPeriod={previousTimeSeries}
         onLegendSelectChanged={this.handleLegendSelectChanged}
         transformSinglePointToBar
-        addSecondsToTimeFormat
       />
     );
   }
