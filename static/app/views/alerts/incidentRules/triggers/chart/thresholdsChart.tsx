@@ -28,7 +28,7 @@ type Props = DefaultProps & {
   resolveThreshold: IncidentRule['resolveThreshold'];
   thresholdType: IncidentRule['thresholdType'];
   aggregate: string;
-  sessionsInterval?: string;
+  addSecondsToTimeFormat?: boolean;
   maxValue?: number;
   minValue?: number;
 } & Partial<GlobalSelection['datetime']>;
@@ -281,7 +281,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
   }
 
   render() {
-    const {data, triggers, period, aggregate, sessionsInterval} = this.props;
+    const {data, triggers, period, aggregate, addSecondsToTimeFormat} = this.props;
 
     const dataWithoutRecentBucket: LineChartSeries[] = data?.map(
       ({data: eventData, ...restOfData}) => ({
@@ -323,7 +323,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       <LineChart
         isGroupedByDate
         showTimeInTooltip
-        addSecondsToTimeFormat={sessionsInterval === '10s'}
+        addSecondsToTimeFormat={addSecondsToTimeFormat}
         period={period}
         forwardedRef={this.handleRef}
         grid={CHART_GRID}

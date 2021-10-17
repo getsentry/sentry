@@ -252,7 +252,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
             resolveThreshold={resolveThreshold}
             thresholdType={thresholdType}
             aggregate={aggregate}
-            sessionsInterval={sessionsInterval}
+            addSecondsToTimeFormat={sessionsInterval === '10s'}
           />
         )}
         <ChartControls>
