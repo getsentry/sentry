@@ -18,7 +18,7 @@ type DefaultProps = {
 type Props = DefaultProps & {
   width?: string;
   onChange?: (query: string) => void;
-} & React.ComponentProps<typeof Input>;
+} & Omit<React.ComponentProps<typeof Input>, 'onChange'>;
 
 type State = {
   query: string;
