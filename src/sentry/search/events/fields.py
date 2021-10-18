@@ -8,7 +8,7 @@ import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
-from snuba_sdk.function import Function
+from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.discover.models import TeamKeyTransaction
@@ -82,7 +82,7 @@ class PseudoField:
 
         self.validate()
 
-    def get_expression(self, params):
+    def get_expression(self, params) -> Union[List[Any], Tuple[Any]]:
         if isinstance(self.expression, (list, tuple)):
             return deepcopy(self.expression)
         elif self.expression_fn is not None:
@@ -1405,6 +1405,14 @@ class SnQLDateArg(DateArg):
         return value[1:-1]
 
 
+class SnQLFieldColumn(FieldColumn):
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        if value is None:
+            raise InvalidFunctionArgument("a column is required")
+
+        return value
+
+
 class DiscoverFunction:
     def __init__(
         self,
@@ -2706,7 +2714,7 @@ class QueryFields(QueryBase):
                 ),
                 SnQLFunction(
                     "any",
-                    required_args=[FieldColumn("column")],
+                    required_args=[SnQLFieldColumn("column")],
                     # Not actually using `any` so that this function returns consistent results
                     snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
                     result_type_fn=reflective_result_type(),
@@ -2988,6 +2996,13 @@ class QueryFields(QueryBase):
             alias = get_function_alias_with_columns(raw_function, arguments)
 
         return (function, combinator, arguments, alias)
+
+    def get_public_alias(self, function: CurriedFunction) -> str:
+        """Given a function resolved by QueryBuilder, get the public alias of that function
+
+        ie. any_user_display -> any(user_display)
+        """
+        return self.function_alias_map[function.alias].field
 
     # Field Aliases
     def _resolve_issue_id_alias(self, _: str) -> SelectType:
