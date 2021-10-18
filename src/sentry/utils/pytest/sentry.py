@@ -309,11 +309,23 @@ def pytest_collection_modifyitems(config, items):
 
         # Split tests in different groups
         group_num = item_to_group % total_groups
+        print(  # noqa
+            item.location,
+            grouping_strategy,
+            current_group,
+            total_groups,
+            item_to_group,
+            total_groups,
+            group_num,
+        )
 
         if group_num == current_group:
             keep.append(item)
         else:
             discard.append(item)
+
+    print("keep:", keep)  # noqa
+    print("discard:", discard)  # noqa
 
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
