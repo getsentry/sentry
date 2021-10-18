@@ -56,21 +56,28 @@ const EventsGeoRequest = ({
   });
   const [results, setResults] = useState(undefined as ChildrenArgs['tableData']);
   const [reloading, setReloading] = useState(false);
+  const [errored, setErrored] = useState(false);
   useEffect(() => {
+    setErrored(false);
     if (results) {
       setReloading(true);
     }
     doDiscoverQuery<TableData>(api, `/organizations/${organization.slug}/events-geo/`, {
       ...eventView.generateQueryStringObject(),
       referrer,
-    }).then(discoverQueryResults => {
-      setResults([discoverQueryResults[0]] as TableDataWithTitle[]);
-      setReloading(false);
-    });
+    })
+      .then(discoverQueryResults => {
+        setResults([discoverQueryResults[0]] as TableDataWithTitle[]);
+        setReloading(false);
+      })
+      .catch(() => {
+        setErrored(true);
+        setReloading(false);
+      });
   }, [query, yAxis, start, end, period, environments, projects]);
   return children({
-    errored: false,
-    loading: !results,
+    errored,
+    loading: !results && !errored,
     reloading,
     tableData: results,
   });
