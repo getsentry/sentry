@@ -106,7 +106,7 @@ def record_group_history_from_activity_type(group, activity_type, actor=None, re
 
 def record_group_history(group, status, actor=None, release=None):
     prev_history = get_prev_history(group)
-    if not features.has("organizations:group-history"):
+    if not features.has("organizations:group-history", group.organization):
         return
     return GroupHistory.objects.create(
         organization=group.project.organization,
