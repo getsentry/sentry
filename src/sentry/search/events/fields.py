@@ -2819,13 +2819,13 @@ class QueryFields(QueryBase):
                 resolved_columns.append(resolved_column)
 
         # Happens after resolving columns to check if there any aggregates
-        if self.auto_fields and not self.aggregates:
+        if self.auto_fields:
             # Ensure fields we require to build a functioning interface
             # are present.
-            if "id" not in stripped_columns:
+            if not self.aggregates and "id" not in stripped_columns:
                 resolved_columns.append(self.resolve_column("id", alias=True))
-            if "project.id" not in stripped_columns:
-                resolved_columns.append(self.resolve_column("project.id", alias=True))
+            if "id" in stripped_columns and "project.id" not in stripped_columns:
+                resolved_columns.append(self.resolve_column("project.name", alias=True))
 
         return resolved_columns
 
