@@ -5,8 +5,9 @@ import moment from 'moment';
 import {
   DateTimeObject,
   getDiffInMinutes,
-  ONE_WEEK,
-  TWO_WEEKS,
+  SIX_HOURS,
+  SIXTY_DAYS,
+  THIRTY_DAYS,
 } from 'app/components/charts/utils';
 import {SessionApiResponse, SessionField, SessionStatus} from 'app/types';
 import {SeriesDataUnit} from 'app/types/echarts';
@@ -259,15 +260,20 @@ export function getSessionsInterval(
     highFidelity = false;
   }
 
-  if (diffInMinutes > TWO_WEEKS) {
+  if (diffInMinutes >= SIXTY_DAYS) {
     return '1d';
   }
-  if (diffInMinutes > ONE_WEEK) {
-    return '6h';
+
+  if (diffInMinutes >= THIRTY_DAYS) {
+    return '4h';
+  }
+
+  if (diffInMinutes >= SIX_HOURS) {
+    return '1h';
   }
 
   // limit on backend for sub-hour session resolution is set to six hours
-  if (highFidelity && diffInMinutes < 360) {
+  if (highFidelity) {
     if (diffInMinutes <= 30) {
       return '1m';
     }
