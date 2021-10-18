@@ -18,7 +18,7 @@ type DefaultProps = {
 type Props = DefaultProps & {
   width?: string;
   onChange?: (query: string) => void;
-} & Omit<React.ComponentProps<typeof Input>, 'onChange'>;
+} & Omit<React.ComponentProps<typeof Input>, 'onChange' | 'onBlur'>;
 
 type State = {
   query: string;
@@ -84,14 +84,23 @@ class SearchBar extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {className, width, defaultQuery, ...props} = this.props;
+    // Remove keys that should not be passed into Input
+    const {
+      className,
+      width,
+      query: _q,
+      defaultQuery,
+      onChange: _oC,
+      onSearch: _oS,
+      ...inputProps
+    } = this.props;
 
     return (
       <div className={classNames('search', className)}>
         <form className="form-horizontal" onSubmit={this.onSubmit}>
           <div>
             <StyledInput
-              {...props} // Ensure that onChange and onBlur are overwritten
+              {...inputProps}
               type="text"
               className="search-input"
               name="query"
