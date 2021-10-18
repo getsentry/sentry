@@ -74,12 +74,7 @@ function getSeriesValue(series: EChartOption.Tooltip.Format, offset: number) {
   return undefined;
 }
 
-type NeededChartProps =
-  | 'isGroupedByDate'
-  | 'showTimeInTooltip'
-  | 'addSecondsToTimeFormat'
-  | 'utc'
-  | 'bucketSize';
+type NeededChartProps = 'isGroupedByDate' | 'showTimeInTooltip' | 'utc' | 'bucketSize';
 
 type TooltipFormatters =
   | 'truncate'
@@ -94,13 +89,16 @@ type FormatterOptions = Pick<NonNullable<ChartProps['tooltip']>, TooltipFormatte
      * Array containing seriesNames that need to be indented
      */
     indentLabels?: string[];
+    /**
+     * If true seconds will be added to the Axis label time format
+     */
+    addSecondsToTimeFormat?: boolean;
   };
 
 function getFormatter({
   filter,
   isGroupedByDate,
   showTimeInTooltip,
-  addSecondsToTimeFormat,
   truncate,
   formatAxisLabel,
   utc,
@@ -108,6 +106,7 @@ function getFormatter({
   valueFormatter = defaultValueFormatter,
   nameFormatter = defaultNameFormatter,
   indentLabels = [],
+  addSecondsToTimeFormat = false,
 }: FormatterOptions) {
   const getFilter = (seriesParam: EChartOption.Tooltip.Format) => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
@@ -143,7 +142,7 @@ function getFormatter({
         !!isGroupedByDate,
         !!utc,
         !!showTimeInTooltip,
-        !!addSecondsToTimeFormat,
+        addSecondsToTimeFormat,
         bucketSize
       );
       // eCharts sets seriesName as null when `componentType` !== 'series'
@@ -190,7 +189,7 @@ function getFormatter({
         !!isGroupedByDate,
         !!utc,
         !!showTimeInTooltip,
-        !!addSecondsToTimeFormat,
+        addSecondsToTimeFormat,
         bucketSize
       );
 
@@ -220,7 +219,9 @@ function getFormatter({
   return formatter;
 }
 
-type Props = ChartProps['tooltip'] & Pick<ChartProps, NeededChartProps>;
+type Props = ChartProps['tooltip'] &
+  Pick<ChartProps, NeededChartProps> &
+  Pick<FormatterOptions, 'addSecondsToTimeFormat'>;
 
 export default function Tooltip({
   filter,

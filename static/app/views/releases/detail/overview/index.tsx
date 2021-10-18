@@ -318,7 +318,6 @@ class ReleaseOverview extends AsyncView<Props> {
                     loading: thisReleaseLoading,
                     reloading: thisReleaseReloading,
                     errored: thisReleaseErrored,
-                    sessionsInterval,
                     response: thisRelease,
                   }) => {
                     const loading = allReleasesLoading || thisReleaseLoading;
@@ -372,7 +371,6 @@ class ReleaseOverview extends AsyncView<Props> {
                               organization={organization}
                               api={api}
                               hasHealthData={hasHealthData}
-                              sessionsInterval={sessionsInterval}
                             />
                           )}
 

@@ -16,7 +16,6 @@ export type SessionsRequestRenderProps = {
   loading: boolean;
   reloading: boolean;
   errored: boolean;
-  sessionsInterval: string;
   response: SessionApiResponse | null;
 };
 
@@ -140,14 +139,12 @@ class SessionsRequest extends React.Component<Props, State> {
     const {reloading, errored, response} = this.state;
     const {children} = this.props;
 
-    const sessionsInterval = this.baseQueryParams.interval;
     const loading = response === null;
 
     return children({
       loading,
       reloading,
       errored,
-      sessionsInterval,
       response,
     });
   }

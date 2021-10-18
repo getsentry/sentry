@@ -15,6 +15,11 @@ import {Theme} from 'app/utils/theme';
 import {getCrashFreePercent, getSessionStatusPercent} from 'app/views/releases/utils';
 import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
+/**
+ * If the time window is less than or equal 10, seconds will be displayed on the graphs
+ */
+export const MINUTES_THRESHOLD_TO_DISPLAY_SECONDS = 10;
+
 export function getCount(groups: SessionApiResponse['groups'] = [], field: SessionField) {
   return groups.reduce((acc, group) => acc + group.totals[field], 0);
 }
@@ -268,11 +273,12 @@ export function getSessionsInterval(
 
   // limit on backend for sub-hour session resolution is set to six hours
   if (highFidelity && diffInMinutes < 360) {
-    if (diffInMinutes <= 10) {
+    if (diffInMinutes <= MINUTES_THRESHOLD_TO_DISPLAY_SECONDS) {
       // This only works for metrics-based session stats.
       // Backend will silently replace with '1m' for session-based stats.
       return '10s';
     }
+
     if (diffInMinutes <= 30) {
       return '1m';
     }

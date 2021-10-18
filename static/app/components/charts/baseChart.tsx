@@ -21,6 +21,7 @@ import {
   ReactEchartsRef,
   Series,
 } from 'app/types/echarts';
+import {defined} from 'app/utils';
 import {Theme} from 'app/utils/theme';
 
 import Grid from './components/grid';
@@ -29,7 +30,7 @@ import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
-import {getDimensionValue, lightenHexToRgb} from './utils';
+import {getDiffInMinutes, getDimensionValue, lightenHexToRgb} from './utils';
 
 // TODO(ts): What is the series type? EChartOption.Series's data cannot have
 // `onClick` since it's typically an array.
@@ -199,9 +200,9 @@ type Props = {
    */
   isGroupedByDate?: boolean;
   /**
-   * optional, used to add seconds to the xAxis datetime format if `isGroupedByDate == true`
+   * optional, threshold in minutes used to add seconds to the xAxis datetime format if `isGroupedByDate == true`
    */
-  addSecondsToTimeFormat?: boolean;
+  minutesThresholdToDisplaySeconds?: number;
   /**
    * Format timestamp with date AND time
    */
@@ -254,6 +255,7 @@ function BaseChartUnwrapped({
   echartsTheme,
   devicePixelRatio,
 
+  minutesThresholdToDisplaySeconds,
   showTimeInTooltip,
   useShortDate,
   start,
@@ -286,7 +288,6 @@ function BaseChartUnwrapped({
   notMerge = true,
   lazyUpdate = false,
   isGroupedByDate = false,
-  addSecondsToTimeFormat = false,
   transformSinglePointToBar = false,
   onChartReady = () => {},
 }: Props) {
@@ -344,6 +345,14 @@ function BaseChartUnwrapped({
     : Array.isArray(yAxes)
     ? yAxes.map(axis => YAxis({...axis, theme}))
     : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)];
+
+  /**
+   * If true seconds will be added to the time format in the tooltips and chart xAxis
+   */
+  const addSecondsToTimeFormat =
+    isGroupedByDate && defined(minutesThresholdToDisplaySeconds)
+      ? getDiffInMinutes({start, end, period}) <= minutesThresholdToDisplaySeconds
+      : false;
 
   const xAxisOrCustom = !xAxes
     ? xAxis !== null
@@ -553,6 +562,7 @@ const ChartContainer = styled('div')`
 const BaseChart = forwardRef<ReactEchartsRef, Props>((props, ref) => (
   <BaseChartUnwrapped forwardedRef={ref} {...props} />
 ));
+
 BaseChart.displayName = 'forwardRef(BaseChart)';
 
 export default BaseChart;

@@ -28,6 +28,7 @@ import {
   getSessionP50Series,
   getSessionStatusRateSeries,
   initSessionsChart,
+  MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'app/utils/sessions';
 import {Theme} from 'app/utils/theme';
 import {displayCrashFreePercent, roundDuration} from 'app/views/releases/utils';
@@ -49,7 +50,6 @@ type Props = {
   platform: PlatformKey;
   value: React.ReactNode;
   diff: React.ReactNode;
-  sessionsInterval: string;
   loading: boolean;
   reloading: boolean;
   period?: string;
@@ -593,19 +593,8 @@ class ReleaseSessionsChart extends React.Component<Props> {
   }
 
   render() {
-    const {
-      chartType,
-      router,
-      period,
-      start,
-      end,
-      utc,
-      value,
-      diff,
-      loading,
-      reloading,
-      sessionsInterval,
-    } = this.props;
+    const {chartType, router, period, start, end, utc, value, diff, loading, reloading} =
+      this.props;
 
     const Chart = this.getChart();
     const {series, previousSeries, markLines} = this.getSeries(chartType);
@@ -654,7 +643,7 @@ class ReleaseSessionsChart extends React.Component<Props> {
                 top: '70px',
                 bottom: '0px',
               }}
-              addSecondsToTimeFormat={sessionsInterval === '10s'}
+              minutesThresholdToDisplaySeconds={MINUTES_THRESHOLD_TO_DISPLAY_SECONDS}
               yAxis={this.getYAxis()}
               tooltip={{valueFormatter: this.formatTooltipValue}}
               colors={this.getColors()}

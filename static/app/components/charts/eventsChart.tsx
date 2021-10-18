@@ -34,7 +34,7 @@ type ChartProps = {
   zoomRenderProps: ZoomRenderProps;
   timeseriesData: Series[];
   showLegend?: boolean;
-  addSecondsToTimeFormat?: boolean;
+  minutesThresholdToDisplaySeconds?: number;
   legendOptions?: EChartOption.Legend;
   chartOptions?: Omit<EChartOption, 'xAxis' | 'yAxis'> & {
     xAxis?: EChartOption.XAxis;
@@ -389,7 +389,7 @@ export type EventsChartProps = {
   | 'seriesTransformer'
   | 'previousSeriesTransformer'
   | 'showLegend'
-  | 'addSecondsToTimeFormat'
+  | 'minutesThresholdToDisplaySeconds'
   | 'disableableSeries'
   | 'legendOptions'
   | 'chartOptions'
@@ -431,7 +431,7 @@ class EventsChart extends React.Component<EventsChartProps> {
       projects,
       environments,
       showLegend,
-      addSecondsToTimeFormat,
+      minutesThresholdToDisplaySeconds,
       yAxis,
       disablePrevious,
       disableReleases,
@@ -514,7 +514,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             loading={loading}
             reloading={reloading}
             showLegend={showLegend}
-            addSecondsToTimeFormat={addSecondsToTimeFormat}
+            minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
             releaseSeries={releaseSeries || []}
             timeseriesData={seriesData ?? []}
             previousTimeseriesData={previousTimeseriesData}

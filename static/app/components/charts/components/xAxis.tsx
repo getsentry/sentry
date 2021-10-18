@@ -2,33 +2,33 @@ import {EChartOption} from 'echarts';
 import merge from 'lodash/merge';
 
 import BaseChart from 'app/components/charts/baseChart';
+import {truncationFormatter, useShortInterval} from 'app/components/charts/utils';
 import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
 import {Theme} from 'app/utils/theme';
-
-import {truncationFormatter, useShortInterval} from '../utils';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 type HelperProps =
   | 'isGroupedByDate'
   | 'useShortDate'
-  | 'addSecondsToTimeFormat'
   | 'start'
   | 'end'
   | 'period'
   | 'utc';
 
-type Props = ChartProps['xAxis'] & Pick<ChartProps, HelperProps> & {theme: Theme};
+type Props = ChartProps['xAxis'] &
+  Pick<ChartProps, HelperProps> & {theme: Theme; addSecondsToTimeFormat?: boolean};
 
 function XAxis({
   isGroupedByDate,
   useShortDate,
-  addSecondsToTimeFormat,
   theme,
 
   start,
   end,
   period,
   utc,
+
+  addSecondsToTimeFormat = false,
   ...props
 }: Props): EChartOption.XAxis {
   const axisLabelFormatter = (value: string, index: number) => {
