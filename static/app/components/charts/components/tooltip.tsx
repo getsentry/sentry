@@ -24,7 +24,7 @@ function defaultFormatAxisLabel(
 
   if (!bucketSize) {
     const format = `MMM D, YYYY ${
-      showTimeInTooltip ? getTimeFormat(addSecondsToTimeFormat) : ''
+      showTimeInTooltip ? getTimeFormat({displaySeconds: addSecondsToTimeFormat}) : ''
     }`.trim();
     return getFormattedDate(value, format, {local: !utc});
   }
@@ -37,10 +37,10 @@ function defaultFormatAxisLabel(
   const showEndDate = bucketStart.date() !== bucketEnd.date();
 
   const formatStart = `MMM D${showYear ? ', YYYY' : ''} ${
-    showTimeInTooltip ? getTimeFormat(addSecondsToTimeFormat) : ''
+    showTimeInTooltip ? getTimeFormat({displaySeconds: addSecondsToTimeFormat}) : ''
   }`.trim();
   const formatEnd = `${showEndDate ? `MMM D${showYear ? ', YYYY' : ''} ` : ''}${
-    showTimeInTooltip ? getTimeFormat(addSecondsToTimeFormat) : ''
+    showTimeInTooltip ? getTimeFormat({displaySeconds: addSecondsToTimeFormat}) : ''
   }`.trim();
 
   return `${getFormattedDate(bucketStart, formatStart, {

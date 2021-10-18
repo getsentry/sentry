@@ -33,7 +33,7 @@ function XAxis({
 }: Props): EChartOption.XAxis {
   const axisLabelFormatter = (value: string, index: number) => {
     if (isGroupedByDate) {
-      const timeFormat = getTimeFormat(addSecondsToTimeFormat);
+      const timeFormat = getTimeFormat({displaySeconds: addSecondsToTimeFormat});
       const dateFormat = useShortDate ? 'MMM Do' : `MMM D ${timeFormat}`;
       const firstItem = index === 0;
       const format =
