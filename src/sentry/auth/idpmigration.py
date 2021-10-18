@@ -1,6 +1,7 @@
 import string
 from dataclasses import dataclass
 from datetime import timedelta
+from typing import Any, Dict
 
 from django.urls import reverse
 from django.utils.crypto import get_random_string
