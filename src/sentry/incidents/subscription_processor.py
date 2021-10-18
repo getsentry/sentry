@@ -259,7 +259,7 @@ class SubscriptionProcessor:
         # The subscription aggregation for crash rate alerts uses the Discover percentage
         # function, which would technically return a ratio of sessions_crashed/sessions and
         # so we need to calculate the crash free percentage out of that returned value
-        aggregation_value = (1 - aggregation_value) * 100
+        aggregation_value = round((1 - aggregation_value) * 100, 3)
         return aggregation_value
 
     def get_aggregation_value(self, subscription_update):

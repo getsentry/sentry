@@ -628,19 +628,24 @@ def get_incident_aggregates(
     - unique_users: Total number of unique users
     """
     query_params = build_incident_query_params(incident, start, end, windowed_stats)
-    if not use_alert_aggregate:
-        if dataset == QueryDatasets.SESSIONS:
-            query_params["aggregations"][0][2] = "count"
+    if dataset == QueryDatasets.SESSIONS:
+        query_params["aggregations"][0][2] = "count"
+        if not use_alert_aggregate:
             query_params["aggregations"][1] = ("identity", "users", "unique_users")
-        else:
+        snuba_params_list = [SnubaQueryParams(limit=10000, **query_params)]
+        results = bulk_raw_query(snuba_params_list, referrer="incidents.get_incident_aggregates")
+        if use_alert_aggregate:
+            results[0]["data"][0]["count"] = round((1 - results[0]["data"][0]["count"]) * 100, 3)
+    else:
+        if not use_alert_aggregate:
             query_params["aggregations"] = [
                 ("count()", "", "count"),
                 ("uniq", "tags[sentry:user]", "unique_users"),
             ]
-    else:
-        query_params["aggregations"][0][2] = "count"
-    snuba_params_list = [SnubaQueryParams(limit=10000, **query_params)]
-    results = bulk_raw_query(snuba_params_list, referrer="incidents.get_incident_aggregates")
+        else:
+            query_params["aggregations"][0][2] = "count"
+        snuba_params_list = [SnubaQueryParams(limit=10000, **query_params)]
+        results = bulk_raw_query(snuba_params_list, referrer="incidents.get_incident_aggregates")
     return results[0]["data"][0]
 
 
