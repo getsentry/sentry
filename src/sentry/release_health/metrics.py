@@ -1423,13 +1423,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         environments_ids: Optional[Sequence[int]] = None
 
         if environments is not None:
-            environments_ids = [
-                environment_id
-                for environment_id in [
-                    try_get_string_index(org_id, environment) for environment in environments
-                ]
-                if environment_id is not None
-            ]
+            environments_ids = get_tag_values_list(org_id, environments)
             if len(environments_ids) == 0:
                 return []
 
@@ -1444,7 +1438,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             stats_period = "24h"
 
         now = datetime.now(pytz.utc)
-        _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
+        granularity, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
 
         query_cols = [
             Column("project_id"),
@@ -1561,11 +1555,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             groupby=group_by,
             offset=Offset(offset) if offset is not None else None,
             limit=Limit(limit) if limit is not None else None,
+            granularity=Granularity(granularity),
         )
 
         rows = raw_snql_query(
             query,
-            referrer="release_health.metrics.get_changed_project_release_model_adoptions",
+            referrer="release_health.metrics.get_project_releases_by_stability",
             use_cache=False,
         )
 

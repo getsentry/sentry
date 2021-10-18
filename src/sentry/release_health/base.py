@@ -388,7 +388,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         limit: Optional[int],
         scope: str,
         stats_period: Optional[str] = None,
-        environments: Optional[str] = None,
+        environments: Optional[Sequence[str]] = None,
     ) -> Sequence[ProjectRelease]:
         """Given some project IDs returns adoption rates that should be updated
         on the postgres tables.
