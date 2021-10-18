@@ -77,7 +77,17 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 status=403,
             )
 
-        serializer = SentryAppSerializer(data=data, access=request.access)
+        serializer = SentryAppSerializer(
+            data=data,
+            access=request.access,
+            context={
+                "features": {
+                    "organizations:alert-rule-ui-component": features.has(
+                        "organizations:alert-rule-ui-component", organization, actor=request.user
+                    )
+                }
+            },
+        )
 
         if serializer.is_valid():
             data["redirect_url"] = data["redirectUrl"]

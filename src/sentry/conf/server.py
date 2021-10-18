@@ -898,6 +898,7 @@ SENTRY_FEATURES = {
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
+    "organizations:alert-rule-ui-component": False,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
