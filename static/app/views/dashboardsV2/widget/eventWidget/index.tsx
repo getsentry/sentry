@@ -65,6 +65,8 @@ type State = AsyncView['state'] & {
 };
 
 class EventWidget extends AsyncView<Props, State> {
+  shouldReload = true;
+
   getDefaultState() {
     const {widget} = this.props;
 
@@ -191,6 +193,10 @@ class EventWidget extends AsyncView<Props, State> {
     }
   };
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderBody() {
     const {
       organization,
@@ -229,6 +235,7 @@ class EventWidget extends AsyncView<Props, State> {
         />
         <Layout.Body>
           <BuildSteps>
+            <ChooseDataSetStep value={DataSet.EVENTS} onChange={onChangeDataSet} />
             <BuildStep
               title={t('Choose your visualization')}
               description={t(
@@ -266,7 +273,6 @@ class EventWidget extends AsyncView<Props, State> {
                 />
               </VisualizationWrapper>
             </BuildStep>
-            <ChooseDataSetStep value={DataSet.EVENTS} onChange={onChangeDataSet} />
             <BuildStep
               title={t('Begin your search')}
               description={t('Add another query to compare projects, tags, etc.')}
