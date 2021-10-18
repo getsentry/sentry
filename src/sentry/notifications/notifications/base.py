@@ -1,19 +1,18 @@
 import abc
-from typing import TYPE_CHECKING, Any, Dict, Mapping, MutableMapping, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Mapping, MutableMapping, Optional, Tuple, Type, Union
 
 from sentry import analytics
-from sentry.integrations.slack.message_builder import SlackAttachment
-from sentry.integrations.slack.message_builder.notifications import (
-    SlackNotificationsMessageBuilder,
-    SlackProjectNotificationsMessageBuilder,
-)
-from sentry.mail.notifications import build_subject_prefix
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import group_id_to_email
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
+    from sentry.integrations.slack.message_builder import SlackAttachment
+    from sentry.integrations.slack.message_builder.notifications import (
+        SlackNotificationsMessageBuilder,
+        SlackProjectNotificationsMessageBuilder,
+    )
     from sentry.models import Organization, Project, Team, User
     from sentry.notifications.notifications.activity.base import ActivityNotification
     from sentry.notifications.notifications.rules import AlertRuleNotification
@@ -21,11 +20,18 @@ if TYPE_CHECKING:
 
 class BaseNotification:
     fine_tuning_key: Optional[str] = None
-    SlackMessageBuilderClass = SlackNotificationsMessageBuilder  # need to override
     metrics_key: str = ""
 
     def __init__(self, organization: "Organization"):
         self.organization = organization
+
+    @property
+    def SlackMessageBuilderClass(self) -> Type["SlackNotificationsMessageBuilder"]:
+        from sentry.integrations.slack.message_builder.notifications import (
+            SlackNotificationsMessageBuilder,
+        )
+
+        return SlackNotificationsMessageBuilder
 
     def get_filename(self) -> str:
         raise NotImplementedError
@@ -76,7 +82,7 @@ class BaseNotification:
 
     def build_slack_attachment(
         self, context: Mapping[str, Any], recipient: Union["Team", "User"]
-    ) -> SlackAttachment:
+    ) -> "SlackAttachment":
         return self.SlackMessageBuilderClass(self, context, recipient).build()
 
     def record_notification_sent(
@@ -95,12 +101,19 @@ class BaseNotification:
 
 
 class ProjectNotification(BaseNotification, abc.ABC):
-    SlackMessageBuilderClass = SlackProjectNotificationsMessageBuilder
     is_message_issue_unfurl = False
 
     def __init__(self, project: "Project") -> None:
         self.project = project
         super().__init__(project.organization)
+
+    @property
+    def SlackMessageBuilderClass(self) -> Type["SlackProjectNotificationsMessageBuilder"]:
+        from sentry.integrations.slack.message_builder.notifications import (
+            SlackProjectNotificationsMessageBuilder,
+        )
+
+        return SlackProjectNotificationsMessageBuilder
 
     def get_project_link(self) -> str:
         return str(absolute_uri(f"/{self.organization.slug}/{self.project.slug}/"))
@@ -154,5 +167,7 @@ class ProjectNotification(BaseNotification, abc.ABC):
         return headers
 
     def get_subject_with_prefix(self, context: Optional[Mapping[str, Any]] = None) -> bytes:
+        from sentry.mail.notifications import build_subject_prefix
+
         prefix = build_subject_prefix(self.project)
         return f"{prefix}{self.get_subject(context)}".encode()

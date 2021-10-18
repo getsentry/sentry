@@ -1,11 +1,8 @@
 import abc
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence, Union
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence, Type, Union
 
 from sentry import analytics, features
-from sentry.integrations.slack.message_builder.organization_requests import (
-    SlackOrganizationRequestMessageBuilder,
-)
 from sentry.integrations.slack.utils.notifications import get_settings_url
 from sentry.models import OrganizationMember, Team
 from sentry.notifications.notifications.base import BaseNotification
@@ -13,18 +10,28 @@ from sentry.notifications.notify import notification_providers
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
+    from sentry.integrations.slack.message_builder.organization_requests import (
+        SlackOrganizationRequestMessageBuilder,
+    )
     from sentry.models import Organization, User
 
 logger = logging.getLogger(__name__)
 
 
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
-    SlackMessageBuilderClass = SlackOrganizationRequestMessageBuilder
     analytics_event: str = ""
 
     def __init__(self, organization: "Organization", requester: "User") -> None:
         self.organization = organization
         self.requester = requester
+
+    @property
+    def SlackMessageBuilderClass(self) -> Type["SlackOrganizationRequestMessageBuilder"]:
+        from sentry.integrations.slack.message_builder.organization_requests import (
+            SlackOrganizationRequestMessageBuilder,
+        )
+
+        return SlackOrganizationRequestMessageBuilder
 
     def get_context(self) -> MutableMapping[str, Any]:
         raise NotImplementedError
