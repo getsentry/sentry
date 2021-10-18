@@ -5,6 +5,7 @@ import {disconnectIdentity} from 'app/actionCreators/account';
 import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
+import PluginIcon from 'app/plugins/components/pluginIcon';
 import {UserIdentityCategory, UserIdentityConfig, UserIdentityStatus} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -37,14 +38,16 @@ class AccountIdentities extends AsyncView<Props, State> {
   renderItem = (identity: UserIdentityConfig) => {
     return (
       <IdentityPanelItem key={`${identity.category}:${identity.id}`}>
+        <PluginIcon pluginId={identity.provider.key} />
         <div>
           {identity.category === UserIdentityCategory.SOCIAL_IDENTITY ? (
             <span title={t('This identity links to an application.')}>&#x1F517;</span>
           ) : (
             <span title={t('This identity can be used to sign in.')}>&#x1F512;</span>
           )}
-          &nbsp;
-          {identity.providerName}
+        </div>
+        <div>
+          {identity.provider.name}
           {identity.organization && ` (${identity.organization.name})`}
         </div>
 

@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Optional, Union
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.auth.provider import Provider
 from sentry.models import AuthIdentity, Identity, Organization
 from social_auth.models import UserSocialAuth
 
@@ -27,29 +28,41 @@ IdentityType = Union[UserSocialAuth, Identity, AuthIdentity]
 
 
 @dataclass(eq=True, frozen=True)
+class UserIdentityProvider:
+    key: str
+    name: str
+
+    @classmethod
+    def adapt(cls, provider: Provider) -> "UserIdentityProvider":
+        return cls(provider.key, provider.name)
+
+
+@dataclass(eq=True, frozen=True)
 class UserIdentityConfig:
     category: str
     id: int
-    provider_name: str
+    provider: UserIdentityProvider
     status: Status
     organization: Optional[Organization]
 
     @staticmethod
     def wrap(identity: IdentityType, status: Status) -> "UserIdentityConfig":
         if isinstance(identity, UserSocialAuth):
-            provider_name = user_social_auth.get_provider_label(identity)
+            provider = UserIdentityProvider(
+                identity.provider, user_social_auth.get_provider_label(identity)
+            )
             organization = None
         elif isinstance(identity, Identity):
-            provider_name = identity.get_provider().name
+            provider = UserIdentityProvider.adapt(identity.get_provider())
             organization = None
         elif isinstance(identity, AuthIdentity):
-            provider_name = identity.auth_provider.get_provider().name
+            provider = UserIdentityProvider.adapt(identity.auth_provider.get_provider())
             organization = identity.auth_provider.organization
         else:
             raise TypeError
 
         category_key = _IDENTITY_CATEGORY_KEYS[type(identity)]
-        return UserIdentityConfig(category_key, identity.id, provider_name, status, organization)
+        return UserIdentityConfig(category_key, identity.id, provider, status, organization)
 
     def get_model_type_for_category(self) -> type:
         return _IDENTITY_CATEGORIES_BY_KEY[self.category]
@@ -61,7 +74,7 @@ class UserIdentityConfigSerializer(Serializer):
         return {
             "category": obj.category,
             "id": str(obj.id),
-            "providerName": obj.provider_name,
+            "provider": {"key": obj.provider.key, "name": obj.provider.name},
             "status": obj.status.value,
             "organization": serialize(obj.organization),
         }

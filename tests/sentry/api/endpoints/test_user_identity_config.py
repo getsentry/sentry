@@ -28,7 +28,7 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
 
         response = self.get_success_response(self.user.id, status_code=200)
 
-        identities = {(obj["category"], obj["providerName"]): obj for obj in response.data}
+        identities = {(obj["category"], obj["provider"]["key"]): obj for obj in response.data}
         assert len(identities) == 3
 
         social_ident = identities[("social-identity", "GitHub")]

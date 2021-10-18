@@ -16,7 +16,7 @@ export async function disconnectIdentity(
         method: 'DELETE',
       }
     );
-    addSuccessMessage(`Disconnected ${identity.providerName}`);
+    addSuccessMessage(`Disconnected ${identity.provider.name}`);
     onSuccess();
   } catch {
     addErrorMessage('Error disconnecting identity');

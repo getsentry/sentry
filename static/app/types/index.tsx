@@ -2067,13 +2067,18 @@ export enum UserIdentityStatus {
   NEEDED_FOR_ORG_AUTH = 'needed_for_org_auth',
 }
 
+export type UserIdentityProvider = {
+  key: string;
+  name: string;
+};
+
 /**
  * UserIdentityConfig is used in Account Identities
  */
 export type UserIdentityConfig = {
   category: UserIdentityCategory;
   id: string;
-  providerName: string;
+  provider: UserIdentityProvider;
   status: UserIdentityStatus;
   organization: Organization | null;
 };

@@ -30,7 +30,10 @@ describe('AccountIdentities', function () {
         {
           category: 'social-identity',
           id: '1',
-          providerName: 'GitHub',
+          provider: {
+            key: 'github',
+            name: 'GitHub',
+          },
           status: 'can_disconnect',
           organization: null,
         },
@@ -49,7 +52,10 @@ describe('AccountIdentities', function () {
         {
           category: 'social-identity',
           id: '1',
-          providerName: 'GitHub',
+          provider: {
+            key: 'github',
+            name: 'GitHub',
+          },
           status: 'can_disconnect',
           organization: null,
         },
