@@ -29,7 +29,10 @@ import space from 'app/styles/space';
 import {AvatarProject, DateString, Organization, Project} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import {getUtcDateString} from 'app/utils/dates';
-import {getCrashFreeRateSeries} from 'app/utils/sessions';
+import {
+  getCrashFreeRateSeries,
+  MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
+} from 'app/utils/sessions';
 import theme from 'app/utils/theme';
 import {alertDetailsLink} from 'app/views/alerts/details';
 import {makeDefaultCta} from 'app/views/alerts/incidentRules/incidentRulePresets';
@@ -319,7 +322,11 @@ class MetricChart extends React.PureComponent<Props, State> {
     );
   }
 
-  renderChart(loading: boolean, timeseriesData?: Series[]) {
+  renderChart(
+    loading: boolean,
+    timeseriesData?: Series[],
+    minutesThresholdToDisplaySeconds?: number
+  ) {
     const {
       router,
       selectedIncident,
@@ -532,6 +539,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                 {...zoomRenderProps}
                 isGroupedByDate
                 showTimeInTooltip
+                minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
                 forwardedRef={this.handleRef}
                 grid={{
                   left: 0,
@@ -654,19 +662,26 @@ class MetricChart extends React.PureComponent<Props, State> {
         groupBy={['session.status']}
       >
         {({loading, response}) =>
-          this.renderChart(loading, [
-            {
-              seriesName:
-                AlertWizardAlertNames[
-                  getAlertTypeFromAggregateDataset({aggregate, dataset: Dataset.SESSIONS})
-                ],
-              data: getCrashFreeRateSeries(
-                response?.groups,
-                response?.intervals,
-                SESSION_AGGREGATE_TO_FIELD[aggregate]
-              ),
-            },
-          ])
+          this.renderChart(
+            loading,
+            [
+              {
+                seriesName:
+                  AlertWizardAlertNames[
+                    getAlertTypeFromAggregateDataset({
+                      aggregate,
+                      dataset: Dataset.SESSIONS,
+                    })
+                  ],
+                data: getCrashFreeRateSeries(
+                  response?.groups,
+                  response?.intervals,
+                  SESSION_AGGREGATE_TO_FIELD[aggregate]
+                ),
+              },
+            ],
+            MINUTES_THRESHOLD_TO_DISPLAY_SECONDS
+          )
         }
       </SessionsRequest>
     ) : (
