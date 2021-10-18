@@ -995,7 +995,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         mock_send_one_time_account_confirm_link.assert_called_with(
             self.user,
             self.organization,
-            self.auth_provider.get_provider().name,
+            self.auth_provider,
             "bar@example.com",
             MigratingIdentityId(id="bar@example.com", legacy_id=None),
         )

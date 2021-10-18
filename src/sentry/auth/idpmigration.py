@@ -7,8 +7,8 @@ from django.urls import reverse
 from django.utils.crypto import get_random_string
 
 from sentry import options
-from sentry.models import Organization, OrganizationMember, User
-from sentry.utils import json, redis
+from sentry.models import AuthProvider, Organization, OrganizationMember, User
+from sentry.utils import json, metrics, redis
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
@@ -20,7 +20,7 @@ SSO_VERIFICATION_KEY = "confirm_account_verification_key"
 def send_one_time_account_confirm_link(
     user: User,
     org: Organization,
-    provider_name: str,
+    provider: AuthProvider,
     email: str,
     identity_id: str,
 ) -> "AccountConfirmLink":
@@ -33,11 +33,11 @@ def send_one_time_account_confirm_link(
 
     :param user: the user profile to link
     :param organization: the organization whose SSO provider is being used
-    :param provider_name: a display name for the SSO provider
+    :param provider: the SSO provider
     :param email: the email address associated with the SSO identity
     :param identity_id: the SSO identity id
     """
-    link = AccountConfirmLink(user, org, provider_name, email, identity_id)
+    link = AccountConfirmLink(user, org, provider, email, identity_id)
     link.store_in_redis()
     link.send_confirm_email()
     return link
@@ -51,7 +51,7 @@ def get_redis_cluster():
 class AccountConfirmLink:
     user: User
     organization: Organization
-    provider_name: str
+    provider: AuthProvider
     email: str
     identity_id: str
 
@@ -63,7 +63,7 @@ class AccountConfirmLink:
         context = {
             "user": self.user,
             "organization": self.organization.name,
-            "provider": self.provider_name,
+            "provider": self.provider.provider_name,
             "url": absolute_uri(
                 reverse(
                     "sentry-idp-email-verification",
@@ -81,6 +81,7 @@ class AccountConfirmLink:
             context=context,
         )
         msg.send_async([self.email])
+        metrics.incr("idpmigration.confirm_link_sent")
 
     def store_in_redis(self) -> None:
         cluster = get_redis_cluster()
@@ -92,7 +93,9 @@ class AccountConfirmLink:
             "user_id": self.user.id,
             "email": self.email,
             "member_id": member_id,
+            "organization_id": self.organization.id,
             "identity_id": self.identity_id,
+            "provider": self.provider.provider,
         }
         cluster.setex(
             self.verification_key, int(_TTL.total_seconds()), json.dumps(verification_value)
@@ -104,5 +107,11 @@ def get_verification_value_from_key(key: str) -> Dict[str, Any]:
     verification_key = f"auth:one-time-key:{key}"
     verification_value = cluster.get(verification_key)
     if verification_value:
-        return json.loads(verification_value)
+        verification_value = json.loads(verification_value)
+        metrics.incr(
+            "idpmigration.confirmation_success",
+            tags={key: verification_value.get(key) for key in ("provider", "organization_id")},
+        )
+    else:
+        metrics.incr("idpmigration.confirmation_failure")
     return verification_value

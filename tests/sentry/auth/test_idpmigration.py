@@ -3,7 +3,7 @@ import re
 from django.urls import reverse
 
 import sentry.auth.idpmigration as idpmigration
-from sentry.models import OrganizationMember
+from sentry.models import AuthProvider, OrganizationMember
 from sentry.testutils import TestCase
 
 
@@ -14,7 +14,7 @@ class IDPMigrationTests(TestCase):
         self.login_as(self.user)
         self.email = "test@example.com"
         self.org = self.create_organization()
-        self.provider = "test_provider"
+        self.provider = AuthProvider.objects.create(organization=self.org, provider="dummy")
         OrganizationMember.objects.create(organization=self.org, user=self.user)
 
     def test_send_one_time_account_confirm_link(self):
