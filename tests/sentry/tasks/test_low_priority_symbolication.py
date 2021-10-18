@@ -203,6 +203,12 @@ class TestExcessiveEventRate:
 class TestExcessiveEventDuration:
     # Configured time window of these metrics is 3 minutes.
 
+    def test_no_durations(self) -> None:
+        durations = BucketedDurationsHistograms(
+            timestamp=0, width=10, histograms=[DurationsHistogram()] * 5 * 6
+        )
+        assert not excessive_event_duration(project_id=1, durations=durations)
+
     def test_normal_rate_normal_duration(self) -> None:
         # 1 event/s for 3m, 1-5m durations
         histograms = []
