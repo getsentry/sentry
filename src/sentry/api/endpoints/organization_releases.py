@@ -40,11 +40,7 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.filter import handle_operator_negation, parse_semver
 from sentry.signals import release_created
-from sentry.snuba.sessions import (
-    STATS_PERIODS,
-    _get_project_releases_by_stability,
-    _get_project_releases_count,
-)
+from sentry.snuba.sessions import STATS_PERIODS
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip as izip
 from sentry.utils.sdk import bind_organization_context, configure_scope
