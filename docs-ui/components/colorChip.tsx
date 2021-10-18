@@ -75,7 +75,7 @@ const Wrapper = styled('span')<WrapperProps>`
   display: flex;
   align-items: center;
   border-radius: ${p => p.theme.borderRadius};
-  ${p => !p.noText && `border: solid 1px ${p.theme.gray100};`}
+  ${p => !p.noText && `border: solid 1px ${p.theme.border};`}
   ${p =>
     p.size === 'lg'
       ? `
@@ -102,7 +102,7 @@ const ColorSwatch = styled('span')<ColorSwatchProps>`
   display: inline;
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => p.background};
-  ${p => p.border && `border: solid 1px ${p.theme.gray100};`}
+  ${p => p.border && `border: solid 1px ${p.theme.border};`}
   ${p =>
     p.size === 'lg'
       ? `

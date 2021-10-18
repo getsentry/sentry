@@ -60,7 +60,7 @@ const Code = ({children, className, label}: Props) => {
   return (
     <Wrap className={className}>
       <LabelWrap>
-        <IconCode theme={theme} color="gray300" />
+        <IconCode theme={theme} color="subText" />
         {label && <Label>{label.replaceAll('_', ' ')}</Label>}
       </LabelWrap>
       <HighlightedCode className={className} ref={codeRef}>
@@ -84,8 +84,12 @@ const Wrap = styled('pre')`
     margin-top: ${space(4)};
     margin-bottom: ${space(2)};
     background: ${p => p.theme.bodyBackground};
-    border: solid 1px ${p => p.theme.gray100};
+    border: solid 1px ${p => p.theme.border};
     overflow: visible;
+    text-shadow: none;
+  }
+  & code {
+    text-shadow: none;
   }
 `;
 
@@ -97,15 +101,15 @@ const LabelWrap = styled('div')`
   left: calc(${space(2)} - ${space(1)});
   transform: translateY(-50%);
   padding: ${space(0.25)} ${space(1)};
-  background: ${p => p.theme.white};
-  border: solid 1px ${p => p.theme.gray100};
+  background: ${p => p.theme.bodyBackground};
+  border: solid 1px ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
 
 const Label = styled('p')`
   font-size: 0.875rem;
   font-weight: 600;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-transform: uppercase;
   margin-bottom: 0;
   margin-left: ${space(1)};
@@ -131,9 +135,9 @@ const CopyButton = styled('button')`
 
   font-size: 0.875rem;
   font-weight: 600;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 
   &:hover:not(:disabled) {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.textColor};
   }
 `;

@@ -68,7 +68,7 @@ const ImgWrap = styled('div')`
   position: relative;
   width: 100%;
   padding-top: 50%;
-  border: solid 1px ${p => p.theme.gray100};
+  border: solid 1px ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
 `;
@@ -113,5 +113,5 @@ const Label = styled('p')`
 `;
 const Text = styled('p')`
   margin-bottom: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

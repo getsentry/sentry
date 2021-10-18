@@ -9,7 +9,7 @@ const styles = (theme: Theme) => css`
     font-family: ${theme.text.family};
     font-feature-settings: 'liga';
     font-size: ${theme.fontSizeLarge};
-    color: ${theme.gray500};
+    color: ${theme.textColor};
   }
   div,
   p,
@@ -17,31 +17,32 @@ const styles = (theme: Theme) => css`
   button {
     font-family: ${theme.text.family};
     font-size: 1rem;
-    color: ${theme.gray500};
+    color: ${theme.textColor};
   }
 
   /** Content wraps */
   #docs-root {
     display: flex;
     justify-content: center;
-    background: ${theme.white};
+    background: ${theme.background};
   }
   .sbdocs.sbdocs-wrapper {
     padding: calc(${space(4)} * 3) calc(${space(4)} * 2);
     justify-content: flex-start;
+    background: ${theme.background};
   }
   .sbdocs.sbdocs-content {
     position: relative;
     max-width: 48em;
   }
   .sidebar-container {
-    border-right: solid 1px ${theme.gray100};
+    border-right: solid 1px ${theme.innerBorder};
   }
 
   /** Dividers */
   .sbdocs.sbdocs-hr {
     margin: calc(${space(4)} * 2) 0;
-    border-top: solid 1px ${theme.gray100};
+    border-top: solid 1px ${theme.border};
   }
 
   /** Images */
@@ -51,19 +52,19 @@ const styles = (theme: Theme) => css`
   }
   .sbdocs.sbdocs-img.with-border {
     border-radius: ${theme.borderRadius};
-    border: solid 1px ${theme.gray100};
+    border: solid 1px ${theme.border};
   }
 
   /** Body text */
   .sbdocs.sbdocs-p {
     font-family: ${theme.text.family};
     font-size: 1rem;
-    color: ${theme.gray500};
+    color: ${theme.textColor};
     margin: ${space(2)} 0;
   }
   .sbdocs.small {
     font-size: 0.875rem;
-    color: ${theme.gray300};
+    color: ${theme.subText};
   }
 
   /** Links */
@@ -79,7 +80,7 @@ const styles = (theme: Theme) => css`
     text-decoration-color: ${theme.blue200};
   }
   .sbdocs.sbdocs-a.gray-link {
-    color: ${theme.gray300};
+    color: ${theme.subText};
     text-decoration: none;
   }
   .sbdocs.sbdocs-a.gray-link:hover {
@@ -95,9 +96,9 @@ const styles = (theme: Theme) => css`
     font-family: ${theme.text.familyMono};
     font-size: 1rem;
     padding: 0.125rem 0.25rem;
-    color: ${theme.gray500};
+    color: ${theme.textColor};
     background: ${theme.bodyBackground};
-    border: solid 1px ${theme.gray100};
+    border: solid 1px ${theme.innerBorder};
   }
 
   /** Lists */
@@ -110,7 +111,7 @@ const styles = (theme: Theme) => css`
   .sbdocs.sbdocs-li:last-child {
     font-family: ${theme.text.family};
     font-size: 1rem;
-    color: ${theme.gray500};
+    color: ${theme.textColor};
     margin: ${space(1)} 0;
   }
   ul > .sbdocs.sbdocs-li ul > .sbdocs.sbdocs-li {
@@ -127,7 +128,7 @@ const styles = (theme: Theme) => css`
   .sbdocs.sbdocs-h4 {
     font-family: ${theme.text.family};
     font-weight: 600;
-    color: ${theme.gray500};
+    color: ${theme.textColor};
     border-bottom: none;
   }
   .sbdocs.sbdocs-h1 {
