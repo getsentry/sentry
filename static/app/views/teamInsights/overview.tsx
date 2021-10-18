@@ -321,7 +321,7 @@ function TeamInsightsOverview({
             <DescriptionCard
               title={t('Number of Releases')}
               description={t(
-                'Projects that had the largest difference of releases deployed compared to the 12 week average.'
+                'A breakdown showing how your team shipped releases over time. This is a signal that team velocity is high or low.'
               )}
             >
               <TeamReleases
