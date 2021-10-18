@@ -35,7 +35,10 @@ class TeamTimeToResolutionEndpoint(TeamEndpoint, EnvironmentMixin):
         sums = defaultdict(lambda: {"sum": timedelta(), "count": 0})
         for gh in history_list:
             key = str(gh["bucket"].date())
-            sums[key]["sum"] += gh["ttr"]
+            if gh["ttr"] is not None:
+                # If a `GroupHistory` row has no `prev_history_date` then this will end up being
+                # None. Isn't a problem long term, but for older data we will be missing this value.
+                sums[key]["sum"] += gh["ttr"]
             sums[key]["count"] += 1
 
         avgs = {}

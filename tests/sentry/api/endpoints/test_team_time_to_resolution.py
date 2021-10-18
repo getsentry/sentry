@@ -103,6 +103,16 @@ class TeamTimeToResolutionTest(APITestCase):
             prev_history=gh2,
             prev_history_date=gh2.date_added,
         )
+        # Make sure that if we have a `GroupHistory` row with no prev history then we don't crash.
+        GroupHistory.objects.create(
+            organization=self.organization,
+            group=group2,
+            project=project2,
+            actor=self.user.actor,
+            status=GroupHistoryStatus.DELETED,
+            prev_history=None,
+            prev_history_date=None,
+        )
 
         response = self.get_success_response(self.team.organization.slug, self.team.slug)
         assert len(response.data) == 90
