@@ -11,6 +11,7 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry.discover.arithmetic import Operation, OperationSideType, resolve_equation_list
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, ProjectTeam, ProjectTransactionThreshold
@@ -2785,15 +2786,29 @@ class QueryFields(QueryBase):
         for alias, name in FUNCTION_ALIASES.items():
             self.function_converter[alias] = self.function_converter[name].alias_as(alias)
 
-    def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
+    def resolve_select(
+        self, selected_columns: Optional[List[str]], equations: Optional[List[str]]
+    ) -> List[SelectType]:
         """Given a public list of discover fields, construct the corresponding
         list of Snql Columns or Functions. Duplicate columns are ignored
         """
+
         if selected_columns is None:
             return []
 
         resolved_columns = []
         stripped_columns = [column.strip() for column in selected_columns]
+
+        if equations:
+            _, _, parsed_equations = resolve_equation_list(
+                equations, stripped_columns, use_snql=True
+            )
+            resolved_columns.extend(
+                [
+                    self.resolve_equation(equation, f"equation[{index}]")
+                    for index, equation in enumerate(parsed_equations)
+                ]
+            )
 
         # Add threshold config alias if there's a function that depends on it
         # TODO: this should be replaced with an explicit request for the project_threshold_config as a column
@@ -2859,6 +2874,24 @@ class QueryFields(QueryBase):
             return self.aliased_column(field, raw_field) if alias else self.column(field)
         else:
             raise InvalidSearchQuery(f"Invalid characters in field {field}")
+
+    def resolve_equation(self, equation: Operation, alias: Optional[str] = None) -> SelectType:
+        """Convert this tree of Operations to the equivalent snql functions"""
+        lhs = self._resolve_equation_side(equation.lhs)
+        rhs = self._resolve_equation_side(equation.rhs)
+        result = Function(equation.operator, [lhs, rhs], alias)
+        return result
+
+    def _resolve_equation_side(self, side: OperationSideType) -> Union[SelectType, float]:
+        if isinstance(side, Operation):
+            return self.resolve_equation(side)
+        elif isinstance(side, float):
+            return side
+        else:
+            return self.resolve_column(side)
+
+    def is_equation_column(self, column: SelectType) -> bool:
+        return isinstance(column, CurriedFunction) and column.alias.startswith("equation[")
 
     def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
         """Given a list of public aliases, optionally prefixed by a `-` to
