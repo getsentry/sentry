@@ -4,7 +4,7 @@ from django.db.models import Max
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
-from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
+from sentry.discover.arithmetic import ArithmeticError, categorize_columns, resolve_equation_list
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Dashboard,
@@ -70,7 +70,10 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         equations, fields = categorize_columns(fields)
 
         if equations is not None:
-            resolved_equations, _ = resolve_equation_list(equations, fields)
+            try:
+                resolved_equations, _ = resolve_equation_list(equations, fields)
+            except (InvalidSearchQuery, ArithmeticError) as err:
+                raise serializers.ValidationError({"fields": f"Invalid fields: {err}"})
         else:
             resolved_equations = []
 
