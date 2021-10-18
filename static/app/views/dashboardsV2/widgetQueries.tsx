@@ -14,11 +14,11 @@ import {
   EventsStats,
   GlobalSelection,
   MultiSeriesEventsStats,
-  Organization,
+  OrganizationSummary,
 } from 'app/types';
 import {Series} from 'app/types/echarts';
 import {parsePeriodToHours} from 'app/utils/dates';
-import {TableData} from 'app/utils/discover/discoverQuery';
+import {TableData, TableDataWithTitle} from 'app/utils/discover/discoverQuery';
 import {getAggregateFields} from 'app/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
@@ -98,15 +98,13 @@ function transformResult(query: WidgetQuery, result: RawResult): Series[] {
 
 type Props = {
   api: Client;
-  organization: Organization;
+  organization: OrganizationSummary;
   widget: Widget;
   selection: GlobalSelection;
   children: (
     props: Pick<State, 'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage'>
   ) => React.ReactNode;
 };
-
-type TableDataWithTitle = TableData & {title: string};
 
 type State = {
   errorMessage: undefined | string;
