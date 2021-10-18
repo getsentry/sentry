@@ -210,8 +210,8 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         limit: Optional[int],
         scope: str,
         stats_period: Optional[str] = None,
-        environments: Optional[str] = None,
+        environments: Optional[Sequence[str]] = None,
     ) -> Sequence[ProjectRelease]:
-        return _get_project_releases_by_stability(
+        return _get_project_releases_by_stability(  # type: ignore
             project_ids, offset, limit, scope, stats_period, environments
         )
