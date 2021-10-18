@@ -63,7 +63,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
 
         :auth required:
         """
-        # temporary solution for both renaming and regenerating recovery code
+        # TODO temporary solution for both renaming and regenerating recovery code. Need to find new home for regenerating recovery codes as it doesn't really do what put is supposed to do
         try:
             authenticator = Authenticator.objects.get(user=user, id=auth_id)
         except (ValueError, Authenticator.DoesNotExist):
