@@ -486,7 +486,6 @@ def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _DataPoints:
                 bucketed_time=row.pop("bucketed_time", None),
                 project_id=row.pop("project_id", None),
             )
-
             # Percentile column expands into multiple "virtual" columns:
             if "percentiles" in row:
                 # TODO: Use percentile enum

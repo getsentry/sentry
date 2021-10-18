@@ -1062,6 +1062,7 @@ class QueryFilter(QueryFields):
             ERROR_UNHANDLED_ALIAS: self._error_unhandled_filter_converter,
             TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
             RELEASE_STAGE_ALIAS: self._release_stage_filter_converter,
+            RELEASE_ALIAS: self._release_filter_converter,
             SEMVER_ALIAS: self._semver_filter_converter,
             SEMVER_PACKAGE_ALIAS: self._semver_package_filter_converter,
             SEMVER_BUILD_ALIAS: self._semver_build_filter_converter,
@@ -1669,6 +1670,26 @@ class QueryFilter(QueryFields):
             versions = [SEMVER_EMPTY_RELEASE]
 
         return Condition(self.column("release"), Op.IN, versions)
+
+    def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        """Parse releases for potential aliases like `latest`"""
+        values = [
+            parse_release(
+                v,
+                self.params["project_id"],
+                self.params.get("environment_objects"),
+                self.params.get("organization_id"),
+            )
+            for v in to_list(search_filter.value.value)
+        ]
+
+        return self._default_filter_converter(
+            SearchFilter(
+                search_filter.key,
+                search_filter.operator,
+                SearchValue(values if search_filter.is_in_filter else values[0]),
+            )
+        )
 
     def _semver_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """
