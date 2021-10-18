@@ -227,8 +227,11 @@ build-utils/        @getsentry/owners-js-build
 
 ### Enterprise ###
 
-/src/sentry/api/endpoints/organization_auditlogs.py  @getsentry/enterprise
+/static/app/views/organizationStats                  @getsentry/enterprise
+/tests/js/spec/views/organizationStats/              @getsentry/enterprise
 /src/sentry/api/endpoints/organization_stats*.py     @getsentry/enterprise
+
+/src/sentry/api/endpoints/organization_auditlogs.py  @getsentry/enterprise
 /src/sentry/scim/                                    @getsentry/enterprise
 /tests/sentry/api/test_scim.py                       @getsentry/enterprise
 

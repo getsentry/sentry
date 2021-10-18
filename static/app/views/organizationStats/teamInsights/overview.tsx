@@ -234,7 +234,7 @@ function TeamInsightsOverview({
             <DescriptionCard
               title={t('Crash Free Sessions')}
               description={t(
-                'The percentage of healthy, errored, and abnormal sessions that did not cause a crash.'
+                'The percentage of healthy, errored, and abnormal sessions that didn’t cause a crash.'
               )}
             >
               <TeamStability
@@ -250,7 +250,7 @@ function TeamInsightsOverview({
             <DescriptionCard
               title={t('User Misery')}
               description={t(
-                'User Misery shows the number of unique users that experienced load times 4x the project’s configured threshold.'
+                'The number of unique users that experienced load times 4x the project’s configured threshold.'
               )}
             >
               <TeamMisery
@@ -265,9 +265,7 @@ function TeamInsightsOverview({
 
             <DescriptionCard
               title={t('Metric Alerts Triggered')}
-              description={t(
-                'These are the alerts triggered from the Alert Rules your team created.'
-              )}
+              description={t('Alerts triggered from the Alert Rules your team created.')}
             >
               <TeamAlertsTriggered
                 organization={organization}
@@ -283,7 +281,7 @@ function TeamInsightsOverview({
             <DescriptionCard
               title={t('Issues Reviewed')}
               description={t(
-                'Issues that were triaged by your team taking an action on them such as resolving, ignoring, marking as reviewed, or deleting.'
+                'Issues triaged by your team taking an action on them such as resolving, ignoring, marking as reviewed, or deleting.'
               )}
             >
               <TeamIssuesReviewed
@@ -299,8 +297,7 @@ function TeamInsightsOverview({
             <DescriptionCard
               title={t('Time to Resolution')}
               description={t(
-                `This shows the mean time it took for issues to be resolved by your team.
-                 If issues took a long time to resolve, this could be a problem that your team needs to fix.`
+                `The mean time it took for issues to be resolved by your team.`
               )}
             >
               <TeamResolutionTime
@@ -315,7 +312,7 @@ function TeamInsightsOverview({
             <DescriptionCard
               title={t('Number of Releases')}
               description={t(
-                'A breakdown showing how your team shipped releases over time. This is a signal that team velocity is high or low.'
+                'A breakdown showing how your team shipped releases over time.'
               )}
             >
               <TeamReleases

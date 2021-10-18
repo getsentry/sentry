@@ -12,7 +12,7 @@ const TableOuter = styled('div')`
   width: 100%;
   margin: ${space(2)} 0;
   overflow: hidden;
-  border: solid 1px ${p => p.theme.gray100};
+  border: solid 1px ${p => p.theme.border};
   border-radius: 4px;
 `;
 
@@ -29,12 +29,12 @@ export const Table = ({children}) => (
 
 export const TableHead = styled('thead')`
   background: ${p => p.theme.bodyBackground};
-  border-bottom: solid 1px ${p => p.theme.gray100};
+  border-bottom: solid 1px ${p => p.theme.border};
 `;
 
 export const TableHeadCell = styled('th')<TableCellProps>`
   font-size: 0.875em;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   padding: ${space(1)} 0;
   text-transform: uppercase;
 
@@ -57,7 +57,7 @@ export const TableBody = styled('tbody')``;
 
 export const TableRow = styled('tr')`
   &:not(:last-child) {
-    border-bottom: solid 1px ${p => p.theme.gray100};
+    border-bottom: solid 1px ${p => p.theme.innerBorder};
   }
 `;
 

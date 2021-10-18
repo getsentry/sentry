@@ -51,6 +51,11 @@ from sentry.models import (
     remove_group_from_inbox,
 )
 from sentry.models.group import STATUS_UPDATE_CHOICES, looks_like_short_id
+from sentry.models.grouphistory import (
+    activity_type_to_history_status,
+    record_group_history,
+    record_group_history_from_activity_type,
+)
 from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, add_group_to_inbox
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.signals import (
@@ -641,7 +646,6 @@ def update_groups(
     status = result.get("status")
     release = None
     commit = None
-
     if status in ("resolved", "resolvedInNextRelease"):
         if status == "resolvedInNextRelease" or statusDetails.get("inNextRelease"):
             # TODO(jess): We may want to support this for multi project, but punting on it for now
@@ -736,7 +740,6 @@ def update_groups(
                 res_status = GroupResolution.Status.resolved
             except IndexError:
                 release = None
-
         for group in group_list:
             with transaction.atomic():
                 resolution = None
@@ -881,6 +884,10 @@ def update_groups(
                         ident=resolution.id if resolution else None,
                         data=activity_data,
                     )
+                    history_status = activity_type_to_history_status(activity_type)
+                    if history_status is not None:
+                        record_group_history(group, history_status, actor=acting_user)
+
                     # TODO(dcramer): we need a solution for activity rollups
                     # before sending notifications on bulk changes
                     if not is_bulk:
@@ -961,7 +968,6 @@ def update_groups(
                     result["statusDetails"] = {}
             else:
                 result["statusDetails"] = {}
-
         if group_list and happened:
             if new_status == GroupStatus.UNRESOLVED:
                 activity_type = Activity.SET_UNRESOLVED
@@ -1020,6 +1026,8 @@ def update_groups(
                     user=acting_user,
                     data=activity_data,
                 )
+                record_group_history_from_activity_type(group, activity_type, actor=acting_user)
+
                 # TODO(dcramer): we need a solution for activity rollups
                 # before sending notifications on bulk changes
                 if not is_bulk:

@@ -82,7 +82,7 @@ function TeamMisery({
           t('Key transaction'),
           t('Project'),
           tct('Last [period]', {period}),
-          t('This Week'),
+          t('Last 7 Days'),
           <RightAligned key="change">{t('Change')}</RightAligned>,
         ]}
         isLoading={isLoading}
