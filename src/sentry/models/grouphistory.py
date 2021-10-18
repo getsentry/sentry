@@ -100,7 +100,7 @@ def record_group_history_from_activity_type(group, activity_type, actor=None, re
     maps to it
     """
     status = activity_type_to_history_status(activity_type)
-    if status:
+    if status is not None:
         return record_group_history(group, status, actor, release)
 
 
