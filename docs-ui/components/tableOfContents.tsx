@@ -19,7 +19,7 @@ const Content = styled('div')`
 
   & > .toc-wrapper > .toc-list {
     padding-left: 0;
-    border-left: solid 2px ${p => p.theme.gray100};
+    border-left: solid 2px ${p => p.theme.border};
   }
   & .toc-list-item {
     position: relative;
@@ -33,7 +33,7 @@ const Content = styled('div')`
     top: 0;
     left: 0;
     transform: translateX(calc(-2px - ${space(2)}));
-    border-left: solid 2px ${p => p.theme.gray500};
+    border-left: solid 2px ${p => p.theme.textColor};
     opacity: 0;
     transition: opacity 0.2s;
   }
@@ -41,18 +41,18 @@ const Content = styled('div')`
     opacity: 1;
   }
   & .toc-list-item > a {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
   & .toc-list-item.is-active-li > a {
     font-weight: 600;
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.textColor};
   }
 `;
 
 const Heading = styled('p')`
   font-weight: 600;
   font-size: 0.875em;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.textColor};
   text-transform: uppercase;
   margin-bottom: ${space(1)};
 `;
