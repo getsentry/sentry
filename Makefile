@@ -118,7 +118,7 @@ test-symbolicator:
 
 test-chartcuterie:
 	@echo "--> Running chartcuterie tests"
-	pytest tests/chartcuterie -vv --cov . --cov-report="xml:.artifacts/chartcuterie.coverage.xml" --junit-xml=".artifacts/chartcuterie.junit.xml"
+	pytest tests/chartcuterie/test_chart_renderer.py::TestChartRenderer::test_debug_renders -vv --cov . --cov-report="xml:.artifacts/chartcuterie.coverage.xml" --junit-xml=".artifacts/chartcuterie.junit.xml"
 	@echo ""
 
 test-acceptance: node-version-check
