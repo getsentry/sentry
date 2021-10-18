@@ -27,8 +27,8 @@ import Header from '../header';
 import {DataSet, DisplayType, displayTypes} from '../utils';
 
 import Card from './card';
+import FiltersAndGroups from './filtersAndGroups';
 import Queries from './queries';
-import SearchQueryField from './searchQueryField';
 import {MetricMeta, MetricQuery} from './types';
 
 type Props = AsyncView['props'] & {
@@ -44,16 +44,18 @@ type Props = AsyncView['props'] & {
   onChangeDataSet: (dataSet: DataSet) => void;
 };
 
-type State = AsyncView['state'] & {
-  title: string;
-  displayType: DisplayType;
-  metricMetas: MetricMeta[] | null;
-  metricTags: string[] | null;
-  queries: MetricQuery[];
-  searchQuery?: string;
-};
+type State = AsyncView['state'] &
+  Pick<React.ComponentProps<typeof FiltersAndGroups>, 'groupBy' | 'searchQuery'> & {
+    title: string;
+    displayType: DisplayType;
+    metricMetas: MetricMeta[] | null;
+    metricTags: string[] | null;
+    queries: MetricQuery[];
+  };
 
 class MetricWidget extends AsyncView<Props, State> {
+  shouldReload = true;
+
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -104,6 +106,7 @@ class MetricWidget extends AsyncView<Props, State> {
   handleFieldChange = <F extends keyof State>(field: F, value: State[F]) => {
     this.setState(state => {
       const newState = cloneDeep(state);
+      set(newState, field, value);
 
       if (field === 'displayType') {
         if (
@@ -116,8 +119,14 @@ class MetricWidget extends AsyncView<Props, State> {
             widgetErrors: undefined,
           };
         }
+      }
 
-        set(newState, field, value);
+      if (field === 'groupBy') {
+        return {
+          ...newState,
+          queries: newState.queries.map(query => ({...query, groupBy: value})),
+          widgetErrors: undefined,
+        };
       }
 
       return {...newState, widgetErrors: undefined};
@@ -173,6 +182,10 @@ class MetricWidget extends AsyncView<Props, State> {
     return !projectId || typeof projectId !== 'string';
   }
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderBody() {
     const {
       organization,
@@ -185,7 +198,7 @@ class MetricWidget extends AsyncView<Props, State> {
       goBackLocation,
       dashboardTitle,
     } = this.props;
-    const {title, metricTags, searchQuery, metricMetas, queries, displayType} =
+    const {title, metricTags, searchQuery, groupBy, metricMetas, queries, displayType} =
       this.state;
     const orgSlug = organization.slug;
 
@@ -224,6 +237,7 @@ class MetricWidget extends AsyncView<Props, State> {
         />
         <Layout.Body>
           <BuildSteps>
+            <ChooseDataSetStep value={DataSet.METRICS} onChange={onChangeDataSet} />
             <BuildStep
               title={t('Choose your visualization')}
               description={t(
@@ -260,7 +274,6 @@ class MetricWidget extends AsyncView<Props, State> {
                 />
               </VisualizationWrapper>
             </BuildStep>
-            <ChooseDataSetStep value={DataSet.METRICS} onChange={onChangeDataSet} />
             <BuildStep
               title={t('Choose your project')}
               description={t('You’ll need to select a project to set metrics on.')}
@@ -310,32 +323,36 @@ class MetricWidget extends AsyncView<Props, State> {
               />
             </BuildStep>
             <BuildStep
-              title={t('Begin your search')}
-              description={t('Select a tag to compare releases, session data, etc.')}
-            >
-              <SearchQueryField
-                api={this.api}
-                tags={metricTags}
-                orgSlug={orgSlug}
-                projectSlug={selectedProject.slug}
-                query={searchQuery}
-                onSearch={newQuery => this.handleFieldChange('searchQuery', newQuery)}
-                onBlur={newQuery => this.handleFieldChange('searchQuery', newQuery)}
-              />
-            </BuildStep>
-            <BuildStep
-              title={t('Add queries')}
+              title={t('Choose your metrics')}
               description={t(
                 'We’ll use this to determine what gets graphed in the y-axis and any additional overlays.'
               )}
             >
               <Queries
                 metricMetas={metricMetas}
-                metricTags={metricTags}
                 queries={queries}
                 onAddQuery={this.handleAddQuery}
                 onRemoveQuery={this.handleRemoveQuery}
                 onChangeQuery={this.handleChangeQuery}
+              />
+            </BuildStep>
+            <BuildStep
+              title={t('Add filters and groups')}
+              description={t('Select a tag to compare releases, session data, etc.')}
+            >
+              <FiltersAndGroups
+                api={this.api}
+                orgSlug={organization.slug}
+                projSlug={selectedProject.slug}
+                metricTags={metricTags}
+                searchQuery={searchQuery}
+                groupBy={groupBy}
+                onChangeSearchQuery={value => {
+                  this.handleFieldChange('searchQuery', value);
+                }}
+                onChangeGroupBy={value => {
+                  this.handleFieldChange('groupBy', value);
+                }}
               />
             </BuildStep>
           </BuildSteps>

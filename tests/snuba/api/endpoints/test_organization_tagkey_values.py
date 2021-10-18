@@ -286,6 +286,12 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
     def setUp(self):
         super().setUp()
         data = load_data("transaction", timestamp=before_now(minutes=1))
+        data.update(
+            {
+                "measurements": {"lcp": {"value": 2500}},
+                "breakdowns": {"span_ops": {"ops.http": {"value": 1500}}},
+            }
+        )
         self.store_event(data, project_id=self.project.id)
         self.transaction = data.copy()
         self.transaction.update(
@@ -339,6 +345,18 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         self.run_test("transaction.duration", expected=[("5000", 1), ("3000", 1)])
         self.run_test("transaction.duration", qs_params={"query": "5001"}, expected=[("5000", 1)])
         self.run_test("transaction.duration", qs_params={"query": "50"}, expected=[])
+
+    def test_measurements(self):
+        self.run_test("measurements.lcp", expected=[("2500.0", 2)])
+        self.run_test("measurements.lcp", qs_params={"query": "2501"}, expected=[("2500.0", 2)])
+        self.run_test("measurements.lcp", qs_params={"query": "25"}, expected=[])
+        self.run_test("measurements.foo", expected=[])
+
+    def test_span_ops_breakdowns(self):
+        self.run_test("spans.http", expected=[("1500.0", 2)])
+        self.run_test("spans.http", qs_params={"query": "1501"}, expected=[("1500.0", 2)])
+        self.run_test("spans.http", qs_params={"query": "15"}, expected=[])
+        self.run_test("spans.bar", expected=[])
 
     def test_transaction_title(self):
         self.run_test("transaction", expected=[("/city_by_code/", 1), ("/country_by_code/", 1)])
