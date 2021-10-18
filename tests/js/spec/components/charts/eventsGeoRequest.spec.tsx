@@ -70,7 +70,6 @@ describe('EventsRequest', function () {
     });
 
     it('renders with error if request errors', async function () {
-      // @ts-expect-error
       jest.spyOn(genericDiscoverQuery, 'doDiscoverQuery').mockImplementation(() => {
         return Promise.reject();
       });
