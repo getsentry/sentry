@@ -534,7 +534,7 @@ def _get_crash_free_breakdown(project_id, release, start, environments=None):
     return rv
 
 
-def get_project_release_stats(project_id, release, stat, rollup, start, end, environments=None):
+def _get_project_release_stats(project_id, release, stat, rollup, start, end, environments=None):
     assert stat in ("users", "sessions")
 
     # since snuba end queries are exclusive of the time and we're bucketing to

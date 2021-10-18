@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional, Tuple, Union, cast
+from typing import Any, Mapping, Optional, Tuple, Union, cast, overload
 
 import pytz
 from dateutil.parser import parse
@@ -33,7 +33,17 @@ def to_timestamp(value: datetime) -> float:
     return (value - epoch).total_seconds()
 
 
-def to_datetime(value: Any) -> Optional[datetime]:
+@overload
+def to_datetime(value: None) -> None:
+    ...
+
+
+@overload
+def to_datetime(value: Union[float, int]) -> datetime:
+    ...
+
+
+def to_datetime(value: Optional[Union[float, int]]) -> Optional[datetime]:
     """
     Convert a POSIX timestamp to a time zone aware datetime.
 

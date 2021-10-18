@@ -5,7 +5,6 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectEventsError, Projec
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseProject
-from sentry.snuba.sessions import get_project_release_stats
 from sentry.utils.dates import get_rollup_from_request
 
 
@@ -63,7 +62,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
         if release is None:
             raise ResourceDoesNotExist
 
-        stats, totals = get_project_release_stats(
+        stats, totals = release_health.get_project_release_stats(
             project_id=params["project_id"][0],
             release=version,
             stat=stats_type,
