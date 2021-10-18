@@ -249,7 +249,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
             <RightAligned key="last">
               {tct('Last [period] Average', {period})}
             </RightAligned>,
-            <RightAligned key="curr">{t('This Week')}</RightAligned>,
+            <RightAligned key="curr">{t('Last 7 Days')}</RightAligned>,
             <RightAligned key="diff">{t('Difference')}</RightAligned>,
           ]}
         >
