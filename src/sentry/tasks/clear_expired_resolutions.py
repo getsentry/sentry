@@ -46,4 +46,5 @@ def clear_expired_resolutions(release_id):
         except IndexError:
             continue
 
+        # TODO: Do we need to write a `GroupHistory` row here?
         activity.update(data={"version": release.version})

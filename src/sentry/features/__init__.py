@@ -78,6 +78,7 @@ default_manager.add("organizations:event-attachments-viewer", OrganizationFeatur
 default_manager.add("organizations:events", OrganizationFeature)
 default_manager.add("organizations:filters-and-sampling", OrganizationFeature, True)
 default_manager.add("organizations:global-views", OrganizationFeature)
+default_manager.add("organizations:group-history", OrganizationFeature)
 default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-title-ui", OrganizationFeature, True)

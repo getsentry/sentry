@@ -938,6 +938,8 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable multi project selection
     "organizations:global-views": False,
+    # Enable writing group history
+    "organizations:group-history": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
     # Enable experimental new version of stacktrace component where additional
