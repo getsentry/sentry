@@ -107,12 +107,8 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
 
 def excessive_event_rate(project_id: int, event_counts: BucketedCounts) -> bool:
     """Whether the project is sending too many symbolication requests."""
-    recent_time_window = 60
-
-    total_rate = event_counts.total_count() / event_counts.total_time()
-
-    recent_bucket_count = int(recent_time_window / event_counts.width)
-    recent_rate = sum(event_counts.counts[-recent_bucket_count:]) / recent_time_window
+    total_rate = event_counts.rate(event_counts.TOTAL_PERIOD)
+    recent_rate = event_counts.rate(period=60)
 
     metrics.gauge(
         "symbolication.lpq.computation.rate.total", total_rate, tags={"project_id": project_id}
@@ -137,9 +133,7 @@ def excessive_event_duration(project_id: int, durations: BucketedDurationsHistog
         p75_duration = total_histogram.percentile(0.75)
     except ValueError:
         return False
-    events_per_minute = total_histogram.total_count() / (
-        durations.width * len(durations.histograms) / 60
-    )
+    events_per_minute = total_histogram.total_count() / (durations.total_time() / 60)
 
     metrics.gauge(
         "symbolication.lpq.computation.durations.p75", p75_duration, tags={"project_id": project_id}

@@ -1,8 +1,15 @@
 import collections
 import dataclasses
-from typing import DefaultDict, Iterable, List, Set
+import enum
+from typing import ClassVar, DefaultDict, Iterable, List, Set, Union
 
 from sentry.utils.services import Service
+
+
+class _Period(enum.Enum):
+    """An enum to represent a singleton, for mypy's sake."""
+
+    TOTAL_PERIOD = 0
 
 
 @dataclasses.dataclass(frozen=True)
@@ -17,6 +24,8 @@ class BucketedCounts:
     width: int
     counts: List[int]
 
+    TOTAL_PERIOD: ClassVar[_Period] = _Period.TOTAL_PERIOD
+
     def total_time(self) -> int:
         """Returns the total timespan covered by all buckets in seconds."""
         return self.width * len(self.counts)
@@ -24,6 +33,27 @@ class BucketedCounts:
     def total_count(self) -> int:
         """Returns the sum of the counts in all the buckets."""
         return sum(self.counts)
+
+    def rate(self, period: Union[int, _Period] = TOTAL_PERIOD) -> float:
+        """Computes the rate of counts in the buckets for the given period.
+
+        The period must either be the special value :attr:`BucketedCounts.TOTAL_PERIOD` or a
+        number of seconds.  In the latter case the rate of the most recent number of seconds
+        will be computed.
+
+        :raises ValueError: if the given number of seconds is smaller than the
+           :attr:`BucketedCounts.width`.
+        """
+        if period is self.TOTAL_PERIOD:
+            timespan = len(self.counts) * self.width
+        else:
+            if period < self.width:
+                raise ValueError(
+                    f"Buckets of {self.width}s are too small to compute rate over {period}s"
+                )
+            timespan = period
+        bucket_count = int(timespan / self.width)
+        return sum(self.counts[-bucket_count:]) / timespan
 
 
 class DurationsHistogram:
@@ -92,6 +122,10 @@ class BucketedDurationsHistograms:
     timestamp: int
     width: int
     histograms: List[DurationsHistogram]
+
+    def total_time(self) -> int:
+        """Returns the total timespan covered by the buckets in seconds."""
+        return self.width * len(self.histograms)
 
 
 class RealtimeMetricsStore(Service):  # type: ignore
