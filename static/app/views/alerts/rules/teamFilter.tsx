@@ -71,11 +71,11 @@ function TeamFilter({
       filtered: false,
     },
   ];
-  const teamItems = teams.map(({id, name}) => ({
-    label: name,
+  const teamItems = teams.map(({id, slug}) => ({
+    label: slug,
     value: id,
     filtered: teamFilterSearch
-      ? !name.toLowerCase().includes(teamFilterSearch.toLowerCase())
+      ? !slug.toLowerCase().includes(teamFilterSearch.toLowerCase())
       : false,
     checked: selectedTeams.has(id),
   }));
@@ -85,7 +85,7 @@ function TeamFilter({
       header={
         <StyledInput
           autoFocus
-          placeholder={t('Filter by team name')}
+          placeholder={t('Filter by team slug')}
           onClick={event => {
             event.stopPropagation();
           }}

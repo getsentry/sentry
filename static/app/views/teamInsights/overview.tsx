@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
@@ -26,6 +27,7 @@ import HeaderTabs from './headerTabs';
 import TeamAlertsTriggered from './teamAlertsTriggered';
 import TeamIssuesReviewed from './teamIssuesReviewed';
 import TeamMisery from './teamMisery';
+import TeamReleases from './teamReleases';
 import TeamResolutionTime from './teamResolutionTime';
 import TeamStability from './teamStability';
 
@@ -59,6 +61,7 @@ function TeamInsightsOverview({
   location,
   router,
 }: Props) {
+  const theme = useTheme();
   const query = location?.query ?? {};
   const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
 
@@ -176,12 +179,45 @@ function TeamInsightsOverview({
         {!loadingTeams && (
           <Layout.Main fullWidth>
             <ControlsWrapper>
-              <TeamSelector
+              <StyledTeamSelector
                 name="select-team"
+                inFieldLabel={t('Team: ')}
                 value={currentTeam?.slug}
                 isLoading={loadingTeams}
                 onChange={choice => handleChangeTeam(choice.actor.id)}
                 teamFilter={filterTeam => filterTeam.isMember}
+                styles={{
+                  singleValue(provided: any) {
+                    const custom = {
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: theme.fontSizeMedium,
+                      ':before': {
+                        ...provided[':before'],
+                        color: theme.textColor,
+                        marginRight: space(1.5),
+                        marginLeft: space(0.5),
+                      },
+                    };
+                    return {...provided, ...custom};
+                  },
+                  input: (provided: any, state: any) => ({
+                    ...provided,
+                    display: 'grid',
+                    gridTemplateColumns: 'max-content 1fr',
+                    alignItems: 'center',
+                    gridGap: space(1),
+                    ':before': {
+                      backgroundColor: state.theme.backgroundSecondary,
+                      height: 24,
+                      width: 38,
+                      borderRadius: 3,
+                      content: '""',
+                      display: 'block',
+                    },
+                  }),
+                }}
               />
               <StyledPageTimeRangeSelector
                 organization={organization}
@@ -282,6 +318,22 @@ function TeamInsightsOverview({
                 location={location}
               />
             </DescriptionCard>
+            <DescriptionCard
+              title={t('Number of Releases')}
+              description={t(
+                'Projects that had the largest difference of releases deployed compared to the 12 week average.'
+              )}
+            >
+              <TeamReleases
+                projects={projects}
+                organization={organization}
+                teamSlug={currentTeam!.slug}
+                period={period}
+                start={start}
+                end={end}
+                utc={utc}
+              />
+            </DescriptionCard>
           </Layout.Main>
         )}
       </Body>
@@ -323,8 +375,18 @@ const ControlsWrapper = styled('div')`
   }
 `;
 
+const StyledTeamSelector = styled(TeamSelector)`
+  & > div {
+    box-shadow: ${p => p.theme.dropShadowLight};
+  }
+`;
+
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
-  flex-grow: 1;
+  height: 40px;
+
+  div {
+    min-height: unset;
+  }
 `;
 
 const SectionTitle = styled(Layout.Title)`

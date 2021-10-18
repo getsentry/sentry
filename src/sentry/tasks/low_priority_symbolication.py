@@ -11,6 +11,11 @@ This has three major tasks, executed in the following general order:
 import logging
 import time
 
+import sentry_sdk
+from typing_extensions import Literal
+
+from sentry import options
+from sentry.killswitches import normalize_value
 from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.base import (
     BucketedCounts,
@@ -19,7 +24,6 @@ from sentry.processing.realtime_metrics.base import (
 )
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils import sdk as sentry_sdk
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +36,10 @@ logger = logging.getLogger(__name__)
 )
 def scan_for_suspect_projects() -> None:
     """Scans and updates the list of projects assigned to the low priority queue."""
-    _scan_for_suspect_projects()
+    try:
+        _scan_for_suspect_projects()
+    finally:
+        _record_metrics()
 
 
 def _scan_for_suspect_projects() -> None:
@@ -54,8 +61,7 @@ def _scan_for_suspect_projects() -> None:
     realtime_metrics.remove_projects_from_lpq(expired_projects)
 
     for project_id in expired_projects:
-        # TODO: add metrics!
-        logger.warning("Moved project out of symbolicator's low priority queue: %s", project_id)
+        _report_change(project_id=project_id, change="removed", reason="no metrics")
 
 
 @instrumented_task(  # type: ignore
@@ -73,7 +79,10 @@ def update_lpq_eligibility(project_id: int, cutoff: int) -> None:
     should consider when calculating a project's eligibility. In other words, only data recorded
     before `cutoff` should be considered.
     """
-    _update_lpq_eligibility(project_id, cutoff)
+    try:
+        _update_lpq_eligibility(project_id, cutoff)
+    finally:
+        _record_metrics()
 
 
 def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
@@ -89,17 +98,11 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
     if excessive_rate or excessive_duration:
         was_added = realtime_metrics.add_project_to_lpq(project_id)
         if was_added:
-            if excessive_rate:
-                reason = "excessive event rate"
-            else:
-                reason = "excessive event duration"
-            sentry_sdk.capture_message(
-                f"Moved project {project_id} to symbolicator's LPQ: {reason}"
-            )
+            _report_change(project_id=project_id, change="added", reason="eligible")
     else:
         was_removed = realtime_metrics.remove_projects_from_lpq({project_id})
         if was_removed:
-            logger.warning("Moved project %s out of symbolicator's LPQ", project_id)
+            _report_change(project_id=project_id, change="removed", reason="ineligible")
 
 
 def excessive_event_rate(project_id: int, event_counts: BucketedCounts) -> bool:
@@ -151,3 +154,52 @@ def excessive_event_duration(project_id: int, durations: BucketedDurationsHistog
         return True
     else:
         return False
+
+
+def _report_change(project_id: int, change: Literal["added", "removed"], reason: str) -> None:
+    if not reason:
+        reason = "unknown"
+
+    if change == "added":
+        message = "Added project to symbolicator's low priority queue"
+    else:
+        message = "Removed project from symbolicator's low priority queue"
+
+    with sentry_sdk.push_scope() as scope:
+        scope.set_level("warning")
+        scope.set_tag("project", project_id)
+        scope.set_tag("reason", reason)
+        sentry_sdk.capture_message(message)
+
+
+def _record_metrics() -> None:
+    project_count = len(realtime_metrics.get_lpq_projects())
+    metrics.gauge(
+        "tasks.store.symbolicate_event.low_priority.projects.auto",
+        project_count,
+    )
+
+    # The manual kill switch is a list of configurations where each config item corresponds to one
+    # project affected by the switch. The general idea is to grab the raw option, validate its
+    # contents, and then assume that the length of the validated list corresponds to the number of
+    # projects in that switch.
+
+    always_included_raw = options.get(
+        "store.symbolicate-event-lpq-always",
+    )
+    always_included = len(
+        normalize_value("store.symbolicate-event-lpq-always", always_included_raw)
+    )
+    metrics.gauge(
+        "tasks.store.symbolicate_event.low_priority.projects.manual.always",
+        always_included,
+    )
+
+    never_included_raw = options.get(
+        "store.symbolicate-event-lpq-never",
+    )
+    never_included = len(normalize_value("store.symbolicate-event-lpq-never", never_included_raw))
+    metrics.gauge(
+        "tasks.store.symbolicate_event.low_priority.projects.manual.never",
+        never_included,
+    )
