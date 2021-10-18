@@ -2747,7 +2747,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["apdex_300"] == "number"
         assert meta["failure_rate"] == "percentage"
         assert meta["user_misery_300"] == "number"
-        assert meta["count_miserable_user_300"] == "number"
+        assert meta["count_miserable_user_300"] == "integer"
 
         data = response.data["data"]
         assert len(data) == 1
@@ -2800,10 +2800,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["apdex"] == "number"
         assert meta["failure_rate"] == "percentage"
         assert meta["user_misery_300"] == "number"
-        assert meta["count_miserable_user_300"] == "number"
+        assert meta["count_miserable_user_300"] == "integer"
         assert meta["project_threshold_config"] == "string"
         assert meta["user_misery"] == "number"
-        assert meta["count_miserable_user"] == "number"
+        assert meta["count_miserable_user"] == "integer"
 
         data = response.data["data"]
         assert len(data) == 1
