@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
+from sentry import buffer
 from sentry.db.models import BoundedBigIntegerField, BoundedPositiveIntegerField, Model, sane_repr
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
@@ -63,17 +64,17 @@ class GroupRelease(Model):
                     ),
                     False,
                 )
-            cache.set(cache_key, instance, 3600)
         else:
             created = False
 
-        # TODO(dcramer): this would be good to buffer, but until then we minimize
-        # updates to once a minute, and allow Postgres to optimistically skip
-        # it even if we can't
         if not created and instance.last_seen < datetime - timedelta(seconds=60):
-            cls.objects.filter(
-                id=instance.id, last_seen__lt=datetime - timedelta(seconds=60)
-            ).update(last_seen=datetime)
+            buffer.incr(
+                model=cls,
+                columns={},
+                filters={"id": instance.id},
+                extra={"last_seen": datetime},
+            )
             instance.last_seen = datetime
-            cache.set(cache_key, instance, 3600)
+
+        cache.set(cache_key, instance, 3600)
         return instance

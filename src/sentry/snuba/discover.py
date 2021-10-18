@@ -241,6 +241,7 @@ def query(
             query=query,
             selected_columns=selected_columns,
             orderby=orderby,
+            auto_fields=auto_fields,
             auto_aggregations=auto_aggregations,
             use_aggregate_conditions=use_aggregate_conditions,
             functions_acl=functions_acl,
@@ -546,11 +547,8 @@ def timeseries_query(
         # If we have two sets of results then we're doing a comparison queries. Divide the primary
         # results by the comparison results.
         for result, cmp_result in zip(results[0], results[1]):
-            result_val, cmp_result_val = result.get(col_name, 0), cmp_result.get(col_name, 0)
-            comparison_value = 0
-            if cmp_result_val:
-                comparison_value = ((result_val / cmp_result_val) - 1) * 100
-            result[col_name] = comparison_value
+            cmp_result_val = cmp_result.get(col_name, 0)
+            result["comparisonCount"] = cmp_result_val
 
     results = results[0]
 

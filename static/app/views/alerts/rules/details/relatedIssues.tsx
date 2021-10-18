@@ -11,7 +11,6 @@ import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {OrganizationSummary, Project} from 'app/types';
-import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/alerts/incidentRules/constants';
 import {IncidentRule} from 'app/views/alerts/incidentRules/types';
 
 import {TimePeriodType} from './constants';
@@ -21,6 +20,7 @@ type Props = {
   rule: IncidentRule;
   projects: Project[];
   timePeriod: TimePeriodType;
+  query?: string;
 };
 
 class RelatedIssues extends Component<Props> {
@@ -37,7 +37,7 @@ class RelatedIssues extends Component<Props> {
   };
 
   render() {
-    const {rule, projects, organization, timePeriod} = this.props;
+    const {rule, projects, organization, timePeriod, query} = this.props;
     const {start, end} = timePeriod;
 
     const path = `/organizations/${organization.slug}/issues/`;
@@ -48,12 +48,7 @@ class RelatedIssues extends Component<Props> {
       limit: 5,
       ...(rule.environment ? {environment: rule.environment} : {}),
       sort: rule.aggregate === 'count_unique(user)' ? 'user' : 'freq',
-      query: [
-        rule.query,
-        rule.eventTypes?.length
-          ? `event.type:[${rule.eventTypes.join(`, `)}]`
-          : DATASET_EVENT_TYPE_FILTERS[rule.dataset],
-      ].join(' '),
+      query,
       project: projects.map(project => project.id),
     };
     const issueSearch = {

@@ -230,6 +230,23 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
         assert len(mail.outbox) == 0
 
+    def test_require_2fa__can_delete_last_auth_superuser(self):
+        self._require_2fa_for_organization()
+
+        superuser = self.create_user(email="a@example.com", is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        # enroll in one auth method
+        interface = TotpInterface()
+        interface.enroll(self.user)
+        auth = interface.authenticator
+
+        with self.tasks():
+            self.get_success_response(self.user.id, auth.id, method="delete", status_code=204)
+            assert_security_email_sent("mfa-removed")
+
+        assert not Authenticator.objects.filter(id=auth.id).exists()
+
     def test_require_2fa__delete_with_multiple_auth__ok(self):
         self._require_2fa_for_organization()
 

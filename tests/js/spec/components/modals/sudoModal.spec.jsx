@@ -1,6 +1,5 @@
-import {act} from 'react-dom/test-utils';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';

@@ -297,6 +297,27 @@ class Columns(Enum):
         "span_op_breakdowns.value",
         "span_op_breakdowns_value",
     )
+    SPANS_OP = Column(
+        None,
+        None,
+        "spans.op",
+        "spans.op",
+        "spans_op",
+    )
+    SPANS_GROUP = Column(
+        None,
+        None,
+        "spans.group",
+        "spans.group",
+        "spans_group",
+    )
+    SPANS_EXCLUSIVE_TIME = Column(
+        None,
+        None,
+        "spans.exclusive_time",
+        "spans.exclusive_time",
+        "spans_exclusive_time",
+    )
     # Tracing context fields.
     TRACE_ID = Column(
         "events.contexts[trace.trace_id]",
