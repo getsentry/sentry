@@ -161,7 +161,6 @@ class TestUpdateLpqEligibility:
         _update_lpq_eligibility(17, 10)
         assert store.get_lpq_projects() == set()
 
-    # TODO: Update once calculation_magic is implemented
     def test_not_eligible_recently_moved(self, store: RealtimeMetricsStore) -> None:
         store._backoff_timer = 10
         store.add_project_to_lpq(17)
