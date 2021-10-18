@@ -188,10 +188,11 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .dropdown-menu {
           color: ${theme.textColor};
           background-color: ${theme.background} !important;
-          border: 1px solid ${theme.gray400};
+          border: 1px solid ${theme.border};
           &:after,
           &:before {
-            border-top-color: ${theme.gray400} !important;
+            border-top-color: ${theme.border} !important;
+            border-bottom-color: ${theme.border} !important;
           }
         }
         .context-summary .context-item.darwin .context-item-icon,

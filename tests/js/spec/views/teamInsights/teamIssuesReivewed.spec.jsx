@@ -1,4 +1,4 @@
-import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import TeamIssuesReviewed from 'app/views/teamInsights/teamIssuesReviewed';
 
@@ -11,7 +11,7 @@ describe('TeamIssuesReviewed', () => {
       url: `/teams/${organization.slug}/${team.slug}/issue-breakdown/`,
       body: TestStubs.TeamIssuesReviewed(),
     });
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <TeamIssuesReviewed
         organization={organization}
         projects={[project]}
@@ -21,14 +21,14 @@ describe('TeamIssuesReviewed', () => {
     );
 
     await waitFor(() => {
-      expect(wrapper.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     });
 
-    expect(wrapper.getByText('javascript')).toBeInTheDocument();
+    expect(screen.getByText('javascript')).toBeInTheDocument();
     // Total
-    expect(wrapper.getByText('40')).toBeInTheDocument();
+    expect(screen.getByText('40')).toBeInTheDocument();
     // Reviewed
-    expect(wrapper.getByText('11')).toBeInTheDocument();
+    expect(screen.getByText('11')).toBeInTheDocument();
     expect(timeToResolutionApi).toHaveBeenCalledTimes(1);
   });
 });

@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple
 from snuba_sdk.column import Column
 from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Limit, Offset
+from snuba_sdk.function import CurriedFunction
 from snuba_sdk.orderby import LimitBy
 from snuba_sdk.query import Query
 
@@ -22,6 +23,7 @@ class QueryBuilder(QueryFilter):
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
+        auto_fields: bool = False,
         auto_aggregations: bool = False,
         use_aggregate_conditions: bool = False,
         functions_acl: Optional[List[str]] = None,
@@ -29,7 +31,7 @@ class QueryBuilder(QueryFilter):
         offset: Optional[int] = 0,
         limitby: Optional[Tuple[str, int]] = None,
     ):
-        super().__init__(dataset, params, functions_acl)
+        super().__init__(dataset, params, auto_fields, functions_acl)
 
         # TODO: implement this in `resolve_select`
         self.auto_aggregations = auto_aggregations
@@ -70,9 +72,31 @@ class QueryBuilder(QueryFilter):
     @property
     def groupby(self) -> Optional[List[SelectType]]:
         if self.aggregates:
+            self.validate_aggregate_arguments()
             return [c for c in self.columns if c not in self.aggregates]
         else:
             return []
+
+    def validate_aggregate_arguments(self):
+        for column in self.columns:
+            if column in self.aggregates:
+                continue
+            conflicting_functions: List[CurriedFunction] = []
+            for aggregate in self.aggregates:
+                if column in aggregate.parameters:
+                    conflicting_functions.append(aggregate)
+            if conflicting_functions:
+                # The first two functions and then a trailing count of remaining functions
+                function_msg = ", ".join(
+                    [self.get_public_alias(function) for function in conflicting_functions[:2]]
+                ) + (
+                    f" and {len(conflicting_functions) - 2} more."
+                    if len(conflicting_functions) > 2
+                    else ""
+                )
+                raise InvalidSearchQuery(
+                    f"A single field cannot be used both inside and outside a function in the same query. To use {column.alias} you must first remove the function(s): {function_msg}"
+                )
 
     def validate_having_clause(self):
         error_extra = ", and could not be automatically added" if self.auto_aggregations else ""

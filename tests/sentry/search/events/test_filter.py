@@ -2493,7 +2493,7 @@ def _project(x):
 )
 def test_snql_boolean_search(description, query, expected_where, expected_having):
     dataset = Dataset.Discover
-    params: ParamsType = {}
+    params: ParamsType = {"project_id": 1}
     query_filter = QueryFilter(dataset, params)
     where, having = query_filter.resolve_conditions(query, use_aggregate_conditions=True)
     assert where == expected_where, description
