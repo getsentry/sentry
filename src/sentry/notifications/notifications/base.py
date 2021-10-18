@@ -1,4 +1,5 @@
 import abc
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, Mapping, MutableMapping, Optional, Tuple, Type, Union
 
 from sentry import analytics
@@ -14,6 +15,16 @@ if TYPE_CHECKING:
         SlackProjectNotificationsMessageBuilder,
     )
     from sentry.models import Organization, Project, Team, User
+
+
+@dataclass
+class MessageAction:
+    label: str
+    url: str
+    style: Optional[str]
+
+    def as_slack(self) -> Mapping[str, Any]:
+        return {"text": self.label, "name": self.label, "url": self.url, "style": self.style}
 
 
 class BaseNotification:
@@ -120,7 +131,7 @@ class ProjectNotification(BaseNotification, abc.ABC):
         self, recipient: Union["Team", "User"], provider: ExternalProviders
     ) -> None:
         analytics.record(
-            f"integrations.{provider.name}.notification_sent",
+            f"integrations.{provider.name.lower()}.notification_sent",
             actor_id=recipient.id,
             category=self.get_category(),
             organization_id=self.organization.id,

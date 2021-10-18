@@ -95,6 +95,7 @@ def get_builder_args(
     shared_context: Optional[Mapping[str, Any]],
     extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
 ) -> Mapping[str, Any]:
+    # TODO: move context logic to single notification class method
     extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
     context = get_context(notification, recipient, shared_context or {}, extra_context)
     return {

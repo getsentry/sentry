@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequen
 from sentry import analytics, features
 from sentry.integrations.slack.utils.notifications import get_settings_url
 from sentry.models import OrganizationMember, Team
-from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.base import BaseNotification, MessageAction
 from sentry.notifications.notify import notification_providers
 from sentry.types.integrations import ExternalProviders
 
@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
     analytics_event: str = ""
+    referrer: str = ""
 
     def __init__(self, organization: "Organization", requester: "User") -> None:
         self.organization = organization
@@ -35,6 +36,10 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
 
     def get_context(self) -> MutableMapping[str, Any]:
         raise NotImplementedError
+
+    @property
+    def sentry_query_params(self) -> str:
+        return "?referrer=" + self.referrer
 
     def determine_recipients(self) -> Iterable[Union["Team", "User"]]:
         """
@@ -77,6 +82,9 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         raise NotImplementedError
 
     def get_actions(self) -> Sequence[Mapping[str, str]]:
+        return [message_action.as_slack() for message_action in self.get_message_actions()]
+
+    def get_message_actions(self) -> Sequence[MessageAction]:
         raise NotImplementedError
 
     def build_notification_footer(self, recipient: Union["Team", "User"]) -> str:
