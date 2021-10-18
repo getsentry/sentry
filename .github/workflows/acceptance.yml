@@ -211,6 +211,7 @@ jobs:
         python-version: [3.6.13, 3.8.12]
         instance: [0]
     env:
+      TEST_GROUP_STRATEGY: roundrobin
       VISUAL_SNAPSHOT_ENABLE: 1
 
     steps:
