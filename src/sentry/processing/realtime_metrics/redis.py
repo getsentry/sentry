@@ -172,10 +172,6 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         buckets = range(first_bucket, now_bucket + bucket_size, bucket_size)
         keys = [f"{self._counter_key_prefix()}:{project_id}:{ts}" for ts in buckets]
-        from pprint import pprint
-
-        pprint(keys)
-
         counts = self.cluster.mget(keys)
         return base.BucketedCounts(
             timestamp=buckets[0], width=bucket_size, counts=[int(c) if c else 0 for c in counts]
