@@ -1801,7 +1801,7 @@ FUNCTIONS = {
                     " ", ""
                 ),
             ),
-            default_result_type="number",
+            default_result_type="integer",
         ),
         DiscoverFunction(
             "user_misery",
