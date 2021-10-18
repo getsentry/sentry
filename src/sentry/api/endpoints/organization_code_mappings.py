@@ -24,11 +24,11 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     stack_root = gen_path_regex_field()
     source_root = gen_path_regex_field()
     default_branch = serializers.RegexField(
-        r"^(^(?![\/]))([\w\/-]+)(?<![\/])$",
+        r"^(^(?![\/]))([\w\.\/-]+)(?<![\/])$",
         required=True,
         error_messages={
             "invalid": _(
-                "Branch name may only have letters, numbers, underscores, forward slashes and dashes. Branch name may not start or end with a forward slash."
+                "Branch name may only have letters, numbers, underscores, forward slashes, dashes and periods. Branch name may not start or end with a forward slash."
             )
         },
     )

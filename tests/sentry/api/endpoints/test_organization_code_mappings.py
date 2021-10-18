@@ -298,6 +298,10 @@ class OrganizationCodeMappingsTest(APITestCase):
         response = self.make_post({"defaultBranch": "prod/deploy-branch"})
         assert response.status_code == 201, response.content
 
+    def test_period_in_branch(self):
+        response = self.make_post({"defaultBranch": "release-2.0.0"})
+        assert response.status_code == 201, response.content
+
     def test_leading_forward_slash_in_branch_conflict(self):
         response = self.make_post({"defaultBranch": "/prod/deploy-branch"})
         assert response.status_code == 400
