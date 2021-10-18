@@ -176,6 +176,11 @@ class TestExcessiveEventRate:
         event_counts = BucketedCounts(timestamp=0, width=10, counts=[600] * 12)
         assert not excessive_event_rate(project_id=1, event_counts=event_counts)
 
+    def test_low_rate_no_spike(self) -> None:
+        # 1 event/s for 2 minutes
+        event_counts = BucketedCounts(timestamp=0, width=10, counts=[10] * 12)
+        assert not excessive_event_rate(project_id=1, event_counts=event_counts)
+
     def test_low_rate_spike(self) -> None:
         # 0 events for 5m, then 5 events/10s for 1m
         # total event rate = 30/360 = 1/12,
@@ -189,6 +194,10 @@ class TestExcessiveEventRate:
         # recent event rate = 3600/60 = 60 > 5 * total event rate
         event_counts = BucketedCounts(timestamp=0, width=10, counts=[0] * 30 + [600] * 6)
         assert excessive_event_rate(project_id=1, event_counts=event_counts)
+
+    def test_flatline(self) -> None:
+        event_counts = BucketedCounts(timestamp=0, width=10, counts=[0] * 12)
+        assert not excessive_event_rate(project_id=1, event_counts=event_counts)
 
 
 class TestExcessiveEventDuration:
