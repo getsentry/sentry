@@ -79,8 +79,12 @@ instead of group deletion is:
 
 import hashlib
 import logging
+import uuid
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, List, Union
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
+
+import redis
 
 if TYPE_CHECKING:
     from typing_extensions import Literal
@@ -95,12 +99,11 @@ from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.utils import json, snuba
 from sentry.utils.cache import cache_key_for_event
+from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import get_path, set_path
 
 logger = logging.getLogger("sentry.reprocessing")
-
-_REDIS_SYNC_TTL = 3600 * 24
 
 
 # Group-related models are only a few per-group and are migrated at
@@ -347,7 +350,94 @@ def _get_info_reprocessed_key(group_id):
     return f"re2:info:{group_id}"
 
 
-def mark_event_reprocessed(data=None, group_id=None, project_id=None):
+def buffered_handle_remaining_events(
+    project_id: int,
+    old_group_id: int,
+    new_group_id: int,
+    datetime_to_event: List[Tuple[datetime, str]],
+    remaining_events,
+    force_flush_batch: bool = False,
+):
+    """
+    A quick-and-dirty wrapper around `handle_remaining_events` that batches up
+    event IDs in Redis. We need this because Snuba cannot handle many tiny
+    messages and prefers big ones instead.
+
+    For optimal performance, the datetimes should be close to each other. This
+    "soft" precondition is fulfilled in `reprocess_group` by iterating through
+    events in timestamp order.
+
+    Ideally we'd have batching implemented via a service like buffers, but for
+    more than counters.
+    """
+
+    client = _get_sync_redis_client()
+    # We explicitly cluster by only project_id and group_id here such that our
+    # RENAME command later succeeds.
+    #
+    # We also use legacy string formatting here because new-style Python
+    # formatting is quite confusing when the output string is supposed to
+    # contain {}.
+    key = f"re2:remaining:{{{project_id}:{old_group_id}}}"
+
+    if datetime_to_event:
+        llen = client.lpush(
+            key,
+            *(f"{to_timestamp(datetime)};{event_id}" for datetime, event_id in datetime_to_event),
+        )
+        client.expire(key, settings.SENTRY_REPROCESSING_SYNC_TTL)
+    else:
+        llen = client.llen(key)
+
+    if force_flush_batch or llen > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE:
+        new_key = f"{key}:{uuid.uuid4().hex}"
+
+        try:
+            # Rename `key` to a new temp key that is passed to celery task. We
+            # use `renamenx` instead of `rename` only to detect UUID collisions.
+            assert client.renamenx(key, new_key), "UUID collision for new_key?"
+        except redis.exceptions.ResponseError:
+            # `key` does not exist in Redis. `ResponseError` is a bit too broad
+            # but it seems we'd have to do string matching on error message
+            # otherwise.
+            return
+
+        from sentry.tasks.reprocessing2 import handle_remaining_events
+
+        handle_remaining_events.delay(
+            project_id=project_id,
+            old_group_id=old_group_id,
+            new_group_id=new_group_id,
+            remaining_events=remaining_events,
+            event_ids_redis_key=new_key,
+        )
+
+
+def pop_remaining_event_ids_from_redis(key):
+    client = _get_sync_redis_client()
+    event_ids_batch = []
+    min_datetime = None
+    max_datetime = None
+
+    for row in client.lrange(key, 0, -1):
+        datetime_raw, event_id = row.split(";")
+        datetime = to_datetime(float(datetime_raw))
+
+        assert datetime is not None
+
+        if min_datetime is None or datetime < min_datetime:
+            min_datetime = datetime
+        if max_datetime is None or datetime > max_datetime:
+            max_datetime = datetime
+
+        event_ids_batch.append(event_id)
+
+    client.delete(key)
+
+    return event_ids_batch, min_datetime, max_datetime
+
+
+def mark_event_reprocessed(data=None, group_id=None, project_id=None, num_events=1):
     """
     This function is supposed to be unconditionally called when an event has
     finished reprocessing, regardless of whether it has been saved or not.
@@ -362,7 +452,7 @@ def mark_event_reprocessed(data=None, group_id=None, project_id=None):
         project_id = data["project"]
 
     key = _get_sync_counter_key(group_id)
-    if _get_sync_redis_client().decr(key) == 0:
+    if _get_sync_redis_client().decrby(key, num_events) == 0:
         from sentry.tasks.reprocessing2 import finish_reprocessing
 
         finish_reprocessing.delay(project_id=project_id, group_id=group_id)
@@ -417,7 +507,7 @@ def start_group_reprocessing(
 
     # Get event counts of issue (for all environments etc). This was copypasted
     # and simplified from groupserializer.
-    event_count = snuba.aliased_query(
+    event_count = sync_count = snuba.aliased_query(
         aggregations=[["count()", "", "times_seen"]],  # select
         dataset=snuba.Dataset.Events,  # from
         conditions=[["group_id", "=", group_id], ["project_id", "=", project_id]],  # where
@@ -425,7 +515,7 @@ def start_group_reprocessing(
     )["data"][0]["times_seen"]
 
     if max_events is not None:
-        event_count = min(event_count, max_events)
+        event_count = min(max_events, event_count)
 
     # Create activity on *old* group as that will serve the landing page for our
     # reprocessing status
@@ -445,11 +535,13 @@ def start_group_reprocessing(
     date_created = new_activity.datetime
 
     client = _get_sync_redis_client()
-    client.setex(_get_sync_counter_key(group_id), _REDIS_SYNC_TTL, event_count)
+    client.setex(_get_sync_counter_key(group_id), settings.SENTRY_REPROCESSING_SYNC_TTL, sync_count)
     client.setex(
         _get_info_reprocessed_key(group_id),
-        _REDIS_SYNC_TTL,
-        json.dumps({"dateCreated": date_created, "totalEvents": event_count}),
+        settings.SENTRY_REPROCESSING_SYNC_TTL,
+        json.dumps(
+            {"dateCreated": date_created, "syncCount": sync_count, "totalEvents": event_count}
+        ),
     )
 
     return new_group.id
@@ -473,4 +565,10 @@ def get_progress(group_id):
     if info is None:
         logger.error("reprocessing2.missing_info")
         return 0, None
-    return int(pending), json.loads(info)
+
+    info = json.loads(info)
+    # Our internal sync counters are counting over *all* events, but the
+    # progressbar in the frontend goes until max_events. Advance progressbar
+    # proportionally.
+    pending = int(int(pending) * info["totalEvents"] / float(info.get("syncCount") or 1))
+    return pending, info

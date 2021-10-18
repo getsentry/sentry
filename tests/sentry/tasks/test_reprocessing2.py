@@ -48,8 +48,8 @@ def _create_user_report(evt):
 
 
 @pytest.fixture(autouse=True)
-def reprocessing_feature(monkeypatch):
-    monkeypatch.setattr("sentry.tasks.reprocessing2.GROUP_REPROCESSING_CHUNK_SIZE", 1)
+def reprocessing_feature(settings):
+    settings.SENTRY_REPROCESSING_PAGE_SIZE = 1
 
     with Feature({"organizations:reprocessing-v2": True}):
         yield
