@@ -177,7 +177,7 @@ class TeamStability extends AsyncComponent<Props, State> {
         headers={[
           t('Project'),
           <RightAligned key="last">{tct('Last [period]', {period})}</RightAligned>,
-          <RightAligned key="curr">{t('This Week')}</RightAligned>,
+          <RightAligned key="curr">{t('Last 7 Days')}</RightAligned>,
           <RightAligned key="diff">{t('Difference')}</RightAligned>,
         ]}
       >
