@@ -256,7 +256,7 @@ function TeamInsightsOverview({
             <DescriptionCard
               title={t('User Misery')}
               description={t(
-                'This shows the number of unique users that experienced load times 4x the project’s configured threshold.'
+                'The number of unique users that experienced load times 4x the project’s configured threshold.'
               )}
             >
               <TeamMisery
@@ -303,7 +303,7 @@ function TeamInsightsOverview({
             <DescriptionCard
               title={t('Time to Resolution')}
               description={t(
-                `This shows the mean time it took for issues to be resolved by your team.`
+                `The mean time it took for issues to be resolved by your team.`
               )}
             >
               <TeamResolutionTime
