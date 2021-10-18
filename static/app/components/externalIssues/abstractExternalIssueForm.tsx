@@ -160,7 +160,7 @@ export default class AbstractExternalIssueForm<
     const modifiedLabel = (
       <React.Fragment>
         <QuestionTooltip
-          title={tct('This is your current default [label].', {
+          title={tct('This is your current [label].', {
             label: field.label,
           })}
           size="xs"
