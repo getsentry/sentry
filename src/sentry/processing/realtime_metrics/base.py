@@ -26,12 +26,6 @@ class BucketedCounts:
         return sum(self.counts)
 
 
-# # Duration to count mapping where the keys are durations and the values are counts. This represents
-# # some `count` instances of some action where each individual instance some
-# # [`duration`, `duration`+10) seconds of time to complete. `duration` is stored in seconds.
-# DurationsHistogram = NewType("DurationsHistogram", Dict[int, int])
-
-
 class DurationsHistogram:
     """A histogram with fixed bucket sizes.
 
