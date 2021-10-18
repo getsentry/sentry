@@ -14,8 +14,6 @@ if TYPE_CHECKING:
         SlackProjectNotificationsMessageBuilder,
     )
     from sentry.models import Organization, Project, Team, User
-    from sentry.notifications.notifications.activity.base import ActivityNotification
-    from sentry.notifications.notifications.rules import AlertRuleNotification
 
 
 class BaseNotification:
@@ -130,6 +128,9 @@ class ProjectNotification(BaseNotification, abc.ABC):
         )
 
     def get_log_params(self, recipient: Union["Team", "User"]) -> Dict[str, Any]:
+        from sentry.notifications.notifications.activity.base import ActivityNotification
+        from sentry.notifications.notifications.rules import AlertRuleNotification
+
         extra = {"project_id": self.project.id, **super().get_log_params(recipient)}
         group = getattr(self, "group", None)
         if group:
