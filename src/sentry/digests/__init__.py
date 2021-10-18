@@ -19,7 +19,7 @@ backend.expose(locals())
 class Record(namedtuple("Record", "key value timestamp")):
     @property
     def datetime(self) -> Optional[datetime]:
-        return to_datetime(self.timestamp)
+        return to_datetime(self.timestamp)  # type: ignore
 
 
 ScheduleEntry = namedtuple("ScheduleEntry", "key timestamp")
