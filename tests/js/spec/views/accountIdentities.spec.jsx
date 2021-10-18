@@ -3,7 +3,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {Client} from 'app/api';
 import AccountIdentities from 'app/views/settings/account/accountIdentities';
 
-const ENDPOINT = '/users/me/social-identities/';
+const ENDPOINT = '/users/me/user-identities/';
 
 describe('AccountIdentities', function () {
   beforeEach(function () {
@@ -28,9 +28,11 @@ describe('AccountIdentities', function () {
       method: 'GET',
       body: [
         {
+          category: 'social-identity',
           id: '1',
-          provider: 'github',
-          providerLabel: 'GitHub',
+          providerName: 'GitHub',
+          status: 'can_disconnect',
+          organization: null,
         },
       ],
     });
@@ -45,9 +47,11 @@ describe('AccountIdentities', function () {
       method: 'GET',
       body: [
         {
+          category: 'social-identity',
           id: '1',
-          provider: 'github',
-          providerLabel: 'GitHub',
+          providerName: 'GitHub',
+          status: 'can_disconnect',
+          organization: null,
         },
       ],
     });
@@ -55,7 +59,7 @@ describe('AccountIdentities', function () {
     const wrapper = mountWithTheme(<AccountIdentities />, TestStubs.routerContext());
 
     const disconnectRequest = {
-      url: `${ENDPOINT}1/`,
+      url: `${ENDPOINT}social-identity/1/`,
       method: 'DELETE',
     };
 
@@ -67,7 +71,7 @@ describe('AccountIdentities', function () {
 
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith(
-      `${ENDPOINT}1/`,
+      `${ENDPOINT}social-identity/1/`,
       expect.objectContaining({
         method: 'DELETE',
       })
