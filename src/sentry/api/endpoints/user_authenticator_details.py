@@ -12,6 +12,13 @@ from sentry.security import capture_security_activity
 class UserAuthenticatorDetailsEndpoint(UserEndpoint):
     permission_classes = (OrganizationUserPermission,)
 
+    def _get_device_for_rename(self, authenticator, interface_device_id):
+        devices = authenticator.config
+        for device in devices["devices"]:
+            if device["binding"]["keyHandle"] == interface_device_id:
+                return device
+        return None
+
     @sudo_required
     def get(self, request, user, auth_id):
         """
@@ -70,11 +77,11 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         if request.data.get("name"):
-            devices = authenticator.config
-            for device in devices["devices"]:
-                if device["binding"]["keyHandle"] == interface_device_id:
-                    device["name"] = request.data.get("name")
-                    authenticator.save()
+            device = self._get_device_for_rename(authenticator, interface_device_id)
+            if not device:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            device["name"] = request.data.get("name")
+            authenticator.save()
 
             return Response(status=status.HTTP_201_CREATED)
 
