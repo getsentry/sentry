@@ -18,7 +18,7 @@ def gen_path_regex_field():
     )
 
 
-BRANCH_NAME_ERROR_MESSAGE = "Branch name may only have letters, numbers, underscores, forward slashes, dashes and periods. Branch name may not start or end with a forward slash."
+BRANCH_NAME_ERROR_MESSAGE = "Branch name may only have letters, numbers, underscores, forward slashes, dashes, and periods. Branch name may not start or end with a forward slash."
 
 
 class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
