@@ -2351,9 +2351,29 @@ SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
 
 SENTRY_USE_UWSGI = True
 
+# When copying attachments for to-be-reprocessed events into processing store,
+# how large is an individual file chunk? Each chunk is stored as Redis key.
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
 
+# Which cluster is used to store auxiliary data for reprocessing. Note that
+# this cluster is not used to store attachments etc, that still happens on
+# rc-processing. This is just for buffering up event IDs and storing a counter
+# for synchronization/progress report.
 SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
+
+# How long can reprocessing take before we start deleting its Redis keys?
+SENTRY_REPROCESSING_SYNC_TTL = 3600 * 24
+
+# How many events to query for at once while paginating through an entire
+# issue. Note that this needs to be kept in sync with the time-limits on
+# `sentry.tasks.reprocessing2.reprocess_group`. That task is responsible for
+# copying attachments from filestore into redis and can easily take a couple of
+# seconds per event. Better play it safe!
+SENTRY_REPROCESSING_PAGE_SIZE = 10
+
+# How many event IDs to buffer up in Redis before sending them to Snuba. This
+# is about "remaining events" exclusively.
+SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE = 500
 
 # Which backend to use for RealtimeMetricsStore.
 #

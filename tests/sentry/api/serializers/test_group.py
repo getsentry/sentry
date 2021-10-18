@@ -332,6 +332,7 @@ class GroupSerializerTest(TestCase):
         assert result["statusDetails"] == {
             "pendingEvents": 0,
             "info": {
+                "syncCount": 0,
                 "totalEvents": 0,
                 "dateCreated": result["statusDetails"]["info"]["dateCreated"],
             },
