@@ -22,8 +22,9 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeamsForUser from 'app/utils/withTeamsForUser';
 
+import Header from '../header';
+
 import DescriptionCard from './descriptionCard';
-import HeaderTabs from './headerTabs';
 import TeamAlertsTriggered from './teamAlertsTriggered';
 import TeamIssuesReviewed from './teamIssuesReviewed';
 import TeamMisery from './teamMisery';
@@ -165,14 +166,7 @@ function TeamInsightsOverview({
 
   return (
     <Fragment>
-      <BorderlessHeader>
-        <StyledHeaderContent>
-          <StyledLayoutTitle>{t('Projects')}</StyledLayoutTitle>
-        </StyledHeaderContent>
-      </BorderlessHeader>
-      <Layout.Header>
-        <HeaderTabs organization={organization} activeTab="teamInsights" />
-      </Layout.Header>
+      <Header organization={organization} activeTab="team" />
 
       <Body>
         {loadingTeams && <LoadingIndicator />}
@@ -350,18 +344,6 @@ const Body = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: block;
   }
-`;
-
-const BorderlessHeader = styled(Layout.Header)`
-  border-bottom: 0;
-`;
-
-const StyledHeaderContent = styled(Layout.HeaderContent)`
-  margin-bottom: 0;
-`;
-
-const StyledLayoutTitle = styled(Layout.Title)`
-  margin-top: ${space(0.5)};
 `;
 
 const ControlsWrapper = styled('div')`
