@@ -231,9 +231,9 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         from sentry.api.endpoints.organization_sessions import release_health
 
-        expected_status_code = 200 if release_health.is_metrics_based else 400
+        expected_status_code = 200 if release_health.is_metrics_based() else 400
         assert response.status_code == expected_status_code, response.content
-        if not release_health.is_metrics_based:
+        if not release_health.is_metrics_based():
             assert response.data == {
                 "detail": "The interval has to be a multiple of the minimum interval of one hour."
             }
