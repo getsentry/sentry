@@ -6,7 +6,7 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {tct} from 'app/locale';
-import {Choices, IntegrationIssueConfig, IssueConfigField} from 'app/types';
+import {Choices, IntegrationIssueConfig, IssueConfigField, SelectValue} from 'app/types';
 import {FormField} from 'app/views/alerts/issueRuleEditor/ruleNode';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
@@ -139,7 +139,7 @@ export default class AbstractExternalIssueForm<
    */
   updateFetchedFieldOptionsCache = (
     field: IssueConfigField,
-    result: {value: string; label: string}[]
+    result: SelectValue<string | number>[]
   ): void => {
     const {fetchedFieldOptionsCache} = this.state;
     this.setState({
@@ -150,33 +150,45 @@ export default class AbstractExternalIssueForm<
     });
   };
 
-  cleanOptionsResult = (field: IssueConfigField, result) => {
+  /**
+   * Ensures current result from Async select fields is never discarded. Without this method,
+   * searching in an async select field without selecting one of the returned choices will
+   * result in a value saved to the form, and no associated label; appearing empty.
+   * @param field The field being examined
+   * @param result The result from it's asynchronous query
+   * @returns The result with a tooltip attached to the current option
+   */
+  ensureCurrentOption = (
+    field: IssueConfigField,
+    result: SelectValue<string | number>[]
+  ): SelectValue<string | number>[] => {
     const currentOption = this.getDefaultOptions(field).find(
       option => option.value === this.model.getValue(field.name)
     );
     if (!currentOption) {
       return result;
     }
-    const modifiedLabel = (
-      <React.Fragment>
-        <QuestionTooltip
-          title={tct('This is your current [label].', {
-            label: field.label,
-          })}
-          size="xs"
-        />{' '}
-        {currentOption.label}
-      </React.Fragment>
-    );
-    currentOption.label =
-      typeof currentOption.label === 'string' ? modifiedLabel : currentOption.label;
+    if (typeof currentOption.label === 'string') {
+      currentOption.label = (
+        <React.Fragment>
+          <QuestionTooltip
+            title={tct('This is your current [label].', {
+              label: field.label,
+            })}
+            size="xs"
+          />{' '}
+          {currentOption.label}
+        </React.Fragment>
+      );
+    }
     const currentOptionResultIndex = result.findIndex(
       obj => obj.value === currentOption?.value
     );
     // Has a selected option, and it is in API results
     if (currentOptionResultIndex >= 0) {
-      result[currentOptionResultIndex] = currentOption;
-      return result;
+      const newResult = result;
+      newResult[currentOptionResultIndex] = currentOption;
+      return newResult;
     }
     // Has a selected option, and it is not in API results
     else {
@@ -198,7 +210,7 @@ export default class AbstractExternalIssueForm<
         if (err) {
           reject(err);
         } else {
-          result = this.cleanOptionsResult(field, result);
+          result = this.ensureCurrentOption(field, result);
           this.updateFetchedFieldOptionsCache(field, result);
           resolve(result);
         }
