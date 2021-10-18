@@ -221,7 +221,7 @@ class TestExcessiveEventDuration:
 
         assert not excessive_event_duration(project_id=1, durations=durations)
 
-    def test_normal_rate_slow_duration(self) -> None:
+    def test_normal_rate_long_duration(self) -> None:
         # 1 event/s for 3m, 9m durations
         histograms = []
         for _ in range(6 * 3):
@@ -232,7 +232,7 @@ class TestExcessiveEventDuration:
 
         assert excessive_event_duration(project_id=1, durations=durations)
 
-    def test_low_rate_slow_duration(self) -> None:
+    def test_low_rate_long_duration(self) -> None:
         # 1 event/m for 3m, 9m durations
         histograms = []
         for i in range(6 * 3):
