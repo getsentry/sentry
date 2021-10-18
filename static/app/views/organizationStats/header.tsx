@@ -25,7 +25,7 @@ function StatsHeader({organization, activeTab}: Props) {
         <Layout.HeaderNavTabs underlined>
           <li className={`${activeTab === 'stats' ? 'active' : ''}`}>
             <Link to={`/organizations/${organization.slug}/stats/`}>
-              {t('Useage Stats')}
+              {t('Usage Stats')}
             </Link>
           </li>
           <li className={`${activeTab === 'team' ? 'active' : ''}`}>
