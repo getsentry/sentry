@@ -1,5 +1,5 @@
 import abc
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Mapping, MutableMapping, Optional, Tuple, Union
 
 from sentry import analytics
 from sentry.integrations.slack.message_builder import SlackAttachment
@@ -10,7 +10,7 @@ from sentry.integrations.slack.message_builder.notifications import (
 from sentry.mail.notifications import build_subject_prefix
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.email import MessageBuilder, group_id_to_email
+from sentry.utils.email import group_id_to_email
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
@@ -36,6 +36,9 @@ class BaseNotification:
     def get_subject(self, context: Optional[Mapping[str, Any]] = None) -> str:
         """The subject line when sending this notifications as an email."""
         raise NotImplementedError
+
+    def get_subject_with_prefix(self, context: Optional[Mapping[str, Any]] = None) -> bytes:
+        return self.get_subject(context).encode()
 
     def get_reference(self) -> Any:
         raise NotImplementedError
@@ -84,6 +87,12 @@ class BaseNotification:
     def get_headers(self) -> Mapping[str, Any]:
         return {}
 
+    def get_log_params(self, recipient: Union["Team", "User"]) -> Dict[str, Any]:
+        return {
+            "organization_id": self.organization.id,
+            "actor_id": recipient.actor_id,
+        }
+
 
 class ProjectNotification(BaseNotification, abc.ABC):
     SlackMessageBuilderClass = SlackProjectNotificationsMessageBuilder
@@ -107,25 +116,23 @@ class ProjectNotification(BaseNotification, abc.ABC):
             project_id=self.project.id,
         )
 
-    def get_log_params(self, recipient: Union["Team", "User"]) -> Mapping[str, Any]:
-        extra = {
-            "project_id": self.project.id,
-            "actor_id": recipient.actor_id,
-        }
+    def get_log_params(self, recipient: Union["Team", "User"]) -> Dict[str, Any]:
+        extra = {"project_id": self.project.id, **super().get_log_params(recipient)}
         group = getattr(self, "group", None)
         if group:
             extra.update({"group": group.id})
 
         # TODO: move logic to child classes
-        if isinstance(self, "AlertRuleNotification"):
+        if isinstance(self, AlertRuleNotification):
             extra.update(
                 {
                     "target_type": self.target_type,
                     "target_identifier": self.target_identifier,
                 }
             )
-        elif isinstance(self, "ActivityNotification"):
+        elif isinstance(self, ActivityNotification):
             extra.update({"activity": self.activity})
+        return extra
 
     def get_headers(self) -> Mapping[str, Any]:
         headers = {
@@ -133,6 +140,7 @@ class ProjectNotification(BaseNotification, abc.ABC):
             "X-SMTPAPI": json.dumps({"category": self.get_category()}),
         }
 
+        # TODO: let the group subclass of notification handle this
         group = getattr(self, "group", None)
         if group:
             headers.update(
