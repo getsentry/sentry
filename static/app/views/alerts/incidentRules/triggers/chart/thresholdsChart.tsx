@@ -21,6 +21,7 @@ import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
 
 type DefaultProps = {
   data: Series[];
+  comparisonMarkLines: LineChartSeries[];
 };
 
 type Props = DefaultProps & {
@@ -28,6 +29,7 @@ type Props = DefaultProps & {
   resolveThreshold: IncidentRule['resolveThreshold'];
   thresholdType: IncidentRule['thresholdType'];
   aggregate: string;
+  hideThresholdLines: boolean;
   addSecondsToTimeFormat?: boolean;
   maxValue?: number;
   minValue?: number;
@@ -61,6 +63,7 @@ const COLOR = {
 export default class ThresholdsChart extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     data: [],
+    comparisonMarkLines: [],
   };
 
   state: State = {
@@ -77,7 +80,8 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
   componentDidUpdate(prevProps: Props) {
     if (
       this.props.triggers !== prevProps.triggers ||
-      this.props.data !== prevProps.data
+      this.props.data !== prevProps.data ||
+      this.props.comparisonMarkLines !== prevProps.comparisonMarkLines
     ) {
       this.handleUpdateChartAxis();
     }
@@ -88,8 +92,12 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
   // If we have ref to chart and data, try to update chart axis so that
   // alertThreshold or resolveThreshold is visible in chart
   handleUpdateChartAxis = () => {
-    const {triggers, resolveThreshold} = this.props;
+    const {triggers, resolveThreshold, hideThresholdLines} = this.props;
     const chartRef = this.ref?.getEchartsInstance?.();
+    if (hideThresholdLines) {
+      return;
+    }
+
     if (chartRef) {
       const thresholds = [
         resolveThreshold || null,
@@ -169,7 +177,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
     type: 'alertThreshold' | 'resolveThreshold',
     isResolution: boolean
   ) => {
-    const {thresholdType, resolveThreshold, maxValue} = this.props;
+    const {thresholdType, resolveThreshold, maxValue, hideThresholdLines} = this.props;
     const position =
       type === 'alertThreshold'
         ? this.getChartPixelForThreshold(trigger[type])
@@ -181,7 +189,8 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       typeof position !== 'number' ||
       isNaN(position) ||
       !this.state.height ||
-      !chartRef
+      !chartRef ||
+      hideThresholdLines
     ) {
       return [];
     }
@@ -281,8 +290,14 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
   }
 
   render() {
-    const {data, triggers, period, aggregate, addSecondsToTimeFormat} = this.props;
-
+    const {
+      data,
+      triggers,
+      period,
+      aggregate,
+      comparisonMarkLines,
+      addSecondsToTimeFormat,
+    } = this.props;
     const dataWithoutRecentBucket: LineChartSeries[] = data?.map(
       ({data: eventData, ...restOfData}) => ({
         ...restOfData,
@@ -302,6 +317,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       right: 10,
       top: 0,
       selected,
+      data: data.map(d => ({name: d.seriesName})),
     };
 
     const chartOptions = {
@@ -337,7 +353,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             ])
           ),
         })}
-        series={dataWithoutRecentBucket}
+        series={[...dataWithoutRecentBucket, ...comparisonMarkLines]}
         onFinished={() => {
           // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
           // any graphics related to the triggers (e.g. the threshold areas + boundaries)

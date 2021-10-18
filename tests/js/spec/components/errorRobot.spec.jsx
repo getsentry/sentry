@@ -1,4 +1,4 @@
-import {fireEvent, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'app/api';
 import {ErrorRobot} from 'app/components/errorRobot';
@@ -34,15 +34,15 @@ describe('ErrorRobot', function () {
     }
 
     it('Renders a button for creating an event', function () {
-      const wrapper = createWrapper();
-      const button = wrapper.getByRole('button', {name: 'Create a sample event'});
+      createWrapper();
+      const button = screen.getByRole('button', {name: 'Create a sample event'});
       expect(button).not.toBeDisabled();
       expect(getIssues).toHaveBeenCalled();
     });
 
     it('Renders installation instructions', function () {
-      const wrapper = createWrapper();
-      fireEvent.click(wrapper.getByText('Installation Instructions'));
+      createWrapper();
+      fireEvent.click(screen.getByText('Installation Instructions'));
       expect(routerContext.context.router.push).toHaveBeenCalledWith(
         '/org-slug/project-slug/getting-started/'
       );
@@ -58,15 +58,15 @@ describe('ErrorRobot', function () {
     }
 
     it('Renders a disabled create event button', function () {
-      const wrapper = createWrapper();
-      const button = wrapper.getByRole('button', {name: 'Create a sample event'});
+      createWrapper();
+      const button = screen.getByRole('button', {name: 'Create a sample event'});
       expect(button).toBeDisabled();
       expect(getIssues).toHaveBeenCalledTimes(0);
     });
 
     it('does not display install instructions', function () {
-      const wrapper = createWrapper();
-      expect(wrapper.queryByText('Installation Instructions')).toBeNull();
+      createWrapper();
+      expect(screen.queryByText('Installation Instructions')).toBeNull();
     });
   });
 });

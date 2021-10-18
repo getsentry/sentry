@@ -5,8 +5,8 @@ import omitBy from 'lodash/omitBy';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {DateString, Organization, SessionApiResponse, SessionField} from 'app/types';
-import {getSessionsInterval} from 'app/utils/sessions';
+import {Organization, SessionApiResponse, SessionField} from 'app/types';
+import {filterSessionsInTimeWindow, getSessionsInterval} from 'app/utils/sessions';
 
 const propNamesToIgnore = ['api', 'children', 'organization'];
 const omitIgnoredProps = (props: Props) =>
@@ -28,12 +28,13 @@ type Props = {
   project?: number[];
   environment?: string[];
   statsPeriod?: string;
-  start?: DateString;
-  end?: DateString;
+  start?: string;
+  end?: string;
   query?: string;
   groupBy?: string[];
   interval?: string;
-  disabled?: boolean;
+  isDisabled?: boolean;
+  shouldFilterSessionsInTimeWindow?: boolean;
 };
 
 type State = {
@@ -100,13 +101,12 @@ class SessionsRequest extends React.Component<Props, State> {
   }
 
   fetchData = async () => {
-    const {api, disabled} = this.props;
+    const {api, isDisabled, shouldFilterSessionsInTimeWindow} = this.props;
 
-    if (disabled) {
+    if (isDisabled) {
       return;
     }
 
-    api.clear();
     this.setState(state => ({
       reloading: state.response !== null,
       errored: false,
@@ -119,7 +119,13 @@ class SessionsRequest extends React.Component<Props, State> {
 
       this.setState({
         reloading: false,
-        response,
+        response: shouldFilterSessionsInTimeWindow
+          ? filterSessionsInTimeWindow(
+              response,
+              this.baseQueryParams.start,
+              this.baseQueryParams.end
+            )
+          : response,
       });
     } catch (error) {
       addErrorMessage(error.responseJSON?.detail ?? t('Error loading health data'));

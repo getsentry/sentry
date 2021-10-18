@@ -26,7 +26,7 @@ import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
 import {DisplayModes} from '../projectCharts';
 
-import SessionsRequest from './sessionsRequest';
+import ProjectSessionsChartRequest from './projectSessionsChartRequest';
 
 type Props = {
   title: string;
@@ -64,7 +64,7 @@ function ProjectBaseSessionsChart({
         value: (
           <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
             {zoomRenderProps => (
-              <SessionsRequest
+              <ProjectSessionsChartRequest
                 api={api}
                 selection={selection}
                 organization={organization}
@@ -127,7 +127,7 @@ function ProjectBaseSessionsChart({
                     }}
                   </ReleaseSeries>
                 )}
-              </SessionsRequest>
+              </ProjectSessionsChartRequest>
             )}
           </ChartZoom>
         ),

@@ -102,7 +102,7 @@ function createStatusAreaSeries(
   yPosition: number
 ): LineChartSeries {
   return {
-    seriesName: 'Status Area',
+    seriesName: '',
     type: 'line',
     markLine: MarkLine({
       silent: true,
@@ -120,7 +120,8 @@ function createIncidentSeries(
   incidentTimestamp: number,
   incident: Incident,
   dataPoint?: LineChartSeries['data'][0],
-  seriesName?: string
+  seriesName?: string,
+  aggregate?: string
 ) {
   const series = {
     seriesName: 'Incident Line',
@@ -160,7 +161,15 @@ function createIncidentSeries(
         `<div class="tooltip-series"><div>`,
         `<span class="tooltip-label">${marker} <strong>${t('Alert')} #${
           incident.identifier
-        }</strong></span>${seriesName} ${dataPoint?.value?.toLocaleString()}`,
+        }</strong></span>${
+          dataPoint?.value
+            ? `${seriesName} ${alertTooltipValueFormatter(
+                dataPoint.value,
+                seriesName ?? '',
+                aggregate ?? ''
+              )}`
+            : ''
+        }`,
         `</div></div>`,
         `<div class="tooltip-date">${time}</div>`,
         `<div class="tooltip-arrow"></div>`,
@@ -274,16 +283,11 @@ class MetricChart extends React.PureComponent<Props, State> {
 
     const {buttonText, ...props} = makeDefaultCta(ctaOpts);
 
-    const resolvedPercent = (
+    const resolvedPercent =
       (100 * Math.max(totalDuration - criticalDuration - warningDuration, 0)) /
-      totalDuration
-    ).toFixed(2);
-    const criticalPercent = (100 * Math.min(criticalDuration / totalDuration, 1)).toFixed(
-      2
-    );
-    const warningPercent = (100 * Math.min(warningDuration / totalDuration, 1)).toFixed(
-      2
-    );
+      totalDuration;
+    const criticalPercent = 100 * Math.min(criticalDuration / totalDuration, 1);
+    const warningPercent = 100 * Math.min(warningDuration / totalDuration, 1);
 
     return (
       <ChartActions>
@@ -292,15 +296,15 @@ class MetricChart extends React.PureComponent<Props, State> {
           <SummaryStats>
             <StatItem>
               <IconCheckmark color="green300" isCircled />
-              <StatCount>{resolvedPercent}%</StatCount>
+              <StatCount>{resolvedPercent ? resolvedPercent.toFixed(2) : 0}%</StatCount>
             </StatItem>
             <StatItem>
               <IconWarning color="yellow300" />
-              <StatCount>{warningPercent}%</StatCount>
+              <StatCount>{warningPercent ? warningPercent.toFixed(2) : 0}%</StatCount>
             </StatItem>
             <StatItem>
               <IconFire color="red300" />
-              <StatCount>{criticalPercent}%</StatCount>
+              <StatCount>{criticalPercent ? criticalPercent.toFixed(2) : 0}%</StatCount>
             </StatItem>
           </SummaryStats>
         </ChartSummary>
@@ -361,8 +365,8 @@ class MetricChart extends React.PureComponent<Props, State> {
           ) / ALERT_CHART_MIN_MAX_BUFFER
         )
       : 0;
-    const firstPoint = moment(dataArr[0].name).valueOf();
-    const lastPoint = moment(dataArr[dataArr.length - 1].name).valueOf();
+    const firstPoint = moment(dataArr[0]?.name).valueOf();
+    const lastPoint = moment(dataArr[dataArr.length - 1]?.name).valueOf();
     const totalDuration = lastPoint - firstPoint;
     let criticalDuration = 0;
     let warningDuration = 0;
@@ -408,7 +412,7 @@ class MetricChart extends React.PureComponent<Props, State> {
             ? moment(incident.dateClosed).valueOf()
             : lastPoint;
           const incidentStartValue = dataArr.find(
-            point => point.name >= incidentStartDate
+            point => moment(point.name).valueOf() >= incidentStartDate
           );
           series.push(
             createIncidentSeries(
@@ -418,7 +422,8 @@ class MetricChart extends React.PureComponent<Props, State> {
               incidentStartDate,
               incident,
               incidentStartValue,
-              series[0].seriesName
+              series[0].seriesName,
+              aggregate
             )
           );
           const areaStart = Math.max(moment(incident.dateStarted).valueOf(), firstPoint);

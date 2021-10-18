@@ -16,7 +16,6 @@ import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
 import {decodeList} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
-import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartControls';
 
 import {NormalizedTrendsTransaction, TrendChangeType, TrendsStats} from './types';
 import {
@@ -315,7 +314,7 @@ function Chart({
 
   const queryExtra = {
     showTransactions: trendChangeType,
-    yAxis: YAxis.COUNT_DURATION,
+    yAxis: 'countDuration',
   };
 
   const chartOptions = {
