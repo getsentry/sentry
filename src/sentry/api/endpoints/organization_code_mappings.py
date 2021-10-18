@@ -18,19 +18,18 @@ def gen_path_regex_field():
     )
 
 
+BRANCH_NAME_ERROR_MESSAGE = "Branch name may only have letters, numbers, underscores, forward slashes, dashes, and periods. Branch name may not start or end with a forward slash."
+
+
 class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     repository_id = serializers.IntegerField(required=True)
     project_id = serializers.IntegerField(required=True)
     stack_root = gen_path_regex_field()
     source_root = gen_path_regex_field()
     default_branch = serializers.RegexField(
-        r"^(^(?![\/]))([\w\/-]+)(?<![\/])$",
+        r"^(^(?![\/]))([\w\.\/-]+)(?<![\/])$",
         required=True,
-        error_messages={
-            "invalid": _(
-                "Branch name may only have letters, numbers, underscores, forward slashes and dashes. Branch name may not start or end with a forward slash."
-            )
-        },
+        error_messages={"invalid": _(BRANCH_NAME_ERROR_MESSAGE)},
     )
 
     class Meta:
