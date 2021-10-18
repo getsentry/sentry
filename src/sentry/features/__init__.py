@@ -52,7 +52,6 @@ default_manager.add("organizations:create")
 
 # Organization scoped features
 default_manager.add("organizations:advanced-search", OrganizationFeature)
-default_manager.add("organizations:alert-details-redesign", OrganizationFeature, True)
 default_manager.add("organizations:alert-filters", OrganizationFeature)
 default_manager.add("organizations:api-keys", OrganizationFeature)
 default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature, False)
