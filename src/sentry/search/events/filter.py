@@ -1672,7 +1672,7 @@ class QueryFilter(QueryFields):
         return Condition(self.column("release"), Op.IN, versions)
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        """Need to parse releases for potential aliases like `latest`"""
+        """Parse releases for potential aliases like `latest`"""
         values = [
             parse_release(
                 v,
