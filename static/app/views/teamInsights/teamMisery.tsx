@@ -304,6 +304,7 @@ const ShowMore = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(2)};
+  font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
   cursor: pointer;
   border-top: 1px solid ${p => p.theme.border};
