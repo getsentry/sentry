@@ -43,16 +43,16 @@ import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
 import {getReleaseParams, isReleaseArchived, ReleaseBounds} from '../../utils';
 import {ReleaseContext} from '..';
 
-import CommitAuthorBreakdown from './commitAuthorBreakdown';
-import Deploys from './deploys';
-import Issues from './issues';
-import OtherProjects from './otherProjects';
-import ProjectReleaseDetails from './projectReleaseDetails';
-import ReleaseAdoption from './releaseAdoption';
+import CommitAuthorBreakdown from './sidebar/commitAuthorBreakdown';
+import Deploys from './sidebar/deploys';
+import OtherProjects from './sidebar/otherProjects';
+import ProjectReleaseDetails from './sidebar/projectReleaseDetails';
+import ReleaseAdoption from './sidebar/releaseAdoption';
+import ReleaseStats from './sidebar/releaseStats';
+import TotalCrashFreeUsers from './sidebar/totalCrashFreeUsers';
 import ReleaseArchivedNotice from './releaseArchivedNotice';
 import ReleaseComparisonChart from './releaseComparisonChart';
-import ReleaseStats from './releaseStats';
-import TotalCrashFreeUsers from './totalCrashFreeUsers';
+import ReleaseIssues from './releaseIssues';
 
 const RELEASE_PERIOD_KEY = 'release';
 
@@ -374,7 +374,7 @@ class ReleaseOverview extends AsyncView<Props> {
                             />
                           )}
 
-                          <Issues
+                          <ReleaseIssues
                             organization={organization}
                             selection={selection}
                             version={version}

@@ -7,7 +7,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Deploy} from 'app/types';
 
-import {SectionHeading, Wrapper} from './styles';
+import {SectionHeading, Wrapper} from '../styles';
 
 type Props = {
   version: string;

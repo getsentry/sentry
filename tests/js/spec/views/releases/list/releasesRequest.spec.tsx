@@ -4,10 +4,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {HealthStatsPeriodOption} from 'app/types';
-import ReleaseListRequest from 'app/views/releases/list/releaseListRequest';
-import {DisplayOption} from 'app/views/releases/list/utils';
+import {ReleasesDisplayOption} from 'app/views/releases/list/releasesDisplayOptions';
+import ReleasesRequest from 'app/views/releases/list/releasesRequest';
 
-describe('ReleaseListRequest', function () {
+describe('ReleasesRequest', function () {
   const {organization, routerContext, router} = initializeOrg();
   const projectId = 123;
   const selection = {
@@ -219,7 +219,7 @@ describe('ReleaseListRequest', function () {
     let healthData;
 
     const wrapper = mountWithTheme(
-      <ReleaseListRequest
+      <ReleasesRequest
         releases={[
           '7a82c130be9143361f20bc77252df783cf91e4fc',
           'e102abb2c46e7fe8686441091005c12aed90da99',
@@ -231,14 +231,14 @@ describe('ReleaseListRequest', function () {
             project: [projectId],
           },
         }}
-        display={[DisplayOption.SESSIONS]}
+        display={[ReleasesDisplayOption.SESSIONS]}
         selection={selection}
       >
         {({getHealthData}) => {
           healthData = getHealthData;
           return null;
         }}
-      </ReleaseListRequest>,
+      </ReleasesRequest>,
       routerContext
     );
 
@@ -250,31 +250,31 @@ describe('ReleaseListRequest', function () {
       healthData.getCrashCount(
         '7a82c130be9143361f20bc77252df783cf91e4fc',
         projectId,
-        DisplayOption.SESSIONS
+        ReleasesDisplayOption.SESSIONS
       )
     ).toBe(492);
     expect(
       healthData.getCrashFreeRate(
         '7a82c130be9143361f20bc77252df783cf91e4fc',
         projectId,
-        DisplayOption.SESSIONS
+        ReleasesDisplayOption.SESSIONS
       )
     ).toBe(99.76);
     expect(
       healthData.get24hCountByRelease(
         '7a82c130be9143361f20bc77252df783cf91e4fc',
         projectId,
-        DisplayOption.SESSIONS
+        ReleasesDisplayOption.SESSIONS
       )
     ).toBe(219826);
-    expect(healthData.get24hCountByProject(projectId, DisplayOption.SESSIONS)).toBe(
-      835965
-    );
+    expect(
+      healthData.get24hCountByProject(projectId, ReleasesDisplayOption.SESSIONS)
+    ).toBe(835965);
     expect(
       healthData.getTimeSeries(
         '7a82c130be9143361f20bc77252df783cf91e4fc',
         projectId,
-        DisplayOption.SESSIONS
+        ReleasesDisplayOption.SESSIONS
       )
     ).toEqual([
       {
@@ -341,7 +341,7 @@ describe('ReleaseListRequest', function () {
       healthData.getAdoption(
         '7a82c130be9143361f20bc77252df783cf91e4fc',
         projectId,
-        DisplayOption.SESSIONS
+        ReleasesDisplayOption.SESSIONS
       )
     ).toBe(26.29607698886915);
 
@@ -349,31 +349,31 @@ describe('ReleaseListRequest', function () {
       healthData.getCrashCount(
         'e102abb2c46e7fe8686441091005c12aed90da99',
         projectId,
-        DisplayOption.SESSIONS
+        ReleasesDisplayOption.SESSIONS
       )
     ).toBe(5);
     expect(
       healthData.getCrashFreeRate(
         'e102abb2c46e7fe8686441091005c12aed90da99',
         projectId,
-        DisplayOption.SESSIONS
+        ReleasesDisplayOption.SESSIONS
       )
     ).toBe(99.921);
     expect(
       healthData.get24hCountByRelease(
         'e102abb2c46e7fe8686441091005c12aed90da99',
         projectId,
-        DisplayOption.SESSIONS
+        ReleasesDisplayOption.SESSIONS
       )
     ).toBe(6320);
-    expect(healthData.get24hCountByProject(projectId, DisplayOption.SESSIONS)).toBe(
-      835965
-    );
+    expect(
+      healthData.get24hCountByProject(projectId, ReleasesDisplayOption.SESSIONS)
+    ).toBe(835965);
     expect(
       healthData.getTimeSeries(
         'e102abb2c46e7fe8686441091005c12aed90da99',
         projectId,
-        DisplayOption.SESSIONS
+        ReleasesDisplayOption.SESSIONS
       )
     ).toEqual([
       {
@@ -440,7 +440,7 @@ describe('ReleaseListRequest', function () {
       healthData.getAdoption(
         'e102abb2c46e7fe8686441091005c12aed90da99',
         projectId,
-        DisplayOption.SESSIONS
+        ReleasesDisplayOption.SESSIONS
       )
     ).toBe(0.7560125124855706);
 
@@ -451,7 +451,7 @@ describe('ReleaseListRequest', function () {
     let healthData;
 
     const wrapper = mountWithTheme(
-      <ReleaseListRequest
+      <ReleasesRequest
         releases={[
           '7a82c130be9143361f20bc77252df783cf91e4fc',
           'e102abb2c46e7fe8686441091005c12aed90da99',
@@ -463,14 +463,14 @@ describe('ReleaseListRequest', function () {
             project: [projectId],
           },
         }}
-        display={[DisplayOption.USERS]}
+        display={[ReleasesDisplayOption.USERS]}
         selection={selection}
       >
         {({getHealthData}) => {
           healthData = getHealthData;
           return null;
         }}
-      </ReleaseListRequest>,
+      </ReleasesRequest>,
       routerContext
     );
 
@@ -482,29 +482,31 @@ describe('ReleaseListRequest', function () {
       healthData.getCrashCount(
         '7a82c130be9143361f20bc77252df783cf91e4fc',
         projectId,
-        DisplayOption.SESSIONS
+        ReleasesDisplayOption.SESSIONS
       )
     ).toBe(492);
     expect(
       healthData.getCrashFreeRate(
         '7a82c130be9143361f20bc77252df783cf91e4fc',
         projectId,
-        DisplayOption.USERS
+        ReleasesDisplayOption.USERS
       )
     ).toBe(99.908);
     expect(
       healthData.get24hCountByRelease(
         '7a82c130be9143361f20bc77252df783cf91e4fc',
         projectId,
-        DisplayOption.USERS
+        ReleasesDisplayOption.USERS
       )
     ).toBe(56826);
-    expect(healthData.get24hCountByProject(projectId, DisplayOption.USERS)).toBe(140965);
+    expect(healthData.get24hCountByProject(projectId, ReleasesDisplayOption.USERS)).toBe(
+      140965
+    );
     expect(
       healthData.getTimeSeries(
         '7a82c130be9143361f20bc77252df783cf91e4fc',
         projectId,
-        DisplayOption.USERS
+        ReleasesDisplayOption.USERS
       )
     ).toEqual([
       {
@@ -571,7 +573,7 @@ describe('ReleaseListRequest', function () {
       healthData.getAdoption(
         '7a82c130be9143361f20bc77252df783cf91e4fc',
         projectId,
-        DisplayOption.USERS
+        ReleasesDisplayOption.USERS
       )
     ).toBe(40.31213421771362);
 
@@ -579,29 +581,31 @@ describe('ReleaseListRequest', function () {
       healthData.getCrashCount(
         'e102abb2c46e7fe8686441091005c12aed90da99',
         projectId,
-        DisplayOption.SESSIONS
+        ReleasesDisplayOption.SESSIONS
       )
     ).toBe(5);
     expect(
       healthData.getCrashFreeRate(
         'e102abb2c46e7fe8686441091005c12aed90da99',
         projectId,
-        DisplayOption.USERS
+        ReleasesDisplayOption.USERS
       )
     ).toBe(99.87);
     expect(
       healthData.get24hCountByRelease(
         'e102abb2c46e7fe8686441091005c12aed90da99',
         projectId,
-        DisplayOption.USERS
+        ReleasesDisplayOption.USERS
       )
     ).toBe(850);
-    expect(healthData.get24hCountByProject(projectId, DisplayOption.USERS)).toBe(140965);
+    expect(healthData.get24hCountByProject(projectId, ReleasesDisplayOption.USERS)).toBe(
+      140965
+    );
     expect(
       healthData.getTimeSeries(
         'e102abb2c46e7fe8686441091005c12aed90da99',
         projectId,
-        DisplayOption.USERS
+        ReleasesDisplayOption.USERS
       )
     ).toEqual([
       {
@@ -668,7 +672,7 @@ describe('ReleaseListRequest', function () {
       healthData.getAdoption(
         'e102abb2c46e7fe8686441091005c12aed90da99',
         projectId,
-        DisplayOption.USERS
+        ReleasesDisplayOption.USERS
       )
     ).toBe(0.6029865569467598);
   });
@@ -677,7 +681,7 @@ describe('ReleaseListRequest', function () {
     let healthData;
 
     const wrapper = mountWithTheme(
-      <ReleaseListRequest
+      <ReleasesRequest
         releases={[
           '7a82c130be9143361f20bc77252df783cf91e4fc',
           'e102abb2c46e7fe8686441091005c12aed90da99',
@@ -689,7 +693,7 @@ describe('ReleaseListRequest', function () {
             project: [projectId],
           },
         }}
-        display={[DisplayOption.SESSIONS]}
+        display={[ReleasesDisplayOption.SESSIONS]}
         selection={selection}
         healthStatsPeriod={HealthStatsPeriodOption.AUTO}
       >
@@ -697,7 +701,7 @@ describe('ReleaseListRequest', function () {
           healthData = getHealthData;
           return null;
         }}
-      </ReleaseListRequest>,
+      </ReleasesRequest>,
       routerContext
     );
 
@@ -709,7 +713,7 @@ describe('ReleaseListRequest', function () {
       healthData.getTimeSeries(
         '7a82c130be9143361f20bc77252df783cf91e4fc',
         projectId,
-        DisplayOption.SESSIONS
+        ReleasesDisplayOption.SESSIONS
       )
     ).toEqual([
       {
@@ -756,7 +760,7 @@ describe('ReleaseListRequest', function () {
       healthData.getAdoption(
         '7a82c130be9143361f20bc77252df783cf91e4fc',
         projectId,
-        DisplayOption.SESSIONS
+        ReleasesDisplayOption.SESSIONS
       )
     ).toBe(26.29607698886915);
 

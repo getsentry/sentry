@@ -30,7 +30,7 @@ import withApi from 'app/utils/withApi';
 
 import {getCrashFreePercent} from '../utils';
 
-import {DisplayOption} from './utils';
+import {ReleasesDisplayOption} from './releasesDisplayOptions';
 
 function omitIgnoredProps(props: Props) {
   return omit(props, [
@@ -71,30 +71,30 @@ export function reduceTimeSeriesGroups(
   return acc;
 }
 
-export function sessionDisplayToField(display: DisplayOption) {
+export function sessionDisplayToField(display: ReleasesDisplayOption) {
   switch (display) {
-    case DisplayOption.USERS:
+    case ReleasesDisplayOption.USERS:
       return SessionField.USERS;
-    case DisplayOption.SESSIONS:
+    case ReleasesDisplayOption.SESSIONS:
     default:
       return SessionField.SESSIONS;
   }
 }
 
-export type ReleaseListRequestRenderProps = {
+export type ReleasesRequestRenderProps = {
   isHealthLoading: boolean;
   errored: boolean;
-  getHealthData: ReturnType<ReleaseListRequest['getHealthData']>;
+  getHealthData: ReturnType<ReleasesRequest['getHealthData']>;
 };
 
 type Props = {
   api: Client;
   releases: string[];
   organization: Organization;
-  children: (renderProps: ReleaseListRequestRenderProps) => React.ReactNode;
+  children: (renderProps: ReleasesRequestRenderProps) => React.ReactNode;
   selection: GlobalSelection;
   location: Location;
-  display: DisplayOption[];
+  display: ReleasesDisplayOption[];
   defaultStatsPeriod?: string;
   releasesReloading?: boolean;
   healthStatsPeriod?: HealthStatsPeriodOption;
@@ -111,7 +111,7 @@ type State = {
   totalCountByProjectInPeriod: SessionApiResponse | null;
 };
 
-class ReleaseListRequest extends React.Component<Props, State> {
+class ReleasesRequest extends React.Component<Props, State> {
   state: State = {
     loading: false,
     errored: false,
@@ -340,7 +340,7 @@ class ReleaseListRequest extends React.Component<Props, State> {
     };
   };
 
-  getCrashCount = (version: string, project: number, display: DisplayOption) => {
+  getCrashCount = (version: string, project: number, display: ReleasesDisplayOption) => {
     const {statusCountByReleaseInPeriod} = this.state;
     const field = sessionDisplayToField(display);
 
@@ -352,7 +352,11 @@ class ReleaseListRequest extends React.Component<Props, State> {
     )?.totals[field];
   };
 
-  getCrashFreeRate = (version: string, project: number, display: DisplayOption) => {
+  getCrashFreeRate = (
+    version: string,
+    project: number,
+    display: ReleasesDisplayOption
+  ) => {
     const {statusCountByReleaseInPeriod} = this.state;
     const field = sessionDisplayToField(display);
 
@@ -367,7 +371,11 @@ class ReleaseListRequest extends React.Component<Props, State> {
       : getCrashFreePercent(100 - percent(crashedCount ?? 0, totalCount ?? 0));
   };
 
-  get24hCountByRelease = (version: string, project: number, display: DisplayOption) => {
+  get24hCountByRelease = (
+    version: string,
+    project: number,
+    display: ReleasesDisplayOption
+  ) => {
     const {totalCountByReleaseIn24h} = this.state;
     const field = sessionDisplayToField(display);
 
@@ -379,7 +387,7 @@ class ReleaseListRequest extends React.Component<Props, State> {
   getPeriodCountByRelease = (
     version: string,
     project: number,
-    display: DisplayOption
+    display: ReleasesDisplayOption
   ) => {
     const {totalCountByReleaseInPeriod} = this.state;
     const field = sessionDisplayToField(display);
@@ -389,7 +397,7 @@ class ReleaseListRequest extends React.Component<Props, State> {
       ?.reduce((acc, group) => acc + group.totals[field], 0);
   };
 
-  get24hCountByProject = (project: number, display: DisplayOption) => {
+  get24hCountByProject = (project: number, display: ReleasesDisplayOption) => {
     const {totalCountByProjectIn24h} = this.state;
     const field = sessionDisplayToField(display);
 
@@ -398,7 +406,7 @@ class ReleaseListRequest extends React.Component<Props, State> {
       ?.reduce((acc, group) => acc + group.totals[field], 0);
   };
 
-  getPeriodCountByProject = (project: number, display: DisplayOption) => {
+  getPeriodCountByProject = (project: number, display: ReleasesDisplayOption) => {
     const {totalCountByProjectInPeriod} = this.state;
     const field = sessionDisplayToField(display);
 
@@ -407,7 +415,7 @@ class ReleaseListRequest extends React.Component<Props, State> {
       ?.reduce((acc, group) => acc + group.totals[field], 0);
   };
 
-  getTimeSeries = (version: string, project: number, display: DisplayOption) => {
+  getTimeSeries = (version: string, project: number, display: ReleasesDisplayOption) => {
     const {healthStatsPeriod} = this.props;
     if (healthStatsPeriod === HealthStatsPeriodOption.AUTO) {
       return this.getPeriodTimeSeries(version, project, display);
@@ -416,7 +424,11 @@ class ReleaseListRequest extends React.Component<Props, State> {
     return this.get24hTimeSeries(version, project, display);
   };
 
-  get24hTimeSeries = (version: string, project: number, display: DisplayOption) => {
+  get24hTimeSeries = (
+    version: string,
+    project: number,
+    display: ReleasesDisplayOption
+  ) => {
     const {totalCountByReleaseIn24h, totalCountByProjectIn24h} = this.state;
     const field = sessionDisplayToField(display);
 
@@ -449,7 +461,11 @@ class ReleaseListRequest extends React.Component<Props, State> {
     ];
   };
 
-  getPeriodTimeSeries = (version: string, project: number, display: DisplayOption) => {
+  getPeriodTimeSeries = (
+    version: string,
+    project: number,
+    display: ReleasesDisplayOption
+  ) => {
     const {statusCountByReleaseInPeriod, statusCountByProjectInPeriod} = this.state;
     const field = sessionDisplayToField(display);
 
@@ -482,7 +498,7 @@ class ReleaseListRequest extends React.Component<Props, State> {
     ];
   };
 
-  getAdoption = (version: string, project: number, display: DisplayOption) => {
+  getAdoption = (version: string, project: number, display: ReleasesDisplayOption) => {
     const {healthStatsPeriod} = this.props;
 
     const countByRelease = (
@@ -513,4 +529,4 @@ class ReleaseListRequest extends React.Component<Props, State> {
   }
 }
 
-export default withApi(ReleaseListRequest);
+export default withApi(ReleasesRequest);

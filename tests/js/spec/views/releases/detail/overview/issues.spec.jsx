@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Issues from 'app/views/releases/detail/overview/issues';
+import ReleaseIssues from 'app/views/releases/detail/overview/releaseIssues';
 import {getReleaseBounds} from 'app/views/releases/utils';
 
 describe('Release Issues', function () {
@@ -67,9 +67,9 @@ describe('Release Issues', function () {
   };
 
   it('shows an empty state', async function () {
-    const wrapper = mountWithTheme(<Issues {...props} />);
+    const wrapper = mountWithTheme(<ReleaseIssues {...props} />);
     const wrapper2 = mountWithTheme(
-      <Issues {...props} location={{query: {pageStatsPeriod: '24h'}}} />
+      <ReleaseIssues {...props} location={{query: {pageStatsPeriod: '24h'}}} />
     );
 
     await tick();
@@ -100,7 +100,7 @@ describe('Release Issues', function () {
   });
 
   it('filters the issues', async function () {
-    const wrapper = mountWithTheme(<Issues {...props} />);
+    const wrapper = mountWithTheme(<ReleaseIssues {...props} />);
 
     const filterOptions = wrapper.find('ButtonBar Button');
 
@@ -121,7 +121,7 @@ describe('Release Issues', function () {
   });
 
   it('renders link to Issues', function () {
-    const wrapper = mountWithTheme(<Issues {...props} />);
+    const wrapper = mountWithTheme(<ReleaseIssues {...props} />);
 
     expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
       pathname: `/organizations/${props.organization.slug}/issues/`,

@@ -19,7 +19,7 @@ type Props = {
   className?: string;
 };
 
-const ReleaseListDropdown = ({
+const ReleasesDropdown = ({
   label: prefix,
   options,
   selected,
@@ -58,4 +58,4 @@ const ReleaseListDropdown = ({
   );
 };
 
-export default ReleaseListDropdown;
+export default ReleasesDropdown;

@@ -39,19 +39,20 @@ import {formatVersion} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import {getAdoptionSeries, getCount} from 'app/utils/sessions';
 import withApi from 'app/utils/withApi';
-import {sessionDisplayToField} from 'app/views/releases/list/releaseListRequest';
-import {DisplayOption} from 'app/views/releases/list/utils';
+import {sessionDisplayToField} from 'app/views/releases/list/releasesRequest';
+
+import {ReleasesDisplayOption} from './releasesDisplayOptions';
 
 type Props = {
   api: Client;
   organization: Organization;
   selection: GlobalSelection;
-  activeDisplay: DisplayOption;
+  activeDisplay: ReleasesDisplayOption;
   location: Location;
   router: InjectedRouter;
 };
 
-class ReleaseAdoptionChart extends Component<Props> {
+class ReleasesAdoptionChart extends Component<Props> {
   // needs to have different granularity, that's why we use custom getInterval instead of getSessionsInterval
   getInterval() {
     const {organization, location} = this.props;
@@ -279,7 +280,9 @@ class ReleaseAdoptionChart extends Component<Props> {
                   <SectionHeading>
                     {tct('Total [display]', {
                       display:
-                        activeDisplay === DisplayOption.USERS ? 'Users' : 'Sessions',
+                        activeDisplay === ReleasesDisplayOption.USERS
+                          ? 'Users'
+                          : 'Sessions',
                     })}
                   </SectionHeading>
                   <SectionValue>
@@ -295,7 +298,7 @@ class ReleaseAdoptionChart extends Component<Props> {
   }
 }
 
-export default withApi(ReleaseAdoptionChart);
+export default withApi(ReleasesAdoptionChart);
 
 const ChartHeader = styled(HeaderTitleLegend)`
   margin-bottom: ${space(1)};

@@ -3,7 +3,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import ReleasesList from 'app/views/releases/list/';
-import {DisplayOption, SortOption, StatusOption} from 'app/views/releases/list/utils';
+import {ReleasesDisplayOption} from 'app/views/releases/list/releasesDisplayOptions';
+import {ReleasesSortOption} from 'app/views/releases/list/releasesSortOptions';
+import {ReleasesStatusOption} from 'app/views/releases/list/releasesStatusOptions';
 
 describe('ReleasesList', function () {
   const {organization, routerContext, router} = initializeOrg();
@@ -22,10 +24,10 @@ describe('ReleasesList', function () {
     location: {
       query: {
         query: 'derp',
-        sort: SortOption.SESSIONS,
+        sort: ReleasesSortOption.SESSIONS,
         healthStatsPeriod: '24h',
         somethingBad: 'XXX',
-        status: StatusOption.ACTIVE,
+        status: ReleasesStatusOption.ACTIVE,
       },
     },
   };
@@ -117,7 +119,7 @@ describe('ReleasesList', function () {
       "There are no releases that match: 'abc'."
     );
 
-    location = {query: {sort: SortOption.SESSIONS, statsPeriod: '7d'}};
+    location = {query: {sort: ReleasesSortOption.SESSIONS, statsPeriod: '7d'}};
     wrapper = mountWithTheme(
       <ReleasesList {...props} location={location} />,
       routerContext
@@ -126,7 +128,7 @@ describe('ReleasesList', function () {
       'There are no releases with data in the last 7 days.'
     );
 
-    location = {query: {sort: SortOption.USERS_24_HOURS, statsPeriod: '7d'}};
+    location = {query: {sort: ReleasesSortOption.USERS_24_HOURS, statsPeriod: '7d'}};
     wrapper = mountWithTheme(
       <ReleasesList {...props} location={location} />,
       routerContext
@@ -135,7 +137,7 @@ describe('ReleasesList', function () {
       'There are no releases with active user data (users in the last 24 hours).'
     );
 
-    location = {query: {sort: SortOption.SESSIONS_24_HOURS, statsPeriod: '7d'}};
+    location = {query: {sort: ReleasesSortOption.SESSIONS_24_HOURS, statsPeriod: '7d'}};
     wrapper = mountWithTheme(
       <ReleasesList {...props} location={location} />,
       routerContext
@@ -144,7 +146,7 @@ describe('ReleasesList', function () {
       'There are no releases with active session data (sessions in the last 24 hours).'
     );
 
-    location = {query: {sort: SortOption.BUILD}};
+    location = {query: {sort: ReleasesSortOption.BUILD}};
     wrapper = mountWithTheme(
       <ReleasesList {...props} location={location} />,
       routerContext
@@ -195,7 +197,7 @@ describe('ReleasesList', function () {
       '/organizations/org-slug/releases/',
       expect.objectContaining({
         query: expect.objectContaining({
-          sort: SortOption.SESSIONS,
+          sort: ReleasesSortOption.SESSIONS,
         }),
       })
     );
@@ -214,7 +216,7 @@ describe('ReleasesList', function () {
 
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
-        sort: SortOption.DATE,
+        sort: ReleasesSortOption.DATE,
       }),
     });
   });
@@ -228,7 +230,7 @@ describe('ReleasesList', function () {
     wrapper = mountWithTheme(
       <ReleasesList
         {...adoptionProps}
-        location={{query: {sort: SortOption.ADOPTION}}}
+        location={{query: {sort: ReleasesSortOption.ADOPTION}}}
         selection={{...props.selection, environments: ['a', 'b']}}
       />,
       routerContext
@@ -258,21 +260,24 @@ describe('ReleasesList', function () {
 
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
-        display: DisplayOption.USERS,
+        display: ReleasesDisplayOption.USERS,
       }),
     });
   });
 
   it('displays archived releases', function () {
     const archivedWrapper = mountWithTheme(
-      <ReleasesList {...props} location={{query: {status: StatusOption.ARCHIVED}}} />,
+      <ReleasesList
+        {...props}
+        location={{query: {status: ReleasesStatusOption.ARCHIVED}}}
+      />,
       routerContext
     );
 
     expect(endpointMock).toHaveBeenLastCalledWith(
       '/organizations/org-slug/releases/',
       expect.objectContaining({
-        query: expect.objectContaining({status: StatusOption.ARCHIVED}),
+        query: expect.objectContaining({status: ReleasesStatusOption.ARCHIVED}),
       })
     );
 
@@ -292,7 +297,7 @@ describe('ReleasesList', function () {
     statusActiveOption.simulate('click');
     expect(router.push).toHaveBeenLastCalledWith({
       query: expect.objectContaining({
-        status: StatusOption.ACTIVE,
+        status: ReleasesStatusOption.ACTIVE,
       }),
     });
 
@@ -301,7 +306,7 @@ describe('ReleasesList', function () {
     statusArchivedOption.simulate('click');
     expect(router.push).toHaveBeenLastCalledWith({
       query: expect.objectContaining({
-        status: StatusOption.ARCHIVED,
+        status: ReleasesStatusOption.ARCHIVED,
       }),
     });
   });

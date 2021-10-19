@@ -21,7 +21,7 @@ import withOrganization from 'app/utils/withOrganization';
 import {IssueSortOptions} from 'app/views/issueList/utils';
 
 import {getReleaseParams, ReleaseBounds} from '../../utils';
-import EmptyState from '../emptyState';
+import EmptyState from '../commitsAndFiles/emptyState';
 
 enum IssuesType {
   NEW = 'new',
@@ -69,7 +69,7 @@ type State = {
   onCursor?: () => void;
 };
 
-class Issues extends Component<Props, State> {
+class ReleaseIssues extends Component<Props, State> {
   static defaultProps = defaultProps;
   state: State = this.getInitialState();
 
@@ -426,4 +426,4 @@ const StyledPagination = styled(Pagination)`
   margin: 0;
 `;
 
-export default withApi(withOrganization(Issues));
+export default withApi(withOrganization(ReleaseIssues));

@@ -17,7 +17,7 @@ import withOrganization from 'app/utils/withOrganization';
 import withRepositories from 'app/utils/withRepositories';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-import {ReleaseContext} from '.';
+import {ReleaseContext} from '..';
 
 // These props are required when using this HoC
 type DependentProps = RouteComponentProps<{orgId: string; release: string}, {}>;

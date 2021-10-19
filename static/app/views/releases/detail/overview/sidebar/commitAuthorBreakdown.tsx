@@ -11,7 +11,7 @@ import {Commit, User} from 'app/types';
 import {percent} from 'app/utils';
 import {userDisplayName} from 'app/utils/formatters';
 
-import {SectionHeading, Wrapper} from './styles';
+import {SectionHeading, Wrapper} from '../styles';
 
 type GroupedAuthorCommits = {
   [key: string]: {author: User | undefined; commitCount: number};

@@ -21,7 +21,7 @@ import {Organization, Release, ReleaseMeta} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {formatVersion} from 'app/utils/formatters';
 
-import {isReleaseArchived} from '../utils';
+import {isReleaseArchived} from '../../utils';
 
 type Props = {
   location: Location;

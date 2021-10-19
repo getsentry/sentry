@@ -4,13 +4,12 @@ import {Location} from 'history';
 import Button from 'app/components/button';
 import Collapsible from 'app/components/collapsible';
 import IdBadge from 'app/components/idBadge';
-import {tn} from 'app/locale';
+import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
+import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, ReleaseProject} from 'app/types';
 
-import ProjectLink from '../../list/releaseHealth/projectLink';
-
-import {SectionHeading, Wrapper} from './styles';
+import {SectionHeading, Wrapper} from '../styles';
 
 type Props = {
   projects: ReleaseProject[];
@@ -44,12 +43,21 @@ function OtherProjects({projects, location, version, organization}: Props) {
         {projects.map(project => (
           <Row key={project.id}>
             <IdBadge project={project} avatarSize={16} />
-            <ProjectLink
-              location={location}
-              orgSlug={organization.slug}
-              releaseVersion={version}
-              project={project}
-            />
+            <Button
+              size="xsmall"
+              to={{
+                pathname: `/organizations/${
+                  organization.slug
+                }/releases/${encodeURIComponent(version)}/`,
+                query: {
+                  ...extractSelectionParameters(location.query),
+                  project: project.id,
+                  yAxis: undefined,
+                },
+              }}
+            >
+              {t('View')}
+            </Button>
           </Row>
         ))}
       </Collapsible>

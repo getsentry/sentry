@@ -10,7 +10,7 @@ import Version from 'app/components/version';
 import {t, tn} from 'app/locale';
 import {ReleaseMeta, ReleaseWithHealth} from 'app/types';
 
-import {SectionHeading, Wrapper} from './styles';
+import {SectionHeading, Wrapper} from '../styles';
 
 type Props = {
   release: ReleaseWithHealth;

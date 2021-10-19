@@ -13,9 +13,8 @@ import space from 'app/styles/space';
 import {CrashFreeTimeBreakdown, Organization} from 'app/types';
 import {defined} from 'app/utils';
 
-import {displayCrashFreePercent} from '../../utils';
-
-import {SectionHeading, Wrapper} from './styles';
+import {displayCrashFreePercent} from '../../../utils';
+import {SectionHeading, Wrapper} from '../styles';
 
 type Props = AsyncComponent['props'] & {
   location: Location;

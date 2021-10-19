@@ -10,7 +10,7 @@ type Props = {
   withHeading: boolean;
 };
 
-const ReleaseStats = ({release, withHeading = true}: Props) => {
+const ReleaseCardCommits = ({release, withHeading = true}: Props) => {
   const commitCount = release.commitCount || 0;
   const authorCount = (release.authors && release.authors.length) || 0;
   if (commitCount === 0) {
@@ -42,4 +42,4 @@ const ReleaseSummaryHeading = styled('div')`
   margin-bottom: ${space(0.5)};
 `;
 
-export default ReleaseStats;
+export default ReleaseCardCommits;

@@ -23,13 +23,15 @@ import {
   SessionField,
 } from 'app/types';
 import {getAdoptionSeries, getCount} from 'app/utils/sessions';
-import {isProjectMobileForReleases} from 'app/views/releases/list';
-import {ADOPTION_STAGE_LABELS} from 'app/views/releases/list/releaseHealth/content';
 
-import {getReleaseBounds, getReleaseParams} from '../../utils';
-import {generateReleaseMarkLines, releaseMarkLinesLabels} from '../utils';
-
-import {Wrapper} from './styles';
+import {
+  ADOPTION_STAGE_LABELS,
+  getReleaseBounds,
+  getReleaseParams,
+  isMobileRelease,
+} from '../../../utils';
+import {generateReleaseMarkLines, releaseMarkLinesLabels} from '../../utils';
+import {Wrapper} from '../styles';
 
 type Props = {
   release: ReleaseWithHealth;
@@ -204,14 +206,13 @@ function ReleaseComparisonChart({
     releaseBounds: getReleaseBounds(release),
   });
 
-  const isMobileProject = isProjectMobileForReleases(project.platform);
   const adoptionStage = release.adoptionStages?.[project.slug]?.stage;
   const adoptionStageLabel = ADOPTION_STAGE_LABELS[adoptionStage];
   const multipleEnvironments = environment.length === 0 || environment.length > 1;
 
   return (
     <Wrapper>
-      {isMobileProject && (
+      {isMobileRelease(project.platform) && (
         <Feature features={['release-adoption-stage']}>
           <SidebarSectionTitle
             title={t('Adoption Stage')}

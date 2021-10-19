@@ -12,7 +12,7 @@ type Props = {
   selection: GlobalSelection;
 };
 
-const HealthStatsPeriod = ({location, selection}: Props) => {
+const ReleaseCardStatsPeriod = ({location, selection}: Props) => {
   const activePeriod =
     location.query.healthStatsPeriod || HealthStatsPeriodOption.TWENTY_FOUR_HOURS;
   const {pathname, query} = location;
@@ -66,4 +66,4 @@ const Period = styled(Link)<{selected: boolean}>`
   }
 `;
 
-export default withGlobalSelection(HealthStatsPeriod);
+export default withGlobalSelection(ReleaseCardStatsPeriod);

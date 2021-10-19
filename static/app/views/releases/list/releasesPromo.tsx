@@ -82,7 +82,7 @@ type Props = {
   projectId?: number;
 };
 
-class ReleasePromo extends Component<Props> {
+class ReleasesPromo extends Component<Props> {
   componentDidMount() {
     const {organization, projectId} = this.props;
 
@@ -156,4 +156,4 @@ const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
 
-export default ReleasePromo;
+export default ReleasesPromo;
