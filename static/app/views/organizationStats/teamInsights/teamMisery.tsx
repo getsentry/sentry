@@ -18,7 +18,7 @@ import EventView from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import type {Color} from 'app/utils/theme';
 
-import {transactionSummaryRouteWithQuery} from '../performance/transactionSummary/utils';
+import {transactionSummaryRouteWithQuery} from '../../performance/transactionSummary/utils';
 
 type TeamMiseryProps = {
   organization: Organization;

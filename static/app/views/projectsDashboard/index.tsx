@@ -7,7 +7,6 @@ import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
 
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
@@ -25,7 +24,6 @@ import {sortProjects} from 'app/utils';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeamsForUser from 'app/utils/withTeamsForUser';
-import TeamInsightsHeaderTabs from 'app/views/teamInsights/headerTabs';
 
 import Resources from './resources';
 import TeamSection from './teamSection';
@@ -93,11 +91,6 @@ function Dashboard({teams, params, organization, loadingTeams, error}: Props) {
               {t('Create Project')}
             </Button>
           </ProjectsHeader>
-          <Feature organization={organization} features={['team-insights']}>
-            <TabsWrapper>
-              <TeamInsightsHeaderTabs organization={organization} activeTab="projects" />
-            </TabsWrapper>
-          </Feature>
         </Fragment>
       )}
 
@@ -142,10 +135,6 @@ const ProjectsHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-`;
-
-const TabsWrapper = styled('div')`
-  padding: ${space(2)} ${space(4)} ${space(1)} ${space(4)};
 `;
 
 const OrganizationDashboardWrapper = styled('div')`

@@ -27,6 +27,7 @@ import {
   RelativePeriod,
 } from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
+import HeaderTabs from 'app/views/organizationStats/header';
 
 import {CHART_OPTIONS_DATACATEGORY, ChartDataTransform} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
@@ -264,48 +265,58 @@ export class OrganizationStats extends Component<Props> {
 
   render() {
     const {organization} = this.props;
+    const hasTeamInsights = organization.features.includes('team-insights');
 
     return (
       <SentryDocumentTitle title="Usage Stats">
-        <PageContent>
-          <PageHeader>
-            <PageHeading>{t('Organization Usage Stats')}</PageHeading>
-          </PageHeader>
+        <Fragment>
+          {hasTeamInsights && (
+            <HeaderTabs organization={organization} activeTab="stats" />
+          )}
 
-          <p>
-            {t(
-              'We collect usage metrics on three types of events: errors, transactions, and attachments. The charts below reflect events that Sentry has received across your entire organization. You can also find them broken down by project in the table.'
+          <PageContent>
+            {!hasTeamInsights && (
+              <Fragment>
+                <PageHeader>
+                  <PageHeading>{t('Organization Usage Stats')}</PageHeading>
+                </PageHeader>
+                <p>
+                  {t(
+                    'We collect usage metrics on three types of events: errors, transactions, and attachments. The charts below reflect events that Sentry has received across your entire organization. You can also find them broken down by project in the table.'
+                  )}
+                </p>
+              </Fragment>
             )}
-          </p>
 
-          <PageGrid>
-            {this.renderPageControl()}
+            <PageGrid>
+              {this.renderPageControl()}
 
-            <ErrorBoundary mini>
-              <UsageStatsOrg
-                organization={organization}
-                dataCategory={this.dataCategory}
-                dataCategoryName={this.dataCategoryName}
-                dataDatetime={this.dataDatetime}
-                chartTransform={this.chartTransform}
-                handleChangeState={this.setStateOnUrl}
-              />
-            </ErrorBoundary>
-            <ErrorBoundary mini>
-              <UsageStatsProjects
-                organization={organization}
-                dataCategory={this.dataCategory}
-                dataCategoryName={this.dataCategoryName}
-                dataDatetime={this.dataDatetime}
-                tableSort={this.tableSort}
-                tableQuery={this.tableQuery}
-                tableCursor={this.tableCursor}
-                handleChangeState={this.setStateOnUrl}
-                getNextLocations={this.getNextLocations}
-              />
-            </ErrorBoundary>
-          </PageGrid>
-        </PageContent>
+              <ErrorBoundary mini>
+                <UsageStatsOrg
+                  organization={organization}
+                  dataCategory={this.dataCategory}
+                  dataCategoryName={this.dataCategoryName}
+                  dataDatetime={this.dataDatetime}
+                  chartTransform={this.chartTransform}
+                  handleChangeState={this.setStateOnUrl}
+                />
+              </ErrorBoundary>
+              <ErrorBoundary mini>
+                <UsageStatsProjects
+                  organization={organization}
+                  dataCategory={this.dataCategory}
+                  dataCategoryName={this.dataCategoryName}
+                  dataDatetime={this.dataDatetime}
+                  tableSort={this.tableSort}
+                  tableQuery={this.tableQuery}
+                  tableCursor={this.tableCursor}
+                  handleChangeState={this.setStateOnUrl}
+                  getNextLocations={this.getNextLocations}
+                />
+              </ErrorBoundary>
+            </PageGrid>
+          </PageContent>
+        </Fragment>
       </SentryDocumentTitle>
     );
   }
