@@ -98,6 +98,8 @@ from sentry.stacktraces.functions import (
             "std::__1::unique_ptr<X,std::default_delete<X> >::operator->",
             "std::__1::unique_ptr<T>::operator->",
         ],
+        ["pthread_cond_timedwait@@GLIBC_2.3.2", "pthread_cond_timedwait"],
+        ["glob64@GLIBC_2.2", "glob64"],
     ],
 )
 def test_trim_native_function_name(input, output):
