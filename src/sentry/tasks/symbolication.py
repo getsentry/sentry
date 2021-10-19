@@ -180,24 +180,22 @@ def _do_symbolicate_event(
     timestamp = int(symbolication_start_time)
 
     if submit_realtime_metrics:
-        with sentry_sdk.start_span(
-            op="tasks.symbolication.symbolicate_event.low_priority.metrics.counter"
-        ):
+        with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics.counter"):
             try:
                 realtime_metrics.increment_project_event_counter(project_id, timestamp)
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 
-    with sentry_sdk.start_span(op="tasks.symbolication.symbolicate_event.symbolication") as span:
+    with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
         span.set_data("symbolication_function", symbolication_function_name)
         with metrics.timer(
-            "tasks.symbolication.symbolicate_event.symbolication",
+            "tasks.store.symbolicate_event.symbolication",
             tags={"symbolication_function": symbolication_function_name},
         ):
             while True:
                 try:
                     with sentry_sdk.start_span(
-                        op="tasks.symbolication.symbolicate_event.%s" % symbolication_function_name
+                        op="tasks.store.symbolicate_event.%s" % symbolication_function_name
                     ) as span:
                         symbolicated_data = symbolication_function(data)
                         span.set_data("symbolicated_data", bool(symbolicated_data))
@@ -221,7 +219,7 @@ def _do_symbolicate_event(
                         # Do not drop event but actually continue with rest of pipeline
                         # (persisting unsymbolicated event)
                         metrics.incr(
-                            "tasks.symbolication.symbolicate_event.fatal",
+                            "tasks.store.symbolicate_event.fatal",
                             tags={
                                 "reason": "timeout",
                                 "symbolication_function": symbolication_function_name,
@@ -238,20 +236,20 @@ def _do_symbolicate_event(
                     else:
                         # sleep for `retry_after` but max 5 seconds and try again
                         metrics.incr(
-                            "tasks.symbolication.symbolicate_event.retry",
+                            "tasks.store.symbolicate_event.retry",
                             tags={"symbolication_function": symbolication_function_name},
                         )
                         sleep(min(e.retry_after, SYMBOLICATOR_MAX_RETRY_AFTER))
                         continue
                 except Exception:
                     metrics.incr(
-                        "tasks.symbolication.symbolicate_event.fatal",
+                        "tasks.store.symbolicate_event.fatal",
                         tags={
                             "reason": "error",
                             "symbolication_function": symbolication_function_name,
                         },
                     )
-                    error_logger.exception("tasks.symbolication.symbolicate_event.symbolication")
+                    error_logger.exception("tasks.store.symbolicate_event.symbolication")
                     data.setdefault("_metrics", {})["flag.processing.error"] = True
                     data.setdefault("_metrics", {})["flag.processing.fatal"] = True
                     has_changed = True
@@ -259,7 +257,7 @@ def _do_symbolicate_event(
 
     if submit_realtime_metrics:
         with sentry_sdk.start_span(
-            op="tasks.symbolication.symbolicate_event.low_priority.metrics.histogram"
+            op="tasks.store.symbolicate_event.low_priority.metrics.histogram"
         ):
             symbolication_duration = int(time() - symbolication_start_time)
             try:
@@ -281,7 +279,7 @@ def _do_symbolicate_event(
 
 
 @instrumented_task(
-    name="sentry.tasks.symbolication.symbolicate_event",
+    name="sentry.tasks.store.symbolicate_event",
     queue="events.symbolicate_event",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
@@ -308,7 +306,7 @@ def symbolicate_event(
 
 
 @instrumented_task(
-    name="sentry.tasks.symbolication.symbolicate_event_low_priority",
+    name="sentry.tasks.store.symbolicate_event_low_priority",
     queue="events.symbolicate_event_low_priority",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
@@ -338,7 +336,7 @@ def symbolicate_event_low_priority(
 
 
 @instrumented_task(
-    name="sentry.tasks.symbolication.symbolicate_event_from_reprocessing",
+    name="sentry.tasks.store.symbolicate_event_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
@@ -358,7 +356,7 @@ def symbolicate_event_from_reprocessing(
 
 
 @instrumented_task(
-    name="sentry.tasks.symbolication.symbolicate_event_from_reprocessing_low_priority",
+    name="sentry.tasks.store.symbolicate_event_from_reprocessing_low_priority",
     queue="events.reprocessing.symbolicate_event_low_priority",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
