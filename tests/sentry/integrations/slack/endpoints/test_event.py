@@ -8,8 +8,7 @@ from sentry.models import Identity, IdentityProvider, IdentityStatus
 from sentry.testutils import APITestCase
 from sentry.utils import json
 from sentry.utils.compat.mock import Mock, patch
-from tests.sentry.integrations.slack import install_slack
-from tests.sentry.integrations.slack.endpoints.commands import get_response_text
+from tests.sentry.integrations.slack import get_response_text, install_slack
 
 UNSET = object()
 

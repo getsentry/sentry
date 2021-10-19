@@ -1,7 +1,8 @@
 from typing import Optional
 
 from sentry.integrations.slack.message_builder import SlackBody
-from tests.sentry.integrations.slack.endpoints.commands import SlackCommandsTest, get_response_text
+from tests.sentry.integrations.slack import get_response_text
+from tests.sentry.integrations.slack.endpoints.commands import SlackCommandsTest
 
 
 def assert_is_help_text(data: SlackBody, expected_command: Optional[str] = None) -> None:

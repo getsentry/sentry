@@ -6,23 +6,12 @@ from requests import Response
 from rest_framework import status
 
 from sentry import options
-from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.utils import set_signing_secret
 from sentry.models import Identity, IdentityProvider, Team
 from sentry.testutils import APITestCase, TestCase
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json
 from tests.sentry.integrations.slack import find_identity, install_slack, link_team, link_user
-
-
-def get_response_text(data: SlackBody) -> str:
-    return (
-        # If it's an attachment.
-        data.get("text")
-        or
-        # If it's blocks.
-        "\n".join(block["text"]["text"] for block in data["blocks"] if block["type"] == "section")
-    )
 
 
 class SlackCommandsTest(APITestCase, TestCase):

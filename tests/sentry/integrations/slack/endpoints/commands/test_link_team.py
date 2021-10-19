@@ -10,8 +10,8 @@ from sentry.integrations.slack.endpoints.command import (
 )
 from sentry.models import OrganizationIntegration
 from sentry.utils import json
-from tests.sentry.integrations.slack import link_user
-from tests.sentry.integrations.slack.endpoints.commands import SlackCommandsTest, get_response_text
+from tests.sentry.integrations.slack import get_response_text, link_user
+from tests.sentry.integrations.slack.endpoints.commands import SlackCommandsTest
 
 OTHER_SLACK_ID = "UXXXXXXX2"
 

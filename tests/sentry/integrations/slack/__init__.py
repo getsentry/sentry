@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sentry.integrations.slack.message_builder import SlackBody
 from sentry.models import (
     ExternalActor,
     Identity,
@@ -12,6 +13,16 @@ from sentry.models import (
     User,
 )
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+
+
+def get_response_text(data: SlackBody) -> str:
+    return (
+        # If it's an attachment.
+        data.get("text")
+        or
+        # If it's blocks.
+        "\n".join(block["text"]["text"] for block in data["blocks"] if block["type"] == "section")
+    )
 
 
 def install_slack(organization: Organization, workspace_id: str = "TXXXXXXX1") -> Integration:
