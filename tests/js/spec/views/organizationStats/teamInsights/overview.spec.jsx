@@ -8,7 +8,7 @@ import {
 
 import TeamStore from 'app/stores/teamStore';
 import localStorage from 'app/utils/localStorage';
-import {TeamInsightsOverview} from 'app/views/teamInsights/overview';
+import {TeamInsightsOverview} from 'app/views/organizationStats/teamInsights/overview';
 
 jest.mock('app/utils/localStorage');
 

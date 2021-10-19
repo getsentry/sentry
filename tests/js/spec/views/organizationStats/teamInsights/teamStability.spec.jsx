@@ -1,6 +1,6 @@
 import {mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import TeamStability from 'app/views/teamInsights/teamStability';
+import TeamStability from 'app/views/organizationStats/teamInsights/teamStability';
 
 describe('TeamStability', () => {
   it('should comparse selected past crash rate with current week', async () => {

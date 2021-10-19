@@ -24,6 +24,7 @@ from snuba_sdk import Column, Condition, Entity, Op, Query
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.function import Function
 from snuba_sdk.legacy import json_to_snql
+from snuba_sdk.query import SelectableExpression
 from typing_extensions import Literal, TypedDict
 
 from sentry.release_health.base import (
@@ -103,13 +104,60 @@ class _SessionStatusValue:
 
 _MetricName = Literal["session", "session.duration", "session.error", "user"]
 
-
 #: Actual column name in snuba
 _SnubaColumnName = Literal["value", "avg", "max", "percentiles"]
 
 #: "Virtual" column name, almost the same as _SnubaColumnName,
 #: but "percentiles" is expanded into multiple columns later on
 _VirtualColumnName = Literal["value", "avg", "max", "p50", "p75", "p90", "p95", "p99"]
+
+
+def _to_column(query_func: SessionsQueryFunction) -> SelectableExpression:
+    """
+    Converts query a function into an expression that can be directly plugged into anywhere
+    columns are used (like the select argument of a Query)
+    """
+    # distribution columns
+    if query_func in [
+        "p50(session.duration)",
+        "p75(session.duration)",
+        "p90(session.duration)",
+        "p95(session.duration)",
+        "p99(session.duration)",
+    ]:
+        return Function(
+            alias="percentiles",
+            function="quantiles(0.5,0.75,0.9,0.95,0.99)",
+            parameters=[Column("value")],
+        )
+    if query_func == "avg(session.duration)":
+        return Function(
+            alias="avg",
+            function="avg",
+            parameters=[Column("value")],
+        )
+    if query_func == "max(session.duration)":
+        return Function(
+            alias="max",
+            function="max",
+            parameters=[Column("value")],
+        )
+    # counters
+    if query_func == "sum(session)":
+        return Function(
+            alias="sum",
+            function="sum",
+            parameters=[Column("value")],
+        )
+    # sets
+    if query_func == "count_unique(user)":
+        return Function(
+            alias="count_unique",
+            function="uniq",
+            parameters=[Column("value")],
+        )
+
+    raise ValueError("Unmapped metrics column", query_func)
 
 
 @dataclass(frozen=True)
@@ -263,7 +311,7 @@ def _get_snuba_query(
     query: QueryDefinition,
     entity_key: EntityKey,
     metric_id: int,
-    columns: Sequence[str],
+    columns: Sequence[SelectableExpression],
     series: bool,
     extra_conditions: List[Condition],
     remove_groupby: Set[Column],
@@ -298,7 +346,7 @@ def _get_snuba_query(
     return Query(
         dataset=Dataset.Metrics.value,
         match=Entity(entity_key.value),
-        select=[Column(column) for column in columns],
+        select=list(columns),
         groupby=list(full_groupby),
         where=conditions,
         granularity=Granularity(query.rollup),
@@ -311,7 +359,7 @@ def _get_snuba_query_data(
     entity_key: EntityKey,
     metric_name: _MetricName,
     metric_id: int,
-    columns: Sequence[str],
+    columns: Sequence[SelectableExpression],
     extra_conditions: Optional[List[Condition]] = None,
     remove_groupby: Optional[Set[Column]] = None,
 ) -> Generator[Tuple[_MetricName, _SnubaData], None, None]:
@@ -361,7 +409,12 @@ def _fetch_data(
         if metric_id is not None:
             data.extend(
                 _get_snuba_query_data(
-                    org_id, query, EntityKey.MetricsSets, "user", metric_id, ["value"]
+                    org_id,
+                    query,
+                    EntityKey.MetricsSets,
+                    "user",
+                    metric_id,
+                    [Function("uniq", [Column("value")], "value")],
                 )
             )
             metric_to_output_field[("user", "value")] = _UserField()
@@ -374,15 +427,15 @@ def _fetch_data(
             def get_virtual_column(field: SessionsQueryFunction) -> _VirtualColumnName:
                 return cast(_VirtualColumnName, field[:3])
 
-            def get_snuba_column(field: SessionsQueryFunction) -> _SnubaColumnName:
-                """Get the actual snuba column needed by this function"""
-                virtual_column = get_virtual_column(field)
-                if virtual_column in ("p50", "p75", "p90", "p95", "p99"):
-                    return "percentiles"
-
-                return cast(_SnubaColumnName, virtual_column)
-
-            snuba_columns = {get_snuba_column(field) for field in duration_fields}
+            # eliminate duplicate fields (p50...p99) all generate the same field "percentiles"
+            seen_fields = set()
+            snuba_columns = []
+            for field in duration_fields:
+                column = _to_column(field)
+                if column.alias not in seen_fields:
+                    # a new field add it to the columns and remember it
+                    snuba_columns.append(column)
+                    seen_fields.add(column.alias)
 
             # sessions_v2 only exposes healthy session's durations
             healthy = _resolve("exited")
@@ -399,7 +452,7 @@ def _fetch_data(
                         EntityKey.MetricsDistributions,
                         "session.duration",
                         metric_id,
-                        list(snuba_columns),
+                        snuba_columns,
                         extra_conditions=extra_conditions,
                         remove_groupby=remove_groupby,
                     )
@@ -420,7 +473,12 @@ def _fetch_data(
                 # 1 session counters
                 data.extend(
                     _get_snuba_query_data(
-                        org_id, query, EntityKey.MetricsCounters, "session", metric_id, ["value"]
+                        org_id,
+                        query,
+                        EntityKey.MetricsCounters,
+                        "session",
+                        metric_id,
+                        [Function("sum", [Column("value")], "value")],
                     )
                 )
 
@@ -435,7 +493,7 @@ def _fetch_data(
                             EntityKey.MetricsSets,
                             "session.error",
                             error_metric_id,
-                            ["value"],
+                            [Function("uniq", [Column("value")], "value")],
                             remove_groupby=remove_groupby,
                         )
                     )
@@ -453,7 +511,7 @@ def _fetch_data(
                             EntityKey.MetricsCounters,
                             "session",
                             metric_id,
-                            ["value"],
+                            [Function("sum", [Column("value")], "value")],
                             extra_conditions,
                         )
                     )
@@ -615,13 +673,11 @@ def _translate_conditions(org_id: int, input_: Any) -> Any:
         return _resolve(input_)
 
     if isinstance(input_, Function):
-
         return Function(
             function=input_.function, parameters=_translate_conditions(org_id, input_.parameters)
         )
 
     if isinstance(input_, Condition):
-
         return Condition(
             lhs=_translate_conditions(org_id, input_.lhs),
             op=input_.op,
@@ -629,7 +685,6 @@ def _translate_conditions(org_id: int, input_: Any) -> Any:
         )
 
     if isinstance(input_, (int, float)):
-
         return input_
 
     assert isinstance(input_, list), input_
