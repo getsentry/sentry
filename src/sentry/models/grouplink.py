@@ -53,8 +53,8 @@ class GroupLink(Model):
         pull_request = 2
         issue = 3
 
-    group = FlexibleForeignKey("sentry.Group")
-    project = FlexibleForeignKey("sentry.Project", db_index=True)
+    group = FlexibleForeignKey("sentry.Group", db_constraint=False)
+    project = FlexibleForeignKey("sentry.Project", db_constraint=False, db_index=True)
     linked_type = BoundedPositiveIntegerField(
         default=LinkedType.commit,
         choices=(

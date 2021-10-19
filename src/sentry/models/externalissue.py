@@ -30,8 +30,8 @@ class ExternalIssueManager(BaseManager):
 class ExternalIssue(Model):
     __include_in_export__ = False
 
-    organization = FlexibleForeignKey("sentry.Organization")
-    integration = FlexibleForeignKey("sentry.Integration")
+    organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
+    integration = FlexibleForeignKey("sentry.Integration", db_constraint=False)
     key = models.CharField(max_length=128)  # example APP-123 in jira
     date_added = models.DateTimeField(default=timezone.now)
     title = models.TextField(null=True)
