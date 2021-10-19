@@ -1,11 +1,14 @@
-import {Fragment} from 'react';
+import {ComponentType, Fragment} from 'react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import chunk from 'lodash/chunk';
 import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
+import moment from 'moment';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import BarChart from 'app/components/charts/barChart';
+import MarkLine from 'app/components/charts/components/markLine';
 import {DateTimeObject} from 'app/components/charts/utils';
 import IdBadge from 'app/components/idBadge';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -15,9 +18,10 @@ import {IconArrow} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {Color} from 'app/utils/theme';
+import {Color, Theme} from 'app/utils/theme';
 
 type Props = AsyncComponent['props'] & {
+  theme: Theme;
   organization: Organization;
   teamSlug: string;
   projects: Project[];
@@ -164,7 +168,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {projects, period} = this.props;
+    const {projects, period, theme} = this.props;
     const {periodReleases} = this.state;
 
     const data = Object.entries(periodReleases?.release_counts ?? {})
@@ -174,10 +178,6 @@ class TeamReleases extends AsyncComponent<Props, State> {
       }))
       .sort((a, b) => a.name - b.name);
 
-    const projectAvgData = Object.values(periodReleases?.project_avgs ?? {}).reduce(
-      (total, currentData) => total + currentData,
-      0
-    );
     // Convert from days to 7 day groups
     const seriesData = chunk(data, 7).map(week => {
       return {
@@ -186,17 +186,17 @@ class TeamReleases extends AsyncComponent<Props, State> {
       };
     });
 
-    const prevSeriesData = chunk(data, 7).map(week => {
-      return {
-        name: week[0].name,
-        value: Math.ceil(projectAvgData / projects.length),
-      };
-    });
+    const averageValues = Object.values(periodReleases?.project_avgs ?? {});
+    const projectAvgSum = averageValues.reduce(
+      (total, currentData) => total + currentData,
+      0
+    );
+    const totalPeriodAverage = Math.ceil(projectAvgSum / averageValues.length);
 
     return (
       <div>
         <ChartWrapper>
-          <StyledBarChart
+          <BarChart
             style={{height: 190}}
             isGroupedByDate
             useShortDate
@@ -209,15 +209,37 @@ class TeamReleases extends AsyncComponent<Props, State> {
             series={[
               {
                 seriesName: t('This Period'),
+                silent: true,
                 data: seriesData,
-              },
+                markLine: MarkLine({
+                  silent: true,
+                  lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
+                  data: [{yAxis: totalPeriodAverage} as any],
+                }),
+              } as any,
             ]}
-            previousPeriod={[
-              {
-                seriesName: t(`Last ${period} Average`),
-                data: prevSeriesData ?? [],
+            tooltip={{
+              formatter: seriesParams => {
+                // `seriesParams` can be an array or an object :/
+                const [series] = Array.isArray(seriesParams)
+                  ? seriesParams
+                  : [seriesParams];
+
+                const dateFormat = 'MMM D';
+                const startDate = moment(series.axisValue).format(dateFormat);
+                const endDate = moment(series.axisValue)
+                  .add(7, 'days')
+                  .format(dateFormat);
+                return [
+                  '<div class="tooltip-series">',
+                  `<div><span class="tooltip-label">${series.marker} <strong>${series.seriesName}</strong></span> ${series.data[1]}</div>`,
+                  `<div><span class="tooltip-label"><strong>Last ${period} Average</strong></span> ${totalPeriodAverage}</div>`,
+                  '</div>',
+                  `<div class="tooltip-date">${startDate} - ${endDate}</div>`,
+                  '<div class="tooltip-arrow"></div>',
+                ].join('');
               },
-            ]}
+            }}
           />
         </ChartWrapper>
         <StyledPanelTable
@@ -227,7 +249,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
             <RightAligned key="last">
               {tct('Last [period] Average', {period})}
             </RightAligned>,
-            <RightAligned key="curr">{t('This Week')}</RightAligned>,
+            <RightAligned key="curr">{t('Last 7 Days')}</RightAligned>,
             <RightAligned key="diff">{t('Difference')}</RightAligned>,
           ]}
         >
@@ -248,14 +270,12 @@ class TeamReleases extends AsyncComponent<Props, State> {
   }
 }
 
-export default TeamReleases;
+export default withTheme(TeamReleases as ComponentType<Props>);
 
 const ChartWrapper = styled('div')`
-  padding: ${space(2)};
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
-
-const StyledBarChart = styled(BarChart)<{previousPeriod: any[]}>``;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr;

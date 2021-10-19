@@ -8,7 +8,7 @@ import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
-from snuba_sdk.function import Function
+from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.discover.models import TeamKeyTransaction
@@ -82,7 +82,7 @@ class PseudoField:
 
         self.validate()
 
-    def get_expression(self, params):
+    def get_expression(self, params) -> Union[List[Any], Tuple[Any]]:
         if isinstance(self.expression, (list, tuple)):
             return deepcopy(self.expression)
         elif self.expression_fn is not None:
@@ -1405,6 +1405,14 @@ class SnQLDateArg(DateArg):
         return value[1:-1]
 
 
+class SnQLFieldColumn(FieldColumn):
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        if value is None:
+            raise InvalidFunctionArgument("a column is required")
+
+        return value
+
+
 class DiscoverFunction:
     def __init__(
         self,
@@ -1793,7 +1801,7 @@ FUNCTIONS = {
                     " ", ""
                 ),
             ),
-            default_result_type="number",
+            default_result_type="integer",
         ),
         DiscoverFunction(
             "user_misery",
@@ -2248,14 +2256,18 @@ def normalize_percentile_alias(args: Mapping[str, str]) -> str:
     # function signature. This function only accepts percentile
     # aliases.
     aggregate_alias = args["aggregate_alias"]
-    match = re.match(r"(p\d{2,3})_(\w+)", aggregate_alias)
+    match = re.match(r"(p\d{2,3})_?(\w+)?", aggregate_alias)
 
     if not match:
         raise InvalidFunctionArgument("Aggregate alias must be a percentile function.")
 
     # Translating an arg of the pattern `measurements_lcp`
     # to `measurements.lcp`.
-    aggregate_arg = ".".join(match.group(2).split("_"))
+    if match.group(2):
+        aggregate_arg = ".".join(match.group(2).split("_"))
+    # We default percentiles without an arg to duration
+    else:
+        aggregate_arg = "transaction.duration"
 
     return f"{match.group(1)}({aggregate_arg})"
 
@@ -2702,7 +2714,7 @@ class QueryFields(QueryBase):
                 ),
                 SnQLFunction(
                     "any",
-                    required_args=[FieldColumn("column")],
+                    required_args=[SnQLFieldColumn("column")],
                     # Not actually using `any` so that this function returns consistent results
                     snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
                     result_type_fn=reflective_result_type(),
@@ -2807,13 +2819,13 @@ class QueryFields(QueryBase):
                 resolved_columns.append(resolved_column)
 
         # Happens after resolving columns to check if there any aggregates
-        if self.auto_fields and not self.aggregates:
+        if self.auto_fields:
             # Ensure fields we require to build a functioning interface
             # are present.
-            if "id" not in stripped_columns:
+            if not self.aggregates and "id" not in stripped_columns:
                 resolved_columns.append(self.resolve_column("id", alias=True))
-            if "project.id" not in stripped_columns:
-                resolved_columns.append(self.resolve_column("project.id", alias=True))
+            if "id" in stripped_columns and "project.id" not in stripped_columns:
+                resolved_columns.append(self.resolve_column("project.name", alias=True))
 
         return resolved_columns
 
@@ -2984,6 +2996,13 @@ class QueryFields(QueryBase):
             alias = get_function_alias_with_columns(raw_function, arguments)
 
         return (function, combinator, arguments, alias)
+
+    def get_public_alias(self, function: CurriedFunction) -> str:
+        """Given a function resolved by QueryBuilder, get the public alias of that function
+
+        ie. any_user_display -> any(user_display)
+        """
+        return self.function_alias_map[function.alias].field
 
     # Field Aliases
     def _resolve_issue_id_alias(self, _: str) -> SelectType:

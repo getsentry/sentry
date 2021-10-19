@@ -149,7 +149,7 @@ def _check_releases_have_health_data(
     return {row["release"] for row in data}
 
 
-def get_project_releases_by_stability(
+def _get_project_releases_by_stability(
     project_ids, offset, limit, scope, stats_period=None, environments=None
 ):
     """Given some project IDs returns adoption rates that should be updated
@@ -534,7 +534,7 @@ def _get_crash_free_breakdown(project_id, release, start, environments=None):
     return rv
 
 
-def get_project_release_stats(project_id, release, stat, rollup, start, end, environments=None):
+def _get_project_release_stats(project_id, release, stat, rollup, start, end, environments=None):
     assert stat in ("users", "sessions")
 
     # since snuba end queries are exclusive of the time and we're bucketing to
