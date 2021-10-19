@@ -95,10 +95,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
           color: ${theme.subText};
         }
 
-        .exception {
-          border-color: ${theme.innerBorder};
-        }
-
         .traceback {
           border-color: ${theme.border};
 

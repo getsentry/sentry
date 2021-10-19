@@ -29,4 +29,5 @@ const Title = styled('h5')`
   overflow-wrap: break-word;
   word-wrap: break-word;
   word-break: break-word;
+  line-height: 1.2;
 `;

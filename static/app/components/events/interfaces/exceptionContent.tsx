@@ -42,7 +42,7 @@ const ExceptionContent = ({
   }
 
   const children = values.map((exc, excIdx) => (
-    <div key={excIdx} className="exception">
+    <Exception key={excIdx} className="exception">
       <ExceptionTitle type={exc.type} exceptionModule={exc?.module} />
       <Annotated object={exc} objectKey="value" required>
         {value => <StyledPre className="exc-message">{value}</StyledPre>}
@@ -64,7 +64,7 @@ const ExceptionContent = ({
         hasHierarchicalGrouping={hasHierarchicalGrouping}
         groupingCurrentLevel={groupingCurrentLevel}
       />
-    </div>
+    </Exception>
   ));
 
   if (newestFirst) {
@@ -79,4 +79,14 @@ export default ExceptionContent;
 const StyledPre = styled('pre')`
   margin-bottom: ${space(1)};
   margin-top: 0;
+`;
+
+const Exception = styled('div')`
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  margin: 0 0 ${space(3)};
+
+  :last-child {
+    border-bottom: 0;
+    margin-bottom: 0;
+  }
 `;
