@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
@@ -65,7 +67,7 @@ class GroupRelease(Model):
         else:
             created = False
 
-        if not created:
+        if not created and instance.last_seen < datetime - timedelta(seconds=60):
             buffer.incr(
                 model=cls,
                 columns={},
