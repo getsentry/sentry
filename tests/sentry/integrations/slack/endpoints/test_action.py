@@ -3,7 +3,6 @@ from urllib.parse import parse_qs
 import responses
 from freezegun import freeze_time
 
-from sentry.api import client
 from sentry.integrations.slack.endpoints.action import (
     LINK_IDENTITY_MESSAGE,
     UNLINK_IDENTITY_MESSAGE,
@@ -21,6 +20,7 @@ from sentry.models import (
     IdentityStatus,
     Integration,
     OrganizationIntegration,
+    OrganizationMember,
 )
 from sentry.testutils import APITestCase
 from sentry.utils import json
@@ -94,7 +94,7 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(slack_user={"id": "invalid-id", "domain": "example"})
 
         associate_url = build_linking_url(
-            self.integration, self.organization, "invalid-id", "C065W1189", self.response_url
+            self.integration, "invalid-id", "C065W1189", self.response_url
         )
 
         assert resp.status_code == 200, resp.content
@@ -322,8 +322,7 @@ class StatusActionTest(BaseEventTest):
 
     @freeze_time("2021-01-14T12:27:28.303Z")
     @responses.activate
-    @patch("sentry.api.client.put")
-    def test_handle_submission_fail(self, client_put):
+    def test_handle_submission_fail(self):
         status_action = {"name": "resolve_dialog", "value": "resolve_dialog"}
 
         # Expect request to open dialog on slack
@@ -360,27 +359,27 @@ class StatusActionTest(BaseEventTest):
             content_type="application/json",
         )
 
-        # make the client raise an API error
-        client_put.side_effect = client.ApiError(
-            403, '{"detail":"You do not have permission to perform this action."}'
-        )
+        # Remove the user from the organization.
+        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        member.remove_user()
+        member.save()
 
-        resp = self.post_webhook(
+        response = self.post_webhook(
             type="dialog_submission",
             callback_id=dialog["callback_id"],
             data={"submission": {"resolve_type": "resolved"}},
         )
 
-        # TODO(mgaeta): `assert_called` is deprecated. Find a replacement.
-        # client_put.assert_called()
-
-        associate_url = build_unlinking_url(
-            self.integration.id, self.external_id, "C065W1189", self.response_url
-        )
-
-        assert resp.status_code == 200, resp.content
-        assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
-            associate_url=associate_url, user_email=self.user.email, org_name=self.organization.name
+        assert response.status_code == 200, response.content
+        assert response.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
+            associate_url=build_unlinking_url(
+                integration_id=self.integration.id,
+                slack_id=self.external_id,
+                channel_id="C065W1189",
+                response_url=self.response_url,
+            ),
+            user_email=self.user.email,
+            org_name=self.organization.name,
         )
 
     @patch(
