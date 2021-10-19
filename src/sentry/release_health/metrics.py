@@ -214,7 +214,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         count_query = Query(
             dataset=Dataset.Metrics.value,
             match=Entity(EntityKey.MetricsCounters.value),
-            select=[Column("value")],
+            select=[Function("sum", [Column("value")], "value")],
             where=[
                 Condition(Column("org_id"), Op.EQ, org_id),
                 Condition(Column("project_id"), Op.IN, project_ids),
@@ -322,7 +322,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             query = Query(
                 dataset=Dataset.Metrics.value,
                 match=Entity(EntityKey.MetricsCounters.value),
-                select=[Column("value")],
+                select=[Function("sum", [Column("value")], "value")],
                 where=_get_common_where(total)
                 + [
                     Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
@@ -343,7 +343,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             query = Query(
                 dataset=Dataset.Metrics.value,
                 match=Entity(EntityKey.MetricsSets.value),
-                select=[Column("value")],
+                select=[Function("uniq", [Column("value")], "value")],
                 where=_get_common_where(total)
                 + [
                     Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")),
@@ -680,7 +680,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             Query(
                 dataset=Dataset.Metrics.value,
                 match=Entity(EntityKey.MetricsDistributions.value),
-                select=aggregates + [Column("percentiles")],
+                select=aggregates
+                + [
+                    Function(
+                        alias="percentiles",
+                        function="quantiles(0.5,0.9)",
+                        parameters=[Column("value")],
+                    )
+                ],
                 where=where
                 + [
                     Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.duration")),
@@ -698,7 +705,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             key = (row["project_id"], reverse_tag_value(org_id, row[release_column_name]))
             rv_durations[key] = {
                 "duration_p50": row["percentiles"][0],
-                "duration_p90": row["percentiles"][2],
+                "duration_p90": row["percentiles"][1],
             }
 
         return rv_durations
@@ -722,7 +729,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             Query(
                 dataset=Dataset.Metrics.value,
                 match=Entity(EntityKey.MetricsSets.value),
-                select=aggregates + [Column("value")],
+                select=aggregates + [Function("uniq", [Column("value")], "value")],
                 where=where
                 + [
                     Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.error")),
@@ -758,7 +765,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             Query(
                 dataset=Dataset.Metrics.value,
                 match=Entity(EntityKey.MetricsCounters.value),
-                select=aggregates + [Column("value")],
+                select=aggregates + [Function("sum", [Column("value")], "value")],
                 where=where
                 + [
                     Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
@@ -798,7 +805,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rv_users: Dict[Tuple[int, str, str], int] = {}
 
         # Avoid mutating input parameters here
-        select = aggregates + [Column("value")]
+        select = aggregates + [Function("uniq", [Column("value")], "value")]
         where = where + [
             Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")),
             Condition(
@@ -856,13 +863,18 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             "sessions": EntityKey.MetricsCounters.value,
         }[stat]
 
+        value_column = {
+            "users": Function("uniq", [Column("value")], "value"),
+            "sessions": Function("sum", [Column("value")], "value"),
+        }[stat]
+
         metric_name = metric_id(org_id, {"sessions": "session", "users": "user"}[stat])
 
         for row in raw_snql_query(
             Query(
                 dataset=Dataset.Metrics.value,
                 match=Entity(entity),
-                select=aggregates + [Column("value")],
+                select=aggregates + [value_column],
                 where=where
                 + [
                     Condition(Column("metric_id"), Op.EQ, metric_name),
@@ -1075,11 +1087,20 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                         Condition(Column("metric_id"), Op.EQ, metric_id),
                         Condition(Column("timestamp"), Op.LT, end),
                     ]
+
+                    if entity_key == EntityKey.MetricsCounters:
+                        aggregation_function = "sum"
+                    elif entity_key == EntityKey.MetricsSets:
+                        aggregation_function = "uniq"
+                    else:
+                        raise NotImplementedError(f"No support for entity: {entity_key}")
+                    columns = [Function(aggregation_function, [Column("value")], "value")]
+
                     data = raw_snql_query(
                         Query(
                             dataset=Dataset.Metrics.value,
                             match=Entity(entity_key.value),
-                            select=[Column("value")],
+                            select=columns,
                             where=where,
                             groupby=[Column(status_key)],
                         ),
@@ -1296,7 +1317,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         # Filter out releases with zero users when sorting by either `users` or `crash_free_users`
         if scope in ["users", "crash_free_users"]:
-            having.append(Condition(Column("value"), Op.GT, 0))
+            having.append(Condition(Function("uniq", [Column("value")], "value"), Op.GT, 0))
             match = Entity(EntityKey.MetricsSets.value)
         else:
             match = Entity(EntityKey.MetricsCounters.value)
@@ -1657,7 +1678,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     ) -> int:
 
         org_id = self._get_org_id([project_id])
-        columns = [Column("value")]
+        columns = [Function("sum", [Column("value")], "value")]
 
         try:
             status_key = tag_key(org_id, "session.status")

@@ -692,12 +692,6 @@ function buildRoutes() {
         component={SafeLazyLoad}
       />
       <Route
-        path="performance/"
-        name={t('Performance')}
-        componentPromise={() => import('app/views/settings/organizationPerformance')}
-        component={SafeLazyLoad}
-      />
-      <Route
         path="settings/"
         componentPromise={() => import('app/views/settings/organizationGeneralSettings')}
         component={SafeLazyLoad}
@@ -932,19 +926,6 @@ function buildRoutes() {
     </Route>
   );
 
-  const teamInsightsRoutes = (
-    <Route
-      path="/organizations/:orgId/teamInsights/"
-      componentPromise={() => import('app/views/teamInsights')}
-      component={SafeLazyLoad}
-    >
-      <IndexRoute
-        componentPromise={() => import('app/views/teamInsights/overview')}
-        component={SafeLazyLoad}
-      />
-    </Route>
-  );
-
   const dashboardRoutes = (
     <Fragment>
       <Route
@@ -1159,6 +1140,21 @@ function buildRoutes() {
       componentPromise={() => import('app/views/organizationStats')}
       component={SafeLazyLoad}
     />
+  );
+
+  const teamStatsRoutes = (
+    <Route
+      path="/organizations/:orgId/stats/team/"
+      componentPromise={() => import('app/views/organizationStats/teamInsights')}
+      component={SafeLazyLoad}
+    >
+      <IndexRoute
+        componentPromise={() =>
+          import('app/views/organizationStats/teamInsights/overview')
+        }
+        component={SafeLazyLoad}
+      />
+    </Route>
   );
 
   // TODO(mark) Long term this /queries route should go away and /discover
@@ -1772,7 +1768,6 @@ function buildRoutes() {
     <Route component={errorHandler(OrganizationDetails)}>
       {settingsRoutes}
       {projectsRoutes}
-      {teamInsightsRoutes}
       {dashboardRoutes}
       {userFeedbackRoutes}
       {issueListRoutes}
@@ -1782,6 +1777,7 @@ function buildRoutes() {
       {releasesRoutes}
       {activityRoutes}
       {statsRoutes}
+      {teamStatsRoutes}
       {discoverRoutes}
       {performanceRoutes}
       {adminManageRoutes}
