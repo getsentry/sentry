@@ -46,16 +46,19 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         :auth: required
         """
         endpoint = options.get("system.upload-url-prefix")
-        # We fallback to default system url if config is not set
-        if len(endpoint) == 0:
-            endpoint = options.get("system.url-prefix")
+        relative_url = reverse("sentry-api-0-chunk-upload", args=[organization.slug])
 
-        url = reverse("sentry-api-0-chunk-upload", args=[organization.slug])
-        endpoint = urljoin(endpoint.rstrip("/") + "/", url.lstrip("/"))
+        if len(endpoint) == 0:
+            # If config is not set, we return relative, versionless endpoint (with `/api/0` stripped)
+            prefix = "/api/0"
+            url = relative_url.replace(prefix, "/")
+        else:
+            # Otherwise, we want a relative, versioned endpoint, with user-configured prefix
+            url = urljoin(endpoint.rstrip("/") + "/", relative_url.lstrip("/"))
 
         return Response(
             {
-                "url": endpoint,
+                "url": url,
                 "chunkSize": settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE,
                 "chunksPerRequest": MAX_CHUNKS_PER_REQUEST,
                 "maxFileSize": get_max_file_size(organization),
