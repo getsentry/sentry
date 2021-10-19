@@ -28,6 +28,15 @@ SYMBOLICATOR_MAX_RETRY_AFTER = settings.SYMBOLICATOR_MAX_RETRY_AFTER
 SYMBOLICATOR_MAX_QUEUE_SWITCHES = 3
 
 
+# The names of tasks and metrics in this file point to tasks.store instead of tasks.symbolicator
+# for legacy reasons, namely to prevent celery from dropping older tasks and needing to
+# update metrics tooling (e.g. DataDog). All (as of 19/10/2021) of these tasks were moved
+# out of tasks/store.py, hence the "store" bit of the name.
+#
+# New tasks and metrics are welcome to use the correct naming scheme as they are not
+# burdened by aforementioned legacy concerns.
+
+
 class RetrySymbolication(Exception):
     def __init__(self, retry_after=None):
         self.retry_after = retry_after
