@@ -145,6 +145,25 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         response = self.get_success_response(data={"team": ["some", "garbage"]})
         self.assertTemplateUsed(response, "sentry/integrations/slack/link-team-error.html")
 
+    @responses.activate
+    def test_link_team_multiple_organizations(self):
+        # Create another organization and team for this user that is linked through `self.integration`.
+        organization2 = self.create_organization(owner=self.user)
+        team2 = self.create_team(organization=organization2, members=[self.user])
+        OrganizationIntegration.objects.create(
+            organization=organization2, integration=self.integration
+        )
+
+        # Team order should not matter.
+        for team in (self.team, team2):
+            response = self.get_success_response(data={"team": team.id})
+            self.assertTemplateUsed(response, "sentry/integrations/slack/post-linked-team.html")
+
+            external_actors = self.get_linked_teams(
+                organization=team.organization, actor_ids=[team.actor_id]
+            )
+            assert len(external_actors) == 1
+
 
 class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
