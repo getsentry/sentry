@@ -45,12 +45,14 @@ class BucketedCounts:
            :attr:`BucketedCounts.width`.
         """
         if period is self.TOTAL_PERIOD:
-            timespan = len(self.counts) * self.width
+            timespan = self.total_time()
         else:
             if period < self.width:
                 raise ValueError(
                     f"Buckets of {self.width}s are too small to compute rate over {period}s"
                 )
+            if period > self.total_time():
+                raise ValueError("Can not compute rate over period longer than total_time")
             timespan = period
         bucket_count = int(timespan / self.width)
         return sum(self.counts[-bucket_count:]) / timespan
