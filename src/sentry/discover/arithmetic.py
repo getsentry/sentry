@@ -1,3 +1,4 @@
+import re
 from typing import Any, List, Optional, Tuple, Union
 
 from parsimonious.exceptions import ParseError
@@ -7,6 +8,7 @@ from sentry.exceptions import InvalidSearchQuery
 
 # prefix on fields so we know they're equations
 EQUATION_PREFIX = "equation|"
+EQUATION_ALIAS_REGEX = re.compile(r"^equation\[\d*\]$")
 SUPPORTED_OPERATORS = {"plus", "minus", "multiply", "divide"}
 
 
@@ -374,3 +376,7 @@ def categorize_columns(columns) -> Tuple[List[str], List[str]]:
         else:
             fields.append(column)
     return equations, fields
+
+
+def is_equation_alias(alias: str) -> bool:
+    return EQUATION_ALIAS_REGEX.match(alias) is not None
