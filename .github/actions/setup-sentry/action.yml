@@ -90,7 +90,7 @@ runs:
 
         # this handles pytest test sharding
         if [ "$MATRIX_INSTANCE" ]; then
-          if [ "$MATRIX_INSTANCE_TOTAL" ]; then
+          if ! [ "$MATRIX_INSTANCE_TOTAL" ]; then
             echo "MATRIX_INSTANCE_TOTAL is required."
             exit 1
           fi
