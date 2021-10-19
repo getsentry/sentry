@@ -1632,7 +1632,7 @@ class ResolveFieldListTest(unittest.TestCase):
 
 
 def resolve_snql_fieldlist(fields):
-    return QueryFields(Dataset.Discover, {}).resolve_select(fields)
+    return QueryFields(Dataset.Discover, {}).resolve_select(fields, [])
 
 
 @pytest.mark.parametrize(
