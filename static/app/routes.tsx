@@ -692,12 +692,6 @@ function buildRoutes() {
         component={SafeLazyLoad}
       />
       <Route
-        path="performance/"
-        name={t('Performance')}
-        componentPromise={() => import('app/views/settings/organizationPerformance')}
-        component={SafeLazyLoad}
-      />
-      <Route
         path="settings/"
         componentPromise={() => import('app/views/settings/organizationGeneralSettings')}
         component={SafeLazyLoad}
