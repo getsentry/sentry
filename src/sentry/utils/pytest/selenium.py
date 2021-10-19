@@ -304,8 +304,8 @@ class Browser:
         """
         # TODO(dcramer): ideally this would take the executing test package
         # into account for duplicate names
-        # TODO(josh): Change to 3.8 when it's deployed. Much easier to disable here than in GHA yml.
-        if os.environ.get("VISUAL_SNAPSHOT_ENABLE") != "1" or sys.version_info[:2] != (3, 6):
+        # TODO(joshuarli): remove version_info when fully on 3.8
+        if os.environ.get("VISUAL_SNAPSHOT_ENABLE") != "1" or sys.version_info[:2] != (3, 8):
             return self
 
         self.wait_for_images_loaded()
