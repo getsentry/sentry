@@ -9,6 +9,8 @@ from sentry.utils.email import group_id_to_email
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
+    from typing_extensions import Literal
+
     from sentry.integrations.slack.message_builder import SlackAttachment
     from sentry.integrations.slack.message_builder.notifications import (
         SlackNotificationsMessageBuilder,
@@ -21,7 +23,7 @@ if TYPE_CHECKING:
 class MessageAction:
     label: str
     url: str
-    style: Optional[str]
+    style: Optional[Literal["primary", "danger", "default"]]
 
     def as_slack(self) -> Mapping[str, Any]:
         return {"text": self.label, "name": self.label, "url": self.url, "style": self.style}

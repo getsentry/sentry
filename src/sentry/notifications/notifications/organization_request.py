@@ -24,7 +24,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
 
     def __init__(self, organization: "Organization", requester: "User") -> None:
-        self.organization = organization
+        super().__init__(organization)
         self.requester = requester
 
     @property
