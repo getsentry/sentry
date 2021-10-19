@@ -6,7 +6,10 @@ export type ProjectKey = {
   };
   name: string;
   projectId: number;
-  rateLimit: number | null;
+  rateLimit: {
+    window: number;
+    count: number;
+  } | null;
   label: string;
   dsn: {
     cdn: string;
