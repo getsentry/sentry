@@ -93,11 +93,12 @@ install_pyenv() {
       echo >&2 "brew update && brew uninstall pyenv && brew install pyenv"
       exit 1
     fi
-
-    if query-apple-m1; then
-      pyenv install --skip-existing "${PYENV_VERSION}"
-    elif query-big-sur; then
-      # We need to patch the source code on Big Sur before building Python
+    # Only try to patch the source code if:
+    # - The user is on Big Sur
+    # - The user is not trying to use their own Python version
+    # - The version is 3.6.x
+    if query-big-sur && [[ -z "${SENTRY_PYTHON_VERSION:-}" ]] && [[ ${PYENV_VERSION} < 3.7.0 ]]; then
+      # For Python 3.6.x, we need to patch the source code on Big Sur before building Python
       # We can remove this once we upgrade to newer versions of Python
       # cat is used since pyenv would finish to soon when the Python version is already installed
       curl -sSL https://github.com/python/cpython/commit/8ea6353.patch | cat |

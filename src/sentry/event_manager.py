@@ -65,6 +65,7 @@ from sentry.models import (
     UserReport,
     get_crashreport_key,
 )
+from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.plugins.base import plugins
 from sentry.reprocessing2 import (
     delete_old_primary_hash,
@@ -1318,6 +1319,8 @@ def _handle_regression(group, event, release):
         Activity.objects.create_group_activity(
             group, ActivityType.SET_REGRESSION, data={"version": release.version if release else ""}
         )
+        record_group_history(group, GroupHistoryStatus.REGRESSED, actor=None, release=release)
+
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
@@ -1693,6 +1696,7 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
     return hashes
 
 
+@metrics.wraps("save_event.calculate_span_grouping")
 def _calculate_span_grouping(jobs, projects):
     for job in jobs:
         # Make sure this snippet doesn't crash ingestion
@@ -1702,9 +1706,8 @@ def _calculate_span_grouping(jobs, projects):
             project = projects[job["project_id"]]
 
             if not features.has(
-                "organizations:performance-suspect-spans-ingestion",
-                project.organization,
-                actor=None,
+                "projects:performance-suspect-spans-ingestion",
+                project=project,
             ):
                 continue
 

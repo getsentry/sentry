@@ -13,6 +13,7 @@ _DEFAULT_DAEMONS = {
         "sentry",
         "run",
         "post-process-forwarder",
+        "--entity=all",
         "--loglevel=debug",
         "--commit-batch-size=1",
     ],
@@ -58,7 +59,7 @@ def _get_daemon(name, *args, **kwargs):
     "--prefix/--no-prefix", default=True, help="Show the service name prefix and timestamp"
 )
 @click.option(
-    "--pretty/--no-pretty", default=False, help="Styleize various outputs from the devserver"
+    "--pretty/--no-pretty", default=False, help="Stylize various outputs from the devserver"
 )
 @click.option(
     "--styleguide/--no-styleguide",

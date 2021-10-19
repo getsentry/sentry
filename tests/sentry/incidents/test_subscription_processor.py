@@ -51,7 +51,7 @@ EMPTY = object()
 @freeze_time()
 class ProcessUpdateTest(TestCase, SnubaTestCase):
     metrics = patcher("sentry.incidents.subscription_processor.metrics")
-    slack_client = patcher("sentry.integrations.slack.utils.SlackClient.post")
+    slack_client = patcher("sentry.integrations.slack.SlackClient.post")
 
     def setUp(self):
         super().setUp()
@@ -283,14 +283,16 @@ class ProcessUpdateTest(TestCase, SnubaTestCase):
 
         if not actions:
             if not incident:
-                assert not self.email_action_handler.called
+                assert (
+                    not self.email_action_handler.called
+                ), self.email_action_handler.call_args_list
             else:
                 for call_args in self.email_action_handler.call_args_list:
                     assert call_args[0][1] != incident
         else:
-            self.email_action_handler.assert_has_calls(
-                [call(action, incident, project) for action in actions], any_order=True
-            )
+            assert self.email_action_handler.call_args_list == [
+                call(action, incident, project) for action in actions
+            ]
 
     def assert_actions_fired_for_incident(self, incident, actions=None, project=None):
         actions = [] if actions is None else actions
@@ -810,6 +812,106 @@ class ProcessUpdateTest(TestCase, SnubaTestCase):
         self.assert_action_handler_called_with_actions(other_incident, [])
 
     def test_multiple_triggers(self):
+        rule = self.rule
+        rule.update(threshold_period=1)
+        trigger = self.trigger
+        warning_trigger = create_alert_rule_trigger(
+            self.rule, WARNING_TRIGGER_LABEL, trigger.alert_threshold - 20
+        )
+        warning_action = create_alert_rule_trigger_action(
+            warning_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            str(self.user.id),
+        )
+        processor = self.send_update(
+            rule, warning_trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
+        )
+        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_actions_fired_for_incident(incident, [warning_action])
+
+        processor = self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-9), subscription=self.sub
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action])
+
+        processor = self.send_update(
+            rule, trigger.alert_threshold - 1, timedelta(minutes=-7), subscription=self.sub
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [warning_action])
+
+        processor = self.send_update(
+            rule, rule.resolve_threshold - 1, timedelta(minutes=-6), subscription=self.sub
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
+        self.assert_no_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [warning_action])
+
+    def test_multiple_triggers_no_warning_action(self):
+        rule = self.rule
+        rule.update(threshold_period=1)
+        trigger = self.trigger
+        warning_trigger = create_alert_rule_trigger(
+            self.rule, WARNING_TRIGGER_LABEL, trigger.alert_threshold - 20
+        )
+        processor = self.send_update(
+            rule, warning_trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
+        )
+        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-9), subscription=self.sub
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action])
+
+        processor = self.send_update(
+            rule, trigger.alert_threshold - 1, timedelta(minutes=-7), subscription=self.sub
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
+        incident = self.assert_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.ACTIVE)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(
+            rule, rule.resolve_threshold - 1, timedelta(minutes=-6), subscription=self.sub
+        )
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_trigger_counts(processor, warning_trigger, 0, 0)
+        self.assert_no_active_incident(rule, self.sub)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, warning_trigger, TriggerStatus.RESOLVED)
+        self.assert_action_handler_called_with_actions(None, [])
+
+    def test_multiple_triggers_threshold_period(self):
         rule = self.rule
         rule.update(threshold_period=2)
         trigger = self.trigger

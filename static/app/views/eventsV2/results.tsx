@@ -312,6 +312,7 @@ class Results extends React.Component<Props, State> {
     const isDisplayMultiYAxisSupported = [
       DisplayModes.DEFAULT,
       DisplayModes.DAILY,
+      DisplayModes.PREVIOUS,
     ].includes(location.query.display as DisplayModes);
 
     const newQuery = {
@@ -350,6 +351,25 @@ class Results extends React.Component<Props, State> {
     const newQuery = {
       ...location.query,
       display: value,
+    };
+
+    router.push({
+      pathname: location.pathname,
+      query: newQuery,
+    });
+
+    // Treat display changing like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
+  };
+
+  handleTopEventsChange = (value: string) => {
+    const {router, location} = this.props;
+
+    const newQuery = {
+      ...location.query,
+      topEvents: value,
     };
 
     router.push({
@@ -490,6 +510,7 @@ class Results extends React.Component<Props, State> {
                   location={location}
                   onAxisChange={this.handleYAxisChange}
                   onDisplayChange={this.handleDisplayChange}
+                  onTopEventsChange={this.handleTopEventsChange}
                   total={totalValues}
                   confirmedQuery={confirmedQuery}
                   yAxis={yAxisArray}

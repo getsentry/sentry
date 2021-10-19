@@ -1,29 +1,45 @@
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Set, Tuple
+from typing import Mapping, Optional, Sequence, Set, Tuple, Union
+
+import sentry_sdk
 
 from sentry.release_health.base import (
     CrashFreeBreakdown,
     CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
     OrganizationId,
+    OverviewStat,
     ProjectId,
     ProjectOrRelease,
     ProjectRelease,
+    ProjectReleaseSessionStats,
+    ProjectReleaseUserStats,
+    ProjectWithCount,
     ReleaseHealthBackend,
+    ReleaseHealthOverview,
     ReleaseName,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
+    SessionsQueryResult,
+    StatsPeriod,
 )
 from sentry.snuba.sessions import (
     _check_has_health_data,
     _check_releases_have_health_data,
     _get_changed_project_release_model_adoptions,
     _get_crash_free_breakdown,
+    _get_num_sessions_per_project,
     _get_oldest_health_data_for_releases,
+    _get_project_release_stats,
+    _get_project_releases_by_stability,
+    _get_project_releases_count,
+    _get_project_sessions_count,
     _get_release_adoption,
+    _get_release_health_data_overview,
     _get_release_sessions_time_bounds,
     get_current_and_previous_crash_free_rates,
 )
+from sentry.snuba.sessions_v2 import QueryDefinition, _run_sessions_query, massage_sessions_result
 
 
 class SessionsReleaseHealthBackend(ReleaseHealthBackend):
@@ -59,6 +75,18 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
             project_releases=project_releases, environments=environments, now=now
         )
 
+    def run_sessions_query(
+        self,
+        org_id: int,
+        query: QueryDefinition,
+        span_op: str,
+    ) -> SessionsQueryResult:
+        with sentry_sdk.start_span(op=span_op, description="run_sessions_query"):
+            totals, series = _run_sessions_query(query)
+
+        with sentry_sdk.start_span(op=span_op, description="massage_sessions_results"):
+            return massage_sessions_result(query, totals, series)  # type: ignore
+
     def get_release_sessions_time_bounds(
         self,
         project_id: ProjectId,
@@ -91,6 +119,22 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
             end,
         )
 
+    def get_release_health_data_overview(
+        self,
+        project_releases: Sequence[ProjectRelease],
+        environments: Optional[Sequence[EnvironmentName]] = None,
+        summary_stats_period: Optional[StatsPeriod] = None,
+        health_stats_period: Optional[StatsPeriod] = None,
+        stat: Optional[OverviewStat] = None,
+    ) -> Mapping[ProjectRelease, ReleaseHealthOverview]:
+        return _get_release_health_data_overview(  # type: ignore
+            project_releases=project_releases,
+            environments=environments,
+            summary_stats_period=summary_stats_period,
+            health_stats_period=health_stats_period,
+            stat=stat,
+        )
+
     def get_crash_free_breakdown(
         self,
         project_id: ProjectId,
@@ -113,3 +157,84 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         project_releases: Sequence[ProjectRelease],
     ) -> Mapping[ProjectRelease, str]:
         return _get_oldest_health_data_for_releases(project_releases)  # type: ignore
+
+    def get_project_releases_count(
+        self,
+        organization_id: OrganizationId,
+        project_ids: Sequence[ProjectId],
+        scope: str,
+        stats_period: Optional[str] = None,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> int:
+        return _get_project_releases_count(  # type: ignore
+            organization_id, project_ids, scope, stats_period, environments
+        )
+
+    def get_project_release_stats(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        stat: OverviewStat,
+        rollup: int,
+        start: datetime,
+        end: datetime,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
+        return _get_project_release_stats(  # type: ignore
+            project_id=project_id,
+            release=release,
+            stat=stat,
+            rollup=rollup,
+            start=start,
+            end=end,
+            environments=environments,
+        )
+
+    def get_project_sessions_count(
+        self,
+        project_id: ProjectId,
+        rollup: int,  # rollup in seconds
+        start: datetime,
+        end: datetime,
+        environment_id: Optional[int] = None,
+    ) -> int:
+        """
+        Returns the number of sessions in the specified period (optionally
+        filtered by environment)
+        """
+        return _get_project_sessions_count(  # type: ignore
+            project_id,
+            rollup,
+            start,
+            end,
+            environment_id,
+        )
+
+    def get_num_sessions_per_project(
+        self,
+        project_ids: Sequence[ProjectId],
+        start: datetime,
+        end: datetime,
+        environment_ids: Optional[Sequence[int]] = None,
+        rollup: Optional[int] = None,  # rollup in seconds
+    ) -> Sequence[ProjectWithCount]:
+        """
+        Returns the number of sessions for each project specified.
+        Additionally
+        """
+        return _get_num_sessions_per_project(  # type: ignore
+            project_ids, start, end, environment_ids, rollup
+        )
+
+    def get_project_releases_by_stability(
+        self,
+        project_ids: Sequence[ProjectId],
+        offset: Optional[int],
+        limit: Optional[int],
+        scope: str,
+        stats_period: Optional[str] = None,
+        environments: Optional[Sequence[str]] = None,
+    ) -> Sequence[ProjectRelease]:
+        return _get_project_releases_by_stability(  # type: ignore
+            project_ids, offset, limit, scope, stats_period, environments
+        )

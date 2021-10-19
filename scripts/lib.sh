@@ -13,6 +13,8 @@ if [ -z "${CI+x}" ]; then
     reset="$(tput sgr0)"
 fi
 
+venv_name=".venv"
+
 # NOTE: This file is sourced in CI across different repos (e.g. snuba),
 # so renaming this file or any functions can break CI!
 
@@ -46,15 +48,41 @@ query-apple-m1() {
 }
 
 get-pyenv-version() {
+    if [[ -n "${SENTRY_PYTHON_VERSION:-}" ]]; then
+        echo "${SENTRY_PYTHON_VERSION}"
+        return 0
+    fi
+
     local PYENV_VERSION
     PYENV_VERSION=3.6.13
     if query-apple-m1; then
-        PYENV_VERSION=3.8.11
+        PYENV_VERSION=3.8.12
     fi
     echo "${PYENV_VERSION}"
 }
 
 query-valid-python-version() {
+    if [[ -n "${SENTRY_PYTHON_VERSION:-}" ]]; then
+        python_version=$(python3 -V 2>&1 | awk '{print $2}')
+        if [ "$python_version" != "$SENTRY_PYTHON_VERSION" ]; then
+            cat <<EOF
+${red}${bold}
+ERROR: You have explicitly set a non-recommended Python version (${SENTRY_PYTHON_VERSION}),
+but it doesn't match the value of python's version: ${python_version}
+You should create a new ${SENTRY_PYTHON_VERSION} virtualenv by running  "rm -rf ${venv_name} && direnv allow".
+${reset}
+EOF
+            return 1
+        fi
+
+        cat <<EOF
+${yellow}${bold}
+You have explicitly set a non-recommended Python version (${SENTRY_PYTHON_VERSION}). You're on your own.
+${reset}
+EOF
+        return 0
+    fi
+
     python_version=$(python3 -V 2>&1 | awk '{print $2}')
     minor=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\1/')
     patch=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\2/')
@@ -62,13 +90,25 @@ query-valid-python-version() {
     # For Apple M1, we only allow 3.8 and at least patch version 10
     if query-apple-m1; then
         if [ "$minor" -ne 8 ] || [ "$patch" -lt 10 ]; then
+            cat <<EOF
+${red}${bold}
+ERROR: You're running a virtualenv with Python ${python_version}.
+On Apple M1 machines, we only support >= 3.8.10 < 3.9.
+Either run "rm -rf ${venv_name} && direnv allow" to
+OR set SENTRY_PYTHON_VERSION=${python_version} to an .env file to bypass this check."
+EOF
             return 1
         fi
-    # For everything else, we only allow 3.6
-    elif [ "$minor" -ne 6 ]; then
+    elif [ "$minor" -ne 6 ] && [ "$minor" -ne 8 ]; then
+        cat <<EOF
+${red}${bold}
+ERROR: You're running a virtualenv with Python ${python_version}.
+We only support 3.6 or 3.8.
+Either run "rm -rf ${venv_name} && direnv allow" to
+OR set SENTRY_PYTHON_VERSION=${python_version} to an .env file to bypass this check."
+EOF
         return 1
     fi
-    return 0
 }
 
 sudo-askpass() {
@@ -89,6 +129,15 @@ install-py-dev() {
     # This helps when getsentry calls into this script
     cd "${HERE}/.." || exit
     echo "--> Installing Sentry (for development)"
+    if query-apple-m1; then
+        # This installs pyscopg-binary2 since there's no arm64 wheel
+        # This saves having to install postgresql on the Developer's machine + using flags
+        # https://github.com/psycopg/psycopg2/issues/1286
+        pip install https://storage.googleapis.com/python-arm64-wheels/psycopg2_binary-2.8.6-cp38-cp38-macosx_11_0_arm64.whl
+        # This install confluent-kafka from our GC storage since there's no arm64 wheel
+        # https://github.com/confluentinc/confluent-kafka-python/issues/1190
+        pip install https://storage.googleapis.com/python-arm64-wheels/confluent_kafka-1.5.0-cp38-cp38-macosx_11_0_arm64.whl
+    fi
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
@@ -151,13 +200,8 @@ run-dependent-services() {
 }
 
 create-db() {
-    # shellcheck disable=SC2155
-    local CREATEDB=$(command -v createdb 2>/dev/null)
-    if [[ -z "$CREATEDB" ]]; then
-        CREATEDB="docker exec sentry_postgres createdb"
-    fi
     echo "--> Creating 'sentry' database"
-    ${CREATEDB} -h 127.0.0.1 -U postgres -E utf-8 sentry || true
+    docker exec sentry_postgres createdb -h 127.0.0.1 -U postgres -E utf-8 sentry || true
 }
 
 apply-migrations() {
@@ -201,13 +245,8 @@ clean() {
 }
 
 drop-db() {
-    # shellcheck disable=SC2155
-    local DROPDB=$(command -v dropdb 2>/dev/null)
-    if [[ -z "$DROPDB" ]]; then
-        DROPDB="docker exec sentry_postgres dropdb"
-    fi
     echo "--> Dropping existing 'sentry' database"
-    ${DROPDB} -h 127.0.0.1 -U postgres sentry || true
+    docker exec sentry_postgres dropdb -h 127.0.0.1 -U postgres sentry || true
 }
 
 reset-db() {
@@ -218,12 +257,6 @@ reset-db() {
 
 prerequisites() {
     brew update -q && brew bundle -q
-    if query-apple-m1; then
-        # psycopg2-binary does not have an arm64 wheel, thus, we need to build it locally
-        # by installing postgresql
-        # See details: https://github.com/psycopg/psycopg2/issues/1286
-        brew install postgresql
-    fi
 }
 
 direnv-help() {

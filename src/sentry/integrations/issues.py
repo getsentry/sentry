@@ -3,11 +3,11 @@ import logging
 from collections import defaultdict
 from typing import Any, Mapping, Optional
 
-from sentry import features
-from sentry.models import ExternalIssue, Group, GroupLink, GroupStatus, Organization, User
+from sentry.integrations.utils import where_should_sync
+from sentry.models import ExternalIssue, GroupLink, User
 from sentry.models.useroption import UserOption
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.types.activity import ActivityType
+from sentry.tasks.integrations import sync_status_inbound as sync_status_inbound_task
 from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -367,34 +367,15 @@ class IssueSyncMixin(IssueBasicMixin):
         """
         raise NotImplementedError
 
-    def should_sync_status_inbound(self) -> bool:
-        if not self.should_sync("inbound_status"):
-            return False
-
-        organization = Organization.objects.get(id=self.organization_id)
-        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
-
-        return has_issue_sync
-
-    def sync_status_inbound(self, issue_key, data):
-        if not self.should_sync_status_inbound():
+    def sync_status_inbound(self, issue_key: str, data: Mapping[str, Any]) -> None:
+        if not where_should_sync(self.model, "inbound_status", self.organization_id):
             return
 
-        affected_groups = list(
-            Group.objects.get_groups_by_external_issue(self.model, issue_key)
-            .filter(project__organization_id=self.organization_id)
-            .select_related("project")
+        sync_status_inbound_task.apply_async(
+            kwargs={
+                "integration_id": self.model.id,
+                "organization_id": self.organization_id,
+                "issue_key": issue_key,
+                "data": data,
+            }
         )
-
-        if not affected_groups:
-            return
-
-        action = self.get_resolve_sync_action(data)
-        if action == ResolveSyncAction.RESOLVE:
-            Group.objects.update_group_status(
-                affected_groups, GroupStatus.RESOLVED, ActivityType.SET_RESOLVED
-            )
-        if action == ResolveSyncAction.UNRESOLVE:
-            Group.objects.update_group_status(
-                affected_groups, GroupStatus.UNRESOLVED, ActivityType.SET_UNRESOLVED
-            )

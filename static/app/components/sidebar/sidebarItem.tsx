@@ -120,12 +120,13 @@ const SidebarItem = ({
     <Tooltip disabled={!collapsed} title={label} position={placement}>
       <StyledSidebarItem
         data-test-id={props['data-test-id']}
+        id={`sidebar-item-${id}`}
         active={isActive ? 'true' : undefined}
         to={(to ? to : href) || '#'}
         className={className}
         onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
           !(to || href) && event.preventDefault();
-          typeof onClick === 'function' && onClick(id, event);
+          onClick?.(id, event);
           showIsNew && localStorage.setItem(isNewSeenKey, 'true');
         }}
       >

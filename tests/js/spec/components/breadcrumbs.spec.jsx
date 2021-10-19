@@ -1,4 +1,9 @@
-import {fireEvent, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  fireEvent,
+  mountWithTheme,
+  screen,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import Breadcrumbs from 'app/components/breadcrumbs';
 
@@ -42,22 +47,22 @@ describe('Breadcrumbs', () => {
   });
 
   it('generates correct links', () => {
-    const wrapper = createWrapper();
-    fireEvent.click(wrapper.getByText('Test 1'));
+    createWrapper();
+    fireEvent.click(screen.getByText('Test 1'));
     expect(routerContext.context.router.push).toHaveBeenCalledWith('/test1');
-    fireEvent.click(wrapper.getByText('Test 2'));
+    fireEvent.click(screen.getByText('Test 2'));
     expect(routerContext.context.router.push).toHaveBeenCalledWith('/test2');
   });
 
   it('does not make links where no `to` is provided', () => {
-    const wrapper = createWrapper();
-    fireEvent.click(wrapper.getByText('Test 3'));
+    createWrapper();
+    fireEvent.click(screen.getByText('Test 3'));
     expect(routerContext.context.router.push).not.toHaveBeenCalled();
   });
 
   it('renders a crumb dropdown', async () => {
     const onSelect = jest.fn();
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <Breadcrumbs
         crumbs={[
           {
@@ -77,13 +82,13 @@ describe('Breadcrumbs', () => {
       />,
       {context: routerContext}
     );
-    fireEvent.mouseOver(wrapper.getByText('dropdown crumb'));
+    fireEvent.mouseOver(screen.getByText('dropdown crumb'));
 
     await waitFor(() => {
-      expect(wrapper.getByText('item3')).toBeInTheDocument();
+      expect(screen.getByText('item3')).toBeInTheDocument();
     });
 
-    fireEvent.click(wrapper.getByText('item3'));
+    fireEvent.click(screen.getByText('item3'));
     expect(onSelect).toHaveBeenCalledWith(
       expect.objectContaining({label: 'item3'}),
       expect.anything(),

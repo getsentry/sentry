@@ -7,13 +7,11 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import Input from 'app/views/settings/components/forms/controls/input';
 
-import GroupByField from './groupByField';
 import MetricSelectField from './metricSelectField';
 import {MetricMeta, MetricQuery} from './types';
 
 type Props = {
   metricMetas: MetricMeta[];
-  metricTags: string[];
   queries: MetricQuery[];
   onRemoveQuery: (index: number) => void;
   onAddQuery: () => void;
@@ -22,7 +20,6 @@ type Props = {
 
 function Queries({
   metricMetas,
-  metricTags,
   queries,
   onRemoveQuery,
   onAddQuery,
@@ -46,11 +43,6 @@ function Queries({
               metricMeta={query.metricMeta}
               aggregation={query.aggregation}
               onChange={(field, value) => handleFieldChange(queryIndex, field)(value)}
-            />
-            <GroupByField
-              metricTags={metricTags}
-              groupBy={query.groupBy}
-              onChange={v => handleFieldChange(queryIndex, 'groupBy')(v)}
             />
             <Input
               type="text"
@@ -114,7 +106,7 @@ const Fields = styled('div')<{displayDeleteButton: boolean}>`
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: ${p =>
-      p.displayDeleteButton ? '1.3fr 1fr 0.5fr max-content' : '1.3fr 1fr 0.5fr'};
+      p.displayDeleteButton ? '1fr 33% max-content' : '1fr 33%'};
     grid-gap: ${space(1)};
     align-items: center;
   }

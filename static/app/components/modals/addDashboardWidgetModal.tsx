@@ -26,6 +26,7 @@ import {
   SelectValue,
   TagCollection,
 } from 'app/types';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import {Aggregation} from 'app/utils/discover/fields';
 import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
@@ -58,7 +59,8 @@ export type DashboardWidgetModalOptions = {
   onAddWidget?: (data: Widget) => void;
   widget?: Widget;
   onUpdateWidget?: (nextWidget: Widget) => void;
-  defaultQuery?: string;
+  defaultWidgetQuery?: WidgetQuery;
+  defaultTableColumns?: readonly string[];
   defaultTitle?: string;
   fromDiscover?: boolean;
   start?: DateString;
@@ -87,6 +89,7 @@ type State = {
   errors?: Record<string, any>;
   dashboards: DashboardListItem[];
   selectedDashboard?: SelectValue<string>;
+  userHasModified: boolean;
 };
 
 const newQuery = {
@@ -99,17 +102,18 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    const {widget, defaultQuery, defaultTitle, fromDiscover} = props;
+    const {widget, defaultWidgetQuery, defaultTitle, fromDiscover} = props;
 
     if (!widget) {
       this.state = {
         title: defaultTitle ?? '',
         displayType: DisplayType.LINE,
         interval: '5m',
-        queries: [{...newQuery, ...(defaultQuery ? {conditions: defaultQuery} : {})}],
+        queries: [defaultWidgetQuery ? {...defaultWidgetQuery} : {...newQuery}],
         errors: undefined,
         loading: !!fromDiscover,
         dashboards: [],
+        userHasModified: false,
       };
       return;
     }
@@ -122,6 +126,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       errors: undefined,
       loading: false,
       dashboards: [],
+      userHasModified: false,
     };
   }
 
@@ -215,6 +220,11 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         title: widgetData.title,
         ...queryData,
       };
+
+      trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.confirm', {
+        organization,
+      });
+
       if (selectedDashboard.value === 'new') {
         browserHistory.push({
           pathname: `/organizations/${organization.slug}/dashboards/new/`,
@@ -230,13 +240,39 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   };
 
   handleFieldChange = (field: string) => (value: string) => {
+    const {defaultWidgetQuery, defaultTableColumns, fromDiscover, organization} =
+      this.props;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
 
       if (field === 'displayType') {
         const displayType = value as Widget['displayType'];
-        set(newState, 'queries', normalizeQueries(displayType, prevState.queries));
+        const normalized = normalizeQueries(displayType, prevState.queries);
+
+        // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
+        if (defaultWidgetQuery && defaultTableColumns && !prevState.userHasModified) {
+          if (displayType === DisplayType.TABLE) {
+            normalized.forEach(query => {
+              query.fields = [...defaultTableColumns];
+            });
+          } else {
+            normalized.forEach(query => {
+              query.fields = [...defaultWidgetQuery.fields];
+            });
+          }
+        }
+
+        set(newState, 'queries', normalized);
+
+        if (fromDiscover) {
+          trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.change', {
+            from: 'discoverv2',
+            field,
+            value: displayType,
+            organization,
+          });
+        }
       }
 
       return {...newState, errors: undefined};
@@ -247,6 +283,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, `queries.${index}`, widgetQuery);
+      set(newState, 'userHasModified', true);
 
       return {...newState, errors: undefined};
     });
@@ -287,7 +324,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       `/organizations/${organization.slug}/dashboards/`,
       {
         method: 'GET',
-        query: {sort: 'title'},
+        query: {sort: 'myDashboardsAndRecentlyViewed'},
       }
     );
 
@@ -310,6 +347,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   handleDashboardChange(option: SelectValue<string>) {
     this.setState({selectedDashboard: option});
   }
+
   renderDashboardSelector() {
     const {errors, loading, dashboards} = this.state;
     const dashboardOptions = dashboards.map(d => {

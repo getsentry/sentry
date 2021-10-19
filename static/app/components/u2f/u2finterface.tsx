@@ -49,18 +49,7 @@ class U2fInterface extends React.Component<Props, State> {
     }
   }
 
-  invokeU2fFlow() {
-    let promise: Promise<u2f.SignResponse | u2f.RegisterResponse>;
-
-    if (this.props.flowMode === 'sign') {
-      promise = u2f.sign(this.props.challengeData.authenticateRequests);
-    } else if (this.props.flowMode === 'enroll') {
-      const {registerRequests, authenticateRequests} = this.props.challengeData;
-      promise = u2f.register(registerRequests, authenticateRequests);
-    } else {
-      throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
-    }
-
+  submitU2fResponse(promise) {
     promise
       .then(data => {
         this.setState(
@@ -122,6 +111,20 @@ class U2fInterface extends React.Component<Props, State> {
       });
   }
 
+  invokeU2fFlow() {
+    let promise: Promise<u2f.SignResponse | u2f.RegisterResponse>;
+
+    if (this.props.flowMode === 'sign') {
+      promise = u2f.sign(this.props.challengeData.authenticateRequests);
+    } else if (this.props.flowMode === 'enroll') {
+      const {registerRequests, registeredKeys} = this.props.challengeData;
+      promise = u2f.register(registerRequests as any, registeredKeys as any);
+    } else {
+      throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
+    }
+    this.submitU2fResponse(promise);
+  }
+
   onTryAgain = () => {
     this.setState(
       {hasBeenTapped: false, deviceFailure: null},
@@ -180,7 +183,7 @@ class U2fInterface extends React.Component<Props, State> {
             {
               UNKNOWN_ERROR: t('There was an unknown problem, please try again'),
               DEVICE_ERROR: t('Your U2F device reported an error.'),
-              DUPLICATE_DEVICE: t('This device is already in use.'),
+              DUPLICATE_DEVICE: t('This device is already registered with Sentry.'),
               UNKNOWN_DEVICE: t('The device you used for sign-in is unknown.'),
               BAD_APPID: tct(
                 '[p1:The Sentry server administrator modified the ' +

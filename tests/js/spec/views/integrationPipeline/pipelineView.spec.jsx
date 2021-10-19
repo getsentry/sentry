@@ -1,20 +1,39 @@
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
-import AwsLambdaProjectSelect from 'app/views/integrationPipeline/awsLambdaProjectSelect';
 import PipelineView from 'app/views/integrationPipeline/pipelineView';
+
+function MockAwsLambdaProjectSelect() {
+  return <div>mock_AwsLambdaProjectSelect</div>;
+}
+
+jest.mock(
+  'app/views/integrationPipeline/awsLambdaProjectSelect',
+  () => MockAwsLambdaProjectSelect
+);
 
 describe('PipelineView', () => {
   it('renders awsLambdaProjectSelect', () => {
-    const wrapper = shallow(
+    mountWithTheme(
       <PipelineView pipelineName="awsLambdaProjectSelect" someField="someVal" />,
-      TestStubs.routerContext()
+      {context: TestStubs.routerContext()}
     );
-    expect(wrapper.find(AwsLambdaProjectSelect).prop('someField')).toBe('someVal');
+
+    screen.findByText('mock_AwsLambdaProjectSelect');
+
     expect(document.title).toBe('AWS Lambda Select Project');
   });
+
   it('errros on invalid pipelineName', () => {
-    expect(() =>
-      shallow(<PipelineView pipelineName="other" />, TestStubs.routerContext())
-    ).toThrow('Invalid pipeline name other');
+    jest.spyOn(console, 'error');
+
+    // eslint-disable-next-line no-console
+    console.error.mockImplementation(() => {});
+
+    expect(() => mountWithTheme(<PipelineView pipelineName="other" />)).toThrow(
+      'Invalid pipeline name other'
+    );
+
+    // eslint-disable-next-line no-console
+    console.error.mockRestore();
   });
 });

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
@@ -22,7 +21,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
-import {Color} from 'app/utils/theme';
+import type {Color} from 'app/utils/theme';
 import {AlertRuleThresholdType} from 'app/views/alerts/incidentRules/types';
 
 import AlertBadge from '../alertBadge';
@@ -95,16 +94,16 @@ class RuleListRow extends React.Component<Props, State> {
     }
 
     const activeIncident = this.activeIncident();
-    const criticalTrigger = rule?.triggers.find(({label}) => label === 'critical');
-    const warningTrigger = rule?.triggers.find(({label}) => label === 'warning');
-    const resolvedTrigger = rule?.resolveThreshold;
+    const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
+    const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
+    const resolvedTrigger = rule.resolveThreshold;
     const trigger =
       activeIncident && rule.latestIncident?.status === IncidentStatus.CRITICAL
         ? criticalTrigger
         : warningTrigger ?? criticalTrigger;
 
     let iconColor: Color = 'green300';
-    let iconDirection;
+    let iconDirection: 'up' | 'down' | undefined;
     let thresholdTypeText =
       activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
         ? t('Above')
@@ -119,15 +118,10 @@ class RuleListRow extends React.Component<Props, State> {
           : 'green300';
       iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'up' : 'down';
     } else {
-      if (!rule?.latestIncident) {
-        // If there's no latest incident, use the Resolved threshold type, which is opposite of Critical
-        iconColor =
-          rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'green300' : 'red300';
-        iconDirection =
-          rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'down' : 'up';
-        thresholdTypeText =
-          rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('Below') : t('Above');
-      }
+      // Use the Resolved threshold type, which is opposite of Critical
+      iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'down' : 'up';
+      thresholdTypeText =
+        rule.thresholdType === AlertRuleThresholdType.ABOVE ? t('Below') : t('Above');
     }
 
     return (
@@ -145,15 +139,12 @@ class RuleListRow extends React.Component<Props, State> {
   }
 
   render() {
-    const {rule, projectsLoaded, projects, organization, orgId, onDelete, userTeams} =
-      this.props;
+    const {rule, projectsLoaded, projects, orgId, onDelete, userTeams} = this.props;
     const slug = rule.projects[0];
     const editLink = `/organizations/${orgId}/alerts/${
       isIssueAlert(rule) ? 'rules' : 'metric-rules'
     }/${slug}/${rule.id}/`;
 
-    const hasRedesign =
-      !isIssueAlert(rule) && organization.features.includes('alert-details-redesign');
     const detailsLink = `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
 
     const ownerId = rule.owner?.split(':')[1];
@@ -162,11 +153,10 @@ class RuleListRow extends React.Component<Props, State> {
       : null;
 
     const canEdit = ownerId ? userTeams.has(ownerId) : true;
-    const hasAlertList = organization.features.includes('alert-details-redesign');
     const alertLink = isIssueAlert(rule) ? (
       rule.name
     ) : (
-      <TitleLink to={hasRedesign ? detailsLink : editLink}>{rule.name}</TitleLink>
+      <TitleLink to={isIssueAlert(rule) ? editLink : detailsLink}>{rule.name}</TitleLink>
     );
 
     const IssueStatusText: Record<IncidentStatus, string> = {
@@ -178,42 +168,33 @@ class RuleListRow extends React.Component<Props, State> {
 
     return (
       <ErrorBoundary>
-        {!hasAlertList ? (
-          <React.Fragment>
-            <RuleType>{isIssueAlert(rule) ? t('Issue') : t('Metric')}</RuleType>
-            <Title>{alertLink}</Title>
-          </React.Fragment>
-        ) : (
-          <React.Fragment>
-            <AlertNameWrapper isIncident={isIssueAlert(rule)}>
-              <FlexCenter>
-                <Tooltip
-                  title={
-                    isIssueAlert(rule)
-                      ? t('Issue Alert')
-                      : tct('Metric Alert Status: [status]', {
-                          status:
-                            IssueStatusText[
-                              rule?.latestIncident?.status ?? IncidentStatus.CLOSED
-                            ],
-                        })
-                  }
-                >
-                  <AlertBadge
-                    status={rule?.latestIncident?.status}
-                    isIssue={isIssueAlert(rule)}
-                    hideText
-                  />
-                </Tooltip>
-              </FlexCenter>
-              <AlertNameAndStatus>
-                <AlertName>{alertLink}</AlertName>
-                {!isIssueAlert(rule) && this.renderLastIncidentDate()}
-              </AlertNameAndStatus>
-            </AlertNameWrapper>
-            <FlexCenter>{this.renderAlertRuleStatus()}</FlexCenter>
-          </React.Fragment>
-        )}
+        <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
+          <FlexCenter>
+            <Tooltip
+              title={
+                isIssueAlert(rule)
+                  ? t('Issue Alert')
+                  : tct('Metric Alert Status: [status]', {
+                      status:
+                        IssueStatusText[
+                          rule?.latestIncident?.status ?? IncidentStatus.CLOSED
+                        ],
+                    })
+              }
+            >
+              <AlertBadge
+                status={rule?.latestIncident?.status}
+                isIssue={isIssueAlert(rule)}
+                hideText
+              />
+            </Tooltip>
+          </FlexCenter>
+          <AlertNameAndStatus>
+            <AlertName>{alertLink}</AlertName>
+            {!isIssueAlert(rule) && this.renderLastIncidentDate()}
+          </AlertNameAndStatus>
+        </AlertNameWrapper>
+        <FlexCenter>{this.renderAlertRuleStatus()}</FlexCenter>
 
         <FlexCenter>
           <ProjectBadgeContainer>
@@ -228,7 +209,6 @@ class RuleListRow extends React.Component<Props, State> {
           {teamActor ? <ActorAvatar actor={teamActor} size={24} /> : '-'}
         </FlexCenter>
 
-        {!hasAlertList && <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>}
         <FlexCenter>
           <StyledDateTime
             date={getDynamicText({
@@ -321,32 +301,8 @@ class RuleListRow extends React.Component<Props, State> {
   }
 }
 
-const columnCss = css`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  height: 100%;
-`;
-
-const RuleType = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 400;
-  color: ${p => p.theme.gray300};
-  text-transform: uppercase;
-  ${columnCss}
-`;
-
-const Title = styled('div')`
-  ${columnCss}
-`;
-
 const TitleLink = styled(Link)`
   ${overflowEllipsis}
-`;
-
-const CreatedBy = styled('div')`
-  ${overflowEllipsis}
-  ${columnCss}
 `;
 
 const FlexCenter = styled('div')`
@@ -354,8 +310,8 @@ const FlexCenter = styled('div')`
   align-items: center;
 `;
 
-const AlertNameWrapper = styled(FlexCenter)<{isIncident?: boolean}>`
-  ${p => p.isIncident && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
+const AlertNameWrapper = styled(FlexCenter)<{isIssueAlert?: boolean}>`
+  ${p => p.isIssueAlert && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
 `;
 
 const AlertNameAndStatus = styled('div')`

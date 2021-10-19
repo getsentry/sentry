@@ -32,6 +32,7 @@ import {
   StepThreeData,
   StepTwoData,
 } from './types';
+import {DetailedErrorResponse, getAppStoreErrorMessage} from './utils';
 
 type SessionContext = {
   auth_key: string;
@@ -107,7 +108,6 @@ function AppStoreConnect({
   const [activeStep, setActiveStep] = useState(revalidateItunesSession ? 3 : 0);
   const [appStoreApps, setAppStoreApps] = useState<AppStoreApp[]>([]);
   const [appleStoreOrgs, setAppleStoreOrgs] = useState<AppleStoreOrg[]>([]);
-  const [useSms, setUseSms] = useState(false);
   const [sessionContext, setSessionContext] = useState<SessionContext | undefined>(
     undefined
   );
@@ -186,11 +186,8 @@ function AppStoreConnect({
       goNext();
     } catch (error) {
       setIsLoading(false);
-      addErrorMessage(
-        t(
-          'We could not establish a connection with App Store Connect. Please check the entered App Store Connect credentials.'
-        )
-      );
+      // app-connect-authentication-error
+      addErrorMessage(getAppStoreErrorMessage(error));
     }
   }
 
@@ -204,7 +201,6 @@ function AppStoreConnect({
           method: 'POST',
           data: {
             code: stepFourData.authenticationCode,
-            useSms,
             sessionContext,
           },
         }
@@ -224,9 +220,8 @@ function AppStoreConnect({
       goNext();
     } catch (error) {
       setIsLoading(false);
-      addErrorMessage(
-        t('The two factor authentication failed. Please check the entered code.')
-      );
+      // itunes-2fa-required
+      addErrorMessage(getAppStoreErrorMessage(error));
     }
   }
 
@@ -269,6 +264,15 @@ function AppStoreConnect({
       onSubmit();
     } catch (error) {
       setIsLoading(false);
+
+      if (
+        typeof error !== 'string' &&
+        (error as DetailedErrorResponse).responseJSON?.detail?.code ===
+          'app-connect-multiple-sources-error'
+      ) {
+        addErrorMessage(getAppStoreErrorMessage(error));
+        return;
+      }
       addErrorMessage(errorMessage);
     }
   }
@@ -312,10 +316,6 @@ function AppStoreConnect({
       setIsLoading(true);
     }
 
-    if (useSms) {
-      setUseSms(false);
-    }
-
     try {
       const response = await api.requestPromise(
         `/projects/${orgSlug}/${projectSlug}/appstoreconnect/start/`,
@@ -338,21 +338,16 @@ function AppStoreConnect({
       }
 
       addSuccessMessage(t('An iTunes verification code has been sent'));
-    } catch {
+    } catch (error) {
       if (shouldGoNext) {
         setIsLoading(false);
       }
-      addErrorMessage(
-        t('The iTunes authentication failed. Please check the provided credentials')
-      );
+      // itunes-authentication-error'
+      addErrorMessage(getAppStoreErrorMessage(error));
     }
   }
 
   async function handleStartSmsAuthentication() {
-    if (!useSms) {
-      setUseSms(true);
-    }
-
     try {
       const response = await api.requestPromise(
         `/projects/${orgSlug}/${projectSlug}/appstoreconnect/requestSms/`,
@@ -361,11 +356,11 @@ function AppStoreConnect({
           data: {sessionContext},
         }
       );
-
       setSessionContext(response.sessionContext);
       addSuccessMessage(t("We've sent a SMS code to your phone"));
-    } catch {
-      addErrorMessage(t('An error occured while sending the SMS. Please try again'));
+    } catch (error) {
+      // itunes-sms-blocked-error
+      addErrorMessage(getAppStoreErrorMessage(error));
     }
   }
 

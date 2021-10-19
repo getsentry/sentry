@@ -414,6 +414,7 @@ def process_snoozes(group):
     otherwise return False.
     """
     from sentry.models import GroupInboxReason, GroupSnooze, GroupStatus, add_group_to_inbox
+    from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 
     key = GroupSnooze.get_cache_key(group.id)
     snooze = cache.get(key)
@@ -436,6 +437,8 @@ def process_snoozes(group):
             "user_window": snooze.user_window,
         }
         add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
+        record_group_history(group, GroupHistoryStatus.UNIGNORED)
+
         snooze.delete()
         group.update(status=GroupStatus.UNRESOLVED)
         issue_unignored.send_robust(

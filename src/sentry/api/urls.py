@@ -401,9 +401,11 @@ from .endpoints.team_avatar import TeamAvatarEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
+from .endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
 from .endpoints.team_members import TeamMembersEndpoint
 from .endpoints.team_notification_settings_details import TeamNotificationSettingsDetailsEndpoint
 from .endpoints.team_projects import TeamProjectsEndpoint
+from .endpoints.team_release_count import TeamReleaseCountEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.team_time_to_resolution import TeamTimeToResolutionEndpoint
 from .endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
@@ -1455,6 +1457,11 @@ urlpatterns = [
                     name="sentry-api-0-team-groups-new",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/release-count/$",
+                    TeamReleaseCountEndpoint.as_view(),
+                    name="sentry-api-0-team-release-count",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/time-to-resolution/$",
                     TeamTimeToResolutionEndpoint.as_view(),
                     name="sentry-api-0-team-time-to-resolution",
@@ -1468,6 +1475,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/(?:issues|groups)/trending/$",
                     TeamGroupsTrendingEndpoint.as_view(),
                     name="sentry-api-0-team-groups-trending",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/issue-breakdown/$",
+                    TeamIssueBreakdownEndpoint.as_view(),
+                    name="sentry-api-0-team-issue-breakdown",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/notification-settings/$",

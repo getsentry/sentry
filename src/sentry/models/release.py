@@ -34,6 +34,7 @@ from sentry.models import (
     GroupInboxRemoveAction,
     remove_group_from_inbox,
 )
+from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -889,17 +890,19 @@ class Release(Model):
 
                     # Guard against patch_set being None
                     patch_set = data.get("patch_set") or []
-                    for patched_file in patch_set:
-                        try:
-                            with atomic_transaction(using=router.db_for_write(CommitFileChange)):
-                                CommitFileChange.objects.create(
+                    if patch_set:
+                        CommitFileChange.objects.bulk_create(
+                            [
+                                CommitFileChange(
                                     organization_id=self.organization.id,
                                     commit=commit,
                                     filename=patched_file["path"],
                                     type=patched_file["type"],
                                 )
-                        except IntegrityError:
-                            pass
+                                for patched_file in patch_set
+                            ],
+                            ignore_conflicts=True,
+                        )
 
                     try:
                         with atomic_transaction(using=router.db_for_write(ReleaseCommit)):
@@ -1027,6 +1030,8 @@ class Release(Model):
                 group = Group.objects.get(id=group_id)
                 group.update(status=GroupStatus.RESOLVED)
                 remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
+                record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
+
                 metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
 
             issue_resolved.send_robust(
@@ -1078,6 +1083,25 @@ class Release(Model):
         """
         counts = get_artifact_counts([self.id])
         return counts.get(self.id, 0)
+
+    def clear_commits(self):
+        """
+        Delete all release-specific commit data associated to this release. We will not delete the Commit model values because other releases may use these commits.
+        """
+        with sentry_sdk.start_span(op="clear_commits"):
+            from sentry.models import ReleaseCommit, ReleaseHeadCommit
+
+            ReleaseHeadCommit.objects.get(
+                organization_id=self.organization_id, release=self
+            ).delete()
+            ReleaseCommit.objects.filter(
+                organization_id=self.organization_id, release=self
+            ).delete()
+
+            self.authors = []
+            self.commit_count = 0
+            self.last_commit_id = None
+            self.save()
 
 
 def get_artifact_counts(release_ids: List[int]) -> Mapping[int, int]:

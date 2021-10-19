@@ -103,7 +103,7 @@ class AbstractBatchWorker(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def process_message(self, message):
         """Called with each (raw) Kafka message, allowing the worker to do
-        incremental (preferablly local!) work on events. The object returned
+        incremental (preferably local!) work on events. The object returned
         is put into the batch maintained by the `BatchingKafkaConsumer`.
 
         If this method returns `None` it is not added to the batch.

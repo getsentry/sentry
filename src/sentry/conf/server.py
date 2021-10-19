@@ -9,6 +9,7 @@ import socket
 import sys
 import tempfile
 from datetime import timedelta
+from platform import platform
 from urllib.parse import urlparse
 
 from django.conf.global_settings import *  # NOQA
@@ -334,6 +335,7 @@ INSTALLED_APPS = (
     "sentry.analytics.events",
     "sentry.nodestore",
     "sentry.search",
+    "sentry.sentry_metrics.indexer",
     "sentry.snuba",
     "sentry.lang.java.apps.Config",
     "sentry.lang.javascript.apps.Config",
@@ -574,6 +576,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.release_registry",
     "sentry.tasks.reports",
     "sentry.tasks.reprocessing",
+    "sentry.tasks.reprocessing2",
     "sentry.tasks.scheduler",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
@@ -895,6 +898,7 @@ SENTRY_FEATURES = {
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
+    "organizations:alert-rule-ui-component": False,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
@@ -935,6 +939,8 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable multi project selection
     "organizations:global-views": False,
+    # Enable writing group history
+    "organizations:group-history": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
     # Enable experimental new version of stacktrace component where additional
@@ -949,7 +955,7 @@ SENTRY_FEATURES = {
     "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
-    # Enable imporved syntax highlightign + autocomplete on unified search
+    # Enable improved syntax highlighting + autocomplete on unified search
     "organizations:improved-search": False,
     # Enable incidents feature
     "organizations:incidents": False,
@@ -991,6 +997,12 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
+    # Allow orgs to use the deprecated Teamwork plugin
+    "organizations:integrations-ignore-teamwork-deprecation": False,
+    # Allow orgs to use the deprecated Clubhouse/Shortcut plugin
+    "organizations:integrations-ignore-clubhouse-deprecation": False,
+    # Allow orgs to use the deprecated VSTS (Azure DevOps) plugin
+    "organizations:integrations-ignore-vsts-deprecation": False,
     # Allow orgs to debug internal/unpublished sentry apps with logging
     "organizations:sentry-app-debugging": False,
     # Temporary safety measure, turned on for specific orgs only if
@@ -1017,11 +1029,6 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Display a global dashboard notification for this org
     "organizations:prompt-dashboards": False,
-    "organizations:prompt-additional-volume": False,
-    "organizations:prompt-additional-volume-on-demand": False,
-    "organizations:prompt-on-demand-orgs": False,
-    "organizations:prompt-release-health-adoption": False,
-    "organizations:prompt-upgrade-via-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable views for tag explorer
@@ -1034,8 +1041,6 @@ SENTRY_FEATURES = {
     "organizations:performance-events-page": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Enable ingestion for suspect spans
-    "organizations:performance-suspect-spans-ingestion": False,
     # Enable views for suspect tags
     "organizations:performance-suspect-spans-view": False,
     # Enable the new Related Events feature
@@ -1044,7 +1049,7 @@ SENTRY_FEATURES = {
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
     # Enable Session Stats down to a minute resolution
-    "organizations:minute-resolution-sessions": False,
+    "organizations:minute-resolution-sessions": True,
     # Automatically opt IN users to receiving Slack notifications.
     "organizations:notification-slack-automatic": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
@@ -1069,9 +1074,7 @@ SENTRY_FEATURES = {
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": True,
     # Enable percent-based conditions on issue rules
-    "organizations:issue-percent-filters": False,
-    # Enable the new alert details ux design
-    "organizations:alert-details-redesign": True,
+    "organizations:issue-percent-filters": True,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
@@ -1084,6 +1087,8 @@ SENTRY_FEATURES = {
     "organizations:release-archives": False,
     # Enable the new release details experience
     "organizations:release-comparison": False,
+    # Enable the release details performance section
+    "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
     # Enable team insights page
@@ -1103,6 +1108,8 @@ SENTRY_FEATURES = {
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
+    # Enable ingestion for suspect spans
+    "projects:performance-suspect-spans-ingestion": False,
     # Enable functionality for project plugins.
     "projects:plugins": True,
     # Enable alternative version of group creation that is supposed to be less racy.
@@ -1373,6 +1380,7 @@ SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefix
 # Metrics product
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
+SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 
 # Release Health
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
@@ -1696,6 +1704,8 @@ def build_cdc_postgres_init_db_volume(settings):
     )
 
 
+APPLE_ARM64 = platform().startswith("mac") and platform().endswith("arm64-arm-64bit")
+
 SENTRY_DEVSERVICES = {
     "redis": lambda settings, options: (
         {
@@ -1748,17 +1758,16 @@ SENTRY_DEVSERVICES = {
     ),
     "zookeeper": lambda settings, options: (
         {
-            # Upgrading to version 6.x allows zookeeper to run properly on Apple's arm64
+            # On Apple arm64, we upgrade to version 6.x to allow zookeeper to run properly on Apple's arm64
             # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
             "image": "confluentinc/cp-zookeeper:6.2.0",
             "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
-            "volumes": {"zookeeper": {"bind": "/var/lib/zookeeper"}},
+            "volumes": {"zookeeper_6": {"bind": "/var/lib/zookeeper/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
         }
     ),
     "kafka": lambda settings, options: (
         {
-            # We upgrade to version 6.x to match zookeeper's version (I believe they both release together)
             "image": "confluentinc/cp-kafka:6.2.0",
             "ports": {"9092/tcp": 9092},
             "environment": {
@@ -1774,7 +1783,7 @@ SENTRY_DEVSERVICES = {
                 "KAFKA_MESSAGE_MAX_BYTES": "50000000",
                 "KAFKA_MAX_REQUEST_SIZE": "50000000",
             },
-            "volumes": {"kafka": {"bind": "/var/lib/kafka/data"}},
+            "volumes": {"kafka_6": {"bind": "/var/lib/kafka/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
             or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS,
@@ -1782,11 +1791,16 @@ SENTRY_DEVSERVICES = {
     ),
     "clickhouse": lambda settings, options: (
         {
-            "image": "yandex/clickhouse-server:20.3.9.70",
+            "image": "yandex/clickhouse-server:20.3.9.70" if not APPLE_ARM64
+            # altinity provides clickhouse support to other companies
+            # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
+            # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
+            else "altinity/clickhouse-server:21.6.1.6734-testing-arm",
             "pull": True,
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
-            "environment": {"MAX_MEMORY_USAGE_RATIO": "0.3"},
+            # The arm image does not properly load the MAX_MEMORY_USAGE_RATIO
+            # from the environment in loc_config.xml, thus, hard-coding it there
             "volumes": {
                 "clickhouse_dist"
                 if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
@@ -2333,9 +2347,29 @@ SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
 
 SENTRY_USE_UWSGI = True
 
+# When copying attachments for to-be-reprocessed events into processing store,
+# how large is an individual file chunk? Each chunk is stored as Redis key.
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
 
+# Which cluster is used to store auxiliary data for reprocessing. Note that
+# this cluster is not used to store attachments etc, that still happens on
+# rc-processing. This is just for buffering up event IDs and storing a counter
+# for synchronization/progress report.
 SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
+
+# How long can reprocessing take before we start deleting its Redis keys?
+SENTRY_REPROCESSING_SYNC_TTL = 3600 * 24
+
+# How many events to query for at once while paginating through an entire
+# issue. Note that this needs to be kept in sync with the time-limits on
+# `sentry.tasks.reprocessing2.reprocess_group`. That task is responsible for
+# copying attachments from filestore into redis and can easily take a couple of
+# seconds per event. Better play it safe!
+SENTRY_REPROCESSING_PAGE_SIZE = 10
+
+# How many event IDs to buffer up in Redis before sending them to Snuba. This
+# is about "remaining events" exclusively.
+SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE = 500
 
 # Which backend to use for RealtimeMetricsStore.
 #
@@ -2346,7 +2380,7 @@ SENTRY_REALTIME_METRICS_BACKEND = (
 SENTRY_REALTIME_METRICS_OPTIONS = {
     # The redis cluster used for the realtime store redis backend.
     "cluster": "default",
-    # The bucket size of the counter.
+    # The bucket size of the event counter.
     #
     # The size (in seconds) of the buckets that events are sorted into.
     "counter_bucket_size": 10,
@@ -2356,20 +2390,24 @@ SENTRY_REALTIME_METRICS_OPTIONS = {
     # so that projects that exceed a reasonable rate can be sent to the low
     # priority queue. This setting determines how long we keep these rates
     # around.
-    # Note that the time is counted after the last time a counter is incremented.
-    "counter_ttl": timedelta(seconds=300),
-    # The bucket size of the histogram.
+    "counter_time_window": 300,
+    # The bucket size of the processing duration histogram.
     #
     # The size (in seconds) of the buckets that events are sorted into.
-    "histogram_bucket_size": 10,
+    "duration_bucket_size": 10,
     # Number of seconds to keep symbolicate_event durations per project.
     #
     # symbolicate_event tasks report the processing durations of events per project to redis
     # so that projects that exceed a reasonable duration can be sent to the low
     # priority queue. This setting determines how long we keep these duration values
     # around.
-    # Note that the time is counted after the last time a counter is incremented.
-    "histogram_ttl": timedelta(seconds=900),
+    "duration_time_window": 900,
+    # Number of seconds to wait after a project is made eligible or ineligible for the LPQ
+    # before its eligibility can be changed again.
+    #
+    # This backoff is only applied to automatic changes to project eligibility, and has zero effect
+    # on any manually-triggered changes to a project's presence in the LPQ.
+    "backoff_timer": 5 * 60,
 }
 
 # XXX(meredith): Temporary metrics indexer
@@ -2407,3 +2445,7 @@ INJECTED_SCRIPT_ASSETS = []
 
 # Sentry post process forwarder use batching consumer
 SENTRY_POST_PROCESS_FORWARDER_BATCHING = False
+
+# Whether badly behaving projects will be automatically
+# sent to the low priority queue
+SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False

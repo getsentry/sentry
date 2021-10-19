@@ -2,12 +2,16 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import features
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 
 
 class GroupHistoryStatus:
     UNRESOLVED = 0
     RESOLVED = 1
+    SET_RESOLVED_IN_RELEASE = 11
+    SET_RESOLVED_IN_COMMIT = 12
+    SET_RESOLVED_IN_PULL_REQUEST = 13
     AUTO_RESOLVED = 2
     IGNORED = 3
     UNIGNORED = 4
@@ -15,8 +19,20 @@ class GroupHistoryStatus:
     UNASSIGNED = 6
     REGRESSED = 7
     DELETED = 8
-    DELETED_AND_DISCADED = 9
+    DELETED_AND_DISCARDED = 9
     REVIEWED = 10
+
+
+ACTIONED_STATUSES = [
+    GroupHistoryStatus.RESOLVED,
+    GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
+    GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+    GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST,
+    GroupHistoryStatus.IGNORED,
+    GroupHistoryStatus.REVIEWED,
+    GroupHistoryStatus.DELETED,
+    GroupHistoryStatus.DELETED_AND_DISCARDED,
+]
 
 
 class GroupHistory(Model):
@@ -25,7 +41,7 @@ class GroupHistory(Model):
     and is designed to power a few types of queries:
     - `resolved_in:release` syntax - we can query for entries with status=REGRESSION and matching release
     - Time to Resolution and Age of Unresolved Issues-style queries
-    - Issue Actvity/Status over time breakdown (i.e. for each of the last 14 days, how many new, resolved, regressed, unignored, etc. issues were there?)
+    - Issue Activity/Status over time breakdown (i.e. for each of the last 14 days, how many new, resolved, regressed, unignored, etc. issues were there?)
     """
 
     __include_in_export__ = False
@@ -48,8 +64,11 @@ class GroupHistory(Model):
             (GroupHistoryStatus.ASSIGNED, _("Assigned")),
             (GroupHistoryStatus.UNASSIGNED, _("Unassigned")),
             (GroupHistoryStatus.DELETED, _("Deleted")),
-            (GroupHistoryStatus.DELETED_AND_DISCADED, _("Deleted and Discarded")),
+            (GroupHistoryStatus.DELETED_AND_DISCARDED, _("Deleted and Discarded")),
             (GroupHistoryStatus.REVIEWED, _("Reviewed")),
+            (GroupHistoryStatus.SET_RESOLVED_IN_RELEASE, _("Resolved in Release")),
+            (GroupHistoryStatus.SET_RESOLVED_IN_COMMIT, _("Resolved in Commit")),
+            (GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST, _("Resolved in Pull Request")),
         ),
     )
     prev_history = FlexibleForeignKey(
@@ -66,3 +85,54 @@ class GroupHistory(Model):
         index_together = (("project", "status", "release"),)
 
     __repr__ = sane_repr("group_id", "release_id")
+
+
+def get_prev_history(group):
+    prev_histories = GroupHistory.objects.filter(group=group).order_by("date_added")
+    if prev_histories.exists():
+        return prev_histories.first()
+    return None
+
+
+def record_group_history_from_activity_type(group, activity_type, actor=None, release=None):
+    """
+    Writes a `GroupHistory` row for an activity type if there's a relevant `GroupHistoryStatus` that
+    maps to it
+    """
+    status = activity_type_to_history_status(activity_type)
+    if status is not None:
+        return record_group_history(group, status, actor, release)
+
+
+def record_group_history(group, status, actor=None, release=None):
+    prev_history = get_prev_history(group)
+    if not features.has("organizations:group-history", group.organization):
+        return
+    return GroupHistory.objects.create(
+        organization=group.project.organization,
+        group=group,
+        project=group.project,
+        release=release,
+        actor=actor.actor if actor is not None else None,
+        status=status,
+        prev_history=prev_history,
+        prev_history_date=prev_history.date_added if prev_history else None,
+    )
+
+
+def activity_type_to_history_status(status):
+    from sentry.models import Activity
+
+    # TODO: This could be improved; defined above at the very least
+    if status == Activity.SET_IGNORED:
+        return GroupHistoryStatus.IGNORED
+    elif status == Activity.SET_RESOLVED:
+        return GroupHistoryStatus.RESOLVED
+    elif status == Activity.SET_RESOLVED_IN_COMMIT:
+        return GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
+    elif status == Activity.SET_RESOLVED_IN_RELEASE:
+        return GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
+    elif status == Activity.SET_UNRESOLVED:
+        return GroupHistoryStatus.UNRESOLVED
+
+    return None

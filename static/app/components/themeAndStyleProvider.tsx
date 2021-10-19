@@ -4,13 +4,12 @@ import {cache} from '@emotion/css'; // eslint-disable-line emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react'; // This is needed to set "speedy" = false (for percy)
 
 import {loadPreferencesState} from 'app/actionCreators/preferences';
+import ConfigStore from 'app/stores/configStore';
+import {useLegacyStore} from 'app/stores/useLegacyStore';
 import GlobalStyles from 'app/styles/global';
-import {Config} from 'app/types';
 import {darkTheme, lightTheme} from 'app/utils/theme';
-import withConfig from 'app/utils/withConfig';
 
 type Props = {
-  config: Config;
   children: React.ReactNode;
 };
 
@@ -19,9 +18,10 @@ type Props = {
  *
  * Also injects the sentry GlobalStyles .
  */
-function ThemeAndStyleProvider({children, config}: Props) {
+function ThemeAndStyleProvider({children}: Props) {
   useEffect(() => void loadPreferencesState(), []);
 
+  const config = useLegacyStore(ConfigStore);
   const theme = config.theme === 'dark' ? darkTheme : lightTheme;
 
   return (
@@ -36,4 +36,4 @@ function ThemeAndStyleProvider({children, config}: Props) {
   );
 }
 
-export default withConfig(ThemeAndStyleProvider);
+export default ThemeAndStyleProvider;

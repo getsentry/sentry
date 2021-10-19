@@ -62,6 +62,10 @@ class AuthProvider(Model):
 
         return manager.get(self.provider, **self.config)
 
+    @property
+    def provider_name(self) -> str:
+        return self.get_provider().name
+
     def get_scim_token(self):
         from sentry.models import SentryAppInstallationForProvider
 

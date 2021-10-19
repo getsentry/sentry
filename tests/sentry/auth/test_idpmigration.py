@@ -3,7 +3,7 @@ import re
 from django.urls import reverse
 
 import sentry.auth.idpmigration as idpmigration
-from sentry.models import OrganizationMember
+from sentry.models import AuthProvider, OrganizationMember
 from sentry.testutils import TestCase
 
 
@@ -14,7 +14,7 @@ class IDPMigrationTests(TestCase):
         self.login_as(self.user)
         self.email = "test@example.com"
         self.org = self.create_organization()
-        self.provider = "test_provider"
+        self.provider = AuthProvider.objects.create(organization=self.org, provider="dummy")
         OrganizationMember.objects.create(organization=self.org, user=self.user)
 
     def test_send_one_time_account_confirm_link(self):
@@ -32,12 +32,10 @@ class IDPMigrationTests(TestCase):
             args=[link.verification_code],
         )
         response = self.client.get(path)
-        assert (
-            self.client.session["confirm_account_verification_key"]
-            == f"auth:one-time-key:{link.verification_code}"
-        )
-        assert response.status_code == 302
-        assert response.url == "/auth/login/"
+
+        assert self.client.session[idpmigration.SSO_VERIFICATION_KEY] == link.verification_code
+        assert response.status_code == 200
+        assert response.templates[0].name == "sentry/idp_account_verified.html"
 
     def test_verify_account_wrong_key(self):
         idpmigration.send_one_time_account_confirm_link(
@@ -48,4 +46,5 @@ class IDPMigrationTests(TestCase):
             args=["d14Ja9N2eQfPfVzcydS6vzcxWecZJG2z2"],
         )
         response = self.client.get(path)
-        assert response.status_code == 404
+        assert response.status_code == 200
+        assert response.templates[0].name == "sentry/idp_account_not_verified.html"

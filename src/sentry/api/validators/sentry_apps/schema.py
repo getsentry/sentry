@@ -195,7 +195,7 @@ SCHEMA = {
     "required": ["elements"],
 }
 
-element_types = ["issue-link", "alert-rule-action", "issue-media", "stacktrace-link"]
+ELEMENT_TYPES = ["issue-link", "alert-rule-action", "issue-media", "stacktrace-link"]
 
 
 def validate_component(schema):
@@ -215,7 +215,8 @@ def check_elements_is_array(instance):
         raise SchemaValidationError("'elements' should be an array of objects")
 
 
-def check_each_element_for_error(instance):
+def check_each_element_for_error(instance, element_types=None):
+    element_types = element_types or ELEMENT_TYPES
     if "elements" not in instance:
         return
 
@@ -225,8 +226,7 @@ def check_each_element_for_error(instance):
         found_type = element["type"]
         if found_type not in element_types:
             raise SchemaValidationError(
-                "Element has type '%s'. Type must be one of the following: %s"
-                % (found_type, element_types)
+                f"Element has type '{found_type}'. Type must be one of the following: {element_types}"
             )
         try:
             validate_component(element)
@@ -237,11 +237,30 @@ def check_each_element_for_error(instance):
             )
 
 
-def validate_ui_element_schema(instance):
+def check_only_one_of_each_element(instance):
+    if "elements" not in instance:
+        return
+    found = {}
+    for element in instance["elements"]:
+        if element["type"]:
+            if element["type"] not in found:
+                found[element["type"]] = 1
+            else:
+                raise SchemaValidationError(f"Multiple elements of type: {element['type']}")
+
+
+def validate_ui_element_schema(instance, features=None):
+    features = features or {}
+    available_element_types = (
+        ["issue-link", "issue-media", "stacktrace-link"]
+        if not features.get("organizations:alert-rule-ui-component", False)
+        else ELEMENT_TYPES
+    )
     try:
         # schema validator will catch elements missing
         check_elements_is_array(instance)
-        check_each_element_for_error(instance)
+        check_each_element_for_error(instance, element_types=available_element_types)
+        check_only_one_of_each_element(instance)
     except SchemaValidationError as e:
         raise e
     except Exception as e:
