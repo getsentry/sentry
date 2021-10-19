@@ -98,7 +98,10 @@ def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
     if excessive_rate or excessive_duration:
         was_added = realtime_metrics.add_project_to_lpq(project_id)
         if was_added:
-            _report_change(project_id=project_id, change="added", reason="eligible")
+            reason = "rate" if excessive_rate else "duration"
+            if excessive_rate and excessive_duration:
+                reason = "rate-duration"
+            _report_change(project_id=project_id, change="added", reason=reason)
     else:
         was_removed = realtime_metrics.remove_projects_from_lpq({project_id})
         if was_removed:
@@ -162,7 +165,7 @@ def _report_change(project_id: int, change: Literal["added", "removed"], reason:
     with sentry_sdk.push_scope() as scope:
         scope.set_level("warning")
         scope.set_tag("project", project_id)
-        scope.set_tag("reason", reason)
+        scope.set_tag("lpq_reason", reason)
         sentry_sdk.capture_message(message)
 
 
