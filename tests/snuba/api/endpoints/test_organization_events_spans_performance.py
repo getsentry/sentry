@@ -1,3 +1,4 @@
+import time
 from datetime import timedelta
 
 from django.urls import reverse
@@ -5,6 +6,7 @@ from django.urls import reverse
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils import json
 from sentry.utils.samples import load_data
 
 
@@ -21,6 +23,28 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
         )
 
         self.min_ago = before_now(minutes=1).replace(microsecond=0)
+
+        self.update_snuba_config_ensure({"write_span_columns_projects": f"[{self.project.id}]"})
+
+    def update_snuba_config_ensure(self, config, poll=60, wait=1):
+        self.snuba_update_config(config)
+
+        for i in range(poll):
+            updated = True
+
+            new_config = json.loads(self.snuba_get_config().decode("utf-8"))
+
+            for k, v in config.items():
+                if new_config.get(k) != v:
+                    updated = False
+                    break
+
+            if updated:
+                return
+
+            time.sleep(wait)
+
+        assert False, "snuba config not updated in time"
 
     def create_event(self, **kwargs):
         if "span_id" not in kwargs:
@@ -231,8 +255,17 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
         assert response.status_code == 404, response.content
 
     def test_no_projects(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-events-spans-performance",
+            kwargs={"organization_slug": org.slug},
+        )
+
         with self.feature(self.FEATURES):
-            response = self.client.get(self.url, format="json")
+            response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
 
     def test_bad_sort(self):
@@ -247,7 +280,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
             )
         assert response.status_code == 400, response.content
         assert response.data == {
-            "detail": "Can only order by one of count, sum, p50, p75, p95, p99"
+            "detail": "Can only order by one of count, sumExclusiveTime, p50ExclusiveTime, p75ExclusiveTime, p95ExclusiveTime, p99ExclusiveTime"
         }
 
     def test_sort_sum(self):
@@ -258,7 +291,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                 self.url,
                 data={
                     "project": self.project.id,
-                    "sort": "-sum",
+                    "sort": "-sumExclusiveTime",
                 },
                 format="json",
             )
@@ -295,12 +328,16 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                 self.suspect_span_results("percentiles", event),
             ],
         )
-        assert False
 
     def test_sort_percentiles(self):
         event = self.create_event()
 
-        for sort in ["p50", "p75", "p95", "p99"]:
+        for sort in [
+            "p50ExclusiveTime",
+            "p75ExclusiveTime",
+            "p95ExclusiveTime",
+            "p99ExclusiveTime",
+        ]:
             with self.feature(self.FEATURES):
                 response = self.client.get(
                     self.url,
@@ -329,7 +366,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                 self.url,
                 data={
                     "project": self.project.id,
-                    "sort": "-sum",
+                    "sort": "-sumExclusiveTime",
                     "per_page": 1,
                 },
                 format="json",
@@ -339,7 +376,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
         links = parse_link_header(response["Link"])
         for link, info in links.items():
             assert f"project={self.project.id}" in link
-            assert "sort=-sum" in link
+            assert "sort=-sumExclusiveTime" in link
             # first page does not have a previous page, only next
             assert info["results"] == "true" if info["rel"] == "next" else "false"
 
@@ -351,7 +388,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                 self.url,
                 data={
                     "project": self.project.id,
-                    "sort": "-sum",
+                    "sort": "-sumExclusiveTime",
                     "per_page": 1,
                     "cursor": "0:1:0",
                 },
@@ -362,7 +399,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
         links = parse_link_header(response["Link"])
         for link, info in links.items():
             assert f"project={self.project.id}" in link
-            assert "sort=-sum" in link
+            assert "sort=-sumExclusiveTime" in link
             # middle page has both a previous and next
             assert info["results"] == "true"
 
@@ -374,7 +411,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                 self.url,
                 data={
                     "project": self.project.id,
-                    "sort": "-sum",
+                    "sort": "-sumExclusiveTime",
                     "per_page": 1,
                     "cursor": "0:2:0",
                 },
@@ -385,6 +422,6 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
         links = parse_link_header(response["Link"])
         for link, info in links.items():
             assert f"project={self.project.id}" in link
-            assert "sort=-sum" in link
+            assert "sort=-sumExclusiveTime" in link
             # last page does not have a next page, only previous
-            assert info["results"] == "true" if info["rel"] == "previous" else "false"
+            assert info["results"] == ("true" if info["rel"] == "previous" else "false")
