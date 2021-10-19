@@ -4,7 +4,7 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import BaseChart from 'app/components/charts/baseChart';
 import {RenderProps} from 'app/components/charts/eventsRequest';
-import {DateString, Organization, OrganizationSummary} from 'app/types';
+import {DateString, Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 
 import {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
@@ -20,7 +20,6 @@ export enum GenericPerformanceWidgetDataType {
   histogram = 'histogram',
   area = 'area',
   vitals = 'vitals',
-  line_list = 'line_list',
   trends = 'trends',
 }
 
@@ -36,7 +35,7 @@ export interface WidgetDataConstraint {
 export type QueryChildren = {
   children: (props: any) => ReactNode; // TODO(k-fish): Fix any type.
 };
-export type QueryFC<T extends WidgetDataConstraint> = FunctionComponent<
+export type QueryFC = FunctionComponent<
   QueryChildren & {
     fields?: string | string[];
     yAxis?: string | string[];
@@ -46,12 +45,7 @@ export type QueryFC<T extends WidgetDataConstraint> = FunctionComponent<
     project?: Readonly<number[]>;
     environment?: Readonly<string[]>;
     team?: Readonly<string | string[]>;
-    query?: string;
-    orgSlug: string;
-    location: Location;
-    organization: OrganizationSummary;
-    eventView: EventView;
-    widgetData: T;
+    organization?: Organization;
   }
 >;
 
@@ -59,7 +53,7 @@ export type QueryDefinition<
   T extends WidgetDataConstraint,
   S extends WidgetDataResult | undefined
 > = {
-  component: QueryFC<T>;
+  component: QueryFC;
   fields: string | string[];
   enabled?: (data: T) => boolean;
   transform: (

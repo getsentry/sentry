@@ -24,16 +24,10 @@ const WrappedComponent = ({data, ...rest}) => {
 
 describe('Performance > Widgets > WidgetContainer', function () {
   let eventStatsMock;
-  let eventsV2Mock;
   beforeEach(function () {
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-stats/`,
-      body: [],
-    });
-    eventsV2Mock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/eventsv2/`,
       body: [],
     });
   });
@@ -135,74 +129,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: '',
           statsPeriod: '28d',
           yAxis: 'user_misery()',
-        }),
-      })
-    );
-  });
-
-  it('Most errors widget', async function () {
-    const data = initializeData();
-
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ERRORS}
-      />,
-      data.routerContext
-    );
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
-      'Most Related Errors'
-    );
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
-    expect(eventsV2Mock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: [],
-          field: ['transaction', 'project.id', 'failure_count()'],
-          per_page: 3,
-          project: [],
-          query: '',
-          sort: '-failure_count()',
-          statsPeriod: '14d',
-        }),
-      })
-    );
-  });
-
-  it('Most related issues widget', async function () {
-    const data = initializeData();
-
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ISSUES}
-      />,
-      data.routerContext
-    );
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('div[data-test-id="performance-widget-title"]').text()).toEqual(
-      'Most Related Issues'
-    );
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
-    expect(eventsV2Mock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: [],
-          field: ['issue', 'transaction', 'title', 'project.id', 'count()'],
-          per_page: 3,
-          project: [],
-          query: 'event.type:error !tags[transaction]:""',
-          sort: '-count()',
-          statsPeriod: '14d',
         }),
       })
     );
