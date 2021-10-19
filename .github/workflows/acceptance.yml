@@ -25,6 +25,8 @@ jobs:
 
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      # XXX: Normally, sentry-setup reexports this as steps.setup.outputs.matrix-instance-total.
+      #      But we need to also hardcode this in CI_NODE_TOTAL.
       MATRIX_INSTANCE_TOTAL: 2
       VISUAL_HTML_ENABLE: 1
     steps:
@@ -58,7 +60,8 @@ jobs:
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
-          CI_NODE_TOTAL: ${{ steps.setup.outputs.matrix-instance-total }}
+          # XXX: CI_NODE_TOTAL must be equal to MATRIX_INSTANCE_TOTAL.
+          CI_NODE_TOTAL: 2
           CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
           JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
