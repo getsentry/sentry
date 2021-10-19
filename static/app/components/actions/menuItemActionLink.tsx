@@ -25,8 +25,7 @@ const InnerActionLink = styled(ActionLink)`
   .dropdown-menu > li > &,
   .dropdown-menu > span > li > & {
     &.disabled:hover {
-      background: ${p => p.theme.white};
-      color: #7a8188;
+      background: ${p => p.theme.background};
     }
   }
 `;

@@ -3,8 +3,8 @@ import color from 'color';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
+import AreaChart, {AreaChartSeries} from 'app/components/charts/areaChart';
 import Graphic from 'app/components/charts/components/graphic';
-import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
@@ -21,7 +21,7 @@ import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
 
 type DefaultProps = {
   data: Series[];
-  comparisonMarkLines: LineChartSeries[];
+  comparisonMarkLines: AreaChartSeries[];
 };
 
 type Props = DefaultProps & {
@@ -290,7 +290,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
   render() {
     const {data, triggers, period, aggregate, comparisonMarkLines} = this.props;
-    const dataWithoutRecentBucket: LineChartSeries[] = data?.map(
+    const dataWithoutRecentBucket: AreaChartSeries[] = data?.map(
       ({data: eventData, ...restOfData}) => ({
         ...restOfData,
         data: eventData.slice(0, -1),
@@ -327,7 +327,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       },
     };
     return (
-      <LineChart
+      <AreaChart
         isGroupedByDate
         showTimeInTooltip
         period={period}
