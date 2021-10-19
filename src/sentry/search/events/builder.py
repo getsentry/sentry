@@ -22,6 +22,7 @@ class QueryBuilder(QueryFilter):
         params: ParamsType,
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
         auto_fields: bool = False,
         auto_aggregations: bool = False,
@@ -48,7 +49,7 @@ class QueryBuilder(QueryFilter):
         # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
         self.where += self.resolve_params()
 
-        self.columns = self.resolve_select(selected_columns)
+        self.columns = self.resolve_select(selected_columns, equations)
         self.orderby = self.resolve_orderby(orderby)
 
     @property
@@ -73,7 +74,11 @@ class QueryBuilder(QueryFilter):
     def groupby(self) -> Optional[List[SelectType]]:
         if self.aggregates:
             self.validate_aggregate_arguments()
-            return [c for c in self.columns if c not in self.aggregates]
+            return [
+                c
+                for c in self.columns
+                if c not in self.aggregates and not self.is_equation_column(c)
+            ]
         else:
             return []
 
