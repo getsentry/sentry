@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
     analytics_event: str = ""
     referrer: str = ""
+    member_by_user_id: Mapping[int, OrganizationMember] = {}
 
     def __init__(self, organization: "Organization", requester: "User") -> None:
         self.organization = organization
@@ -33,6 +34,9 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         )
 
         return SlackOrganizationRequestMessageBuilder
+
+    def get_reference(self) -> Any:
+        return self.organization
 
     def get_context(self) -> MutableMapping[str, Any]:
         raise NotImplementedError
@@ -50,7 +54,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
         available_providers: Iterable[ExternalProviders] = {ExternalProviders.EMAIL}
-        if not features.has("organizations:slack-requests", self.organization):
+        if features.has("organizations:slack-requests", self.organization):
             available_providers = notification_providers()
 
         # TODO: need to read off notification settings
@@ -72,8 +76,19 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             notify(provider, self, recipients, self.get_context())
 
     def get_member(self, user: "User") -> "OrganizationMember":
-        # TODO: add caching
-        return OrganizationMember.objects.get(user=user, organization=self.organization)
+        # cache the result
+        if user.id not in self.member_by_user_id:
+            self.member_by_user_id[user.id] = OrganizationMember.objects.get(
+                user=user, organization=self.organization
+            )
+        return self.member_by_user_id[user.id]
+
+    def set_member_in_cache(self, member: OrganizationMember) -> None:
+        """
+        A way to set a member in a cache to avoid a query.
+        Used by debug email views since models are not saved.
+        """
+        self.member_by_user_id[member.user_id] = member
 
     def build_attachment_title(self) -> str:
         raise NotImplementedError

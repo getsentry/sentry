@@ -92,8 +92,8 @@ def send_notification_as_email(
 def get_builder_args(
     notification: BaseNotification,
     recipient: "User",
-    shared_context: Optional[Mapping[str, Any]],
-    extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
+    shared_context: Optional[Mapping[str, Any]] = None,
+    extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]] = None,
 ) -> Mapping[str, Any]:
     # TODO: move context logic to single notification class method
     extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
