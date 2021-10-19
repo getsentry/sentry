@@ -2891,6 +2891,9 @@ class QueryFields(QueryBase):
             return self.resolve_column(side)
 
     def is_equation_column(self, column: SelectType) -> bool:
+        """Equations are only ever functions, and shouldn't be literals so we
+        need to check that the column is a Function
+        """
         return isinstance(column, CurriedFunction) and column.alias.startswith("equation[")
 
     def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:

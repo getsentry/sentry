@@ -344,10 +344,10 @@ def resolve_equation_list(
 
         # We just jam everything into resolved_equations because the json format can't take arithmetic in the aggregates
         # field, but can do the aliases in the selected_columns field
+        resolved_equations.append(parsed_equation.to_snuba_json(f"equation[{index}]"))
         # TODO: currently returning "resolved_equations" for the json syntax
         # once we're converted to SnQL this should only return parsed_equations
         parsed_equations.append(parsed_equation)
-        resolved_equations.append(parsed_equation.to_snuba_json(f"equation[{index}]"))
     return resolved_equations, resolved_columns, parsed_equations
 
 
