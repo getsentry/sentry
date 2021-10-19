@@ -8,7 +8,7 @@ from sentry.models import Identity, IdentityProvider, IdentityStatus
 from sentry.testutils import APITestCase
 from sentry.utils import json
 from sentry.utils.compat.mock import Mock, patch
-from tests.sentry.integrations.slack import install_slack
+from tests.sentry.integrations.slack import get_response_text, install_slack
 
 UNSET = object()
 
@@ -288,7 +288,7 @@ class MessageIMEventTest(BaseEventTest):
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         data = json.loads(request.body)
-        assert "Link your Slack identity" in data["text"]
+        assert "Link your Slack identity" in get_response_text(data)
 
     @responses.activate
     def test_user_message_already_linked(self):
@@ -310,7 +310,7 @@ class MessageIMEventTest(BaseEventTest):
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         data = json.loads(request.body)
-        assert "You are already linked" in data["text"]
+        assert "You are already linked" in get_response_text(data)
 
     @responses.activate
     def test_user_message_unlink(self):
@@ -332,7 +332,7 @@ class MessageIMEventTest(BaseEventTest):
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         data = json.loads(request.body)
-        assert "Click here to unlink your identity" in data["text"]
+        assert "Click here to unlink your identity" in get_response_text(data)
 
     @responses.activate
     def test_user_message_already_unlinked(self):
@@ -347,7 +347,7 @@ class MessageIMEventTest(BaseEventTest):
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         data = json.loads(request.body)
-        assert "You do not have a linked identity to unlink" in data["text"]
+        assert "You do not have a linked identity to unlink" in get_response_text(data)
 
     def test_bot_message_im(self):
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_BOT_EVENT))

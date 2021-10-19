@@ -26,11 +26,6 @@ class ChunkUploadTest(APITestCase):
             self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
         )
 
-        endpoint = options.get("system.upload-url-prefix")
-        # We fallback to default system url if config is not set
-        if len(endpoint) == 0:
-            endpoint = options.get("system.url-prefix")
-
         assert response.status_code == 200, response.content
         assert response.data["chunkSize"] == settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE
         assert response.data["chunksPerRequest"] == MAX_CHUNKS_PER_REQUEST
@@ -38,7 +33,7 @@ class ChunkUploadTest(APITestCase):
         assert response.data["maxFileSize"] == options.get("system.maximum-file-size")
         assert response.data["concurrency"] == MAX_CONCURRENCY
         assert response.data["hashAlgorithm"] == HASH_ALGORITHM
-        assert response.data["url"] == options.get("system.url-prefix") + self.url
+        assert response.data["url"] == self.url.replace("/api/0", "/")
 
         options.set("system.upload-url-prefix", "test")
         response = self.client.get(
