@@ -114,7 +114,7 @@ default_manager.add("organizations:issue-search-use-cdc-secondary", Organization
 default_manager.add("organizations:large-debug-files", OrganizationFeature)
 default_manager.add("organizations:metric-alert-builder-aggregate", OrganizationFeature)
 default_manager.add("organizations:metrics", OrganizationFeature, True)
-default_manager.add("organizations:metrics-extraction", OrganizationFeature)
+default_manager.add("organizations:metrics-extraction", OrganizationFeature, True)
 default_manager.add("organizations:minute-resolution-sessions", OrganizationFeature)
 default_manager.add("organizations:mobile-screenshots", OrganizationFeature, True)
 default_manager.add("organizations:monitors", OrganizationFeature)
