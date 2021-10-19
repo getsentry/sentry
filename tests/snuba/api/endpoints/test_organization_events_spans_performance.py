@@ -1,6 +1,7 @@
 import time
 from datetime import timedelta
 
+import pytest
 from django.urls import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -23,8 +24,6 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
         )
 
         self.min_ago = before_now(minutes=1).replace(microsecond=0)
-
-        self.update_snuba_config_ensure({"write_span_columns_projects": f"[{self.project.id}]"})
 
     def update_snuba_config_ensure(self, config, poll=60, wait=1):
         self.snuba_update_config(config)
@@ -284,6 +283,10 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
         }
 
     def test_sort_sum(self):
+        # TODO: remove this and the @pytest.skip once the config
+        # is no longer necessary as this can add ~10s to the test
+        self.update_snuba_config_ensure({"write_span_columns_projects": f"[{self.project.id}]"})
+
         event = self.create_event()
 
         with self.feature(self.FEATURES):
@@ -306,6 +309,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
             ],
         )
 
+    @pytest.mark.skip("setting snuba config is too slow")
     def test_sort_count(self):
         event = self.create_event()
 
@@ -329,6 +333,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
             ],
         )
 
+    @pytest.mark.skip("setting snuba config is too slow")
     def test_sort_percentiles(self):
         event = self.create_event()
 
@@ -358,6 +363,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
                 ],
             )
 
+    @pytest.mark.skip("setting snuba config is too slow")
     def test_pagination_first_page(self):
         self.create_event()
 
@@ -380,6 +386,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
             # first page does not have a previous page, only next
             assert info["results"] == "true" if info["rel"] == "next" else "false"
 
+    @pytest.mark.skip("setting snuba config is too slow")
     def test_pagination_middle_page(self):
         self.create_event()
 
@@ -403,6 +410,7 @@ class OrganizationEventsSpansPerformanceEndpointBase(APITestCase, SnubaTestCase)
             # middle page has both a previous and next
             assert info["results"] == "true"
 
+    @pytest.mark.skip("setting snuba config is too slow")
     def test_pagination_last_page(self):
         self.create_event()
 

@@ -18,6 +18,7 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import ParamsType
 from sentry.utils.snuba import Dataset, raw_snql_query
+from sentry.utils.time_window import TimeWindow, remove_time_windows, union_time_windows
 
 
 @dataclasses.dataclass(frozen=True)
@@ -76,14 +77,18 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
             orderby = direction + alias
             suspects = query_suspect_span_groups(params, query, orderby, limit, offset)
 
-            # pagination will try to get 1 extra result to decide if there is a next page,
-            # drop the extra result, if present, to fetch less events
             alias = get_function_alias(
                 SPAN_PERFORMANCE_COLUMNS[orderby_column].suspect_example_column
             )
             orderby = direction + alias
+
+            # Because we want to support pagination, the limit is 1 more than will be
+            # returned and displayed. Since this extra result is only used for
+            # pagination, we do not need to get any example transactions for it.
+            suspects_requiring_examples = suspects[: limit - 1]
+
             transaction_ids = query_example_transactions(
-                params, query, orderby, suspects[: limit - 1]
+                params, query, orderby, suspects_requiring_examples
             )
 
             return [
@@ -400,77 +405,6 @@ def get_example_transaction(
         ),
         spans=spans,
     )
-
-
-@dataclasses.dataclass(frozen=True)
-class TimeWindow:
-    # Timestamps are in seconds
-    start: float
-    end: float
-
-    def as_tuple(self) -> Tuple[float, float]:
-        return (self.start, self.end)
-
-    @property
-    def duration_ms(self) -> float:
-        return (self.end - self.start) * 1000
-
-    def __add__(self, other: "TimeWindow") -> Tuple[Optional["TimeWindow"], "TimeWindow"]:
-        if self.start < other.start:
-            if self.end < other.start:
-                return self, other
-            return None, TimeWindow(start=self.start, end=max(self.end, other.end))
-        else:
-            if self.start > other.end:
-                return other, self
-            return None, TimeWindow(start=other.start, end=max(self.end, other.end))
-
-    def __sub__(self, other: "TimeWindow") -> Tuple[Optional["TimeWindow"], "TimeWindow"]:
-        if self.start < other.start:
-            if self.end > other.end:
-                return (
-                    TimeWindow(start=self.start, end=other.start),
-                    TimeWindow(start=other.end, end=self.end),
-                )
-            return None, TimeWindow(start=self.start, end=min(self.end, other.start))
-        else:
-            if self.end < other.end:
-                return None, TimeWindow(start=self.end, end=self.end)
-            return None, TimeWindow(start=max(self.start, other.end), end=self.end)
-
-
-def union_time_windows(time_windows: List[TimeWindow]) -> List[TimeWindow]:
-    if not time_windows:
-        return []
-
-    previous, *time_windows = sorted(time_windows, key=lambda window: window.as_tuple())
-
-    unioned: List[TimeWindow] = []
-
-    for current in time_windows:
-        window, previous = previous + current
-        if window:
-            unioned.append(window)
-
-    unioned.append(previous)
-
-    return unioned
-
-
-def remove_time_windows(source: TimeWindow, time_windows: List[TimeWindow]) -> List[TimeWindow]:
-    if not time_windows:
-        return [source]
-
-    removed: List[TimeWindow] = []
-
-    for current in time_windows:
-        window, source = source - current
-        if window:
-            removed.append(window)
-
-    removed.append(source)
-
-    return removed
 
 
 def get_exclusive_time_windows(span: ExampleSpan, spans: List[Any]) -> List[TimeWindow]:
