@@ -45,6 +45,8 @@ jobs:
         run: |
           python -m venv .venv
           source .venv/bin/activate
+          # Force compilation of xmlsec wheel from source.
+          pip install --no-cache-dir --no-binary :all: 'xmlsec==1.3.12'
           make install-py-dev
           # This exercises the requirements-pre-commit.txt file
           make setup-git
