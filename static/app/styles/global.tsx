@@ -189,10 +189,17 @@ const styles = (theme: Theme, isDark: boolean) => css`
           color: ${theme.textColor};
           background-color: ${theme.background} !important;
           border: 1px solid ${theme.border};
-          &:after,
           &:before {
-            border-top-color: ${theme.border} !important;
-            border-bottom-color: ${theme.border} !important;
+            border-bottom-color: ${theme.border};
+          }
+          &:after {
+            border-bottom-color: ${theme.background};
+          }
+          &.inverted:before {
+            border-top-color: ${theme.border};
+          }
+          &.inverted:after {
+            border-top-color: ${theme.background};
           }
         }
         .context-summary .context-item.darwin .context-item-icon,
