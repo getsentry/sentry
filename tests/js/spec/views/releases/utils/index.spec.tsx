@@ -48,14 +48,27 @@ describe('releases/utils', () => {
         releaseEnd: '2020-03-23T01:03:59Z',
       });
     });
+
+    it('clamps releases lasting longer than 1000 days', () => {
+      expect(
+        getReleaseBounds(
+          // @ts-expect-error
+          TestStubs.Release({
+            dateCreated: '2020-03-23T01:02:30Z',
+            lastEvent: '2023-03-23T01:02:30Z',
+          })
+        )
+      ).toEqual({
+        releaseStart: '2020-03-23T01:02:00Z',
+        releaseEnd: '2022-12-17T01:02:00Z',
+      });
+    });
   });
 
   describe('getReleaseParams', () => {
     const {routerContext} = initializeOrg();
     // @ts-expect-error
     const releaseBounds = getReleaseBounds(TestStubs.Release());
-    const defaultStatsPeriod = '14d';
-    const allowEmptyPeriod = true;
 
     it('returns params related to a release', () => {
       const location = {
@@ -72,8 +85,6 @@ describe('releases/utils', () => {
         getReleaseParams({
           location,
           releaseBounds,
-          defaultStatsPeriod,
-          allowEmptyPeriod,
         })
       ).toEqual({
         statsPeriod: '30d',
@@ -87,8 +98,6 @@ describe('releases/utils', () => {
         getReleaseParams({
           location: {...routerContext.location, query: {}},
           releaseBounds,
-          defaultStatsPeriod,
-          allowEmptyPeriod,
         })
       ).toEqual({
         start: '2020-03-23T01:02:00Z',
@@ -104,26 +113,10 @@ describe('releases/utils', () => {
             query: {pageStart: '2021-03-23T01:02:30Z', pageEnd: '2022-03-23T01:02:30Z'},
           },
           releaseBounds,
-          defaultStatsPeriod,
-          allowEmptyPeriod,
         })
       ).toEqual({
         start: '2021-03-23T01:02:30.000',
         end: '2022-03-23T01:02:30.000',
-      });
-    });
-
-    // used in releases without release-comparison feature flag
-    it('returns default stats period', () => {
-      expect(
-        getReleaseParams({
-          location: {...routerContext.location, query: {}},
-          releaseBounds,
-          defaultStatsPeriod: '7d',
-          allowEmptyPeriod: false,
-        })
-      ).toEqual({
-        statsPeriod: '7d',
       });
     });
   });

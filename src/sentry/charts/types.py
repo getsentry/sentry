@@ -15,3 +15,4 @@ class ChartType(Enum):
     SLACK_DISCOVER_TOTAL_DAILY = "slack:discover.totalDaily"
     SLACK_DISCOVER_TOP5_PERIOD = "slack:discover.top5Period"
     SLACK_DISCOVER_TOP5_DAILY = "slack:discover.top5Daily"
+    SLACK_DISCOVER_PREVIOUS_PERIOD = "slack:discover.previousPeriod"

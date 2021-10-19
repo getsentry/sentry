@@ -5,19 +5,25 @@ import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
-import {getSeriesApiInterval} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
-import {GlobalSelection, Organization, SessionApiResponse} from 'app/types';
+import {
+  GlobalSelection,
+  Organization,
+  SessionApiResponse,
+  SessionField,
+  SessionStatus,
+} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {percent} from 'app/utils';
 import {getPeriod} from 'app/utils/getPeriod';
-import {Theme} from 'app/utils/theme';
 import {
-  fillChartDataFromSessionsResponse,
-  getTotalsFromSessionsResponse,
-  initSessionsBreakdownChartData,
-} from 'app/views/releases/detail/overview/chart/utils';
+  getCount,
+  getCountSeries,
+  getSessionsInterval,
+  initSessionsChart,
+} from 'app/utils/sessions';
+import {Theme} from 'app/utils/theme';
 import {getCrashFreePercent} from 'app/views/releases/utils';
 
 import {DisplayModes} from '../projectCharts';
@@ -26,7 +32,7 @@ import {shouldFetchPreviousPeriod} from '../utils';
 const omitIgnoredProps = (props: Props) =>
   omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
 
-type ReleaseStatsRequestRenderProps = {
+type ProjectSessionsChartRequestRenderProps = {
   loading: boolean;
   reloading: boolean;
   errored: boolean;
@@ -39,7 +45,7 @@ type Props = {
   api: Client;
   organization: Organization;
   selection: GlobalSelection;
-  children: (renderProps: ReleaseStatsRequestRenderProps) => React.ReactNode;
+  children: (renderProps: ProjectSessionsChartRequestRenderProps) => React.ReactNode;
   onTotalValuesChange: (value: number | null) => void;
   displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
   theme: Theme;
@@ -55,7 +61,7 @@ type State = {
   totalSessions: number | null;
 };
 
-class SessionsRequest extends React.Component<Props, State> {
+class ProjectSessionsChartRequest extends React.Component<Props, State> {
   state: State = {
     reloading: false,
     errored: false,
@@ -131,13 +137,15 @@ class SessionsRequest extends React.Component<Props, State> {
   }
 
   queryParams({shouldFetchWithPrevious = false}) {
-    const {selection, query} = this.props;
+    const {selection, query, organization} = this.props;
     const {datetime, projects, environments: environment} = selection;
 
     const baseParams = {
       field: 'sum(session)',
       groupBy: 'session.status',
-      interval: getSeriesApiInterval(datetime),
+      interval: getSessionsInterval(datetime, {
+        highFidelity: organization.features.includes('minute-resolution-sessions'),
+      }),
       project: projects[0],
       environment,
       query,
@@ -273,21 +281,48 @@ class SessionsRequest extends React.Component<Props, State> {
 
   transformSessionCountData(responseData: SessionApiResponse) {
     const {theme} = this.props;
+    const sessionsChart = initSessionsChart(theme);
+    const {intervals, groups} = responseData;
 
-    const totalSessions = getTotalsFromSessionsResponse({
-      response: responseData,
-      field: 'sum(session)',
-    });
+    const totalSessions = getCount(responseData.groups, SessionField.SESSIONS);
 
-    const chartData = fillChartDataFromSessionsResponse({
-      response: responseData,
-      field: 'sum(session)',
-      groupBy: 'session.status',
-      chartData: initSessionsBreakdownChartData(theme),
-    });
+    const chartData = [
+      {
+        ...sessionsChart[SessionStatus.HEALTHY],
+        data: getCountSeries(
+          SessionField.SESSIONS,
+          groups.find(g => g.by['session.status'] === SessionStatus.HEALTHY),
+          intervals
+        ),
+      },
+      {
+        ...sessionsChart[SessionStatus.ERRORED],
+        data: getCountSeries(
+          SessionField.SESSIONS,
+          groups.find(g => g.by['session.status'] === SessionStatus.ERRORED),
+          intervals
+        ),
+      },
+      {
+        ...sessionsChart[SessionStatus.ABNORMAL],
+        data: getCountSeries(
+          SessionField.SESSIONS,
+          groups.find(g => g.by['session.status'] === SessionStatus.ABNORMAL),
+          intervals
+        ),
+      },
+      {
+        ...sessionsChart[SessionStatus.CRASHED],
+        data: getCountSeries(
+          SessionField.SESSIONS,
+          groups.find(g => g.by['session.status'] === SessionStatus.CRASHED),
+          intervals
+        ),
+      },
+    ];
 
     return {
-      timeseriesData: Object.values(chartData),
+      timeseriesData: chartData,
       previousTimeseriesData: null,
       totalSessions,
     };
@@ -310,4 +345,4 @@ class SessionsRequest extends React.Component<Props, State> {
   }
 }
 
-export default withTheme(SessionsRequest);
+export default withTheme(ProjectSessionsChartRequest);

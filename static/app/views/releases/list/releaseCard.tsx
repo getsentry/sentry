@@ -12,9 +12,8 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, Release} from 'app/types';
 
-import {ReleaseHealthRequestRenderProps} from '../utils/releaseHealthRequest';
-
 import ReleaseHealth from './releaseHealth';
+import {ReleaseListRequestRenderProps} from './releaseListRequest';
 import {DisplayOption} from './utils';
 
 function getReleaseProjectId(release: Release, selection: GlobalSelection) {
@@ -44,7 +43,7 @@ type Props = {
   reloading: boolean;
   showHealthPlaceholders: boolean;
   isTopRelease: boolean;
-  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
+  getHealthData: ReleaseListRequestRenderProps['getHealthData'];
   showReleaseAdoptionStages: boolean;
 };
 

@@ -26,14 +26,21 @@ function withProjects<P extends InjectedProjectsProps>(
   > {
     static displayName = `withProjects(${getDisplayName(WrappedComponent)})`;
 
-    state: State = ProjectsStore.getState();
+    state: State = {
+      projects: ProjectsStore.getAll(),
+      loading: ProjectsStore.isLoading(),
+    };
 
     componentWillUnmount() {
       this.unsubscribe();
     }
 
     unsubscribe = ProjectsStore.listen(
-      () => this.setState(ProjectsStore.getState()),
+      () =>
+        this.setState({
+          projects: ProjectsStore.getAll(),
+          loading: ProjectsStore.isLoading(),
+        }),
       undefined
     );
 
