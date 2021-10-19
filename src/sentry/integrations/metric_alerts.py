@@ -5,6 +5,7 @@ from django.urls import reverse
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, get_incident_aggregates
 from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus, IncidentTrigger
+from sentry.snuba.models import QueryDatasets
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
@@ -39,9 +40,12 @@ def incident_attachment_info(incident, metric_value=None, action=None, method=No
 
     status = INCIDENT_STATUS[incident_status_info(incident, metric_value, action, method)]
 
+    dataset = None
     agg_display_key = alert_rule.snuba_query.aggregate
+
     if CRASH_RATE_ALERT_AGGREGATE_ALIAS in alert_rule.snuba_query.aggregate:
         agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
+        dataset = QueryDatasets.SESSIONS
 
     agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, alert_rule.snuba_query.aggregate)
 
@@ -61,9 +65,16 @@ def incident_attachment_info(incident, metric_value=None, action=None, method=No
             end = incident_trigger.date_modified
         else:
             start, end = None, None
-        metric_value = get_incident_aggregates(incident, start, end, use_alert_aggregate=True)[
-            "count"
-        ]
+
+        get_incident_args = {
+            "incident": incident,
+            "start": start,
+            "end": end,
+            "use_alert_aggregate": True,
+        }
+        if dataset:
+            get_incident_args.update({"dataset": dataset})
+        metric_value = get_incident_aggregates(**get_incident_args)["count"]
     time_window = alert_rule.snuba_query.time_window // 60
 
     if agg_text.startswith("%"):
