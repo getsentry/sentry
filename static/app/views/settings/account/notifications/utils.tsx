@@ -71,6 +71,16 @@ export const getChoiceString = (choices: string[][], key: string): string => {
   return found[1];
 };
 
+const isDataAllNever = (data: {[key: string]: string}): boolean =>
+  !!Object.keys(data).length && Object.values(data).every(value => value === 'never');
+
+const getNonNeverValue = (data: {[key: string]: string}): string | null =>
+  Object.values(data).reduce(
+    (previousValue: string | null, currentValue) =>
+      currentValue === 'never' ? previousValue : currentValue,
+    null
+  );
+
 /**
  * Transform `data`, a mapping of providers to values, so that all providers in
  * `providerList` are "on" in the resulting object. The "on" value is
@@ -84,21 +94,21 @@ export const backfillMissingProvidersWithFallback = (
   fallbackValue: string,
   scopeType: string
 ): NotificationSettingsByProviderObject => {
-  // First pass: determine the fallback value.
-  const fallback = Object.values(data).reduce(
-    (previousValue, currentValue) =>
-      currentValue === 'never' ? previousValue : currentValue,
-    fallbackValue
-  );
-  // Second pass: fill in values for every provider.
+  // First pass: What was this scope's previous value?
+  let existingValue;
+  if (scopeType === 'user') {
+    existingValue = isDataAllNever(data)
+      ? fallbackValue
+      : getNonNeverValue(data) || fallbackValue;
+  } else {
+    existingValue = isDataAllNever(data) ? 'never' : getNonNeverValue(data) || 'default';
+  }
+
+  // Second pass: Fill in values for every provider.
   return Object.fromEntries(
     Object.keys(ALL_PROVIDERS).map(provider => [
       provider,
-      providerList.includes(provider)
-        ? fallback
-        : scopeType === 'user'
-        ? 'never'
-        : 'default',
+      providerList.includes(provider) ? existingValue : 'never',
     ])
   );
 };
@@ -266,8 +276,9 @@ export const isSufficientlyComplex = (
   MIN_PROJECTS_FOR_CONFIRMATION;
 
 /**
- * I don't need to update the provider for EVERY once of the user's projects
- * and organizations, just the user and parents that have explicit settings.
+ * This is triggered when we change the Delivery Method select. Don't update the
+ * provider for EVERY one of the user's projects and organizations, just the user
+ * and parents that have explicit settings.
  */
 export const getStateToPutForProvider = (
   notificationType: string,
