@@ -38,6 +38,8 @@ class SlackCommandsLinkUserTest(SlackCommandsTest):
 class SlackCommandsUnlinkUserTest(SlackCommandsTest):
     @responses.activate
     def test_unlink_user_identity(self):
+        self.link_user()
+
         unlinking_url = build_unlinking_url(
             self.integration.id,
             self.slack_id,
