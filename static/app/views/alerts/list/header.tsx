@@ -3,7 +3,6 @@ import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
 import {navigateTo} from 'app/actionCreators/navigation';
-import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import CreateAlertButton from 'app/components/createAlertButton';
@@ -66,35 +65,12 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
       </BorderlessHeader>
       <TabLayoutHeader>
         <Layout.HeaderNavTabs underlined>
-          <Feature features={['alert-details-redesign']} organization={organization}>
-            {({hasFeature}) =>
-              !hasFeature ? (
-                <React.Fragment>
-                  <Feature features={['incidents']} organization={organization}>
-                    <li className={activeTab === 'stream' ? 'active' : ''}>
-                      <GlobalSelectionLink
-                        to={`/organizations/${organization.slug}/alerts/`}
-                      >
-                        {t('Metric Alerts')}
-                      </GlobalSelectionLink>
-                    </li>
-                  </Feature>
-                  {alertRulesLink}
-                </React.Fragment>
-              ) : (
-                <React.Fragment>
-                  {alertRulesLink}
-                  <li className={activeTab === 'stream' ? 'active' : ''}>
-                    <GlobalSelectionLink
-                      to={`/organizations/${organization.slug}/alerts/`}
-                    >
-                      {t('History')}
-                    </GlobalSelectionLink>
-                  </li>
-                </React.Fragment>
-              )
-            }
-          </Feature>
+          {alertRulesLink}
+          <li className={activeTab === 'stream' ? 'active' : ''}>
+            <GlobalSelectionLink to={`/organizations/${organization.slug}/alerts/`}>
+              {t('History')}
+            </GlobalSelectionLink>
+          </li>
         </Layout.HeaderNavTabs>
       </TabLayoutHeader>
     </React.Fragment>

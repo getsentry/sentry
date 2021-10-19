@@ -5,7 +5,6 @@ import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
-import {getSeriesApiInterval} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
 import {
@@ -18,7 +17,12 @@ import {
 import {Series} from 'app/types/echarts';
 import {percent} from 'app/utils';
 import {getPeriod} from 'app/utils/getPeriod';
-import {getCount, getCountSeries, initSessionsChart} from 'app/utils/sessions';
+import {
+  getCount,
+  getCountSeries,
+  getSessionsInterval,
+  initSessionsChart,
+} from 'app/utils/sessions';
 import {Theme} from 'app/utils/theme';
 import {getCrashFreePercent} from 'app/views/releases/utils';
 
@@ -133,13 +137,15 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
   }
 
   queryParams({shouldFetchWithPrevious = false}) {
-    const {selection, query} = this.props;
+    const {selection, query, organization} = this.props;
     const {datetime, projects, environments: environment} = selection;
 
     const baseParams = {
       field: 'sum(session)',
       groupBy: 'session.status',
-      interval: getSeriesApiInterval(datetime),
+      interval: getSessionsInterval(datetime, {
+        highFidelity: organization.features.includes('minute-resolution-sessions'),
+      }),
       project: projects[0],
       environment,
       query,
