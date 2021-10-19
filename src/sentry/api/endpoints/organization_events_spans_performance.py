@@ -19,13 +19,30 @@ from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import ParamsType
 from sentry.utils.snuba import Dataset, raw_snql_query
 
-SPAN_PERFORMANCE_COLUMNS: Dict[str, str] = {
-    "count": "count()",
-    "sum": "sumArray(spans_exclusive_time)",
-    "p50": "percentileArray(spans_exclusive_time, 0.50)",
-    "p75": "percentileArray(spans_exclusive_time, 0.75)",
-    "p95": "percentileArray(spans_exclusive_time, 0.95)",
-    "p99": "percentileArray(spans_exclusive_time, 0.99)",
+
+@dataclasses.dataclass(frozen=True)
+class SpanPerformanceColumn:
+    suspect_op_group_column: str
+    suspect_example_column: str
+
+
+SPAN_PERFORMANCE_COLUMNS: Dict[str, SpanPerformanceColumn] = {
+    "count": SpanPerformanceColumn("count()", "count()"),
+    "sumExclusiveTime": SpanPerformanceColumn(
+        "sumArray(spans_exclusive_time)", "sumArray(spans_exclusive_time)"
+    ),
+    "p50ExclusiveTime": SpanPerformanceColumn(
+        "percentileArray(spans_exclusive_time, 0.50)", "maxArray(spans_exclusive_time)"
+    ),
+    "p75ExclusiveTime": SpanPerformanceColumn(
+        "percentileArray(spans_exclusive_time, 0.75)", "maxArray(spans_exclusive_time)"
+    ),
+    "p95ExclusiveTime": SpanPerformanceColumn(
+        "percentileArray(spans_exclusive_time, 0.95)", "maxArray(spans_exclusive_time)"
+    ),
+    "p99ExclusiveTime": SpanPerformanceColumn(
+        "percentileArray(spans_exclusive_time, 0.99)", "maxArray(spans_exclusive_time)"
+    ),
 }
 
 
@@ -51,13 +68,20 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
         query = request.GET.get("query")
 
         direction, orderby_column = self.get_orderby_column(request)
-        orderby = direction + get_function_alias(SPAN_PERFORMANCE_COLUMNS[orderby_column])
 
         def data_fn(offset: int, limit: int) -> Any:
+            alias = get_function_alias(
+                SPAN_PERFORMANCE_COLUMNS[orderby_column].suspect_op_group_column
+            )
+            orderby = direction + alias
             suspects = query_suspect_span_groups(params, query, orderby, limit, offset)
 
             # pagination will try to get 1 extra result to decide if there is a next page,
             # drop the extra result, if present, to fetch less events
+            alias = get_function_alias(
+                SPAN_PERFORMANCE_COLUMNS[orderby_column].suspect_example_column
+            )
+            orderby = direction + alias
             transaction_ids = query_example_transactions(
                 params, query, orderby, suspects[: limit - 1]
             )
@@ -93,7 +117,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsEndpointBase)
 
         if orderbys is None:
             direction = "-"
-            orderby = "sum"
+            orderby = "sumExclusiveTime"
         elif len(orderbys) != 1:
             raise ParseError(detail="Can only order by one column.")
         else:
@@ -204,7 +228,7 @@ def query_suspect_span_groups(
             "array_join(spans_op)",
             "array_join(spans_group)",
             "count_unique(id)",
-            *SPAN_PERFORMANCE_COLUMNS.values(),
+            *(column.suspect_op_group_column for column in SPAN_PERFORMANCE_COLUMNS.values()),
         ],
         query=query,
         orderby=order_column,
@@ -212,7 +236,7 @@ def query_suspect_span_groups(
         use_aggregate_conditions=True,
         limit=limit,
         offset=offset,
-        functions_acl=["array_join", "sumArray", "percentileArray"],
+        functions_acl=["array_join", "sumArray", "percentileArray", "maxArray"],
     )
 
     snql_query = builder.get_snql_query()
@@ -255,7 +279,7 @@ def query_example_transactions(
             "id",
             "array_join(spans_op)",
             "array_join(spans_group)",
-            *SPAN_PERFORMANCE_COLUMNS.values(),
+            *(column.suspect_example_column for column in SPAN_PERFORMANCE_COLUMNS.values()),
         ],
         query=query,
         orderby=get_function_alias(order_column),
@@ -263,7 +287,7 @@ def query_example_transactions(
         use_aggregate_conditions=True,
         # we want only `per_suspect` examples for each suspect
         limit=len(suspects) * per_suspect,
-        functions_acl=["array_join", "sumArray", "percentileArray"],
+        functions_acl=["array_join", "sumArray", "percentileArray", "maxArray"],
     )
 
     # we are only interested in the specific op, group pairs from the suspects
@@ -288,8 +312,9 @@ def query_example_transactions(
 
     # Hack: the limit by clause only allows columns but here we want to
     # do a limitby on the two array joins. For the time being, directly
-    # do the limitby on the internal snuba name but this should not be
-    # relied upon in production.
+    # do the limitby on the internal snuba name for the span group column
+    # but this should not be relied upon in production, and if two spans
+    # differ only by the span op, this will result in a incorrect query
     builder.limitby = LimitBy(Column("_snuba_array_join_spans_group"), per_suspect)
 
     snql_query = builder.get_snql_query()
@@ -338,7 +363,7 @@ def get_example_transaction(
     # use None if all descriptions are None
     description = None
     for span in matching_spans:
-        if span["description"] is None:
+        if span.get("description") is None:
             continue
         description = span["description"]
 
