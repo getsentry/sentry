@@ -61,26 +61,26 @@ REFERRERS = {
 }
 
 
-def _resolve(org_id: int, name: str) -> Optional[int]:
+def _resolve(name: str) -> Optional[int]:
     """Wrapper for typing"""
-    return indexer.resolve(org_id, name)  # type: ignore
+    return indexer.resolve(name)  # type: ignore
 
 
-def _resolve_ensured(org_id: int, name: str) -> int:
+def _resolve_ensured(name: str) -> int:
     """Assume the index entry exists"""
-    index = _resolve(org_id, name)
+    index = _resolve(name)
     assert index is not None
     return index
 
 
-def _reverse_resolve(org_id: int, index: int) -> Optional[str]:
+def _reverse_resolve(index: int) -> Optional[str]:
     """Wrapper for typing"""
-    return indexer.reverse_resolve(org_id, index)  # type: ignore
+    return indexer.reverse_resolve(index)  # type: ignore
 
 
-def _reverse_resolve_ensured(org_id: int, index: int) -> str:
+def _reverse_resolve_ensured(index: int) -> str:
     """Assume the index entry exists"""
-    string = _reverse_resolve(org_id, index)
+    string = _reverse_resolve(index)
     assert string is not None
     return string
 
@@ -281,7 +281,7 @@ def _get_snuba_query(
 
     groupby_tags = [field for field in query.raw_groupby if field != "project"]
 
-    tag_keys = {field: _resolve(org_id, field) for field in groupby_tags}
+    tag_keys = {field: _resolve(field) for field in groupby_tags}
     groupby = {
         field: Column(f"tags[{tag_id}]")
         for field, tag_id in tag_keys.items()
@@ -347,7 +347,7 @@ def _fetch_data(
 
     # It greatly simplifies code if we just assume that these two tags exist:
     # TODO: Can we get away with that assumption?
-    tag_key_session_status = _resolve_ensured(org_id, "session.status")
+    tag_key_session_status = _resolve_ensured("session.status")
 
     data: List[Tuple[_MetricName, _SnubaData]] = []
 
@@ -357,7 +357,7 @@ def _fetch_data(
     ] = {}
 
     if "count_unique(user)" in query.raw_fields:
-        metric_id = _resolve(org_id, "user")
+        metric_id = _resolve("user")
         if metric_id is not None:
             data.extend(
                 _get_snuba_query_data(
@@ -368,7 +368,7 @@ def _fetch_data(
 
     duration_fields = [field for field in query.raw_fields if "session.duration" in field]
     if duration_fields:
-        metric_id = _resolve(org_id, "session.duration")
+        metric_id = _resolve("session.duration")
         if metric_id is not None:
 
             def get_virtual_column(field: SessionsQueryFunction) -> _VirtualColumnName:
@@ -385,7 +385,7 @@ def _fetch_data(
             snuba_columns = {get_snuba_column(field) for field in duration_fields}
 
             # sessions_v2 only exposes healthy session's durations
-            healthy = _resolve(org_id, "exited")
+            healthy = _resolve("exited")
             extra_conditions = [
                 Condition(Column(f"tags[{tag_key_session_status}]"), Op.EQ, healthy)
             ]
@@ -412,7 +412,7 @@ def _fetch_data(
                     )
 
     if "sum(session)" in query.raw_fields:
-        metric_id = _resolve(org_id, "session")
+        metric_id = _resolve("session")
         if metric_id is not None:
             if "session.status" in query.raw_groupby:
                 # We need session counters grouped by status, as well as the number of errored sessions
@@ -425,7 +425,7 @@ def _fetch_data(
                 )
 
                 # 2: session.error
-                error_metric_id = _resolve(org_id, "session.error")
+                error_metric_id = _resolve("session.error")
                 if error_metric_id is not None:
                     remove_groupby = {Column(f"tags[{tag_key_session_status}]")}
                     data.extend(
@@ -441,7 +441,7 @@ def _fetch_data(
                     )
             else:
                 # Simply count the number of started sessions:
-                init = _resolve(org_id, "init")
+                init = _resolve("init")
                 if tag_key_session_status is not None and init is not None:
                     extra_conditions = [
                         Condition(Column(f"tags[{tag_key_session_status}]"), Op.EQ, init)
@@ -469,18 +469,15 @@ def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _DataPoints:
 
     # It greatly simplifies code if we just assume that these two tags exist:
     # TODO: Can we get away with that assumption?
-    tag_key_release = _resolve(org_id, "release")
-    assert tag_key_release is not None
-    tag_key_environment = _resolve(org_id, "environment")
-    assert tag_key_environment is not None
-    tag_key_session_status = _resolve(org_id, "session.status")
-    assert tag_key_session_status is not None
+    tag_key_release = _resolve_ensured("release")
+    tag_key_environment = _resolve_ensured("environment")
+    tag_key_session_status = _resolve_ensured("session.status")
 
     for metric_name, metric_data in data:
         for row in metric_data:
             raw_session_status = row.pop(f"tags[{tag_key_session_status}]", None)
             if raw_session_status is not None:
-                raw_session_status = _reverse_resolve_ensured(org_id, raw_session_status)
+                raw_session_status = _reverse_resolve_ensured(raw_session_status)
             flat_key = _DataPointKey(
                 metric_name=metric_name,
                 raw_session_status=raw_session_status,
@@ -489,7 +486,6 @@ def _flatten_data(org_id: int, data: _SnubaDataByMetric) -> _DataPoints:
                 bucketed_time=row.pop("bucketed_time", None),
                 project_id=row.pop("project_id", None),
             )
-
             # Percentile column expands into multiple "virtual" columns:
             if "percentiles" in row:
                 # TODO: Use percentile enum
@@ -546,9 +542,9 @@ def run_sessions_query(
         by: MutableMapping[GroupByFieldName, Union[str, int]] = {}
         if key.release is not None:
             # Note: If the tag value reverse-resolves to None here, it's a bug in the tag indexer
-            by["release"] = _reverse_resolve_ensured(org_id, key.release)
+            by["release"] = _reverse_resolve_ensured(key.release)
         if key.environment is not None:
-            by["environment"] = _reverse_resolve_ensured(org_id, key.environment)
+            by["environment"] = _reverse_resolve_ensured(key.environment)
         if key.project_id is not None:
             by["project"] = key.project_id
 
@@ -607,8 +603,7 @@ def _translate_conditions(org_id: int, input_: Any) -> Any:
         # Alternative would be:
         #   * if tag key or value does not exist in AND-clause, return no data
         #   * if tag key or value does not exist in OR-clause, remove condition
-        tag_key = _resolve(org_id, input_.name)
-        assert tag_key is not None
+        tag_key = _resolve_ensured(input_.name)
 
         return Column(f"tags[{tag_key}]")
 
@@ -617,7 +612,7 @@ def _translate_conditions(org_id: int, input_: Any) -> Any:
         # It's OK if the tag value resolves to None, the snuba query will then
         # return no results, as is intended behavior
 
-        return _resolve(org_id, input_)
+        return _resolve(input_)
 
     if isinstance(input_, Function):
 

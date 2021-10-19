@@ -1,41 +1,76 @@
+import itertools
+import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
+from operator import itemgetter
+from typing import (
+    Any,
+    Callable,
+    DefaultDict,
+    Dict,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import pytz
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query
-from snuba_sdk.expressions import Granularity
+from snuba_sdk.expressions import Expression, Granularity
 from snuba_sdk.query import SelectableExpression
 
+from sentry.models import Environment
 from sentry.models.project import Project
 from sentry.release_health.base import (
     CrashFreeBreakdown,
     CurrentAndPreviousCrashFreeRates,
+    DurationPercentiles,
     EnvironmentName,
     OrganizationId,
     OverviewStat,
     ProjectId,
     ProjectOrRelease,
     ProjectRelease,
+    ProjectReleaseSessionStats,
+    ProjectReleaseUserStats,
+    ProjectWithCount,
     ReleaseAdoption,
     ReleaseHealthBackend,
     ReleaseHealthOverview,
     ReleaseName,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
+    SessionCounts,
     SessionsQueryResult,
     StatsPeriod,
+    UserCounts,
 )
 from sentry.release_health.metrics_sessions_v2 import run_sessions_query
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets, parse_snuba_datetime
 from sentry.snuba.sessions_v2 import QueryDefinition
+from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.snuba import QueryOutsideRetentionError, raw_snql_query
+
+SMALLEST_METRICS_BUCKET = 10
+
+
+logger = logging.getLogger(__name__)
 
 
 class MetricIndexNotFound(Exception):
     pass
+
+
+_K1 = TypeVar("_K1")
+_K2 = TypeVar("_K2")
+_V = TypeVar("_V")
 
 
 def get_tag_values_list(org_id: int, values: Sequence[str]) -> Sequence[int]:
@@ -88,6 +123,21 @@ def filter_releases_by_project_release(
         Op.IN,
         get_tag_values_list(org_id, [x for _, x in project_releases]),
     )
+
+
+def _model_environment_ids_to_environment_names(
+    environment_ids: Sequence[int],
+) -> Mapping[int, Optional[str]]:
+    """
+    Maps Environment Model ids to the environment name
+    Note: this does a Db lookup
+    """
+    empty_string_to_none: Callable[[Any], Optional[Any]] = lambda v: None if v == "" else v
+    id_to_name: Mapping[int, Optional[str]] = {
+        k: empty_string_to_none(v)
+        for k, v in Environment.objects.filter(id__in=environment_ids).values_list("id", "name")
+    }
+    return defaultdict(lambda: None, id_to_name)
 
 
 class MetricsReleaseHealthBackend(ReleaseHealthBackend):
@@ -1002,8 +1052,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             # No need to query snuba with an empty list
             return generate_defaults
 
-        status_init = tag_value(org_id, "init")
-        status_crashed = tag_value(org_id, "crashed")
+        status_init = try_get_string_index(org_id, "init")
+        status_crashed = try_get_string_index(org_id, "crashed")
 
         conditions = [
             Condition(Column("org_id"), Op.EQ, org_id),
@@ -1106,9 +1156,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         now = datetime.now(pytz.utc)
         start = now - timedelta(days=3)
 
-        projects_ids = list(project_ids)
+        project_ids = list(project_ids)
 
-        if len(projects_ids) == 0:
+        if len(project_ids) == 0:
             return []
 
         org_id = self._get_org_id(project_ids)
@@ -1127,7 +1177,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         query = Query(
             dataset=Dataset.Metrics.value,
-            match=Entity("metrics_counters"),
+            match=Entity(EntityKey.MetricsCounters.value),
             select=query_cols,
             where=where_clause,
             groupby=group_by,
@@ -1183,7 +1233,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         query = Query(
             dataset=Dataset.Metrics.value,
-            match=Entity("metrics_counters"),
+            match=Entity(EntityKey.MetricsCounters.value),
             select=query_cols,
             where=where_clause,
             groupby=group_by,
@@ -1247,9 +1297,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         # Filter out releases with zero users when sorting by either `users` or `crash_free_users`
         if scope in ["users", "crash_free_users"]:
             having.append(Condition(Column("value"), Op.GT, 0))
-            match = Entity("metrics_sets")
+            match = Entity(EntityKey.MetricsSets.value)
         else:
-            match = Entity("metrics_counters")
+            match = Entity(EntityKey.MetricsCounters.value)
 
         query_columns = [
             Function(
@@ -1263,12 +1313,452 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select=query_columns,
             where=where,
             having=having,
-            granularity=granularity,
+            granularity=Granularity(granularity),
         )
 
-        rows = raw_snql_query(
-            query, referrer="release_health.metrics.sessions.get_project_releases_count"
-        )["data"]
+        rows = raw_snql_query(query, referrer="release_health.metrics.get_project_releases_count")[
+            "data"
+        ]
 
         ret_val: int = rows[0]["count"] if rows else 0
         return ret_val
+
+    @staticmethod
+    def _sort_by_timestamp(series: Mapping[datetime, _V]) -> Sequence[Tuple[int, _V]]:
+        """Transform a datetime -> X mapping to a sorted list of (ts, X) tuples
+        This is needed to match the output format of get_project_release_stats
+        """
+        rv = [(int(to_timestamp(dt)), data) for dt, data in series.items()]
+        rv.sort(key=itemgetter(0))
+        return rv
+
+    def _get_project_release_stats_durations(
+        self,
+        org_id: OrganizationId,
+        where: List[Expression],
+        session_status_key: str,
+        rollup: int,
+    ) -> Mapping[datetime, DurationPercentiles]:
+        series: MutableMapping[datetime, DurationPercentiles] = {}
+        session_status_healthy = try_get_string_index(org_id, "exited")
+        if session_status_healthy is not None:
+            duration_series_data = raw_snql_query(
+                Query(
+                    dataset=Dataset.Metrics.value,
+                    where=where
+                    + [
+                        Condition(
+                            Column("metric_id"), Op.EQ, metric_id(org_id, "session.duration")
+                        ),
+                        Condition(Column(session_status_key), Op.EQ, session_status_healthy),
+                    ],
+                    granularity=Granularity(rollup),
+                    match=Entity(EntityKey.MetricsDistributions.value),
+                    select=[
+                        Function("quantiles(0.5, 0.90)", [Column("value")], alias="quantiles"),
+                    ],
+                    groupby=[Column("bucketed_time")],
+                )
+            )["data"]
+            for row in duration_series_data:
+                dt = parse_snuba_datetime(row["bucketed_time"])
+                quantiles: Sequence[float] = row["quantiles"]
+                p50, p90 = quantiles
+                series[dt] = {"duration_p50": p50, "duration_p90": p90}
+
+        return series
+
+    @staticmethod
+    def _default_session_counts() -> SessionCounts:
+        return {
+            "sessions": 0,
+            "sessions_healthy": 0,
+            "sessions_crashed": 0,
+            "sessions_abnormal": 0,
+            "sessions_errored": 0,
+        }
+
+    def _get_project_release_stats_sessions(
+        self,
+        org_id: OrganizationId,
+        where: List[Expression],
+        session_status_key: str,
+        rollup: int,
+    ) -> Tuple[Mapping[datetime, SessionCounts], SessionCounts]:
+        session_series_data = raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                where=where + [Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session"))],
+                granularity=Granularity(rollup),
+                match=Entity(EntityKey.MetricsCounters.value),
+                select=[
+                    Function("sum", [Column("value")], alias="value"),
+                ],
+                groupby=[Column("bucketed_time"), Column(session_status_key)],
+            )
+        )["data"]
+
+        series: DefaultDict[datetime, SessionCounts] = defaultdict(self._default_session_counts)
+
+        for row in session_series_data:
+            dt = parse_snuba_datetime(row["bucketed_time"])
+            target = series[dt]
+            status = reverse_tag_value(org_id, row[session_status_key])
+            value = int(row["value"])
+            if status == "init":
+                target["sessions"] = value
+                # Set same value for 'healthy', this will later be subtracted by errors
+                target["sessions_healthy"] = value
+            elif status == "abnormal":
+                target["sessions_abnormal"] = value
+                # This is an error state, so subtract from total error count
+                target["sessions_errored"] -= value
+            elif status == "crashed":
+                target["sessions_crashed"] = value
+                # This is an error state, so subtract from total error count
+                target["sessions_errored"] -= value
+            else:
+                logger.warning("Unexpected session.status '%s'", status)
+
+        session_error_series_data = raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                where=where
+                + [Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session.error"))],
+                granularity=Granularity(rollup),
+                match=Entity(EntityKey.MetricsSets.value),
+                select=[
+                    Function("uniq", [Column("value")], alias="value"),
+                ],
+                groupby=[Column("bucketed_time")],
+            )
+        )["data"]
+
+        for row in session_error_series_data:
+            dt = parse_snuba_datetime(row["bucketed_time"])
+            target = series[dt]
+            value = int(row["value"])
+            # Add to errored:
+            target["sessions_errored"] = max(0, target["sessions_errored"] + value)
+            # Subtract from healthy:
+            target["sessions_healthy"] = max(0, target["sessions_healthy"] - value)
+
+        totals: SessionCounts = {
+            # Thank mypy for the code duplication
+            "sessions": sum(data["sessions"] for data in series.values()),
+            "sessions_healthy": sum(data["sessions_healthy"] for data in series.values()),
+            "sessions_crashed": sum(data["sessions_crashed"] for data in series.values()),
+            "sessions_abnormal": sum(data["sessions_abnormal"] for data in series.values()),
+            "sessions_errored": sum(data["sessions_errored"] for data in series.values()),
+        }
+
+        return series, totals
+
+    @staticmethod
+    def _default_user_counts() -> UserCounts:
+        return {
+            "users": 0,
+            "users_abnormal": 0,
+            "users_crashed": 0,
+            "users_errored": 0,
+            "users_healthy": 0,
+        }
+
+    def _get_project_release_stats_users(
+        self,
+        org_id: OrganizationId,
+        where: List[Expression],
+        session_status_key: str,
+        rollup: int,
+    ) -> Tuple[Mapping[datetime, UserCounts], UserCounts]:
+
+        user_series_data = raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                where=where + [Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user"))],
+                granularity=Granularity(rollup),
+                match=Entity(EntityKey.MetricsSets.value),
+                select=[
+                    Function("uniq", [Column("value")], alias="value"),
+                ],
+                groupby=[Column("bucketed_time"), Column(session_status_key)],
+            )
+        )["data"]
+
+        user_totals_data = raw_snql_query(
+            Query(
+                dataset=Dataset.Metrics.value,
+                where=where + [Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user"))],
+                granularity=Granularity(rollup),
+                match=Entity(EntityKey.MetricsSets.value),
+                select=[
+                    Function("uniq", [Column("value")], alias="value"),
+                ],
+                groupby=[Column(session_status_key)],
+            )
+        )["data"]
+
+        series: DefaultDict[datetime, UserCounts] = defaultdict(self._default_user_counts)
+        totals: UserCounts = self._default_user_counts()
+
+        for is_totals, data in [(False, user_series_data), (True, user_totals_data)]:
+            for row in data:
+                if is_totals:
+                    target = totals
+                else:
+                    dt = parse_snuba_datetime(row["bucketed_time"])
+                    target = series[dt]
+                status = reverse_tag_value(org_id, row[session_status_key])
+                value = int(row["value"])
+                if status == "init":
+                    target["users"] = value
+                    # Set same value for 'healthy', this will later be subtracted by errors
+                    target["users_healthy"] += value
+                else:
+                    if status == "abnormal":
+                        # Subtract this special error state from sum of all errors
+                        target["users_abnormal"] += value
+                        target["users_errored"] -= value
+                    elif status == "crashed":
+                        # Subtract this special error state from sum of all errors
+                        target["users_crashed"] += value
+                        target["users_errored"] -= value
+                    elif status == "errored":
+                        # Subtract sum of all errors from healthy sessions
+                        target["users_errored"] += value
+                        target["users_healthy"] -= value
+
+        # Replace negative values
+        for data in itertools.chain(series.values(), [totals]):
+            data["users_healthy"] = max(0, data["users_healthy"])
+            data["users_errored"] = max(0, data["users_errored"])
+
+        return series, totals
+
+    @staticmethod
+    def _merge_dict_values(
+        *dicts: Mapping[_K1, Mapping[_K2, _V]]
+    ) -> Mapping[_K1, Mapping[_K2, _V]]:
+        rv: MutableMapping[_K1, MutableMapping[_K2, _V]] = {}
+        for dct in dicts:
+            for key, value in dct.items():
+                rv.setdefault(key, {}).update(value)
+
+        return rv
+
+    def get_project_release_stats(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        stat: OverviewStat,
+        rollup: int,
+        start: datetime,
+        end: datetime,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
+        assert stat in ("users", "sessions")
+
+        org_id = self._get_org_id([project_id])
+
+        start = to_datetime((to_timestamp(start) // rollup + 1) * rollup)
+
+        # since snuba end queries are exclusive of the time and we're bucketing to
+        # 10 seconds, we need to round to the next 10 seconds since snuba is
+        # exclusive on the end.
+        end = to_datetime(
+            (to_timestamp(end) // SMALLEST_METRICS_BUCKET + 1) * SMALLEST_METRICS_BUCKET
+        )
+
+        times: List[datetime] = []
+        time = start
+        delta = timedelta(seconds=rollup)
+        while time < end:
+            times.append(time)
+            time += delta
+
+        # Generate skeleton for the returned data:
+        base_series = {
+            time: {
+                "duration_p50": None,
+                "duration_p90": None,
+                f"{stat}": 0,
+                f"{stat}_abnormal": 0,
+                f"{stat}_crashed": 0,
+                f"{stat}_errored": 0,
+                f"{stat}_healthy": 0,
+            }
+            for time in times
+        }
+        base_totals = {
+            f"{stat}": 0,
+            f"{stat}_abnormal": 0,
+            f"{stat}_crashed": 0,
+            f"{stat}_errored": 0,
+            f"{stat}_healthy": 0,
+        }
+
+        try:
+            release_value = tag_value(org_id, release)
+        except MetricIndexNotFound:
+            # No data for this release
+            return self._sort_by_timestamp(base_series), base_totals  # type: ignore
+
+        where = [
+            Condition(Column("org_id"), Op.EQ, org_id),
+            Condition(Column("project_id"), Op.EQ, project_id),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, end),
+            Condition(Column(tag_key(org_id, "release")), Op.EQ, release_value),
+        ]
+
+        if environments is not None:
+            where.append(
+                Condition(
+                    Column(tag_key(org_id, "environment")),
+                    Op.IN,
+                    get_tag_values_list(org_id, environments),
+                )
+            )
+
+        session_status_key = tag_key(org_id, "session.status")
+
+        duration_series = self._get_project_release_stats_durations(
+            org_id, where, session_status_key, rollup
+        )
+
+        series: Mapping[datetime, Union[UserCounts, SessionCounts]]
+        totals: Union[UserCounts, SessionCounts]
+
+        if stat == "users":
+            series, totals = self._get_project_release_stats_users(
+                org_id, where, session_status_key, rollup
+            )
+        else:
+            series, totals = self._get_project_release_stats_sessions(
+                org_id, where, session_status_key, rollup
+            )
+
+        # Merge data:
+        merged_series = self._merge_dict_values(base_series, duration_series, series)
+        merged_totals = dict(base_totals, **totals)
+
+        # Convert series to desired output format:
+        sorted_series = self._sort_by_timestamp(merged_series)
+
+        return sorted_series, merged_totals  # type: ignore
+
+    def get_project_sessions_count(
+        self,
+        project_id: ProjectId,
+        rollup: int,  # rollup in seconds
+        start: datetime,
+        end: datetime,
+        environment_id: Optional[int] = None,
+    ) -> int:
+
+        org_id = self._get_org_id([project_id])
+        columns = [Column("value")]
+
+        try:
+            status_key = tag_key(org_id, "session.status")
+            status_init = tag_value(org_id, "init")
+        except MetricIndexNotFound:
+            return 0
+
+        where_clause = [
+            Condition(Column("org_id"), Op.EQ, org_id),
+            Condition(Column("project_id"), Op.EQ, project_id),
+            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, end),
+            Condition(Column(status_key), Op.EQ, status_init),
+        ]
+
+        if environment_id is not None:
+            # convert the PosgreSQL environmentID into the clickhouse string index
+            # for the environment name
+            env_names = _model_environment_ids_to_environment_names([environment_id])
+            env_name = env_names[environment_id]
+            if env_name is None:
+                return 0  # could not find the requested environment
+
+            try:
+                snuba_env_id = tag_value(org_id, env_name)
+                env_id = tag_key(org_id, "environment")
+            except MetricIndexNotFound:
+                return 0
+
+            where_clause.append(Condition(Column(env_id), Op.EQ, snuba_env_id))
+
+        query = Query(
+            dataset=Dataset.Metrics.value,
+            match=Entity(EntityKey.MetricsCounters.value),
+            select=columns,
+            where=where_clause,
+            granularity=Granularity(rollup),
+        )
+
+        rows = raw_snql_query(query, referrer="release_health.metrics.get_project_sessions_count")[
+            "data"
+        ]
+
+        ret_val: int = rows[0]["value"] if rows else 0
+        return ret_val
+
+    def get_num_sessions_per_project(
+        self,
+        project_ids: Sequence[ProjectId],
+        start: datetime,
+        end: datetime,
+        environment_ids: Optional[Sequence[int]] = None,
+        rollup: Optional[int] = None,  # rollup in seconds
+    ) -> Sequence[ProjectWithCount]:
+
+        org_id = self._get_org_id(project_ids)
+        columns = [Column("value"), Column("project_id")]
+
+        try:
+            status_key = tag_key(org_id, "session.status")
+            status_init = tag_value(org_id, "init")
+        except MetricIndexNotFound:
+            return []
+
+        where_clause = [
+            Condition(Column("org_id"), Op.EQ, org_id),
+            Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, end),
+            Condition(Column(status_key), Op.EQ, status_init),
+            Condition(Column("project_id"), Op.IN, project_ids),
+        ]
+
+        if environment_ids is not None:
+            # convert the PosgreSQL environmentID into the clickhouse string index
+            # for the environment name
+            env_names_dict = _model_environment_ids_to_environment_names(environment_ids)
+            env_names = [value for value in env_names_dict.values() if value is not None]
+
+            try:
+                env_id = tag_key(org_id, "environment")
+                snuba_env_ids = get_tag_values_list(org_id, env_names)
+            except MetricIndexNotFound:
+                return []
+
+            where_clause.append(Condition(Column(env_id), Op.IN, snuba_env_ids))
+
+        group_by = [Column("project_id")]
+
+        query = Query(
+            dataset=Dataset.Metrics.value,
+            match=Entity(EntityKey.MetricsCounters.value),
+            select=columns,
+            where=where_clause,
+            groupby=group_by,
+            granularity=Granularity(rollup) if rollup is not None else None,
+        )
+
+        rows = raw_snql_query(
+            query, referrer="release_health.metrics.get_num_sessions_per_project"
+        )["data"]
+
+        return [(row["project_id"], row["value"]) for row in rows]

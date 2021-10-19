@@ -312,6 +312,7 @@ class CreateProjectRuleTest(APITestCase):
                     "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
                     "workspace": str(integration.id),
                     "channel": "#team-team-team",
+                    "channel_id": "",
                     "tags": "",
                 }
             ],
@@ -422,7 +423,11 @@ class CreateProjectRuleTest(APITestCase):
 
         project = self.create_project()
 
-        self.create_sentry_app(name="Pied Piper", organization=project.organization)
+        self.create_sentry_app(
+            name="Pied Piper",
+            organization=project.organization,
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
         install = self.create_sentry_app_installation(
             slug="pied-piper", organization=project.organization
         )
@@ -430,8 +435,7 @@ class CreateProjectRuleTest(APITestCase):
         actions = [
             {
                 "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
-                "settings": {"assignee": "Team Rocket", "priority": 27},
-                "uri": "/sentry/alerts/",
+                "settings": {"title": "Team Rocket", "summary": "We're blasting off again."},
                 "sentryAppInstallationUuid": install.uuid,
                 "hasSchemaFormConfig": True,
             },
@@ -466,13 +470,9 @@ class CreateProjectRuleTest(APITestCase):
         kwargs = {
             "install": install,
             "fields": actions[0].get("settings"),
-            "uri": actions[0].get("uri"),
-            "rule": rule,
         }
 
         call_kwargs = mock_alert_rule_action_creator.call_args[1]
 
         assert call_kwargs["install"].id == kwargs["install"].id
         assert call_kwargs["fields"] == kwargs["fields"]
-        assert call_kwargs["uri"] == kwargs["uri"]
-        assert call_kwargs["rule"].id == kwargs["rule"].id

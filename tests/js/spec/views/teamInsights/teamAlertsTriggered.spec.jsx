@@ -1,4 +1,4 @@
-import {mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import TeamAlertsTriggered from 'app/views/teamInsights/teamAlertsTriggered';
 
@@ -10,15 +10,14 @@ describe('TeamAlertsTriggered', () => {
       url: `/teams/${organization.slug}/${team.slug}/alerts-triggered/`,
       body: TestStubs.TeamAlertsTriggered(),
     });
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <TeamAlertsTriggered organization={organization} teamSlug={team.slug} period="8w" />
     );
 
     await waitFor(() => {
-      expect(wrapper.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     });
 
     expect(alertsTriggeredApi).toHaveBeenCalledTimes(1);
-    expect(wrapper.container).toSnapshot();
   });
 });

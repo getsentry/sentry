@@ -22,7 +22,12 @@ import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {getFieldFormatter} from 'app/utils/discover/fieldRenderers';
-import {getAggregateArg, getMeasurementSlug} from 'app/utils/discover/fields';
+import {
+  getAggregateArg,
+  getMeasurementSlug,
+  maybeEquationAlias,
+  stripEquationPrefix,
+} from 'app/utils/discover/fields';
 import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 
@@ -262,6 +267,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           if (slug !== null) {
             seriesName = slug.toUpperCase();
           }
+        }
+        if (maybeEquationAlias(seriesName)) {
+          seriesName = stripEquationPrefix(seriesName);
         }
         return seriesName;
       },

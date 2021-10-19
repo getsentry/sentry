@@ -1,18 +1,21 @@
 import Reflux from 'reflux';
 
+import SidebarPanelActions from 'app/actions/sidebarPanelActions';
 import {SidebarPanelKey} from 'app/components/sidebar/types';
 
-import SidebarPanelActions from '../actions/sidebarPanelActions';
+import {CommonStoreInterface} from './types';
 
-type SidebarPanelStoreInterface = {
-  activePanel: SidebarPanelKey | '';
+type ActivePanelType = SidebarPanelKey | '';
+
+type SidebarPanelStoreInterface = CommonStoreInterface<ActivePanelType> & {
+  activePanel: ActivePanelType;
 
   onActivatePanel(panel: SidebarPanelKey): void;
   onTogglePanel(panel: SidebarPanelKey): void;
   onHidePanel(): void;
 };
 
-const sidebarPanelStoreConfig: Reflux.StoreDefinition & SidebarPanelStoreInterface = {
+const storeConfig: Reflux.StoreDefinition & SidebarPanelStoreInterface = {
   activePanel: '',
 
   init() {
@@ -38,13 +41,17 @@ const sidebarPanelStoreConfig: Reflux.StoreDefinition & SidebarPanelStoreInterfa
     this.activePanel = '';
     this.trigger(this.activePanel);
   },
+
+  getState() {
+    return this.activePanel;
+  },
 };
 
 /**
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
-const SidebarPanelStore = Reflux.createStore(sidebarPanelStoreConfig) as Reflux.Store &
+const SidebarPanelStore = Reflux.createStore(storeConfig) as Reflux.Store &
   SidebarPanelStoreInterface;
 
 export default SidebarPanelStore;

@@ -26,6 +26,7 @@ import {
   SelectValue,
   TagCollection,
 } from 'app/types';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import {Aggregation} from 'app/utils/discover/fields';
 import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
@@ -219,6 +220,11 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         title: widgetData.title,
         ...queryData,
       };
+
+      trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.confirm', {
+        organization,
+      });
+
       if (selectedDashboard.value === 'new') {
         browserHistory.push({
           pathname: `/organizations/${organization.slug}/dashboards/new/`,
@@ -234,7 +240,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   };
 
   handleFieldChange = (field: string) => (value: string) => {
-    const {defaultWidgetQuery, defaultTableColumns} = this.props;
+    const {defaultWidgetQuery, defaultTableColumns, fromDiscover, organization} =
+      this.props;
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
@@ -257,6 +264,15 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         }
 
         set(newState, 'queries', normalized);
+
+        if (fromDiscover) {
+          trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.change', {
+            from: 'discoverv2',
+            field,
+            value: displayType,
+            organization,
+          });
+        }
       }
 
       return {...newState, errors: undefined};
@@ -308,7 +324,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       `/organizations/${organization.slug}/dashboards/`,
       {
         method: 'GET',
-        query: {sort: 'title'},
+        query: {sort: 'myDashboardsAndRecentlyViewed'},
       }
     );
 
@@ -331,6 +347,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   handleDashboardChange(option: SelectValue<string>) {
     this.setState({selectedDashboard: option});
   }
+
   renderDashboardSelector() {
     const {errors, loading, dashboards} = this.state;
     const dashboardOptions = dashboards.map(d => {

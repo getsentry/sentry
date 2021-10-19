@@ -108,7 +108,7 @@ test-snuba:
 
 backend-typing:
 	@echo "--> Running Python typing checks"
-	mypy --strict --warn-unreachable --config-file mypy.ini
+	mypy --warn-unreachable --config-file mypy.ini
 	@echo ""
 
 test-symbolicator:

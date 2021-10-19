@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
@@ -24,7 +25,10 @@ import withTeamsForUser from 'app/utils/withTeamsForUser';
 import DescriptionCard from './descriptionCard';
 import HeaderTabs from './headerTabs';
 import TeamAlertsTriggered from './teamAlertsTriggered';
+import TeamIssuesReviewed from './teamIssuesReviewed';
 import TeamMisery from './teamMisery';
+import TeamReleases from './teamReleases';
+import TeamResolutionTime from './teamResolutionTime';
 import TeamStability from './teamStability';
 
 const INSIGHTS_DEFAULT_STATS_PERIOD = '8w';
@@ -57,6 +61,7 @@ function TeamInsightsOverview({
   location,
   router,
 }: Props) {
+  const theme = useTheme();
   const query = location?.query ?? {};
   const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
 
@@ -174,12 +179,45 @@ function TeamInsightsOverview({
         {!loadingTeams && (
           <Layout.Main fullWidth>
             <ControlsWrapper>
-              <TeamSelector
+              <StyledTeamSelector
                 name="select-team"
+                inFieldLabel={t('Team: ')}
                 value={currentTeam?.slug}
                 isLoading={loadingTeams}
                 onChange={choice => handleChangeTeam(choice.actor.id)}
                 teamFilter={filterTeam => filterTeam.isMember}
+                styles={{
+                  singleValue(provided: any) {
+                    const custom = {
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: theme.fontSizeMedium,
+                      ':before': {
+                        ...provided[':before'],
+                        color: theme.textColor,
+                        marginRight: space(1.5),
+                        marginLeft: space(0.5),
+                      },
+                    };
+                    return {...provided, ...custom};
+                  },
+                  input: (provided: any, state: any) => ({
+                    ...provided,
+                    display: 'grid',
+                    gridTemplateColumns: 'max-content 1fr',
+                    alignItems: 'center',
+                    gridGap: space(1),
+                    ':before': {
+                      backgroundColor: state.theme.backgroundSecondary,
+                      height: 24,
+                      width: 38,
+                      borderRadius: 3,
+                      content: '""',
+                      display: 'block',
+                    },
+                  }),
+                }}
               />
               <StyledPageTimeRangeSelector
                 organization={organization}
@@ -202,7 +240,7 @@ function TeamInsightsOverview({
             <DescriptionCard
               title={t('Crash Free Sessions')}
               description={t(
-                'The percentage of healthy, errored, and abnormal sessions that did not cause a crash.'
+                'The percentage of healthy, errored, and abnormal sessions that didn’t cause a crash.'
               )}
             >
               <TeamStability
@@ -218,7 +256,7 @@ function TeamInsightsOverview({
             <DescriptionCard
               title={t('User Misery')}
               description={t(
-                'User Misery shows the number of unique users that experienced load times 4x the project’s configured threshold.'
+                'The number of unique users that experienced load times 4x the project’s configured threshold.'
               )}
             >
               <TeamMisery
@@ -233,9 +271,7 @@ function TeamInsightsOverview({
 
             <DescriptionCard
               title={t('Metric Alerts Triggered')}
-              description={t(
-                'These are the alerts triggered from the Alert Rules your team created.'
-              )}
+              description={t('Alerts triggered from the Alert Rules your team created.')}
             >
               <TeamAlertsTriggered
                 organization={organization}
@@ -244,6 +280,55 @@ function TeamInsightsOverview({
                 start={start?.toString()}
                 end={end?.toString()}
                 location={location}
+              />
+            </DescriptionCard>
+
+            <SectionTitle>{t('Team Activity')}</SectionTitle>
+            <DescriptionCard
+              title={t('Issues Reviewed')}
+              description={t(
+                'Issues triaged by your team taking an action on them such as resolving, ignoring, marking as reviewed, or deleting.'
+              )}
+            >
+              <TeamIssuesReviewed
+                organization={organization}
+                projects={projects}
+                teamSlug={currentTeam!.slug}
+                period={period}
+                start={start?.toString()}
+                end={end?.toString()}
+                location={location}
+              />
+            </DescriptionCard>
+            <DescriptionCard
+              title={t('Time to Resolution')}
+              description={t(
+                `The mean time it took for issues to be resolved by your team.`
+              )}
+            >
+              <TeamResolutionTime
+                organization={organization}
+                teamSlug={currentTeam!.slug}
+                period={period}
+                start={start?.toString()}
+                end={end?.toString()}
+                location={location}
+              />
+            </DescriptionCard>
+            <DescriptionCard
+              title={t('Number of Releases')}
+              description={t(
+                'A breakdown showing how your team shipped releases over time.'
+              )}
+            >
+              <TeamReleases
+                projects={projects}
+                organization={organization}
+                teamSlug={currentTeam!.slug}
+                period={period}
+                start={start}
+                end={end}
+                utc={utc}
               />
             </DescriptionCard>
           </Layout.Main>
@@ -278,14 +363,27 @@ const StyledLayoutTitle = styled(Layout.Title)`
 
 const ControlsWrapper = styled('div')`
   display: grid;
-  grid-template-columns: 0.5fr 1fr;
   align-items: center;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 246px 1fr;
+  }
+`;
+
+const StyledTeamSelector = styled(TeamSelector)`
+  & > div {
+    box-shadow: ${p => p.theme.dropShadowLight};
+  }
 `;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
-  flex-grow: 1;
+  height: 40px;
+
+  div {
+    min-height: unset;
+  }
 `;
 
 const SectionTitle = styled(Layout.Title)`

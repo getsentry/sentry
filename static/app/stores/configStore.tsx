@@ -3,9 +3,9 @@ import Reflux from 'reflux';
 
 import {Config} from 'app/types';
 
-type ConfigStoreInterface = {
-  config: Config;
+import {CommonStoreInterface} from './types';
 
+type ConfigStoreInterface = CommonStoreInterface<Config> & {
   get<K extends keyof Config>(key: K): Config[K];
   set<K extends keyof Config>(key: K, value: Config[K]): void;
   getConfig(): Config;
@@ -13,7 +13,11 @@ type ConfigStoreInterface = {
   loadInitialData(config: Config): void;
 };
 
-const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
+type Internals = {
+  config: Config;
+};
+
+const storeConfig: Reflux.StoreDefinition & Internals & ConfigStoreInterface = {
   // When the app is booted we will _immediately_ hydrate the config store,
   // effecively ensureing this is not empty.
   config: {} as Config,
@@ -46,10 +50,6 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
     this.set('theme', theme);
   },
 
-  getConfig() {
-    return this.config;
-  },
-
   loadInitialData(config): void {
     const shouldUseDarkMode = config.user?.options.theme === 'dark';
 
@@ -67,9 +67,17 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
 
     this.trigger(config);
   },
+
+  getConfig() {
+    return this.config;
+  },
+
+  getState() {
+    return this.config;
+  },
 };
 
-const ConfigStore = Reflux.createStore(configStoreConfig) as Reflux.Store &
+const ConfigStore = Reflux.createStore(storeConfig) as Reflux.Store &
   ConfigStoreInterface;
 
 export default ConfigStore;

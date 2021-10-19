@@ -52,8 +52,8 @@ default_manager.add("organizations:create")
 
 # Organization scoped features
 default_manager.add("organizations:advanced-search", OrganizationFeature)
-default_manager.add("organizations:alert-details-redesign", OrganizationFeature, True)
 default_manager.add("organizations:alert-filters", OrganizationFeature)
+default_manager.add("organizations:alert-rule-ui-component", OrganizationFeature)
 default_manager.add("organizations:api-keys", OrganizationFeature)
 default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature, False)
 default_manager.add("organizations:boolean-search", OrganizationFeature)
@@ -78,6 +78,7 @@ default_manager.add("organizations:event-attachments-viewer", OrganizationFeatur
 default_manager.add("organizations:events", OrganizationFeature)
 default_manager.add("organizations:filters-and-sampling", OrganizationFeature, True)
 default_manager.add("organizations:global-views", OrganizationFeature)
+default_manager.add("organizations:group-history", OrganizationFeature)
 default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-title-ui", OrganizationFeature, True)
@@ -100,6 +101,10 @@ default_manager.add("organizations:integrations-vsts-limited-scopes", Organizati
 default_manager.add(
     "organizations:integrations-ignore-teamwork-deprecation", OrganizationFeature, True
 )
+default_manager.add(
+    "organizations:integrations-ignore-clubhouse-deprecation", OrganizationFeature, True
+)
+default_manager.add("organizations:integrations-ignore-vsts-deprecation", OrganizationFeature, True)
 default_manager.add("organizations:invite-members", OrganizationFeature)
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)
 default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature, True)
@@ -126,11 +131,6 @@ default_manager.add("organizations:performance-chart-interpolation", Organizatio
 default_manager.add("organizations:performance-suspect-spans-view", OrganizationFeature, True)
 default_manager.add("organizations:performance-view", OrganizationFeature)
 default_manager.add("organizations:prompt-dashboards", OrganizationFeature)
-default_manager.add("organizations:prompt-additional-volume", OrganizationFeature)
-default_manager.add("organizations:prompt-additional-volume-on-demand", OrganizationFeature)
-default_manager.add("organizations:prompt-on-demand-orgs", OrganizationFeature)
-default_manager.add("organizations:prompt-release-health-adoption", OrganizationFeature)
-default_manager.add("organizations:prompt-upgrade-via-dashboards", OrganizationFeature)
 default_manager.add("organizations:related-events", OrganizationFeature)
 default_manager.add("organizations:relay", OrganizationFeature)
 default_manager.add("organizations:release-adoption-chart", OrganizationFeature, True)

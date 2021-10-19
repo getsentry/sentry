@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventAttachments from 'app/components/events/eventAttachments';
 
@@ -18,19 +18,21 @@ describe('EventAttachments', function () {
   };
 
   it('shows attachments limit reached notice', function () {
-    const {getByText, getByRole} = mountWithTheme(<EventAttachments {...props} />);
+    mountWithTheme(<EventAttachments {...props} />);
 
-    expect(getByText('Attachments (0)')).toBeInTheDocument();
+    expect(screen.getByText('Attachments (0)')).toBeInTheDocument();
 
-    expect(getByRole('link', {name: 'View crashes'})).toHaveAttribute('href', '');
+    expect(screen.getByRole('link', {name: 'View crashes'})).toHaveAttribute('href', '');
 
-    expect(getByRole('link', {name: 'configure limit'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'configure limit'})).toHaveAttribute(
       'href',
       `/settings/${props.orgId}/projects/${props.projectId}/security-and-privacy/`
     );
 
     expect(
-      getByText('Your limit of stored crash reports has been reached for this issue.')
+      screen.getByText(
+        'Your limit of stored crash reports has been reached for this issue.'
+      )
     ).toBeInTheDocument();
   });
 

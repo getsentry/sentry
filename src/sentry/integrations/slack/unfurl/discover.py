@@ -1,5 +1,6 @@
 import html
 import re
+from datetime import timedelta
 from typing import Any, List, Mapping, Optional
 from urllib.parse import urlparse
 
@@ -13,6 +14,7 @@ from sentry.integrations.slack.message_builder.discover import build_discover_at
 from sentry.models import ApiKey, Integration
 from sentry.models.user import User
 from sentry.search.events.filter import to_list
+from sentry.utils.dates import parse_stats_period
 
 from ..utils import logger
 from . import Handler, UnfurlableUrl, UnfurledUrl
@@ -23,10 +25,23 @@ display_modes: Mapping[str, ChartType] = {
     "daily": ChartType.SLACK_DISCOVER_TOTAL_DAILY,
     "top5": ChartType.SLACK_DISCOVER_TOP5_PERIOD,
     "dailytop5": ChartType.SLACK_DISCOVER_TOP5_DAILY,
-    # TODO(epurkhiser): Previous period
+    "previous": ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD,
 }
 
 TOP_N = 5
+MAX_PERIOD_DAYS_INCLUDE_PREVIOUS = 45
+DEFAULT_PERIOD = "14d"
+
+
+def get_double_period(period: str) -> str:
+    m = re.match(r"^(\d+)([hdmsw]?)$", period)
+    if not m:
+        m = re.match(r"^(\d+)([hdmsw]?)$", DEFAULT_PERIOD)
+
+    value, unit = m.groups()  # type: ignore
+    value = int(value)
+
+    return f"{value * 2}{unit}"
 
 
 def unfurl_discover(
@@ -95,8 +110,27 @@ def unfurl_discover(
 
         if "daily" in display_mode:
             params.setlist("interval", ["1d"])
+
         if "top5" in display_mode:
-            params.setlist("topEvents", [f"{TOP_N}"])
+            if features.has("organizations:discover-top-events", org):
+                params.setlist(
+                    "topEvents",
+                    params.getlist("topEvents")
+                    or to_list(saved_query.get("topEvents", f"{TOP_N}")),
+                )
+            else:
+                params.setlist("topEvents", [f"{TOP_N}"])
+        else:
+            # topEvents param persists in the URL in some cases, we want to discard
+            # it if it's not a top n display type.
+            params.pop("topEvents", None)
+
+        if "previous" in display_mode:
+            stats_period = params.getlist("statsPeriod", [DEFAULT_PERIOD])[0]
+            parsed_period = parse_stats_period(stats_period)
+            if parsed_period and parsed_period <= timedelta(days=MAX_PERIOD_DAYS_INCLUDE_PREVIOUS):
+                stats_period = get_double_period(stats_period)
+                params.setlist("statsPeriod", [stats_period])
 
         try:
             resp = client.get(

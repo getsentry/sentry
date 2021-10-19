@@ -1,4 +1,4 @@
-import {cleanup, mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {cleanup, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import EventDetails from 'app/views/performance/transactionDetails';
@@ -19,7 +19,7 @@ describe('EventDetails', () => {
     const event = TestStubs.Event();
     const routerContext = TestStubs.routerContext([]);
 
-    const {queryByText} = mountWithTheme(
+    mountWithTheme(
       <EventDetails
         organization={organization}
         params={{orgId: organization.slug, eventSlug: `${project.slug}:${event.id}`}}
@@ -27,7 +27,7 @@ describe('EventDetails', () => {
       />,
       {context: routerContext}
     );
-    expect(queryByText(alertText)).toBeTruthy();
+    expect(screen.queryByText(alertText)).toBeTruthy();
   });
 
   it('does not reender alert if already received transaction', () => {
@@ -40,7 +40,7 @@ describe('EventDetails', () => {
     const event = TestStubs.Event();
     const routerContext = TestStubs.routerContext([]);
 
-    const {queryByText} = mountWithTheme(
+    mountWithTheme(
       <EventDetails
         organization={organization}
         params={{orgId: organization.slug, eventSlug: `${project.slug}:${event.id}`}}
@@ -48,6 +48,6 @@ describe('EventDetails', () => {
       />,
       {context: routerContext}
     );
-    expect(queryByText(alertText)).toBeNull();
+    expect(screen.queryByText(alertText)).toBeNull();
   });
 });

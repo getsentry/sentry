@@ -177,7 +177,7 @@ class TeamStability extends AsyncComponent<Props, State> {
         headers={[
           t('Project'),
           <RightAligned key="last">{tct('Last [period]', {period})}</RightAligned>,
-          <RightAligned key="curr">{t('This Week')}</RightAligned>,
+          <RightAligned key="curr">{t('Last 7 Days')}</RightAligned>,
           <RightAligned key="diff">{t('Difference')}</RightAligned>,
         ]}
       >
@@ -201,9 +201,15 @@ export default TeamStability;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr;
+  font-size: ${p => p.theme.fontSizeMedium};
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
+  box-shadow: unset;
+
+  & > div {
+    padding: ${space(1)} ${space(2)};
+  }
 `;
 
 const RightAligned = styled('span')`
