@@ -612,6 +612,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
+        assert resp.data["resolution"] == 2.0
 
     def test_simple_crash_rate_alerts_for_sessions_drops_event_types(self):
         self.valid_alert_rule["eventTypes"] = ["sessions", "events"]

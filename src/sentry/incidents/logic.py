@@ -1,3 +1,4 @@
+import re
 from copy import deepcopy
 from datetime import datetime, timedelta
 from itertools import chain
@@ -10,7 +11,7 @@ from django.utils import timezone
 
 from sentry import analytics, quotas
 from sentry.auth.access import SystemAccess
-from sentry.constants import SentryAppInstallationStatus
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, SentryAppInstallationStatus
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
@@ -697,6 +698,8 @@ class AlertRuleNameAlreadyUsedError(Exception):
 # Default values for `SnubaQuery.resolution`, in minutes.
 DEFAULT_ALERT_RULE_RESOLUTION = 1
 DEFAULT_CMP_ALERT_RULE_RESOLUTION = 2
+DEFAULT_USERS_CRASH_RATE_ALERT_RESOLUTION = 2
+CRASH_RATE_ALERT_AGGREGATE_RE = re.compile(r"percentage\((\w+)\,(\s)*(\w+)\)")
 
 
 def create_alert_rule(
@@ -753,6 +756,11 @@ def create_alert_rule(
         # Since comparison alerts make twice as many queries, run the queries less frequently.
         resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
+    if CRASH_RATE_ALERT_AGGREGATE_ALIAS in aggregate:
+        aggregate_search = re.search(CRASH_RATE_ALERT_AGGREGATE_RE, aggregate)
+        if aggregate_search.group(3) == "users":
+            # Queries on distinct users are expensive to run, so run queries less frequently
+            resolution = DEFAULT_USERS_CRASH_RATE_ALERT_RESOLUTION
     validate_alert_rule_query(query)
     if AlertRule.objects.filter(organization=organization, name=name).exists():
         raise AlertRuleNameAlreadyUsedError()
