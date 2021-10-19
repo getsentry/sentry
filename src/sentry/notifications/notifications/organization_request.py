@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
     analytics_event: str = ""
     referrer: str = ""
-    member_by_user_id: Mapping[int, OrganizationMember] = {}
+    member_by_user_id: MutableMapping[int, OrganizationMember] = {}
 
     def __init__(self, organization: "Organization", requester: "User") -> None:
         self.organization = organization
