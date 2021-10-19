@@ -30,8 +30,6 @@ export enum PerformanceWidgetSetting {
   WORST_LCP_VITALS = 'worst_lcp_vitals',
   MOST_IMPROVED = 'most_improved',
   MOST_REGRESSED = 'most_regressed',
-  MOST_RELATED_ERRORS = 'most_related_errors',
-  MOST_RELATED_ISSUES = 'most_related_issues',
 }
 
 const WIDGET_PALETTE = CHART_PALETTE[5];
@@ -122,20 +120,6 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY),
     fields: [`user_misery(${organization.apdexThreshold ?? ''})`], // TODO(k-fish): Check threshold is correct vs existing landing
     dataType: GenericPerformanceWidgetDataType.area,
-    chartColor: WIDGET_PALETTE[0],
-  },
-  [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: {
-    title: t('Most Related Errors'),
-    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY),
-    fields: [`failure_count()`],
-    dataType: GenericPerformanceWidgetDataType.line_list,
-    chartColor: WIDGET_PALETTE[0],
-  },
-  [PerformanceWidgetSetting.MOST_RELATED_ISSUES]: {
-    title: t('Most Related Issues'),
-    titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY),
-    fields: [`count()`],
-    dataType: GenericPerformanceWidgetDataType.line_list,
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.MOST_IMPROVED]: {

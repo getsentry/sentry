@@ -39,11 +39,6 @@ export function QueryHandler<T extends WidgetDataConstraint>(
             project={globalSelection.projects}
             environment={globalSelection.environments}
             organization={props.queryProps.organization}
-            orgSlug={props.queryProps.organization.slug}
-            query={props.queryProps.eventView.getQueryWithAdditionalConditions()}
-            eventView={props.queryProps.eventView}
-            location={props.queryProps.location}
-            widgetData={props.widgetData}
           >
             {results => {
               return (
