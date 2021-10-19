@@ -53,12 +53,7 @@ get-pyenv-version() {
         return 0
     fi
 
-    local PYENV_VERSION
-    PYENV_VERSION=3.6.13
-    if query-apple-m1; then
-        PYENV_VERSION=3.8.12
-    fi
-    echo "${PYENV_VERSION}"
+    echo '3.8.12'
 }
 
 query-valid-python-version() {
