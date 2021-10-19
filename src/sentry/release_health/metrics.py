@@ -20,8 +20,8 @@ from typing import (
 )
 
 import pytz
-from snuba_sdk import Column, Condition, Entity, Function, Op, Query
-from snuba_sdk.expressions import Expression, Granularity
+from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
+from snuba_sdk.expressions import Expression, Granularity, Limit, Offset
 from snuba_sdk.query import SelectableExpression
 
 from sentry.models import Environment
@@ -1762,3 +1762,166 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )["data"]
 
         return [(row["project_id"], row["value"]) for row in rows]
+
+    def get_project_releases_by_stability(
+        self,
+        project_ids: Sequence[ProjectId],
+        offset: Optional[int],
+        limit: Optional[int],
+        scope: str,
+        stats_period: Optional[str] = None,
+        environments: Optional[Sequence[str]] = None,
+    ) -> Sequence[ProjectRelease]:
+
+        if len(project_ids) == 0:
+            return []
+
+        org_id = self._get_org_id(project_ids)
+        environments_ids: Optional[Sequence[int]] = None
+
+        if environments is not None:
+            environments_ids = get_tag_values_list(org_id, environments)
+            if len(environments_ids) == 0:
+                return []
+
+        release_column_name = tag_key(org_id, "release")
+
+        if stats_period is None:
+            stats_period = "24h"
+
+        # Special rule that we support sorting by the last 24h only.
+        if scope.endswith("_24h"):
+            scope = scope[:-4]
+            stats_period = "24h"
+
+        now = datetime.now(pytz.utc)
+        granularity, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
+
+        query_cols = [
+            Column("project_id"),
+            Column(release_column_name),
+        ]
+        group_by = [
+            Column("project_id"),
+            Column(release_column_name),
+        ]
+
+        where_clause = [
+            Condition(Column("org_id"), Op.EQ, org_id),
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("timestamp"), Op.GTE, stats_start),
+            Condition(Column("timestamp"), Op.LT, now),
+        ]
+
+        if environments_ids is not None:
+            environment_column_name = tag_key(org_id, "environment")
+            where_clause.append(Condition(Column(environment_column_name), Op.IN, environments_ids))
+
+        having_clause: Optional[List[Condition]] = None
+
+        status_init = tag_value(org_id, "init")
+        status_crashed = tag_value(org_id, "crashed")
+        session_status_column_name = tag_key(org_id, "session.status")
+
+        order_by_clause = None
+        if scope == "crash_free_sessions":
+            order_by_clause = [
+                OrderBy(
+                    exp=Function(
+                        "divide",
+                        parameters=[
+                            Function(
+                                "sumIf",
+                                parameters=[
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [Column(session_status_column_name), status_crashed],
+                                    ),
+                                ],
+                            ),
+                            Function(
+                                "sumIf",
+                                parameters=[
+                                    Column("value"),
+                                    Function(
+                                        "equals", [Column(session_status_column_name), status_init]
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                    direction=Direction.DESC,
+                )
+            ]
+            where_clause.append(Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")))
+            entity = Entity(EntityKey.MetricsCounters.value)
+        elif scope == "sessions":
+            order_by_clause = [
+                OrderBy(exp=Function("sum", [Column("value")], "value"), direction=Direction.DESC)
+            ]
+            where_clause.append(Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "session")))
+            entity = Entity(EntityKey.MetricsCounters.value)
+        elif scope == "crash_free_users":
+            order_by_clause = [
+                OrderBy(
+                    exp=Function(
+                        "divide",
+                        parameters=[
+                            Function(
+                                "uniqIf",
+                                parameters=[
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [Column(session_status_column_name), status_crashed],
+                                    ),
+                                ],
+                            ),
+                            Function(
+                                "uniqIf",
+                                parameters=[
+                                    Column("value"),
+                                    Function(
+                                        "equals", [Column(session_status_column_name), status_init]
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                    direction=Direction.DESC,
+                )
+            ]
+            where_clause.append(Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")))
+            entity = Entity(EntityKey.MetricsSets.value)
+            having_clause = [Condition(Function("uniq", [Column("value")], "users"), Op.GT, 0)]
+        else:  # users
+            users_column = Function("uniq", [Column("value")], "users")
+            order_by_clause = [OrderBy(exp=users_column, direction=Direction.DESC)]
+            where_clause.append(Condition(Column("metric_id"), Op.EQ, metric_id(org_id, "user")))
+            entity = Entity(EntityKey.MetricsSets.value)
+            having_clause = [Condition(users_column, Op.GT, 0)]
+
+        query = Query(
+            dataset=Dataset.Metrics.value,
+            match=entity,
+            select=query_cols,
+            where=where_clause,
+            having=having_clause,
+            orderby=order_by_clause,
+            groupby=group_by,
+            offset=Offset(offset) if offset is not None else None,
+            limit=Limit(limit) if limit is not None else None,
+            granularity=Granularity(granularity),
+        )
+
+        rows = raw_snql_query(
+            query,
+            referrer="release_health.metrics.get_project_releases_by_stability",
+            use_cache=False,
+        )
+
+        def extract_row_info(row: Mapping[str, Union[OrganizationId, str]]) -> ProjectRelease:
+            return row.get("project_id"), reverse_tag_value(org_id, row.get(release_column_name))  # type: ignore
+
+        return [extract_row_info(row) for row in rows["data"]]

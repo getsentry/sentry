@@ -149,7 +149,7 @@ def _check_releases_have_health_data(
     return {row["release"] for row in data}
 
 
-def get_project_releases_by_stability(
+def _get_project_releases_by_stability(
     project_ids, offset, limit, scope, stats_period=None, environments=None
 ):
     """Given some project IDs returns adoption rates that should be updated
