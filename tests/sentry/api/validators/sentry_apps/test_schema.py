@@ -103,7 +103,7 @@ class TestSchemaValidation(TestCase):
     @invalid_schema_with_error_message(
         "'uri' is a required property for element of type 'stacktrace-link'"
     )
-    def test_invalid_chema_element_missing_uri(self):
+    def test_invalid_schema_element_missing_uri(self):
         schema = {
             "elements": [{"url": "/stacktrace/github/getsentry/sentry", "type": "stacktrace-link"}]
         }
