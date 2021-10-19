@@ -238,7 +238,7 @@ const StyledButton = styled(
       }
 
       if (!href) {
-        return <button ref={ref} disabled={disabled} {...props} />;
+        return <button ref={ref} {...props} />;
       }
 
       if (external && href) {
