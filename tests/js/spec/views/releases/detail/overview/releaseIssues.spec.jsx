@@ -3,7 +3,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import ReleaseIssues from 'app/views/releases/detail/overview/releaseIssues';
 import {getReleaseBounds} from 'app/views/releases/utils';
 
-describe('Release Issues', function () {
+describe('ReleaseIssues', function () {
   let newIssuesEndpoint,
     resolvedIssuesEndpoint,
     unhandledIssuesEndpoint,

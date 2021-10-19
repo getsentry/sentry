@@ -84,7 +84,7 @@ describe('ReleasesList', function () {
     expect(items.at(1).text()).toContain('1.0.1');
     expect(items.at(1).find('AdoptionColumn').at(1).text()).toContain('0%');
     expect(items.at(2).text()).toContain('af4f231ec9a8');
-    expect(items.at(2).find('Header').text()).toContain('Project');
+    expect(items.at(2).find('ReleaseProjectsHeader').text()).toContain('Project');
   });
 
   it('displays the right empty state', function () {
@@ -100,7 +100,7 @@ describe('ReleasesList', function () {
       routerContext
     );
     expect(wrapper.find('StyledPanel')).toHaveLength(0);
-    expect(wrapper.find('ReleasePromo').text()).toContain('Demystify Releases');
+    expect(wrapper.find('ReleasesPromo').text()).toContain('Demystify Releases');
 
     location = {query: {statsPeriod: '30d'}};
     wrapper = mountWithTheme(
@@ -108,7 +108,7 @@ describe('ReleasesList', function () {
       routerContext
     );
     expect(wrapper.find('StyledPanel')).toHaveLength(0);
-    expect(wrapper.find('ReleasePromo').text()).toContain('Demystify Releases');
+    expect(wrapper.find('ReleasesPromo').text()).toContain('Demystify Releases');
 
     location = {query: {query: 'abc'}};
     wrapper = mountWithTheme(
@@ -202,7 +202,7 @@ describe('ReleasesList', function () {
       })
     );
 
-    const sortDropdown = wrapper.find('ReleaseListSortOptions');
+    const sortDropdown = wrapper.find('ReleasesSortOptions');
     const sortByOptions = sortDropdown.find('DropdownItem span');
 
     const dateCreatedOption = sortByOptions.at(0);
@@ -235,12 +235,12 @@ describe('ReleasesList', function () {
       />,
       routerContext
     );
-    const sortDropdown = wrapper.find('ReleaseListSortOptions');
+    const sortDropdown = wrapper.find('ReleasesSortOptions');
     expect(sortDropdown.find('ButtonLabel').text()).toBe('Sort ByDate Created');
   });
 
   it('display the right Crash Free column', async function () {
-    const displayDropdown = wrapper.find('ReleaseListDisplayOptions');
+    const displayDropdown = wrapper.find('ReleasesDisplayOptions');
 
     const activeDisplay = displayDropdown.find('DropdownButton button');
     expect(activeDisplay.text()).toEqual('DisplaySessions');
@@ -284,7 +284,7 @@ describe('ReleasesList', function () {
     expect(archivedWrapper.find('ReleaseArchivedNotice').exists()).toBeTruthy();
 
     const statusOptions = archivedWrapper
-      .find('ReleaseListStatusOptions')
+      .find('ReleasesStatusOptions')
       .first()
       .find('DropdownItem span');
     const statusActiveOption = statusOptions.at(0);
@@ -394,14 +394,14 @@ describe('ReleasesList', function () {
     const healthSection = mountWithTheme(
       <ReleasesList {...props} selection={{...props.selection, projects: [2]}} />,
       routerContext
-    ).find('ReleaseHealth');
+    ).find('ReleaseProjects');
     const hiddenProjectsMessage = healthSection.find('HiddenProjectsMessage');
 
     expect(hiddenProjectsMessage.text()).toBe('2 hidden projects');
 
     expect(hiddenProjectsMessage.find('Tooltip').prop('title')).toBe('test, test3');
 
-    expect(healthSection.find('ProjectRow').length).toBe(1);
+    expect(healthSection.find('ReleaseCardProjectRow').length).toBe(1);
 
     expect(healthSection.find('ProjectBadge').text()).toBe('test2');
   });
@@ -414,11 +414,11 @@ describe('ReleasesList', function () {
     const healthSection = mountWithTheme(
       <ReleasesList {...props} selection={{...props.selection, projects: [-1]}} />,
       routerContext
-    ).find('ReleaseHealth');
+    ).find('ReleaseProjects');
 
     expect(healthSection.find('HiddenProjectsMessage').exists()).toBeFalsy();
 
-    expect(healthSection.find('ProjectRow').length).toBe(1);
+    expect(healthSection.find('ReleaseCardProjectRow').length).toBe(1);
   });
 
   it('autocompletes semver search tag', async function () {
