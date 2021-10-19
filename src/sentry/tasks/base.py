@@ -22,32 +22,40 @@ def track_memory_usage(metric, **kwargs):
         metrics.timing(metric, get_rss_usage() - before, **kwargs)
 
 
-def instrumented_task(name, stat_suffix=None, **kwargs):
+def instrumented_task(name, legacy_names=None, stat_suffix=None, **kwargs):
+    legacy_names = legacy_names if legacy_names else []
+
     def wrapped(func):
-        @wraps(func)
-        def _wrapped(*args, **kwargs):
-            # TODO(dcramer): we want to tag a transaction ID, but overriding
-            # the base on app.task seems to cause problems w/ Celery internals
-            transaction_id = kwargs.pop("__transaction_id", None)
+        def _with_named_metrics(metrics_name):
+            @wraps(func)
+            def _with_metrics(*args, **kwargs):
+                # TODO(dcramer): we want to tag a transaction ID, but overriding
+                # the base on app.task seems to cause problems w/ Celery internals
+                transaction_id = kwargs.pop("__transaction_id", None)
 
-            key = "jobs.duration"
-            if stat_suffix:
-                instance = f"{name}.{stat_suffix(*args, **kwargs)}"
-            else:
-                instance = name
+                key = "jobs.duration"
+                if stat_suffix:
+                    instance = f"{metrics_name}.{stat_suffix(*args, **kwargs)}"
+                else:
+                    instance = metrics_name
 
-            with configure_scope() as scope:
-                scope.set_tag("task_name", name)
-                scope.set_tag("transaction_id", transaction_id)
+                with configure_scope() as scope:
+                    scope.set_tag("task_name", metrics_name)
+                    scope.set_tag("transaction_id", transaction_id)
 
-            with metrics.timer(key, instance=instance), track_memory_usage(
-                "jobs.memory_change", instance=instance
-            ):
-                result = func(*args, **kwargs)
+                with metrics.timer(key, instance=instance), track_memory_usage(
+                    "jobs.memory_change", instance=instance
+                ):
+                    result = func(*args, **kwargs)
 
-            return result
+                return result
 
-        return app.task(name=name, **kwargs)(_wrapped)
+            return _with_metrics
+
+        for legacy_name in filter(bool, legacy_names):
+            app.task(name=legacy_name, **kwargs)(_with_named_metrics(legacy_name))
+
+        return app.task(name=name, **kwargs)(_with_named_metrics(name))
 
     return wrapped
 
