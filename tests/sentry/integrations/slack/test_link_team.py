@@ -271,3 +271,4 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
                 organization=team.organization, actor_ids=[team.actor_id]
             )
             assert len(external_actors) == 0
+  
