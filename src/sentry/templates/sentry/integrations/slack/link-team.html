@@ -20,7 +20,7 @@
     <div class="align-center" style="padding-bottom:20px;">
       <select id="{{ form.team.id_for_label }}" name="{{ form.team.html_name }}" class="form-control">
         {% for team in teams %}
-        <option value="{{ team.id }}">{{ team.slug }}</option>
+        <option value="{{ team.id }}">{{ team.slug }} (Organization: {{team.organization.slug}})</option>
         {% endfor %}
       </select>
     </div>
