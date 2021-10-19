@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Container, Optional
 
@@ -14,9 +15,13 @@ logger = logging.getLogger("sentry.auth")
 
 _LOGIN_URL = None
 
-SSO_SESSION_KEY = "sso"
+DEPRECATED_SSO_SESSION_KEY = "sso"
+
+SSO_SESSION_KEY = "sso_session"
 
 MFA_SESSION_KEY = "mfa"
+
+SSO_EXPIRY_TIME = timedelta(hours=20)
 
 
 class AuthUserPasswordExpired(Exception):
@@ -127,21 +132,42 @@ def is_valid_redirect(url: str, allowed_hosts: Optional[Container] = None) -> bo
 
 
 def mark_sso_complete(request, organization_id):
+    """
+    Store sso session status in the django session per org, with the value being the timestamp of when they logged in,
+    for usage when expiring sso sessions.
+    """
     # TODO(dcramer): this needs to be bound based on SSO options (e.g. changing
     # or enabling SSO invalidates this)
-    sso = request.session.get(SSO_SESSION_KEY, "")
-    if sso:
-        sso = sso.split(",")
-    else:
-        sso = []
-    sso.append(str(organization_id))
-    request.session[SSO_SESSION_KEY] = ",".join(sso)
+    key = sso_session_key_for_org_id(organization_id)
+    request.session[key] = {"auth_timestamp": datetime.now(tz=timezone.utc).timestamp()}
+
     request.session.modified = True
 
 
 def has_completed_sso(request, organization_id):
-    sso = request.session.get(SSO_SESSION_KEY, "").split(",")
+    """
+    look for the org id under the sso session key, and check that the timestamp isn't past our expiry limit
+    """
+
+    def is_sso_timestamp_fresh():
+        sso_timestamp = datetime.fromtimestamp(sso_session["auth_timestamp"], tz=timezone.utc)
+        expired_timestamp_cutoff = datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME
+
+        return sso_timestamp > expired_timestamp_cutoff
+
+    sso_session = request.session.get(f"{SSO_SESSION_KEY}:{organization_id}", None)
+
+    if sso_session and is_sso_timestamp_fresh():
+        metrics.incr("sso.new-session-checked-success", sample_rate=0.1)
+        return True
+
+    # TODO: remove this old logic after two weeks
+    sso = request.session.get(DEPRECATED_SSO_SESSION_KEY, "").split(",")
     return str(organization_id) in sso
+
+
+def sso_session_key_for_org_id(organization_id):
+    return f"{SSO_SESSION_KEY}:{organization_id}"
 
 
 def find_users(username, with_valid_password=True, is_active=None):
