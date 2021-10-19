@@ -32,7 +32,7 @@ class ArithmeticValidationError(ArithmeticError):
     pass
 
 
-OperationSideType = Union["Operation", float, str]
+OperandType = Union["Operation", float, str]
 JsonQueryType = List[Union[str, float, List[Any]]]
 
 
@@ -42,12 +42,12 @@ class Operation:
     def __init__(
         self,
         operator: str,
-        lhs: Optional[OperationSideType] = None,
-        rhs: Optional[OperationSideType] = None,
+        lhs: Optional[OperandType] = None,
+        rhs: Optional[OperandType] = None,
     ) -> None:
         self.operator = operator
-        self.lhs: Optional[OperationSideType] = lhs
-        self.rhs: Optional[OperationSideType] = rhs
+        self.lhs: Optional[OperandType] = lhs
+        self.rhs: Optional[OperandType] = rhs
         self.validate()
 
     def validate(self) -> None:

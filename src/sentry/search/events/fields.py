@@ -11,7 +11,7 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.discover.arithmetic import Operation, OperationSideType, resolve_equation_list
+from sentry.discover.arithmetic import OperandType, Operation, resolve_equation_list
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, ProjectTeam, ProjectTransactionThreshold
@@ -2877,18 +2877,18 @@ class QueryFields(QueryBase):
 
     def resolve_equation(self, equation: Operation, alias: Optional[str] = None) -> SelectType:
         """Convert this tree of Operations to the equivalent snql functions"""
-        lhs = self._resolve_equation_side(equation.lhs)
-        rhs = self._resolve_equation_side(equation.rhs)
+        lhs = self._resolve_equation_operand(equation.lhs)
+        rhs = self._resolve_equation_operand(equation.rhs)
         result = Function(equation.operator, [lhs, rhs], alias)
         return result
 
-    def _resolve_equation_side(self, side: OperationSideType) -> Union[SelectType, float]:
-        if isinstance(side, Operation):
-            return self.resolve_equation(side)
-        elif isinstance(side, float):
-            return side
+    def _resolve_equation_operand(self, operand: OperandType) -> Union[SelectType, float]:
+        if isinstance(operand, Operation):
+            return self.resolve_equation(operand)
+        elif isinstance(operand, float):
+            return operand
         else:
-            return self.resolve_column(side)
+            return self.resolve_column(operand)
 
     def is_equation_column(self, column: SelectType) -> bool:
         """Equations are only ever functions, and shouldn't be literals so we
