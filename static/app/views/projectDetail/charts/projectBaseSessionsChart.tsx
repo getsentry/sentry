@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
 import {useTheme} from '@emotion/react';
+import type {LegendComponentOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
@@ -204,7 +205,7 @@ class Chart extends Component<ChartProps, ChartState> {
     );
   };
 
-  get legend() {
+  get legend(): LegendComponentOption {
     const {theme, timeSeries, previousTimeSeries, releaseSeries} = this.props;
     const {seriesSelection} = this.state;
 

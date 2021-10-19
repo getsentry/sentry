@@ -1,4 +1,4 @@
-import {EChartOption} from 'echarts/lib/echarts';
+import type {SeriesOption} from 'echarts';
 import isArray from 'lodash/isArray';
 
 import XAxis from 'app/components/charts/components/xAxis';
@@ -294,8 +294,8 @@ discoverCharts.push({
     const color = theme.charts.getColorPalette(stats.length - 2);
     const previousPeriodColor = lightenHexToRgb(color);
 
-    const areaSeries: EChartOption.SeriesLine[] = [];
-    const lineSeries: EChartOption.SeriesLine[] = [];
+    const areaSeries: SeriesOption[] = [];
+    const lineSeries: SeriesOption[] = [];
 
     stats
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))

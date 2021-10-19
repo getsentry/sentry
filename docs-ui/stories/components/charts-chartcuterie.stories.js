@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import echarts from 'echarts/lib/echarts';
+import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import config from 'app/chartcuterie/config';

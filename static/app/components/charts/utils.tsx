@@ -1,4 +1,4 @@
-import {EChartOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 import {Location} from 'history';
 import moment from 'moment';
 
@@ -171,7 +171,7 @@ export function canIncludePreviousPeriod(
 export function getSeriesSelection(
   location: Location,
   parameter = 'unselectedSeries'
-): EChartOption.Legend['selected'] {
+): LegendComponentOption['selected'] {
   const unselectedSeries = decodeList(location?.query[parameter]);
   return unselectedSeries.reduce((selection, series) => {
     selection[series] = false;

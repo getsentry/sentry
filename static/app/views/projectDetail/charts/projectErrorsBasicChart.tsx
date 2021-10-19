@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import type {BarSeriesOption} from 'echarts';
 import {Location} from 'history';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -85,7 +86,7 @@ class ProjectErrorsBasicChart extends AsyncComponent<Props, State> {
     return DEFAULT_STATS_PERIOD;
   }
 
-  getSeries() {
+  getSeries(): BarSeriesOption[] {
     const {projects} = this.state;
 
     return [

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {EChartOption} from 'echarts';
+import {PieSeriesOption} from 'echarts';
 
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
@@ -7,9 +7,9 @@ import theme from 'app/utils/theme';
 import PieSeries from './series/pieSeries';
 import BaseChart from './baseChart';
 
-type ChartProps = React.ComponentProps<typeof BaseChart>;
+type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
 
-export type PieChartSeries = Series & Omit<EChartOption.SeriesPie, 'data' | 'name'>;
+export type PieChartSeries = Series & Omit<PieSeriesOption, 'data' | 'name'>;
 
 type Props = Omit<ChartProps, 'series'> & {
   selectOnRender?: boolean;
@@ -155,7 +155,7 @@ class PieChart extends React.Component<Props> {
                   fontSize: '18',
                 },
               },
-            },
+            } as any,
             itemStyle: {
               normal: {
                 label: {
@@ -165,7 +165,7 @@ class PieChart extends React.Component<Props> {
                   show: false,
                 },
               },
-            },
+            } as any,
           }),
         ]}
         xAxis={null}

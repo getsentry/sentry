@@ -2,7 +2,7 @@ import * as React from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
-import {EChartOption} from 'echarts';
+import type {SeriesOption} from 'echarts';
 
 import BaseChart from 'app/components/charts/baseChart';
 import Legend from 'app/components/charts/components/legend';
@@ -126,12 +126,12 @@ type Props = DefaultProps & {
   /**
    * Additional data to draw on the chart alongside usage
    */
-  chartSeries?: EChartOption.Series[];
+  chartSeries?: SeriesOption[];
 
   /**
    * Replace default tooltip
    */
-  chartTooltip?: EChartOption.Tooltip;
+  chartTooltip?: SeriesOption;
 };
 
 type State = {
@@ -139,10 +139,10 @@ type State = {
 };
 
 export type ChartStats = {
-  accepted: NonNullable<EChartOption.SeriesBar['data']>;
-  dropped: NonNullable<EChartOption.SeriesBar['data']>;
-  projected: NonNullable<EChartOption.SeriesBar['data']>;
-  filtered?: NonNullable<EChartOption.SeriesBar['data']>;
+  accepted: NonNullable<SeriesOption['data']>;
+  dropped: NonNullable<SeriesOption['data']>;
+  projected: NonNullable<SeriesOption['data']>;
+  filtered?: NonNullable<SeriesOption['data']>;
 };
 
 export class UsageChart extends React.Component<Props, State> {
@@ -307,7 +307,7 @@ export class UsageChart extends React.Component<Props, State> {
     const {chartSeries} = this.props;
     const {chartData} = this.chartMetadata;
 
-    let series: EChartOption.Series[] = [
+    let series: SeriesOption[] = [
       barSeries({
         name: SeriesTypes.ACCEPTED,
         data: chartData.accepted as any, // TODO(ts)
@@ -339,7 +339,7 @@ export class UsageChart extends React.Component<Props, State> {
 
     // Additional series passed by parent component
     if (chartSeries) {
-      series = series.concat(chartSeries as EChartOption.Series[]);
+      series = series.concat(chartSeries as SeriesOption[]);
     }
 
     return series;

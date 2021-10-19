@@ -1,6 +1,6 @@
 import 'echarts/lib/component/tooltip';
 
-import {EChartOption} from 'echarts';
+import type {TooltipComponentFormatterCallback, TooltipComponentOption} from 'echarts';
 import moment from 'moment';
 
 import BaseChart from 'app/components/charts/baseChart';
@@ -113,7 +113,7 @@ function getFormatter({
     return true;
   };
 
-  const formatter: EChartOption.Tooltip['formatter'] = seriesParamsOrParam => {
+  const formatter: TooltipComponentFormatterCallback<any> = seriesParamsOrParam => {
     // If this is a tooltip for the axis, it will include all series for that axis item.
     // In this case seriesParamsOrParam will be of type `Object[]`
     //

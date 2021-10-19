@@ -1,10 +1,8 @@
 import 'echarts/lib/chart/map';
 
-import {EChartOption} from 'echarts';
+import type {MapSeriesOption} from 'echarts';
 
-export default function MapSeries(
-  props: EChartOption.SeriesMap = {}
-): EChartOption.SeriesMap {
+export default function MapSeries(props: MapSeriesOption = {map: ''}): MapSeriesOption {
   return {
     roam: true,
     itemStyle: {
@@ -14,5 +12,5 @@ export default function MapSeries(
     },
     ...props,
     type: 'map',
-  };
+  } as MapSeriesOption;
 }

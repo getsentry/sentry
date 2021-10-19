@@ -1,12 +1,10 @@
 import 'echarts/lib/chart/line';
 
-import {EChartOption} from 'echarts';
+import type {LineSeriesOption} from 'echarts';
 
 import theme from 'app/utils/theme';
 
-export default function LineSeries(
-  props: EChartOption.SeriesLine
-): EChartOption.SeriesLine {
+export default function LineSeries(props: LineSeriesOption): LineSeriesOption {
   return {
     showSymbol: false,
     symbolSize: theme.charts.symbolSize,

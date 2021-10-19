@@ -3,7 +3,21 @@ import 'zrender/lib/svg/svg';
 import {forwardRef, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
+import type {
+  AxisPointerComponentOption,
+  ECharts,
+  EChartsOption,
+  GridComponentOption,
+  LegendComponentOption,
+  LineSeriesOption,
+  SeriesOption,
+  TooltipComponentOption,
+  VisualMapComponentOption,
+  XAXisComponentOption,
+  YAXisComponentOption,
+} from 'echarts';
+import {GraphicComponent, GridComponent} from 'echarts/components';
+import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
@@ -21,7 +35,7 @@ import {
   ReactEchartsRef,
   Series,
 } from 'app/types/echarts';
-import {Theme} from 'app/utils/theme';
+import type {Theme} from 'app/utils/theme';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
@@ -30,6 +44,8 @@ import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
 import {getDimensionValue, lightenHexToRgb} from './utils';
+
+echarts.use([GridComponent, GraphicComponent]);
 
 // TODO(ts): What is the series type? EChartOption.Series's data cannot have
 // `onClick` since it's typically an array.
@@ -61,13 +77,13 @@ type Truncateable = {
 };
 
 type Props = {
-  options?: EChartOption;
+  options?: EChartsOption;
   /**
    * Chart Series
    * This is different than the interface to higher level charts, these need to
    * be an array of ECharts "Series" components.
    */
-  series?: EChartOption.Series[];
+  series?: SeriesOption[];
   /**
    * Array of color codes to use in charts. May also take a function which is
    * provided with the current theme
@@ -78,11 +94,11 @@ type Props = {
    *
    * Additionally a `truncate` option
    */
-  xAxis?: (EChartOption.XAxis & Truncateable) | null;
+  xAxis?: (XAXisComponentOption & Truncateable) | null;
   /**
    * Must be explicitly `null` to disable yAxis
    */
-  yAxis?: EChartOption.YAxis | null;
+  yAxis?: YAXisComponentOption | null;
   /**
    * Pass `true` to have 2 y-axes with default properties. Can pass an array of
    * objects to customize yAxis properties
@@ -96,9 +112,12 @@ type Props = {
   /**
    * Tooltip options
    */
-  tooltip?: EChartOption.Tooltip &
+  tooltip?: TooltipComponentOption &
     Truncateable & {
-      filter?: (value: number, seriesParam: EChartOption.Tooltip.Format) => boolean;
+      filter?: (
+        value: number,
+        seriesParam: TooltipComponentOption['formatter']
+      ) => boolean;
       formatAxisLabel?: (
         value: number,
         isTimestamp: boolean,
@@ -115,31 +134,31 @@ type Props = {
   /**
    * DataZoom (allows for zooming of chart)
    */
-  dataZoom?: EChartOption['dataZoom'];
+  dataZoom?: EChartsOption['dataZoom'];
   /**
    * Axis pointer options
    */
-  axisPointer?: EChartOption.AxisPointer;
+  axisPointer?: AxisPointerComponentOption;
   /**
    * Toolbox options
    */
-  toolBox?: EChartOption['toolbox'];
+  toolBox?: EChartsOption['toolbox'];
   /**
    * Graphic options
    */
-  graphic?: EChartOption['graphic'];
+  graphic?: EChartsOption['graphic'];
   /**
    * ECharts Grid options. multiple grids allow multiple sub-graphs.
    */
-  grid?: EChartOption.Grid | EChartOption.Grid[];
+  grid?: GridComponentOption | GridComponentOption[];
   /**
    * ECharts Visual Map Options.
    */
-  visualMap?: EChartOption.VisualMap | EChartOption.VisualMap[];
+  visualMap?: VisualMapComponentOption | VisualMapComponentOption[];
   /**
    * Chart legend
    */
-  legend?: EChartOption.Legend & Truncateable;
+  legend?: LegendComponentOption & Truncateable;
   /**
    * Chart height
    */
@@ -287,7 +306,7 @@ function BaseChartUnwrapped({
 }: Props) {
   const theme = useTheme();
 
-  const hasSinglePoints = (series as EChartOption.SeriesLine[] | undefined)?.every(
+  const hasSinglePoints = (series as LineSeriesOption[] | undefined)?.every(
     s => Array.isArray(s.data) && s.data.length <= 1
   );
 
@@ -301,7 +320,7 @@ function BaseChartUnwrapped({
 
   const transformedSeries =
     (hasSinglePoints && transformSinglePointToBar
-      ? (series as EChartOption.SeriesLine[] | undefined)?.map(s => ({
+      ? (series as LineSeriesOption[] | undefined)?.map(s => ({
           ...s,
           type: 'bar',
           barWidth: 40,

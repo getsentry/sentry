@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
-import {EChartOption} from 'echarts';
+import type {ToolboxComponentOption} from 'echarts';
 
 import {Client} from 'app/api';
 import EventsChart from 'app/components/charts/eventsChart';
@@ -209,7 +209,7 @@ function ReleaseEventsChart({
 
                 return tooltipFormatter(val, getYAxis());
               },
-            } as EChartOption.Tooltip,
+            } as ToolboxComponentOption,
           }}
           usePageZoom
           height={240}

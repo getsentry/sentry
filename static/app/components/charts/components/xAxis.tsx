@@ -1,4 +1,4 @@
-import {EChartOption} from 'echarts';
+import {XAXisComponentOption} from 'echarts';
 import merge from 'lodash/merge';
 
 import BaseChart from 'app/components/charts/baseChart';
@@ -28,7 +28,7 @@ export default function XAxis({
   period,
   utc,
   ...props
-}: Props): EChartOption.XAxis {
+}: Props): XAXisComponentOption {
   const axisLabelFormatter = (value: string, index: number) => {
     if (isGroupedByDate) {
       const timeFormat = getTimeFormat();

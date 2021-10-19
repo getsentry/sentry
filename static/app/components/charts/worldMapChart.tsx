@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {withTheme} from '@emotion/react';
-import echarts, {EChartOption} from 'echarts';
+import echarts, {MapSeriesOption, TooltipComponentOption} from 'echarts';
 import max from 'lodash/max';
 
 import {Series, SeriesDataUnit} from 'app/types/echarts';
@@ -10,11 +10,9 @@ import VisualMap from './components/visualMap';
 import MapSeries from './series/mapSeries';
 import BaseChart from './baseChart';
 
-type ChartProps = React.ComponentProps<typeof BaseChart>;
+type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
 
 type MapChartSeriesDataUnit = Omit<SeriesDataUnit, 'name' | 'itemStyle'> & {
-  // Docs for map itemStyle differ from Series data unit. See https://echarts.apache.org/en/option.html#series-map.data.itemStyle
-  itemStyle: EChartOption.SeriesMap.DataObject['itemStyle'];
   name?: string;
 };
 
@@ -25,7 +23,7 @@ type MapChartSeries = Omit<Series, 'data'> & {
 type Props = Omit<ChartProps, 'series'> & {
   series: MapChartSeries[];
   theme: Theme;
-  seriesOptions?: EChartOption.SeriesMap;
+  seriesOptions?: MapSeriesOption;
 };
 
 type JSONResult = Record<string, any>;
@@ -49,7 +47,7 @@ class WorldMapChart extends React.Component<Props, State> {
       import('app/data/world.json'),
     ]);
 
-    echarts.registerMap('sentryWorld', worldMap.default);
+    echarts.registerMap('sentryWorld', worldMap.default as any);
 
     // eslint-disable-next-line
     this.setState({
@@ -90,7 +88,7 @@ class WorldMapChart extends React.Component<Props, State> {
           emphasis: {
             show: false,
           },
-        },
+        } as any,
         data,
       })
     );
@@ -100,9 +98,7 @@ class WorldMapChart extends React.Component<Props, State> {
     // Otherwise it should be 0-100
     const maxValue = max(series.map(({data}) => max(data.map(({value}) => value)))) || 1;
 
-    const tooltipFormatter: EChartOption.Tooltip.Formatter = (
-      format: EChartOption.Tooltip.Format | EChartOption.Tooltip.Format[]
-    ) => {
+    const tooltipFormatter: TooltipComponentOption['formatter'] = (format: any) => {
       const {marker, name, value} = Array.isArray(format) ? format[0] : format;
       // If value is NaN, don't show anything because we won't have a country code either
       if (isNaN(value as number)) {
