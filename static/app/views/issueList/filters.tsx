@@ -54,10 +54,10 @@ class IssueListFilters extends React.Component<Props> {
     const hasIssuePercentDisplay = organization.features.includes(
       'issue-percent-display'
     );
-    const hasSingleProjectSelected =
-      selectedProjects && selectedProjects.length === 1 && selectedProjects[0] !== -1;
+    const hasMultipleProjectsSelected =
+      !selectedProjects || selectedProjects.length !== 1 || selectedProjects[0] === -1;
     const hasSessions =
-      hasSingleProjectSelected &&
+      !hasMultipleProjectsSelected &&
       (ProjectsStore.getById(`${selectedProjects[0]}`)?.hasSessions ?? false);
 
     return (
@@ -92,7 +92,7 @@ class IssueListFilters extends React.Component<Props> {
             <IssueListDisplayOptions
               onDisplayChange={onDisplayChange}
               display={display}
-              hasMultipleProjectsSelected={!hasSingleProjectSelected}
+              hasMultipleProjectsSelected={hasMultipleProjectsSelected}
               hasSessions={hasSessions}
             />
           )}
