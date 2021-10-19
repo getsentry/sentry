@@ -167,6 +167,16 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
     };
   }
 
+  const thousandDaysAfterReleaseStart = moment(releaseStart).add('999', 'days');
+  if (thousandDaysAfterReleaseStart.isBefore(releaseEnd)) {
+    // if the release spans for more than thousand days, we need to clamp it
+    // (otherwise we would hit the backend limit for the amount of data buckets)
+    return {
+      releaseStart,
+      releaseEnd: thousandDaysAfterReleaseStart.utc().format(),
+    };
+  }
+
   return {
     releaseStart,
     releaseEnd,
