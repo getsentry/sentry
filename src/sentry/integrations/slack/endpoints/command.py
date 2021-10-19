@@ -38,7 +38,9 @@ DIRECT_MESSAGE_CHANNEL_NAME = "directmessage"
 INSUFFICIENT_ROLE_MESSAGE = "You must be a Sentry admin, manager, or owner to link or unlink teams."
 
 
-def is_team_linked_to_channel(organization: Organization, slack_request: SlackRequest) -> bool:
+def is_team_linked_to_channel(
+    organization: Organization, slack_request: SlackCommandRequest
+) -> bool:
     """Check if a Slack channel already has a team linked to it"""
     return ExternalActor.objects.filter(
         organization=organization,
@@ -124,20 +126,20 @@ class SlackCommandsEndpoint(SlackDMEndpoint):  # type: ignore
             integration, identity.user
         )
 
-        organization_membership = None
+        found: Optional[OrganizationMember] = None
         for organization_membership in organization_memberships:
-            if is_team_linked_to_channel(organization_memberships.organization, slack_request):
-                organization_membership = organization_membership
+            if is_team_linked_to_channel(organization_membership.organization, slack_request):
+                found = organization_membership
 
-        if not organization_membership:
+        if not found:
             return self.reply(slack_request, TEAM_NOT_LINKED_MESSAGE)
 
-        if not is_valid_role(organization_membership):
+        if not is_valid_role(found):
             return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
 
         associate_url = build_team_unlinking_url(
             integration=integration,
-            organization_id=organization_membership.organization.id,
+            organization_id=found.organization.id,
             slack_id=slack_request.user_id,
             channel_id=slack_request.channel_id,
             channel_name=slack_request.channel_name,

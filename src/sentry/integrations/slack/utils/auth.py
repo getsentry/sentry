@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 ALLOWED_ROLES = ["admin", "manager", "owner"]
 
 
-def is_valid_role(org_member: OrganizationMember) -> bool:
+def is_valid_role(org_member: "OrganizationMember") -> bool:
     return org_member.role in ALLOWED_ROLES
 
 

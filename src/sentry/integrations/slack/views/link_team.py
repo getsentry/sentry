@@ -108,7 +108,8 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         if not form.is_valid():
             return render_error_page(request, body_text="HTTP 400: Bad request")
 
-        team = teams_by_id.get(form.cleaned_data["team"])
+        team_id = int(form.cleaned_data["team"])
+        team = teams_by_id.get(team_id)
         if not team:
             return render_error_page(request, body_text="HTTP 404: Team does not exist")
 
