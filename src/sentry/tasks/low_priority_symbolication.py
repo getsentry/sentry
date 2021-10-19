@@ -76,10 +76,7 @@ def update_lpq_eligibility(project_id: int, cutoff: int) -> None:
     should consider when calculating a project's eligibility. In other words, only data recorded
     before `cutoff` should be considered.
     """
-    try:
-        _update_lpq_eligibility(project_id, cutoff)
-    finally:
-        _record_metrics()
+    _update_lpq_eligibility(project_id, cutoff)
 
 
 def _update_lpq_eligibility(project_id: int, cutoff: int) -> None:
