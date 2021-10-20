@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {disconnectIdentity} from 'app/actionCreators/account';
 import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
@@ -10,6 +11,7 @@ import {UserIdentityCategory, UserIdentityConfig, UserIdentityStatus} from 'app/
 import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const ENDPOINT = '/users/me/user-identities/';
 
@@ -57,9 +59,28 @@ class AccountIdentities extends AsyncView<Props, State> {
   };
 
   renderButton(identity: UserIdentityConfig) {
-    return (
+    return identity.status === UserIdentityStatus.CAN_DISCONNECT ? (
+      <Confirm
+        onConfirm={() => this.handleDisconnect(identity)}
+        priority="danger"
+        confirmText={t('Disconnect')}
+        message={
+          <div>
+            <TextBlock>Disconnect your {identity.provider.name} identity?</TextBlock>
+            {identity.category !== UserIdentityCategory.SOCIAL_IDENTITY && (
+              <TextBlock>
+                After disconnecting, you will need to use a password or another identity
+                to sign in.
+              </TextBlock>
+            )}
+          </div>
+        }
+      >
+        <Button>{t('Disconnect')}</Button>
+      </Confirm>
+    ) : (
       <Button
-        disabled={identity.status !== UserIdentityStatus.CAN_DISCONNECT}
+        disabled
         title={
           identity.status === UserIdentityStatus.NEEDED_FOR_GLOBAL_AUTH
             ? t(
@@ -69,7 +90,6 @@ class AccountIdentities extends AsyncView<Props, State> {
             ? t('You need this identity to access your organization.')
             : null
         }
-        onClick={() => this.handleDisconnect(identity)}
       >
         {t('Disconnect')}
       </Button>

@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import {Client} from 'app/api';
 import AccountIdentities from 'app/views/settings/account/accountIdentities';
@@ -44,7 +45,7 @@ describe('AccountIdentities', function () {
     expect(wrapper).toSnapshot();
   });
 
-  it('disconnects identity', function () {
+  it('disconnects identity', async function () {
     Client.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
@@ -74,6 +75,8 @@ describe('AccountIdentities', function () {
     expect(mock).not.toHaveBeenCalled();
 
     wrapper.find('Button').first().simulate('click');
+    const modal = await mountGlobalModal();
+    modal.find('Button[priority="danger"]').simulate('click');
 
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith(
