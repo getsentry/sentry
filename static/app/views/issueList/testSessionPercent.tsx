@@ -4,7 +4,6 @@ import range from 'lodash/range';
 import moment from 'moment';
 import * as qs from 'query-string';
 
-import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import * as Layout from 'app/components/layouts/thirds';
@@ -19,7 +18,7 @@ import {
 } from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import Input from 'app/views/settings/components/forms/controls/input';
@@ -28,7 +27,6 @@ type Props = {
   selection: GlobalSelection;
   params: {orgId: string};
   organization: Organization;
-  api: Client;
 };
 
 const timePeriods = range(-1, -24 * 7, -1);
@@ -39,7 +37,8 @@ type GroupWithPercent = {
   percent: number;
 };
 
-function SessionPercent({params, api, selection, organization}: Props) {
+function SessionPercent({params, selection, organization}: Props) {
+  const api = useApi();
   const [threshold, setThreshold] = useState(defaultValue);
   const [statsArr, setStats] = useState<GroupWithPercent[][]>([]);
 
@@ -202,7 +201,7 @@ function SessionPercentWrapper(props: Props) {
   );
 }
 
-export default withApi(withGlobalSelection(withOrganization(SessionPercentWrapper)));
+export default withGlobalSelection(withOrganization(SessionPercentWrapper));
 
 const StyledInput = styled(Input)`
   width: 100px;

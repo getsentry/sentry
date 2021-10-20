@@ -222,31 +222,6 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "No projects available"}
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
-    def test_minimum_interval(self):
-        # smallest interval is 1h
-        response = self.do_request(
-            {"project": [-1], "statsPeriod": "2h", "interval": "5m", "field": ["sum(session)"]}
-        )
-        assert response.status_code == 400, response.content
-        assert response.data == {
-            "detail": "The interval has to be a multiple of the minimum interval of one hour."
-        }
-
-        response = self.do_request(
-            {"project": [-1], "statsPeriod": "2h", "interval": "1h", "field": ["sum(session)"]}
-        )
-        assert response.status_code == 200, response.content
-        assert result_sorted(response.data) == {
-            "start": "2021-01-14T11:00:00Z",
-            "end": "2021-01-14T12:28:00Z",
-            "query": "",
-            "intervals": ["2021-01-14T11:00:00Z", "2021-01-14T12:00:00Z"],
-            "groups": [
-                {"by": {}, "series": {"sum(session)": [2, 6]}, "totals": {"sum(session)": 8}}
-            ],
-        }
-
     @freeze_time("2021-01-14T12:37:28.303Z")
     def test_minute_resolution(self):
         with self.feature("organizations:minute-resolution-sessions"):

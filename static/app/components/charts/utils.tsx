@@ -16,6 +16,7 @@ export const THIRTY_DAYS = 43200;
 export const TWO_WEEKS = 20160;
 export const ONE_WEEK = 10080;
 export const TWENTY_FOUR_HOURS = 1440;
+export const SIX_HOURS = 360;
 export const ONE_HOUR = 60;
 
 /**
@@ -115,7 +116,7 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
 
 /**
  * Duplicate of getInterval, except that we do not support <1h granularity
- * Used by SessionsV2 and OrgStatsV2 API
+ * Used by OrgStatsV2 API
  */
 export function getSeriesApiInterval(datetimeObj: DateTimeObject) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -197,3 +198,14 @@ export const getDimensionValue = (dimension?: number | string | null) => {
 
   return dimension;
 };
+
+const RGB_LIGHTEN_VALUE = 30;
+export const lightenHexToRgb = (colors: string[]) =>
+  colors.map(hex => {
+    const rgb = [
+      Math.min(parseInt(hex.slice(1, 3), 16) + RGB_LIGHTEN_VALUE, 255),
+      Math.min(parseInt(hex.slice(3, 5), 16) + RGB_LIGHTEN_VALUE, 255),
+      Math.min(parseInt(hex.slice(5, 7), 16) + RGB_LIGHTEN_VALUE, 255),
+    ];
+    return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+  });

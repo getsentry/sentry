@@ -122,8 +122,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
       thresholdType: rule.thresholdType,
-      comparisonDelta: rule.comparisonDelta,
-      comparisonType: AlertRuleComparisonType.COUNT,
+      comparisonDelta: rule.comparisonDelta ?? undefined,
+      comparisonType: !rule.comparisonDelta
+        ? AlertRuleComparisonType.COUNT
+        : AlertRuleComparisonType.CHANGE,
       projects: [this.props.project],
       owner: rule.owner,
     };
@@ -559,7 +561,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   };
 
   handleComparisonTypeChange = (value: AlertRuleComparisonType) => {
-    this.setState({comparisonType: value});
+    const comparisonDelta =
+      value === AlertRuleComparisonType.COUNT ? undefined : this.state.comparisonDelta;
+    this.setState({comparisonType: value, comparisonDelta});
   };
 
   handleComparisonDeltaChange = (value: number) => {
@@ -635,6 +639,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       environment,
       resolveThreshold,
       thresholdType,
+      comparisonDelta,
+      comparisonType,
     };
     const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
 

@@ -62,7 +62,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             organization=organization, status=TeamStatus.VISIBLE
         ).order_by("slug")
         if query_params["filter"]:
-            queryset = queryset.filter(name__iexact=query_params["filter"])
+            queryset = queryset.filter(slug__iexact=slugify(query_params["filter"]))
 
         def data_fn(offset, limit):
             return list(queryset[offset : offset + limit])
@@ -149,7 +149,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             try:
                 omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
             except OrganizationMemberTeam.DoesNotExist:
-                pass
+                return
 
             self.create_audit_entry(
                 request=request,

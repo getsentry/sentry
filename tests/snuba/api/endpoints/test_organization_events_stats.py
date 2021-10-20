@@ -900,8 +900,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert [attrs for time, attrs in response.data["data"]] == [
-            [{"count": -50}],
-            [{"count": 100}],
+            [{"count": 1, "comparisonCount": 2}],
+            [{"count": 2, "comparisonCount": 1}],
         ]
 
     def test_comparison_invalid(self):
@@ -1015,6 +1015,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         self.events = []
         for index, event_data in enumerate(self.event_data):
             data = event_data["data"].copy()
+            event = {}
             for i in range(event_data["count"]):
                 data["event_id"] = f"{index}{i}" * 16
                 event = self.store_event(data, project_id=event_data["project"].id)

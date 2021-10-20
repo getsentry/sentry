@@ -240,7 +240,9 @@ def query(
             params,
             query=query,
             selected_columns=selected_columns,
+            equations=equations,
             orderby=orderby,
+            auto_fields=auto_fields,
             auto_aggregations=auto_aggregations,
             use_aggregate_conditions=use_aggregate_conditions,
             functions_acl=functions_acl,
@@ -329,7 +331,7 @@ def prepare_discover_query(
 
     with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
         if equations is not None:
-            resolved_equations, _ = resolve_equation_list(equations, selected_columns)
+            resolved_equations, _, _ = resolve_equation_list(equations, selected_columns)
         else:
             resolved_equations = []
 
@@ -407,7 +409,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params):
     equations, columns = categorize_columns(selected_columns)
 
     if len(equations) > 0:
-        resolved_equations, updated_columns = resolve_equation_list(
+        resolved_equations, updated_columns, _ = resolve_equation_list(
             equations, columns, aggregates_only=True, auto_add=True
         )
     else:
@@ -546,11 +548,8 @@ def timeseries_query(
         # If we have two sets of results then we're doing a comparison queries. Divide the primary
         # results by the comparison results.
         for result, cmp_result in zip(results[0], results[1]):
-            result_val, cmp_result_val = result.get(col_name, 0), cmp_result.get(col_name, 0)
-            comparison_value = 0
-            if cmp_result_val:
-                comparison_value = ((result_val / cmp_result_val) - 1) * 100
-            result[col_name] = comparison_value
+            cmp_result_val = cmp_result.get(col_name, 0)
+            result["comparisonCount"] = cmp_result_val
 
     results = results[0]
 

@@ -12,6 +12,7 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import DropdownMenu from 'app/components/dropdownMenu';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import FeatureBadge from 'app/components/featureBadge';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
@@ -20,6 +21,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'app/utils/discover/eventView';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import {decodeList} from 'app/utils/queryString';
@@ -101,6 +103,11 @@ class QueryList extends React.Component<Props> {
         conditions: eventView.query,
         orderby: '',
       };
+
+      trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
+        organization,
+        saved_query: !!savedQuery,
+      });
 
       openAddDashboardWidgetModal({
         organization,
@@ -201,12 +208,12 @@ class QueryList extends React.Component<Props> {
                 return (
                   hasFeature && (
                     <ContextMenu>
-                      <MenuItem
+                      <StyledMenuItem
                         data-test-id="add-query-to-dashboard"
                         onClick={this.handleAddQueryToDashboard(eventView)}
                       >
-                        {t('Add to Dashboard')}
-                      </MenuItem>
+                        {t('Add to Dashboard')} <FeatureBadge type="beta" noTooltip />
+                      </StyledMenuItem>
                     </ContextMenu>
                   )
                 );
@@ -279,12 +286,12 @@ class QueryList extends React.Component<Props> {
               >
                 {({hasFeature}) =>
                   hasFeature && (
-                    <MenuItem
+                    <StyledMenuItem
                       data-test-id="add-query-to-dashboard"
                       onClick={this.handleAddQueryToDashboard(eventView, savedQuery)}
                     >
-                      {t('Add to Dashboard')}
-                    </MenuItem>
+                      {t('Add to Dashboard')} <FeatureBadge type="beta" noTooltip />
+                    </StyledMenuItem>
                   )
                 }
               </Feature>
@@ -401,6 +408,13 @@ const DropdownTarget = styled('div')`
 `;
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   grid-column: 1 / 4;
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  white-space: nowrap;
+  span {
+    align-items: baseline;
+  }
 `;
 
 export default withApi(QueryList);

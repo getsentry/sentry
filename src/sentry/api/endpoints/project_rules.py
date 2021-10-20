@@ -1,7 +1,6 @@
 from typing import Mapping, Sequence
 
-from rest_framework import status
-from rest_framework.request import Request
+from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
@@ -25,21 +24,22 @@ from sentry.web.decorators import transaction_start
 
 def trigger_alert_rule_action_creators(
     actions: Sequence[Mapping[str, str]],
-    rule: Rule,
-    request: Request,
 ) -> None:
     for action in actions:
         # Only call creator for Sentry Apps with UI Components for alert rules.
         if not action.get("hasSchemaFormConfig"):
             continue
 
-        alert_rule_actions.AlertRuleActionCreator.run(
-            install=SentryAppInstallation.objects.get(uuid=action.get("sentryAppInstallationUuid")),
+        install = SentryAppInstallation.objects.get(uuid=action.get("sentryAppInstallationUuid"))
+        result = alert_rule_actions.AlertRuleActionCreator.run(
+            install=install,
             fields=action.get("settings"),
-            uri=action.get("uri"),
-            rule=rule,
-            request=request,
         )
+        # Bubble up errors from Sentry App to the UI
+        if not result["success"]:
+            raise serializers.ValidationError(
+                {"sentry_app": f'{install.sentry_app.name}: {result["message"]}'}
+            )
 
 
 class ProjectRulesEndpoint(ProjectEndpoint):
@@ -122,12 +122,11 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 tasks.find_channel_id_for_rule.apply_async(kwargs=kwargs)
                 return Response(uuid_context, status=202)
 
+            trigger_alert_rule_action_creators(kwargs.get("actions"))
             rule = project_rules.Creator.run(request=request, **kwargs)
             RuleActivity.objects.create(
                 rule=rule, user=request.user, type=RuleActivityType.CREATED.value
             )
-
-            trigger_alert_rule_action_creators(kwargs.get("actions"), rule, request)
 
             self.create_audit_entry(
                 request=request,

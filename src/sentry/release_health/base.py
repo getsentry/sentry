@@ -12,7 +12,6 @@ ReleaseName = str
 EnvironmentName = str
 DateString = str
 
-
 #: The functions supported by `run_sessions_query`
 SessionsQueryFunction = Literal[
     "sum(session)",
@@ -47,6 +46,8 @@ class SessionsQuery(TypedDict):
 
 SessionsQueryValue = Union[None, float, int]
 
+ProjectWithCount = Tuple[ProjectId, int]
+
 
 class SessionsQueryGroup(TypedDict):
     by: Mapping[GroupByFieldName, Union[str, int]]
@@ -66,7 +67,6 @@ FormattedIsoTime = str
 
 ProjectRelease = Tuple[ProjectId, ReleaseName]
 ProjectOrRelease = TypeVar("ProjectOrRelease", ProjectId, ProjectRelease)
-
 
 # taken from sentry.snuba.sessions.STATS_PERIODS
 StatsPeriod = Literal[
@@ -153,6 +153,44 @@ class CrashFreeBreakdown(TypedDict):
     crash_free_sessions: Optional[float]
 
 
+class DurationPercentiles(TypedDict):
+    duration_p50: Optional[float]
+    duration_p90: Optional[float]
+
+
+class UserCounts(TypedDict):
+    users: int
+    users_healthy: int
+    users_crashed: int
+    users_abnormal: int
+    users_errored: int
+
+
+class UserCountsAndPercentiles(DurationPercentiles, UserCounts):
+    pass
+
+
+class SessionCounts(TypedDict):
+    sessions: int
+    sessions_healthy: int
+    sessions_crashed: int
+    sessions_abnormal: int
+    sessions_errored: int
+
+
+class SessionCountsAndPercentiles(DurationPercentiles, SessionCounts):
+    pass
+
+
+# NOTE: Tuple is the wrong type, it's a fixed-length list. Unfortunately mypy
+# is too opinionated to support fixed-length lists.
+ProjectReleaseUserStats = Tuple[Sequence[Tuple[int, UserCountsAndPercentiles]], UserCounts]
+ProjectReleaseSessionStats = Tuple[
+    Sequence[Tuple[int, SessionCountsAndPercentiles]],
+    SessionCounts,
+]
+
+
 class ReleaseHealthBackend(Service):  # type: ignore
     """Abstraction layer for all release health related queries"""
 
@@ -168,6 +206,10 @@ class ReleaseHealthBackend(Service):  # type: ignore
         "get_changed_project_release_model_adoptions",
         "get_oldest_health_data_for_releases",
         "get_project_releases_count",
+        "get_project_release_stats",
+        "get_project_sessions_count",
+        "get_num_sessions_per_project",
+        "get_project_releases_by_stability",
     )
 
     def get_current_and_previous_crash_free_rates(
@@ -300,7 +342,7 @@ class ReleaseHealthBackend(Service):  # type: ignore
         environments: Optional[Sequence[EnvironmentName]] = None,
         summary_stats_period: Optional[StatsPeriod] = None,
         health_stats_period: Optional[StatsPeriod] = None,
-        stat: Optional[OverviewStat] = None,
+        stat: Optional[Literal["users", "sessions"]] = None,
     ) -> Mapping[ProjectRelease, ReleaseHealthOverview]:
         """Checks quickly for which of the given project releases we have
         health data available.  The argument is a tuple of `(project_id, release_name)`
@@ -347,5 +389,59 @@ class ReleaseHealthBackend(Service):  # type: ignore
     ) -> int:
         """
         Fetches the total count of releases/project combinations
+        """
+        raise NotImplementedError()
+
+    def get_project_release_stats(
+        self,
+        project_id: ProjectId,
+        release: ReleaseName,
+        stat: OverviewStat,
+        rollup: int,
+        start: datetime,
+        end: datetime,
+        environments: Optional[Sequence[EnvironmentName]] = None,
+    ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
+        raise NotImplementedError()
+
+    def get_project_sessions_count(
+        self,
+        project_id: ProjectId,
+        rollup: int,  # rollup in seconds
+        start: datetime,
+        end: datetime,
+        environment_id: Optional[int] = None,
+    ) -> int:
+        """
+        Returns the number of sessions in the specified period (optionally
+        filtered by environment)
+        """
+        raise NotImplementedError()
+
+    def get_num_sessions_per_project(
+        self,
+        project_ids: Sequence[ProjectId],
+        start: datetime,
+        end: datetime,
+        environment_ids: Optional[Sequence[int]] = None,
+        rollup: Optional[int] = None,  # rollup in seconds
+    ) -> Sequence[ProjectWithCount]:
+        """
+        Returns the number of sessions for each project specified.
+        Additionally
+        """
+        raise NotImplementedError()
+
+    def get_project_releases_by_stability(
+        self,
+        project_ids: Sequence[ProjectId],
+        offset: Optional[int],
+        limit: Optional[int],
+        scope: str,
+        stats_period: Optional[str] = None,
+        environments: Optional[Sequence[str]] = None,
+    ) -> Sequence[ProjectRelease]:
+        """Given some project IDs returns adoption rates that should be updated
+        on the postgres tables.
         """
         raise NotImplementedError()

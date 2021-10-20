@@ -2,15 +2,21 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
-from snuba_sdk.function import Function
+from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry.discover.arithmetic import (
+    Operation,
+    OperationSideType,
+    is_equation_alias,
+    resolve_equation_list,
+)
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, ProjectTeam, ProjectTransactionThreshold
@@ -47,7 +53,7 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
-from sentry.search.events.types import ParamsType, SelectType
+from sentry.search.events.types import NormalizedArg, ParamsType, SelectType
 from sentry.search.utils import InvalidQuery, parse_duration
 from sentry.utils.compat import zip
 from sentry.utils.numbers import format_grouped_length
@@ -82,7 +88,7 @@ class PseudoField:
 
         self.validate()
 
-    def get_expression(self, params):
+    def get_expression(self, params) -> Union[List[Any], Tuple[Any]]:
         if isinstance(self.expression, (list, tuple)):
             return deepcopy(self.expression)
         elif self.expression_fn is not None:
@@ -442,7 +448,7 @@ def format_column_arguments(column_args, arguments):
             column_args[i] = arguments[column_args[i].arg]
 
 
-def parse_arguments(function, columns):
+def parse_arguments(function: str, columns: str) -> List[str]:
     """
     Some functions take a quoted string for their arguments that may contain commas,
     which requires special handling.
@@ -543,6 +549,7 @@ def resolve_field_list(
         if "project.id" not in fields:
             fields.append("project.id")
 
+    field = None
     for field in fields:
         if isinstance(field, str) and field.strip() == "":
             continue
@@ -559,7 +566,7 @@ def resolve_field_list(
                     aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
 
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
-    if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
+    if auto_aggregations and snuba_filter.having and len(aggregations) > 0 and field is not None:
         for agg in snuba_filter.condition_aggregates:
             if agg not in snuba_filter.aliases:
                 function = resolve_field(agg, snuba_filter.params, functions_acl)
@@ -849,6 +856,15 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
         return ResolvedFunction(details, addition, None)
 
 
+def parse_combinator(function: str) -> Tuple[str, Optional[str]]:
+    for combinator in COMBINATORS:
+        kind = combinator.kind
+        if function.endswith(kind):
+            return function[: -len(kind)], kind
+
+    return function, None
+
+
 def parse_function(field, match=None, err_msg=None):
     if not match:
         match = is_function(field)
@@ -859,6 +875,7 @@ def parse_function(field, match=None, err_msg=None):
         raise InvalidSearchQuery(err_msg)
 
     function = match.group("function")
+
     return (
         function,
         parse_arguments(function, match.group("columns")),
@@ -933,8 +950,51 @@ def reflective_result_type(index=0):
     return result_type_fn
 
 
+class Combinator:
+    # The kind of combinator this is, to be overridden in the subclasses
+    kind: Optional[str] = None
+
+    def __init__(self, private: bool = True):
+        self.private = private
+
+    def validate_argument(self, column: str) -> bool:
+        raise NotImplementedError(f"{self.kind} combinator needs to implement `validate_argument`")
+
+    def apply(self, value: Any) -> Any:
+        raise NotImplementedError(f"{self.kind} combinator needs to implement `apply`")
+
+    def is_applicable(self, column_name: str) -> bool:
+        raise NotImplementedError(f"{self.kind} combinator needs to implement `is_applicable`")
+
+
+class ArrayCombinator(Combinator):
+    kind = "Array"
+
+    def __init__(self, column_name: str, array_columns: Set[str], private: bool = True):
+        super().__init__(private=private)
+        self.column_name = column_name
+        self.array_columns = array_columns
+
+    def validate_argument(self, column: str) -> bool:
+        if column in self.array_columns:
+            return True
+
+        raise InvalidFunctionArgument(f"{column} is not a valid array column.")
+
+    def is_applicable(self, column_name: str) -> bool:
+        return self.column_name == column_name
+
+
+class SnQLArrayCombinator(ArrayCombinator):
+    def apply(self, value: Any) -> Any:
+        return Function("arrayJoin", [value])
+
+
+COMBINATORS = [ArrayCombinator]
+
+
 class ArgValue:
-    def __init__(self, arg):
+    def __init__(self, arg: str):
         self.arg = arg
 
 
@@ -948,7 +1008,9 @@ class FunctionArg:
     def get_default(self, _):
         raise InvalidFunctionArgument(f"{self.name} has no defaults")
 
-    def normalize(self, value: str, _) -> str:
+    def normalize(
+        self, value: str, params: ParamsType, combinator: Optional[Combinator]
+    ) -> NormalizedArg:
         return value
 
     def get_type(self, _):
@@ -956,7 +1018,7 @@ class FunctionArg:
 
 
 class FunctionAliasArg(FunctionArg):
-    def normalize(self, value: str, _) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         if not ALIAS_PATTERN.match(value):
             raise InvalidFunctionArgument(f"{value} is not a valid function alias")
         return value
@@ -981,7 +1043,7 @@ class StringArg(FunctionArg):
         self.unescape_quotes = unescape_quotes
         self.optional_unquote = optional_unquote
 
-    def normalize(self, value: str, _) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         if self.unquote:
             if len(value) < 2 or value[0] != '"' or value[-1] != '"':
                 if not self.optional_unquote:
@@ -996,7 +1058,7 @@ class StringArg(FunctionArg):
 class DateArg(FunctionArg):
     date_format = "%Y-%m-%dT%H:%M:%S"
 
-    def normalize(self, value: str, _) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         try:
             datetime.strptime(value, self.date_format)
         except ValueError:
@@ -1017,7 +1079,7 @@ class ConditionArg(FunctionArg):
         "greater",
     ]
 
-    def normalize(self, value: str, _) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         if value not in self.VALID_CONDITIONS:
             raise InvalidFunctionArgument(
                 "{} is not a valid condition, the only supported conditions are: {}".format(
@@ -1043,7 +1105,7 @@ class NullColumn(FunctionArg):
     def get_default(self, _) -> None:
         return None
 
-    def normalize(self, value, _) -> None:
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> None:
         return None
 
 
@@ -1053,7 +1115,9 @@ class NumberRange(FunctionArg):
         self.start = start
         self.end = end
 
-    def normalize(self, value: str, _) -> float:
+    def normalize(
+        self, value: str, params: ParamsType, combinator: Optional[Combinator]
+    ) -> Optional[float]:
         try:
             normalized_value = float(value)
         except ValueError:
@@ -1076,10 +1140,12 @@ class NullableNumberRange(NumberRange):
     def get_default(self, _) -> None:
         return None
 
-    def normalize(self, value, params) -> Optional[float]:
+    def normalize(
+        self, value: str, params: ParamsType, combinator: Optional[Combinator]
+    ) -> Optional[float]:
         if value is None:
             return value
-        return super().normalize(value, params)
+        return super().normalize(value, params, combinator)
 
 
 class IntervalDefault(NumberRange):
@@ -1125,7 +1191,7 @@ class ColumnArg(FunctionArg):
         # Normalize the value to check if it is valid, but return the value as-is
         self.validate_only = validate_only
 
-    def normalize(self, value: str, _) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         snuba_column = SEARCH_MAP.get(value)
         if len(self.allowed_columns) > 0:
             if (
@@ -1149,10 +1215,10 @@ class ColumnArg(FunctionArg):
 class ColumnTagArg(ColumnArg):
     """Validate that the argument is either a column or a valid tag"""
 
-    def normalize(self, value: str, params: ParamsType) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         if TAG_KEY_RE.match(value) or VALID_FIELD_PATTERN.match(value):
             return value
-        return super().normalize(value, params)
+        return super().normalize(value, params, combinator)
 
 
 class CountColumn(ColumnArg):
@@ -1163,7 +1229,7 @@ class CountColumn(ColumnArg):
     def get_default(self, _) -> None:
         return None
 
-    def normalize(self, value: str, params: ParamsType) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         if value is None:
             raise InvalidFunctionArgument("a column is required")
 
@@ -1202,6 +1268,12 @@ class NumericColumn(ColumnArg):
         MEASUREMENTS_STALL_PERCENTAGE,
     }
 
+    numeric_array_columns = {
+        "measurements_value",
+        "span_op_breakdowns_value",
+        "spans_exclusive_time",
+    }
+
     def __init__(self, name: str, allow_array_value: Optional[bool] = False, **kwargs):
         super().__init__(name, **kwargs)
         self.allow_array_value = allow_array_value
@@ -1221,14 +1293,18 @@ class NumericColumn(ColumnArg):
             raise InvalidFunctionArgument(f"{value} is not a numeric column")
         return snuba_column
 
-    def normalize(self, value: str, _) -> Union[str, List[Any]]:
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        snuba_column = None
+
+        if combinator is not None and combinator.validate_argument(value):
+            snuba_column = value
+
         # `measurement_value` and `span_op_breakdowns_value` are actually an
         # array of Float64s. But when used in this context, we always want to
         # expand it using `arrayJoin`. The resulting column will be a numeric
         # column of type Float64.
-        snuba_column = None
         if self.allow_array_value:
-            if value in {"measurements_value", "span_op_breakdowns_value"}:
+            if value in self.numeric_array_columns:
                 snuba_column = value
 
         if snuba_column is None:
@@ -1240,15 +1316,23 @@ class NumericColumn(ColumnArg):
             return snuba_column
 
     def get_type(self, value: str) -> str:
+        if isinstance(value, str) and value in self.numeric_array_columns:
+            return "number"
+
         # `measurements.frames_frozen_rate` and `measurements.frames_slow_rate` are aliases
         # to a percentage value, since they are expressions rather than columns, we special
         # case them here
+        # TODO: These are no longer expressions with SnQL, this should be removed once the
+        # migration is done
         if isinstance(value, list):
             for name in self.measurement_aliases:
                 field = FIELD_ALIASES[name]
                 expression = field.get_expression(None)
                 if expression == value:
                     return field.result_type
+
+        if value in self.measurement_aliases:
+            return "percentage"
         snuba_column = self._normalize(value)
         if is_duration_measurement(snuba_column) or is_span_op_breakdown(snuba_column):
             return "duration"
@@ -1260,7 +1344,7 @@ class NumericColumn(ColumnArg):
 
 
 class DurationColumn(ColumnArg):
-    def normalize(self, value: str, _) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_duration_measurement(value):
             return value
@@ -1278,8 +1362,17 @@ class DurationColumn(ColumnArg):
 
 
 class StringArrayColumn(ColumnArg):
-    def normalize(self, value: str, _) -> str:
-        if value in ["tags.key", "tags.value", "measurements_key", "span_op_breakdowns_key"]:
+    string_array_columns = {
+        "tags.key",
+        "tags.value",
+        "measurements_key",
+        "span_op_breakdowns_key",
+        "spans_op",
+        "spans_group",
+    }
+
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        if value in self.string_array_columns:
             return value
         raise InvalidFunctionArgument(f"{value} is not a valid string array column")
 
@@ -1288,7 +1381,7 @@ class SessionColumnArg(ColumnArg):
     # XXX(ahmed): hack to get this to work with crash rate alerts over the sessions dataset until
     # we deprecate the logic that is tightly coupled with the events dataset. At which point,
     # we will just rely on dataset specific logic and refactor this class out
-    def normalize(self, value: str, _) -> str:
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         if value in SESSIONS_SNUBA_MAP:
             return value
         raise InvalidFunctionArgument(f"{value} is not a valid sessions dataset column")
@@ -1303,19 +1396,27 @@ def with_default(default, argument):
 # TODO(snql-migration): Remove these Arg classes in favour for their
 # non SnQL specific types
 class SnQLStringArg(StringArg):
-    def normalize(self, value: str, params: ParamsType) -> str:
-        value = super().normalize(value, params)
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        value = super().normalize(value, params, combinator)
         # SnQL interprets string types as string, so strip the
         # quotes added in StringArg.normalize.
         return value[1:-1]
 
 
 class SnQLDateArg(DateArg):
-    def normalize(self, value: str, params: ParamsType) -> str:
-        value = super().normalize(value, params)
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        value = super().normalize(value, params, combinator)
         # SnQL interprets string types as string, so strip the
         # quotes added in StringArg.normalize.
         return value[1:-1]
+
+
+class SnQLFieldColumn(FieldColumn):
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        if value is None:
+            raise InvalidFunctionArgument("a column is required")
+
+        return value
 
 
 class DiscoverFunction:
@@ -1332,6 +1433,7 @@ class DiscoverFunction:
         result_type_fn=None,
         default_result_type=None,
         redundant_grouping=False,
+        combinators=None,
         private=False,
     ):
         """
@@ -1361,6 +1463,7 @@ class DiscoverFunction:
             defined by RESULTS_TYPES.
         :param bool redundant_grouping: This function will result in redundant grouping if its column
             is included as a field as well.
+        :param list[Combinator] combinators: This is a list of combinators supported by this function.
         :param bool private: Whether or not this function should be disabled for general use.
         """
 
@@ -1375,6 +1478,7 @@ class DiscoverFunction:
         self.result_type_fn = result_type_fn
         self.default_result_type = default_result_type
         self.redundant_grouping = redundant_grouping
+        self.combinators = combinators
         self.private = private
 
         self.validate()
@@ -1401,7 +1505,9 @@ class DiscoverFunction:
         alias.name = name
         return alias
 
-    def add_default_arguments(self, field, columns, params):
+    def add_default_arguments(
+        self, field: str, columns: List[str], params: ParamsType
+    ) -> List[str]:
         # make sure to validate the argument count first to
         # ensure the right number of arguments have been passed
         self.validate_argument_count(field, columns)
@@ -1420,7 +1526,13 @@ class DiscoverFunction:
 
         return columns
 
-    def format_as_arguments(self, field, columns, params):
+    def format_as_arguments(
+        self,
+        field: str,
+        columns: List[str],
+        params: ParamsType,
+        combinator: Optional[Combinator] = None,
+    ) -> Mapping[str, NormalizedArg]:
         columns = self.add_default_arguments(field, columns, params)
 
         arguments = {}
@@ -1428,12 +1540,12 @@ class DiscoverFunction:
         # normalize the arguments before putting them in a dict
         for argument, column in zip(self.args, columns):
             try:
-                normalized_value = argument.normalize(column, params)
+                normalized_value = argument.normalize(column, params, combinator)
                 if not isinstance(self, SnQLFunction) and isinstance(argument, NumericColumn):
                     if normalized_value in argument.measurement_aliases:
                         field = FIELD_ALIASES[normalized_value]
                         normalized_value = field.get_expression(params)
-                    elif normalized_value in {"measurements_value", "span_op_breakdowns_value"}:
+                    elif normalized_value in NumericColumn.numeric_array_columns:
                         normalized_value = ["arrayJoin", [normalized_value]]
                 arguments[argument.name] = normalized_value
             except InvalidFunctionArgument as e:
@@ -1493,7 +1605,7 @@ class DiscoverFunction:
 
         self.validate_result_type(self.default_result_type)
 
-    def validate_argument_count(self, field, arguments):
+    def validate_argument_count(self, field: str, arguments: List[str]) -> None:
         """
         Validate the number of required arguments the function defines against
         provided arguments. Raise an exception if there is a mismatch in the
@@ -1525,12 +1637,37 @@ class DiscoverFunction:
             result_type is None or result_type in RESULT_TYPES
         ), f"{self.name}: result type {result_type} not one of {list(RESULT_TYPES)}"
 
-    def is_accessible(self, acl=None):
-        if not self.private:
+    def is_accessible(
+        self,
+        acl: Optional[List[str]] = None,
+        combinator: Optional[Combinator] = None,
+    ) -> bool:
+        name = self.name
+        is_combinator_private = False
+
+        if combinator is not None:
+            is_combinator_private = combinator.private
+            name = f"{name}{combinator.kind}"
+
+        # a function is only public if both the function
+        # and the specified combinator is public
+        if not is_combinator_private and not self.private:
             return True
-        elif not acl:
+
+        if not acl:
             return False
-        return self.name in acl
+
+        return name in acl
+
+    def find_combinator(self, kind: Optional[str]) -> Optional[Combinator]:
+        if kind is None or self.combinators is None:
+            return None
+
+        for combinator in self.combinators:
+            if combinator.kind == kind:
+                return combinator
+
+        return None
 
 
 # When updating this list, also check if the following need to be updated:
@@ -1670,7 +1807,7 @@ FUNCTIONS = {
                     " ", ""
                 ),
             ),
-            default_result_type="number",
+            default_result_type="integer",
         ),
         DiscoverFunction(
             "user_misery",
@@ -2125,14 +2262,18 @@ def normalize_percentile_alias(args: Mapping[str, str]) -> str:
     # function signature. This function only accepts percentile
     # aliases.
     aggregate_alias = args["aggregate_alias"]
-    match = re.match(r"(p\d{2,3})_(\w+)", aggregate_alias)
+    match = re.match(r"(p\d{2,3})_?(\w+)?", aggregate_alias)
 
     if not match:
         raise InvalidFunctionArgument("Aggregate alias must be a percentile function.")
 
     # Translating an arg of the pattern `measurements_lcp`
     # to `measurements.lcp`.
-    aggregate_arg = ".".join(match.group(2).split("_"))
+    if match.group(2):
+        aggregate_arg = ".".join(match.group(2).split("_"))
+    # We default percentiles without an arg to duration
+    else:
+        aggregate_arg = "transaction.duration"
 
     return f"{match.group(1)}({aggregate_arg})"
 
@@ -2167,9 +2308,13 @@ class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
     def __init__(
-        self, dataset: Dataset, params: ParamsType, functions_acl: Optional[List[str]] = None
+        self,
+        dataset: Dataset,
+        params: ParamsType,
+        auto_fields: bool = False,
+        functions_acl: Optional[List[str]] = None,
     ):
-        super().__init__(dataset, params, functions_acl)
+        super().__init__(dataset, params, auto_fields, functions_acl)
 
         self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
@@ -2308,6 +2453,9 @@ class QueryFields(QueryBase):
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
+                    combinators=[
+                        SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
+                    ],
                 ),
                 SnQLFunction(
                     "p50",
@@ -2520,6 +2668,9 @@ class QueryFields(QueryBase):
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
+                    combinators=[
+                        SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
+                    ],
                 ),
                 SnQLFunction(
                     "avg",
@@ -2569,10 +2720,13 @@ class QueryFields(QueryBase):
                     snql_aggregate=lambda args, alias: Function("sum", [args["column"]], alias),
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
+                    combinators=[
+                        SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
+                    ],
                 ),
                 SnQLFunction(
                     "any",
-                    required_args=[FieldColumn("column")],
+                    required_args=[SnQLFieldColumn("column")],
                     # Not actually using `any` so that this function returns consistent results
                     snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
                     result_type_fn=reflective_result_type(),
@@ -2639,28 +2793,67 @@ class QueryFields(QueryBase):
                 SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
             ]
         }
+
         for alias, name in FUNCTION_ALIASES.items():
             self.function_converter[alias] = self.function_converter[name].alias_as(alias)
 
-    def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
+    def resolve_select(
+        self, selected_columns: Optional[List[str]], equations: Optional[List[str]]
+    ) -> List[SelectType]:
         """Given a public list of discover fields, construct the corresponding
         list of Snql Columns or Functions. Duplicate columns are ignored
         """
+
         if selected_columns is None:
             return []
 
-        columns = []
+        resolved_columns = []
+        stripped_columns = [column.strip() for column in selected_columns]
 
-        for column in selected_columns:
-            if column.strip() == "":
+        if equations:
+            _, _, parsed_equations = resolve_equation_list(
+                equations, stripped_columns, use_snql=True
+            )
+            resolved_columns.extend(
+                [
+                    self.resolve_equation(equation, f"equation[{index}]")
+                    for index, equation in enumerate(parsed_equations)
+                ]
+            )
+
+        # Add threshold config alias if there's a function that depends on it
+        # TODO: this should be replaced with an explicit request for the project_threshold_config as a column
+        for column in {
+            "apdex()",
+            "count_miserable(user)",
+            "user_misery()",
+        }:
+            if (
+                column in stripped_columns
+                and PROJECT_THRESHOLD_CONFIG_ALIAS not in stripped_columns
+            ):
+                stripped_columns.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
+                break
+
+        for column in stripped_columns:
+            if column == "":
                 continue
             # need to make sure the column is resolved with the appropriate alias
             # because the resolved snuba name may be different
             resolved_column = self.resolve_column(column, alias=True)
             if resolved_column not in self.columns:
-                columns.append(resolved_column)
+                resolved_columns.append(resolved_column)
 
-        return columns
+        # Happens after resolving columns to check if there any aggregates
+        if self.auto_fields:
+            # Ensure fields we require to build a functioning interface
+            # are present.
+            if not self.aggregates and "id" not in stripped_columns:
+                resolved_columns.append(self.resolve_column("id", alias=True))
+            if "id" in stripped_columns and "project.id" not in stripped_columns:
+                resolved_columns.append(self.resolve_column("project.name", alias=True))
+
+        return resolved_columns
 
     def resolve_column(self, field: str, alias: bool = False) -> SelectType:
         """Given a public field, construct the corresponding Snql, this
@@ -2693,6 +2886,27 @@ class QueryFields(QueryBase):
         else:
             raise InvalidSearchQuery(f"Invalid characters in field {field}")
 
+    def resolve_equation(self, equation: Operation, alias: Optional[str] = None) -> SelectType:
+        """Convert this tree of Operations to the equivalent snql functions"""
+        lhs = self._resolve_equation_side(equation.lhs)
+        rhs = self._resolve_equation_side(equation.rhs)
+        result = Function(equation.operator, [lhs, rhs], alias)
+        return result
+
+    def _resolve_equation_side(self, side: OperationSideType) -> Union[SelectType, float]:
+        if isinstance(side, Operation):
+            return self.resolve_equation(side)
+        elif isinstance(side, float):
+            return side
+        else:
+            return self.resolve_column(side)
+
+    def is_equation_column(self, column: SelectType) -> bool:
+        """Equations are only ever functions, and shouldn't be literals so we
+        need to check that the column is a Function
+        """
+        return isinstance(column, CurriedFunction) and is_equation_alias(column.alias)
+
     def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
         """Given a list of public aliases, optionally prefixed by a `-` to
         represent direction, construct a list of Snql Orderbys
@@ -2713,7 +2927,10 @@ class QueryFields(QueryBase):
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
             try:
-                resolved_orderby = self.resolve_column(bare_orderby)
+                if is_equation_alias(bare_orderby):
+                    resolved_orderby = bare_orderby
+                else:
+                    resolved_orderby = self.resolve_column(bare_orderby)
             except NotImplementedError:
                 resolved_orderby = None
 
@@ -2725,7 +2942,7 @@ class QueryFields(QueryBase):
             for selected_column in self.columns:
                 if isinstance(selected_column, Column) and selected_column == resolved_orderby:
                     validated.append(OrderBy(selected_column, direction))
-                    continue
+                    break
 
                 elif (
                     isinstance(selected_column, AliasedExpression)
@@ -2734,13 +2951,14 @@ class QueryFields(QueryBase):
                     # We cannot directly order by an `AliasedExpression`.
                     # Instead, we order by the column inside.
                     validated.append(OrderBy(selected_column.exp, direction))
-                    continue
+                    break
 
                 elif (
-                    isinstance(selected_column, Function) and selected_column.alias == bare_orderby
+                    isinstance(selected_column, CurriedFunction)
+                    and selected_column.alias == bare_orderby
                 ):
                     validated.append(OrderBy(selected_column, direction))
-                    continue
+                    break
 
         if len(validated) == len(orderby_columns):
             return validated
@@ -2777,17 +2995,34 @@ class QueryFields(QueryBase):
         if function in self.params.get("aliases", {}):
             raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
 
-        name, arguments, alias = self.parse_function(match)
+        name, combinator_name, arguments, alias = self.parse_function(match)
         snql_function = self.function_converter[name]
-        if not snql_function.is_accessible(self.functions_acl):
+
+        combinator = snql_function.find_combinator(combinator_name)
+
+        if combinator_name is not None and combinator is None:
+            raise InvalidSearchQuery(
+                f"{snql_function.name}: no support for the -{combinator_name} combinator"
+            )
+
+        if not snql_function.is_accessible(self.functions_acl, combinator):
             raise InvalidSearchQuery(f"{snql_function.name}: no access to private function")
 
-        arguments = snql_function.format_as_arguments(name, arguments, self.params)
+        combinator_applied = False
+
+        arguments = snql_function.format_as_arguments(name, arguments, self.params, combinator)
+
         self.function_alias_map[alias] = FunctionDetails(function, snql_function, arguments.copy())
 
         for arg in snql_function.args:
             if isinstance(arg, ColumnArg):
                 arguments[arg.name] = self.resolve_column(arguments[arg.name])
+            if combinator is not None and combinator.is_applicable(arg.name):
+                arguments[arg.name] = combinator.apply(arguments[arg.name])
+                combinator_applied = True
+
+        if combinator and not combinator_applied:
+            raise InvalidSearchQuery("Invalid combinator: Arguments passed were incompatible")
 
         if snql_function.snql_aggregate is not None:
             self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
@@ -2795,22 +3030,30 @@ class QueryFields(QueryBase):
 
         return snql_function.snql_column(arguments, alias)
 
-    def parse_function(self, match: Match[str]) -> Tuple[str, List[str], str]:
+    def parse_function(self, match: Match[str]) -> Tuple[str, Optional[str], List[str], str]:
         """Given a FUNCTION_PATTERN match, seperate the function name, arguments
         and alias out
         """
-        function = match.group("function")
+        raw_function = match.group("function")
+        function, combinator = parse_combinator(raw_function)
+
         if not self.is_function(function):
             raise InvalidSearchQuery(f"{function} is not a valid function")
 
-        arguments = match.group("columns")
-        arguments = parse_arguments(function, arguments)
+        arguments = parse_arguments(function, match.group("columns"))
         alias = match.group("alias")
 
         if alias is None:
-            alias = get_function_alias_with_columns(function, arguments)
+            alias = get_function_alias_with_columns(raw_function, arguments)
 
-        return (function, arguments, alias)
+        return (function, combinator, arguments, alias)
+
+    def get_public_alias(self, function: CurriedFunction) -> str:
+        """Given a function resolved by QueryBuilder, get the public alias of that function
+
+        ie. any_user_display -> any(user_display)
+        """
+        return self.function_alias_map[function.alias].field
 
     # Field Aliases
     def _resolve_issue_id_alias(self, _: str) -> SelectType:
@@ -3144,7 +3387,7 @@ class QueryFields(QueryBase):
             )
         )
 
-    def _resolve_division(self, dividend: str, divisor: str) -> SelectType:
+    def _resolve_division(self, dividend: str, divisor: str, alias: str) -> SelectType:
         return Function(
             "if",
             [
@@ -3161,16 +3404,25 @@ class QueryFields(QueryBase):
                 ),
                 None,
             ],
+            alias,
         )
 
     def _resolve_measurements_frames_slow_rate(self, _: str) -> SelectType:
-        return self._resolve_division("measurements.frames_slow", "measurements.frames_total")
+        return self._resolve_division(
+            "measurements.frames_slow", "measurements.frames_total", MEASUREMENTS_FRAMES_SLOW_RATE
+        )
 
     def _resolve_measurements_frames_frozen_rate(self, _: str) -> SelectType:
-        return self._resolve_division("measurements.frozen_rate", "measurements.frames_total")
+        return self._resolve_division(
+            "measurements.frames_frozen",
+            "measurements.frames_total",
+            MEASUREMENTS_FRAMES_FROZEN_RATE,
+        )
 
     def _resolve_measurements_stall_percentage(self, _: str) -> SelectType:
-        return self._resolve_division("measurements.stall_total_time", "transaction.duration")
+        return self._resolve_division(
+            "measurements.stall_total_time", "transaction.duration", MEASUREMENTS_STALL_PERCENTAGE
+        )
 
     def _resolve_unimplemented_function(
         self,
