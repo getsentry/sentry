@@ -1,14 +1,16 @@
+from typing import Any, Mapping
+
 from rest_framework import serializers
 
 from sentry.api.fields import ActorField
-from sentry.models import Team, User
+from sentry.models import Actor, Team, User
 from sentry.models.group import STATUS_UPDATE_CHOICES
 from sentry.utils.compat import zip
 
 from . import InboxDetailsValidator, StatusDetailsValidator
 
 
-class GroupValidator(serializers.Serializer):
+class GroupValidator(serializers.Serializer):  # type: ignore
     inbox = serializers.BooleanField()
     inboxDetails = InboxDetailsValidator()
     status = serializers.ChoiceField(
@@ -34,7 +36,7 @@ class GroupValidator(serializers.Serializer):
     # for the moment, the CLI sends this for any issue update, so allow nulls
     snoozeDuration = serializers.IntegerField(allow_null=True)
 
-    def validate_assignedTo(self, value):
+    def validate_assignedTo(self, value: "Actor") -> "Actor":
         if (
             value
             and value.type is User
@@ -53,13 +55,13 @@ class GroupValidator(serializers.Serializer):
 
         return value
 
-    def validate_discard(self, value):
+    def validate_discard(self, value: bool) -> bool:
         access = self.context.get("access")
         if value and (not access or not access.has_scope("event:admin")):
             raise serializers.ValidationError("You do not have permission to discard events")
         return value
 
-    def validate(self, attrs):
+    def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
         attrs = super().validate(attrs)
         if len(attrs) > 1 and "discard" in attrs:
             raise serializers.ValidationError("Other attributes cannot be updated when discarding")

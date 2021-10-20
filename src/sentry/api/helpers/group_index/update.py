@@ -1,11 +1,12 @@
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, MutableMapping, Optional, Sequence
 from uuid import uuid4
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, eventstream, features
@@ -30,6 +31,7 @@ from sentry.models import (
     GroupStatus,
     GroupSubscription,
     GroupTombstone,
+    Project,
     Release,
     User,
     UserOption,
@@ -56,11 +58,16 @@ from sentry.tasks.merge import merge_groups
 from sentry.utils import metrics
 from sentry.utils.functional import extract_lazy_object
 
-from . import BULK_MUTATION_LIMIT, delete_group_list
+from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
 from .validators import GroupValidator, ValidationError
 
 
-def handle_discard(request, group_list, projects, user):
+def handle_discard(
+    request: Request,
+    group_list: Sequence["Group"],
+    projects: Sequence["Project"],
+    user: "User",
+) -> Response:
     for project in projects:
         if not features.has("projects:discard-groups", project, actor=user):
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
@@ -88,12 +95,16 @@ def handle_discard(request, group_list, projects, user):
                 )
 
     for project in projects:
-        delete_group_list(request, project, groups_to_delete.get(project.id), delete_type="discard")
+        delete_group_list(
+            request, project, groups_to_delete.get(project.id, []), delete_type="discard"
+        )
 
     return Response(status=204)
 
 
-def self_subscribe_and_assign_issue(acting_user, group):
+def self_subscribe_and_assign_issue(
+    acting_user: Optional["User"], group: "Group"
+) -> Optional["ActorTuple"]:
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
     # or the group is assigned already, otherwise returns Actor
@@ -107,9 +118,12 @@ def self_subscribe_and_assign_issue(acting_user, group):
         )
         if self_assign_issue == "1" and not group.assignee_set.exists():
             return ActorTuple(type=User, id=acting_user.id)
+    return None
 
 
-def get_current_release_version_of_group(group, follows_semver=False):
+def get_current_release_version_of_group(
+    group: "Group", follows_semver: bool = False
+) -> Optional[Release]:
     """
     Function that returns the latest release version associated with a Group, and by latest we
     mean either most recent (date) or latest in semver versioning scheme
@@ -138,7 +152,7 @@ def get_current_release_version_of_group(group, follows_semver=False):
                 .get()
             )
         except Release.DoesNotExist:
-            ...
+            pass
     else:
         # This sets current_release_version to the most recent release associated with a group
         # In order to be able to do that, `use_cache` has to be set to False. Otherwise,
@@ -150,11 +164,11 @@ def get_current_release_version_of_group(group, follows_semver=False):
 
 
 def update_groups(
-    request,
-    group_ids,
-    projects,
-    organization_id,
-    search_fn,
+    request: Request,
+    group_ids: Sequence["Group"],
+    projects: Sequence["Project"],
+    organization_id: int,
+    search_fn: SearchFunction,
     user: Optional["User"] = None,
     data: Optional[Mapping[str, Any]] = None,
 ) -> Response:
@@ -240,7 +254,7 @@ def update_groups(
                 .order_by("-sort")[0]
             )
             activity_type = Activity.SET_RESOLVED_IN_RELEASE
-            activity_data = {
+            activity_data: MutableMapping[str, Optional[Any]] = {
                 # no version yet
                 "version": ""
             }
@@ -630,7 +644,9 @@ def update_groups(
                 GroupResolution.Type.in_release,
             ):
                 result["activity"] = serialize(
-                    Activity.objects.get_activities_for_group(group=group_list[0], num=100),
+                    Activity.objects.get_activities_for_group(
+                        group=group_list[0], num=ACTIVITIES_COUNT
+                    ),
                     acting_user,
                 )
     except UnboundLocalError:

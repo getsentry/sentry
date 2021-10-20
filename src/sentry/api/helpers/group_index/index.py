@@ -1,14 +1,19 @@
+from datetime import datetime
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Tuple
+
 import sentry_sdk
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, search
+from sentry.api.event_search import SearchFilter
 from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.app import ratelimiter
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Environment, Group, Release
+from sentry.models import Environment, Group, Organization, Project, Release, User
 from sentry.models.group import looks_like_short_id
 from sentry.signals import advanced_search_feature_gated
 from sentry.utils import metrics
@@ -16,17 +21,27 @@ from sentry.utils.compat import zip
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.hashlib import md5_text
 
+from . import SEARCH_MAX_HITS
 from .validators import ValidationError
+
+# TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
+EndpointFunction = Callable[..., Response]
+
 
 # List of conditions that mark a SearchFilter as an advanced search. Format is
 # (lambda SearchFilter(): <boolean condition>, '<feature_name')
-advanced_search_features = [
+advanced_search_features: Sequence[Tuple[Callable[[SearchFilter], Any], str]] = [
     (lambda search_filter: search_filter.is_negation, "negative search"),
     (lambda search_filter: search_filter.value.is_wildcard(), "wildcard search"),
 ]
 
 
-def build_query_params_from_request(request, organization, projects, environments):
+def build_query_params_from_request(
+    request: Request,
+    organization: "Organization",
+    projects: Sequence["Project"],
+    environments: Optional[Sequence["Environment"]],
+) -> MutableMapping[str, Any]:
     query_kwargs = {"projects": projects, "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION)}
 
     limit = request.GET.get("limit")
@@ -65,7 +80,11 @@ def build_query_params_from_request(request, organization, projects, environment
     return query_kwargs
 
 
-def validate_search_filter_permissions(organization, search_filters, user):
+def validate_search_filter_permissions(
+    organization: "Organization",
+    search_filters: Sequence[SearchFilter],
+    user: "User",
+) -> None:
     """
     Verifies that an organization is allowed to perform the query that they
     submitted.
@@ -77,7 +96,7 @@ def validate_search_filter_permissions(organization, search_filters, user):
     # If the organization has advanced search, then no need to perform any
     # other checks since they're allowed to use all search features
     if features.has("organizations:advanced-search", organization):
-        return
+        return None
 
     for search_filter in search_filters:
         for feature_condition, feature_name in advanced_search_features:
@@ -90,17 +109,22 @@ def validate_search_filter_permissions(organization, search_filters, user):
                 )
 
 
-def get_by_short_id(organization_id, is_short_id_lookup, query):
+def get_by_short_id(
+    organization_id: int,
+    is_short_id_lookup: str,
+    query: str,
+) -> Optional["Group"]:
     if is_short_id_lookup == "1" and looks_like_short_id(query):
         try:
             return Group.objects.by_qualified_short_id(organization_id, query)
         except Group.DoesNotExist:
             pass
+    return None
 
 
-def track_slo_response(name):
-    def inner_func(function):
-        def wrapper(request, *args, **kwargs):
+def track_slo_response(name: str) -> Callable[[EndpointFunction], EndpointFunction]:
+    def inner_func(function: EndpointFunction) -> EndpointFunction:
+        def wrapper(request: Request, *args: Any, **kwargs: Any) -> Response:
             from sentry.utils import snuba
 
             try:
@@ -137,14 +161,14 @@ def track_slo_response(name):
     return inner_func
 
 
-def build_rate_limit_key(function, request):
+def build_rate_limit_key(function: EndpointFunction, request: Request) -> str:
     ip = request.META["REMOTE_ADDR"]
     return f"rate_limit_endpoint:{md5_text(function.__qualname__).hexdigest()}:{ip}"
 
 
-def rate_limit_endpoint(limit=1, window=1):
-    def inner(function):
-        def wrapper(self, request, *args, **kwargs):
+def rate_limit_endpoint(limit: int = 1, window: int = 1) -> EndpointFunction:
+    def inner(function: EndpointFunction) -> EndpointFunction:
+        def wrapper(self: Any, request: Request, *args: Any, **kwargs: Any) -> Response:
             if ratelimiter.is_limited(
                 build_rate_limit_key(function, request),
                 limit=limit,
@@ -164,7 +188,11 @@ def rate_limit_endpoint(limit=1, window=1):
     return inner
 
 
-def calculate_stats_period(stats_period, start, end):
+def calculate_stats_period(
+    stats_period: Optional[str],
+    start: Optional[datetime],
+    end: Optional[datetime],
+) -> Tuple[Optional[str], Optional[datetime], Optional[datetime]]:
     if stats_period is None:
         # default
         stats_period = "24h"
@@ -181,14 +209,17 @@ def calculate_stats_period(stats_period, start, end):
     return stats_period, stats_period_start, stats_period_end
 
 
-def prep_search(cls, request, project, extra_query_kwargs=None):
+def prep_search(
+    cls: Any,
+    request: Request,
+    project: "Project",
+    extra_query_kwargs: Optional[Mapping[str, Any]] = None,
+) -> Tuple[CursorResult, Mapping[str, Any]]:
     try:
         environment = cls._get_environment_from_request(request, project.organization_id)
     except Environment.DoesNotExist:
-        # XXX: The 1000 magic number for `max_hits` is an abstraction leak
-        # from `sentry.api.paginator.BasePaginator.get_result`.
-        result = CursorResult([], None, None, hits=0, max_hits=1000)
-        query_kwargs = {}
+        result = CursorResult([], None, None, hits=0, max_hits=SEARCH_MAX_HITS)
+        query_kwargs: MutableMapping[str, Any] = {}
     else:
         environments = [environment] if environment is not None else environment
         query_kwargs = build_query_params_from_request(
@@ -203,7 +234,10 @@ def prep_search(cls, request, project, extra_query_kwargs=None):
     return result, query_kwargs
 
 
-def get_first_last_release(request, group):
+def get_first_last_release(
+    request: Request,
+    group: "Group",
+) -> Tuple[Optional[Mapping[str, Any]], Optional[Mapping[str, Any]]]:
     first_release = group.get_first_release()
     if first_release is not None:
         last_release = group.get_last_release()
@@ -222,7 +256,7 @@ def get_first_last_release(request, group):
     return first_release, last_release
 
 
-def get_release_info(request, group, version):
+def get_release_info(request: Request, group: "Group", version: str) -> Mapping[str, Any]:
     try:
         release = Release.objects.get(
             projects=group.project,
@@ -231,10 +265,17 @@ def get_release_info(request, group, version):
         )
     except Release.DoesNotExist:
         release = {"version": version}
-    return serialize(release, request.user)
+
+    # Explicitly typing to satisfy mypy.
+    release_ifo: Mapping[str, Any] = serialize(release, request.user)
+    return release_ifo
 
 
-def get_first_last_release_info(request, group, versions):
+def get_first_last_release_info(
+    request: Request,
+    group: "Group",
+    versions: Sequence[str],
+) -> Sequence[Mapping[str, Any]]:
     releases = {
         release.version: release
         for release in Release.objects.filter(

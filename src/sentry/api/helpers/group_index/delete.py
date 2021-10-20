@@ -1,23 +1,30 @@
 import logging
 from collections import defaultdict
+from typing import List, Sequence
 from uuid import uuid4
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstream
 from sentry.api.base import audit_logger
-from sentry.models import Group, GroupHash, GroupInbox, GroupStatus
+from sentry.models import Group, GroupHash, GroupInbox, GroupStatus, Project
 from sentry.signals import issue_deleted
 from sentry.tasks.deletion import delete_groups as delete_groups_task
 from sentry.utils.audit import create_audit_entry
 
-from . import BULK_MUTATION_LIMIT
+from . import BULK_MUTATION_LIMIT, SearchFunction
 from .validators import ValidationError
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
-def delete_group_list(request, project, group_list, delete_type):
+def delete_group_list(
+    request: Request,
+    project: "Project",
+    group_list: List["Group"],
+    delete_type: str,
+) -> None:
     if not group_list:
         return
 
@@ -78,7 +85,12 @@ def delete_group_list(request, project, group_list, delete_type):
         )
 
 
-def delete_groups(request, projects, organization_id, search_fn):
+def delete_groups(
+    request: Request,
+    projects: Sequence["Project"],
+    organization_id: int,
+    search_fn: SearchFunction,
+) -> Response:
     """
     `search_fn` refers to the `search.query` method with the appropriate
     project, org, environment, and search params already bound
@@ -114,7 +126,7 @@ def delete_groups(request, projects, organization_id, search_fn):
 
     for project in projects:
         delete_group_list(
-            request, project, groups_by_project_id.get(project.id), delete_type="delete"
+            request, project, groups_by_project_id.get(project.id, []), delete_type="delete"
         )
 
     return Response(status=204)
