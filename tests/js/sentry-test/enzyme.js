@@ -1,13 +1,13 @@
 import {cache} from '@emotion/css'; // eslint-disable-line emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
-import {mount, render, shallow} from 'enzyme'; // eslint-disable-line no-restricted-imports
+import {mount, shallow as enzymeShallow} from 'enzyme'; // eslint-disable-line no-restricted-imports
 
 import {lightTheme} from 'app/utils/theme';
 
 /**
  * @deprecated
  * As we are migrating our tests to React Testing Library,
- * please avoid using `sentry-test/enzyme` and use `sentry-test/reactTestingLibrary` instead.
+ * please avoid using `sentry-test/enzyme/mountWithTheme` and use `sentry-test/reactTestingLibrary/mountWithTheme` instead.
  */
 const mountWithTheme = (tree, opts) => {
   const WrappingThemeProvider = props => (
@@ -19,4 +19,11 @@ const mountWithTheme = (tree, opts) => {
   return mount(tree, {wrappingComponent: WrappingThemeProvider, ...opts});
 };
 
-export {mountWithTheme, render, shallow};
+/**
+ * @deprecated
+ * As we are migrating our tests to React Testing Library,
+ * please avoid using `sentry-test/enzyme/shallow` and use `sentry-test/reactTestingLibrary/mountWithTheme` instead.
+ */
+const shallow = enzymeShallow;
+
+export {mountWithTheme, shallow};
