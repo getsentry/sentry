@@ -1,25 +1,40 @@
+from typing import TYPE_CHECKING, Any, Mapping, Optional
+
 from django.conf import settings
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
-from sentry.db.models.manager import OptionManager
+from sentry.db.models.manager import OptionManager, Value
+
+if TYPE_CHECKING:
+    from sentry.models import Organization, Project, User
+
 
 option_scope_error = "this is not a supported use case, scope to project OR organization"
 
 
-class UserOptionManager(OptionManager):
-    def _make_key(self, user, project=None, organization=None):
+class UserOptionManager(OptionManager["User"]):
+    def _make_key(
+        self,
+        user: "User",
+        project: Optional["Project"] = None,
+        organization: Optional["Organization"] = None,
+    ) -> str:
         if project:
             metakey = f"{user.pk}:{project.id}:project"
         elif organization:
             metakey = f"{user.pk}:{organization.id}:organization"
         else:
-            metakey = "%s:user" % (user.pk)
+            metakey = f"{user.pk}:user"
 
-        return super()._make_key(metakey)
+        # Explicitly typing to satisfy mypy.
+        key: str = super()._make_key(metakey)
+        return key
 
-    def get_value(self, user, key, default=None, **kwargs):
+    def get_value(
+        self, user: "User", key: str, default: Optional[Value] = None, **kwargs: Any
+    ) -> Value:
         project = kwargs.get("project")
         organization = kwargs.get("organization")
 
@@ -31,7 +46,7 @@ class UserOptionManager(OptionManager):
             result = self.get_all_values(user, project)
         return result.get(key, default)
 
-    def unset_value(self, user, project, key):
+    def unset_value(self, user: "User", project: "Project", key: str) -> None:
         """
         This isn't implemented for user-organization scoped options yet, because it hasn't been needed.
         """
@@ -46,7 +61,7 @@ class UserOptionManager(OptionManager):
             return
         self._option_cache[metakey].pop(key, None)
 
-    def set_value(self, user, key, value, **kwargs):
+    def set_value(self, user: "User", key: str, value: Value, **kwargs: Any) -> None:
         project = kwargs.get("project")
         organization = kwargs.get("organization")
 
@@ -69,7 +84,13 @@ class UserOptionManager(OptionManager):
             return
         self._option_cache[metakey][key] = value
 
-    def get_all_values(self, user, project=None, organization=None, force_reload=False):
+    def get_all_values(
+        self,
+        user: "User",
+        project: Optional["Project"] = None,
+        organization: Optional["Organization"] = None,
+        force_reload: bool = False,
+    ) -> Mapping[str, Value]:
         if organization and project:
             raise NotImplementedError(option_scope_error)
 
@@ -81,14 +102,17 @@ class UserOptionManager(OptionManager):
                 for i in self.filter(user=user, project=project, organization=organization)
             }
             self._option_cache[metakey] = result
-        return self._option_cache.get(metakey, {})
 
-    def post_save(self, instance, **kwargs):
+        # Explicitly typing to satisfy mypy.
+        values: Mapping[str, Value] = self._option_cache.get(metakey, {})
+        return values
+
+    def post_save(self, instance: "UserOption", **kwargs: Any) -> None:
         self.get_all_values(
             instance.user, instance.project, instance.organization, force_reload=True
         )
 
-    def post_delete(self, instance, **kwargs):
+    def post_delete(self, instance: "UserOption", **kwargs: Any) -> None:
         self.get_all_values(
             instance.user, instance.project, instance.organization, force_reload=True
         )
@@ -96,7 +120,7 @@ class UserOptionManager(OptionManager):
 
 # TODO(dcramer): the NULL UNIQUE constraint here isn't valid, and instead has to
 # be manually replaced in the database. We should restructure this model.
-class UserOption(Model):
+class UserOption(Model):  # type: ignore
     """
     User options apply only to a user, and optionally a project OR an organization.
 

@@ -1,19 +1,21 @@
 from collections import defaultdict
 
+from django.db.models import prefetch_related_objects
+
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.incidents.endpoints.utils import translate_threshold
 from sentry.incidents.models import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
 )
 from sentry.utils.compat import zip
-from sentry.utils.db import attach_foreignkey
 
 
 @register(AlertRuleTrigger)
 class AlertRuleTriggerSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-        attach_foreignkey(item_list, AlertRuleTrigger.alert_rule)
+        prefetch_related_objects(item_list, "alert_rule")
 
         triggers = {item.id: item for item in item_list}
         result = defaultdict(dict)
@@ -36,8 +38,10 @@ class AlertRuleTriggerSerializer(Serializer):
             "alertRuleId": str(obj.alert_rule_id),
             "label": obj.label,
             "thresholdType": obj.alert_rule.threshold_type,
-            "alertThreshold": obj.alert_threshold,
-            "resolveThreshold": obj.alert_rule.resolve_threshold,
+            "alertThreshold": translate_threshold(obj.alert_rule, obj.alert_threshold),
+            "resolveThreshold": translate_threshold(
+                obj.alert_rule, obj.alert_rule.resolve_threshold
+            ),
             "dateCreated": obj.date_added,
             "actions": attrs.get("actions", []),
         }

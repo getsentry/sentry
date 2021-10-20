@@ -1,8 +1,11 @@
+from urllib.parse import urlencode
+
 from django.test import override_settings
 from django.urls import reverse
 from exam import fixture
 
 from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
+from sentry.auth.provider import MigratingIdentityId
 from sentry.models import (
     AuthIdentity,
     AuthProvider,
@@ -12,6 +15,8 @@ from sentry.models import (
 )
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
+from sentry.utils import json
+from sentry.utils.compat import mock
 
 
 # TODO(dcramer): this is an integration test and repeats tests from
@@ -72,12 +77,15 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, "sentry/auth-confirm-identity.html")
         assert resp.status_code == 200
 
+        frontend_events = {"event_name": "Sign Up", "event_label": "dummy"}
+        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
+
         with self.settings(
             TERMS_URL="https://example.com/terms", PRIVACY_URL="https://example.com/privacy"
         ):
             resp = self.client.post(path, {"op": "newuser"}, follow=True)
             assert resp.redirect_chain == [
-                (reverse("sentry-login"), 302),
+                (reverse("sentry-login") + f"?{marketing_query}", 302),
                 ("/organizations/foo/issues/", 302),
             ]
 
@@ -93,6 +101,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
 
     def test_flow_as_existing_user_with_new_account(self):
         auth_provider = AuthProvider.objects.create(
@@ -125,6 +134,42 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         member = OrganizationMember.objects.get(organization=self.organization, user=user)
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
+
+    def test_flow_as_existing_user_with_new_account_membe_limit(self):
+        with self.feature({"organizations:invite-members": False}):
+            auth_provider = AuthProvider.objects.create(
+                organization=self.organization, provider="dummy"
+            )
+            user = self.create_user("bar@example.com")
+
+            self.login_as(user)
+            resp = self.client.post(self.path, {"init": True})
+
+            assert resp.status_code == 200
+            assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+            path = reverse("sentry-auth-sso")
+
+            resp = self.client.post(path, {"email": "foo@example.com"})
+
+            self.assertTemplateUsed(resp, "sentry/auth-confirm-link.html")
+            assert resp.status_code == 200
+
+            resp = self.client.post(path, {"op": "confirm"}, follow=True)
+            assert resp.redirect_chain == [
+                (reverse("sentry-login"), 302),
+                ("/organizations/foo/issues/", 302),
+                ("/organizations/foo/disabled-member/", 302),
+            ]
+
+            auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
+            assert user == auth_identity.user
+
+            member = OrganizationMember.objects.get(organization=self.organization, user=user)
+            assert getattr(member.flags, "sso:linked")
+            assert not getattr(member.flags, "sso:invalid")
+            assert getattr(member.flags, "member-limit:restricted")
 
     def test_flow_as_existing_identity(self):
         user = self.create_user("bar@example.com")
@@ -164,9 +209,12 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.context["existing_user"] == user
         assert resp.context["login_form"]
 
+        frontend_events = {"event_name": "Sign Up", "event_label": "dummy"}
+        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
+
         resp = self.client.post(path, {"op": "newuser"}, follow=True)
         assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
+            (reverse("sentry-login") + f"?{marketing_query}", 302),
             ("/organizations/foo/issues/", 302),
         ]
 
@@ -183,6 +231,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
 
     def test_flow_as_unauthenticated_existing_matched_user_with_merge(self):
         user = self.create_user("bar@example.com")
@@ -233,6 +282,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         member = OrganizationMember.objects.get(organization=org1, user=user)
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
 
     def test_flow_as_unauthenticated_existing_matched_user_via_secondary_email(self):
         auth_provider = AuthProvider.objects.create(
@@ -275,6 +325,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
 
     def test_flow_as_unauthenticated_existing_unmatched_user_with_merge(self):
         auth_provider = AuthProvider.objects.create(
@@ -318,6 +369,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
 
     def test_flow_as_unauthenticated_existing_matched_user_with_merge_and_existing_identity(self):
         auth_provider = AuthProvider.objects.create(
@@ -367,6 +419,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
 
     def test_flow_as_unauthenticated_existing_inactive_user_with_merge_and_existing_identity(self):
         """
@@ -397,9 +450,12 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not resp.context["existing_user"]
         assert resp.context["login_form"]
 
+        frontend_events = {"event_name": "Sign Up", "event_label": "dummy"}
+        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
+
         resp = self.client.post(path, {"op": "newuser"}, follow=True)
         assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
+            (reverse("sentry-login") + f"?{marketing_query}", 302),
             ("/organizations/foo/issues/", 302),
         ]
 
@@ -414,6 +470,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
 
     def test_flow_duplicate_users_with_membership_and_verified(self):
         """
@@ -471,6 +528,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
 
     def test_flow_duplicate_users_without_verified(self):
         """
@@ -513,7 +571,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         Given an existing authenticated user, and an updated identity (e.g.
         the ident changed from the SSO provider), we should be re-linking
         the identity automatically as they don't have a password.
-
         This is specifically testing an unauthenticated flow.
         """
         AuthProvider.objects.create(organization=self.organization, provider="dummy")
@@ -521,6 +578,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # setup a 'previous' identity, such as when we migrated Google from
         # the old idents to the new
         user = self.create_user("bar@example.com", is_managed=False, password="")
+        assert not user.has_usable_password()
         UserEmail.objects.filter(user=user, email="bar@example.com").update(is_verified=False)
         self.create_member(organization=self.organization, user=user)
 
@@ -534,7 +592,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"email": "bar@example.com"})
         self.assertTemplateUsed(resp, "sentry/auth-confirm-identity.html")
         assert resp.status_code == 200
-        assert resp.context["existing_user"] == user
+        assert resp.context["existing_user"] is None
 
     def test_flow_managed_duplicate_users_without_membership(self):
         """
@@ -627,10 +685,12 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         member1 = OrganizationMember.objects.get(user=user, organization=self.organization)
         assert getattr(member1.flags, "sso:linked")
         assert not getattr(member1.flags, "sso:invalid")
+        assert not getattr(member1.flags, "member-limit:restricted")
 
         member2 = OrganizationMember.objects.get(id=member2.id)
         assert not getattr(member2.flags, "sso:linked")
         assert getattr(member2.flags, "sso:invalid")
+        assert not getattr(member2.flags, "member-limit:restricted")
 
     def test_flow_as_unauthenticated_existing_user_legacy_identity_migration(self):
         user = self.create_user("bar@example.com")
@@ -659,6 +719,42 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # Ensure the ident was migrated from the legacy identity
         updated_ident = AuthIdentity.objects.get(id=user_ident.id)
         assert updated_ident.ident == "foo@new-domain.com"
+
+    def test_flow_as_authenticated_user_with_invite_joining(self):
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
+        user = self.create_user("bar@example.com")
+        member = self.create_member(email="bar@example.com", organization=self.organization)
+        member.user = None
+        member.save()
+        self.login_as(user)
+        resp = self.client.post(self.path, {"init": True})
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+        path = reverse("sentry-auth-sso")
+
+        resp = self.client.post(path, {"email": "bar@example.com"})
+
+        self.assertTemplateUsed(resp, "sentry/auth-confirm-link.html")
+        assert resp.status_code == 200
+
+        resp = self.client.post(path, {"op": "confirm"}, follow=True)
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            ("/organizations/foo/issues/", 302),
+        ]
+
+        auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
+        assert user == auth_identity.user
+
+        test_member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        assert member.id == test_member.id
+        assert getattr(test_member.flags, "sso:linked")
+        assert not getattr(test_member.flags, "sso:invalid")
+        assert not getattr(test_member.flags, "member-limit:restricted")
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
@@ -868,3 +964,84 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         )
 
         assert resp.redirect_chain == [("/auth/2fa/", 302)]
+
+
+class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
+    def setUp(self):
+        self.owner = self.create_user()
+        self.organization = self.create_organization(name="foo", owner=self.owner)
+        self.user = self.create_user("bar@example.com", is_managed=False, password="")
+        self.auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
+        self.path = reverse("sentry-auth-organization", args=[self.organization.slug])
+        self.auth_sso_path = reverse("sentry-auth-sso")
+        UserEmail.objects.filter(user=self.user, email="bar@example.com").update(is_verified=False)
+
+    @with_feature("organizations:idp-automatic-migration")
+    @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
+    def test_flow_verify_and_link_without_password_sends_email(
+        self, mock_send_one_time_account_confirm_link
+    ):
+        assert not self.user.has_usable_password()
+        self.create_member(organization=self.organization, user=self.user)
+
+        resp = self.client.post(self.path, {"init": True})
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+        resp = self.client.post(self.auth_sso_path, {"email": "bar@example.com"})
+        mock_send_one_time_account_confirm_link.assert_called_with(
+            self.user,
+            self.organization,
+            self.auth_provider,
+            "bar@example.com",
+            MigratingIdentityId(id="bar@example.com", legacy_id=None),
+        )
+        self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")
+        assert resp.status_code == 200
+        assert resp.context["existing_user"] == self.user
+
+    @with_feature("organizations:idp-automatic-migration")
+    @mock.patch("sentry.auth.idpmigration.MessageBuilder")
+    def test_flow_verify_and_link_without_password_login_success(self, email):
+        assert not self.user.has_usable_password()
+        self.create_member(organization=self.organization, user=self.user)
+
+        resp = self.client.post(self.path, {"init": True})
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+        resp = self.client.post(self.auth_sso_path, {"email": "bar@example.com"})
+        self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")
+
+        assert resp.status_code == 200
+        assert resp.context["existing_user"] == self.user
+        path = reverse(
+            "sentry-idp-email-verification",
+            args=[email.call_args.kwargs["context"]["verification_key"]],
+        )
+
+        resp = self.client.get(path)
+        assert resp.templates[0].name == "sentry/idp_account_verified.html"
+
+        assert resp.status_code == 200
+
+        path = reverse("sentry-auth-organization", args=[self.organization.slug])
+
+        resp = self.client.post(path, follow=True)
+
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            ("/organizations/foo/issues/", 302),
+        ]
+
+        auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider)
+        assert self.user == auth_identity.user
+
+        member = OrganizationMember.objects.get(organization=self.organization, user=self.user)
+        assert getattr(member.flags, "sso:linked")
+        assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")

@@ -49,7 +49,7 @@ type State = {
   error?: boolean;
 };
 
-class GroupSidebar extends React.Component<Props, State> {
+class BaseGroupSidebar extends React.Component<Props, State> {
   state: State = {
     participants: [],
     environments: this.props.environments,
@@ -258,14 +258,14 @@ const TagPlaceholders = styled('div')`
   grid-auto-flow: row;
 `;
 
-const StyledGroupSidebar = styled(GroupSidebar)`
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
 const ExternalIssues = styled('div')`
   display: grid;
   grid-template-columns: auto max-content;
   gap: ${space(2)};
 `;
 
-export default withApi(StyledGroupSidebar);
+const GroupSidebar = styled(withApi(BaseGroupSidebar))`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+export default GroupSidebar;

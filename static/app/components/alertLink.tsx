@@ -16,6 +16,7 @@ type OtherProps = {
   ['data-test-id']?: string;
   icon?: string | React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
+  children?: React.ReactNode;
 };
 
 type DefaultProps = {
@@ -26,53 +27,42 @@ type DefaultProps = {
   href?: string;
 };
 
-type Props = OtherProps & DefaultProps & Partial<Pick<LinkProps, 'to'>>;
+type Props = OtherProps & Partial<DefaultProps> & Partial<Pick<LinkProps, 'to'>>;
 
 type StyledLinkProps = DefaultProps &
   Partial<Pick<LinkProps, 'to'>> &
   Omit<LinkProps, 'to' | 'size'>;
 
-class AlertLink extends React.Component<Props> {
-  static defaultProps: DefaultProps = {
-    priority: 'warning',
-    size: 'normal',
-    withoutMarginBottom: false,
-    openInNewTab: false,
-  };
-
-  render() {
-    const {
-      size,
-      priority,
-      icon,
-      children,
-      onClick,
-      withoutMarginBottom,
-      openInNewTab,
-      to,
-      href,
-      ['data-test-id']: dataTestId,
-    } = this.props;
-
-    return (
-      <StyledLink
-        data-test-id={dataTestId}
-        to={to}
-        href={href}
-        onClick={onClick}
-        size={size}
-        priority={priority}
-        withoutMarginBottom={withoutMarginBottom}
-        openInNewTab={openInNewTab}
-      >
-        {icon && <IconWrapper>{icon}</IconWrapper>}
-        <AlertLinkText>{children}</AlertLinkText>
-        <IconLink>
-          <IconChevron direction="right" />
-        </IconLink>
-      </StyledLink>
-    );
-  }
+function AlertLink({
+  size = 'normal',
+  priority = 'warning',
+  icon,
+  children,
+  onClick,
+  withoutMarginBottom = false,
+  openInNewTab = false,
+  to,
+  href,
+  ['data-test-id']: dataTestId,
+}: Props) {
+  return (
+    <StyledLink
+      data-test-id={dataTestId}
+      to={to}
+      href={href}
+      onClick={onClick}
+      size={size}
+      priority={priority}
+      withoutMarginBottom={withoutMarginBottom}
+      openInNewTab={openInNewTab}
+    >
+      {icon && <IconWrapper>{icon}</IconWrapper>}
+      <AlertLinkText>{children}</AlertLinkText>
+      <IconLink>
+        <IconChevron direction="right" />
+      </IconLink>
+    </StyledLink>
+  );
 }
 
 export default AlertLink;

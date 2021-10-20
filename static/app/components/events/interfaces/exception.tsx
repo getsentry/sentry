@@ -9,13 +9,14 @@ import {t} from 'app/locale';
 import {ExceptionType, Group} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
+import {defined} from 'app/utils';
 
 type Props = {
   event: Event;
   type: string;
   data: ExceptionType;
   projectId: string;
-  hasGroupingTreeUI: boolean;
+  hasHierarchicalGrouping: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
@@ -25,7 +26,7 @@ function Exception({
   type,
   data,
   projectId,
-  hasGroupingTreeUI,
+  hasHierarchicalGrouping,
   groupingCurrentLevel,
   hideGuide = false,
 }: Props) {
@@ -57,7 +58,7 @@ function Exception({
       setStackView(newStackView);
     }
 
-    if (newNewestFirst) {
+    if (defined(newNewestFirst)) {
       setNewestFirst(newNewestFirst);
     }
 
@@ -82,7 +83,7 @@ function Exception({
           stackView={stackView}
           platform={event.platform}
           exception={data}
-          hasGroupingTreeUI={hasGroupingTreeUI}
+          hasHierarchicalGrouping={hasHierarchicalGrouping}
           {...commonCrashHeaderProps}
         />
       }
@@ -95,8 +96,8 @@ function Exception({
         stackView={stackView}
         newestFirst={newestFirst}
         exception={data}
-        hasGroupingTreeUI={hasGroupingTreeUI}
         groupingCurrentLevel={groupingCurrentLevel}
+        hasHierarchicalGrouping={hasHierarchicalGrouping}
       />
     </EventDataSection>
   );

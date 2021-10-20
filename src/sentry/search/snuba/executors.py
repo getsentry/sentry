@@ -1,20 +1,28 @@
 import logging
 import time
 from abc import ABCMeta, abstractmethod, abstractproperty
+from dataclasses import replace
 from datetime import datetime, timedelta
 from hashlib import md5
+from typing import Any, Mapping, Sequence
 
 import sentry_sdk
+from django.db.models import QuerySet
 from django.utils import timezone
+from snuba_sdk import Direction, Op
+from snuba_sdk.query import Column, Condition, Entity, Function, Join, Limit, OrderBy, Query
+from snuba_sdk.relationships import Relationship
 
 from sentry import options
+from sentry.api.event_search import SearchFilter
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Group
+from sentry.models import Environment, Group, Optional, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
+from sentry.search.utils import validate_cdc_search_filters
 from sentry.utils import json, metrics, snuba
+from sentry.utils.cursors import Cursor, CursorResult
 
 
 def get_search_filter(search_filters, name, operator):
@@ -116,8 +124,14 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         filters = {"project_id": project_ids}
 
+        environments = None
         if environment_ids is not None:
             filters["environment"] = environment_ids
+            environments = list(
+                Environment.objects.filter(
+                    organization_id=organization_id, id__in=environment_ids
+                ).values_list("name", flat=True)
+            )
 
         if group_ids:
             filters["group_id"] = sorted(group_ids)
@@ -134,7 +148,12 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ):
                 continue
             converted_filter = convert_search_filter_to_snuba_query(
-                search_filter, params={"organization_id": organization_id}
+                search_filter,
+                params={
+                    "organization_id": organization_id,
+                    "project_id": project_ids,
+                    "environment": environments,
+                },
             )
             converted_filter = self._transform_converted_filter(
                 search_filter, converted_filter, project_ids, environment_ids
@@ -210,9 +229,13 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
     def _transform_converted_filter(
         self, search_filter, converted_filter, project_ids, environment_ids=None
     ):
-        """This method serves as a hook - after we convert the search_filter into a snuba compatible filter (which converts it in a general dataset ambigious method),
-        we may want to transform the query - maybe change the value (time formats, translate value into id (like turning Release `version` into `id`) or vice versa),  alias fields, etc.
-        By default, no transformation is done.
+        """
+        This method serves as a hook - after we convert the search_filter into a
+        snuba compatible filter (which converts it in a general dataset
+        ambiguous method), we may want to transform the query - maybe change the
+        value (time formats, translate value into id (like turning Release
+        `version` into `id`) or vice versa), alias fields, etc. By default, no
+        transformation is done.
         """
         return converted_filter
 
@@ -238,7 +261,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     logger = logging.getLogger("sentry.search.postgressnuba")
     dependency_aggregations = {"priority": ["last_seen", "times_seen"]}
     postgres_only_fields = {
-        "query",
         "status",
         "for_review",
         "assigned_or_suggested",
@@ -247,7 +269,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "unassigned",
         "linked",
         "subscribed_by",
-        "active_at",
         "first_release",
         "first_seen",
     }
@@ -349,35 +370,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # is invalid.
             return self.empty_result
 
-        # This search is specific to Inbox. If we're using inbox sort and only querying
-        # postgres then we can use this sort method. Otherwise if we need to go to Snuba,
-        # fail.
-        if (
-            sort_by == "inbox"
-            and get_search_filter(search_filters, "for_review", "=")
-            # This handles tags and date parameters for search filters.
-            and not [
-                sf
-                for sf in search_filters
-                if sf.key.name not in self.postgres_only_fields.union(["date"])
-            ]
-        ):
-            # We just filter on `GroupInbox.date_added` here, and don't filter by date
-            # on the group. This keeps the query simpler and faster in some edge cases,
-            # and date_added is a good enough proxy when we're using this sort.
-            group_queryset = group_queryset.filter(
-                groupinbox__date_added__gte=start,
-                groupinbox__date_added__lte=end,
-            )
-            group_queryset = group_queryset.extra(
-                select={"inbox_date": "sentry_groupinbox.date_added"},
-            ).order_by("-inbox_date")
-            paginator = DateTimePaginator(group_queryset, "-inbox_date", **paginator_options)
-            return paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
-
-        if sort_by == "inbox":
-            raise InvalidSearchQuery(f"Sort key '{sort_by}' only supported for inbox search")
-
         # Here we check if all the django filters reduce the set of groups down
         # to something that we can send down to Snuba in a `group_id IN (...)`
         # clause.
@@ -396,10 +388,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             return self.empty_result
         elif len(group_ids) > max_candidates:
             # If the pre-filter query didn't include anything to significantly
-            # filter down the number of results (from 'first_release', 'query',
-            # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
-            # 'subscribed_by', 'active_at_from', or 'active_at_to') then it
-            # might have surpassed the `max_candidates`. In this case,
+            # filter down the number of results (from 'first_release', 'status',
+            # 'bookmarked_by', 'assigned_to', 'unassigned', or 'subscribed_by')
+            # then it might have surpassed the `max_candidates`. In this case,
             # we *don't* want to pass candidates down to Snuba, and instead we
             # want Snuba to do all the filtering/sorting it can and *then* apply
             # this queryset to the results from Snuba, which we call
@@ -635,3 +626,222 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 return hits
 
         return None
+
+
+class InvalidQueryForExecutor(Exception):
+    pass
+
+
+class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
+    sort_strategies = {
+        "date": "last_seen",
+        "freq": "times_seen",
+        "new": "first_seen",
+        "priority": "priority",
+        "user": "user_count",
+    }
+
+    entities = {
+        "event": Entity("events", alias="e"),
+        "group": Entity("groupedmessage", alias="g"),
+    }
+    times_seen_aggregation = Function(
+        "ifNull", [Function("count", [Column("group_id", entities["event"])]), 0]
+    )
+    first_seen_aggregation = Function(
+        "ifNull",
+        [
+            Function(
+                "multiply",
+                [
+                    Function(
+                        "toUInt64", [Function("min", [Column("timestamp", entities["event"])])]
+                    ),
+                    1000,
+                ],
+            ),
+            0,
+        ],
+    )
+    last_seen_aggregation = Function(
+        "ifNull",
+        [
+            Function(
+                "multiply",
+                [
+                    Function(
+                        "toUInt64", [Function("max", [Column("timestamp", entities["event"])])]
+                    ),
+                    1000,
+                ],
+            ),
+            0,
+        ],
+    )
+
+    aggregation_defs = {
+        "times_seen": times_seen_aggregation,
+        "first_seen": first_seen_aggregation,
+        "last_seen": last_seen_aggregation,
+        # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
+        "priority": Function(
+            "toUInt64",
+            [
+                Function(
+                    "plus",
+                    [
+                        Function(
+                            "multiply",
+                            [
+                                Function(
+                                    "log",
+                                    [times_seen_aggregation],
+                                ),
+                                600,
+                            ],
+                        ),
+                        last_seen_aggregation,
+                    ],
+                )
+            ],
+        ),
+        "user_count": Function(
+            "ifNull", [Function("uniq", [Column("tags[sentry:user]", entities["event"])]), 0]
+        ),
+    }
+
+    def calculate_start_end(
+        self,
+        retention_window_start: Optional[datetime],
+        search_filters: Sequence[SearchFilter],
+        date_from: Optional[datetime],
+        date_to: Optional[datetime],
+    ):
+        now = timezone.now()
+        end = None
+        end_params = [_f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f]
+        if end_params:
+            end = min(end_params)
+
+        if not end:
+            end = now + ALLOWED_FUTURE_DELTA
+
+        retention_date = max(_f for _f in [retention_window_start, now - timedelta(days=90)] if _f)
+        start_params = [date_from, retention_date, get_search_filter(search_filters, "date", ">")]
+        start = max(_f for _f in start_params if _f)
+        end = max([retention_date, end])
+        return start, end, retention_date
+
+    def query(
+        self,
+        projects: Sequence[Project],
+        retention_window_start: Optional[datetime],
+        group_queryset: QuerySet,
+        environments: Sequence[Environment],
+        sort_by: str,
+        limit: int,
+        cursor: Optional[Cursor],
+        count_hits: bool,
+        paginator_options: Mapping[str, Any],
+        search_filters: Sequence[SearchFilter],
+        date_from: Optional[datetime],
+        date_to: Optional[datetime],
+        max_hits=None,
+    ) -> CursorResult:
+
+        if not validate_cdc_search_filters(search_filters):
+            raise InvalidQueryForExecutor("Search filters invalid for this query executor")
+
+        start, end, retention_date = self.calculate_start_end(
+            retention_window_start, search_filters, date_from, date_to
+        )
+
+        if start == retention_date and end == retention_date:
+            # Both `start` and `end` must have been trimmed to `retention_date`,
+            # so this entire search was against a time range that is outside of
+            # retention. We'll return empty results to maintain backwards compatibility
+            # with Django search (for now).
+            return self.empty_result
+
+        if start >= end:
+            # TODO: This maintains backwards compatibility with Django search, but
+            # in the future we should find a way to notify the user that their search
+            # is invalid.
+            return self.empty_result
+
+        e_event = self.entities["event"]
+        e_group = self.entities["group"]
+
+        where_conditions = [
+            Condition(Column("project_id", e_event), Op.IN, [p.id for p in projects]),
+            Condition(Column("timestamp", e_event), Op.GTE, start),
+            Condition(Column("timestamp", e_event), Op.LT, end),
+        ]
+        # TODO: This is still basically only handling status, handle this better once we introduce
+        # more conditions.
+        for search_filter in search_filters:
+            where_conditions.append(
+                Condition(
+                    Column(search_filter.key.name, e_group), Op.IN, search_filter.value.raw_value
+                )
+            )
+
+        if environments:
+            # TODO: Should this be handled via filter_keys, once we have a snql compatible version?
+            where_conditions.append(
+                Condition(Column("environment", e_event), Op.IN, [e.name for e in environments])
+            )
+
+        sort_func = self.aggregation_defs[self.sort_strategies[sort_by]]
+
+        having = []
+        if cursor is not None:
+            op = Op.GTE if cursor.is_prev else Op.LTE
+            having.append(Condition(sort_func, op, cursor.value))
+
+        query = Query(
+            "events",
+            match=Join([Relationship(e_event, "grouped", e_group)]),
+            select=[
+                Column("id", e_group),
+                replace(sort_func, alias="score"),
+            ],
+            where=where_conditions,
+            groupby=[Column("id", e_group)],
+            having=having,
+            orderby=[OrderBy(sort_func, direction=Direction.DESC)],
+            limit=Limit(limit + 1),
+        )
+
+        data = snuba.raw_snql_query(query, referrer="search.snuba.cdc_search.query")["data"]
+
+        hits_query = Query(
+            "events",
+            match=Join([Relationship(e_event, "grouped", e_group)]),
+            select=[
+                Function("uniq", [Column("id", e_group)], alias="count"),
+            ],
+            where=where_conditions,
+        )
+        hits = None
+        if count_hits:
+            hits = snuba.raw_snql_query(hits_query, referrer="search.snuba.cdc_search.hits")[
+                "data"
+            ][0]["count"]
+
+        paginator_results = SequencePaginator(
+            [(row["score"], row["g.id"]) for row in data],
+            reverse=True,
+            **paginator_options,
+        ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
+        # We filter against `group_queryset` here so that we recheck all conditions in Postgres.
+        # Since replay between Postgres and Clickhouse can happen, we might get back results that
+        # have changed state in Postgres. By rechecking them we guarantee than any returned results
+        # have the correct state.
+        # TODO: This can result in us returning less than a full page of results, but shouldn't
+        # affect cursors. If we want to, we can iterate and query snuba until we manage to get a
+        # full page. In practice, this will likely only skip a couple of results at worst, and
+        # probably not be noticeable to the user, so holding off for now to reduce complexity.
+        groups = group_queryset.in_bulk(paginator_results.results)
+        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
+        return paginator_results

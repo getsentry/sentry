@@ -5,7 +5,7 @@ import Papa from 'papaparse';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
-import {LightWeightOrganization, Organization, SelectValue} from 'app/types';
+import {Organization, SelectValue} from 'app/types';
 import {Event} from 'app/types/event';
 import {getUtcDateString} from 'app/utils/dates';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
@@ -29,7 +29,7 @@ import {
 } from 'app/utils/discover/fields';
 import {getTitle} from 'app/utils/events';
 import localStorage from 'app/utils/localStorage';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 import {FieldValue, FieldValueKind, TableColumn} from './table/types';
 import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
@@ -140,7 +140,7 @@ export function generateTitle({
   return titles.join(' - ');
 }
 
-export function getPrebuiltQueries(organization: LightWeightOrganization) {
+export function getPrebuiltQueries(organization: Organization) {
   const views = [...ALL_VIEWS];
   if (organization.features.includes('performance-view')) {
     // insert transactions queries at index 2
@@ -374,14 +374,14 @@ function generateExpandedConditions(
   additionalConditions: Record<string, string>,
   dataRow?: TableDataRow | Event
 ): string {
-  const parsedQuery = tokenizeSearch(eventView.query);
+  const parsedQuery = new MutableSearch(eventView.query);
 
   // Remove any aggregates from the search conditions.
   // otherwise, it'll lead to an invalid query result.
-  for (const key in parsedQuery.tagValues) {
+  for (const key in parsedQuery.filters) {
     const column = explodeFieldString(key);
     if (column.kind === 'function') {
-      parsedQuery.removeTag(key);
+      parsedQuery.removeFilter(key);
     }
   }
 
@@ -396,7 +396,7 @@ function generateExpandedConditions(
     const value = conditions[key];
 
     if (Array.isArray(value)) {
-      parsedQuery.setTagValues(key, value);
+      parsedQuery.setFilterValues(key, value);
       continue;
     }
 
@@ -416,14 +416,14 @@ function generateExpandedConditions(
       continue;
     }
 
-    parsedQuery.setTagValues(key, [value]);
+    parsedQuery.setFilterValues(key, [value]);
   }
 
   return parsedQuery.formatString();
 }
 
 type FieldGeneratorOpts = {
-  organization: LightWeightOrganization;
+  organization: Organization;
   tagKeys?: string[] | null;
   measurementKeys?: string[] | null;
   spanOperationBreakdownKeys?: string[];
@@ -439,17 +439,13 @@ export function generateFieldOptions({
   aggregations = AGGREGATIONS,
   fields = FIELDS,
 }: FieldGeneratorOpts) {
-  let fieldKeys = Object.keys(fields);
+  let fieldKeys = Object.keys(fields).sort();
   let functions = Object.keys(aggregations);
 
   // Strip tracing features if the org doesn't have access.
   if (!organization.features.includes('performance-view')) {
     fieldKeys = fieldKeys.filter(item => !TRACING_FIELDS.includes(item));
     functions = functions.filter(item => !TRACING_FIELDS.includes(item));
-  }
-  // Feature flagged by arithmetic for now
-  if (!organization.features.includes('discover-arithmetic')) {
-    functions = functions.filter(item => item !== 'count_if');
   }
   const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
 
@@ -495,6 +491,7 @@ export function generateFieldOptions({
   });
 
   if (tagKeys !== undefined && tagKeys !== null) {
+    tagKeys.sort();
     tagKeys.forEach(tag => {
       const tagValue =
         fields.hasOwnProperty(tag) || AGGREGATIONS.hasOwnProperty(tag)
@@ -511,6 +508,7 @@ export function generateFieldOptions({
   }
 
   if (measurementKeys !== undefined && measurementKeys !== null) {
+    measurementKeys.sort();
     measurementKeys.forEach(measurement => {
       fieldOptions[`measurement:${measurement}`] = {
         label: measurement,
@@ -523,6 +521,7 @@ export function generateFieldOptions({
   }
 
   if (Array.isArray(spanOperationBreakdownKeys)) {
+    spanOperationBreakdownKeys.sort();
     spanOperationBreakdownKeys.forEach(breakdownField => {
       fieldOptions[`span_op_breakdown:${breakdownField}`] = {
         label: breakdownField,

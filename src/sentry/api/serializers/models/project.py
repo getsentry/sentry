@@ -4,10 +4,11 @@ from typing import Any, List, MutableMapping, Optional, Sequence
 
 import sentry_sdk
 from django.db import connection
+from django.db.models import prefetch_related_objects
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
-from sentry import features, options, projectoptions, roles
+from sentry import features, options, projectoptions, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles, get_team_memberships
@@ -18,6 +19,7 @@ from sentry.digests import backend as digests
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
+from sentry.lang.native.symbolicator import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
@@ -33,11 +35,14 @@ from sentry.models import (
     User,
     UserReport,
 )
-from sentry.notifications.helpers import transform_to_notification_settings_by_parent_id
+from sentry.notifications.helpers import (
+    get_most_specific_notification_setting_value,
+    transform_to_notification_settings_by_scope,
+)
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba import discover
-from sentry.snuba.sessions import check_has_health_data, get_current_and_previous_crash_free_rates
-from sentry.types.integrations import ExternalProviders
+from sentry.tasks.symbolication import should_demote_symbolication
+from sentry.utils import json
 from sentry.utils.compat import zip
 
 STATUS_LABELS = {
@@ -66,7 +71,6 @@ def get_access_by_project(
     request = env.request
 
     project_teams = list(ProjectTeam.objects.filter(project__in=projects).select_related("team"))
-
     project_team_map = defaultdict(list)
 
     for pt in project_teams:
@@ -74,6 +78,7 @@ def get_access_by_project(
 
     team_memberships = get_team_memberships([pt.team for pt in project_teams], user)
     org_roles = get_org_roles({i.organization_id for i in projects}, user)
+    prefetch_related_objects(projects, "organization")
 
     is_superuser = request and is_active_superuser(request) and request.user == user
     result = {}
@@ -183,23 +188,16 @@ class ProjectSerializer(Serializer):
                     ).values_list("project_id", flat=True)
                 )
 
-                notification_settings = NotificationSetting.objects.get_for_user_by_projects(
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    user,
-                    item_list,
+                notification_settings_by_scope = transform_to_notification_settings_by_scope(
+                    NotificationSetting.objects.get_for_user_by_projects(
+                        NotificationSettingTypes.ISSUE_ALERTS,
+                        user,
+                        item_list,
+                    )
                 )
-                (
-                    notification_settings_by_project_id_by_provider,
-                    default_subscribe_by_provider,
-                ) = transform_to_notification_settings_by_parent_id(notification_settings)
-                notification_settings_by_project_id = (
-                    notification_settings_by_project_id_by_provider.get(ExternalProviders.EMAIL, {})
-                )
-                default_subscribe = default_subscribe_by_provider.get(ExternalProviders.EMAIL)
             else:
                 bookmarks = set()
-                notification_settings_by_project_id = {}
-                default_subscribe = None
+                notification_settings_by_scope = {}
 
         with measure_span("stats"):
             stats = None
@@ -232,11 +230,24 @@ class ProjectSerializer(Serializer):
                 serialized["features"] = features_by_project[project]
 
         with measure_span("other"):
-            for project, serialized in result.items():
-                is_subscribed = (
-                    notification_settings_by_project_id.get(project.id, default_subscribe)
-                    == NotificationSettingOptionValues.ALWAYS
+            # TODO(mgaeta): Remove `should_use_slack_automatic` parameter.
+            should_use_slack_automatic_by_organization_id = {
+                organization.id: features.has(
+                    "organizations:notification-slack-automatic", organization
                 )
+                for organization in {project.organization for project in item_list}
+            }
+            for project, serialized in result.items():
+                value = get_most_specific_notification_setting_value(
+                    notification_settings_by_scope,
+                    recipient=user,
+                    parent_id=project.id,
+                    type=NotificationSettingTypes.ISSUE_ALERTS,
+                    should_use_slack_automatic=should_use_slack_automatic_by_organization_id[
+                        project.organization_id
+                    ],
+                )
+                is_subscribed = value == NotificationSettingOptionValues.ALWAYS
                 serialized.update(
                     {
                         "is_bookmarked": project.id in bookmarks,
@@ -297,7 +308,7 @@ class ProjectSerializer(Serializer):
         current_interval_start = now - (segments * interval)
         previous_interval_start = now - (2 * segments * interval)
 
-        project_health_data_dict = get_current_and_previous_crash_free_rates(
+        project_health_data_dict = release_health.get_current_and_previous_crash_free_rates(
             project_ids=project_ids,
             current_start=current_interval_start,
             current_end=now,
@@ -325,7 +336,9 @@ class ProjectSerializer(Serializer):
         # call -> check_has_data with those ids and then update our `project_health_data_dict`
         # accordingly
         if check_has_health_data_ids:
-            projects_with_health_data = check_has_health_data(check_has_health_data_ids)
+            projects_with_health_data = release_health.check_has_health_data(
+                check_has_health_data_ids
+            )
             for project_id in projects_with_health_data:
                 project_health_data_dict[project_id]["hasHealthData"] = True
 
@@ -352,6 +365,7 @@ class ProjectSerializer(Serializer):
             "dateCreated": obj.date_added,
             "firstEvent": obj.first_event,
             "firstTransactionEvent": True if obj.flags.has_transactions else False,
+            "hasSessions": True if obj.flags.has_sessions else False,
             "features": attrs["features"],
             "status": status_label,
             "platform": obj.platform,
@@ -549,9 +563,13 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             "hasAccess": attrs["has_access"],
             "dateCreated": obj.date_added,
             "environments": attrs["environments"],
+            "eventProcessing": {
+                "symbolicationDegraded": should_demote_symbolication(obj.id),
+            },
             "features": attrs["features"],
             "firstEvent": obj.first_event,
             "firstTransactionEvent": True if obj.flags.has_transactions else False,
+            "hasSessions": bool(obj.flags.has_sessions),
             "platform": obj.platform,
             "platforms": attrs["platforms"],
             "latestRelease": attrs["latest_release"],
@@ -648,10 +666,13 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:grouping_config",
             "sentry:grouping_enhancements",
             "sentry:grouping_enhancements_base",
+            "sentry:secondary_grouping_config",
+            "sentry:secondary_grouping_expiry",
             "sentry:fingerprinting_rules",
             "sentry:relay_pii_config",
             "sentry:dynamic_sampling",
             "sentry:breakdowns",
+            "sentry:span_attributes",
             "feedback:branding",
             "digests:mail:minimum_delay",
             "digests:mail:maximum_delay",
@@ -789,10 +810,30 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
-                "symbolSources": attrs["options"].get("sentry:symbol_sources"),
                 "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
+                "eventProcessing": {
+                    "symbolicationDegraded": False,
+                },
             }
         )
+        custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")
+        try:
+            sources = parse_sources(custom_symbol_sources_json, False)
+        except Exception:
+            # In theory sources stored on the project should be valid. If they are invalid, we don't
+            # want to abort serialization just for sources, so just return an empty list instead of
+            # returning sources with their secrets included.
+            serialized_sources = "[]"
+        else:
+            redacted_sources = redact_source_secrets(sources)
+            serialized_sources = json.dumps(redacted_sources)
+
+        data.update(
+            {
+                "symbolSources": serialized_sources,
+            }
+        )
+
         return data
 
 

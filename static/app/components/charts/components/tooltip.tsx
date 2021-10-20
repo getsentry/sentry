@@ -81,7 +81,12 @@ type TooltipFormatters =
   | 'nameFormatter';
 
 type FormatterOptions = Pick<NonNullable<ChartProps['tooltip']>, TooltipFormatters> &
-  Pick<ChartProps, NeededChartProps>;
+  Pick<ChartProps, NeededChartProps> & {
+    /**
+     * Array containing seriesNames that need to be indented
+     */
+    indentLabels?: string[];
+  };
 
 function getFormatter({
   filter,
@@ -93,6 +98,7 @@ function getFormatter({
   bucketSize,
   valueFormatter = defaultValueFormatter,
   nameFormatter = defaultNameFormatter,
+  indentLabels = [],
 }: FormatterOptions) {
   const getFilter = (seriesParam: EChartOption.Tooltip.Format) => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
@@ -101,7 +107,7 @@ function getFormatter({
     // an object with value/label keys.
     const value = getSeriesValue(seriesParam, 0);
     if (typeof filter === 'function') {
-      return filter(value);
+      return filter(value, seriesParam);
     }
 
     return true;
@@ -140,10 +146,14 @@ function getFormatter({
         seriesParamsOrParam.name
       );
 
+      const className = indentLabels.includes(seriesParamsOrParam.name ?? '')
+        ? 'tooltip-label tooltip-label-indent'
+        : 'tooltip-label';
+
       return [
         '<div class="tooltip-series">',
         `<div>
-          <span class="tooltip-label"><strong>${seriesParamsOrParam.name}</strong></span>
+          <span class="${className}"><strong>${seriesParamsOrParam.name}</strong></span>
           ${truncatedName}: ${formattedValue}
         </div>`,
         '</div>',
@@ -163,7 +173,7 @@ function getFormatter({
       ? seriesParams[0].axisValue
       : getSeriesValue(seriesParams[0], 0);
 
-    const label =
+    const date =
       seriesParams.length &&
       axisFormatterOrDefault(
         timestamp,
@@ -181,12 +191,17 @@ function getFormatter({
           const formattedLabel = nameFormatter(
             truncationFormatter(s.seriesName ?? '', truncate)
           );
-          const value = valueFormatter(getSeriesValue(s, 1), s.seriesName);
-          return `<div><span class="tooltip-label">${s.marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
+          const value = valueFormatter(getSeriesValue(s, 1), s.seriesName, s);
+
+          const className = indentLabels.includes(formattedLabel)
+            ? 'tooltip-label tooltip-label-indent'
+            : 'tooltip-label';
+
+          return `<div><span class="${className}">${s.marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
         })
         .join(''),
       '</div>',
-      `<div class="tooltip-date">${label}</div>`,
+      `<div class="tooltip-date">${date}</div>`,
       `<div class="tooltip-arrow"></div>`,
     ].join('');
   };
@@ -208,6 +223,7 @@ export default function Tooltip({
   valueFormatter,
   nameFormatter,
   hideDelay,
+  indentLabels,
   ...props
 }: Props = {}): EChartOption.Tooltip {
   formatter =
@@ -222,6 +238,7 @@ export default function Tooltip({
       formatAxisLabel,
       valueFormatter,
       nameFormatter,
+      indentLabels,
     });
 
   return {

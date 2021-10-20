@@ -3,7 +3,7 @@ import moment from 'moment';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
-import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
+import {trackAnalyticsEventV2} from 'app/utils/analytics';
 
 jest.mock('app/utils/analytics');
 
@@ -48,10 +48,11 @@ describe('EventCauseEmpty', function () {
 
     expect(wrapper.find('ExampleCommitPanel').exists()).toBe(true);
 
-    expect(trackAdhocEvent).toHaveBeenCalledWith({
+    expect(trackAnalyticsEventV2).toHaveBeenCalledWith({
       eventKey: 'event_cause.viewed',
-      org_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
+      eventName: null,
+      organization,
+      project_id: project.id,
       platform: project.platform,
     });
   });
@@ -75,7 +76,7 @@ describe('EventCauseEmpty', function () {
     wrapper.update();
 
     expect(wrapper.find('ExampleCommitPanel').exists()).toBe(false);
-    expect(trackAdhocEvent).not.toHaveBeenCalled();
+    expect(trackAnalyticsEventV2).not.toHaveBeenCalled();
   });
 
   it('can be snoozed', async function () {
@@ -107,11 +108,11 @@ describe('EventCauseEmpty', function () {
 
     expect(wrapper.find('ExampleCommitPanel').exists()).toBe(false);
 
-    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+    expect(trackAnalyticsEventV2).toHaveBeenCalledWith({
       eventKey: 'event_cause.snoozed',
       eventName: 'Event Cause Snoozed',
-      organization_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
+      organization,
+      project_id: project.id,
       platform: project.platform,
     });
   });
@@ -185,11 +186,11 @@ describe('EventCauseEmpty', function () {
 
     expect(wrapper.find('ExampleCommitPanel').exists()).toBe(false);
 
-    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+    expect(trackAnalyticsEventV2).toHaveBeenCalledWith({
       eventKey: 'event_cause.dismissed',
       eventName: 'Event Cause Dismissed',
-      organization_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
+      organization,
+      project_id: project.id,
       platform: project.platform,
     });
   });
@@ -223,11 +224,11 @@ describe('EventCauseEmpty', function () {
 
     wrapper.find('[aria-label="Read the docs"]').first().simulate('click');
 
-    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+    expect(trackAnalyticsEventV2).toHaveBeenCalledWith({
       eventKey: 'event_cause.docs_clicked',
       eventName: 'Event Cause Docs Clicked',
-      organization_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
+      organization,
+      project_id: project.id,
       platform: project.platform,
     });
   });

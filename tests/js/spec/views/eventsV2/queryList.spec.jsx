@@ -193,4 +193,76 @@ describe('EventsV2 > QueryList', function () {
       query: {cursor: undefined, statsPeriod: '14d'},
     });
   });
+
+  it('renders Add to Dashboard in context menu with feature flag', async function () {
+    const featuredOrganization = TestStubs.Organization({
+      features: ['connect-discover-and-dashboards', 'dashboards-edit'],
+    });
+    const wrapper = mountWithTheme(
+      <QueryList
+        organization={featuredOrganization}
+        savedQueries={savedQueries.slice(1)}
+        pageLinks=""
+        onQueryChange={queryChangeMock}
+        location={location}
+      />,
+      TestStubs.routerContext()
+    );
+    const card = wrapper.find('QueryCard').last();
+    openContextMenu(card);
+    wrapper.update();
+
+    const menuItems = wrapper.find('MenuItem');
+    expect(menuItems.length).toEqual(3);
+    expect(menuItems.at(0).find('span').children().first().html()).toEqual(
+      'Add to Dashboard'
+    );
+    expect(menuItems.at(1).find('span').children().html()).toEqual('Delete Query');
+    expect(menuItems.at(2).find('span').children().html()).toEqual('Duplicate Query');
+  });
+
+  it('only renders Delete Query and Duplicate Query in context menu', async function () {
+    const wrapper = mountWithTheme(
+      <QueryList
+        organization={organization}
+        savedQueries={savedQueries.slice(1)}
+        pageLinks=""
+        onQueryChange={queryChangeMock}
+        location={location}
+      />,
+      TestStubs.routerContext()
+    );
+    const card = wrapper.find('QueryCard').last();
+    openContextMenu(card);
+    wrapper.update();
+
+    const menuItems = wrapper.find('MenuItem');
+    expect(menuItems.length).toEqual(2);
+    expect(menuItems.at(0).find('span').children().html()).toEqual('Delete Query');
+    expect(menuItems.at(1).find('span').children().html()).toEqual('Duplicate Query');
+  });
+
+  it('passes yAxis from the savedQuery to MiniGraph', function () {
+    const featuredOrganization = TestStubs.Organization({
+      features: ['connect-discover-and-dashboards', 'dashboards-edit'],
+    });
+    const yAxis = ['count()', 'failure_count()'];
+    const savedQueryWithMultiYAxis = {
+      ...savedQueries.slice(1)[0],
+      yAxis,
+    };
+    const wrapper = mountWithTheme(
+      <QueryList
+        organization={featuredOrganization}
+        savedQueries={[savedQueryWithMultiYAxis]}
+        pageLinks=""
+        onQueryChange={queryChangeMock}
+        location={location}
+      />,
+      TestStubs.routerContext()
+    );
+
+    const miniGraph = wrapper.find('MiniGraph');
+    expect(miniGraph.props().yAxis).toEqual(['count()', 'failure_count()']);
+  });
 });

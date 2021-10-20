@@ -390,7 +390,7 @@ class GroupUpdateTest(APITestCase):
             url,
             data={"assignedTo": self.user.id},
             format="json",
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
         )
         assert response.status_code == 200, response.content
         assert GroupAssignee.objects.filter(group=group, user=self.user).exists()

@@ -29,6 +29,13 @@ import {
   Sort,
   WebVital,
 } from 'app/utils/discover/fields';
+import {
+  CHART_AXIS_OPTIONS,
+  DISPLAY_MODE_FALLBACK_OPTIONS,
+  DISPLAY_MODE_OPTIONS,
+  DisplayModes,
+  TOP_N,
+} from 'app/utils/discover/types';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
 import {
   FieldValueKind,
@@ -40,15 +47,9 @@ import {SpanOperationBreakdownFilter} from 'app/views/performance/transactionSum
 import {EventsDisplayFilterName} from 'app/views/performance/transactionSummary/transactionEvents/utils';
 
 import {statsPeriodToDays} from '../dates';
-import {QueryResults, tokenizeSearch} from '../tokenizeSearch';
+import {MutableSearch} from '../tokenizeSearch';
 
 import {getSortField} from './fieldRenderers';
-import {
-  CHART_AXIS_OPTIONS,
-  DISPLAY_MODE_FALLBACK_OPTIONS,
-  DISPLAY_MODE_OPTIONS,
-  DisplayModes,
-} from './types';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, ColumnType>;
@@ -270,10 +271,11 @@ class EventView {
   environment: Readonly<string[]>;
   yAxis: string | undefined;
   display: string | undefined;
+  topEvents: string | undefined;
   interval: string | undefined;
   expired?: boolean;
   createdBy: User | undefined;
-  additionalConditions: QueryResults; // This allows views to always add additional conditins to the query to get specific data. It should not show up in the UI unless explicitly called.
+  additionalConditions: MutableSearch; // This allows views to always add additional conditins to the query to get specific data. It should not show up in the UI unless explicitly called.
 
   constructor(props: {
     id: string | undefined;
@@ -289,10 +291,11 @@ class EventView {
     environment: Readonly<string[]>;
     yAxis: string | undefined;
     display: string | undefined;
+    topEvents: string | undefined;
     interval?: string;
     expired?: boolean;
     createdBy: User | undefined;
-    additionalConditions: QueryResults;
+    additionalConditions: MutableSearch;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
@@ -334,12 +337,13 @@ class EventView {
     this.environment = environment;
     this.yAxis = props.yAxis;
     this.display = props.display;
+    this.topEvents = props.topEvents;
     this.interval = props.interval;
     this.createdBy = props.createdBy;
     this.expired = props.expired;
     this.additionalConditions = props.additionalConditions
       ? props.additionalConditions.copy()
-      : new QueryResults([]);
+      : new MutableSearch([]);
   }
 
   static fromLocation(location: Location): EventView {
@@ -359,9 +363,10 @@ class EventView {
       environment: collectQueryStringByKey(location.query, 'environment'),
       yAxis: decodeScalar(location.query.yAxis),
       display: decodeScalar(location.query.display),
+      topEvents: decodeScalar(location.query.topEvents),
       interval: decodeScalar(location.query.interval),
       createdBy: undefined,
-      additionalConditions: new QueryResults([]),
+      additionalConditions: new MutableSearch([]),
     });
   }
 
@@ -429,11 +434,13 @@ class EventView {
         },
         'environment'
       ),
-      yAxis: saved.yAxis,
+      // Workaround to only use the first yAxis since eventView yAxis doesn't accept string[]
+      yAxis: Array.isArray(saved.yAxis) ? saved.yAxis[0] : saved.yAxis,
       display: saved.display,
+      topEvents: saved.topEvents ? saved.topEvents.toString() : undefined,
       createdBy: saved.createdBy,
       expired: saved.expired,
-      additionalConditions: new QueryResults([]),
+      additionalConditions: new MutableSearch([]),
     });
   }
 
@@ -462,12 +469,20 @@ class EventView {
             ? decodeQuery(location)
             : queryStringFromSavedQuery(saved),
         sorts: sorts.length === 0 ? fromSorts(saved.orderby) : sorts,
-        yAxis: decodeScalar(location.query.yAxis) || saved.yAxis,
+        yAxis:
+          decodeScalar(location.query.yAxis) ||
+          // Workaround to only use the first yAxis since eventView yAxis doesn't accept string[]
+          (Array.isArray(saved.yAxis) ? saved.yAxis[0] : saved.yAxis),
         display: decodeScalar(location.query.display) || saved.display,
+        topEvents: (
+          decodeScalar(location.query.topEvents) ||
+          saved.topEvents ||
+          TOP_N
+        ).toString(),
         interval: decodeScalar(location.query.interval),
         createdBy: saved.createdBy,
         expired: saved.expired,
-        additionalConditions: new QueryResults([]),
+        additionalConditions: new MutableSearch([]),
         // Always read team from location since they can be set by other parts
         // of the UI
         team: teams,
@@ -493,8 +508,8 @@ class EventView {
       'sorts',
       'project',
       'environment',
-      'yAxis',
       'display',
+      'topEvents',
     ];
 
     for (const key of keys) {
@@ -524,6 +539,14 @@ class EventView {
       }
     }
 
+    // compare yAxis selections
+    // undefined yAxis values default to count()
+    const currentYAxisValue = this.yAxis ?? 'count()';
+    const otherYAxisValue = other.yAxis ?? 'count()';
+    if (!isEqual(currentYAxisValue, otherYAxisValue)) {
+      return false;
+    }
+
     return true;
   }
 
@@ -543,8 +566,9 @@ class EventView {
       end: this.end,
       range: this.statsPeriod,
       environment: this.environment,
-      yAxis: this.yAxis,
+      yAxis: this.yAxis ? [this.yAxis] : undefined,
       display: this.display,
+      topEvents: this.topEvents,
     };
 
     if (!newQuery.query) {
@@ -605,6 +629,7 @@ class EventView {
       query: undefined,
       yAxis: undefined,
       display: undefined,
+      topEvents: undefined,
       interval: undefined,
     };
 
@@ -625,8 +650,9 @@ class EventView {
       environment: this.environment,
       project: this.project,
       query: this.query,
-      yAxis: this.yAxis,
+      yAxis: this.yAxis || this.getYAxis(),
       display: this.display,
+      topEvents: this.topEvents,
       interval: this.interval,
     };
 
@@ -716,6 +742,7 @@ class EventView {
       environment: this.environment,
       yAxis: this.yAxis,
       display: this.display,
+      topEvents: this.topEvents,
       interval: this.interval,
       expired: this.expired,
       createdBy: this.createdBy,
@@ -772,6 +799,8 @@ class EventView {
       }
       newEventView.sorts = newSort;
     }
+
+    newEventView.yAxis = newEventView.getYAxis();
 
     return newEventView;
   }
@@ -897,6 +926,8 @@ class EventView {
       }
     }
 
+    newEventView.yAxis = newEventView.getYAxis();
+
     return newEventView;
   }
 
@@ -961,6 +992,8 @@ class EventView {
         }
       }
     }
+
+    newEventView.yAxis = newEventView.getYAxis();
 
     return newEventView;
   }
@@ -1306,19 +1339,21 @@ class EventView {
     if (this.additionalConditions.isEmpty()) {
       return query;
     }
-    const conditions = tokenizeSearch(query);
-    Object.entries(this.additionalConditions.tagValues).forEach(([tag, tagValues]) => {
-      const existingTagValues = conditions.getTagValues(tag);
+    const conditions = new MutableSearch(query);
+    Object.entries(this.additionalConditions.filters).forEach(([tag, tagValues]) => {
+      const existingTagValues = conditions.getFilterValues(tag);
       const newTagValues = tagValues.filter(
         tagValue => !existingTagValues.includes(tagValue)
       );
       if (newTagValues.length) {
-        conditions.addTagValues(tag, newTagValues);
+        conditions.addFilterValues(tag, newTagValues);
       }
     });
     return conditions.formatString();
   }
 }
+
+export type ImmutableEventView = Readonly<Omit<EventView, 'additionalConditions'>>;
 
 const isFieldsSimilar = (
   currentValue: Array<string>,

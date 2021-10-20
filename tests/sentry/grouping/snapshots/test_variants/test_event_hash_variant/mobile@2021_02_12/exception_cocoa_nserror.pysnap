@@ -1,5 +1,5 @@
 ---
-created: '2021-07-08T10:36:07.105939Z'
+created: '2021-08-04T15:51:32.427414Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -24,29 +24,7 @@ app-depth-1:
         stacktrace*
           frame*
             function*
-              "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
-            function*
-              "-[UIApplication sendAction:to:from:forEvent:]"
---------------------------------------------------------------------------
-app-depth-2:
-  hash: null
-  component:
-    app-depth-2 (exception of app takes precedence)
-      threads (exception of app takes precedence)
-        stacktrace*
-          frame*
-            function*
-              "GSEventRunModal"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
-            function*
-              "__eventFetcherSourceCallback"
-          frame*
-            function*
-              "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
-            function*
-              "-[UIApplication sendAction:to:from:forEvent:]"
+              "ViewController.captureError"
 --------------------------------------------------------------------------
 app-depth-max:
   hash: null
@@ -54,73 +32,7 @@ app-depth-max:
     app-depth-max (exception of app takes precedence)
       threads (exception of app takes precedence)
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "start"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "main"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "UIApplicationMain"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
-            function*
-              "-[UIApplication _run]"
           frame*
-            function*
-              "GSEventRunModal"
-          frame (ignored by stack trace rule (category:indirection -group))
-            function*
-              "CFRunLoopRunSpecific"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "__CFRunLoopRun"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "__CFRunLoopDoSources0"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "__CFRunLoopDoSource0"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
-            function*
-              "__eventFetcherSourceCallback"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "__processEventQueue"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "-[UIApplicationAccessibility sendEvent:]"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "-[UIApplication sendEvent:]"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "-[UIWindow sendEvent:]"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "-[UIWindow _sendTouchesForEvent:]"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "-[UIControl touchesEnded:withEvent:]"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "-[UIControl _sendActionsForEvents:withEvent:]"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "-[UIControl sendAction:to:forEvent:]"
-          frame*
-            function*
-              "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
-            function*
-              "-[UIApplication sendAction:to:from:forEvent:]"
-          frame*
-            function*
-              "ViewController.captureError"
-          frame (ignored due to recursion)
             function*
               "ViewController.captureError"
 --------------------------------------------------------------------------
@@ -142,7 +54,7 @@ system:
           frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "-[UIApplication _run]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "GSEventRunModal"
           frame (ignored by stack trace rule (category:indirection -group))
@@ -160,7 +72,7 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__eventFetcherSourceCallback"
           frame (ignored by stack trace rule (category:internals -group))
@@ -187,10 +99,10 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIControl sendAction:to:forEvent:]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIApplication sendAction:to:from:forEvent:]"
           frame*

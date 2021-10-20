@@ -7,17 +7,23 @@ debug files.  These tasks enable this functionality.
 import logging
 import pathlib
 import tempfile
-from datetime import datetime
-from typing import List, Mapping
+from typing import List, Mapping, Tuple
 
+import requests
 import sentry_sdk
 from django.utils import timezone
 
 from sentry.lang.native import appconnect
-from sentry.models import AppConnectBuild, Project, ProjectOption, debugfile
+from sentry.models import (
+    AppConnectBuild,
+    LatestAppConnectBuildsCheck,
+    Project,
+    ProjectOption,
+    debugfile,
+)
 from sentry.tasks.base import instrumented_task
-from sentry.utils import json, sdk
-from sentry.utils.appleconnect.itunes_connect import ITunesSessionExpiredException
+from sentry.utils import json, metrics, sdk
+from sentry.utils.appleconnect import itunes_connect
 
 logger = logging.getLogger(__name__)
 
@@ -33,43 +39,61 @@ def dsym_download(project_id: int, config_id: str) -> None:
 
 def inner_dsym_download(project_id: int, config_id: str) -> None:
     """Downloads the dSYMs from App Store Connect and stores them in the Project's debug files."""
-    # TODO(flub): we should only run one task ever for a project.  Is
-    # sentry.cache.default_cache the right thing to put a "mutex" into?  See how
-    # sentry.tasks.assemble uses this.
     with sdk.configure_scope() as scope:
         scope.set_tag("project", project_id)
+        scope.set_tag("config_id", config_id)
 
     project = Project.objects.get(pk=project_id)
     config = appconnect.AppStoreConnectConfig.from_project_config(project, config_id)
     client = appconnect.AppConnectClient.from_config(config)
 
-    # persist all fetched builds into the database as "pending"
-    builds = []
     listed_builds = client.list_builds()
-    with sentry_sdk.start_span(
-        op="appconnect-update-builds", description="Update AppStoreConnect builds in database"
-    ):
-        for build in listed_builds:
-            build_state = get_or_create_persisted_build(project, config, build)
-            if not build_state.fetched:
-                builds.append((build, build_state))
+    builds = process_builds(project=project, config=config, to_process=listed_builds)
 
-    update_build_refresh_date(project, config_id)
-
-    itunes_client = client.itunes_client()
-    for (build, build_state) in builds:
+    if not builds:
+        # No point in trying to see if we have valid iTunes credentials.
+        return
+    try:
+        itunes_client = client.itunes_client()
+    except itunes_connect.SessionExpiredError:
+        logger.debug("No valid iTunes session, can not download dSYMs")
+        metrics.incr(
+            "sentry.tasks.app_store_connect.itunes_session.needed",
+            tags={"valid": "false"},
+            sample_rate=1,
+        )
+        return
+    else:
+        metrics.incr(
+            "sentry.tasks.app_store_connect.itunes_session.needed",
+            tags={"valid": "true"},
+            sample_rate=1,
+        )
+    for i, (build, build_state) in enumerate(builds):
+        with sdk.configure_scope() as scope:
+            scope.set_context("dsym_downloads", {"total": len(builds), "completed": i})
         with tempfile.NamedTemporaryFile() as dsyms_zip:
             try:
                 itunes_client.download_dsyms(build, pathlib.Path(dsyms_zip.name))
             except appconnect.NoDsymsError:
                 logger.debug("No dSYMs for build %s", build)
-            except ITunesSessionExpiredException:
+            except itunes_connect.SessionExpiredError:
                 logger.debug("Error fetching dSYMs: expired iTunes session")
                 # we early-return here to avoid trying all the other builds
                 # as well, since an expired token will error for all of them.
                 # we also swallow the error and not report it because this is
                 # a totally expected error and not actionable.
                 return
+            except itunes_connect.ForbiddenError:
+                sentry_sdk.capture_message(
+                    "Forbidden iTunes dSYM download, probably switched to wrong org", level="info"
+                )
+                return
+            except requests.RequestException as e:
+                # Assume these are errors with the server side and do not abort all the
+                # pending downloads.
+                sdk.capture_exception(e)
+                continue
             else:
                 create_difs_from_dsyms_zip(dsyms_zip.name, project)
                 logger.debug("Uploaded dSYMs for build %s", build)
@@ -99,7 +123,7 @@ def get_or_create_persisted_build(
     try:
         build_state = AppConnectBuild.objects.get(
             project=project,
-            app_id=build.app_id,
+            app_id=int(build.app_id),
             platform=build.platform,
             bundle_short_version=build.version,
             bundle_version=build.build_number,
@@ -107,7 +131,7 @@ def get_or_create_persisted_build(
     except AppConnectBuild.DoesNotExist:
         build_state = AppConnectBuild(
             project=project,
-            app_id=build.app_id,
+            app_id=int(build.app_id),
             bundle_id=config.bundleId,
             platform=build.platform,
             bundle_short_version=build.version,
@@ -120,16 +144,33 @@ def get_or_create_persisted_build(
     return build_state
 
 
-def update_build_refresh_date(project: Project, config_id: str) -> None:
-    serialized_option = project.get_option(
-        appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, default="{}"
+def process_builds(
+    project: Project,
+    config: appconnect.AppStoreConnectConfig,
+    to_process: List[appconnect.BuildInfo],
+) -> List[Tuple[appconnect.BuildInfo, AppConnectBuild]]:
+    """Returns a list of builds whose dSYMs need to be updated or fetched.
+
+    This will create a new "pending" :class:`AppConnectBuild` for any :class:`appconnect.BuildInfo`
+    that cannot be found in the DB. These pending :class:`AppConnectBuild`s are immediately saved
+    upon creation.
+    """
+
+    pending_builds = []
+
+    with sentry_sdk.start_span(
+        op="appconnect-update-builds", description="Update AppStoreConnect builds in database"
+    ):
+        for build in to_process:
+            build_state = get_or_create_persisted_build(project, config, build)
+            if not build_state.fetched:
+                pending_builds.append((build, build_state))
+
+    LatestAppConnectBuildsCheck.objects.create_or_update(
+        project=project, source_id=config.id, values={"last_checked": timezone.now()}
     )
-    build_refresh_dates = json.loads(serialized_option)
-    build_refresh_dates[config_id] = datetime.now()
-    serialized_refresh_dates = json.dumps_htmlsafe(build_refresh_dates)
-    project.update_option(
-        appconnect.APPSTORECONNECT_BUILD_REFRESHES_OPTION, serialized_refresh_dates
-    )
+
+    return pending_builds
 
 
 # Untyped decorator would stop type-checking of entire function, split into an inner
@@ -163,6 +204,10 @@ def inner_refresh_all_builds() -> None:
         with sdk.push_scope() as scope:
             scope.set_tag("project", option.project_id)
             try:
+                if not option.value:
+                    # An empty string set as option value, the UI does this when deleting
+                    # all sources.  This is not valid JSON.
+                    continue
                 # We are parsing JSON thus all types are Any, so give the type-checker some
                 # extra help.  We are maybe slightly lying about the type, but the
                 # attributes we do access are all string values.
@@ -181,5 +226,6 @@ def inner_refresh_all_builds() -> None:
                                 "config_id": source_id,
                             }
                         )
+                        metrics.incr("sentry.tasks.app_store_connect.refresh_count", sample_rate=1)
             except Exception:
                 logger.exception("Failed to refresh AppStoreConnect builds")

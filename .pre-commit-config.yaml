@@ -20,6 +20,15 @@ repos:
 # let you know when requirements-pre-commit.txt changes.
 -   repo: local
     hooks:
+    - id: pyupgrade
+      name: pyupgrade
+      entry: pyupgrade
+      args: ['--py36-plus']
+      language: system
+      types: [python]
+      # We can't change this mock to unittest.mock until Python 3.8,
+      # refer to the comment in this file.
+      exclude: 'src/sentry/utils/compat/mock.py'
     # Configuration for black exists in pyproject.toml,
     # but we let pre-commit take care of the file filtering.
     - id: black
@@ -42,21 +51,21 @@ repos:
       language: system
       types: [python]
       log_file: '.artifacts/flake8.pycodestyle.log'
-    - id: pyupgrade
-      name: pyupgrade
-      entry: pyupgrade
-      args: ['--py36-plus']
-      language: system
-      types: [python]
-      # We can't change this mock to unittest.mock until Python 3.8,
-      # refer to the comment in this file.
-      exclude: 'src/sentry/utils/compat/mock.py'
     - id: lint-requirements
       name: lint-requirements
       entry: bin/lint-requirements
       language: system
       files: requirements-base.txt
       pass_filenames: false
+# Temporarily disable pyright checking until we clean up unbound variable errors across
+# the codebase
+#    - id: pyright
+#      name: pyright
+#      entry: pyright
+#      language: node
+#      types: [ python ]
+#      pass_filenames: true
+#      additional_dependencies: [ "pyright@1.1.178" ]
 
 -   repo: https://github.com/sirosen/check-jsonschema
     rev: 0.3.0
@@ -65,7 +74,7 @@ repos:
     - id: check-github-workflows
 
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.4.0
+    rev: v4.0.1
     hooks:
     - id: check-case-conflict
     - id: check-executables-have-shebangs

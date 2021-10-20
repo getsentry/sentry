@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import responses
 from django.urls import reverse
 
@@ -778,6 +780,76 @@ class UpdateProjectRuleTest(APITestCase):
             {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
         ]
         assert rule.data["conditions"] == conditions + filters
+
+        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
+
+    @patch("sentry.mediators.alert_rule_actions.AlertRuleActionCreator.run")
+    def test_update_alert_rule_action(self, mock_alert_rule_action_creator):
+        """
+        Ensures that Sentry Apps with schema forms (UI components)
+        receive a payload when an alert rule is updated with them.
+        """
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        rule = Rule.objects.create(project=project, label="my super cool rule")
+
+        self.create_sentry_app(
+            name="Pied Piper",
+            organization=project.organization,
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        install = self.create_sentry_app_installation(
+            slug="pied-piper", organization=project.organization
+        )
+
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "settings": {"title": "Team Rocket", "summary": "We're blasting off again."},
+                "sentryAppInstallationUuid": install.uuid,
+                "hasSchemaFormConfig": True,
+            },
+        ]
+
+        url = reverse(
+            "sentry-api-0-project-rule-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "rule_id": rule.id,
+            },
+        )
+
+        response = self.client.put(
+            url,
+            data={
+                "name": "my super cool rule",
+                "actionMatch": "any",
+                "filterMatch": "any",
+                "actions": actions,
+                "conditions": [],
+                "filters": [],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(rule.id)
+
+        rule = Rule.objects.get(id=rule.id)
+        assert rule.data["actions"] == actions
+
+        kwargs = {
+            "install": install,
+            "fields": actions[0].get("settings"),
+        }
+
+        call_kwargs = mock_alert_rule_action_creator.call_args[1]
+
+        assert call_kwargs["install"].id == kwargs["install"].id
+        assert call_kwargs["fields"] == kwargs["fields"]
 
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
 

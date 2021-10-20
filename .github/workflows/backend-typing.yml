@@ -10,7 +10,10 @@ jobs:
     name: backend typing
     runs-on: ubuntu-20.04
     timeout-minutes: 12
-
+    strategy:
+      matrix:
+        # TODO(joshuarli): Switch to 3.8.12 when we switch over to Python 3.8.
+        python-version: [3.6.13]
     steps:
       - uses: actions/checkout@v2
 
@@ -29,32 +32,11 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-      - name: Set python version output
-        id: python-version
-        if: steps.changes.outputs.backend == 'true'
-        run: |
-          echo "::set-output name=python-version::$(cat .python-version)"
-
-      # Until GH composite actions can use `uses`, we need to setup python here
-      - uses: actions/setup-python@v2
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: ./.github/actions/setup-python
         if: steps.changes.outputs.backend == 'true'
         with:
-          python-version: ${{ steps.python-version.outputs.python-version }}
-
-      - name: Setup pip
-        uses: ./.github/actions/setup-pip
-        if: steps.changes.outputs.backend == 'true'
-        id: pip
-
-      - name: pip cache
-        uses: actions/cache@v2
-        if: steps.changes.outputs.backend == 'true'
-        with:
-          path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: |
-            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
+          python-version: ${{ matrix.python-version }}
 
       # Since we don't call the setup-sentry action we need to install libxmlsec1-dev
       - name: Setup backend typing

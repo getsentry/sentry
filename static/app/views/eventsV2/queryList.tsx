@@ -7,9 +7,12 @@ import {Location, Query} from 'history';
 import moment from 'moment';
 
 import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
+import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import DropdownMenu from 'app/components/dropdownMenu';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import FeatureBadge from 'app/components/featureBadge';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
@@ -18,9 +21,12 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'app/utils/discover/eventView';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
+import {decodeList} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
+import {WidgetQuery} from 'app/views/dashboardsV2/types';
 
 import {handleCreateQuery, handleDeleteQuery} from './savedQuery/utils';
 import MiniGraph from './miniGraph';
@@ -65,23 +71,57 @@ class QueryList extends React.Component<Props> {
     });
   };
 
-  handleDuplicateQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
-    event.preventDefault();
-    event.stopPropagation();
+  handleDuplicateQuery =
+    (eventView: EventView, yAxis: string[]) => (event: React.MouseEvent<Element>) => {
+      event.preventDefault();
+      event.stopPropagation();
 
-    const {api, location, organization, onQueryChange} = this.props;
+      const {api, location, organization, onQueryChange} = this.props;
 
-    eventView = eventView.clone();
-    eventView.name = `${eventView.name} copy`;
+      eventView = eventView.clone();
+      eventView.name = `${eventView.name} copy`;
 
-    handleCreateQuery(api, organization, eventView).then(() => {
-      onQueryChange();
-      browserHistory.push({
-        pathname: location.pathname,
-        query: {},
+      handleCreateQuery(api, organization, eventView, yAxis).then(() => {
+        onQueryChange();
+        browserHistory.push({
+          pathname: location.pathname,
+          query: {},
+        });
       });
-    });
-  };
+    };
+
+  handleAddQueryToDashboard =
+    (eventView: EventView, savedQuery?: SavedQuery) =>
+    (event: React.MouseEvent<Element>) => {
+      const {organization} = this.props;
+      event.preventDefault();
+      event.stopPropagation();
+
+      const defaultWidgetQuery: WidgetQuery = {
+        name: '',
+        fields: savedQuery?.yAxis ?? ['count()'],
+        conditions: eventView.query,
+        orderby: '',
+      };
+
+      trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
+        organization,
+        saved_query: !!savedQuery,
+      });
+
+      openAddDashboardWidgetModal({
+        organization,
+        start: eventView.start,
+        end: eventView.end,
+        statsPeriod: eventView.statsPeriod,
+        fromDiscover: true,
+        defaultWidgetQuery,
+        defaultTableColumns: eventView.fields.map(({field}) => field),
+        defaultTitle:
+          savedQuery?.name ??
+          (eventView.name !== 'All Events' ? eventView.name : undefined),
+      });
+    };
 
   renderQueries() {
     const {pageLinks, renderPrebuilt} = this.props;
@@ -148,6 +188,7 @@ class QueryList extends React.Component<Props> {
               location={location}
               eventView={eventView}
               organization={organization}
+              referrer="api.discover.homepage.prebuilt"
             />
           )}
           onEventClick={() => {
@@ -158,6 +199,27 @@ class QueryList extends React.Component<Props> {
               query_name: eventView.name,
             });
           }}
+          renderContextMenu={() => (
+            <Feature
+              organization={organization}
+              features={['connect-discover-and-dashboards', 'dashboards-edit']}
+            >
+              {({hasFeature}) => {
+                return (
+                  hasFeature && (
+                    <ContextMenu>
+                      <StyledMenuItem
+                        data-test-id="add-query-to-dashboard"
+                        onClick={this.handleAddQueryToDashboard(eventView)}
+                      >
+                        {t('Add to Dashboard')} <FeatureBadge type="beta" noTooltip />
+                      </StyledMenuItem>
+                    </ContextMenu>
+                  )
+                );
+              }}
+            </Feature>
+          )}
         />
       );
     });
@@ -182,6 +244,7 @@ class QueryList extends React.Component<Props> {
 
       const to = eventView.getResultsViewShortUrlTarget(organization.slug);
       const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
+      const referrer = `api.discover.${eventView.getDisplayMode()}-chart`;
 
       return (
         <QueryCard
@@ -200,14 +263,38 @@ class QueryList extends React.Component<Props> {
             });
           }}
           renderGraph={() => (
-            <MiniGraph
-              location={location}
-              eventView={eventView}
+            <Feature
               organization={organization}
-            />
+              features={['connect-discover-and-dashboards']}
+            >
+              {({hasFeature}) => (
+                <MiniGraph
+                  location={location}
+                  eventView={eventView}
+                  organization={organization}
+                  referrer={referrer}
+                  yAxis={hasFeature ? savedQuery.yAxis : undefined}
+                />
+              )}
+            </Feature>
           )}
           renderContextMenu={() => (
             <ContextMenu>
+              <Feature
+                organization={organization}
+                features={['connect-discover-and-dashboards', 'dashboards-edit']}
+              >
+                {({hasFeature}) =>
+                  hasFeature && (
+                    <StyledMenuItem
+                      data-test-id="add-query-to-dashboard"
+                      onClick={this.handleAddQueryToDashboard(eventView, savedQuery)}
+                    >
+                      {t('Add to Dashboard')} <FeatureBadge type="beta" noTooltip />
+                    </StyledMenuItem>
+                  )
+                }
+              </Feature>
               <MenuItem
                 data-test-id="delete-query"
                 onClick={this.handleDeleteQuery(eventView)}
@@ -216,7 +303,10 @@ class QueryList extends React.Component<Props> {
               </MenuItem>
               <MenuItem
                 data-test-id="duplicate-query"
-                onClick={this.handleDuplicateQuery(eventView)}
+                onClick={this.handleDuplicateQuery(
+                  eventView,
+                  decodeList(savedQuery.yAxis)
+                )}
               >
                 {t('Duplicate Query')}
               </MenuItem>
@@ -234,8 +324,8 @@ class QueryList extends React.Component<Props> {
         <QueryGrid>{this.renderQueries()}</QueryGrid>
         <PaginationRow
           pageLinks={pageLinks}
-          onCursor={(cursor: string, path: string, query: Query, direction: number) => {
-            const offset = Number(cursor.split(':')[1]);
+          onCursor={(cursor, path, query, direction) => {
+            const offset = Number(cursor?.split(':')?.[1] ?? 0);
 
             const newQuery: Query & {cursor?: string} = {...query, cursor};
             const isPrevious = direction === -1;
@@ -318,6 +408,13 @@ const DropdownTarget = styled('div')`
 `;
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   grid-column: 1 / 4;
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  white-space: nowrap;
+  span {
+    align-items: baseline;
+  }
 `;
 
 export default withApi(QueryList);

@@ -357,5 +357,33 @@
       },
       {"type": "spaces", "value": ""}
     ]
+  },
+  {
+    "query": "user.email:[test@test.com, ]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "invalid": {"reason": "Lists should not have empty values"},
+        "negated": false,
+        "key": {"type": "keySimple", "value": "user.email", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "test@test.com", "quoted": false}
+            },
+            {
+              "separator": ", ",
+              "value": null
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
   }
 ]

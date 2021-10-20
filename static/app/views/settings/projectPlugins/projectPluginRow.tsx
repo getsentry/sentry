@@ -1,16 +1,17 @@
 import {PureComponent} from 'react';
-import {Link, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import Switch from 'app/components/switchButton';
 import {t} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import {Organization, Plugin, Project} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {trackIntegrationAnalytics} from 'app/utils/integrationUtil';
 import recreateRoute from 'app/utils/recreateRoute';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -30,15 +31,12 @@ class ProjectPluginRow extends PureComponent<Props> {
     const {onChange, id, enabled} = this.props;
     onChange(id, !enabled);
     const eventKey = !enabled ? 'integrations.enabled' : 'integrations.disabled';
-    trackIntegrationEvent(
-      eventKey,
-      {
-        integration: id,
-        integration_type: 'plugin',
-        view: 'legacy_integrations',
-      },
-      this.props.organization
-    );
+    trackIntegrationAnalytics(eventKey, {
+      integration: id,
+      integration_type: 'plugin',
+      view: 'legacy_integrations',
+      organization: this.props.organization,
+    });
   };
 
   render() {

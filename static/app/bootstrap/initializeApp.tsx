@@ -1,6 +1,4 @@
-import 'bootstrap/js/alert';
-import 'bootstrap/js/tab';
-import 'bootstrap/js/dropdown';
+import './legacyTwitterBootstrap';
 import './exportGlobals';
 
 import routes from 'app/routes';

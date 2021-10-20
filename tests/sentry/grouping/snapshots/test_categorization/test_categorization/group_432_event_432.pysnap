@@ -1,5 +1,5 @@
 ---
-created: '2021-03-26T18:27:54.403509Z'
+created: '2021-08-06T16:30:59.415109Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -8,8 +8,8 @@ source: tests/sentry/grouping/test_categorization.py
 0x40000015 / 0x00000001:Fatal Error: 0x40000015 / 0x00000001 (thread_id:_, crashed:_)
                C:\WINDOWS\SYSTEM32\ntdll.dll  RtlUserThreadStart category=threadbase
             C:\WINDOWS\System32\KERNEL32.DLL  BaseThreadInitThunk category=threadbase
-               C:\WINDOWS\SYSTEM32\ntdll.dll  TppWorkerThread category=system
-               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpTpWorkCallback category=internals
+               C:\WINDOWS\SYSTEM32\ntdll.dll  TppWorkerThread category=threadbase
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpTpWorkCallback category=threadbase
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code

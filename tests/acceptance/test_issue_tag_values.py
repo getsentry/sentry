@@ -5,6 +5,8 @@ from tests.acceptance.page_objects.issue_details import IssueDetailsPage
 
 
 class IssueTagValuesTest(AcceptanceTestCase, SnubaTestCase):
+    page: IssueDetailsPage
+
     def setUp(self):
         super().setUp()
         self.user = self.create_user("foo@example.com")
@@ -25,12 +27,12 @@ class IssueTagValuesTest(AcceptanceTestCase, SnubaTestCase):
         event = self.create_issue()
         self.page.visit_tag_values(self.org.slug, event.group_id, "user")
 
-        assert self.browser.find_element_by_partial_link_text("mail@example.org")
+        assert self.browser.element_exists_by_test_id("group-tag-mail")
         self.browser.snapshot("issue details tag values - user")
 
     def test_url_tag(self):
         event = self.create_issue()
         self.page.visit_tag_values(self.org.slug, event.group_id, "url")
 
-        assert self.browser.find_element_by_partial_link_text("http://example.org")
+        assert self.browser.element_exists_by_test_id("group-tag-url")
         self.browser.snapshot("issue details tag values - url")

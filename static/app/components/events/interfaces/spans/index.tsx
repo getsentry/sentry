@@ -1,5 +1,5 @@
 import {PureComponent} from 'react';
-import * as ReactRouter from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -29,7 +29,7 @@ import WaterfallModel from './waterfallModel';
 type Props = {
   event: EventTransaction;
   organization: Organization;
-} & ReactRouter.WithRouterProps;
+} & WithRouterProps;
 
 type State = {
   parsedTrace: ParsedTraceType;
@@ -250,4 +250,4 @@ const ErrorLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-export default ReactRouter.withRouter(withOrganization(SpansInterface));
+export default withRouter(withOrganization(SpansInterface));

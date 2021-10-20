@@ -1,6 +1,6 @@
-pre-commit==2.13.0
-black==21.5b1
-sentry-flake8==1.0.0
-pyupgrade==2.18.3
-isort==5.8.0
+pre-commit==2.14.0
+black==21.7b0
+sentry-flake8==2.0.0
+pyupgrade==2.23.3
+isort==5.9.3
 requirements-parser>=0.2.0

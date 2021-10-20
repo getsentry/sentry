@@ -67,7 +67,7 @@ const alertStyles = ({theme, type = DEFAULT_TYPE, system}: Props & {theme: Theme
   flex-direction: column;
   margin: 0 0 ${space(3)};
   padding: ${space(1.5)} ${space(2)};
-  font-size: 15px;
+  font-size: ${theme.fontSizeLarge};
   box-shadow: ${theme.dropShadowLight};
   border-radius: ${theme.borderRadius};
   background: ${theme.backgroundSecondary};

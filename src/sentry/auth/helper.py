@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional, Tuple
 from uuid import uuid4
 
 from django.conf import settings
@@ -19,6 +19,10 @@ from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.idpmigration import (
+    get_verification_value_from_key,
+    send_one_time_account_confirm_link,
+)
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -34,12 +38,13 @@ from sentry.models import (
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
-from sentry.utils import auth, metrics
+from sentry.utils import auth, json, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.session_store import redis_property
+from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
 
@@ -175,20 +180,25 @@ class AuthIdentityHandler:
         # organization, do so, otherwise handle new membership
         if invite_helper:
             if invite_helper.invite_approved:
-                invite_helper.accept_invite(user)
-                return None
+                return invite_helper.accept_invite(user)
 
             # It's possible the user has an _invite request_ that hasn't been approved yet,
             # and is able to join the organization without an invite through the SSO flow.
             # In that case, delete the invite request and create a new membership.
             invite_helper.handle_invite_not_approved()
 
+        flags = OrganizationMember.flags["sso:linked"]
+        # if the org doesn't have the ability to add members then anyone who got added
+        # this way should be disabled until the org upgrades
+        if not features.has("organizations:invite-members", self.organization):
+            flags = flags | OrganizationMember.flags["member-limit:restricted"]
+
         # Otherwise create a new membership
         om = OrganizationMember.objects.create(
             organization=self.organization,
             role=self.organization.default_role,
             user=user,
-            flags=OrganizationMember.flags["sso:linked"],
+            flags=flags,
         )
 
         AuditLogEntry.objects.create(
@@ -270,7 +280,7 @@ class AuthIdentityHandler:
             )
 
         if member is None:
-            member = self._get_organization_member()
+            member = self._get_organization_member(auth_identity)
         self._set_linked_flag(member)
 
         if auth_is_new:
@@ -312,29 +322,31 @@ class AuthIdentityHandler:
 
         return deletion_result
 
-    def _get_organization_member(self) -> OrganizationMember:
+    def _get_organization_member(self, auth_identity: AuthIdentity) -> OrganizationMember:
+        """
+        Check to see if the user has a member associated, if not, create a new membership
+        based on the auth_identity email.
+        """
         try:
             return OrganizationMember.objects.get(user=self.user, organization=self.organization)
         except OrganizationMember.DoesNotExist:
-            pass
+            return self._handle_new_membership(auth_identity)
 
-        member = OrganizationMember.objects.create(
-            organization=self.organization,
-            role=self.organization.default_role,
-            user=self.user,
-            flags=OrganizationMember.flags["sso:linked"],
-        )
+    @staticmethod
+    def _get_user(identity: Identity) -> Optional[User]:
+        email = identity.get("email")
+        if email is None:
+            return None
 
-        AuditLogEntry.objects.create(
-            organization=self.organization,
-            actor=self.user,
-            ip_address=self.request.META["REMOTE_ADDR"],
-            target_object=member.id,
-            target_user=self.user,
-            event=AuditLogEntryEvent.MEMBER_ADD,
-            data=member.get_audit_log_data(),
-        )
-        return member
+        # TODO(dcramer): its possible they have multiple accounts and at
+        # least one is managed (per the check below)
+        try:
+            return User.objects.filter(
+                id__in=UserEmail.objects.filter(email__iexact=email).values("user"),
+                is_active=True,
+            ).first()
+        except IndexError:
+            return None
 
     def _respond(
         self,
@@ -349,13 +361,29 @@ class AuthIdentityHandler:
         return render_to_response(template, default_context, self.request, status=status)
 
     def _post_login_redirect(self) -> HttpResponseRedirect:
-        response = HttpResponseRedirect(auth.get_login_redirect(self.request))
+        url = auth.get_login_redirect(self.request)
+        if self.request.POST.get("op") == "newuser":
+            # add events that we can handle on the front end
+            provider = self.auth_provider.provider if self.auth_provider else None
+            params = {
+                "frontend_events": json.dumps({"event_name": "Sign Up", "event_label": provider})
+            }
+            url = add_params_to_url(url, params)
+        response = HttpResponseRedirect(url)
 
         # Always remove any pending invite cookies, pending invites will have been
         # accepted during the SSO flow.
         remove_invite_cookie(self.request, response)
 
         return response
+
+    def has_verified_account(self, identity: Identity, verification_value: Dict[str, Any]) -> bool:
+        acting_user = self._get_user(identity)
+
+        return (
+            verification_value["email"] == identity["email"]
+            and verification_value["user_id"] == acting_user.id
+        )
 
     def handle_unknown_identity(
         self,
@@ -379,15 +407,7 @@ class AuthIdentityHandler:
         """
         op = self.request.POST.get("op")
         if not self.user.is_authenticated:
-            # TODO(dcramer): its possible they have multiple accounts and at
-            # least one is managed (per the check below)
-            try:
-                acting_user = User.objects.filter(
-                    id__in=UserEmail.objects.filter(email__iexact=identity["email"]).values("user"),
-                    is_active=True,
-                ).first()
-            except IndexError:
-                acting_user = None
+            acting_user = self._get_user(identity)
             login_form = AuthenticationForm(
                 self.request,
                 self.request.POST if self.request.POST.get("op") == "login" else None,
@@ -395,14 +415,16 @@ class AuthIdentityHandler:
             )
         else:
             acting_user = self.user
+            login_form = None
+        # we don't trust all IDP email verification, so users can also confirm via one time email link
+        is_account_verified = False
+        if self.request.session.get("confirm_account_verification_key"):
+            verification_key = self.request.session.get("confirm_account_verification_key")
+            verification_value = get_verification_value_from_key(verification_key)
+            if verification_value:
+                is_account_verified = self.has_verified_account(identity, verification_value)
 
-        # If they already have an SSO account and the identity provider says
-        # the email matches we go ahead and let them merge it. This is the
-        # only way to prevent them having duplicate accounts, and because
-        # we trust identity providers, its considered safe.
-        # Note: we do not trust things like SAML, so the SSO implementation needs
-        # to consider if 'email_verified' can be trusted or not
-        if acting_user and identity.get("email_verified"):
+        if acting_user and identity.get("email_verified") or is_account_verified:
             # we only allow this flow to happen if the existing user has
             # membership, otherwise we short circuit because it might be
             # an attempt to hijack membership of another organization
@@ -452,22 +474,18 @@ class AuthIdentityHandler:
             op = None
 
         if not op:
-            # A blank character is needed to prevent the HTML span from collapsing
-            provider_name = self.auth_provider.get_provider().name if self.auth_provider else " "
+            existing_user, template = self._dispatch_to_confirmation(identity)
 
             context = {
                 "identity": identity,
-                "provider": provider_name,
+                "provider": self.provider_name,
                 "identity_display_name": identity.get("name") or identity.get("email"),
                 "identity_identifier": identity.get("email") or identity.get("id"),
+                "existing_user": existing_user or acting_user,
             }
-            if self.user.is_authenticated:
-                template = "sentry/auth-confirm-link.html"
-                context.update({"existing_user": self.user})
-            else:
-                template = "sentry/auth-confirm-identity.html"
-                context.update({"existing_user": acting_user, "login_form": login_form})
-            return self._respond(template, context)
+            if login_form:
+                context["login_form"] = login_form
+            return self._respond(f"sentry/{template}.html", context)
 
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
@@ -484,6 +502,33 @@ class AuthIdentityHandler:
             # set activeorg to ensure correct redirect upon logging in
             self.request.session["activeorg"] = self.organization.slug
         return self._post_login_redirect()
+
+    @property
+    def provider_name(self):
+        if self.auth_provider:
+            return self.auth_provider.provider_name
+        else:
+            # A blank character is needed to prevent an HTML span from collapsing
+            return " "
+
+    def _dispatch_to_confirmation(self, identity: Identity) -> Tuple[Optional[User], str]:
+        if self.user.is_authenticated:
+            return self.user, "auth-confirm-link"
+
+        if features.has("organizations:idp-automatic-migration", self.organization):
+            existing_user = self._get_user(identity)
+            if existing_user and not existing_user.has_usable_password():
+                send_one_time_account_confirm_link(
+                    existing_user,
+                    self.organization,
+                    self.auth_provider,
+                    identity["email"],
+                    identity["id"],
+                )
+                return existing_user, "auth-confirm-account"
+
+        self.request.session.set_test_cookie()
+        return None, "auth-confirm-identity"
 
     def handle_new_user(self, identity: Identity) -> AuthIdentity:
         user = User.objects.create(

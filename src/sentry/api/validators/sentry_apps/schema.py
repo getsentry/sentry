@@ -130,14 +130,24 @@ SCHEMA = {
             },
             "required": ["type", "link", "create"],
         },
+        "alert-rule-settings": {
+            "type": "object",
+            "properties": {
+                "type": {"type": "string", "enum": ["alert-rule-settings"]},
+                "uri": {"$ref": "#/definitions/uri"},
+                "required_fields": {"$ref": "#/definitions/fieldset"},
+                "optional_fields": {"$ref": "#/definitions/fieldset"},
+            },
+            "required": ["type", "uri", "required_fields"],
+        },
         "alert-rule-action": {
             "type": "object",
             "properties": {
                 "type": {"type": "string", "enum": ["alert-rule-action"]},
-                "required_fields": {"$ref": "#/definitions/fieldset"},
-                "optional_fields": {"$ref": "#/definitions/fieldset"},
+                "title": {"type": "string"},
+                "settings": {"$ref": "#/definitions/alert-rule-settings"},
             },
-            "required": ["type", "required_fields"],
+            "required": ["type", "title", "settings"],
         },
         "issue-media": {
             "type": "object",
@@ -185,7 +195,7 @@ SCHEMA = {
     "required": ["elements"],
 }
 
-element_types = ["issue-link", "alert-rule-action", "issue-media", "stacktrace-link"]
+ELEMENT_TYPES = ["issue-link", "alert-rule-action", "issue-media", "stacktrace-link"]
 
 
 def validate_component(schema):
@@ -205,7 +215,8 @@ def check_elements_is_array(instance):
         raise SchemaValidationError("'elements' should be an array of objects")
 
 
-def check_each_element_for_error(instance):
+def check_each_element_for_error(instance, element_types=None):
+    element_types = element_types or ELEMENT_TYPES
     if "elements" not in instance:
         return
 
@@ -215,21 +226,41 @@ def check_each_element_for_error(instance):
         found_type = element["type"]
         if found_type not in element_types:
             raise SchemaValidationError(
-                "Element has type '%s'. Type must be one of the following: %s"
-                % (found_type, element_types)
+                f"Element has type '{found_type}'. Type must be one of the following: {element_types}"
             )
         try:
             validate_component(element)
         except SchemaValidationError as e:
             # catch the validation error and re-write the error so the user knows which element has the issue
-            raise SchemaValidationError(f"{e.message} for element of type '{found_type}'")
+            raise SchemaValidationError(
+                f"{e.message} for element of type '{found_type}'"  # noqa: B306
+            )
 
 
-def validate_ui_element_schema(instance):
+def check_only_one_of_each_element(instance):
+    if "elements" not in instance:
+        return
+    found = {}
+    for element in instance["elements"]:
+        if element["type"]:
+            if element["type"] not in found:
+                found[element["type"]] = 1
+            else:
+                raise SchemaValidationError(f"Multiple elements of type: {element['type']}")
+
+
+def validate_ui_element_schema(instance, features=None):
+    features = features or {}
+    available_element_types = (
+        ["issue-link", "issue-media", "stacktrace-link"]
+        if not features.get("organizations:alert-rule-ui-component", False)
+        else ELEMENT_TYPES
+    )
     try:
         # schema validator will catch elements missing
         check_elements_is_array(instance)
-        check_each_element_for_error(instance)
+        check_each_element_for_error(instance, element_types=available_element_types)
+        check_only_one_of_each_element(instance)
     except SchemaValidationError as e:
         raise e
     except Exception as e:

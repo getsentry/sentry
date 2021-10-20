@@ -1,3 +1,4 @@
+import {MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
 import {IconRefresh} from 'app/icons/iconRefresh';
@@ -9,28 +10,29 @@ import {defined} from 'app/utils';
 import DefaultTitle from '../defaultTitle';
 
 import Expander from './expander';
-import GroupingBadges from './groupingBadges';
+import LeadHint from './leadHint';
 import Wrapper from './wrapper';
 
 type Props = React.ComponentProps<typeof Expander> &
-  Omit<React.ComponentProps<typeof GroupingBadges>, 'inApp'> & {
+  React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
+    isUsedForGrouping: boolean;
+    onMouseDown?: MouseEventHandler<HTMLDivElement>;
+    onClick?: () => void;
     timesRepeated?: number;
-    haveFramesAtLeastOneExpandedFrame?: boolean;
-    haveFramesAtLeastOneGroupingBadge?: boolean;
   };
 
 function Default({
   frame,
+  nextFrame,
   isHoverPreviewed,
   isExpanded,
   platform,
   timesRepeated,
-  isPrefix,
-  isSentinel,
   isUsedForGrouping,
-  haveFramesAtLeastOneGroupingBadge,
-  haveFramesAtLeastOneExpandedFrame,
+  leadsToApp,
+  onMouseDown,
+  onClick,
   ...props
 }: Props) {
   function renderRepeats() {
@@ -51,26 +53,23 @@ function Default({
   }
 
   return (
-    <Wrapper
-      className="title"
-      haveFramesAtLeastOneGroupingBadge={haveFramesAtLeastOneGroupingBadge}
-      haveFramesAtLeastOneExpandedFrame={haveFramesAtLeastOneExpandedFrame}
-    >
+    <Wrapper className="title" onMouseDown={onMouseDown} onClick={onClick}>
       <VertCenterWrapper>
-        <DefaultTitle
-          frame={frame}
-          platform={platform}
-          isHoverPreviewed={isHoverPreviewed}
-        />
+        <Title>
+          <LeadHint
+            isExpanded={isExpanded}
+            nextFrame={nextFrame}
+            leadsToApp={leadsToApp}
+          />
+          <DefaultTitle
+            frame={frame}
+            platform={platform}
+            isHoverPreviewed={isHoverPreviewed}
+            isUsedForGrouping={isUsedForGrouping}
+          />
+        </Title>
         {renderRepeats()}
       </VertCenterWrapper>
-      {haveFramesAtLeastOneGroupingBadge && (
-        <GroupingBadges
-          isPrefix={isPrefix}
-          isSentinel={isSentinel}
-          isUsedForGrouping={isUsedForGrouping}
-        />
-      )}
       <Expander
         isExpanded={isExpanded}
         isHoverPreviewed={isHoverPreviewed}
@@ -85,9 +84,13 @@ export default Default;
 
 const VertCenterWrapper = styled('div')`
   display: flex;
-  flex-wrap: wrap;
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    align-items: center;
+  align-items: center;
+`;
+
+const Title = styled('div')`
+  > * {
+    vertical-align: middle;
+    line-height: 1;
   }
 `;
 

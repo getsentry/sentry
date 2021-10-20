@@ -7,11 +7,11 @@ from datetime import timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import List, Mapping, Optional, Set
+from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Set, Union
 
 from django.core.cache import cache
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.utils import timezone
 from django.utils.http import urlencode, urlquote
 from django.utils.translation import ugettext_lazy as _
@@ -29,9 +29,14 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.eventstore.models import Event
+from sentry.models.grouphistory import record_group_history_from_activity_type
+from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
+
+if TYPE_CHECKING:
+    from sentry.models import Integration, Team, User
 
 logger = logging.getLogger(__name__)
 
@@ -281,10 +286,14 @@ class GroupManager(BaseManager):
 
         return Group.objects.filter(id__in=group_ids)
 
-    def get_groups_by_external_issue(self, integration, external_issue_key):
+    def get_groups_by_external_issue(
+        self,
+        integration: "Integration",
+        external_issue_key: str,
+    ) -> QuerySet:
         from sentry.models import ExternalIssue, GroupLink
 
-        return Group.objects.filter(
+        return self.filter(
             id__in=GroupLink.objects.filter(
                 linked_id__in=ExternalIssue.objects.filter(
                     key=external_issue_key,
@@ -294,6 +303,28 @@ class GroupManager(BaseManager):
             ).values_list("group_id", flat=True),
             project__organization_id__in=integration.organizations.values_list("id", flat=True),
         )
+
+    def update_group_status(
+        self, groups: Sequence["Group"], status: GroupStatus, activity_type: ActivityType
+    ) -> None:
+        """For each groups, update status to `status` and create an Activity."""
+        from sentry.models import Activity
+
+        updated_count = (
+            self.filter(id__in=[g.id for g in groups]).exclude(status=status).update(status=status)
+        )
+        if updated_count:
+            for group in groups:
+                Activity.objects.create_group_activity(group, activity_type)
+                record_group_history_from_activity_type(group, activity_type)
+
+    def from_share_id(self, share_id: str) -> "Group":
+        if not share_id or len(share_id) != 32:
+            raise Group.DoesNotExist
+
+        from sentry.models import GroupShare
+
+        return self.get(id__in=GroupShare.objects.filter(uuid=share_id).values_list("group_id")[:1])
 
 
 class Group(Model):
@@ -455,17 +486,6 @@ class Group(Model):
             # Otherwise it has not been shared yet.
             return None
 
-    @classmethod
-    def from_share_id(cls, share_id):
-        if not share_id or len(share_id) != 32:
-            raise cls.DoesNotExist
-
-        from sentry.models import GroupShare
-
-        return cls.objects.get(
-            id__in=GroupShare.objects.filter(uuid=share_id).values_list("group_id")[:1]
-        )
-
     def get_score(self):
         return type(self).calculate_score(self.times_seen, self.last_seen)
 
@@ -494,13 +514,13 @@ class Group(Model):
     def _get_cache_key(self, project_id, group_id, first):
         return f"g-r:{group_id}-{project_id}-{first}"
 
-    def __get_release(self, project_id, group_id, first=True):
+    def __get_release(self, project_id, group_id, first=True, use_cache=True):
         from sentry.models import GroupRelease, Release
 
         orderby = "first_seen" if first else "-last_seen"
         cache_key = self._get_cache_key(project_id, group_id, first)
         try:
-            release_version = cache.get(cache_key)
+            release_version = cache.get(cache_key) if use_cache else None
             if release_version is None:
                 release_version = Release.objects.get(
                     id__in=GroupRelease.objects.filter(group_id=group_id)
@@ -522,8 +542,8 @@ class Group(Model):
 
         return self.first_release.version
 
-    def get_last_release(self):
-        return self.__get_release(self.project_id, self.id, False)
+    def get_last_release(self, use_cache=True):
+        return self.__get_release(self.project_id, self.id, False, use_cache=use_cache)
 
     def get_event_type(self):
         """
@@ -591,3 +611,18 @@ class Group(Model):
                 id__in=group_ids, project_id__in=project_ids, project__organization=organization
             )
         }
+
+    def get_assignee(self) -> Optional[Union["Team", "User"]]:
+        from sentry.models import GroupAssignee
+
+        try:
+            group_assignee = GroupAssignee.objects.get(group=self)
+        except GroupAssignee.DoesNotExist:
+            return None
+
+        assigned_actor = group_assignee.assigned_actor()
+
+        try:
+            return assigned_actor.resolve()
+        except assigned_actor.type.DoesNotExist:
+            return None

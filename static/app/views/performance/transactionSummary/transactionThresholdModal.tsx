@@ -1,5 +1,4 @@
 import * as React from 'react';
-import {Link} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -10,8 +9,8 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import FeatureBadge from 'app/components/featureBadge';
 import SelectControl from 'app/components/forms/selectControl';
+import Link from 'app/components/links/link';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -247,9 +246,7 @@ class TransactionThresholdModal extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <Header closeButton>
-          <h4>
-            {t('Transaction Settings')} <FeatureBadge type="beta" />
-          </h4>
+          <h4>{t('Transaction Settings')}</h4>
         </Header>
         <Body>
           <Instruction>

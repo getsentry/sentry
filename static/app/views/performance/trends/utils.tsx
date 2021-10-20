@@ -1,13 +1,9 @@
-import styled from '@emotion/styled';
 import {ASAP} from 'downsample/methods/ASAP';
 import {Location} from 'history';
 import moment from 'moment';
 
 import {getInterval} from 'app/components/charts/utils';
-import Duration from 'app/components/duration';
-import {IconArrow} from 'app/icons';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {Project} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 import EventView from 'app/utils/discover/eventView';
@@ -19,7 +15,7 @@ import {
 } from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 import {
   NormalizedTrendsTransaction,
@@ -68,7 +64,7 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
   },
 ];
 
-const TRENDS_PARAMETERS: TrendParameter[] = [
+export const TRENDS_PARAMETERS: TrendParameter[] = [
   {
     label: 'Duration',
     column: TrendColumnField.DURATION,
@@ -89,10 +85,6 @@ const TRENDS_PARAMETERS: TrendParameter[] = [
     label: 'CLS',
     column: TrendColumnField.CLS,
   },
-];
-
-// TODO(perf): Merge with above after ops breakdown feature is mainlined.
-const SPANS_TRENDS_PARAMETERS: TrendParameter[] = [
   {
     label: 'Spans (http)',
     column: TrendColumnField.SPANS_HTTP,
@@ -110,12 +102,6 @@ const SPANS_TRENDS_PARAMETERS: TrendParameter[] = [
     column: TrendColumnField.SPANS_RESOURCE,
   },
 ];
-
-export function getTrendsParameters({canSeeSpanOpTrends} = {canSeeSpanOpTrends: false}) {
-  return canSeeSpanOpTrends
-    ? [...TRENDS_PARAMETERS, ...SPANS_TRENDS_PARAMETERS]
-    : [...TRENDS_PARAMETERS];
-}
 
 export const trendToColor = {
   [TrendChangeType.IMPROVED]: {
@@ -179,13 +165,7 @@ export function transformDeltaSpread(from: number, to: number) {
 
   const showDigits = from > 1000 || to > 1000 || from < 10 || to < 10; // Show digits consistently if either has them
 
-  return (
-    <span>
-      <Duration seconds={fromSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
-      <StyledIconArrow direction="right" size="xs" />
-      <Duration seconds={toSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
-    </span>
-  );
+  return {fromSeconds, toSeconds, showDigits};
 }
 
 export function getTrendProjectId(
@@ -272,11 +252,8 @@ export function transformValueDelta(value: number, trendType: TrendChangeType) {
   const seconds = absoluteValue / 1000;
 
   const fixedDigits = absoluteValue > 1000 || absoluteValue < 10 ? 1 : 0;
-  return (
-    <span>
-      <Duration seconds={seconds} fixedDigits={fixedDigits} abbreviation /> {changeLabel}
-    </span>
-  );
+
+  return {seconds, fixedDigits, changeLabel};
 }
 
 /**
@@ -317,15 +294,15 @@ export function movingAverage(data, index, size) {
  * This function applies defaults for trend and count percentage, and adds the confidence limit to the query
  */
 function getLimitTransactionItems(query: string) {
-  const limitQuery = tokenizeSearch(query);
-  if (!limitQuery.hasTag('count_percentage()')) {
-    limitQuery.addTagValues('count_percentage()', ['>0.25', '<4']);
+  const limitQuery = new MutableSearch(query);
+  if (!limitQuery.hasFilter('count_percentage()')) {
+    limitQuery.addFilterValues('count_percentage()', ['>0.25', '<4']);
   }
-  if (!limitQuery.hasTag('trend_percentage()')) {
-    limitQuery.addTagValues('trend_percentage()', ['>0%']);
+  if (!limitQuery.hasFilter('trend_percentage()')) {
+    limitQuery.addFilterValues('trend_percentage()', ['>0%']);
   }
-  if (!limitQuery.hasTag('confidence()')) {
-    limitQuery.addTagValues('confidence()', ['>6']);
+  if (!limitQuery.hasFilter('confidence()')) {
+    limitQuery.addFilterValues('confidence()', ['>6']);
   }
   return limitQuery.formatString();
 }
@@ -390,7 +367,3 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
     smoothedResults,
   };
 }
-
-export const StyledIconArrow = styled(IconArrow)`
-  margin: 0 ${space(1)};
-`;

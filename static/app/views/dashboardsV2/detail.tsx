@@ -13,7 +13,7 @@ import {Client} from 'app/api';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import HookOrDefault from 'app/components/hookOrDefault';
 import * as Layout from 'app/components/layouts/thirds';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
@@ -48,6 +48,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   dashboards: DashboardListItem[];
   route: PlainRoute;
   reloadData?: () => void;
+  newWidget?: Widget;
 };
 
 type State = {
@@ -278,7 +279,8 @@ class DashboardDetail extends Component<Props, State> {
                   ...location.query,
                 },
               });
-            }
+            },
+            () => undefined
           );
         }
         break;
@@ -306,6 +308,9 @@ class DashboardDetail extends Component<Props, State> {
                 modifiedDashboard: null,
               });
 
+              if (reloadData) {
+                reloadData();
+              }
               if (dashboard && newDashboard.id !== dashboard.id) {
                 browserHistory.replace({
                   pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
@@ -315,10 +320,8 @@ class DashboardDetail extends Component<Props, State> {
                 });
                 return;
               }
-              if (reloadData) {
-                reloadData();
-              }
-            }
+            },
+            () => undefined
           );
 
           return;
@@ -400,7 +403,7 @@ class DashboardDetail extends Component<Props, State> {
         }}
       >
         <PageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
             <StyledPageHeader>
               <DashboardTitle
                 dashboard={modifiedDashboard ?? dashboard}
@@ -428,14 +431,15 @@ class DashboardDetail extends Component<Props, State> {
               router={router}
               location={location}
             />
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
     );
   }
 
   renderDashboardDetail() {
-    const {organization, dashboard, dashboards, params, router, location} = this.props;
+    const {organization, dashboard, dashboards, params, router, location, newWidget} =
+      this.props;
     const {modifiedDashboard, dashboardState} = this.state;
     const {dashboardId} = params;
 
@@ -451,7 +455,7 @@ class DashboardDetail extends Component<Props, State> {
           },
         }}
       >
-        <LightWeightNoProjectMessage organization={organization}>
+        <NoProjectMessage organization={organization}>
           <Layout.Header>
             <Layout.HeaderContent>
               <Breadcrumbs
@@ -502,10 +506,11 @@ class DashboardDetail extends Component<Props, State> {
                 onSetWidgetToBeUpdated={this.onSetWidgetToBeUpdated}
                 router={router}
                 location={location}
+                newWidget={newWidget}
               />
             </Layout.Main>
           </Layout.Body>
-        </LightWeightNoProjectMessage>
+        </NoProjectMessage>
       </GlobalSelectionHeader>
     );
   }

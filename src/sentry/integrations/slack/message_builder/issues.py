@@ -1,5 +1,5 @@
 import re
-from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 from django.core.cache import cache
 
@@ -20,8 +20,8 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.notifications.base import BaseNotification
-from sentry.notifications.rules import AlertRuleNotification
+from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -29,7 +29,7 @@ from sentry.utils.http import absolute_uri
 from ..utils import build_notification_footer
 
 
-def format_actor_option(actor: Union[User, Team]) -> Mapping[str, str]:
+def format_actor_option(actor: Union["Team", "User"]) -> Mapping[str, str]:
     if isinstance(actor, User):
         return {"text": actor.get_display_name(), "value": f"user:{actor.id}"}
     if isinstance(actor, Team):
@@ -70,16 +70,22 @@ def get_assignee(group: Group) -> Optional[Mapping[str, str]]:
         return None
 
 
-def build_attachment_title(obj: Union[Group, Event]) -> Any:
+def build_attachment_title(obj: Union[Group, Event]) -> str:
     ev_metadata = obj.get_event_metadata()
     ev_type = obj.get_event_type()
 
     if ev_type == "error" and "type" in ev_metadata:
-        return ev_metadata["type"]
+        title = ev_metadata["type"]
+
     elif ev_type == "csp":
-        return "{} - {}".format(ev_metadata["directive"], ev_metadata["uri"])
+        title = f'{ev_metadata["directive"]} - {ev_metadata["uri"]}'
+
     else:
-        return obj.title
+        title = obj.title
+
+    # Explicitly typing to satisfy mypy.
+    title_str: str = title
+    return title_str
 
 
 def build_attachment_text(group: Group, event: Optional[Event] = None) -> Optional[Any]:
@@ -136,11 +142,14 @@ def build_action_text(group: Group, identity: Identity, action: Mapping[str, Any
     )
 
 
-def build_rule_url(rule: Any, group: Group, project: Project) -> Any:
+def build_rule_url(rule: Any, group: Group, project: Project) -> str:
     org_slug = group.organization.slug
     project_slug = project.slug
     rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/"
-    return absolute_uri(rule_url)
+
+    # Explicitly typing to satisfy mypy.
+    url: str = absolute_uri(rule_url)
+    return url
 
 
 def build_footer(group: Group, project: Project, rules: Optional[Sequence[Rule]] = None) -> str:
@@ -156,7 +165,7 @@ def build_footer(group: Group, project: Project, rules: Optional[Sequence[Rule]]
 
 
 def build_tag_fields(
-    event_for_tags: Any, tags: Optional[Mapping[str, str]] = None
+    event_for_tags: Any, tags: Optional[Set[str]] = None
 ) -> Sequence[Mapping[str, Union[str, bool]]]:
     fields = []
     if tags:
@@ -206,7 +215,7 @@ def build_actions(
 
     ignore_button = {"name": "status", "value": "ignored", "type": "button", "text": "Ignore"}
 
-    cache_key = "has_releases:2:%s" % project.id
+    cache_key = f"has_releases:2:{project.id}"
     has_releases = cache.get(cache_key)
     if has_releases is None:
         has_releases = ReleaseProject.objects.filter(project_id=project.id).exists()
@@ -260,15 +269,20 @@ def get_title_link(
     link_to_event: bool,
     issue_details: bool,
     notification: Optional[BaseNotification],
-) -> Any:
+) -> str:
     if event and link_to_event:
-        return group.get_absolute_url(params={"referrer": "slack"}, event_id=event.event_id)
+        url = group.get_absolute_url(params={"referrer": "slack"}, event_id=event.event_id)
 
-    if issue_details:
+    elif issue_details:
         referrer = re.sub("Notification$", "Slack", notification.__class__.__name__)
-        return group.get_absolute_url(params={"referrer": referrer})
+        url = group.get_absolute_url(params={"referrer": referrer})
 
-    return group.get_absolute_url(params={"referrer": "slack"})
+    else:
+        url = group.get_absolute_url(params={"referrer": "slack"})
+
+    # Explicitly typing to satisfy mypy.
+    url_str: str = url
+    return url_str
 
 
 def get_timestamp(group: Group, event: Optional[Event]) -> float:
@@ -292,14 +306,14 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self,
         group: Group,
         event: Optional[Event] = None,
-        tags: Optional[Mapping[str, str]] = None,
+        tags: Optional[Set[str]] = None,
         identity: Optional[Identity] = None,
         actions: Optional[Sequence[Any]] = None,
         rules: Optional[List[Rule]] = None,
         link_to_event: bool = False,
         issue_details: bool = False,
         notification: Optional[BaseNotification] = None,
-        recipient: Optional[Union[Team, User]] = None,
+        recipient: Optional[Union["Team", "User"]] = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -353,7 +367,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
 def build_group_attachment(
     group: Group,
     event: Optional[Event] = None,
-    tags: Optional[Mapping[str, str]] = None,
+    tags: Optional[Set[str]] = None,
     identity: Optional[Identity] = None,
     actions: Optional[Sequence[Any]] = None,
     rules: Optional[List[Rule]] = None,

@@ -1,4 +1,4 @@
-import {MouseEvent} from 'react';
+import {MouseEvent, MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
@@ -17,12 +17,15 @@ import Symbol from '../symbol';
 import {getPlatform} from '../utils';
 
 import Expander from './expander';
-import GroupingBadges from './groupingBadges';
+import LeadHint from './leadHint';
 import Wrapper from './wrapper';
 
 type Props = React.ComponentProps<typeof Expander> &
-  Omit<React.ComponentProps<typeof GroupingBadges>, 'inApp'> & {
+  React.ComponentProps<typeof LeadHint> & {
     frame: Frame;
+    isUsedForGrouping: boolean;
+    onMouseDown?: MouseEventHandler<HTMLDivElement>;
+    onClick?: () => void;
     isFrameAfterLastNonApp?: boolean;
     includeSystemFrames?: boolean;
     showingAbsoluteAddress?: boolean;
@@ -30,8 +33,6 @@ type Props = React.ComponentProps<typeof Expander> &
     prevFrame?: Frame;
     image?: React.ComponentProps<typeof DebugImage>['image'];
     maxLengthOfRelativeAddress?: number;
-    haveFramesAtLeastOneExpandedFrame?: boolean;
-    haveFramesAtLeastOneGroupingBadge?: boolean;
     onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
     onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
   };
@@ -50,11 +51,11 @@ function Native({
   maxLengthOfRelativeAddress,
   platform,
   prevFrame,
-  isPrefix,
-  isSentinel,
   isUsedForGrouping,
-  haveFramesAtLeastOneExpandedFrame,
-  haveFramesAtLeastOneGroupingBadge,
+  nextFrame,
+  leadsToApp,
+  onMouseDown,
+  onClick,
   ...props
 }: Props) {
   const {instructionAddr, trust, addrMode, symbolicatorStatus} = frame ?? {};
@@ -86,7 +87,7 @@ function Native({
   }
 
   function scrollToImage(event: MouseEvent<HTMLAnchorElement>) {
-    event.stopPropagation(); // to prevent collapsing if collapsable
+    event.stopPropagation(); // to prevent collapsing if collapsible
 
     if (instructionAddr) {
       DebugMetaActions.updateFilter(makeFilter(instructionAddr));
@@ -106,17 +107,19 @@ function Native({
     instructionAddr === prevFrame.instructionAddr;
 
   const isFoundByStackScanning = trust === 'scan' || trust === 'cfi-scan';
+
   return (
-    <Wrapper
-      className="title as-table"
-      haveFramesAtLeastOneExpandedFrame={haveFramesAtLeastOneExpandedFrame}
-      haveFramesAtLeastOneGroupingBadge={haveFramesAtLeastOneGroupingBadge}
-    >
+    <Wrapper className="title as-table" onMouseDown={onMouseDown} onClick={onClick}>
       <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
-        <PackageLinkWrapper>
+        <PackageInfo>
+          <LeadHint
+            isExpanded={isExpanded}
+            nextFrame={nextFrame}
+            leadsToApp={leadsToApp}
+          />
           <PackageLink
             includeSystemFrames={!!includeSystemFrames}
-            withLeadHint={false}
+            withLeadHint={!(isExpanded || !leadsToApp)}
             packagePath={frame.package}
             onClick={scrollToImage}
             isClickable={shouldShowLinkToImage}
@@ -129,7 +132,7 @@ function Native({
               />
             )}
           </PackageLink>
-        </PackageLinkWrapper>
+        </PackageInfo>
         {instructionAddr && (
           <TogglableAddress
             address={instructionAddr}
@@ -147,15 +150,9 @@ function Native({
           showCompleteFunctionName={!!showCompleteFunctionName}
           onFunctionNameToggle={onFunctionNameToggle}
           isHoverPreviewed={isHoverPreviewed}
-        />
-      </NativeLineContent>
-      {haveFramesAtLeastOneGroupingBadge && (
-        <GroupingBadges
-          isPrefix={isPrefix}
-          isSentinel={isSentinel}
           isUsedForGrouping={isUsedForGrouping}
         />
-      )}
+      </NativeLineContent>
       <Expander
         isExpanded={isExpanded}
         isHoverPreviewed={isHoverPreviewed}
@@ -168,9 +165,11 @@ function Native({
 
 export default Native;
 
-const PackageLinkWrapper = styled('span')`
+const PackageInfo = styled('span')`
+  display: grid;
+  grid-template-columns: auto 1fr;
   order: 2;
-
+  align-items: flex-start;
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
     order: 0;
   }

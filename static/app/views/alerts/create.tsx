@@ -31,55 +31,42 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   hasMetricAlerts: boolean;
 };
 
-type AlertType = 'metric' | 'issue' | null;
+type AlertType = 'metric' | 'issue';
 
 type State = {
   alertType: AlertType;
-  eventView: EventView | undefined;
-  wizardTemplate?: WizardRuleTemplate;
 };
 
 class Create extends Component<Props, State> {
-  state: State = {
-    eventView: undefined,
-    alertType: this.props.location.pathname.includes('/alerts/rules/')
-      ? 'issue'
-      : this.props.location.pathname.includes('/alerts/metric-rules/')
-      ? 'metric'
-      : null,
-  };
+  state = this.getInitialState();
 
-  componentDidMount() {
+  getInitialState(): State {
     const {organization, location, project} = this.props;
+    const {createFromDiscover, createFromWizard, aggregate, dataset, eventTypes} =
+      location?.query ?? {};
+    let alertType: AlertType = 'issue';
 
-    if (location?.query) {
-      const {query} = location;
-      const {createFromDiscover, createFromWizard} = query;
-      if (createFromDiscover) {
-        const eventView = EventView.fromLocation(location);
-        // eslint-disable-next-line react/no-did-mount-set-state
-        this.setState({alertType: 'metric', eventView});
-      } else if (createFromWizard) {
-        const {aggregate, dataset, eventTypes} = query;
-        if (aggregate && dataset && eventTypes) {
-          // eslint-disable-next-line react/no-did-mount-set-state
-          this.setState({
-            alertType: 'metric',
-            wizardTemplate: {aggregate, dataset, eventTypes},
-          });
-        } else {
-          // eslint-disable-next-line react/no-did-mount-set-state
-          this.setState({
-            alertType: 'issue',
-          });
-        }
+    // Alerts can only be created via create from discover or alert wizard
+    if (createFromDiscover) {
+      alertType = 'metric';
+    } else if (createFromWizard) {
+      if (aggregate && dataset && eventTypes) {
+        alertType = 'metric';
       } else {
-        browserHistory.replace(
-          `/organizations/${organization.slug}/alerts/${project.id}/wizard`
-        );
+        // Just to be explicit
+        alertType = 'issue';
       }
+    } else {
+      browserHistory.replace(
+        `/organizations/${organization.slug}/alerts/${project.slug}/wizard`
+      );
     }
 
+    return {alertType};
+  }
+
+  componentDidMount() {
+    const {organization, project} = this.props;
     trackAnalyticsEvent({
       eventKey: 'new_alert_rule.viewed',
       eventName: 'New Alert Rule: Viewed',
@@ -102,10 +89,14 @@ class Create extends Component<Props, State> {
       location,
       routes,
     } = this.props;
-    const {alertType, eventView, wizardTemplate} = this.state;
+    const {alertType} = this.state;
+    const {aggregate, dataset, eventTypes, createFromWizard, createFromDiscover} =
+      location?.query ?? {};
+    const wizardTemplate: WizardRuleTemplate = {aggregate, dataset, eventTypes};
+    const eventView = createFromDiscover ? EventView.fromLocation(location) : undefined;
 
     let wizardAlertType: undefined | WizardAlertType;
-    if (location?.query?.createFromWizard) {
+    if (createFromWizard && alertType === 'metric') {
       wizardAlertType = wizardTemplate
         ? getAlertTypeFromAggregateDataset(wizardTemplate)
         : 'issues';
@@ -120,7 +111,6 @@ class Create extends Component<Props, State> {
         <Layout.Header>
           <StyledHeaderContent>
             <BuilderBreadCrumbs
-              hasMetricAlerts={hasMetricAlerts}
               orgSlug={organization.slug}
               alertName={t('Set Conditions')}
               title={wizardAlertType ? t('Select Alert') : title}
@@ -137,7 +127,7 @@ class Create extends Component<Props, State> {
           </StyledHeaderContent>
         </Layout.Header>
         <AlertConditionsBody>
-          <Layout.Main fullWidth>
+          <StyledLayoutMain fullWidth>
             {(!hasMetricAlerts || alertType === 'issue') && (
               <IssueRuleEditor {...this.props} project={project} />
             )}
@@ -152,7 +142,7 @@ class Create extends Component<Props, State> {
                 isCustomMetric={wizardAlertType === 'custom'}
               />
             )}
-          </Layout.Main>
+          </StyledLayoutMain>
         </AlertConditionsBody>
       </Fragment>
     );
@@ -161,10 +151,10 @@ class Create extends Component<Props, State> {
 
 const AlertConditionsBody = styled(Layout.Body)`
   margin-bottom: -${space(3)};
+`;
 
-  *:not(img) {
-    max-width: 1000px;
-  }
+const StyledLayoutMain = styled(Layout.Main)`
+  max-width: 1000px;
 `;
 
 const StyledHeaderContent = styled(Layout.HeaderContent)`

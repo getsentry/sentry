@@ -482,7 +482,7 @@ def monkeypatch_drf_listfield_serializer_errors():
     # their error handling.
     # We're mainly focused on getting to Python 3.8, so this just isn't worth it.
 
-    from collections import Mapping
+    from collections.abc import Mapping
 
     from rest_framework.fields import ListField
     from rest_framework.utils import html
@@ -630,7 +630,11 @@ def validate_snuba():
         return
 
     has_all_snuba_required_backends = (
-        settings.SENTRY_SEARCH == "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
+        settings.SENTRY_SEARCH
+        in (
+            "sentry.search.snuba.EventsDatasetSnubaSearchBackend",
+            "sentry.utils.services.ServiceDelegator",
+        )
         and settings.SENTRY_TAGSTORE == "sentry.tagstore.snuba.SnubaTagStorage"
         and
         # TODO(mattrobenolt): Remove ServiceDelegator check

@@ -7,12 +7,13 @@ from typing import Iterable, Mapping, Optional, Tuple
 import pytz
 import sentry_sdk
 from django.conf import settings
-from django.db.models import Min
+from django.db.models import Min, prefetch_related_objects
 from django.utils import timezone
 
-from sentry import tagstore, tsdb
+from sentry import release_health, tagstore, tsdb
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS, StatsPeriod
@@ -45,19 +46,18 @@ from sentry.notifications.helpers import (
     get_groups_for_query,
     get_subscription_from_attributes,
     get_user_subscriptions_for_groups,
-    transform_to_notification_settings_by_parent_id,
+    transform_to_notification_settings_by_scope,
 )
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip
-from sentry.utils.db import attach_foreignkey
+from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import Dataset, aliased_query, raw_query
 
@@ -129,7 +129,7 @@ class GroupSerializerBase(Serializer):
 
         cache_keys = []
         for item in item_list:
-            cache_keys.append("group-mechanism-handled:%d" % item.id)
+            cache_keys.append(f"group-mechanism-handled:{item.id}")
 
         cache_data = cache.get_many(cache_keys)
         for item, cache_key in zip(item_list, cache_keys):
@@ -182,28 +182,14 @@ class GroupSerializerBase(Serializer):
             return {}
 
         groups_by_project = collect_groups_by_project(groups)
-        notification_settings = NotificationSetting.objects.get_for_user_by_projects(
-            NotificationSettingTypes.WORKFLOW,
-            user,
-            groups_by_project.keys(),
+        notification_settings_by_scope = transform_to_notification_settings_by_scope(
+            NotificationSetting.objects.get_for_user_by_projects(
+                NotificationSettingTypes.WORKFLOW,
+                user,
+                groups_by_project.keys(),
+            )
         )
-
-        (
-            notification_settings_by_project_id_by_provider,
-            default_subscribe_by_provider,
-        ) = transform_to_notification_settings_by_parent_id(
-            notification_settings, NotificationSettingOptionValues.SUBSCRIBE_ONLY
-        )
-        notification_settings_by_key = notification_settings_by_project_id_by_provider[
-            ExternalProviders.EMAIL
-        ]
-        global_default_workflow_option = default_subscribe_by_provider[ExternalProviders.EMAIL]
-
-        query_groups = get_groups_for_query(
-            groups_by_project,
-            notification_settings_by_key,
-            global_default_workflow_option,
-        )
+        query_groups = get_groups_for_query(groups_by_project, notification_settings_by_scope, user)
         subscriptions = GroupSubscription.objects.filter(group__in=query_groups, user=user)
         subscriptions_by_group_id = {
             subscription.group_id: subscription for subscription in subscriptions
@@ -211,9 +197,9 @@ class GroupSerializerBase(Serializer):
 
         return get_user_subscriptions_for_groups(
             groups_by_project,
-            notification_settings_by_key,
+            notification_settings_by_scope,
             subscriptions_by_group_id,
-            global_default_workflow_option,
+            user,
         )
 
     def get_attrs(self, item_list, user):
@@ -225,7 +211,7 @@ class GroupSerializerBase(Serializer):
 
         # Note that organization is necessary here for use in `_get_permalink` to avoid
         # making unnecessary queries.
-        attach_foreignkey(item_list, Group.project, related=("organization",))
+        prefetch_related_objects(item_list, "project__organization")
 
         if user.is_authenticated and item_list:
             bookmarks = set(
@@ -359,6 +345,8 @@ class GroupSerializerBase(Serializer):
             # note that the model GroupMeta where all the information is stored is already cached at the top of this function
             # so these for loops doesn't make a bunch of queries
             for plugin in plugins.for_project(project=item.project, version=1):
+                if is_plugin_deprecated(plugin, item.project):
+                    continue
                 safe_execute(plugin.tags, None, item, annotations, _with_transaction=False)
             for plugin in plugins.for_project(project=item.project, version=2):
                 annotations.extend(
@@ -736,7 +724,6 @@ class SharedGroupSerializer(GroupSerializer):
 
 class GroupSerializerSnuba(GroupSerializerBase):
     skip_snuba_fields = {
-        "query",
         "status",
         "bookmarked_by",
         "assigned_to",
@@ -745,7 +732,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
         "unassigned",
         "linked",
         "subscribed_by",
-        "active_at",
         "first_release",
         "first_seen",
         "last_seen",
@@ -767,6 +753,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         collapse=None,
         expand=None,
         organization_id=None,
+        project_ids=None,
     ):
         super().__init__(collapse=collapse, expand=expand)
         from sentry.search.snuba.executors import get_search_filter
@@ -789,7 +776,12 @@ class GroupSerializerSnuba(GroupSerializerBase):
         self.conditions = (
             [
                 convert_search_filter_to_snuba_query(
-                    search_filter, params={"organization_id": organization_id}
+                    search_filter,
+                    params={
+                        "organization_id": organization_id,
+                        "project_id": project_ids,
+                        "environment_id": environment_ids,
+                    },
                 )
                 for search_filter in search_filters
                 if search_filter.key.name not in self.skip_snuba_fields
@@ -992,24 +984,19 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                     metrics.incr(f"group.get_session_counts.{found}")
 
                 if missed_items:
-                    filters = {"project_id": list({item.project_id for item in missed_items})}
-                    if self.environment_ids:
-                        filters["environment"] = self.environment_ids
-
-                    result_totals = raw_query(
-                        selected_columns=["sessions"],
-                        dataset=Dataset.Sessions,
-                        start=self.start,
-                        end=self.end,
-                        filter_keys=filters,
-                        groupby=["project_id"],
-                        referrer="serializers.GroupSerializerSnuba.session_totals",
+                    project_ids = list({item.project_id for item in missed_items})
+                    project_sessions = release_health.get_num_sessions_per_project(
+                        project_ids,
+                        self.start,
+                        self.end,
+                        self.environment_ids,
                     )
+
                     results = {}
-                    for data in result_totals["data"]:
-                        cache_key = self._build_session_cache_key(data["project_id"])
-                        results[data["project_id"]] = data["sessions"]
-                        cache.set(cache_key, data["sessions"], 3600)
+                    for project_id, count in project_sessions:
+                        cache_key = self._build_session_cache_key(project_id)
+                        results[project_id] = count
+                        cache.set(cache_key, count, 3600)
 
                     for item in missed_items:
                         if item.project_id in results.keys():
@@ -1079,20 +1066,24 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         return result
 
     def _build_session_cache_key(self, project_id):
-        session_count_key = f"w-s:{project_id}"
-
+        start_key = end_key = env_key = ""
         if self.start:
-            session_count_key = f"{session_count_key}-{self.start.replace(minute=0, second=0, microsecond=0, tzinfo=None)}".replace(
-                " ", ""
-            )
+            start_key = self.start.replace(second=0, microsecond=0, tzinfo=None)
 
         if self.end:
-            session_count_key = f"{session_count_key}-{self.end.replace(minute=0, second=0, microsecond=0, tzinfo=None)}".replace(
-                " ", ""
-            )
+            end_key = self.end.replace(second=0, microsecond=0, tzinfo=None)
+
+        if self.end and self.start and self.end - self.start >= timedelta(minutes=60):
+            # Cache to the hour for longer time range queries, and to the minute if the query if for a time period under 1 hour
+            end_key = end_key.replace(minute=0)
+            start_key = start_key.replace(minute=0)
 
         if self.environment_ids:
-            envs = "-".join(str(eid) for eid in self.environment_ids)
-            session_count_key = f"{session_count_key}-{envs}"
+            self.environment_ids.sort()
+            env_key = "-".join(str(eid) for eid in self.environment_ids)
 
-        return session_count_key
+        start_key = start_key.strftime("%m/%d/%Y, %H:%M:%S") if start_key != "" else ""
+        end_key = end_key.strftime("%m/%d/%Y, %H:%M:%S") if end_key != "" else ""
+        key_hash = hash_values([project_id, start_key, end_key, env_key])
+        session_cache_key = f"w-s:{key_hash}"
+        return session_cache_key

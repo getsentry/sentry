@@ -1,9 +1,7 @@
 import * as React from 'react';
 import ReactDOM from 'react-dom';
-import * as Router from 'react-router';
+import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
-import createReactClass from 'create-react-class';
-import jQuery from 'jquery';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import Reflux from 'reflux';
@@ -16,21 +14,15 @@ const globals = {
   PropTypes,
   React,
   Reflux,
-  Router,
   Sentry,
   moment,
+  Router: ReactRouter,
   ReactDOM: {
     findDOMNode: ReactDOM.findDOMNode,
     render: ReactDOM.render,
   },
 
-  // jQuery is still exported to the window as some bootsrap functionality
-  // and legacy plugins like youtrack make use of it.
-  $: jQuery,
-  jQuery,
-
   // django templates make use of these globals
-  createReactClass,
   SentryApp: {},
 };
 

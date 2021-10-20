@@ -1,0 +1,28 @@
+---
+created: '2021-08-03T15:05:53.174703Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXC_BREAKPOINT:Iz	֡A (thread_id:_, crashed:_)
+                               libdyld.dylib  start category=threadbase
+                                              stripped_application_code
+                                   UIKitCore  UIApplicationMain category=threadbase
+                                   UIKitCore  -[UIApplication _run] category=ui
+                                              stripped_application_code
+                              CoreFoundation  CFRunLoopRunSpecific category=indirection
+                              CoreFoundation  __CFRunLoopRun category=internals
+                              CoreFoundation  __CFRunLoopDoTimers category=internals
+                              CoreFoundation  __CFRunLoopDoTimer category=internals
+                              CoreFoundation  __CFRUNLOOP_IS_CALLING_OUT_TO_A_TIMER_CALLBACK_FUNCTION__ category=internals
+                                              stripped_application_code
+                        <compiler-generated>  closure category=internals
+                                              stripped_application_code
+                        <compiler-generated>  Collection.map<T> category=internals
+                        <compiler-generated>  closure category=internals
+                                              stripped_application_code
+                                         iOS  Array.subscript.getter category=internals
+                        <compiler-generated>  Array._getElement category=internals
+                        <compiler-generated>  _ArrayBuffer._nativeTypeChecked.getter category=internals
+                        <compiler-generated>  range category=internals

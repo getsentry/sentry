@@ -1,10 +1,12 @@
 import {Component} from 'react';
-import {InjectedRouter} from 'react-router/lib/Router';
+import {InjectedRouter} from 'react-router';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {validateWidget} from 'app/actionCreators/dashboards';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
@@ -16,7 +18,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {DataSet} from './widget/utils';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, Widget} from './types';
+import {DashboardDetails, MAX_WIDGETS, Widget} from './types';
 
 type Props = {
   api: Client;
@@ -32,24 +34,42 @@ type Props = {
   onUpdate: (widgets: Widget[]) => void;
   onSetWidgetToBeUpdated: (widget: Widget) => void;
   paramDashboardId?: string;
+  newWidget?: Widget;
 };
 
 class Dashboard extends Component<Props> {
-  componentDidMount() {
+  async componentDidMount() {
     const {isEditing} = this.props;
     // Load organization tags when in edit mode.
     if (isEditing) {
       this.fetchTags();
     }
+    this.addNewWidget();
   }
 
-  componentDidUpdate(prevProps: Props) {
-    const {isEditing} = this.props;
+  async componentDidUpdate(prevProps: Props) {
+    const {isEditing, newWidget} = this.props;
 
     // Load organization tags when going into edit mode.
     // We use tags on the add widget modal.
     if (prevProps.isEditing !== isEditing && isEditing) {
       this.fetchTags();
+    }
+    if (newWidget !== prevProps.newWidget) {
+      this.addNewWidget();
+    }
+  }
+
+  async addNewWidget() {
+    const {api, organization, newWidget} = this.props;
+    if (newWidget) {
+      try {
+        await validateWidget(api, organization.slug, newWidget);
+        this.handleAddComplete(newWidget);
+      } catch (error) {
+        // Don't do anything, widget isn't valid
+        addErrorMessage(error);
+      }
     }
   }
 
@@ -205,7 +225,7 @@ class Dashboard extends Component<Props> {
         <WidgetContainer>
           <SortableContext items={items} strategy={rectSortingStrategy}>
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
-            {isEditing && (
+            {isEditing && widgets.length < MAX_WIDGETS && (
               <AddWidget
                 orgFeatures={organization.features}
                 onAddWidget={this.handleStartAdd}

@@ -3,13 +3,10 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumn,
-  GridColumnOrder,
-} from 'app/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
+import Pagination, {CursorHandler} from 'app/components/pagination';
 import {IconAdd} from 'app/icons/iconAdd';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -22,83 +19,21 @@ import {
   TableDataRow,
 } from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import {PerformanceDuration} from '../../utils';
-import {TagValue} from '../tagExplorer';
+import {TagValue} from '../transactionOverview/tagExplorer';
 
+import {
+  TAGS_TABLE_COLUMN_ORDER,
+  TagsTableColumn,
+  TagsTableColumnKeys,
+} from './tagsDisplay';
 import {trackTagPageInteraction} from './utils';
 
 const TAGS_CURSOR_NAME = 'tags_cursor';
-
-type ColumnKeys =
-  | 'key'
-  | 'tagValue'
-  | 'aggregate'
-  | 'frequency'
-  | 'comparison'
-  | 'sumdelta'
-  | 'action'
-  | 'count';
-type TagColumn = GridColumnOrder<ColumnKeys> & {
-  column: {
-    kind: string;
-  };
-  field: string;
-  canSort?: boolean;
-};
-const COLUMN_ORDER: TagColumn[] = [
-  {
-    key: 'tagValue',
-    field: 'tagValue',
-    name: 'Tag Values',
-    width: -1,
-    column: {
-      kind: 'field',
-    },
-  },
-  {
-    key: 'frequency',
-    field: 'frequency',
-    name: 'Frequency',
-    width: -1,
-    column: {
-      kind: 'field',
-    },
-    canSort: true,
-  },
-  {
-    key: 'count',
-    field: 'count',
-    name: 'Events',
-    width: -1,
-    column: {
-      kind: 'field',
-    },
-    canSort: true,
-  },
-  {
-    key: 'aggregate',
-    field: 'aggregate',
-    name: 'Avg Duration',
-    width: -1,
-    column: {
-      kind: 'field',
-    },
-    canSort: true,
-  },
-  {
-    key: 'action',
-    field: 'action',
-    name: '',
-    width: -1,
-    column: {
-      kind: 'field',
-    },
-  },
-];
 
 type Props = {
   location: Location;
@@ -106,10 +41,12 @@ type Props = {
   aggregateColumn: string;
   projects: Project[];
   transactionName: string;
-  tagKey: string;
+  tagKey?: string;
   eventView: EventView;
   tableData: TableData | null;
+  pageLinks: string | null;
   isLoading: boolean;
+  onCursor?: CursorHandler;
 };
 
 type State = {
@@ -123,8 +60,8 @@ export class TagValueTable extends Component<Props, State> {
   renderHeadCell(
     sortedEventView: EventView,
     tableMeta: TableData['meta'],
-    column: TableColumn<ColumnKeys>,
-    columnInfo: TagColumn
+    column: TableColumn<TagsTableColumnKeys>,
+    columnInfo: TagsTableColumn
   ): React.ReactNode {
     const {location} = this.props;
     const align = fieldAlignment(column.key, column.type, tableMeta);
@@ -152,9 +89,8 @@ export class TagValueTable extends Component<Props, State> {
         align={align}
         title={columnInfo.name}
         direction={currentSortKind}
-        canSort={false}
+        canSort
         generateSortLink={generateSortLink}
-        onClick={() => {}} // TODO(k-fish): Implement sorting
       />
     );
   }
@@ -162,17 +98,17 @@ export class TagValueTable extends Component<Props, State> {
   renderHeadCellWithMeta = (
     sortedEventView: EventView,
     tableMeta: TableData['meta'],
-    columns: TagColumn[]
+    columns: TagsTableColumn[]
   ) => {
-    return (column: TableColumn<ColumnKeys>, index: number): React.ReactNode =>
+    return (column: TableColumn<TagsTableColumnKeys>, index: number): React.ReactNode =>
       this.renderHeadCell(sortedEventView, tableMeta, column, columns[index]);
   };
 
   handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {
     const queryString = decodeScalar(location.query.query);
-    const conditions = tokenizeSearch(queryString || '');
+    const conditions = new MutableSearch(queryString ?? '');
 
-    conditions.addTagValues(tagKey, [tagValue]);
+    conditions.addFilterValues(tagKey, [tagValue]);
 
     const query = conditions.formatString();
     browserHistory.push({
@@ -185,7 +121,7 @@ export class TagValueTable extends Component<Props, State> {
   };
 
   handleCellAction = (
-    column: TableColumn<ColumnKeys>,
+    column: TableColumn<TagsTableColumnKeys>,
     tagValue: React.ReactText,
     actionRow: any
   ) => {
@@ -193,9 +129,9 @@ export class TagValueTable extends Component<Props, State> {
       const {eventView, location, organization} = this.props;
       trackTagPageInteraction(organization);
 
-      const searchConditions = tokenizeSearch(eventView.query);
+      const searchConditions = new MutableSearch(eventView.query);
 
-      searchConditions.removeTag('event.type');
+      searchConditions.removeFilter('event.type');
 
       updateQuery(searchConditions, action, {...column, name: actionRow.id}, tagValue);
 
@@ -212,7 +148,7 @@ export class TagValueTable extends Component<Props, State> {
 
   renderBodyCell = (
     parentProps: Props,
-    column: TableColumn<ColumnKeys>,
+    column: TableColumn<TagsTableColumnKeys>,
     dataRow: TableDataRow
   ): React.ReactNode => {
     const value = dataRow[column.key];
@@ -243,8 +179,8 @@ export class TagValueTable extends Component<Props, State> {
     }
 
     if (column.key === 'action') {
-      const searchConditions = tokenizeSearch(eventView.query);
-      const disabled = searchConditions.hasTag(dataRow.tags_key);
+      const searchConditions = new MutableSearch(eventView.query);
+      const disabled = searchConditions.hasFilter(dataRow.tags_key);
       return (
         <Link
           disabled={disabled}
@@ -292,8 +228,10 @@ export class TagValueTable extends Component<Props, State> {
   };
 
   renderBodyCellWithData = (parentProps: Props) => {
-    return (column: TableColumn<ColumnKeys>, dataRow: TableDataRow): React.ReactNode =>
-      this.renderBodyCell(parentProps, column, dataRow);
+    return (
+      column: TableColumn<TagsTableColumnKeys>,
+      dataRow: TableDataRow
+    ): React.ReactNode => this.renderBodyCell(parentProps, column, dataRow);
   };
 
   handleResizeColumn = (columnIndex: number, nextColumn: GridColumn) => {
@@ -305,12 +243,20 @@ export class TagValueTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, tagKey, location, isLoading, tableData, aggregateColumn} =
-      this.props;
+    const {
+      eventView,
+      tagKey,
+      location,
+      isLoading,
+      tableData,
+      aggregateColumn,
+      pageLinks,
+      onCursor,
+    } = this.props;
 
-    const newColumns = [...COLUMN_ORDER].map(c => {
+    const newColumns = [...TAGS_TABLE_COLUMN_ORDER].map(c => {
       const newColumn = {...c};
-      if (c.key === 'tagValue') {
+      if (c.key === 'tagValue' && tagKey) {
         newColumn.name = tagKey;
       }
       if (c.key === 'aggregate') {
@@ -339,6 +285,8 @@ export class TagValueTable extends Component<Props, State> {
           }}
           location={location}
         />
+
+        <Pagination pageLinks={pageLinks} onCursor={onCursor} size="small" />
       </StyledPanelTable>
     );
   }

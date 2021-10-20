@@ -211,7 +211,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
         repo = self.get_option("repo", group.project)
         with self.get_client(request.user) as client:
             try:
-                response = client.search_issues(query=(f"repo:{repo} {query}").encode("utf-8"))
+                response = client.search_issues(query=(f"repo:{repo} {query}").encode())
             except Exception as e:
                 return self.handle_api_error(e)
 

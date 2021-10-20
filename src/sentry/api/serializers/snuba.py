@@ -6,7 +6,7 @@ from django.db.models import Q
 
 from sentry.models import EventUser, Project, ProjectStatus, Release
 from sentry.utils.dates import to_timestamp
-from sentry.utils.geo import geo_by_addr as _geo_by_addr
+from sentry.utils.geo import geo_by_addr
 
 HEALTH_ID_KEY = "_health_id"
 
@@ -27,25 +27,6 @@ def serialize_releases(organization, item_list, user, lookup):
             organization=organization, version__in={i[0] for i in item_list}
         )
     }
-
-
-def geo_by_addr(ip):
-    try:
-        geo = _geo_by_addr(ip)
-    except Exception:
-        geo = None
-
-    if not geo:
-        return
-
-    rv = {}
-    for k in "country_code", "city", "region":
-        d = geo.get(k)
-        if isinstance(d, bytes):
-            d = d.decode("ISO-8859-1")
-        rv[k] = d
-
-    return rv
 
 
 def serialize_eventusers(organization, item_list, user, lookup):
@@ -154,6 +135,14 @@ def zerofill(data, start, end, rollup, allow_partial_buckets=False):
         rv.extend(row for row in data[i:] if row[0] < end_timestamp)
 
     return rv
+
+
+def calculateTimeframe(start, end, rollup):
+    rollup_start = (int(to_timestamp(start)) // rollup) * rollup
+    rollup_end = (int(to_timestamp(end)) // rollup) * rollup
+    if rollup_end - rollup_start == rollup:
+        rollup_end += 1
+    return {"start": rollup_start, "end": rollup_end}
 
 
 class SnubaLookup:
@@ -304,7 +293,15 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
     Serializer for time-series Snuba data.
     """
 
-    def serialize(self, result, column="count", order=None, allow_partial_buckets=False):
+    def serialize(
+        self,
+        result,
+        column="count",
+        order=None,
+        allow_partial_buckets=False,
+        zerofill_results=True,
+        extra_columns=None,
+    ):
         data = [
             (key, list(group))
             for key, group in itertools.groupby(result.data["data"], key=lambda r: r["time"])
@@ -318,6 +315,9 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             row = []
             for r in v:
                 item = {"count": r.get(column, 0)}
+                if extra_columns is not None:
+                    for extra_column in extra_columns:
+                        item[extra_column] = r.get(extra_column, 0)
                 if self.lookup:
                     value = value_from_row(r, self.lookup.columns)
                     item[self.lookup.name] = (attrs.get(value),)
@@ -332,6 +332,8 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
                 result.rollup,
                 allow_partial_buckets=allow_partial_buckets,
             )
+            if zerofill_results
+            else rv
         }
 
         if result.data.get("totals"):
@@ -341,5 +343,10 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             res["order"] = order
         elif "order" in result.data:
             res["order"] = result.data["order"]
+
+        if hasattr(result, "start") and hasattr(result, "end"):
+            timeframe = calculateTimeframe(result.start, result.end, result.rollup)
+            res["start"] = timeframe["start"]
+            res["end"] = timeframe["end"]
 
         return res

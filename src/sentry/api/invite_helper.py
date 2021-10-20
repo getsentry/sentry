@@ -210,6 +210,8 @@ class ApiInviteHelper:
         self.handle_success()
         metrics.incr("organization.invite-accepted", sample_rate=1.0)
 
+        return om
+
     def _needs_2fa(self) -> bool:
         org_requires_2fa = self.om.organization.flags.require_2fa.is_set
         user_has_2fa = Authenticator.objects.user_has_2fa(self.request.user.id)
@@ -225,7 +227,7 @@ class ApiInviteHelper:
 
         user = self.request.user
         primary_email_is_verified = (
-            isinstance(user, User) and UserEmail.get_primary_email(user).is_verified
+            isinstance(user, User) and UserEmail.objects.get_primary_email(user).is_verified
         )
         return not primary_email_is_verified
 

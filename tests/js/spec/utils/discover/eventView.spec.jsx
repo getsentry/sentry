@@ -367,6 +367,70 @@ describe('EventView.fromSavedQuery()', function () {
     // this is expected since datetime (start and end) are normalized
     expect(eventView2.isEqualTo(eventView3)).toBe(true);
   });
+
+  it('saved queries with undefined yAxis are defaulted to count() when comparing with isEqualTo', function () {
+    const saved = {
+      orderby: '-count_timestamp',
+      end: '2019-10-23T19:27:04+0000',
+      name: 'release query',
+      fields: ['release', 'count(timestamp)'],
+      dateCreated: '2019-10-30T05:10:23.718937Z',
+      environment: ['dev', 'production'],
+      start: '2019-10-20T21:02:51+0000',
+      version: 2,
+      createdBy: '1',
+      dateUpdated: '2019-10-30T07:25:58.291917Z',
+      id: '3',
+      projects: [1],
+    };
+
+    const eventView = EventView.fromSavedQuery(saved);
+
+    const eventView2 = EventView.fromSavedQuery({
+      ...saved,
+      yAxis: 'count()',
+    });
+
+    expect(eventView.isEqualTo(eventView2)).toBe(true);
+  });
+
+  it('uses the first yAxis from the SavedQuery', function () {
+    const saved = {
+      id: '42',
+      name: 'best query',
+      fields: ['count()', 'id'],
+      query: 'event.type:transaction',
+      projects: [123],
+      teams: ['myteams', 1],
+      range: '14d',
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      orderby: '-id',
+      environment: ['staging'],
+      display: 'previous',
+      yAxis: ['count()', 'failure_count()'],
+    };
+    const eventView = EventView.fromSavedQuery(saved);
+
+    expect(eventView).toMatchObject({
+      id: saved.id,
+      name: saved.name,
+      fields: [
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'id', width: COL_WIDTH_UNDEFINED},
+      ],
+      sorts: [{field: 'id', kind: 'desc'}],
+      query: 'event.type:transaction',
+      project: [123],
+      team: ['myteams', 1],
+      start: undefined,
+      end: undefined,
+      statsPeriod: '14d',
+      environment: ['staging'],
+      yAxis: 'count()',
+      display: 'previous',
+    });
+  });
 });
 
 describe('EventView.fromNewQueryWithLocation()', function () {
@@ -863,6 +927,52 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
     // this is expected since datetime (start and end) are normalized
     expect(eventView2.isEqualTo(eventView3)).toBe(true);
   });
+
+  it('uses the first yAxis from the SavedQuery', function () {
+    const saved = {
+      id: '42',
+      name: 'best query',
+      fields: ['count()', 'id'],
+      query: 'event.type:transaction',
+      projects: [123],
+      range: '14d',
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      orderby: '-id',
+      environment: ['staging'],
+      display: 'previous',
+      yAxis: ['count()', 'failure_count()'],
+    };
+
+    const location = {
+      query: {
+        statsPeriod: '14d',
+        project: ['123'],
+        team: ['myteams', '1', '2'],
+        environment: ['staging'],
+      },
+    };
+    const eventView = EventView.fromSavedQueryOrLocation(saved, location);
+
+    expect(eventView).toMatchObject({
+      id: saved.id,
+      name: saved.name,
+      fields: [
+        {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        {field: 'id', width: COL_WIDTH_UNDEFINED},
+      ],
+      sorts: [{field: 'id', kind: 'desc'}],
+      query: 'event.type:transaction',
+      project: [123],
+      team: ['myteams', 1, 2],
+      start: undefined,
+      end: undefined,
+      statsPeriod: '14d',
+      environment: ['staging'],
+      yAxis: 'count()',
+      display: 'previous',
+    });
+  });
 });
 
 describe('EventView.generateQueryStringObject()', function () {
@@ -889,6 +999,7 @@ describe('EventView.generateQueryStringObject()', function () {
       project: [],
       environment: [],
       display: 'previous',
+      yAxis: 'count()',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -1612,7 +1723,9 @@ describe('EventView.withColumns()', function () {
     fields: [
       {field: 'count()', width: 30},
       {field: 'project.id', width: 99},
+      {field: 'failure_count()', width: 30},
     ],
+    yAxis: 'failure_count()',
     sorts: generateSorts(['count']),
     query: 'event.type:error',
     project: [42],
@@ -1693,6 +1806,20 @@ describe('EventView.withColumns()', function () {
     const newView = eventView.withColumns([{kind: 'field', field: 'issue'}]);
     expect(newView.fields).toEqual([{field: 'issue', width: COL_WIDTH_UNDEFINED}]);
     expect(newView.sorts).toEqual([]);
+  });
+  it('updates yAxis if column is dropped', function () {
+    const newView = eventView.withColumns([
+      {kind: 'field', field: 'count()'},
+      {kind: 'field', field: 'project.id'},
+    ]);
+
+    expect(newView.fields).toEqual([
+      {field: 'count()', width: 30},
+      {field: 'project.id', width: 99},
+    ]);
+
+    expect(eventView.yAxis).toEqual('failure_count()');
+    expect(newView.yAxis).toEqual('count()');
   });
 });
 
@@ -2263,7 +2390,7 @@ describe('EventView.getQueryWithAdditionalConditions', function () {
       query: 'event.type:transaction foo:bar',
     });
 
-    eventView.additionalConditions.setTagValues('event.type', ['transaction']);
+    eventView.additionalConditions.setFilterValues('event.type', ['transaction']);
 
     expect(eventView.getQueryWithAdditionalConditions()).toEqual(
       'event.type:transaction foo:bar'

@@ -1,4 +1,3 @@
-import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -7,70 +6,56 @@ import ExternalLink from 'app/components/links/externalLink';
 import LogoSentry from 'app/components/logoSentry';
 import {t} from 'app/locale';
 import PreferencesStore from 'app/stores/preferencesStore';
+import {useLegacyStore} from 'app/stores/useLegacyStore';
 import space from 'app/styles/space';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
+import {emailQueryParameter, extraQueryParameter} from 'app/utils/demoMode';
 import getCookie from 'app/utils/getCookie';
-
-type Preferences = typeof PreferencesStore.prefs;
 
 export default function DemoHeader() {
   // if the user came from a SaaS org, we should send them back to upgrade when they leave the sandbox
   const saasOrgSlug = getCookie('saas_org_slug');
-  const email = localStorage.getItem('email');
-  const queryParameter = email ? `?email=${email}` : '';
+
+  const queryParameter = emailQueryParameter();
+  const getStartedExtraParameter = extraQueryParameter(true);
+  const extraParameter = extraQueryParameter(false);
+
   const getStartedText = saasOrgSlug ? t('Upgrade Now') : t('Sign Up for Free');
   const getStartedUrl = saasOrgSlug
     ? `https://sentry.io/settings/${saasOrgSlug}/billing/checkout/`
-    : `https://sentry.io/signup/${queryParameter}`;
+    : `https://sentry.io/signup/${queryParameter}${getStartedExtraParameter}`;
 
-  const [collapsed, setCollapsed] = useState(PreferencesStore.prefs.collapsed);
-
-  const preferenceUnsubscribe = PreferencesStore.listen(
-    (preferences: Preferences) => onPreferenceChange(preferences),
-    undefined
-  );
-
-  function onPreferenceChange(preferences: Preferences) {
-    if (preferences.collapsed === collapsed) {
-      return;
-    }
-    setCollapsed(!collapsed);
-  }
-
-  useEffect(() => {
-    return () => {
-      preferenceUnsubscribe();
-    };
-  });
+  const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
 
   return (
     <Wrapper collapsed={collapsed}>
       <StyledLogoSentry />
       <ButtonBar gap={4}>
         <StyledExternalLink
-          onClick={() => trackAdvancedAnalyticsEvent('growth.demo_click_docs', {}, null)}
-          href="https://docs.sentry.io"
+          onClick={() =>
+            trackAdvancedAnalyticsEvent('growth.demo_click_docs', {organization: null})
+          }
+          href={`https://docs.sentry.io/${extraParameter}`}
         >
           {t('Documentation')}
         </StyledExternalLink>
         <BaseButton
           priority="form"
           onClick={() =>
-            trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {}, null)
+            trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {
+              organization: null,
+            })
           }
-          href="https://sentry.io/_/demo/"
+          href={`https://sentry.io/_/demo/${extraParameter}`}
         >
           {t('Request a Demo')}
         </BaseButton>
         <GetStarted
           onClick={() =>
-            trackAdvancedAnalyticsEvent(
-              'growth.demo_click_get_started',
-              {
-                is_upgrade: !!saasOrgSlug,
-              },
-              null
-            )
+            trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {
+              is_upgrade: !!saasOrgSlug,
+              organization: null,
+            })
           }
           href={getStartedUrl}
         >

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
@@ -24,11 +24,11 @@ import VitalsDetailsTableQuery, {
   TableData,
   TableDataRow,
 } from 'app/utils/performance/vitals/vitalsDetailsTableQuery';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
-import {DisplayModes} from '../transactionSummary/charts';
+import {DisplayModes} from '../transactionSummary/transactionOverview/charts';
 import {
   TransactionFilterOptions,
   transactionSummaryRouteWithQuery,
@@ -106,14 +106,14 @@ class Table extends React.Component<Props, State> {
         action,
       });
 
-      const searchConditions = tokenizeSearch(eventView.query);
+      const searchConditions = new MutableSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeTag('event.type');
+      searchConditions.removeFilter('event.type');
 
       updateQuery(searchConditions, action, column, value);
 
-      ReactRouter.browserHistory.push({
+      browserHistory.push({
         pathname: location.pathname,
         query: {
           ...location.query,
@@ -176,8 +176,8 @@ class Table extends React.Component<Props, State> {
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
       const summaryView = eventView.clone();
-      const conditions = tokenizeSearch(summaryConditions);
-      conditions.addTagValues('has', [`${vitalName}`]);
+      const conditions = new MutableSearch(summaryConditions);
+      conditions.addFilterValues('has', [`${vitalName}`]);
       summaryView.query = conditions.formatString();
 
       const target = transactionSummaryRouteWithQuery({
@@ -201,10 +201,6 @@ class Table extends React.Component<Props, State> {
           </Link>
         </CellAction>
       );
-    }
-
-    if (field.startsWith('key_transaction')) {
-      return rendered;
     }
 
     if (field.startsWith('team_key_transaction')) {
@@ -273,30 +269,11 @@ class Table extends React.Component<Props, State> {
 
   renderPrependCellWithData = (tableData: TableData | null, vitalName: WebVital) => {
     const {eventView} = this.props;
-    const keyTransactionColumn = eventView
-      .getColumns()
-      .find((col: TableColumn<React.ReactText>) => col.name === 'key_transaction');
     const teamKeyTransactionColumn = eventView
       .getColumns()
       .find((col: TableColumn<React.ReactText>) => col.name === 'team_key_transaction');
     return (isHeader: boolean, dataRow?: any) => {
-      if (keyTransactionColumn) {
-        if (isHeader) {
-          const star = (
-            <IconStar
-              key="keyTransaction"
-              color="yellow300"
-              isSolid
-              data-test-id="key-transaction-header"
-            />
-          );
-          return [this.renderHeadCell(tableData?.meta, keyTransactionColumn, star)];
-        } else {
-          return [
-            this.renderBodyCell(tableData, keyTransactionColumn, dataRow, vitalName),
-          ];
-        }
-      } else if (teamKeyTransactionColumn) {
+      if (teamKeyTransactionColumn) {
         if (isHeader) {
           const star = (
             <IconStar
@@ -378,10 +355,7 @@ class Table extends React.Component<Props, State> {
       .getColumns()
       // remove key_transactions from the column order as we'll be rendering it
       // via a prepended column
-      .filter(
-        (col: TableColumn<React.ReactText>) =>
-          col.name !== 'key_transaction' && col.name !== 'team_key_transaction'
-      )
+      .filter((col: TableColumn<React.ReactText>) => col.name !== 'team_key_transaction')
       .slice(0, -1)
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {

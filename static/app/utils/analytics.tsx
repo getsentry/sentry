@@ -23,25 +23,25 @@ import {Hooks} from 'app/types/hooks';
  */
 
 /**
- * This should be primarily used for product events. In that case where you
- * want to track some one-off Adhoc events, use the `trackAdhocEvent` function.
+ * This should be with all analytics events regardless of the analytics destination
+ * which includes Reload, Amplitude, and Google Analytics.
+ * All events go to Reload. If eventName is defined, events also go to Amplitude.
+ * For more details, refer to the API defined in hooks.
  *
- * Generally this is the function you will want to use for event tracking.
- *
- * Refer for the backend implementation provided through HookStore for more
- * details.
+ * Shold NOT be used directly.
+ * Instead, use makeAnalyticsFunction to generate an analytics function.
+ */
+export const trackAnalyticsEventV2: Hooks['analytics:track-event-v2'] = (data, options) =>
+  HookStore.get('analytics:track-event-v2').forEach(cb => cb(data, options));
+
+/**
+ * @deprecated Use a method generated from makeAnalyticsFunction
  */
 export const trackAnalyticsEvent: Hooks['analytics:track-event'] = options =>
   HookStore.get('analytics:track-event').forEach(cb => cb(options));
 
 /**
- * This should be used for adhoc analytics tracking.
- *
- * This is used for high volume events, and events with unbounded parameters,
- * such as tracking search queries.
- *
- * Refer for the backend implementation provided through HookStore for a more
- * thorough explanation of when to use this.
+ * @deprecated Use a method generated from makeAnalyticsFunction
  */
 export const trackAdhocEvent: Hooks['analytics:track-adhoc-event'] = options =>
   HookStore.get('analytics:track-adhoc-event').forEach(cb => cb(options));

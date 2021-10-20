@@ -183,10 +183,10 @@ SCIM_SCHEMA_LIST = [SCIM_USER_ATTRIBUTES_SCHEMA, SCIM_GROUP_ATTRIBUTES_SCHEMA]
 
 class OrganizationSCIMSchemaIndex(SCIMEndpoint):
     def get(self, request, organization):
+        query_params = self.get_query_parameters(request)
+
         return Response(
             self.list_api_format(
-                request,
-                len(SCIM_SCHEMA_LIST),
-                SCIM_SCHEMA_LIST,
+                SCIM_SCHEMA_LIST, len(SCIM_SCHEMA_LIST), query_params["start_index"]
             )
         )

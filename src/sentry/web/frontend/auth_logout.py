@@ -10,10 +10,10 @@ class AuthLogoutView(BaseView):
     auth_required = False
 
     def redirect(self, request):
-        next = request.GET.get(REDIRECT_FIELD_NAME, "")
-        if not is_safe_url(next, host=request.get_host()):
-            next = auth.get_login_url()
-        return super().redirect(next)
+        next_url = request.GET.get(REDIRECT_FIELD_NAME, "")
+        if not is_safe_url(next_url, allowed_hosts=(request.get_host(),)):
+            next_url = auth.get_login_url()
+        return super().redirect(next_url)
 
     def get(self, request):
         return self.respond("sentry/logout.html")

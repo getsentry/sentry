@@ -10,7 +10,9 @@ jobs:
     name: backend lint
     runs-on: ubuntu-20.04
     timeout-minutes: 10
-
+    strategy:
+      matrix:
+        python-version: [3.6.13, 3.8.12]
     steps:
       - uses: actions/checkout@v2
 
@@ -37,35 +39,13 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-      - name: Set python version output
-        id: python-version
-        if: steps.changes.outputs.backend == 'true'
-        run: |
-          echo "::set-output name=python-version::$(cat .python-version)"
-
-      # Until GH composite actions can use `uses`, we need to setup python here
-      - uses: actions/setup-python@v2
-        if: steps.changes.outputs.backend == 'true'
-        env:
-          PIP_DISABLE_PIP_VERSION_CHECK: on
-        with:
-          python-version: ${{ steps.python-version.outputs.python-version }}
-
-      - name: Setup pip
-        uses: ./.github/actions/setup-pip
-        if: steps.changes.outputs.backend == 'true'
-        id: pip
-
-      - name: pip cache
-        uses: actions/cache@v2
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: ./.github/actions/setup-python
         if: steps.changes.outputs.backend == 'true'
         with:
-          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          python-version: ${{ matrix.python-version }}
           # Note this uses a different cache key than other backend-based workflows because this workflows dependencies are different
-          key: |
-            precommit-${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ hashFiles('requirements-pre-commit.txt') }}
-          restore-keys: |
-            precommit-${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}
+          cache-files-hash: ${{ hashFiles('requirements-pre-commit.txt') }}
 
       - name: Setup pre-commit
         if: steps.changes.outputs.backend == 'true'
@@ -89,7 +69,6 @@ jobs:
             all:
               - added|modified: '**/*.py'
               - added|modified: 'requirements-base.txt'
-
 
       - name: Run pre-commit on changed files
         if: steps.changes.outputs.backend == 'true'

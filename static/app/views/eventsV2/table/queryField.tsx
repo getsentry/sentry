@@ -6,7 +6,10 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
 import Tag from 'app/components/tag';
+import Tooltip from 'app/components/tooltip';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
+import {pulse} from 'app/styles/animations';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
 import {
@@ -14,6 +17,7 @@ import {
   AggregationKey,
   Column,
   ColumnType,
+  DEPRECATED_FIELDS,
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'app/utils/discover/fields';
@@ -83,6 +87,7 @@ type Props = {
    */
   shouldRenderTag?: boolean;
   onChange: (fieldValue: QueryFieldValue) => void;
+  error?: string;
   disabled?: boolean;
   hidePrimarySelector?: boolean;
   hideParameterSelector?: boolean;
@@ -97,18 +102,22 @@ type OptionType = {
 
 class QueryField extends React.Component<Props> {
   FieldSelectComponents = {
-    Option: ({label, data, ...props}: OptionProps<OptionType>) => (
-      <components.Option label={label} data={data} {...props}>
-        <span data-test-id="label">{label}</span>
-        {this.renderTag(data.value.kind)}
-      </components.Option>
-    ),
-    SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
-      <components.SingleValue data={data} {...props}>
-        <span data-test-id="label">{data.label}</span>
-        {this.renderTag(data.value.kind)}
-      </components.SingleValue>
-    ),
+    Option: ({label, data, ...props}: OptionProps<OptionType>) => {
+      return (
+        <components.Option label={label} data={data} {...props}>
+          <span data-test-id="label">{label}</span>
+          {data.value && this.renderTag(data.value.kind, label)}
+        </components.Option>
+      );
+    },
+    SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => {
+      return (
+        <components.SingleValue data={data} {...props}>
+          <span data-test-id="label">{data.label}</span>
+          {data.value && this.renderTag(data.value.kind, data.label)}
+        </components.SingleValue>
+      );
+    },
   };
 
   FieldSelectStyles = {
@@ -491,7 +500,7 @@ class QueryField extends React.Component<Props> {
     return inputs;
   }
 
-  renderTag(kind) {
+  renderTag(kind: FieldValueKind, label: string) {
     const {shouldRenderTag} = this.props;
     if (shouldRenderTag === false) {
       return null;
@@ -515,7 +524,7 @@ class QueryField extends React.Component<Props> {
         tagType = 'warning';
         break;
       case FieldValueKind.FIELD:
-        text = kind;
+        text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : kind;
         tagType = 'highlight';
         break;
       default:
@@ -532,6 +541,7 @@ class QueryField extends React.Component<Props> {
       fieldValue,
       inFieldLabels,
       disabled,
+      error,
       hidePrimarySelector,
       gridColumns,
       otherColumns,
@@ -559,7 +569,12 @@ class QueryField extends React.Component<Props> {
 
     if (fieldValue.kind === FieldValueKind.EQUATION) {
       return (
-        <Container className={className} gridColumns={1} tripleLayout={false}>
+        <Container
+          className={className}
+          gridColumns={1}
+          tripleLayout={false}
+          error={error !== undefined}
+        >
           <ArithmeticInput
             name="arithmetic"
             key="parameter:text"
@@ -569,6 +584,11 @@ class QueryField extends React.Component<Props> {
             onUpdate={this.handleEquationChange}
             options={otherColumns}
           />
+          {error ? (
+            <ArithmeticError title={error}>
+              <IconWarning color="red300" />
+            </ArithmeticError>
+          ) : null}
         </Container>
       );
     }
@@ -606,12 +626,16 @@ function validateColumnTypes(
   return columnTypes.includes(input.meta.dataType);
 }
 
-const Container = styled('div')<{gridColumns: number; tripleLayout: boolean}>`
+const Container = styled('div')<{
+  gridColumns: number;
+  tripleLayout: boolean;
+  error?: boolean;
+}>`
   display: grid;
   ${p =>
     p.tripleLayout
       ? `grid-template-columns: 1fr 2fr;`
-      : `grid-template-columns: repeat(${p.gridColumns}, 1fr);`}
+      : `grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};`}
   grid-gap: ${space(1)};
   align-items: center;
 
@@ -702,6 +726,12 @@ const BlankSpace = styled('div')`
     content: '${t('No parameter')}';
     color: ${p => p.theme.gray300};
   }
+`;
+
+const ArithmeticError = styled(Tooltip)`
+  color: ${p => p.theme.red300};
+  animation: ${() => pulse(1.15)} 1s ease infinite;
+  display: flex;
 `;
 
 export {QueryField};

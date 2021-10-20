@@ -226,10 +226,11 @@ def _prepare_containers(project, skip_only_if=False, silent=False):
 
     containers = {}
 
-    for name, options in settings.SENTRY_DEVSERVICES.items():
-        options = options.copy()
-        test_fn = options.pop("only_if", None)
-        if not skip_only_if and test_fn and not test_fn(settings, sentry_options):
+    for name, option_builder in settings.SENTRY_DEVSERVICES.items():
+        options = option_builder(settings, sentry_options)
+        only_if = options.pop("only_if", True)
+
+        if not skip_only_if and not only_if:
             if not silent:
                 click.secho(f"! Skipping {name} due to only_if condition", err=True, fg="cyan")
             continue

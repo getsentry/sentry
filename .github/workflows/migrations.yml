@@ -39,6 +39,9 @@ jobs:
     name: Generate SQL
     runs-on: ubuntu-20.04
     timeout-minutes: 8
+    strategy:
+      matrix:
+        python-version: [3.6.13, 3.8.12]
     needs: did-migration-change
     if: ${{ needs.did-migration-change.outputs.added == 'true' }}
 
@@ -48,32 +51,12 @@ jobs:
         with:
           ref: master
 
-      - name: Set python version output
-        id: python-version
-        run: |
-          echo "::set-output name=python-version::$(cat .python-version)"
-
-      # Until GH composite actions can use `uses`, we need to setup python here
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{ steps.python-version.outputs.python-version }}
-
-      - name: Setup pip
-        uses: ./.github/actions/setup-pip
-        id: pip
-
-      - name: pip cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: |
-            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
-
-      - name: Setup sentry env
+      - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
 
       - name: Apply migrations
         run: |

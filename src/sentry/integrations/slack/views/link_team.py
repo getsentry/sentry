@@ -1,6 +1,7 @@
 from typing import Any, Sequence
 
 from django import forms
+from django.core.signing import BadSignature, SignatureExpired
 from django.http import HttpResponse
 from rest_framework.request import Request
 
@@ -10,6 +11,7 @@ from sentry.models import (
     IdentityProvider,
     Integration,
     NotificationSetting,
+    OrganizationMember,
     Team,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
@@ -17,10 +19,11 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
+from sentry.web.helpers import render_to_response
 
-from ..utils import logger, render_error_page, send_confirmation
+from ..utils import is_valid_role, logger, send_confirmation
 from . import build_linking_url as base_build_linking_url
-from . import never_cache
+from . import never_cache, render_error_page
 
 ALLOWED_METHODS = ["GET", "POST"]
 
@@ -62,20 +65,41 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         if request.method not in ALLOWED_METHODS:
             return render_error_page(request, body_text="HTTP 405: Method not allowed")
 
-        params = unsign(signed_params)
+        try:
+            params = unsign(signed_params)
+        except (SignatureExpired, BadSignature):
+            return render_to_response(
+                "sentry/integrations/slack/expired-link.html",
+                request=request,
+            )
+
         integration = Integration.objects.get(id=params["integration_id"])
-        organization = integration.organizations.all()[0]
-        teams = Team.objects.get_for_user(organization, request.user)
+        organization_memberships = OrganizationMember.objects.get_for_integration(
+            integration, request.user
+        )
+        # Filter to organizations where we have sufficient role.
+        organizations = [
+            organization_membership.organization
+            for organization_membership in organization_memberships
+            if is_valid_role(organization_membership)
+        ]
+
+        teams_by_id = {
+            team.id: team
+            for organization in organizations
+            for team in Team.objects.get_for_user(organization, request.user)
+        }
+
         channel_name = params["channel_name"]
         channel_id = params["channel_id"]
-        form = SelectTeamForm(teams, request.POST or None)
+        form = SelectTeamForm(list(teams_by_id.values()), request.POST or None)
 
         if request.method == "GET":
             return self.respond(
-                "sentry/integrations/slack-link-team.html",
+                "sentry/integrations/slack/link-team.html",
                 {
                     "form": form,
-                    "teams": teams,
+                    "teams": teams_by_id.values(),
                     "channel_name": channel_name,
                     "provider": integration.get_provider(),
                 },
@@ -84,10 +108,9 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         if not form.is_valid():
             return render_error_page(request, body_text="HTTP 400: Bad request")
 
-        team_id = form.cleaned_data["team"]
-        try:
-            team = Team.objects.get(id=team_id, organization=organization)
-        except Team.DoesNotExist:
+        team_id = int(form.cleaned_data["team"])
+        team = teams_by_id.get(team_id)
+        if not team:
             return render_error_page(request, body_text="HTTP 404: Team does not exist")
 
         try:
@@ -103,7 +126,7 @@ class SlackLinkTeamView(BaseView):  # type: ignore
 
         external_team, created = ExternalActor.objects.get_or_create(
             actor_id=team.actor_id,
-            organization=organization,
+            organization=team.organization,
             integration=integration,
             provider=ExternalProviders.SLACK.value,
             defaults=dict(
@@ -118,7 +141,7 @@ class SlackLinkTeamView(BaseView):  # type: ignore
                 channel_id,
                 ALREADY_LINKED_TITLE,
                 ALREADY_LINKED_MESSAGE.format(slug=team.slug),
-                "sentry/integrations/slack-post-linked-team.html",
+                "sentry/integrations/slack/post-linked-team.html",
                 request,
             )
 
@@ -134,6 +157,6 @@ class SlackLinkTeamView(BaseView):  # type: ignore
             channel_id,
             SUCCESS_LINKED_TITLE,
             SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name),
-            "sentry/integrations/slack-post-linked-team.html",
+            "sentry/integrations/slack/post-linked-team.html",
             request,
         )

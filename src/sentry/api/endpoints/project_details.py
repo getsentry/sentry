@@ -1,9 +1,7 @@
-import logging
 import math
 import time
 from datetime import timedelta
 from itertools import chain
-from uuid import uuid4
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -24,7 +22,12 @@ from sentry.datascrubbing import validate_pii_config_update
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.lang.native.symbolicator import InvalidSourcesError, parse_sources
+from sentry.lang.native.symbolicator import (
+    InvalidSourcesError,
+    parse_backfill_sources,
+    parse_sources,
+    redact_source_secrets,
+)
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     AuditLogEntryEvent,
@@ -36,15 +39,14 @@ from sentry.models import (
     ProjectRedirect,
     ProjectStatus,
     ProjectTeam,
+    ScheduledDeletion,
 )
 from sentry.notifications.types import NotificationSettingTypes
+from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
-from sentry.tasks.deletion import delete_project
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.compat import filter
-
-delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 def clean_newline_inputs(value, case_insensitive=True):
@@ -237,10 +239,25 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
 
         try:
-            sources = parse_sources(sources_json.strip())
-            sources_json = json.dumps(sources) if sources else ""
+            # We should really only grab and parse if there are sources in sources_json whose
+            # secrets are set to {"hidden-secret":true}
+            orig_sources = parse_sources(
+                self.context["project"].get_option("sentry:symbol_sources")
+            )
+            sources = parse_backfill_sources(sources_json.strip(), orig_sources)
         except InvalidSourcesError as e:
             raise serializers.ValidationError(str(e))
+
+        sources_json = json.dumps(sources) if sources else ""
+
+        has_multiple_appconnect = features.has(
+            "organizations:app-store-connect-multiple", organization, actor=request.user
+        )
+        appconnect_sources = [s for s in sources if s.get("type") == "appStoreConnect"]
+        if not has_multiple_appconnect and len(appconnect_sources) > 1:
+            raise serializers.ValidationError(
+                "Only one Apple App Store Connect application is allowed in this project"
+            )
 
         return sources_json
 
@@ -260,10 +277,15 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 f"Grouping expiry must be a numerical value, a UNIX timestamp with second resolution, found {type(value)}"
             )
-        if not (0 < value - time.time() < (91 * 24 * 3600)):
+        now = time.time()
+        if value < now:
             raise serializers.ValidationError(
                 "Grouping expiry must be sometime within the next 90 days and not in the past. Perhaps you specified the timestamp not in seconds?"
             )
+
+        max_expiry_date = now + (91 * 24 * 3600)
+        if value > max_expiry_date:
+            value = max_expiry_date
 
         return value
 
@@ -344,9 +366,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
         data = serialize(project, request.user, DetailedProjectSerializer())
 
+        # TODO: should switch to expand and move logic into the serializer
         include = set(filter(bool, request.GET.get("include", "").split(",")))
         if "stats" in include:
             data["stats"] = {"unresolved": self._get_unresolved_count(project)}
+
+        expand = request.GET.getlist("expand", [])
+        if "hasAlertIntegration" in expand:
+            data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
         return Response(data)
 
@@ -539,7 +566,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ]
         if result.get("symbolSources") is not None:
             if project.update_option("sentry:symbol_sources", result["symbolSources"]):
-                changed_proj_settings["sentry:symbol_sources"] = result["symbolSources"] or None
+                # Redact secrets so they don't get logged directly to the Audit Log
+                sources_json = result["symbolSources"] or None
+                try:
+                    sources = parse_sources(sources_json)
+                except Exception:
+                    sources = []
+                redacted_sources = redact_source_secrets(sources)
+                changed_proj_settings["sentry:symbol_sources"] = redacted_sources
         if "defaultEnvironment" in result:
             if result["defaultEnvironment"] is None:
                 project.delete_option("sentry:default_environment")
@@ -698,7 +732,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         Schedules a project for deletion.
 
-        Deletion happens asynchronously and therefor is not immediate.
+        Deletion happens asynchronously and therefore is not immediate.
         However once deletion has begun the state of a project changes and
         will be hidden from most public views.
 
@@ -717,11 +751,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             status=ProjectStatus.PENDING_DELETION
         )
         if updated:
-            transaction_id = uuid4().hex
-
-            delete_project.apply_async(
-                kwargs={"object_id": project.id, "transaction_id": transaction_id}, countdown=3600
-            )
+            scheduled = ScheduledDeletion.schedule(project, days=0, actor=request.user)
 
             self.create_audit_entry(
                 request=request,
@@ -729,18 +759,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 target_object=project.id,
                 event=AuditLogEntryEvent.PROJECT_REMOVE,
                 data=project.get_audit_log_data(),
-                transaction_id=transaction_id,
+                transaction_id=scheduled.id,
             )
-
-            delete_logger.info(
-                "object.delete.queued",
-                extra={
-                    "object_id": project.id,
-                    "transaction_id": transaction_id,
-                    "model": type(project).__name__,
-                },
-            )
-
             project.rename_on_pending_deletion()
 
         return Response(status=204)

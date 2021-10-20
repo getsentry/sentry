@@ -49,6 +49,7 @@ export enum DynamicSamplingInnerName {
   TRACE_ENVIRONMENT = 'trace.environment',
   TRACE_USER_ID = 'trace.user.id',
   TRACE_USER_SEGMENT = 'trace.user.segment',
+  TRACE_TRANSACTION = 'trace.transaction',
   EVENT_RELEASE = 'event.release',
   EVENT_ENVIRONMENT = 'event.environment',
   EVENT_USER_ID = 'event.user.id',
@@ -56,6 +57,7 @@ export enum DynamicSamplingInnerName {
   EVENT_LOCALHOST = 'event.is_local_ip',
   EVENT_WEB_CRAWLERS = 'event.web_crawlers',
   EVENT_BROWSER_EXTENSIONS = 'event.has_bad_browser_extensions',
+  EVENT_TRANSACTION = 'event.transaction',
   // Custom operators
   EVENT_IP_ADDRESSES = 'event.client_ip',
   EVENT_LEGACY_BROWSER = 'event.legacy_browser',
@@ -76,7 +78,11 @@ export enum LegacyBrowser {
 
 type DynamicSamplingConditionLogicalInnerGlob = {
   op: DynamicSamplingInnerOperator.GLOB_MATCH;
-  name: DynamicSamplingInnerName.EVENT_RELEASE | DynamicSamplingInnerName.TRACE_RELEASE;
+  name:
+    | DynamicSamplingInnerName.EVENT_RELEASE
+    | DynamicSamplingInnerName.TRACE_RELEASE
+    | DynamicSamplingInnerName.EVENT_TRANSACTION
+    | DynamicSamplingInnerName.TRACE_TRANSACTION;
   value: Array<string>;
 };
 

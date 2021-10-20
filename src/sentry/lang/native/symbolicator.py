@@ -4,6 +4,7 @@ import random
 import sys
 import time
 import uuid
+from copy import deepcopy
 from urllib.parse import urljoin
 
 import jsonschema
@@ -17,8 +18,8 @@ from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
 from sentry.models import Organization
 from sentry.net.http import Session
-from sentry.tasks.store import RetrySymbolication
-from sentry.utils import json, metrics
+from sentry.tasks.symbolication import RetrySymbolication
+from sentry.utils import json, metrics, safe
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
@@ -49,7 +50,6 @@ COMMON_SOURCE_PROPERTIES = {
     "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
 }
 
-
 APP_STORE_CONNECT_SCHEMA = {
     "type": "object",
     "properties": {
@@ -62,12 +62,11 @@ APP_STORE_CONNECT_SCHEMA = {
         "itunesUser": {"type": "string", "minLength": 1, "maxLength": 100},
         "itunesCreated": {"type": "string", "format": "date-time"},
         "itunesPassword": {"type": "string"},
-        "itunesPersonId": {"type": "string"},
         "itunesSession": {"type": "string"},
         "appName": {"type": "string", "minLength": 1, "maxLength": 512},
         "appId": {"type": "string", "minLength": 1},
         "bundleId": {"type": "string", "minLength": 1},
-        "orgId": {"type": "integer"},
+        "orgPublicId": {"type": "string", "minLength": 36, "maxLength": 36},
         "orgName": {"type": "string", "minLength": 1, "maxLength": 512},
     },
     "required": [
@@ -81,11 +80,10 @@ APP_STORE_CONNECT_SCHEMA = {
         "itunesCreated",
         "itunesPassword",
         "itunesSession",
-        "itunesPersonId",
         "appName",
         "appId",
         "bundleId",
-        "orgId",
+        "orgPublicId",
         "orgName",
     ],
     "additionalProperties": False,
@@ -304,7 +302,22 @@ def normalize_user_source(source):
     return source
 
 
-def parse_sources(config):
+def secret_fields(source_type):
+    """
+    Returns a string list of all of the fields that contain a secret in a given source.
+    """
+    if source_type == "appStoreConnect":
+        yield from ["appconnectPrivateKey", "itunesPassword", "itunesSession"]
+    elif source_type == "http":
+        yield "password"
+    elif source_type == "s3":
+        yield "secret_key"
+    elif source_type == "gcs":
+        yield "private_key"
+    yield from []
+
+
+def parse_sources(config, filter_appconnect=True):
     """
     Parses the given sources in the config string (from JSON).
     """
@@ -323,7 +336,8 @@ def parse_sources(config):
         raise InvalidSourcesError(f"{e}")
 
     # remove App Store Connect sources (we don't need them in Symbolicator)
-    filter(lambda src: src.get("type") != "AppStoreConnect", sources)
+    if filter_appconnect:
+        filter(lambda src: src.get("type") != "appStoreConnect", sources)
 
     ids = set()
     for source in sources:
@@ -334,6 +348,65 @@ def parse_sources(config):
         ids.add(source["id"])
 
     return sources
+
+
+def parse_backfill_sources(sources_json, original_sources):
+    """
+    Parses a json string of sources passed in from a client and backfills any redacted secrets by
+    finding their previous values stored in original_sources.
+    """
+
+    if not sources_json:
+        return []
+
+    try:
+        sources = json.loads(sources_json)
+    except Exception as e:
+        raise InvalidSourcesError("Sources are not valid serialised JSON") from e
+
+    orig_by_id = {src["id"]: src for src in original_sources}
+
+    ids = set()
+    for source in sources:
+        if is_internal_source_id(source["id"]):
+            raise InvalidSourcesError('Source ids must not start with "sentry:"')
+        if source["id"] in ids:
+            raise InvalidSourcesError("Duplicate source id: {}".format(source["id"]))
+
+        ids.add(source["id"])
+
+        for secret in secret_fields(source["type"]):
+            if secret in source and source[secret] == {"hidden-secret": True}:
+                secret_value = safe.get_path(orig_by_id, source["id"], secret)
+                if secret_value is None:
+                    sentry_sdk.capture_message("Hidden secret not present in project options")
+                    raise InvalidSourcesError("Sources contain unknown hidden secret")
+                else:
+                    source[secret] = secret_value
+
+    try:
+        jsonschema.validate(sources, SOURCES_SCHEMA)
+    except jsonschema.ValidationError as e:
+        raise InvalidSourcesError("Sources did not validate JSON-schema") from e
+
+    return sources
+
+
+def redact_source_secrets(config_sources: json.JSONData) -> json.JSONData:
+    """
+    Returns a JSONData with all of the secrets redacted from every source.
+
+    The original value is not mutated in the process; A clone is created
+    and returned by this function.
+    """
+
+    redacted_sources = deepcopy(config_sources)
+    for source in redacted_sources:
+        for secret in secret_fields(source["type"]):
+            if secret in source:
+                source[secret] = {"hidden-secret": True}
+
+    return redacted_sources
 
 
 def get_options_for_project(project):

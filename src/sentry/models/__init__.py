@@ -44,6 +44,7 @@ from .groupcommitresolution import *  # NOQA
 from .groupemailthread import *  # NOQA
 from .groupenvironment import *  # NOQA
 from .grouphash import *  # NOQA
+from .grouphistory import *  # NOQA
 from .groupinbox import *  # NOQA
 from .grouplink import *  # NOQA
 from .groupmeta import *  # NOQA
@@ -60,6 +61,7 @@ from .grouptombstone import *  # NOQA
 from .identity import *  # NOQA
 from .integration import *  # NOQA
 from .integrationfeature import *  # NOQA
+from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .lostpasswordhash import *  # NOQA
 from .monitor import *  # NOQA
@@ -71,6 +73,7 @@ from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA
 from .organizationavatar import *  # NOQA
 from .organizationmember import *  # NOQA
+from .organizationmemberteam import *  # NOQA
 from .organizationonboardingtask import *  # NOQA
 from .organizationoption import *  # NOQA
 from .platformexternalissue import *  # NOQA
@@ -84,6 +87,7 @@ from .projectoption import *  # NOQA
 from .projectownership import *  # NOQA
 from .projectplatform import *  # NOQA
 from .projectredirect import *  # NOQA
+from .projectteam import *  # NOQA
 from .promptsactivity import *  # NOQA
 from .pullrequest import *  # NOQA
 from .rawevent import *  # NOQA

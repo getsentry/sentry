@@ -23,7 +23,7 @@ class ReleaseWebhookView(View):
             signature,
             hmac.new(
                 key=token.encode("utf-8"),
-                msg=(f"{plugin_id}-{project_id}").encode("utf-8"),
+                msg=(f"{plugin_id}-{project_id}").encode(),
                 digestmod=sha256,
             ).hexdigest(),
         )

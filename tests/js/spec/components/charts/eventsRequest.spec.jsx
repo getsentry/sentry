@@ -171,15 +171,17 @@ describe('EventsRequest', function () {
               ],
             },
           ],
-          previousTimeseriesData: {
-            seriesName: 'Previous',
-            data: [
-              expect.objectContaining({
-                name: expect.anything(),
-                value: 400,
-              }),
-            ],
-          },
+          previousTimeseriesData: [
+            expect.objectContaining({
+              seriesName: 'Previous',
+              data: [
+                expect.objectContaining({
+                  name: expect.anything(),
+                  value: 400,
+                }),
+              ],
+            }),
+          ],
 
           originalTimeseriesData: [
             [expect.anything(), [expect.objectContaining({count: 123})]],
@@ -193,6 +195,87 @@ describe('EventsRequest', function () {
                 expect.objectContaining({count: 79}),
               ],
             ],
+          ],
+        })
+      );
+    });
+
+    it('expands multiple periods in query if `includePrevious`', async function () {
+      doEventsRequest.mockImplementation(() =>
+        Promise.resolve({
+          'count()': {
+            data: [
+              [
+                new Date(),
+                [
+                  {...COUNT_OBJ, count: 321},
+                  {...COUNT_OBJ, count: 79},
+                ],
+              ],
+              [new Date(), [COUNT_OBJ]],
+            ],
+          },
+          'failure_count()': {
+            data: [
+              [
+                new Date(),
+                [
+                  {...COUNT_OBJ, count: 421},
+                  {...COUNT_OBJ, count: 79},
+                ],
+              ],
+              [new Date(), [COUNT_OBJ]],
+            ],
+          },
+        })
+      );
+      const multiYOptions = {
+        yAxis: ['count()', 'failure_count()'],
+        previousSeriesNames: ['previous count()', 'previous failure_count()'],
+      };
+      wrapper = mountWithTheme(
+        <EventsRequest {...DEFAULTS} {...multiYOptions} includePrevious>
+          {mock}
+        </EventsRequest>
+      );
+
+      await tick();
+      wrapper.update();
+
+      // actionCreator handles expanding the period when calling the API
+      expect(doEventsRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          period: '24h',
+        })
+      );
+
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          loading: false,
+          yAxis: ['count()', 'failure_count()'],
+          previousSeriesNames: ['previous count()', 'previous failure_count()'],
+          results: [
+            expect.objectContaining({
+              data: [expect.objectContaining({name: expect.anything(), value: 123})],
+              seriesName: 'count()',
+            }),
+            expect.objectContaining({
+              data: [expect.objectContaining({name: expect.anything(), value: 123})],
+              seriesName: 'failure_count()',
+            }),
+          ],
+          previousTimeseriesData: [
+            expect.objectContaining({
+              data: [expect.objectContaining({name: expect.anything(), value: 400})],
+              seriesName: 'previous count()',
+              stack: 'previous',
+            }),
+            expect.objectContaining({
+              data: [expect.objectContaining({name: expect.anything(), value: 500})],
+              seriesName: 'previous failure_count()',
+              stack: 'previous',
+            }),
           ],
         })
       );
@@ -331,15 +414,17 @@ describe('EventsRequest', function () {
               ],
             },
           ],
-          previousTimeseriesData: {
-            seriesName: 'Previous',
-            data: [
-              expect.objectContaining({
-                name: expect.anything(),
-                value: 400,
-              }),
-            ],
-          },
+          previousTimeseriesData: [
+            expect.objectContaining({
+              seriesName: 'Previous',
+              data: [
+                expect.objectContaining({
+                  name: expect.anything(),
+                  value: 400,
+                }),
+              ],
+            }),
+          ],
 
           originalTimeseriesData: [
             [expect.anything(), [expect.objectContaining({count: 123})]],
@@ -389,7 +474,7 @@ describe('EventsRequest', function () {
       );
 
       wrapper = mountWithTheme(
-        <EventsRequest {...DEFAULTS} includePrevious yAxis={['apdex()', 'epm()']}>
+        <EventsRequest {...DEFAULTS} yAxis={['apdex()', 'epm()']}>
           {mock}
         </EventsRequest>
       );
@@ -453,12 +538,7 @@ describe('EventsRequest', function () {
       );
 
       wrapper = mountWithTheme(
-        <EventsRequest
-          {...DEFAULTS}
-          includePrevious
-          field={['project', 'level']}
-          topEvents={2}
-        >
+        <EventsRequest {...DEFAULTS} field={['project', 'level']} topEvents={2}>
           {mock}
         </EventsRequest>
       );
@@ -513,6 +593,37 @@ describe('EventsRequest', function () {
         expect.objectContaining({
           expired: true,
           errored: true,
+        })
+      );
+    });
+  });
+
+  describe('timeframe', function () {
+    beforeEach(function () {
+      doEventsRequest.mockClear();
+    });
+
+    it('passes query timeframe start and end to the child if supplied by timeseriesData', async function () {
+      doEventsRequest.mockImplementation(() =>
+        Promise.resolve({
+          p95: {
+            data: [[new Date(), [COUNT_OBJ]]],
+            start: 1627402280,
+            end: 1627402398,
+          },
+        })
+      );
+      wrapper = mountWithTheme(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
+
+      await tick();
+      wrapper.update();
+
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          timeframe: {
+            start: 1627402280000,
+            end: 1627402398000,
+          },
         })
       );
     });

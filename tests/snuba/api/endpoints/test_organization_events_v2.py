@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 from pytz import utc
 
-from sentry.discover.models import KeyTransaction, TeamKeyTransaction
+from sentry.discover.models import TeamKeyTransaction
 from sentry.models import (
     ApiKey,
     ProjectTeam,
@@ -22,6 +22,7 @@ from sentry.search.events.constants import (
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
+    TIMEOUT_ERROR_MESSAGE,
 )
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
@@ -40,10 +41,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.min_ago = iso_format(before_now(minutes=1))
         self.two_min_ago = iso_format(before_now(minutes=2))
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
+        self.features = {}
 
     def do_request(self, query, features=None):
         if features is None:
             features = {"organizations:discover-basic": True}
+        features.update(self.features)
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-eventsv2",
@@ -78,7 +81,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             url,
             query,
             format="json",
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
         )
 
         assert response.status_code == 200, response.content
@@ -132,8 +135,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         )
 
     @mock.patch("sentry.snuba.discover.raw_query")
-    def test_handling_snuba_errors(self, mock_query):
+    @mock.patch("sentry.snuba.discover.raw_snql_query")
+    def test_handling_snuba_errors(self, mock_snql_query, mock_query):
         mock_query.side_effect = RateLimitExceeded("test")
+        mock_snql_query.side_effect = RateLimitExceeded("test")
 
         project = self.create_project()
 
@@ -144,12 +149,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
         response = self.do_request(query)
         assert response.status_code == 400, response.content
-        assert (
-            response.data["detail"]
-            == "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
-        )
+        assert response.data["detail"] == TIMEOUT_ERROR_MESSAGE
 
         mock_query.side_effect = QueryExecutionError("test")
+        mock_snql_query.side_effect = QueryExecutionError("test")
 
         query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
         response = self.do_request(query)
@@ -157,6 +160,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.data["detail"] == "Internal error. Your query failed to run."
 
         mock_query.side_effect = QueryIllegalTypeOfArgument("test")
+        mock_snql_query.side_effect = QueryIllegalTypeOfArgument("test")
 
         query = {"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]}
         response = self.do_request(query)
@@ -829,10 +833,34 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             release_1_e_2,
         }
 
+        query = {"field": ["id"], "query": f"{SEMVER_ALIAS}:1.2.3"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+        }
+
+        query = {"field": ["id"], "query": f"!{SEMVER_ALIAS}:1.2.3"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_2_e_1,
+            release_2_e_2,
+            release_3_e_1,
+            release_3_e_2,
+        }
+
     def test_release_stage(self):
-        replaced_release = self.create_release(version="replaced_release")
-        adopted_release = self.create_release(version="adopted_release")
-        not_adopted_release = self.create_release(version="not_adopted_release")
+        replaced_release = self.create_release(
+            version="replaced_release", environments=[self.environment]
+        )
+        adopted_release = self.create_release(
+            version="adopted_release", environments=[self.environment]
+        )
+        not_adopted_release = self.create_release(
+            version="not_adopted_release", environments=[self.environment]
+        )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=adopted_release.id,
@@ -853,23 +881,43 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         )
 
         adopted_release_e_1 = self.store_event(
-            data={"release": adopted_release.version, "timestamp": self.min_ago},
+            data={
+                "release": adopted_release.version,
+                "timestamp": self.min_ago,
+                "environment": self.environment.name,
+            },
             project_id=self.project.id,
         ).event_id
         adopted_release_e_2 = self.store_event(
-            data={"release": adopted_release.version, "timestamp": self.min_ago},
+            data={
+                "release": adopted_release.version,
+                "timestamp": self.min_ago,
+                "environment": self.environment.name,
+            },
             project_id=self.project.id,
         ).event_id
         replaced_release_e_1 = self.store_event(
-            data={"release": replaced_release.version, "timestamp": self.min_ago},
+            data={
+                "release": replaced_release.version,
+                "timestamp": self.min_ago,
+                "environment": self.environment.name,
+            },
             project_id=self.project.id,
         ).event_id
         replaced_release_e_2 = self.store_event(
-            data={"release": replaced_release.version, "timestamp": self.min_ago},
+            data={
+                "release": replaced_release.version,
+                "timestamp": self.min_ago,
+                "environment": self.environment.name,
+            },
             project_id=self.project.id,
         ).event_id
 
-        query = {"field": ["id"], "query": f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}"}
+        query = {
+            "field": ["id"],
+            "query": f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            "environment": [self.environment.name],
+        }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert {r["id"] for r in response.data["data"]} == {
@@ -877,7 +925,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             adopted_release_e_2,
         }
 
-        query = {"field": ["id"], "query": f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}"}
+        query = {
+            "field": ["id"],
+            "query": f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
+            "environment": [self.environment.name],
+        }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert {r["id"] for r in response.data["data"]} == {
@@ -890,6 +942,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {
             "field": ["id"],
             "query": f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
+            "environment": [self.environment.name],
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
@@ -962,6 +1015,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert {r["id"] for r in response.data["data"]} == {
             release_2_e_1,
+        }
+        query = {"field": ["id"], "query": f"!{SEMVER_BUILD_ALIAS}:124"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
         }
 
     def test_aliased_fields(self):
@@ -1164,7 +1224,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
                 "organizations:global-views": True,
             },
         )
@@ -1213,16 +1272,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "project": [project.id],
         }
 
-        # Cannot access it without feature enabled
-        response = self.do_request(query)
-        assert response.status_code == 404
-
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1236,10 +1287,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1315,16 +1362,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "project": [project.id],
         }
 
-        # Cannot access it without feature enabled
-        response = self.do_request(query)
-        assert response.status_code == 404
-
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1338,10 +1377,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1383,44 +1418,31 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "transaction",
                 "user_misery()",
             ],
+            "orderby": "user_misery()",
             "query": "event.type:transaction",
             "project": [project.id],
         }
 
-        # Cannot access it without feature enabled
         response = self.do_request(query)
-        assert response.status_code == 404
-
-        response = self.do_request(
-            query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
-        )
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 3
         data = response.data["data"]
         assert abs(data[0]["user_misery"] - 0.04916) < 0.0001
-        assert abs(data[1]["user_misery"] - 0.06586) < 0.0001
-        assert abs(data[2]["user_misery"] - 0.05751) < 0.0001
+        assert abs(data[1]["user_misery"] - 0.05751) < 0.0001
+        assert abs(data[2]["user_misery"] - 0.06586) < 0.0001
 
         query["query"] = "event.type:transaction user_misery():>0.050"
 
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert abs(data[0]["user_misery"] - 0.06586) < 0.0001
-        assert abs(data[1]["user_misery"] - 0.05751) < 0.0001
+        assert abs(data[0]["user_misery"] - 0.05751) < 0.0001
+        assert abs(data[1]["user_misery"] - 0.06586) < 0.0001
 
     def test_user_misery_alias_field_with_transaction_threshold(self):
         project = self.create_project()
@@ -1465,10 +1487,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1494,10 +1512,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(
             query,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
-            },
         )
 
         assert response.status_code == 200, response.content
@@ -1567,7 +1581,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             features={
                 "organizations:discover-basic": True,
                 "organizations:global-views": True,
-                "organizations:project-transaction-threshold": True,
             },
         )
 
@@ -1605,7 +1618,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             features={
                 "organizations:discover-basic": True,
-                "organizations:project-transaction-threshold": True,
                 "organizations:global-views": True,
             },
         )
@@ -1873,7 +1885,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
-        response.data["meta"]["max_timestamp"] == "date"
+        assert response.data["meta"]["max_timestamp"] == "date"
         data = response.data["data"]
         assert data[0]["issue.id"] == event.group_id
 
@@ -2742,7 +2754,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["apdex_300"] == "number"
         assert meta["failure_rate"] == "percentage"
         assert meta["user_misery_300"] == "number"
-        assert meta["count_miserable_user_300"] == "number"
+        assert meta["count_miserable_user_300"] == "integer"
 
         data = response.data["data"]
         assert len(data) == 1
@@ -2760,7 +2772,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         features = {
             "organizations:discover-basic": True,
             "organizations:global-views": True,
-            "organizations:project-transaction-threshold": True,
         }
 
         query = {
@@ -2796,10 +2807,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["apdex"] == "number"
         assert meta["failure_rate"] == "percentage"
         assert meta["user_misery_300"] == "number"
-        assert meta["count_miserable_user_300"] == "number"
+        assert meta["count_miserable_user_300"] == "integer"
         assert meta["project_threshold_config"] == "string"
         assert meta["user_misery"] == "number"
-        assert meta["count_miserable_user"] == "number"
+        assert meta["count_miserable_user"] == "integer"
 
         data = response.data["data"]
         assert len(data) == 1
@@ -2898,7 +2909,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.store_event(data, project_id=project.id)
         features = {
             "organizations:discover-basic": True,
-            "organizations:project-transaction-threshold": True,
         }
 
         query = {
@@ -3163,14 +3173,14 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         event2.group.delete()
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
-        query = {"field": ["issue", "count()"], "sort": "issue"}
+        query = {"field": ["issue", "count()"], "sort": "count()"}
         response = self.do_request(query, features=features)
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 2
-        assert data[0]["issue"] == event1.group.qualified_short_id
-        assert data[1]["issue"] == "unknown"
+        assert data[0]["issue"] == "unknown"
+        assert data[1]["issue"] == event1.group.qualified_short_id
 
     def test_last_seen_negative_duration(self):
         project = self.create_project()
@@ -3911,178 +3921,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["compare_numeric_aggregate_p75_equals_0"] == 0
 
-    def test_no_key_transactions(self):
-        transactions = [
-            "/blah_transaction/",
-            "/foo_transaction/",
-            "/zoo_transaction/",
-        ]
-
-        for transaction in transactions:
-            self.transaction_data["transaction"] = transaction
-            self.store_event(self.transaction_data, self.project.id)
-
-        query = {
-            "project": [self.project.id],
-            # use the order by to ensure the result order
-            "orderby": "transaction",
-            "field": [
-                "key_transaction",
-                "transaction",
-                "transaction.status",
-                "project",
-                "epm()",
-                "failure_rate()",
-                "percentile(transaction.duration, 0.95)",
-            ],
-        }
-        response = self.do_request(query)
-
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 3
-        assert data[0]["key_transaction"] == 0
-        assert data[0]["transaction"] == "/blah_transaction/"
-        assert data[1]["key_transaction"] == 0
-        assert data[1]["transaction"] == "/foo_transaction/"
-        assert data[2]["key_transaction"] == 0
-        assert data[2]["transaction"] == "/zoo_transaction/"
-
-    def test_key_transactions_orderby(self):
-        transactions = ["/blah_transaction/"]
-        key_transactions = [
-            "/foo_transaction/",
-            "/zoo_transaction/",
-        ]
-
-        for transaction in transactions:
-            self.transaction_data["transaction"] = transaction
-            self.store_event(self.transaction_data, self.project.id)
-
-        for transaction in key_transactions:
-            self.transaction_data["transaction"] = transaction
-            self.store_event(self.transaction_data, self.project.id)
-            KeyTransaction.objects.create(
-                owner=self.user,
-                organization=self.organization,
-                transaction=transaction,
-                project=self.project,
-            )
-
-        query = {
-            "project": [self.project.id],
-            "field": [
-                "key_transaction",
-                "transaction",
-                "transaction.status",
-                "project",
-                "epm()",
-                "failure_rate()",
-                "percentile(transaction.duration, 0.95)",
-            ],
-        }
-
-        # test ascending order
-        query["orderby"] = ["key_transaction", "transaction"]
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 3
-        assert data[0]["key_transaction"] == 0
-        assert data[0]["transaction"] == "/blah_transaction/"
-        assert data[1]["key_transaction"] == 1
-        assert data[1]["transaction"] == "/foo_transaction/"
-        assert data[2]["key_transaction"] == 1
-        assert data[2]["transaction"] == "/zoo_transaction/"
-
-        # test descending order
-        query["orderby"] = ["-key_transaction", "-transaction"]
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 3
-        assert data[0]["key_transaction"] == 1
-        assert data[0]["transaction"] == "/zoo_transaction/"
-        assert data[1]["key_transaction"] == 1
-        assert data[1]["transaction"] == "/foo_transaction/"
-        assert data[2]["key_transaction"] == 0
-        assert data[2]["transaction"] == "/blah_transaction/"
-
-    def test_key_transactions_query(self):
-        transactions = ["/blah_transaction/"]
-        key_transactions = [
-            "/foo_transaction/",
-            "/zoo_transaction/",
-        ]
-
-        for transaction in transactions:
-            self.transaction_data["transaction"] = transaction
-            self.store_event(self.transaction_data, self.project.id)
-
-        for transaction in key_transactions:
-            self.transaction_data["transaction"] = transaction
-            self.store_event(self.transaction_data, self.project.id)
-            KeyTransaction.objects.create(
-                owner=self.user,
-                organization=self.organization,
-                transaction=transaction,
-                project=self.project,
-            )
-
-        query = {
-            "project": [self.project.id],
-            "orderby": "transaction",
-            "field": [
-                "key_transaction",
-                "transaction",
-                "transaction.status",
-                "project",
-                "epm()",
-                "failure_rate()",
-                "percentile(transaction.duration, 0.95)",
-            ],
-        }
-
-        # key transactions
-        query["query"] = "has:key_transaction"
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 2
-        assert data[0]["key_transaction"] == 1
-        assert data[0]["transaction"] == "/foo_transaction/"
-        assert data[1]["key_transaction"] == 1
-        assert data[1]["transaction"] == "/zoo_transaction/"
-
-        # key transactions
-        query["query"] = "key_transaction:true"
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 2
-        assert data[0]["key_transaction"] == 1
-        assert data[0]["transaction"] == "/foo_transaction/"
-        assert data[1]["key_transaction"] == 1
-        assert data[1]["transaction"] == "/zoo_transaction/"
-
-        # not key transactions
-        query["query"] = "!has:key_transaction"
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 1
-        assert data[0]["key_transaction"] == 0
-        assert data[0]["transaction"] == "/blah_transaction/"
-
-        # not key transactions
-        query["query"] = "key_transaction:false"
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 1
-        assert data[0]["key_transaction"] == 0
-        assert data[0]["transaction"] == "/blah_transaction/"
-
     def test_no_team_key_transactions(self):
         transactions = [
             "/blah_transaction/",
@@ -4433,7 +4271,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             {
                 "organizations:discover-basic": True,
-                "organizations:discover-arithmetic": True,
             },
         )
         assert response.status_code == 200
@@ -4441,6 +4278,38 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert (
             response.data["data"][0]["equation[0]"]
             == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
+        )
+
+    def test_equation_sort(self):
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        event_data2 = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data2["breakdowns"]["span_ops"]["ops.http"]["value"] = 2000
+        self.store_event(data=event_data2, project_id=self.project.id)
+
+        query = {
+            "field": ["spans.http", "equation|spans.http / 3"],
+            "project": [self.project.id],
+            "orderby": "equation[0]",
+            "query": "event.type:transaction",
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 2
+        assert (
+            response.data["data"][0]["equation[0]"]
+            == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
+        )
+        assert (
+            response.data["data"][1]["equation[0]"]
+            == event_data2["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
         )
 
     def test_equation_operation_limit(self):
@@ -4453,7 +4322,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             {
                 "organizations:discover-basic": True,
-                "organizations:discover-arithmetic": True,
             },
         )
 
@@ -4470,7 +4338,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             query,
             {
                 "organizations:discover-basic": True,
-                "organizations:discover-arithmetic": True,
             },
         )
 
@@ -4645,3 +4512,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["p75_measurements_stall_percentage"] == "percentage"
         assert meta["percentile_measurements_frames_slow_rate_0_5"] == "percentage"
         assert meta["percentile_measurements_stall_percentage_0_5"] == "percentage"
+
+
+class OrganizationEventsV2EndpointTestWithSnql(OrganizationEventsV2EndpointTest):
+    def setUp(self):
+        super().setUp()
+        self.features["organizations:discover-use-snql"] = True

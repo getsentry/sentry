@@ -1,3 +1,4 @@
+from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
@@ -266,8 +267,11 @@ class ReleaseFileCreateTest(APITestCase):
             url,
             {
                 "header": "X-SourceMap: http://example.com",
-                "file": SimpleUploadedFile(
-                    "", b"function() { }", content_type="application/javascript"
+                # We can't use SimpleUploadedFile here, because it validates file names
+                # and doesn't allow for empty strings.
+                "file": ContentFile(
+                    content=b"function() { }",
+                    name="",
                 ),
             },
             format="multipart",

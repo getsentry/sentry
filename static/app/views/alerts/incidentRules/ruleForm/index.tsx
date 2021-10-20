@@ -1,6 +1,5 @@
 import * as React from 'react';
-import {RouteComponentProps} from 'react-router';
-import {PlainRoute} from 'react-router/lib/Route';
+import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -35,8 +34,9 @@ import FormModel from 'app/views/settings/components/forms/model';
 
 import {addOrUpdateRule} from '../actions';
 import {createDefaultTrigger} from '../constants';
-import RuleConditionsFormForWizard from '../ruleConditionsFormForWizard';
+import RuleConditionsForm from '../ruleConditionsForm';
 import {
+  AlertRuleComparisonType,
   AlertRuleThresholdType,
   Dataset,
   EventTypes,
@@ -71,6 +71,8 @@ type State = {
   triggers: Trigger[];
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
   thresholdType: UnsavedIncidentRule['thresholdType'];
+  comparisonType: AlertRuleComparisonType;
+  comparisonDelta?: number;
   projects: Project[];
   triggerErrors: Map<number, {[fieldName: string]: string}>;
 
@@ -120,6 +122,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
       thresholdType: rule.thresholdType,
+      comparisonDelta: rule.comparisonDelta ?? undefined,
+      comparisonType: !rule.comparisonDelta
+        ? AlertRuleComparisonType.COUNT
+        : AlertRuleComparisonType.CHANGE,
       projects: [this.props.project],
       owner: rule.owner,
     };
@@ -429,7 +435,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     const {organization, params, rule, onSubmitSuccess, location, sessionId} = this.props;
     const {ruleId} = this.props.params;
-    const {resolveThreshold, triggers, thresholdType, uuid} = this.state;
+    const {resolveThreshold, triggers, thresholdType, comparisonDelta, uuid} = this.state;
 
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -456,7 +462,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       transaction.setData('actions', sanitizedTriggers);
 
       this.setState({loading: true});
-      const [resp, , xhr] = await addOrUpdateRule(
+      const [data, , resp] = await addOrUpdateRule(
         this.api,
         organization.slug,
         params.projectId,
@@ -466,6 +472,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           triggers: sanitizedTriggers,
           resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
           thresholdType,
+          comparisonDelta,
         },
         {
           referrer: location?.query?.referrer,
@@ -474,10 +481,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       );
       // if we get a 202 back it means that we have an async task
       // running to lookup and verify the channel id for Slack.
-      if (xhr && xhr.status === 202) {
+      if (resp?.status === 202) {
         // if we have a uuid in state, no need to start a new polling cycle
         if (!uuid) {
-          this.setState({loading: true, uuid: resp.uuid});
+          this.setState({loading: true, uuid: data.uuid});
           this.fetchStatus(model);
         }
       } else {
@@ -485,7 +492,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         this.setState({loading: false});
         addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
         if (onSubmitSuccess) {
-          onSubmitSuccess(resp, model);
+          onSubmitSuccess(data, model);
         }
       }
     } catch (err) {
@@ -539,13 +546,28 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   handleResolveThresholdChange = (
     resolveThreshold: UnsavedIncidentRule['resolveThreshold']
   ) => {
-    const {triggers} = this.state;
+    this.setState(state => {
+      const triggerErrors = this.validateTriggers(
+        state.triggers,
+        state.thresholdType,
+        resolveThreshold
+      );
+      if (Array.from(triggerErrors).length === 0) {
+        clearIndicators();
+      }
 
-    const triggerErrors = this.validateTriggers(triggers, undefined, resolveThreshold);
-    this.setState(state => ({
-      resolveThreshold,
-      triggerErrors: new Map([...triggerErrors, ...state.triggerErrors]),
-    }));
+      return {resolveThreshold, triggerErrors};
+    });
+  };
+
+  handleComparisonTypeChange = (value: AlertRuleComparisonType) => {
+    const comparisonDelta =
+      value === AlertRuleComparisonType.COUNT ? undefined : this.state.comparisonDelta;
+    this.setState({comparisonType: value, comparisonDelta});
+  };
+
+  handleComparisonDeltaChange = (value: number) => {
+    this.setState({comparisonDelta: value});
   };
 
   handleDeleteRule = async () => {
@@ -596,6 +618,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       aggregate,
       environment,
       thresholdType,
+      comparisonDelta,
+      comparisonType,
       resolveThreshold,
       loading,
       eventTypes,
@@ -609,23 +633,28 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       organization,
       projects: this.state.projects,
       triggers,
-      query: queryWithTypeFilter,
+      query: dataset === Dataset.SESSIONS ? query : queryWithTypeFilter,
       aggregate,
       timeWindow,
       environment,
       resolveThreshold,
       thresholdType,
+      comparisonDelta,
+      comparisonType,
     };
     const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
+
     const wizardBuilderChart = (
       <TriggersChart
         {...chartProps}
         header={
           <ChartHeader>
             <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>
-            <AlertInfo>
-              {aggregate} | event.type:{eventTypes?.join(',')}
-            </AlertInfo>
+            {dataset !== Dataset.SESSIONS && (
+              <AlertInfo>
+                {aggregate} | event.type:{eventTypes?.join(',')}
+              </AlertInfo>
+            )}
           </ChartHeader>
         }
       />
@@ -644,6 +673,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         aggregate={aggregate}
         resolveThreshold={resolveThreshold}
         thresholdType={thresholdType}
+        comparisonType={comparisonType}
         currentProject={params.projectId}
         organization={organization}
         ruleId={ruleId}
@@ -655,12 +685,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     );
 
     const ruleNameOwnerForm = (hasAccess: boolean) => (
-      <RuleNameOwnerForm
-        disabled={!hasAccess || !canEdit}
-        organization={organization}
-        project={project}
-        userTeamIds={userTeamIds}
-      />
+      <RuleNameOwnerForm disabled={!hasAccess || !canEdit} project={project} />
     );
 
     return (
@@ -706,7 +731,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             submitLabel={t('Save Rule')}
           >
             <List symbol="colored-numeric">
-              <RuleConditionsFormForWizard
+              <RuleConditionsForm
                 api={this.api}
                 projectSlug={params.projectId}
                 organization={organization}
@@ -715,6 +740,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 onFilterSearch={this.handleFilterUpdate}
                 allowChangeEventTypes={isCustomMetric || dataset === Dataset.ERRORS}
                 alertType={isCustomMetric ? 'custom' : alertType}
+                dataset={dataset}
+                comparisonType={comparisonType}
+                comparisonDelta={comparisonDelta}
+                onComparisonTypeChange={this.handleComparisonTypeChange}
+                onComparisonDeltaChange={this.handleComparisonDeltaChange}
               />
               <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
               {triggerForm(hasAccess)}

@@ -196,10 +196,8 @@ export type RelaysByPublickey = {
 
 /**
  * Detailed organization (e.g. when requesting details for a single org)
- *
- * Lightweight in this case means it does not contain `projects` or `teams`
  */
-export type LightWeightOrganization = OrganizationSummary & {
+export type Organization = OrganizationSummary & {
   relayPiiConfig: string;
   scrubIPAddresses: boolean;
   attachmentsRole: string;
@@ -235,14 +233,6 @@ export type LightWeightOrganization = OrganizationSummary & {
 };
 
 /**
- * Full organization details
- */
-export type Organization = LightWeightOrganization & {
-  projects: Project[];
-  teams: Team[];
-};
-
-/**
  * Minimal organization shape used on shared issue views.
  */
 export type SharedViewOrganization = {
@@ -275,12 +265,16 @@ export type Project = {
   isInternal: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
+  hasSessions: boolean;
   firstEvent: 'string' | null;
   firstTransactionEvent: boolean;
   subjectTemplate: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;
   environments: string[];
+  eventProcessing: {
+    symbolicationDegraded: boolean;
+  };
 
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {
@@ -377,7 +371,11 @@ export type TreeLabelPart =
       function?: string;
       package?: string;
       type?: string;
+      classbase?: string;
+      filebase?: string;
       datapath?: (string | number)[];
+      // is_sentinel is no longer being used,
+      // but we will still assess whether we will use this property in the near future.
       is_sentinel?: boolean;
       is_prefix?: boolean;
     };
@@ -399,7 +397,8 @@ export type EventMetadata = {
   current_level?: number;
 };
 
-export type EventAttachment = {
+// endpoint: /api/0/issues/:issueId/attachments/?limit=50
+export type IssueAttachment = {
   id: string;
   dateCreated: string;
   headers: Object;
@@ -410,6 +409,9 @@ export type EventAttachment = {
   type: string;
   event_id: string;
 };
+
+// endpoint: /api/0/projects/:orgSlug/:projSlug/events/:eventId/attachments/
+export type EventAttachment = Omit<IssueAttachment, 'event_id'>;
 
 export type EntryData = Record<string, any | Array<any>>;
 
@@ -447,17 +449,21 @@ export type ProjectSdkUpdates = {
   suggestions: SDKUpdatesSuggestion[];
 };
 
-export type EventsStatsData = [number, {count: number}[]][];
+export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
 
 // API response format for a single series
 export type EventsStats = {
   data: EventsStatsData;
   totals?: {count: number};
   order?: number;
+  start?: number;
+  end?: number;
 };
 
 // API response format for multiple series
-export type MultiSeriesEventsStats = {[seriesName: string]: EventsStats};
+export type MultiSeriesEventsStats = {
+  [seriesName: string]: EventsStats;
+};
 
 /**
  * Avatars are a more primitive version of User.
@@ -486,6 +492,7 @@ type UserEnrolledAuthenticator = {
   dateCreated: EnrolledAuthenticator['createdAt'];
   type: Authenticator['id'];
   id: EnrolledAuthenticator['authId'];
+  name: EnrolledAuthenticator['name'];
 };
 
 export type User = Omit<AvatarUser, 'options'> & {
@@ -590,6 +597,9 @@ export type PluginNoProject = {
   author?: {name: string; url: string};
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
+  altIsSentryApp?: boolean;
+  deprecationDate?: string;
+  firstPartyAlternative?: string;
 };
 
 export type Plugin = PluginNoProject & {
@@ -632,6 +642,7 @@ export type RelativePeriod = keyof typeof DEFAULT_RELATIVE_PERIODS;
 export type IntervalPeriod = ReturnType<typeof getInterval>;
 
 export type GlobalSelection = {
+  // Project Ids currently selected
   projects: number[];
   environments: string[];
   datetime: {
@@ -715,14 +726,17 @@ export type Authenticator = {
   );
 
 export type ChallengeData = {
+  // will have only authenticateRequest or registerRequest
   authenticateRequests: u2f.SignRequest;
   registerRequests: u2f.RegisterRequest;
+  registeredKeys: u2f.RegisteredKey[];
 };
 
 export type EnrolledAuthenticator = {
   lastUsedAt: string | null;
   createdAt: string;
   authId: string;
+  name: string;
 };
 
 export interface Config {
@@ -756,10 +770,6 @@ export interface Config {
     upgradeAvailable: boolean;
     latest: string;
   };
-  statuspage?: {
-    id: string;
-    api_host: string;
-  };
   sentryConfig: {
     dsn: string;
     release: string;
@@ -769,6 +779,10 @@ export interface Config {
   apmSampling: number;
   dsn_requests: string;
   demoMode: boolean;
+  statuspage?: {
+    id: string;
+    api_host: string;
+  };
 }
 
 // https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
@@ -780,6 +794,9 @@ export enum DataCategory {
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
 }
+
+export type EventType = 'error' | 'transaction' | 'attachment';
+
 export const DataCategoryName = {
   [DataCategory.ERRORS]: 'Errors',
   [DataCategory.TRANSACTIONS]: 'Transactions',
@@ -905,10 +922,11 @@ type GroupActivityRegression = GroupActivityBase & {
   };
 };
 
-type GroupActivitySetByResolvedInRelease = GroupActivityBase & {
+export type GroupActivitySetByResolvedInRelease = GroupActivityBase & {
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
   data: {
     version?: string;
+    current_release_version?: string;
   };
 };
 
@@ -1001,7 +1019,6 @@ export type GroupActivity =
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
   | GroupActivitySetByResolvedInRelease
-  | GroupActivitySetByResolvedInRelease
   | GroupActivitySetByResolvedInCommit
   | GroupActivitySetByResolvedInPullRequest
   | GroupActivityFirstSeen
@@ -1041,7 +1058,7 @@ export type BaseGroupStatusReprocessing = {
     info: {
       dateCreated: string;
       totalEvents: number;
-    };
+    } | null;
   };
 };
 
@@ -1332,6 +1349,7 @@ export type Integration = {
   icon: string;
   domainName: string;
   accountType: string;
+  scopes?: string[];
   status: ObjectStatus;
   provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
   dynamicDisplayInformation?: {
@@ -1603,13 +1621,13 @@ export type SentryAppComponent = {
     slug:
       | 'calixa'
       | 'clickup'
-      | 'clubhouse'
       | 'komodor'
       | 'linear'
       | 'rookout'
+      | 'shortcut'
       | 'spikesh'
-      | 'teamwork'
-      | 'zepel';
+      | 'taskcall'
+      | 'teamwork';
     name: string;
   };
 };
@@ -1637,8 +1655,9 @@ export type NewQuery = {
   end?: string;
 
   // Graph
-  yAxis?: string;
+  yAxis?: string[];
   display?: string;
+  topEvents?: string;
 
   teams?: Readonly<('myteams' | number)[]>;
 };
@@ -1981,9 +2000,9 @@ export type Frame = {
   rawFunction: string | null;
   symbol: string | null;
   symbolAddr: string | null;
-  symbolicatorStatus: SymbolicatorStatus;
   trust: any | null;
   vars: Record<string, any> | null;
+  symbolicatorStatus?: SymbolicatorStatus;
   addrMode?: string;
   origAbsPath?: string | null;
   mapUrl?: string | null;
@@ -2119,6 +2138,7 @@ export type SessionApiResponse = SeriesApi & {
 export enum SessionField {
   SESSIONS = 'sum(session)',
   USERS = 'count_unique(user)',
+  DURATION = 'p50(session.duration)',
 }
 
 export enum SessionStatus {
@@ -2144,6 +2164,7 @@ export enum ReleaseComparisonChartType {
   ERROR_COUNT = 'errorCount',
   TRANSACTION_COUNT = 'transactionCount',
   FAILURE_RATE = 'failureRate',
+  SESSION_DURATION = 'sessionDuration',
 }
 
 export enum HealthStatsPeriodOption {
@@ -2160,18 +2181,21 @@ export type IssueOwnership = {
   autoAssignment: boolean;
 };
 
-export type CodeOwners = {
+export type CodeOwner = {
   id: string;
   raw: string;
   dateCreated: string;
   dateUpdated: string;
   provider: 'github' | 'gitlab';
   codeMapping?: RepositoryProjectPathConfig;
+  codeMappingId: string;
+  ownershipSyntax?: string;
   errors: {
     missing_external_teams: string[];
     missing_external_users: string[];
     missing_user_emails: string[];
     teams_without_access: string[];
+    users_without_access: string[];
   };
 };
 
@@ -2206,4 +2230,30 @@ export type ExternalTeam = {
   externalName: string;
   provider: string;
   integrationId: string;
+};
+
+export type CodeownersFile = {
+  raw: string;
+  filepath: string;
+  html_url: string;
+};
+
+// Response from ShortIdLookupEndpoint
+// /organizations/${orgId}/shortids/${query}/
+export type ShortIdResponse = {
+  organizationSlug: string;
+  projectSlug: string;
+  groupId: string;
+  group: Group;
+  shortId: string;
+};
+
+// Response from EventIdLookupEndpoint
+// /organizations/${orgSlug}/eventids/${eventId}/
+export type EventIdResponse = {
+  organizationSlug: string;
+  projectSlug: string;
+  groupId: string;
+  eventId: string;
+  event: Event;
 };

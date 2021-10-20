@@ -34,6 +34,7 @@ node_modules
 /config/chartcuterie/config.js*
 /config/*.pem
 /tests/apidocs/openapi-derefed.json
+/tests/sentry/utils/appleconnect/*.json
 tests/fixtures/integrations/*/data/**
 /wheelhouse
 /test_cli/

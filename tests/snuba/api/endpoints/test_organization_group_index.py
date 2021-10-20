@@ -15,6 +15,7 @@ from sentry.models import (
     GroupAssignee,
     GroupBookmark,
     GroupHash,
+    GroupHistory,
     GroupInbox,
     GroupInboxReason,
     GroupLink,
@@ -36,6 +37,7 @@ from sentry.models import (
     add_group_to_inbox,
     remove_group_from_inbox,
 )
+from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -665,7 +667,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get(
             reverse("sentry-api-0-organization-group-index", args=[self.project.organization.slug]),
             format="json",
-            HTTP_AUTHORIZATION="Bearer %s" % token.token,
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
         assert response.status_code == 200, response.content
 
@@ -1279,10 +1281,25 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == []
 
+        response = self.get_response(sort_by="date", limit=10, query=f"!{SEMVER_ALIAS}:1.2.4")
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.json()] == [
+            release_1_g_1,
+            release_1_g_2,
+            release_3_g_1,
+            release_3_g_2,
+        ]
+
     def test_release_stage(self):
-        replaced_release = self.create_release(version="replaced_release")
-        adopted_release = self.create_release(version="adopted_release")
-        not_adopted_release = self.create_release(version="not_adopted_release")
+        replaced_release = self.create_release(
+            version="replaced_release", environments=[self.environment]
+        )
+        adopted_release = self.create_release(
+            version="adopted_release", environments=[self.environment]
+        )
+        not_adopted_release = self.create_release(
+            version="not_adopted_release", environments=[self.environment]
+        )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=adopted_release.id,
@@ -1307,6 +1324,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 "timestamp": iso_format(before_now(minutes=1)),
                 "fingerprint": ["group-1"],
                 "release": adopted_release.version,
+                "environment": self.environment.name,
             },
             project_id=self.project.id,
         ).group.id
@@ -1315,6 +1333,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 "timestamp": iso_format(before_now(minutes=2)),
                 "fingerprint": ["group-2"],
                 "release": adopted_release.version,
+                "environment": self.environment.name,
             },
             project_id=self.project.id,
         ).group.id
@@ -1323,6 +1342,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 "timestamp": iso_format(before_now(minutes=3)),
                 "fingerprint": ["group-3"],
                 "release": replaced_release.version,
+                "environment": self.environment.name,
             },
             project_id=self.project.id,
         ).group.id
@@ -1331,13 +1351,17 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 "timestamp": iso_format(before_now(minutes=4)),
                 "fingerprint": ["group-4"],
                 "release": replaced_release.version,
+                "environment": self.environment.name,
             },
             project_id=self.project.id,
         ).group.id
 
         self.login_as(user=self.user)
         response = self.get_response(
-            sort_by="date", limit=10, query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}"
+            sort_by="date",
+            limit=10,
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [
@@ -1346,7 +1370,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
         ]
 
         response = self.get_response(
-            sort_by="date", limit=10, query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}"
+            sort_by="date",
+            limit=10,
+            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
+            environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [
@@ -1360,6 +1387,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             sort_by="date",
             limit=10,
             query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
+            environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [
@@ -1373,6 +1401,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             sort_by="date",
             limit=10,
             query=f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}, {ReleaseStages.REPLACED}]",
+            environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [
@@ -1496,7 +1525,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         query = "server:example.com"
         query += " status:unresolved"
-        query += " active_at:" + iso_format(before_now(seconds=350))
         query += " first_seen:" + iso_format(before_now(seconds=500))
 
         self.login_as(user=self.user)
@@ -1778,9 +1806,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
-            qs_params={"status": "unresolved", "project": self.project.id}, status="resolved"
-        )
+        with self.feature("organizations:group-history"):
+            response = self.get_valid_response(
+                qs_params={"status": "unresolved", "project": self.project.id}, status="resolved"
+            )
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
         # the previously resolved entry should not be included
@@ -1811,6 +1840,18 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert new_group4.resolved_at is None
 
         assert not GroupSubscription.objects.filter(user=self.user, group=new_group4)
+        assert not GroupHistory.objects.filter(
+            group=group1, status=GroupHistoryStatus.RESOLVED
+        ).exists()
+        assert GroupHistory.objects.filter(
+            group=group2, status=GroupHistoryStatus.RESOLVED
+        ).exists()
+        assert not GroupHistory.objects.filter(
+            group=group3, status=GroupHistoryStatus.RESOLVED
+        ).exists()
+        assert not GroupHistory.objects.filter(
+            group=group4, status=GroupHistoryStatus.RESOLVED
+        ).exists()
 
     def test_resolve_member(self):
         group = self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
@@ -2044,7 +2085,13 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         grp_resolution = GroupResolution.objects.filter(group=group)
 
         assert len(grp_resolution) == 1
-        assert grp_resolution[0].current_release_version == release_2.version
+        grp_resolution = grp_resolution.first()
+
+        assert grp_resolution.current_release_version == release_2.version
+
+        # "resolvedInNextRelease" with semver releases is considered as "resolvedInRelease"
+        assert grp_resolution.type == GroupResolution.Type.in_release
+        assert grp_resolution.status == GroupResolution.Status.resolved
 
         # Add release that is between 2 and 3 to ensure that any release after release 2 should
         # not have a resolution
@@ -2055,6 +2102,16 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         for release in [release_3, release_4]:
             assert not GroupResolution.has_resolution(group=group, release=release)
+
+        # Ensure that Activity has `current_release_version` set on `Resolved in next release`
+        activity = Activity.objects.filter(
+            group=grp_resolution.group,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+            ident=grp_resolution.id,
+        ).first()
+
+        assert "current_release_version" in activity.data
+        assert activity.data["current_release_version"] == release_2.version
 
     def test_in_non_semver_projects_group_resolution_stores_current_release_version(self):
         """
@@ -2098,6 +2155,113 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert GroupResolution.has_resolution(group=group, release=release_1)
         for release in [release_2, release_3]:
             assert not GroupResolution.has_resolution(group=group, release=release)
+
+    def test_in_non_semver_projects_store_actual_current_release_version_not_cached_version(self):
+        """
+        Test that ensures that the current_release_version is actually the latest version
+        associated with a group, not the cached version because currently
+        `group.get_last_release` fetches the latest release associated with a group and caches
+        that value, and we don't want to cache that value when resolving in next release in case a
+        new release appears to be associated with a group because if we store the cached rather
+        than the actual latest release, we might have unexpected results with the regression
+        algorithm
+        """
+        release_1 = self.create_release(
+            date_added=timezone.now() - timedelta(minutes=45), version="foobar 1"
+        )
+        release_2 = self.create_release(version="foobar 2")
+
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-1"],
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        ).group
+
+        # Call this function to cache the `last_seen` release to release_1
+        # i.e. Set the first last observed by Sentry
+        assert group.get_last_release() == release_1.version
+
+        self.login_as(user=self.user)
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=0)),
+                "fingerprint": ["group-1"],
+                "release": release_2.version,
+            },
+            project_id=self.project.id,
+        )
+
+        # Cached (i.e. first last observed release by Sentry) is returned here since `use_cache`
+        # is set to its default of `True`
+        assert Group.objects.get(id=group.id).get_last_release() == release_1.version
+
+        response = self.get_valid_response(
+            qs_params={"id": group.id}, status="resolvedInNextRelease"
+        )
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inNextRelease"]
+
+        # Changes here to release_2 and actual latest because `resolvedInNextRelease`,
+        # sets `use_cache` to False when fetching the last release associated with a group
+        assert Group.objects.get(id=group.id).get_last_release() == release_2.version
+
+        grp_resolution = GroupResolution.objects.filter(group=group)
+
+        assert len(grp_resolution) == 1
+        assert grp_resolution[0].current_release_version == release_2.version
+
+    def test_in_non_semver_projects_resolved_in_next_release_is_equated_to_in_release(self):
+        """
+        Test that ensures that if we basically know the next release when clicking on Resolved
+        In Next Release because that release exists, then we can short circuit setting
+        GroupResolution to type "inNextRelease", and then having `clear_exrired_resolutions` run
+        once a new release is created to convert GroupResolution to in_release and set Activity.
+        Basically we treat "ResolvedInNextRelease" as "ResolvedInRelease" when there is a release
+        that was created after the last release associated with the group being resolved
+        """
+        release_1 = self.create_release(
+            date_added=timezone.now() - timedelta(minutes=45), version="foobar 1"
+        )
+        release_2 = self.create_release(version="foobar 2")
+        self.create_release(version="foobar 3")
+
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=12)),
+                "fingerprint": ["group-1"],
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        ).group
+
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            qs_params={"id": group.id}, status="resolvedInNextRelease"
+        )
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inNextRelease"]
+
+        grp_resolution = GroupResolution.objects.filter(group=group)
+
+        assert len(grp_resolution) == 1
+        grp_resolution = grp_resolution[0]
+
+        assert grp_resolution.current_release_version == release_1.version
+        assert grp_resolution.release.id == release_2.id
+        assert grp_resolution.type == GroupResolution.Type.in_release
+        assert grp_resolution.status == GroupResolution.Status.resolved
+
+        activity = Activity.objects.filter(
+            group=grp_resolution.group,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+            ident=grp_resolution.id,
+        ).first()
+        assert activity.data["version"] == release_2.version
 
     def test_selective_status_update(self):
         group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
@@ -2144,9 +2308,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
-            qs_params={"id": group.id}, status="resolved", statusDetails={"inRelease": "latest"}
-        )
+        with self.feature("organizations:group-history"):
+            response = self.get_valid_response(
+                qs_params={"id": group.id}, status="resolved", statusDetails={"inRelease": "latest"}
+            )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inRelease"] == release.version
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
@@ -2166,6 +2331,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
         assert activity.data["version"] == release.version
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
+        ).exists()
 
     def test_set_resolved_in_explicit_release(self):
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
@@ -2185,6 +2353,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inRelease"] == release.version
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+        assert "activity" in response.data
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -2202,6 +2371,51 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
         assert activity.data["version"] == release.version
 
+    def test_in_semver_projects_set_resolved_in_explicit_release(self):
+        release_1 = self.create_release(version="fake_package@3.0.0")
+        release_2 = self.create_release(version="fake_package@2.0.0")
+        release_3 = self.create_release(version="fake_package@3.0.1")
+
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=10)),
+                "fingerprint": ["group-1"],
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        ).group
+
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            qs_params={"id": group.id},
+            status="resolved",
+            statusDetails={"inRelease": release_1.version},
+        )
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inRelease"] == release_1.version
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+        assert "activity" in response.data
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == release_1
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.actor_id == self.user.id
+
+        assert GroupSubscription.objects.filter(
+            user=self.user, group=group, is_active=True
+        ).exists()
+
+        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        assert activity.data["version"] == release_1.version
+
+        assert GroupResolution.has_resolution(group=group, release=release_2)
+        assert not GroupResolution.has_resolution(group=group, release=release_3)
+
     def test_set_resolved_in_next_release(self):
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -2216,6 +2430,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+        assert "activity" in response.data
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -2241,12 +2456,14 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
-            qs_params={"id": group.id}, status="resolvedInNextRelease"
-        )
+        with self.feature("organizations:group-history"):
+            response = self.get_valid_response(
+                qs_params={"id": group.id}, status="resolvedInNextRelease"
+            )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+        assert "activity" in response.data
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -2260,6 +2477,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert GroupSubscription.objects.filter(
             user=self.user, group=group, is_active=True
         ).exists()
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
+        ).exists()
 
         activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
         assert activity.data["version"] == ""
@@ -2271,14 +2491,16 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
-            qs_params={"id": group.id},
-            status="resolved",
-            statusDetails={"inCommit": {"commit": commit.key, "repository": repo.name}},
-        )
+        with self.feature("organizations:group-history"):
+            response = self.get_valid_response(
+                qs_params={"id": group.id},
+                status="resolved",
+                statusDetails={"inCommit": {"commit": commit.key, "repository": repo.name}},
+            )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inCommit"]["id"] == commit.key
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+        assert "activity" not in response.data
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -2294,6 +2516,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_COMMIT)
         assert activity.data["commit"] == commit.id
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
+        ).exists()
 
     def test_set_resolved_in_explicit_commit_released(self):
         release = self.create_release(project=self.project)
@@ -2304,14 +2529,16 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
-            qs_params={"id": group.id},
-            status="resolved",
-            statusDetails={"inCommit": {"commit": commit.key, "repository": repo.name}},
-        )
+        with self.feature("organizations:group-history"):
+            response = self.get_valid_response(
+                qs_params={"id": group.id},
+                status="resolved",
+                statusDetails={"inCommit": {"commit": commit.key, "repository": repo.name}},
+            )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inCommit"]["id"] == commit.key
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+        assert "activity" in response.data
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -2332,6 +2559,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         resolution = GroupResolution.objects.get(group=group)
         assert resolution.type == GroupResolution.Type.in_release
         assert resolution.status == GroupResolution.Status.resolved
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
+        ).exists()
 
     def test_set_resolved_in_explicit_commit_missing(self):
         repo = self.create_repo(project=self.project, name=self.project.name)
@@ -2339,16 +2569,20 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_response(
-            qs_params={"id": group.id},
-            status="resolved",
-            statusDetails={"inCommit": {"commit": "a" * 40, "repository": repo.name}},
-        )
+        with self.feature("organizations:group-history"):
+            response = self.get_response(
+                qs_params={"id": group.id},
+                status="resolved",
+                statusDetails={"inCommit": {"commit": "a" * 40, "repository": repo.name}},
+            )
         assert response.status_code == 400
         assert (
             response.data["statusDetails"]["inCommit"]["commit"][0]
             == "Unable to find the given commit."
         )
+        assert not GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
+        ).exists()
 
     def test_set_unresolved(self):
         release = self.create_release(project=self.project, version="abc")
@@ -2357,11 +2591,15 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(qs_params={"id": group.id}, status="unresolved")
+        with self.feature("organizations:group-history"):
+            response = self.get_valid_response(qs_params={"id": group.id}, status="unresolved")
         assert response.data == {"status": "unresolved", "statusDetails": {}}
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.UNRESOLVED
+        ).exists()
 
         self.assertNoResolution(group)
 
@@ -2376,11 +2614,15 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(qs_params={"id": group.id}, status="unresolved")
+        with self.feature("organizations:group-history"):
+            response = self.get_valid_response(qs_params={"id": group.id}, status="unresolved")
         assert response.data == {"status": "unresolved", "statusDetails": {}}
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.UNRESOLVED
+        ).exists()
 
     def test_basic_ignore(self):
         group = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
@@ -2388,13 +2630,17 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now())
 
         self.login_as(user=self.user)
-
-        response = self.get_valid_response(qs_params={"id": group.id}, status="ignored")
+        assert not GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.IGNORED
+        ).exists()
+        with self.feature("organizations:group-history"):
+            response = self.get_valid_response(qs_params={"id": group.id}, status="ignored")
         # existing snooze objects should be cleaned up
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.IGNORED
+        assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.IGNORED).exists()
 
         assert response.data == {"status": "ignored", "statusDetails": {}, "inbox": None}
 
@@ -2455,6 +2701,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
     def test_snooze_user_count(self):
+        event = {}
         for i in range(10):
             event = self.store_event(
                 data={
@@ -2619,9 +2866,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         r4 = GroupSeen.objects.filter(group=group4, user=self.user)
         assert not r4.exists()
 
-    @patch("sentry.api.helpers.group_index.uuid4")
-    @patch("sentry.api.helpers.group_index.merge_groups")
-    @patch("sentry.api.helpers.group_index.eventstream")
+    @patch("sentry.api.helpers.group_index.update.uuid4")
+    @patch("sentry.api.helpers.group_index.update.merge_groups")
+    @patch("sentry.api.helpers.group_index.update.eventstream")
     def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
@@ -2659,10 +2906,16 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         user = self.user
 
         self.login_as(user=user)
-        response = self.get_valid_response(qs_params={"id": group1.id}, assignedTo=user.username)
+        with self.feature("organizations:group-history"):
+            response = self.get_valid_response(
+                qs_params={"id": group1.id}, assignedTo=user.username
+            )
         assert response.data["assignedTo"]["id"] == str(user.id)
         assert response.data["assignedTo"]["type"] == "user"
         assert GroupAssignee.objects.filter(group=group1, user=user).exists()
+        assert GroupHistory.objects.filter(
+            group=group1, status=GroupHistoryStatus.ASSIGNED
+        ).exists()
 
         assert not GroupAssignee.objects.filter(group=group2, user=user).exists()
 
@@ -2670,10 +2923,14 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         assert GroupSubscription.objects.filter(user=user, group=group1, is_active=True).exists()
 
-        response = self.get_valid_response(qs_params={"id": group1.id}, assignedTo="")
+        with self.feature("organizations:group-history"):
+            response = self.get_valid_response(qs_params={"id": group1.id}, assignedTo="")
         assert response.data["assignedTo"] is None
 
         assert not GroupAssignee.objects.filter(group=group1, user=user).exists()
+        assert GroupHistory.objects.filter(
+            group=group1, status=GroupHistoryStatus.UNASSIGNED
+        ).exists()
 
     def test_assign_non_member(self):
         group = self.create_group(checksum="a" * 32, is_public=True)
@@ -2682,7 +2939,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=member)
 
-        response = self.get_response(qs_params={"id": group.id}, assignedTo=non_member.username)
+        with self.feature("organizations:group-history"):
+            response = self.get_response(qs_params={"id": group.id}, assignedTo=non_member.username)
+        assert not GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.ASSIGNED
+        ).exists()
         assert response.status_code == 400, response.content
 
     def test_assign_team(self):
@@ -2696,17 +2957,29 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group.project.add_team(team)
 
-        response = self.get_valid_response(qs_params={"id": group.id}, assignedTo=f"team:{team.id}")
+        assert not GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.ASSIGNED
+        ).exists()
+
+        with self.feature("organizations:group-history"):
+            response = self.get_valid_response(
+                qs_params={"id": group.id}, assignedTo=f"team:{team.id}"
+            )
         assert response.data["assignedTo"]["id"] == str(team.id)
         assert response.data["assignedTo"]["type"] == "team"
+        assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ASSIGNED).exists()
         assert GroupAssignee.objects.filter(group=group, team=team).exists()
 
         assert Activity.objects.filter(group=group, type=Activity.ASSIGNED).count() == 1
 
         assert GroupSubscription.objects.filter(group=group, is_active=True).count() == 2
 
-        response = self.get_valid_response(qs_params={"id": group.id}, assignedTo="")
+        with self.feature("organizations:group-history"):
+            response = self.get_valid_response(qs_params={"id": group.id}, assignedTo="")
         assert response.data["assignedTo"] is None
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.UNASSIGNED
+        ).exists()
 
     def test_discard(self):
         group1 = self.create_group(checksum="a" * 32, is_public=True)
@@ -2743,14 +3016,30 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group2 = self.create_group(checksum="b" * 32)
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(qs_params={"id": [group1.id, group2.id]}, inbox="true")
+        with self.feature("organizations:group-history"):
+            response = self.get_valid_response(
+                qs_params={"id": [group1.id, group2.id]}, inbox="true"
+            )
         assert response.data == {"inbox": True}
         assert GroupInbox.objects.filter(group=group1).exists()
         assert GroupInbox.objects.filter(group=group2).exists()
+        assert not GroupHistory.objects.filter(
+            group=group1, status=GroupHistoryStatus.REVIEWED
+        ).exists()
+        assert not GroupHistory.objects.filter(
+            group=group2, status=GroupHistoryStatus.REVIEWED
+        ).exists()
 
-        response = self.get_valid_response(qs_params={"id": [group2.id]}, inbox="false")
+        with self.feature("organizations:group-history"):
+            response = self.get_valid_response(qs_params={"id": [group2.id]}, inbox="false")
         assert response.data == {"inbox": False}
         assert GroupInbox.objects.filter(group=group1).exists()
+        assert not GroupHistory.objects.filter(
+            group=group1, status=GroupHistoryStatus.REVIEWED
+        ).exists()
+        assert GroupHistory.objects.filter(
+            group=group2, status=GroupHistoryStatus.REVIEWED
+        ).exists()
         assert not GroupInbox.objects.filter(group=group2).exists()
 
     def test_set_resolved_inbox(self):
@@ -2765,9 +3054,16 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not GroupInbox.objects.filter(group=group1).exists()
         assert not GroupInbox.objects.filter(group=group2).exists()
 
-        response = self.get_valid_response(qs_params={"id": [group2.id]}, status="unresolved")
+        with self.feature("organizations:group-history"):
+            self.get_valid_response(qs_params={"id": [group2.id]}, status="unresolved")
         assert not GroupInbox.objects.filter(group=group1).exists()
         assert not GroupInbox.objects.filter(group=group2).exists()
+        assert not GroupHistory.objects.filter(
+            group=group1, status=GroupHistoryStatus.UNRESOLVED
+        ).exists()
+        assert GroupHistory.objects.filter(
+            group=group2, status=GroupHistoryStatus.UNRESOLVED
+        ).exists()
 
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):
@@ -2781,7 +3077,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             org = args[0]
         return super().get_response(org, **kwargs)
 
-    @patch("sentry.api.helpers.group_index.eventstream")
+    @patch("sentry.api.helpers.group_index.delete.eventstream")
     @patch("sentry.eventstream")
     def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
         eventstream_state = {"event_stream_state": uuid4()}

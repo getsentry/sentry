@@ -1,7 +1,7 @@
 from django.core import mail
 
 from sentry.models import Activity, Environment, NotificationSetting, Repository
-from sentry.notifications.activity.release import ReleaseActivityNotification
+from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationSettingOptionValues,
@@ -105,7 +105,7 @@ class ReleaseTestCase(ActivityTestCase):
             (self.commit4, self.user5),
         ]
 
-        user_context = email.get_user_context(self.user1, {})
+        user_context = email.get_recipient_context(self.user1, {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
@@ -155,7 +155,7 @@ class ReleaseTestCase(ActivityTestCase):
         assert context["environment"] == "production"
         assert context["repos"] == []
 
-        user_context = email.get_user_context(self.user1, {})
+        user_context = email.get_recipient_context(self.user1, {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
@@ -205,7 +205,7 @@ class ReleaseTestCase(ActivityTestCase):
         assert context["environment"] == "production"
         assert context["repos"] == []
 
-        user_context = email.get_user_context(user6, {})
+        user_context = email.get_recipient_context(user6, {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project

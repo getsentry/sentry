@@ -14,17 +14,19 @@ import {
   EventsStats,
   GlobalSelection,
   MultiSeriesEventsStats,
-  Organization,
+  OrganizationSummary,
 } from 'app/types';
 import {Series} from 'app/types/echarts';
 import {parsePeriodToHours} from 'app/utils/dates';
-import {TableData} from 'app/utils/discover/discoverQuery';
+import {TableData, TableDataWithTitle} from 'app/utils/discover/discoverQuery';
+import {getAggregateFields} from 'app/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
 } from 'app/utils/discover/genericDiscoverQuery';
+import {TOP_N} from 'app/utils/discover/types';
 
-import {Widget, WidgetQuery} from './types';
+import {DisplayType, Widget, WidgetQuery} from './types';
 import {eventViewFromWidget} from './utils';
 
 // Don't fetch more than 4000 bins as we're plotting on a small area.
@@ -96,15 +98,13 @@ function transformResult(query: WidgetQuery, result: RawResult): Series[] {
 
 type Props = {
   api: Client;
-  organization: Organization;
+  organization: OrganizationSummary;
   widget: Widget;
   selection: GlobalSelection;
   children: (
     props: Pick<State, 'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage'>
   ) => React.ReactNode;
 };
-
-type TableDataWithTitle = TableData & {title: string};
 
 type State = {
   errorMessage: undefined | string;
@@ -133,23 +133,34 @@ class WidgetQueries extends React.Component<Props, State> {
     const {selection, widget} = this.props;
 
     // We do not fetch data whenever the query name changes.
-    const [prevWidgetQueryNames, prevWidgetQueries] = prevProps.widget.queries.reduce(
-      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
-        names.push(name);
-        queries.push(rest);
-        return [names, queries];
-      },
-      [[], []]
-    );
+    // Also don't count empty fields when checking for field changes
+    const [prevWidgetQueryNames, prevWidgetQueries] = prevProps.widget.queries
+      .map((query: WidgetQuery) => {
+        query.fields = query.fields.filter(field => !!field);
+        return query;
+      })
+      .reduce(
+        ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+          names.push(name);
+          queries.push(rest);
+          return [names, queries];
+        },
+        [[], []]
+      );
 
-    const [widgetQueryNames, widgetQueries] = widget.queries.reduce(
-      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
-        names.push(name);
-        queries.push(rest);
-        return [names, queries];
-      },
-      [[], []]
-    );
+    const [widgetQueryNames, widgetQueries] = widget.queries
+      .map((query: WidgetQuery) => {
+        query.fields = query.fields.filter(field => !!field && field !== 'equation|');
+        return query;
+      })
+      .reduce(
+        ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+          names.push(name);
+          queries.push(rest);
+          return [names, queries];
+        },
+        [[], []]
+      );
 
     if (
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
@@ -261,7 +272,7 @@ class WidgetQueries extends React.Component<Props, State> {
     });
   }
 
-  fetchTimeseriesData(queryFetchID: symbol) {
+  fetchTimeseriesData(queryFetchID: symbol, displayType: DisplayType) {
     const {selection, api, organization, widget} = this.props;
     this.setState({timeseriesResults: [], rawResults: []});
 
@@ -273,21 +284,44 @@ class WidgetQueries extends React.Component<Props, State> {
       period: statsPeriod,
     });
     const promises = widget.queries.map(query => {
-      const requestData = {
-        organization,
-        interval,
-        start,
-        end,
-        project: projects,
-        environment: environments,
-        period: statsPeriod,
-        query: query.conditions,
-        yAxis: query.fields,
-        orderby: query.orderby,
-        includePrevious: false,
-        referrer: 'api.dashboards.timeserieswidget',
-        partial: true,
-      };
+      let requestData;
+      if (widget.displayType === 'top_n') {
+        requestData = {
+          organization,
+          interval,
+          start,
+          end,
+          project: projects,
+          environment: environments,
+          period: statsPeriod,
+          query: query.conditions,
+          yAxis: getAggregateFields(query.fields)[0],
+          includePrevious: false,
+          referrer: `api.dashboards.widget.${displayType}-chart`,
+          partial: true,
+          topEvents: TOP_N,
+          field: query.fields,
+        };
+        if (query.orderby) {
+          requestData.orderby = query.orderby;
+        }
+      } else {
+        requestData = {
+          organization,
+          interval,
+          start,
+          end,
+          project: projects,
+          environment: environments,
+          period: statsPeriod,
+          query: query.conditions,
+          yAxis: query.fields,
+          orderby: query.orderby,
+          includePrevious: false,
+          referrer: `api.dashboards.widget.${displayType}-chart`,
+          partial: true,
+        };
+      }
       return doEventsRequest(api, requestData);
     });
 
@@ -340,7 +374,7 @@ class WidgetQueries extends React.Component<Props, State> {
     if (['table', 'world_map', 'big_number'].includes(widget.displayType)) {
       this.fetchEventData(queryFetchID);
     } else {
-      this.fetchTimeseriesData(queryFetchID);
+      this.fetchTimeseriesData(queryFetchID, widget.displayType);
     }
   }
 

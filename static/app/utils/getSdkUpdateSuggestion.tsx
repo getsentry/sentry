@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ExternalLink from 'app/components/links/externalLink';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {UpdateSdkSuggestion} from 'app/types';
@@ -20,29 +22,39 @@ function getSdkUpdateSuggestion({
   shortStyle = false,
   capitalized = false,
 }: Props) {
-  function getUpdateSdkContent(newSdkVersion: UpdateSdkSuggestion['newSdkVersion']) {
+  function getUpdateSdkContent({newSdkVersion, sdkName}: UpdateSdkSuggestion) {
     if (capitalized) {
       return sdk
         ? shortStyle
-          ? tct('Update to @v[new-sdk-version]', {
-              ['new-sdk-version']: newSdkVersion,
+          ? tct('Update to [sdk-name]@v[new-sdk-version]', {
+              'sdk-name': sdkName,
+              'new-sdk-version': newSdkVersion,
             })
-          : tct('Update your SDK from @v[sdk-version] to @v[new-sdk-version]', {
-              ['sdk-version']: sdk.version,
-              ['new-sdk-version']: newSdkVersion,
-            })
+          : tct(
+              'Update your SDK from [sdk-name]@v[sdk-version] to [sdk-name]@v[new-sdk-version]',
+              {
+                'sdk-name': sdkName,
+                'sdk-version': sdk.version,
+                'new-sdk-version': newSdkVersion,
+              }
+            )
         : t('Update your SDK version');
     }
 
     return sdk
       ? shortStyle
-        ? tct('update to @v[new-sdk-version]', {
-            ['new-sdk-version']: newSdkVersion,
+        ? tct('update to [sdk-name]@v[new-sdk-version]', {
+            'sdk-name': sdkName,
+            'new-sdk-version': newSdkVersion,
           })
-        : tct('update your SDK from @v[sdk-version] to @v[new-sdk-version]', {
-            ['sdk-version']: sdk.version,
-            ['new-sdk-version']: newSdkVersion,
-          })
+        : tct(
+            'update your SDK from [sdk-name]@v[sdk-version] to [sdk-name]@v[new-sdk-version]',
+            {
+              'sdk-name': sdkName,
+              'sdk-version': sdk.version,
+              'new-sdk-version': newSdkVersion,
+            }
+          )
       : t('update your SDK version');
   }
 
@@ -51,19 +63,29 @@ function getSdkUpdateSuggestion({
       case 'updateSdk':
         return {
           href: suggestion?.sdkUrl,
-          content: getUpdateSdkContent(suggestion.newSdkVersion),
+          content: getUpdateSdkContent(suggestion),
         };
       case 'changeSdk':
         return {
           href: suggestion?.sdkUrl,
-          content: tct('migrate to the [sdkName] SDK', {
-            sdkName: <code>{suggestion.newSdkName}</code>,
-          }),
+          content: capitalized
+            ? tct('Migrate to [recommended-sdk-version]', {
+                'recommended-sdk-version': suggestion.newSdkName,
+              })
+            : tct('migrate to [recommended-sdk-version]', {
+                'recommended-sdk-version': suggestion.newSdkName,
+              }),
         };
       case 'enableIntegration':
         return {
           href: suggestion?.integrationUrl,
-          content: t("enable the '%s' integration", suggestion.integrationName),
+          content: capitalized
+            ? tct('Enable the [recommended-integration-name]', {
+                'recommended-integration-name': suggestion.integrationName,
+              })
+            : tct('enable the [recommended-integration-name] integration', {
+                'recommended-integration-name': suggestion.integrationName,
+              }),
         };
       default:
         return null;
@@ -97,11 +119,12 @@ function getSdkUpdateSuggestion({
       const subSuggestionContent = getSdkUpdateSuggestion({
         suggestion: subSuggestion,
         sdk,
+        capitalized,
       });
       if (!subSuggestionContent) {
         return null;
       }
-      return <Fragment key={index}>{subSuggestionContent}</Fragment>;
+      return <ListItem key={index}>{subSuggestionContent}</ListItem>;
     })
     .filter(content => !!content);
 
@@ -109,16 +132,16 @@ function getSdkUpdateSuggestion({
     return title;
   }
 
-  return tct('[title] so you can: [suggestion]', {
-    title,
-    suggestion: <AlertUl>{alertContent}</AlertUl>,
-  });
+  return (
+    <span>
+      {tct('[title] so you can:', {title})}
+      <StyledList symbol="bullet">{alertContent}</StyledList>
+    </span>
+  );
 }
 
 export default getSdkUpdateSuggestion;
 
-const AlertUl = styled('ul')`
+const StyledList = styled(List)`
   margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
-  padding-left: 0 !important;
 `;

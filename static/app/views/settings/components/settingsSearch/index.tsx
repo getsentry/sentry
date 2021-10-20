@@ -1,5 +1,5 @@
-import * as React from 'react';
-import keydown from 'react-keydown';
+import {useRef} from 'react';
+import {useHotkeys} from 'react-hotkeys-hook';
 import styled from '@emotion/styled';
 
 import Search from 'app/components/search';
@@ -9,53 +9,33 @@ import {t} from 'app/locale';
 const MIN_SEARCH_LENGTH = 1;
 const MAX_RESULTS = 10;
 
-type Props = {};
+function SettingsSearch() {
+  const searchInput = useRef<HTMLInputElement>(null);
 
-class SettingsSearch extends React.Component<Props> {
-  searchInput = React.createRef<HTMLInputElement>();
-
-  @keydown('/')
-  handleFocusSearch(e: React.FormEvent<HTMLInputElement>) {
-    if (!this.searchInput.current) {
-      return;
-    }
-    if (e.target === this.searchInput.current) {
-      return;
-    }
-
+  useHotkeys('/', e => {
     e.preventDefault();
-    this.searchInput.current.focus();
-  }
+    searchInput.current?.focus();
+  });
 
-  render() {
-    return (
-      <Search
-        entryPoint="settings_search"
-        minSearch={MIN_SEARCH_LENGTH}
-        maxResults={MAX_RESULTS}
-        renderInput={({getInputProps}) => (
-          <SearchInputWrapper>
-            <SearchInputIcon size="14px" />
-            <SearchInput
-              {...getInputProps({
-                type: 'text',
-                placeholder: t('Search'),
-              })}
-              ref={this.searchInput}
-            />
-          </SearchInputWrapper>
-        )}
-      />
-    );
-  }
+  return (
+    <Search
+      entryPoint="settings_search"
+      minSearch={MIN_SEARCH_LENGTH}
+      maxResults={MAX_RESULTS}
+      renderInput={({getInputProps}) => (
+        <SearchInputWrapper>
+          <SearchInputIcon size="14px" />
+          <SearchInput
+            {...getInputProps({type: 'text', placeholder: t('Search')})}
+            ref={searchInput}
+          />
+        </SearchInputWrapper>
+      )}
+    />
+  );
 }
 
-// This is so we can use this as a selector for emotion
-const StyledSettingsSearch = styled(SettingsSearch)``;
-
-export default StyledSettingsSearch;
-// We use named export for StyledSettingsSearch to prevent circular import in `app/components/search/searchResult`
-export {SettingsSearch, StyledSettingsSearch};
+export default SettingsSearch;
 
 const SearchInputWrapper = styled('div')`
   position: relative;

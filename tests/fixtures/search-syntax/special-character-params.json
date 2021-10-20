@@ -1,0 +1,158 @@
+[
+  {
+    "query": "count_if(user.email,equals,test+something@example.com):>100",
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "aggregateNumeric",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "count_if", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "user.email",
+                  "quoted": false
+                }
+              },
+              {
+                "separator": ",",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "equals",
+                  "quoted": false
+                }
+              },
+              {
+                "separator": ",",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "test+something@example.com",
+                  "quoted": false
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": ">",
+        "value": {"type": "valueNumber", "rawValue": 100, "unit": null, "value": "100"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "count_if(user.email,equals,\"something,with,commas\"):>100",
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "aggregateNumeric",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "count_if", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "user.email",
+                  "quoted": false
+                }
+              },
+              {
+                "separator": ",",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "equals",
+                  "quoted": false
+                }
+              },
+              {
+                "separator": ",",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "\"something,with,commas\"",
+                  "quoted": true
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": ">",
+        "value": {"type": "valueNumber", "rawValue": 100, "unit": null, "value": "100"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "query": "count_if(user.email,equals,\"I, got my own \\\"quotes\\\"\"):>100",
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "aggregateNumeric",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "count_if", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "user.email",
+                  "quoted": false
+                }
+              },
+              {
+                "separator": ",",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "equals",
+                  "quoted": false
+                }
+              },
+              {
+                "separator": ",",
+                "value": {
+                  "type": "keyAggregateParam",
+                  "value": "\"I, got my own \\\"quotes\\\"\"",
+                  "quoted": true
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": ">",
+        "value": {"type": "valueNumber", "rawValue": 100, "unit": null, "value": "100"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

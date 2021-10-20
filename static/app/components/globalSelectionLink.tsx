@@ -1,8 +1,9 @@
 import * as React from 'react';
-import {Link as RouterLink, withRouter, WithRouterProps} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
+import Link from 'app/components/links/link';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 
 type Props = WithRouterProps & {
@@ -21,7 +22,7 @@ type Props = WithRouterProps & {
   /**
    * Click event (not for navigation)
    */
-  onClick?: React.ComponentProps<typeof RouterLink>['onClick'];
+  onClick?: React.ComponentProps<typeof Link>['onClick'];
 };
 
 /**
@@ -41,41 +42,38 @@ class GlobalSelectionLink extends React.Component<Props> {
       typeof to === 'object' && to.query ? {...globalQuery, ...to.query} : globalQuery;
 
     if (location) {
-      let toWithGlobalQuery;
-      if (hasGlobalQuery) {
-        if (typeof to === 'string') {
-          toWithGlobalQuery = {pathname: to, query};
-        } else {
-          toWithGlobalQuery = {...to, query};
-        }
-      }
+      const toWithGlobalQuery: LocationDescriptor = hasGlobalQuery
+        ? typeof to === 'string'
+          ? {pathname: to, query}
+          : {...to, query}
+        : {};
+
       const routerProps = hasGlobalQuery
         ? {...this.props, to: toWithGlobalQuery}
         : {...this.props, to};
 
-      return <RouterLink {...routerProps}>{this.props.children}</RouterLink>;
-    } else {
-      let queryStringObject = {};
-      if (typeof to === 'object' && to.search) {
-        queryStringObject = qs.parse(to.search);
-      }
-
-      queryStringObject = {...queryStringObject, ...globalQuery};
-
-      if (typeof to === 'object' && to.query) {
-        queryStringObject = {...queryStringObject, ...to.query};
-      }
-
-      const url =
-        (typeof to === 'string' ? to : to.pathname) +
-        '?' +
-        qs.stringify(queryStringObject);
-      return (
-        <a {...this.props} href={url}>
-          {this.props.children}
-        </a>
-      );
+      return <Link {...routerProps}>{this.props.children}</Link>;
     }
+
+    let queryStringObject = {};
+    if (typeof to === 'object' && to.search) {
+      queryStringObject = qs.parse(to.search);
+    }
+
+    queryStringObject = {...queryStringObject, ...globalQuery};
+
+    if (typeof to === 'object' && to.query) {
+      queryStringObject = {...queryStringObject, ...to.query};
+    }
+
+    const url =
+      (typeof to === 'string' ? to : to.pathname) + '?' + qs.stringify(queryStringObject);
+
+    return (
+      <a {...this.props} href={url}>
+        {this.props.children}
+      </a>
+    );
   }
 }
 

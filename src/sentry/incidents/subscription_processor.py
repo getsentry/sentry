@@ -2,11 +2,13 @@ import logging
 import operator
 from copy import deepcopy
 from datetime import timedelta
+from typing import Optional
 
 from django.conf import settings
 from django.db import transaction
 
 from sentry import features
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -18,7 +20,6 @@ from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
     AlertRuleTrigger,
-    AlertRuleTriggerAction,
     Incident,
     IncidentStatus,
     IncidentStatusMethod,
@@ -28,9 +29,13 @@ from sentry.incidents.models import (
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.models import Project
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QueryDatasets
+from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils import metrics, redis
 from sentry.utils.compat import zip
 from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.snuba import raw_query
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -39,6 +44,12 @@ ALERT_RULE_BASE_STAT_KEY = "%s:%s"
 ALERT_RULE_STAT_KEYS = ("last_update",)
 ALERT_RULE_BASE_TRIGGER_STAT_KEY = "%s:trigger:%s:%s"
 ALERT_RULE_TRIGGER_STAT_KEYS = ("alert_triggered", "resolve_triggered")
+# Stores a minimum threshold that represents a session count under which we don't evaluate crash
+# rate alert, and the update is just dropped. If it is set to None, then no minimum threshold
+# check is applied
+# ToDo(ahmed): This is still experimental. If we decide that it makes sense to keep this
+#  functionality, then maybe we should move this to constants
+CRASH_RATE_ALERT_MINIMUM_THRESHOLD: Optional[int] = None
 
 
 class SubscriptionProcessor:
@@ -140,6 +151,133 @@ class SubscriptionProcessor:
 
         return trigger.alert_threshold + resolve_add
 
+    def find_active_warning_trigger(self, alert_operator, aggregation_value):
+        """
+        Finds and returns an active warning trigger, if one exists on this alert
+        """
+        for it in self.incident_triggers.values():
+            current_trigger = it.alert_rule_trigger
+            # Check if there is a Warning incident trigger that is active, and then check if the
+            # aggregation value is above the threshold
+            if (
+                it.status == TriggerStatus.ACTIVE.value
+                and current_trigger.label == WARNING_TRIGGER_LABEL
+                and alert_operator(aggregation_value, current_trigger.alert_threshold)
+            ):
+                metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
+                return it
+
+    def get_comparison_aggregation_value(self, subscription_update, aggregation_value):
+        # For comparison alerts run a query over the comparison period and use it to calculate the
+        # % change.
+        delta = timedelta(seconds=self.alert_rule.comparison_delta)
+        end = subscription_update["timestamp"] - delta
+        snuba_query = self.subscription.snuba_query
+        start = end - timedelta(seconds=snuba_query.time_window)
+
+        try:
+            snuba_filter = build_snuba_filter(
+                QueryDatasets(snuba_query.dataset),
+                snuba_query.query,
+                snuba_query.aggregate,
+                snuba_query.environment,
+                snuba_query.event_types,
+                params={
+                    "project_id": [self.subscription.project_id],
+                    "start": start,
+                    "end": end,
+                },
+            )
+            results = raw_query(
+                aggregations=snuba_filter.aggregations,
+                start=snuba_filter.start,
+                end=snuba_filter.end,
+                conditions=snuba_filter.conditions,
+                filter_keys=snuba_filter.filter_keys,
+                having=snuba_filter.having,
+                dataset=Dataset(snuba_query.dataset),
+                limit=1,
+                referrer="subscription_processor.comparison_query",
+            )
+            comparison_aggregate = results["data"][0]["count"]
+        except Exception:
+            logger.exception("Failed to run comparison query")
+            return
+
+        if not comparison_aggregate:
+            metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
+            return
+
+        return (aggregation_value / comparison_aggregate) * 100
+
+    @staticmethod
+    def get_crash_rate_alert_aggregation_value(subscription_update):
+        """
+        Handles validation and extraction of Crash Rate Alerts subscription updates values.
+        The subscription update looks like
+        {
+            '_crash_rate_alert_aggregate': 0.5,
+            '_total_count': 34
+        }
+        - `_crash_rate_alert_aggregate` represents sessions_crashed/sessions or
+        users_crashed/users, and so we need to subtract that number from 1 and then multiply by
+        100 to get the crash free percentage
+        - `_total_count` represents the total sessions or user counts. This is used when
+        CRASH_RATE_ALERT_MINIMUM_THRESHOLD is set in the sense that if the minimum threshold is
+        greater than the session count, then the update is dropped. If the minimum threshold is
+        not set then the total sessions count is just ignored
+        """
+        aggregation_value = subscription_update["values"]["data"][0][
+            CRASH_RATE_ALERT_AGGREGATE_ALIAS
+        ]
+        if aggregation_value is None:
+            metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
+            return
+
+        try:
+            total_count = subscription_update["values"]["data"][0][
+                CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
+            ]
+            if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
+                min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
+                if total_count < min_threshold:
+                    metrics.incr(
+                        "incidents.alert_rules.ignore_update_count_lower_than_min_threshold"
+                    )
+                    return
+        except KeyError:
+            # If for whatever reason total session count was not sent in the update,
+            # ignore the minimum threshold comparison and continue along with processing the
+            # update. However, this should not happen.
+            logger.exception(
+                "Received an update for a crash rate alert subscription, but no total "
+                "sessions count was sent"
+            )
+        # The subscription aggregation for crash rate alerts uses the Discover percentage
+        # function, which would technically return a ratio of sessions_crashed/sessions and
+        # so we need to calculate the crash free percentage out of that returned value
+        aggregation_value = round((1 - aggregation_value) * 100, 3)
+        return aggregation_value
+
+    def get_aggregation_value(self, subscription_update):
+        is_sessions_dataset = Dataset(self.subscription.snuba_query.dataset) == Dataset.Sessions
+        if is_sessions_dataset:
+            aggregation_value = self.get_crash_rate_alert_aggregation_value(subscription_update)
+        else:
+            aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
+            # In some cases Snuba can return a None value for an aggregation. This means
+            # there were no rows present when we made the query for certain types of aggregations
+            # like avg. Defaulting this to 0 for now. It might turn out that we'd prefer to skip
+            # the update in the future.
+            if aggregation_value is None:
+                aggregation_value = 0
+
+            if self.alert_rule.comparison_delta:
+                aggregation_value = self.get_comparison_aggregation_value(
+                    subscription_update, aggregation_value
+                )
+        return aggregation_value
+
     def process_update(self, subscription_update):
         dataset = self.subscription.snuba_query.dataset
         try:
@@ -186,13 +324,12 @@ class SubscriptionProcessor:
                     "result": subscription_update,
                 },
             )
-        aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
-        # In some cases Snuba can return a None value for an aggregation. This means
-        # there were no rows present when we made the query, for certain types of
-        # aggregations like avg. Defaulting this to 0 for now. It might turn out that
-        # we'd prefer to skip the update in the future.
+
+        aggregation_value = self.get_aggregation_value(subscription_update)
         if aggregation_value is None:
-            aggregation_value = 0
+            metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
+            return
+
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]
@@ -216,8 +353,27 @@ class SubscriptionProcessor:
                 ):
                     metrics.incr("incidents.alert_rules.threshold", tags={"type": "resolve"})
                     incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
+
                     if incident_trigger is not None:
-                        fired_incident_triggers.append(incident_trigger)
+                        # Check that ensures that we are resolving a Critical trigger and that after
+                        # resolving it, we still have active triggers i.e. self.incident_triggers
+                        # was not cleared out, which means that we are probably still above the
+                        # warning threshold, and so we will check if we are above the warning
+                        # threshold and if so fire a warning alert
+                        # This is mainly for handling transition from Critical -> Warning
+                        active_warning_it = None
+                        if (
+                            incident_trigger.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL
+                            and self.incident_triggers
+                        ):
+                            active_warning_it = self.find_active_warning_trigger(
+                                alert_operator=alert_operator, aggregation_value=aggregation_value
+                            )
+                            if active_warning_it is not None:
+                                fired_incident_triggers.append(active_warning_it)
+
+                        if active_warning_it is None:
+                            fired_incident_triggers.append(incident_trigger)
                 else:
                     self.trigger_resolve_counts[trigger.id] = 0
 
@@ -340,14 +496,7 @@ class SubscriptionProcessor:
             return incident_trigger
 
     def handle_trigger_actions(self, incident_triggers, metric_value):
-        actions = deduplicate_trigger_actions(
-            list(
-                AlertRuleTriggerAction.objects.filter(
-                    alert_rule_trigger__in=[it.alert_rule_trigger for it in incident_triggers]
-                ).select_related("alert_rule_trigger")
-            )
-        )
-
+        actions = deduplicate_trigger_actions(triggers=deepcopy(incident_triggers))
         # Grab the first trigger to get incident id (they are all the same)
         # All triggers should either be firing or resolving, so doesn't matter which we grab.
         incident_trigger = incident_triggers[0]

@@ -18,6 +18,7 @@ import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
+import theme from 'app/utils/theme';
 
 import {
   MINIMAP_CONTAINER_HEIGHT,
@@ -32,14 +33,13 @@ import {ActiveOperationFilter} from './filter';
 import MeasurementsPanel from './measurementsPanel';
 import * as ScrollbarManager from './scrollbarManager';
 import {
+  EnhancedProcessedSpanType,
   ParsedTraceType,
   RawSpanType,
-  SpanChildrenLookupType,
   TickAlignment,
 } from './types';
 import {
   boundsGenerator,
-  getSpanID,
   getSpanOperation,
   SpanBoundsType,
   SpanGeneratedBoundsType,
@@ -53,6 +53,9 @@ type PropType = {
   trace: ParsedTraceType;
   event: EventTransaction;
   operationNameFilters: ActiveOperationFilter;
+  rootSpan: RawSpanType;
+  spans: EnhancedProcessedSpanType[];
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
 };
 
 type State = {
@@ -438,8 +441,10 @@ class TraceViewHeader extends React.Component<PropType, State> {
                   }}
                 />
                 <ActualMinimap
-                  trace={this.props.trace}
+                  spans={this.props.spans}
+                  generateBounds={this.props.generateBounds}
                   dividerPosition={dividerPosition}
+                  rootSpan={this.props.rootSpan}
                 />
                 <CursorGuideHandler.Consumer>
                   {({
@@ -506,34 +511,45 @@ class TraceViewHeader extends React.Component<PropType, State> {
 }
 
 class ActualMinimap extends React.PureComponent<{
-  trace: ParsedTraceType;
+  spans: EnhancedProcessedSpanType[];
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   dividerPosition: number;
+  rootSpan: RawSpanType;
 }> {
   renderRootSpan(): React.ReactNode {
-    const {trace} = this.props;
+    const {spans, generateBounds} = this.props;
 
-    const generateBounds = boundsGenerator({
-      traceStartTimestamp: trace.traceStartTimestamp,
-      traceEndTimestamp: trace.traceEndTimestamp,
-      viewStart: 0,
-      viewEnd: 1,
+    return spans.map(payload => {
+      switch (payload.type) {
+        case 'root_span':
+        case 'span':
+        case 'span_group_chain': {
+          const {span} = payload;
+
+          const spanBarColor: string = pickBarColor(getSpanOperation(span));
+
+          const bounds = generateBounds({
+            startTimestamp: span.start_timestamp,
+            endTimestamp: span.timestamp,
+          });
+          const {left: spanLeft, width: spanWidth} = this.getBounds(bounds);
+
+          return (
+            <MinimapSpanBar
+              style={{
+                backgroundColor:
+                  payload.type === 'span_group_chain' ? theme.blue300 : spanBarColor,
+                left: spanLeft,
+                width: spanWidth,
+              }}
+            />
+          );
+        }
+        default: {
+          return null;
+        }
+      }
     });
-
-    const rootSpan: RawSpanType = {
-      trace_id: trace.traceID,
-      span_id: trace.rootSpanID,
-      start_timestamp: trace.traceStartTimestamp,
-      timestamp: trace.traceEndTimestamp,
-      op: trace.op,
-      data: {},
-    };
-
-    return this.renderSpan({
-      spanNumber: 0,
-      generateBounds,
-      span: rootSpan,
-      childSpans: trace.childSpans,
-    }).spanTree;
   }
 
   getBounds(bounds: SpanGeneratedBoundsType): {
@@ -569,85 +585,6 @@ class ActualMinimap extends React.PureComponent<{
     }
   }
 
-  renderSpan({
-    spanNumber,
-    childSpans,
-    generateBounds,
-    span,
-  }: {
-    spanNumber: number;
-    childSpans: SpanChildrenLookupType;
-    generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-    span: Readonly<RawSpanType>;
-  }): {
-    spanTree: JSX.Element;
-    nextSpanNumber: number;
-  } {
-    const spanBarColor: string = pickBarColor(getSpanOperation(span));
-
-    const bounds = generateBounds({
-      startTimestamp: span.start_timestamp,
-      endTimestamp: span.timestamp,
-    });
-
-    const {left: spanLeft, width: spanWidth} = this.getBounds(bounds);
-
-    const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
-
-    // Mark descendents as being rendered. This is to address potential recursion issues due to malformed data.
-    // For example if a span has a span_id that's identical to its parent_span_id.
-    childSpans = {
-      ...childSpans,
-    };
-    delete childSpans[getSpanID(span)];
-
-    type AccType = {
-      nextSpanNumber: number;
-      renderedSpanChildren: Array<JSX.Element>;
-    };
-
-    const reduced: AccType = spanChildren.reduce(
-      (acc: AccType, spanChild, index: number) => {
-        const key = `${getSpanID(spanChild, String(index))}`;
-
-        const results = this.renderSpan({
-          spanNumber: acc.nextSpanNumber,
-          childSpans,
-          generateBounds,
-          span: spanChild,
-        });
-
-        acc.renderedSpanChildren.push(
-          <React.Fragment key={key}>{results.spanTree}</React.Fragment>
-        );
-
-        acc.nextSpanNumber = results.nextSpanNumber;
-
-        return acc;
-      },
-      {
-        renderedSpanChildren: [],
-        nextSpanNumber: spanNumber + 1,
-      }
-    );
-
-    return {
-      nextSpanNumber: reduced.nextSpanNumber,
-      spanTree: (
-        <React.Fragment>
-          <MinimapSpanBar
-            style={{
-              backgroundColor: spanBarColor,
-              left: spanLeft,
-              width: spanWidth,
-            }}
-          />
-          {reduced.renderedSpanChildren}
-        </React.Fragment>
-      ),
-    };
-  }
-
   render() {
     const {dividerPosition} = this.props;
     return (
@@ -677,6 +614,7 @@ const TimeAxis = styled('div')`
   color: ${p => p.theme.gray300};
   font-size: 10px;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
   overflow: hidden;
 `;
 
@@ -824,6 +762,7 @@ const MinimapSpanBar = styled('div')`
   margin: 2px 0;
   min-width: 1px;
   border-radius: 1px;
+  box-sizing: border-box;
 `;
 
 const BackgroundSlider = styled('div')`

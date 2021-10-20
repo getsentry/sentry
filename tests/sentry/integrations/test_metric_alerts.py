@@ -1,9 +1,14 @@
 from datetime import timedelta
 
+from django.utils import timezone
+from freezegun import freeze_time
+
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.testutils import BaseIncidentsTest, TestCase
+from sentry.snuba.models import QueryDatasets
+from sentry.testutils import BaseIncidentsTest, SnubaTestCase, TestCase
+from sentry.utils.dates import to_timestamp
 
 
 class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
@@ -98,6 +103,86 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
         assert data["ts"] == date_started
         assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
+        assert (
+            data["logo_url"]
+            == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
+        )
+
+
+@freeze_time("2021-10-18 13:00:00+00:00")
+class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
+        self._5_min_ago = to_timestamp(self.now - timedelta(minutes=5))
+        self.date_started = self.now - timedelta(minutes=120)
+        for _ in range(2):
+            self.store_session(self.build_session(status="exited", started=self._5_min_ago))
+
+    def create_incident_and_related_objects(self, field="sessions"):
+        self.alert_rule = self.create_alert_rule(
+            query="",
+            aggregate=f"percentage({field}_crashed, {field}) AS _crash_rate_alert_aggregate",
+            dataset=QueryDatasets.SESSIONS,
+            time_window=60,
+        )
+        self.incident = self.create_incident(
+            self.organization,
+            title="Incident #1",
+            projects=[self.project],
+            alert_rule=self.alert_rule,
+            status=IncidentStatus.CLOSED.value,
+            date_started=self.now - timedelta(minutes=120),
+        )
+        trigger = self.create_alert_rule_trigger(self.alert_rule, CRITICAL_TRIGGER_LABEL, 95)
+        self.action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=self.incident
+        )
+
+    def test_with_incident_trigger_sessions(self):
+        self.create_incident_and_related_objects()
+        data = incident_attachment_info(self.incident, 92, self.action, method="fire")
+
+        assert data["title"] == f"Critical: {self.alert_rule.name}"
+        assert data["status"] == "Critical"
+        assert data["text"] == "92% sessions crash free rate in the last 60 minutes"
+        assert data["ts"] == self.date_started
+        assert (
+            data["logo_url"]
+            == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
+        )
+
+    def test_with_incident_trigger_sessions_resolve(self):
+        self.create_incident_and_related_objects()
+        data = incident_attachment_info(self.incident, None, self.action, method="resolve")
+        assert data["title"] == f"Resolved: {self.alert_rule.name}"
+        assert data["status"] == "Resolved"
+        assert data["text"] == "100.0% sessions crash free rate in the last 60 minutes"
+        assert data["ts"] == self.date_started
+        assert (
+            data["logo_url"]
+            == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
+        )
+
+    def test_with_incident_trigger_users(self):
+        self.create_incident_and_related_objects(field="users")
+        data = incident_attachment_info(self.incident, 92, self.action, method="fire")
+        assert data["title"] == f"Critical: {self.alert_rule.name}"
+        assert data["status"] == "Critical"
+        assert data["text"] == "92% users crash free rate in the last 60 minutes"
+        assert data["ts"] == self.date_started
+        assert (
+            data["logo_url"]
+            == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
+        )
+
+    def test_with_incident_trigger_users_resolve(self):
+        self.create_incident_and_related_objects(field="users")
+        data = incident_attachment_info(self.incident, None, self.action, method="resolve")
+        assert data["title"] == f"Resolved: {self.alert_rule.name}"
+        assert data["status"] == "Resolved"
+        assert data["text"] == "100.0% users crash free rate in the last 60 minutes"
+        assert data["ts"] == self.date_started
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"

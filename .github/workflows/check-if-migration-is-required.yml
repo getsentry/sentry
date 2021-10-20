@@ -1,48 +1,48 @@
 name: check migration
-on:
-  pull_request:
-    paths:
-      # Matches all python files regardless of directory depth.
-      - '**.py'
-      - requirements*.txt
-      - .github/workflows/check-if-migration-is-required.yml
-      - .github/workflows/scripts/migration-check.sh
+on: pull_request
 
 jobs:
+  should-check:
+    name: did files change
+    runs-on: ubuntu-20.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      changed: ${{ steps.changes.outputs.migration_lockfile }}
+    steps:
+      - name: Checkout sentry
+        uses: actions/checkout@v2
+
+      - name: check if files have changed
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
   main:
     name: check migration
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: [3.6.13, 3.8.12]
+    needs: [should-check]
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout sentry
+        uses: actions/checkout@v2
+        if: needs.should-check.outputs.changed == 'true'
 
-      - name: Set python version output
-        id: python-version
-        run: |
-          echo "::set-output name=python-version::$(cat .python-version)"
-
-      # Until GH composite actions can use `uses`, we need to setup python here
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{ steps.python-version.outputs.python-version }}
-
-      - name: Setup pip
-        uses: ./.github/actions/setup-pip
-        id: pip
-
-      - name: pip cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
-
-      - name: Setup sentry env
+      - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
+        if: needs.should-check.outputs.changed == 'true'
         id: setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
 
       - name: Migration & lockfile checks
+        if: needs.should-check.outputs.changed == 'true'
         env:
           SENTRY_LOG_LEVEL: ERROR
           PGPASSWORD: postgres

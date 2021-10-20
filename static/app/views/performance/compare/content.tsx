@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import * as Layout from 'app/components/layouts/thirds';
 import {Panel} from 'app/components/panels';
@@ -14,10 +13,11 @@ import TraceView from './traceView';
 import TransactionSummary from './transactionSummary';
 import {isTransactionEvent} from './utils';
 
-type Props = {
+type Props = Pick<
+  RouteComponentProps<{baselineEventSlug: string; regressionEventSlug: string}, {}>,
+  'params' | 'location'
+> & {
   organization: Organization;
-  location: Location;
-  params: Params;
   baselineEvent: Event;
   regressionEvent: Event;
 };
@@ -48,8 +48,8 @@ class TransactionComparisonContent extends Component<Props> {
   render() {
     const {baselineEvent, regressionEvent, organization, location, params} = this.props;
 
-    const transactionName =
-      baselineEvent.title === regressionEvent.title ? baselineEvent.title : undefined;
+    // const transactionName =
+    //   baselineEvent.title === regressionEvent.title ? baselineEvent.title : undefined;
 
     return (
       <Fragment>
@@ -58,7 +58,11 @@ class TransactionComparisonContent extends Component<Props> {
             <Breadcrumb
               organization={organization}
               location={location}
-              transactionName={transactionName}
+              // TODO: add this back in if transaction comparison is used
+              // transaction={{
+              //   project: <insert project id>,
+              //   name: transactionName,
+              // }}
               transactionComparison
             />
             <Layout.Title>{this.getTransactionName()}</Layout.Title>

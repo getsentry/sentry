@@ -128,7 +128,7 @@ class OrganizationMemberTest(TestCase):
             token="abc-def",
             token_expires_at=ninety_one_days,
         )
-        OrganizationMember.delete_expired(timezone.now())
+        OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.filter(id=member.id).first() is None
 
     def test_delete_expired_miss(self):
@@ -141,7 +141,7 @@ class OrganizationMemberTest(TestCase):
             token="abc-def",
             token_expires_at=tomorrow,
         )
-        OrganizationMember.delete_expired(timezone.now())
+        OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.get(id=member.id)
 
     def test_delete_expired_leave_claimed(self):
@@ -155,7 +155,7 @@ class OrganizationMemberTest(TestCase):
             token="abc-def",
             token_expires_at="2018-01-01 10:00:00",
         )
-        OrganizationMember.delete_expired(timezone.now())
+        OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.get(id=member.id)
 
     def test_delete_expired_leave_null_expires(self):
@@ -167,7 +167,7 @@ class OrganizationMemberTest(TestCase):
             token="abc-def",
             token_expires_at=None,
         )
-        OrganizationMember.delete_expired(timezone.now())
+        OrganizationMember.objects.delete_expired(timezone.now())
         assert OrganizationMember.objects.get(id=member.id)
 
     def test_approve_invite(self):
@@ -182,7 +182,7 @@ class OrganizationMemberTest(TestCase):
 
         member.approve_invite()
         assert member.invite_approved
-        member.invite_status == InviteStatus.APPROVED.value
+        assert member.invite_status == InviteStatus.APPROVED.value
 
     def test_scopes_with_member_admin_config(self):
         organization = self.create_organization()

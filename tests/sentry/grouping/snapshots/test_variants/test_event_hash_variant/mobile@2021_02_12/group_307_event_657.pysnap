@@ -1,5 +1,5 @@
 ---
-created: '2021-07-14T12:39:42.149927Z'
+created: '2021-08-04T15:53:48.307812Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,57 +25,9 @@ app-depth-max:
     app-depth-max*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            package* (used as fallback because function name is not available)
-              "libsystem_pthread.dylib"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            package* (used as fallback because function name is not available)
-              "libsystem_pthread.dylib"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            package* (used as fallback because function name is not available)
-              "libsystem_pthread.dylib"
           frame*
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:internals -group))
-            package* (used as fallback because function name is not available)
-              "libc++abi.dylib"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / EXC_I386_GPFLT"
         value (ignored because stacktrace takes precedence)

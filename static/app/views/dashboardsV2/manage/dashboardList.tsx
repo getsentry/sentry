@@ -55,6 +55,7 @@ function DashboardList({
       case DisplayType.BAR:
         return WidgetBar;
       case DisplayType.AREA:
+      case DisplayType.TOP_N:
         return WidgetArea;
       case DisplayType.BIG_NUMBER:
         return WidgetBigNumber;
@@ -180,8 +181,8 @@ function DashboardList({
       {renderDashboardGrid()}
       <PaginationRow
         pageLinks={pageLinks}
-        onCursor={(cursor: string, path: string, query: Query, direction: number) => {
-          const offset = Number(cursor.split(':')[1]);
+        onCursor={(cursor, path, query, direction) => {
+          const offset = Number(cursor?.split?.(':')?.[1] ?? 0);
 
           const newQuery: Query & {cursor?: string} = {...query, cursor};
           const isPrevious = direction === -1;

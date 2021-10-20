@@ -10,6 +10,7 @@ from sentry.api.helpers.group_index import (
     delete_groups,
     get_by_short_id,
     prep_search,
+    rate_limit_endpoint,
     track_slo_response,
     update_groups,
 )
@@ -27,6 +28,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectEventPermission,)
 
     @track_slo_response("workflow")
+    @rate_limit_endpoint(limit=3, window=1)
     def get(self, request, project):
         """
         List a Project's Issues

@@ -167,12 +167,16 @@ class AssigneeSelector extends React.Component<Props, State> {
   }
 
   assignToUser(user: User | Actor) {
-    assignToUser({id: this.props.id, user});
+    assignToUser({id: this.props.id, user, assignedBy: 'assignee_selector'});
     this.setState({loading: true});
   }
 
   assignToTeam(team: Team) {
-    assignToActor({actor: {id: team.id, type: 'team'}, id: this.props.id});
+    assignToActor({
+      actor: {id: team.id, type: 'team'},
+      id: this.props.id,
+      assignedBy: 'assignee_selector',
+    });
     this.setState({loading: true});
   }
 
@@ -203,7 +207,7 @@ class AssigneeSelector extends React.Component<Props, State> {
 
   clearAssignTo = (e: React.MouseEvent<HTMLDivElement>) => {
     // clears assignment
-    clearAssignment(this.props.id);
+    clearAssignment(this.props.id, 'assignee_selector');
     this.setState({loading: true});
     e.stopPropagation();
   };

@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import * as ReactRouter from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
@@ -9,7 +9,7 @@ import {t, tct} from 'app/locale';
 import recreateRoute from 'app/utils/recreateRoute';
 
 type Props = ModalRenderProps &
-  ReactRouter.WithRouterProps & {
+  WithRouterProps & {
     slug: string;
   };
 
@@ -80,7 +80,7 @@ class RedirectToProjectModal extends Component<Props, State> {
   }
 }
 
-export default ReactRouter.withRouter(RedirectToProjectModal);
+export default withRouter(RedirectToProjectModal);
 export {RedirectToProjectModal};
 
 const ButtonWrapper = styled('div')`

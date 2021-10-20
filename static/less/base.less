@@ -1,5 +1,5 @@
 @font-family-base: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
-@font-family-code: 'IBM Plex', Consolas, 'Courier New', monospace;
+@font-family-code: 'Roboto Mono', Consolas, 'Courier New', monospace;
 
 * {
   box-sizing: border-box;
@@ -27,6 +27,7 @@ body {
   color: @gray-darker;
   background: @white-dark;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   min-height: 100vh;
 }
@@ -573,12 +574,85 @@ optgroup {
 // Tables
 // ==========================================================================
 table {
+  background-color: @table-bg;
   border-collapse: collapse;
   border-spacing: 0;
   margin: 0 0 20px;
+
+  col[class*='col-'] {
+    position: static; // Prevent border hiding in Firefox and IE9-11 (see https://github.com/twbs/bootstrap/issues/11623)
+    display: table-column;
+    float: none;
+  }
+
+  td,
+  th {
+    &[class*='col-'] {
+      position: static; // Prevent border hiding in Firefox and IE9-11 (see https://github.com/twbs/bootstrap/issues/11623)
+      display: table-cell;
+      float: none;
+    }
+  }
 }
 
 td,
 th {
   padding: 0;
+}
+
+th {
+  text-align: left;
+}
+
+caption {
+  padding-top: @table-cell-padding;
+  padding-bottom: @table-cell-padding;
+  color: @text-muted;
+  text-align: left;
+}
+
+// These styles are still used in getsentry
+.table {
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: @line-height-computed;
+  // Cells
+  > thead,
+  > tbody,
+  > tfoot {
+    > tr {
+      > th,
+      > td {
+        padding: @table-cell-padding;
+        line-height: @line-height-base;
+        vertical-align: top;
+        border-top: 1px solid @table-border-color;
+      }
+    }
+  }
+  // Bottom align for column headings
+  > thead > tr > th {
+    vertical-align: bottom;
+    border-bottom: 2px solid @table-border-color;
+  }
+  // Remove top border from thead by default
+  > caption + thead,
+  > colgroup + thead,
+  > thead:first-child {
+    > tr:first-child {
+      > th,
+      > td {
+        border-top: 0;
+      }
+    }
+  }
+  // Account for multiple tbody instances
+  > tbody + tbody {
+    border-top: 2px solid @table-border-color;
+  }
+
+  // Nesting
+  .table {
+    background-color: @body-bg;
+  }
 }

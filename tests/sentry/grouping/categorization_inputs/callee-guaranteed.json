@@ -1,5 +1,5 @@
 {
-  "event_id": "5f78434dc9b84081ba09eff5c6602f23",
+  "event_id": "05c15ced98224b51bf6c9e6a9babfd34",
   "exception": {
     "values": [
       {
@@ -30,7 +30,8 @@
               "package": "UIKitCore"
             },
             {
-              "function": "stripped_application_code"
+              "function": "GSEventRunModal",
+              "package": "GraphicsServices"
             },
             {
               "function": "CFRunLoopRunSpecific",
@@ -59,8 +60,9 @@
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "closure",
-              "package": "stripped_application_code"
+              "function": "@callee_guaranteed",
+              "package": "stripped_application_code",
+              "raw_function": "thunk for @escaping @callee_guaranteed () -> ()"
             },
             {
               "function": "stripped_application_code"
@@ -74,14 +76,16 @@
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "closure",
-              "package": "stripped_application_code"
+              "function": "@callee_guaranteed",
+              "package": "stripped_application_code",
+              "raw_function": "partial apply for thunk for @callee_guaranteed () -> ()"
             },
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "closure",
-              "package": "stripped_application_code"
+              "function": "@callee_guaranteed",
+              "package": "stripped_application_code",
+              "raw_function": "thunk for @callee_guaranteed () -> ()"
             },
             {
               "function": "stripped_application_code"
@@ -89,8 +93,9 @@
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "closure",
-              "package": "stripped_application_code"
+              "function": "@callee_guaranteed",
+              "package": "stripped_application_code",
+              "raw_function": "thunk for @escaping @callee_guaranteed () -> ()"
             },
             {
               "function": "stripped_application_code"
@@ -101,32 +106,37 @@
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "closure",
-              "package": "stripped_application_code"
+              "function": "@callee_guaranteed",
+              "package": "stripped_application_code",
+              "raw_function": "partial apply for thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> (@out ())"
             },
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "closure",
-              "package": "stripped_application_code"
+              "function": "@callee_guaranteed",
+              "package": "stripped_application_code",
+              "raw_function": "thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> (@out ())"
             },
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "closure",
-              "package": "stripped_application_code"
+              "function": "@callee_guaranteed",
+              "package": "stripped_application_code",
+              "raw_function": "partial apply for thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> ()"
             },
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "closure",
-              "package": "stripped_application_code"
+              "function": "@callee_guaranteed",
+              "package": "stripped_application_code",
+              "raw_function": "thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> ()"
             },
             {
               "abs_path": "<compiler-generated>",
               "filename": "<compiler-generated>",
-              "function": "closure",
-              "package": "stripped_application_code"
+              "function": "@callee_guaranteed",
+              "package": "stripped_application_code",
+              "raw_function": "thunk for @escaping @callee_guaranteed (@guaranteed stripped_application_code) -> ()"
             },
             {
               "function": "stripped_application_code"

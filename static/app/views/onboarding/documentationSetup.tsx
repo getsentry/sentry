@@ -16,7 +16,7 @@ import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
@@ -81,7 +81,7 @@ class DocumentationSetup extends React.Component<Props, State> {
 
   handleFullDocsClick = () => {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {}, organization);
+    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {organization});
   };
 
   /**

@@ -198,7 +198,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
       return (
         <Alert type="error" icon={<IconFlag size="md" />}>
           {t(
-            'We were unable to fetch repositories for this integration. Try again later, or reconnect this integration.'
+            'We were unable to fetch repositories for this integration. Try again later. If this error continues, please reconnect this integration by uninstalling and then reinstalling.'
           )}
         </Alert>
       );

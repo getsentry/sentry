@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -22,7 +23,10 @@ describe('TeamKeyTransactionField', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
-    TeamStore.loadInitialData(teams);
+
+    act(() => {
+      TeamStore.loadInitialData(teams);
+    });
   });
 
   it('renders with all teams checked', async function () {
@@ -418,7 +422,9 @@ describe('TeamKeyTransactionField', function () {
 
   it('should render teams without access separately', async function () {
     const myTeams = [...teams, TestStubs.Team({id: '3', slug: 'team3', name: 'Team 3'})];
-    TeamStore.loadInitialData(myTeams);
+    act(() => {
+      TeamStore.loadInitialData(myTeams);
+    });
 
     MockApiClient.addMockResponse({
       method: 'GET',

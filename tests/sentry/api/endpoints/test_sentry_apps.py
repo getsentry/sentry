@@ -474,7 +474,37 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.status_code == 400
         assert response.data == {"events": ["issue webhooks require the event:read permission."]}
 
+    def test_create_alert_rule_action_without_feature_flag(self):
+        self.login_as(user=self.user)
+
+        response = self._post(**{"schema": {"elements": [self.create_alert_rule_action_schema()]}})
+
+        assert response.status_code == 400
+        assert response.data == {
+            "schema": [
+                "Element has type 'alert-rule-action'. Type must be one of the following: ['issue-link', 'issue-media', 'stacktrace-link']"
+            ]
+        }
+
+    @with_feature("organizations:alert-rule-ui-component")
+    def test_create_alert_rule_action_with_feature_flag(self):
+        self.login_as(user=self.user)
+
+        response = self._post(**{"schema": {"elements": [self.create_alert_rule_action_schema()]}})
+
+        expected = {
+            "name": "MyApp",
+            "scopes": ["project:read", "event:read"],
+            "events": ["issue"],
+            "webhookUrl": "https://example.com",
+            "schema": {"elements": [self.create_alert_rule_action_schema()]},
+        }
+
+        assert response.status_code == 201, response.content
+        assert expected.items() <= json.loads(response.content).items()
+
     @patch("sentry.analytics.record")
+    @with_feature("organizations:alert-rule-ui-component")
     def test_wrong_schema_format(self, record):
         self.login_as(user=self.user)
         kwargs = {
@@ -482,18 +512,23 @@ class PostSentryAppsTest(SentryAppsTest):
                 "elements": [
                     {
                         "type": "alert-rule-action",
-                        "required_fields": [
-                            {
-                                "type": "select",
-                                "label": "Channel",
-                                "name": "channel",
-                                "options": [
-                                    # option items should have 2 elements
-                                    # i.e. ['channel_id', '#general']
-                                    ["#general"]
-                                ],
-                            }
-                        ],
+                        "title": "Create task",
+                        "settings": {
+                            "type": "alert-rule-settings",
+                            "uri": "/sentry/alert-rule",
+                            "required_fields": [
+                                {
+                                    "type": "select",
+                                    "label": "Channel",
+                                    "name": "channel",
+                                    "options": [
+                                        # option items should have 2 elements
+                                        # i.e. ['channel_id', '#general']
+                                        ["#general"]
+                                    ],
+                                }
+                            ],
+                        },
                     }
                 ]
             }
@@ -648,7 +683,7 @@ class PostSentryAppsTest(SentryAppsTest):
 
         url = reverse("sentry-api-0-organization-projects", args=[self.org.slug])
         response = self.client.get(
-            url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION="Bearer %s" % (token.token)
+            url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION=f"Bearer {token.token}"
         )
         assert response.status_code == 200
 
@@ -665,7 +700,7 @@ class PostSentryAppsTest(SentryAppsTest):
 
         url = reverse("sentry-api-0-organization-projects", args=[self.org.slug])
         response = self.client.get(
-            url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION="Bearer %s" % (token.token)
+            url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION=f"Bearer {token.token}"
         )
         assert response.status_code == 400
 

@@ -5,7 +5,6 @@ import moment from 'moment';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
 import DateTime from 'app/components/dateTime';
 import {t} from 'app/locale';
 import {DateString, Organization} from 'app/types';
@@ -148,17 +147,16 @@ class AlertRuleDetails extends Component<Props, State> {
       this.setState({selectedIncident: null});
     }
 
-    const timePeriod = this.getTimePeriod();
-    const {start, end} = timePeriod;
-
     try {
-      const rulePromise = fetchAlertRule(orgId, ruleId).then(rule =>
-        this.setState({rule})
-      );
-      const incidentsPromise = fetchIncidentsForRule(orgId, ruleId, start, end).then(
-        incidents => this.setState({incidents})
-      );
-      await Promise.all([rulePromise, incidentsPromise]);
+      const rule = await fetchAlertRule(orgId, ruleId);
+      this.setState({rule});
+
+      const timePeriod = this.getTimePeriod();
+      const {start, end} = timePeriod;
+
+      const incidents = await fetchIncidentsForRule(orgId, ruleId, start, end);
+      this.setState({incidents});
+
       this.setState({isLoading: false, hasError: false});
     } catch (_err) {
       this.setState({isLoading: false, hasError: true});
@@ -174,9 +172,9 @@ class AlertRuleDetails extends Component<Props, State> {
     });
   };
 
-  handleZoom = async (start: DateString, end: DateString) => {
+  handleZoom = (start: DateString, end: DateString) => {
     const {location} = this.props;
-    await browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         start,
@@ -187,27 +185,25 @@ class AlertRuleDetails extends Component<Props, State> {
 
   render() {
     const {rule, incidents, hasError, selectedIncident} = this.state;
-    const {params, organization} = this.props;
+    const {params} = this.props;
     const timePeriod = this.getTimePeriod();
 
     return (
       <Fragment>
-        <Feature organization={organization} features={['alert-details-redesign']}>
-          <DetailsHeader
-            hasIncidentRuleDetailsError={hasError}
-            params={params}
-            rule={rule}
-          />
-          <DetailsBody
-            {...this.props}
-            rule={rule}
-            incidents={incidents}
-            timePeriod={timePeriod}
-            selectedIncident={selectedIncident}
-            handleTimePeriodChange={this.handleTimePeriodChange}
-            handleZoom={this.handleZoom}
-          />
-        </Feature>
+        <DetailsHeader
+          hasIncidentRuleDetailsError={hasError}
+          params={params}
+          rule={rule}
+        />
+        <DetailsBody
+          {...this.props}
+          rule={rule}
+          incidents={incidents}
+          timePeriod={timePeriod}
+          selectedIncident={selectedIncident}
+          handleTimePeriodChange={this.handleTimePeriodChange}
+          handleZoom={this.handleZoom}
+        />
       </Fragment>
     );
   }

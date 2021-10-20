@@ -238,7 +238,7 @@ def track_enhancers_coverage():
                     frame.pop("data", None)
 
                 modified |= _strip_sensitive_keys(
-                    frame, ["package", "filename", "function", "abs_path", "module"]
+                    frame, ["package", "filename", "function", "raw_function", "abs_path", "module"]
                 )
 
                 if not category:
@@ -280,7 +280,7 @@ def _strip_sensitive_keys(data, keys):
             del data[key]
             rv = True
 
-        elif isinstance(data[key], str) and any(x in data[key].lower() for x in _DELETE_KEYWORDS):
+        elif any(x in json.dumps(data[key]).lower() for x in _DELETE_KEYWORDS):
             del data[key]
             rv = True
 

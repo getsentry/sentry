@@ -1,4 +1,6 @@
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
 import tourAlert from 'sentry-images/spot/performance-tour-alert.svg';
@@ -6,6 +8,11 @@ import tourCorrelate from 'sentry-images/spot/performance-tour-correlate.svg';
 import tourMetrics from 'sentry-images/spot/performance-tour-metrics.svg';
 import tourTrace from 'sentry-images/spot/performance-tour-trace.svg';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import FeatureTourModal, {
@@ -15,8 +22,9 @@ import FeatureTourModal, {
 } from 'app/components/modals/featureTourModal';
 import OnboardingPanel from 'app/components/onboardingPanel';
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {Organization, Project} from 'app/types';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
+import useApi from 'app/utils/useApi';
 
 const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';
@@ -79,26 +87,25 @@ export const PERFORMANCE_TOUR_STEPS: TourStep[] = [
 
 type Props = {
   organization: Organization;
+  project: Project;
 };
 
-function Onboarding({organization}: Props) {
+function Onboarding({organization, project}: Props) {
+  const api = useApi();
+
   function handleAdvance(step: number, duration: number) {
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.tour.advance',
-      eventName: 'Performance Views: Tour Advance',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('performance_views.tour.advance', {
       step,
       duration,
+      organization,
     });
   }
 
   function handleClose(step: number, duration: number) {
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.tour.close',
-      eventName: 'Performance Views: Tour Close',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('performance_views.tour.close', {
       step,
       duration,
+      organization,
     });
   }
 
@@ -118,30 +125,56 @@ function Onboarding({organization}: Props) {
         >
           {t('Start Setup')}
         </Button>
-        <FeatureTourModal
-          steps={PERFORMANCE_TOUR_STEPS}
-          onAdvance={handleAdvance}
-          onCloseModal={handleClose}
-          doneUrl={performanceSetupUrl}
-          doneText={t('Start Setup')}
+        <Button
+          data-test-id="create-sample-transaction-btn"
+          onClick={async () => {
+            trackAdvancedAnalyticsEvent('performance_views.create_sample_transaction', {
+              platform: project.platform,
+              organization,
+            });
+            addLoadingMessage(t('Processing sample event...'), {
+              duration: 15000,
+            });
+            const url = `/projects/${organization.slug}/${project.slug}/create-sample-transaction/`;
+            try {
+              const eventData = await api.requestPromise(url, {method: 'POST'});
+              browserHistory.push(
+                `/organizations/${organization.slug}/performance/${project.slug}:${eventData.eventID}/`
+              );
+              clearIndicators();
+            } catch (error) {
+              Sentry.withScope(scope => {
+                scope.setExtra('error', error);
+                Sentry.captureException(new Error('Failed to create sample event'));
+              });
+              clearIndicators();
+              addErrorMessage(t('Failed to create a new sample event'));
+              return;
+            }
+          }}
         >
-          {({showModal}) => (
-            <Button
-              priority="default"
-              onClick={() => {
-                trackAnalyticsEvent({
-                  eventKey: 'performance_views.tour.start',
-                  eventName: 'Performance Views: Tour Start',
-                  organization_id: parseInt(organization.id, 10),
-                });
-                showModal();
-              }}
-            >
-              {t('Take a Tour')}
-            </Button>
-          )}
-        </FeatureTourModal>
+          {t('View Sample Transaction')}
+        </Button>
       </ButtonList>
+      <FeatureTourModal
+        steps={PERFORMANCE_TOUR_STEPS}
+        onAdvance={handleAdvance}
+        onCloseModal={handleClose}
+        doneUrl={performanceSetupUrl}
+        doneText={t('Start Setup')}
+      >
+        {({showModal}) => (
+          <Button
+            priority="link"
+            onClick={() => {
+              trackAdvancedAnalyticsEvent('performance_views.tour.start', {organization});
+              showModal();
+            }}
+          >
+            {t('Take a Tour')}
+          </Button>
+        )}
+      </FeatureTourModal>
     </OnboardingPanel>
   );
 }
@@ -151,7 +184,7 @@ const PerfImage = styled('img')`
     max-width: unset;
     user-select: none;
     position: absolute;
-    top: 50px;
+    top: 75px;
     bottom: 0;
     width: 450px;
     margin-top: auto;
@@ -169,6 +202,7 @@ const PerfImage = styled('img')`
 
 const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+  margin-bottom: 16px;
 `;
 
 export default Onboarding;

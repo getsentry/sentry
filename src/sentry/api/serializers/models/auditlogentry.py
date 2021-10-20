@@ -1,3 +1,5 @@
+from django.db.models import prefetch_related_objects
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import AuditLogEntry
 
@@ -17,6 +19,9 @@ def fix(data):
 class AuditLogEntrySerializer(Serializer):
     def get_attrs(self, item_list, user):
         # TODO(dcramer); assert on relations
+        prefetch_related_objects(item_list, "actor")
+        prefetch_related_objects(item_list, "target_user")
+
         users = {
             d["id"]: d
             for d in serialize(

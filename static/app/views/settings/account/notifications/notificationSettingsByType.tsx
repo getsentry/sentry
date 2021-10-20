@@ -2,7 +2,10 @@ import React from 'react';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {t} from 'app/locale';
+import {Organization, OrganizationSummary} from 'app/types';
+import withOrganizations from 'app/utils/withOrganizations';
 import {
+  CONFIRMATION_MESSAGE,
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
 } from 'app/views/settings/account/notifications/constants';
@@ -12,6 +15,11 @@ import {NOTIFICATION_SETTING_FIELDS} from 'app/views/settings/account/notificati
 import NotificationSettingsByOrganization from 'app/views/settings/account/notifications/notificationSettingsByOrganization';
 import NotificationSettingsByProjects from 'app/views/settings/account/notifications/notificationSettingsByProjects';
 import {
+  Identity,
+  OrganizationIntegration,
+} from 'app/views/settings/account/notifications/types';
+import UnlinkedAlert from 'app/views/settings/account/notifications/unlinkedAlert';
+import {
   getCurrentDefault,
   getCurrentProviders,
   getParentIds,
@@ -20,6 +28,7 @@ import {
   getStateToPutForProvider,
   isEverythingDisabled,
   isGroupedByProject,
+  isSufficientlyComplex,
   mergeNotificationSettings,
   providerListToString,
 } from 'app/views/settings/account/notifications/utils';
@@ -31,10 +40,13 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 
 type Props = {
   notificationType: string;
+  organizations: Organization[];
 } & AsyncComponent['props'];
 
 type State = {
   notificationSettings: NotificationSettingsObject;
+  identities: Identity[];
+  organizationIntegrations: OrganizationIntegration[];
 } & AsyncComponent['state'];
 
 class NotificationSettingsByType extends AsyncComponent<Props, State> {
@@ -42,14 +54,26 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
       notificationSettings: {},
+      identities: [],
+      organizationIntegrations: [],
     };
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {notificationType} = this.props;
-
-    const query = {type: notificationType};
-    return [['notificationSettings', `/users/me/notification-settings/`, {query}]];
+    return [
+      [
+        'notificationSettings',
+        `/users/me/notification-settings/`,
+        {query: {type: notificationType}},
+      ],
+      ['identities', `/users/me/identities/`, {query: {provider: 'slack'}}],
+      [
+        'organizationIntegrations',
+        `/users/me/organization-integrations/`,
+        {query: {provider: 'slack'}},
+      ],
+    ];
   }
 
   /* Methods responsible for updating state and hitting the API. */
@@ -143,12 +167,19 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 
-    const fields = [
-      Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
+    const defaultField = Object.assign(
+      {},
+      NOTIFICATION_SETTING_FIELDS[notificationType],
+      {
         help: t('This is the default for all projects.'),
         getData: data => this.getStateToPutForDefault(data),
-      }),
-    ];
+      }
+    );
+    if (isSufficientlyComplex(notificationType, notificationSettings)) {
+      defaultField.confirm = {never: CONFIRMATION_MESSAGE};
+    }
+
+    const fields = [defaultField];
     if (!isEverythingDisabled(notificationType, notificationSettings)) {
       fields.push(
         Object.assign(
@@ -163,16 +194,42 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     return fields as FieldObject[];
   }
 
+  getUnlinkedOrgs = (): OrganizationSummary[] => {
+    const {organizations} = this.props;
+    const {identities, organizationIntegrations} = this.state;
+    const integrationExternalIDsByOrganizationID = Object.fromEntries(
+      organizationIntegrations.map(organizationIntegration => [
+        organizationIntegration.organizationId,
+        organizationIntegration.externalId,
+      ])
+    );
+
+    const identitiesByExternalId = Object.fromEntries(
+      identities.map(identity => [identity?.identityProvider?.externalId, identity])
+    );
+
+    return organizations.filter(organization => {
+      const externalID = integrationExternalIDsByOrganizationID[organization.id];
+      const identity = identitiesByExternalId[externalID];
+      return identity === undefined || identity === null;
+    });
+  };
+
   renderBody() {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
-
+    const hasSlack = getCurrentProviders(notificationType, notificationSettings).includes(
+      'slack'
+    );
+    const unlinkedOrgs = this.getUnlinkedOrgs();
     const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
-
     return (
       <React.Fragment>
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
+        {hasSlack && unlinkedOrgs.length > 0 && (
+          <UnlinkedAlert organizations={unlinkedOrgs} />
+        )}
         <FeedbackAlert />
         <Form
           saveOnBlur
@@ -208,4 +265,4 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   }
 }
 
-export default NotificationSettingsByType;
+export default withOrganizations(NotificationSettingsByType);

@@ -1,10 +1,12 @@
+import round from 'lodash/round';
+
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {NewQuery, Project} from 'app/types';
+import {SessionField} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
+import {defined} from 'app/utils';
 import {getUtcDateString} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias} from 'app/utils/discover/fields';
+import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {PRESET_AGGREGATES} from 'app/views/alerts/incidentRules/presets';
 import {
   Dataset,
@@ -12,6 +14,7 @@ import {
   EventTypes,
   IncidentRule,
   SavedIncidentRule,
+  SessionsAggregate,
 } from 'app/views/alerts/incidentRules/types';
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
@@ -50,14 +53,6 @@ export function fetchIncident(
   return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/`);
 }
 
-export function fetchIncidentStats(
-  api: Client,
-  orgId: string,
-  alertId: string
-): Promise<IncidentStats> {
-  return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/stats/`);
-}
-
 export function updateSubscription(
   api: Client,
   orgId: string,
@@ -87,21 +82,6 @@ export function updateStatus(
   });
 }
 
-/**
- * Is incident open?
- *
- * @param {Object} incident Incident object
- * @returns {Boolean}
- */
-export function isOpen(incident: Incident): boolean {
-  switch (incident.status) {
-    case IncidentStatus.CLOSED:
-      return false;
-    default:
-      return true;
-  }
-}
-
 export function getIncidentMetricPreset(incident: Incident) {
   const alertRule = incident?.alertRule;
   const aggregate = alertRule?.aggregate ?? '';
@@ -122,61 +102,6 @@ export function getStartEndFromStats(stats: IncidentStats) {
   );
 
   return {start, end};
-}
-
-/**
- * Gets the URL for a discover view of the incident with the following default
- * parameters:
- *
- * - Ordered by the incident aggregate, descending
- * - yAxis maps to the aggregate
- * - The following fields are displayed:
- *   - For Error dataset alerts: [issue, count(), count_unique(user)]
- *   - For Transaction dataset alerts: [transaction, count()]
- * - Start and end are scoped to the same period as the alert rule
- */
-export function getIncidentDiscoverUrl(opts: {
-  orgSlug: string;
-  projects: Project[];
-  incident?: Incident;
-  stats?: IncidentStats;
-  extraQueryParams?: Partial<NewQuery>;
-}) {
-  const {orgSlug, projects, incident, stats, extraQueryParams} = opts;
-
-  if (!projects || !projects.length || !incident || !stats) {
-    return '';
-  }
-
-  const timeWindowString = `${incident.alertRule.timeWindow}m`;
-  const {start, end} = getStartEndFromStats(stats);
-
-  const discoverQuery: NewQuery = {
-    id: undefined,
-    name: (incident && incident.title) || '',
-    orderby: `-${getAggregateAlias(incident.alertRule.aggregate)}`,
-    yAxis: incident.alertRule.aggregate,
-    query: incident?.discoverQuery ?? '',
-    projects: projects
-      .filter(({slug}) => incident.projects.includes(slug))
-      .map(({id}) => Number(id)),
-    version: 2,
-    fields:
-      incident.alertRule.dataset === Dataset.ERRORS
-        ? ['issue', 'count()', 'count_unique(user)']
-        : ['transaction', incident.alertRule.aggregate],
-    start,
-    end,
-    ...extraQueryParams,
-  };
-
-  const discoverView = EventView.fromSavedQuery(discoverQuery);
-  const {query, ...toObject} = discoverView.getResultsViewUrlTarget(orgSlug);
-
-  return {
-    query: {...query, interval: timeWindowString},
-    ...toObject,
-  };
 }
 
 export function isIssueAlert(
@@ -268,4 +193,41 @@ export function getQueryDatasource(
   }
 
   return null;
+}
+
+export function isSessionAggregate(aggregate: string) {
+  return Object.values(SessionsAggregate).includes(aggregate as SessionsAggregate);
+}
+
+export const SESSION_AGGREGATE_TO_FIELD = {
+  [SessionsAggregate.CRASH_FREE_SESSIONS]: SessionField.SESSIONS,
+  [SessionsAggregate.CRASH_FREE_USERS]: SessionField.USERS,
+};
+
+export function alertAxisFormatter(value: number, seriesName: string, aggregate: string) {
+  if (isSessionAggregate(aggregate)) {
+    return defined(value) ? `${round(value, 2)}%` : '\u2015';
+  }
+
+  return axisLabelFormatter(value, seriesName);
+}
+
+export function alertTooltipValueFormatter(
+  value: number,
+  seriesName: string,
+  aggregate: string
+) {
+  if (isSessionAggregate(aggregate)) {
+    return defined(value) ? `${value}%` : '\u2015';
+  }
+
+  return tooltipFormatter(value, seriesName);
+}
+
+export const ALERT_CHART_MIN_MAX_BUFFER = 1.03;
+
+export function shouldScaleAlertChart(aggregate: string) {
+  // We want crash free rate charts to be scaled because they are usually too
+  // close to 100% and therefore too fine to see the spikes on 0%-100% scale.
+  return isSessionAggregate(aggregate);
 }

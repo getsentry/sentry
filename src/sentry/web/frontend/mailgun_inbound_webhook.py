@@ -22,7 +22,7 @@ class MailgunInboundWebhookView(View):
             signature,
             hmac.new(
                 key=api_key.encode("utf-8"),
-                msg=(f"{timestamp}{token}").encode("utf-8"),
+                msg=(f"{timestamp}{token}").encode(),
                 digestmod=sha256,
             ).hexdigest(),
         )

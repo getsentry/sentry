@@ -17,7 +17,7 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "transaction.duration",
                   "quoted": false
                 }

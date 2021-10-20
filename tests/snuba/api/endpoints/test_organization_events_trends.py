@@ -941,3 +941,12 @@ class OrganizationEventsTrendsAliasTest(TestCase):
         result = get_filter("!trend_difference():>=0", {"aliases": self.regression_aliases})
 
         assert result.having == [["trend_difference", "<", 0.0]]
+
+    def test_confidence(self):
+        result = get_filter("confidence():>6", {"aliases": self.improved_aliases})
+
+        assert result.having == [["t_test", ">", 6.0]]
+
+        result = get_filter("confidence():>6", {"aliases": self.regression_aliases})
+
+        assert result.having == [["t_test", "<", -6.0]]

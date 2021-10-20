@@ -1,5 +1,5 @@
 """
-Used for notifying a *specific* plugin
+Used for notifying a *specific* plugin/sentry app with a generic webhook payload
 """
 
 import logging
@@ -157,9 +157,11 @@ class NotifyEventServiceAction(EventAction):
             yield self.future(plugin.rule_notify)
 
     def get_sentry_app_services(self):
+        # excludes Sentry Apps that have Alert Rule UI Component in their schema
         return [
             SentryAppService(app)
             for app in SentryApp.objects.get_alertable_sentry_apps(self.project.organization_id)
+            if not SentryAppService(app).has_alert_rule_action()
         ]
 
     def get_plugins(self):

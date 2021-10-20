@@ -41,9 +41,10 @@ class AuthIdentityHandlerTest(TestCase):
         self.auth_provider = AuthProvider.objects.create(
             organization=self.organization, provider=self.provider
         )
+        self.email = "test@example.com"
         self.identity = {
             "id": "1234",
-            "email": "test@example.com",
+            "email": self.email,
             "name": "Morty",
             "data": {"foo": "bar"},
         }
@@ -81,7 +82,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
         auth_identity = self.handler.handle_new_user(self.identity)
         user = auth_identity.user
 
-        assert user.email == self.identity["email"]
+        assert user.email == self.email
         assert OrganizationMember.objects.filter(organization=self.organization, user=user).exists()
 
         signup_record = [r for r in mock_record.call_args_list if r[0][0] == "user.signup"]
@@ -96,9 +97,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
         ]
 
     def test_associated_existing_member_invite_by_email(self):
-        member = OrganizationMember.objects.create(
-            organization=self.organization, email=self.identity["email"]
-        )
+        member = OrganizationMember.objects.create(organization=self.organization, email=self.email)
 
         auth_identity = self.handler.handle_new_user(self.identity)
 
@@ -111,7 +110,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
     def test_associated_existing_member_invite_request(self):
         member = self.create_member(
             organization=self.organization,
-            email=self.identity["email"],
+            email=self.email,
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
 
@@ -161,11 +160,34 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest):
 
         persisted_om = OrganizationMember.objects.get(user=user, organization=self.organization)
         assert getattr(persisted_om.flags, "sso:linked")
+        assert not getattr(persisted_om.flags, "member-limit:restricted")
         assert not getattr(persisted_om.flags, "sso:invalid")
 
         login_request, login_user = mock_auth.login.call_args.args
         assert login_request == self.request
         assert login_user == user
+
+    @mock.patch("sentry.auth.helper.auth")
+    def test_no_invite_members_flag(self, mock_auth):
+        with mock.patch("sentry.features.has", return_value=False) as features_has:
+            mock_auth.get_login_redirect.return_value = "test_login_url"
+            user, auth_identity = self.set_up_user_identity()
+
+            redirect = self.handler.handle_existing_identity(
+                self.state, auth_identity, self.identity
+            )
+
+            assert redirect.url == mock_auth.get_login_redirect.return_value
+            assert mock_auth.get_login_redirect.called_with(self.request)
+
+            persisted_identity = AuthIdentity.objects.get(ident=auth_identity.ident)
+            assert persisted_identity.data == self.identity["data"]
+
+            persisted_om = OrganizationMember.objects.get(user=user, organization=self.organization)
+            assert getattr(persisted_om.flags, "sso:linked")
+            assert getattr(persisted_om.flags, "member-limit:restricted")
+            assert not getattr(persisted_om.flags, "sso:invalid")
+            features_has.assert_called_once_with("organizations:invite-members", self.organization)
 
 
 class HandleAttachIdentityTest(AuthIdentityHandlerTest):
@@ -264,7 +286,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert context["identity"] == self.identity
         assert context["provider"] == self.auth_provider.get_provider().name
         assert context["identity_display_name"] == self.identity["name"]
-        assert context["identity_identifier"] == self.identity["email"]
+        assert context["identity_identifier"] == self.email
         return context
 
     @mock.patch("sentry.auth.helper.render_to_response")
@@ -279,6 +301,39 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         context = self._test_simple(mock_render, "sentry/auth-confirm-link.html")
         assert context["existing_user"] is self.request.user
         assert "login_form" not in context
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
+    def test_unauthenticated_with_existing_user(self, mock_create_key, mock_render):
+        existing_user = self.create_user(email=self.email)
+        context = self._test_simple(mock_render, "sentry/auth-confirm-identity.html")
+        assert not mock_create_key.called
+        assert context["existing_user"] == existing_user
+        assert "login_form" in context
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
+    def test_automatic_migration(self, mock_create_key, mock_render):
+        existing_user = self.create_user(email=self.email)
+        existing_user.update(password="")
+
+        with self.feature("organizations:idp-automatic-migration"):
+            context = self._test_simple(mock_render, "sentry/auth-confirm-account.html")
+        mock_create_key.assert_called_with(
+            existing_user, self.organization, self.auth_provider, self.email, "1234"
+        )
+        assert context["existing_user"] == existing_user
+        assert "login_form" in context
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
+    def test_does_not_migrate_user_with_password(self, mock_create_key, mock_render):
+        existing_user = self.create_user(email=self.email)
+        with self.feature("organizations:idp-automatic-migration"):
+            context = self._test_simple(mock_render, "sentry/auth-confirm-identity.html")
+        assert not mock_create_key.called
+        assert context["existing_user"] == existing_user
+        assert "login_form" in context
 
     # TODO: More test cases for various values of request.POST.get("op")
 
@@ -325,3 +380,38 @@ class AuthHelperTest(TestCase):
     def test_setup_provider(self, mock_messages):
         final_step = self._test_pipeline(AuthHelper.FLOW_SETUP_PROVIDER)
         assert final_step.url == f"/settings/{self.organization.slug}/auth/"
+
+
+class HasVerifiedAccountTest(AuthIdentityHandlerTest):
+    def setUp(self):
+        super().setUp()
+        member = OrganizationMember.objects.get(organization=self.organization, user=self.user)
+        self.identity_id = self.identity["id"]
+        self.verification_value = {
+            "user_id": self.user.id,
+            "email": self.email,
+            "member_id": member.id,
+            "identity_id": self.identity_id,
+        }
+
+    @mock.patch("sentry.auth.helper.AuthIdentityHandler._get_user")
+    def test_has_verified_account_success(self, mock_get_user):
+        mock_get_user.return_value = self.user
+        assert self.handler.has_verified_account(self.identity, self.verification_value) is True
+
+    @mock.patch("sentry.auth.helper.AuthIdentityHandler._get_user")
+    def test_has_verified_account_fail_email(self, mock_get_user):
+        mock_get_user.return_value = self.user
+        identity = {
+            "id": "1234",
+            "email": "b@test.com",
+            "name": "Morty",
+            "data": {"foo": "bar"},
+        }
+        assert self.handler.has_verified_account(identity, self.verification_value) is False
+
+    @mock.patch("sentry.auth.helper.AuthIdentityHandler._get_user")
+    def test_has_verified_account_fail_user_id(self, mock_get_user):
+        mock_get_user.return_value = self.create_user()
+        self.wrong_user_flag = True
+        assert self.handler.has_verified_account(self.identity, self.verification_value) is False

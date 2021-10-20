@@ -8,7 +8,7 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.utils import InvalidParams, get_date_range_from_params
-from sentry.discover.arithmetic import is_equation, resolve_equation_list, strip_equation
+from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Environment
 from sentry.search.events.fields import resolve_field_list
@@ -50,16 +50,7 @@ class DataExportQuerySerializer(serializers.Serializer):
             if not isinstance(base_fields, list):
                 base_fields = [base_fields]
 
-            equations = []
-            fields = []
-            if self.context.get("has_arithmetic"):
-                for field in base_fields:
-                    if is_equation(field):
-                        equations.append(strip_equation(field))
-                    else:
-                        fields.append(field)
-            else:
-                fields = base_fields
+            equations, fields = categorize_columns(base_fields)
 
             if len(base_fields) > MAX_FIELDS:
                 detail = f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
@@ -102,7 +93,7 @@ class DataExportQuerySerializer(serializers.Serializer):
             try:
                 snuba_filter = get_filter(query_info["query"], processor.params)
                 if len(equations) > 0:
-                    resolved_equations, _ = resolve_equation_list(equations, fields)
+                    resolved_equations, _, _ = resolve_equation_list(equations, fields)
                 else:
                     resolved_equations = []
                 resolve_field_list(
@@ -147,9 +138,6 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     project_query, request, organization
                 ),
                 "get_projects": lambda: self.get_projects(request, organization),
-                "has_arithmetic": features.has(
-                    "organizations:discover-arithmetic", organization, actor=request.user
-                ),
             },
         )
         if not serializer.is_valid():

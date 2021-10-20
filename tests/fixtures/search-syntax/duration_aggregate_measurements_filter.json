@@ -16,14 +16,14 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "measurements.fp",
                   "quoted": false
                 }
               },
               {
                 "separator": ", ",
-                "value": {"type": "keySimple", "value": "0.5", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "0.5", "quoted": false}
               }
             ]
           },
@@ -53,14 +53,14 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "measurements.fp",
                   "quoted": false
                 }
               },
               {
                 "separator": ", ",
-                "value": {"type": "keySimple", "value": "0.5", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "0.5", "quoted": false}
               }
             ]
           },
@@ -90,14 +90,14 @@
               {
                 "separator": "",
                 "value": {
-                  "type": "keySimple",
+                  "type": "keyAggregateParam",
                   "value": "measurements.fp",
                   "quoted": false
                 }
               },
               {
                 "separator": ", ",
-                "value": {"type": "keySimple", "value": "0.5", "quoted": false}
+                "value": {"type": "keyAggregateParam", "value": "0.5", "quoted": false}
               }
             ]
           },

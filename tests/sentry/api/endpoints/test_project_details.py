@@ -1,3 +1,5 @@
+from time import time
+
 import pytest
 
 from sentry.api.endpoints.project_details import (
@@ -10,6 +12,7 @@ from sentry.models import (
     AuditLogEntryEvent,
     DeletedProject,
     EnvironmentProject,
+    Integration,
     NotificationSetting,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
@@ -22,10 +25,12 @@ from sentry.models import (
     ProjectStatus,
     ProjectTeam,
     Rule,
+    ScheduledDeletion,
 )
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers import Feature, faux
 from sentry.types.integrations import ExternalProviders
+from sentry.utils import json
 from sentry.utils.compat import mock, zip
 
 
@@ -99,6 +104,34 @@ class ProjectDetailsTest(APITestCase):
             project.organization.slug, project.slug, qs_params={"include": "stats"}
         )
         assert response.data["stats"]["unresolved"] == 1
+
+    def test_has_alert_integration(self):
+        integration = Integration.objects.create(provider="msteams")
+        integration.add_organization(self.organization)
+
+        project = self.create_project()
+        self.create_group(project=project)
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            project.organization.slug,
+            project.slug,
+            qs_params={"expand": "hasAlertIntegration"},
+        )
+        assert response.data["hasAlertIntegrationInstalled"]
+
+    def test_no_alert_integration(self):
+        integration = Integration.objects.create(provider="jira")
+        integration.add_organization(self.organization)
+
+        project = self.create_project()
+        self.create_group(project=project)
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(
+            project.organization.slug, project.slug, qs_params={"expand": "hasAlertIntegration"}
+        )
+        assert not response.data["hasAlertIntegrationInstalled"]
 
     def test_with_dynamic_sampling_rules(self):
         project = self.project  # force creation
@@ -674,7 +707,7 @@ class ProjectUpdateTest(APITestCase):
         id2 = saved_config["rules"][1]["id"]
         id3 = saved_config["rules"][2]["id"]
         assert id1 != 0 and id2 != 0 and id3 != 0
-        next_id != 0
+        assert next_id != 0
         assert id1 != id2 and id2 != id3 and id1 != id3
         assert next_id > id1 and next_id > id2 and next_id > id3
         assert response.status_code == 200
@@ -721,6 +754,103 @@ class ProjectUpdateTest(APITestCase):
         assert new_ids == [4, 5, 2, 6]
         new_next_id = saved_config["next_id"]
         assert new_next_id == 7
+
+    def test_cap_secondary_grouping_expiry(self):
+        now = time()
+
+        response = self.get_response(self.org_slug, self.proj_slug, secondaryGroupingExpiry=0)
+        assert response.status_code == 400
+
+        expiry = int(now + 3600 * 24 * 1)
+        response = self.get_valid_response(
+            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
+        )
+        assert response.data["secondaryGroupingExpiry"] == expiry
+
+        expiry = int(now + 3600 * 24 * 89)
+        response = self.get_valid_response(
+            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
+        )
+        assert response.data["secondaryGroupingExpiry"] == expiry
+
+        # Larger timestamps are capped to 91 days:
+        expiry = int(now + 3600 * 24 * 365)
+        response = self.get_valid_response(
+            self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
+        )
+        expiry = response.data["secondaryGroupingExpiry"]
+        assert (now + 3600 * 24 * 90) < expiry < (now + 3600 * 24 * 92)
+
+    @mock.patch("sentry.api.base.create_audit_entry")
+    def test_redacted_symbol_source_secrets(self, create_audit_entry):
+        with Feature(
+            {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
+        ):
+            config = {
+                "id": "honk",
+                "name": "honk source",
+                "layout": {
+                    "type": "native",
+                },
+                "filetypes": ["pe"],
+                "type": "http",
+                "url": "http://honk.beep",
+                "username": "honkhonk",
+                "password": "beepbeep",
+            }
+            self.get_valid_response(
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
+            )
+            assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
+
+            # redact password
+            redacted_source = config.copy()
+            redacted_source["password"] = {"hidden-secret": True}
+
+            # check that audit entry was created with redacted password
+            assert create_audit_entry.called
+            call = faux.faux(create_audit_entry)
+            assert call.kwarg_equals("data", {"sentry:symbol_sources": [redacted_source]})
+
+            self.get_valid_response(
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
+            )
+            # on save the magic object should be replaced with the previously set password
+            assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
+
+    @mock.patch("sentry.api.base.create_audit_entry")
+    def test_redacted_symbol_source_secrets_unknown_secret(self, create_audit_entry):
+        with Feature(
+            {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
+        ):
+            config = {
+                "id": "honk",
+                "name": "honk source",
+                "layout": {
+                    "type": "native",
+                },
+                "filetypes": ["pe"],
+                "type": "http",
+                "url": "http://honk.beep",
+                "username": "honkhonk",
+                "password": "beepbeep",
+            }
+            self.get_valid_response(
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
+            )
+            assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
+
+            # prepare new call, this secret is not known
+            new_source = config.copy()
+            new_source["password"] = {"hidden-secret": True}
+            new_source["id"] = "oops"
+            response = self.get_response(
+                self.org_slug, self.proj_slug, symbolSources=json.dumps([new_source])
+            )
+            assert response.status_code == 400
+            assert json.loads(response.content) == {
+                "symbolSources": ["Sources contain unknown hidden secret"]
+            }
 
 
 class CopyProjectSettingsTest(APITestCase):
@@ -922,11 +1052,8 @@ class ProjectDeleteTest(APITestCase):
     method = "delete"
 
     @mock.patch("sentry.db.mixin.uuid4")
-    @mock.patch("sentry.api.endpoints.project_details.uuid4")
-    @mock.patch("sentry.api.endpoints.project_details.delete_project")
-    def test_simple(self, mock_delete_project, mock_uuid4_project, mock_uuid4_mixin):
+    def test_simple(self, mock_uuid4_mixin):
         mock_uuid4_mixin.return_value = self.get_mock_uuid()
-        mock_uuid4_project.return_value = self.get_mock_uuid()
         project = self.create_project()
 
         self.login_as(user=self.user)
@@ -934,9 +1061,7 @@ class ProjectDeleteTest(APITestCase):
         with self.settings(SENTRY_PROJECT=0):
             self.get_valid_response(project.organization.slug, project.slug, status_code=204)
 
-        mock_delete_project.apply_async.assert_called_once_with(
-            kwargs={"object_id": project.id, "transaction_id": "abc123"}, countdown=3600
-        )
+        assert ScheduledDeletion.objects.filter(model_name="Project", object_id=project.id).exists()
 
         deleted_project = Project.objects.get(id=project.id)
         assert deleted_project.status == ProjectStatus.PENDING_DELETION
@@ -948,8 +1073,7 @@ class ProjectDeleteTest(APITestCase):
         deleted_project = DeletedProject.objects.get(slug=project.slug)
         self.assert_valid_deleted_log(deleted_project, project)
 
-    @mock.patch("sentry.api.endpoints.project_details.delete_project")
-    def test_internal_project(self, mock_delete_project):
+    def test_internal_project(self):
         project = self.create_project()
 
         self.login_as(user=self.user)
@@ -957,7 +1081,9 @@ class ProjectDeleteTest(APITestCase):
         with self.settings(SENTRY_PROJECT=project.id):
             self.get_valid_response(project.organization.slug, project.slug, status_code=403)
 
-        assert not mock_delete_project.delay.mock_calls
+        assert not ScheduledDeletion.objects.filter(
+            model_name="Project", object_id=project.id
+        ).exists()
 
 
 @pytest.mark.parametrize(

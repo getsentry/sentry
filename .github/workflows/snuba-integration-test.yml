@@ -13,11 +13,15 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        instance: [0]
-
+        python-version: [3.6.13, 3.8.12]
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0, 1]
     env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 2
       USE_SNUBA: 1
       MIGRATIONS_TEST_MIGRATE: 1
+      USE_INDEXER: 1
 
     steps:
       - uses: actions/checkout@v2
@@ -42,42 +46,17 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-      - name: Set python version output
-        id: python-version
-        if: steps.changes.outputs.backend == 'true'
-        run: |
-          echo "::set-output name=python-version::$(cat .python-version)"
-
-      # Until GH composite actions can use `uses`, we need to setup python here
-      - uses: actions/setup-python@v2
-        if: steps.changes.outputs.backend == 'true'
-        with:
-          python-version: ${{ steps.python-version.outputs.python-version }}
-
-      - name: Setup pip
-        uses: ./.github/actions/setup-pip
-        if: steps.changes.outputs.backend == 'true'
-        id: pip
-
-      - name: pip cache
-        uses: actions/cache@v2
-        if: steps.changes.outputs.backend == 'true'
-        with:
-          path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: |
-            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
-
-      - name: Setup sentry env
+      - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         if: steps.changes.outputs.backend == 'true'
         id: setup
         with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           kafka: true
 
-      - name: Run snuba test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Run snuba test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         if: steps.changes.outputs.backend == 'true'
         run: |
           make test-snuba

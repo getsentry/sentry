@@ -21,6 +21,7 @@ from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
 from sentry.web.frontend.group_tag_export import GroupTagExportView
 from sentry.web.frontend.home import HomeView
+from sentry.web.frontend.idp_email_verification import AccountConfirmationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
@@ -96,8 +97,8 @@ urlpatterns += [
     # a filecontent-based hash in its filenames so that it can be cached long term
     url(
         r"^_static/dist/(?P<module>[^/]+)/(?P<path>.*)$",
-        generic.unversioned_static_media,
-        name="sentry-unversioned-media",
+        generic.frontend_app_static_media,
+        name="sentry-frontend-app-media",
     ),
     # The static version is either a 10 digit timestamp, a sha1, or md5 hash
     url(
@@ -210,6 +211,11 @@ urlpatterns += [
                     r"^confirm-email/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$",
                     accounts.confirm_email,
                     name="sentry-account-confirm-email",
+                ),
+                url(
+                    r"^user-confirm/(?P<key>[^\/]+)/$",
+                    AccountConfirmationView.as_view(),
+                    name="sentry-idp-email-verification",
                 ),
                 url(r"^recover/$", accounts.recover, name="sentry-account-recover"),
                 url(
@@ -543,8 +549,7 @@ urlpatterns += [
                     name="sentry-organization-disabled-member",
                 ),
                 # need to force these to React and ensure organization_slug is captured
-                # TODO(RyanSkonnord): Generalize to all pages without regressing
-                url(r"^(?P<organization_slug>[\w_-]+)/(settings|discover)/", react_page_view),
+                url(r"^(?P<organization_slug>[\w_-]+)/[\w_-]+/", react_page_view),
             ]
         ),
     ),

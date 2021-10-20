@@ -1,0 +1,49 @@
+---
+created: '2021-07-27T07:44:27.545732Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","<compiler-generated>"],["function","AnyTableViewController.tableView"]],[["filename","anytableviewcontroller.swift"],["function","AnyTableViewController.tableView"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","<compiler-generated>"],["function","CurrentUserProfile.isVideoAutoplay.getter"]],[["filename","currentuserprofile.swift"],["function","CurrentUserProfile.isVideoAutoplay.getter"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","<compiler-generated>"],["function","MediaSlideshow.toSources"]],[["filename","mediaslideshow+extensions.swift"],["function","MediaSlideshow.toSources"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","<compiler-generated>"],["function","Sequence.compactMap<T>"]],[["filename","<compiler-generated>"],["function","closure"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","<compiler-generated>"],["function","TableView.layoutSubviews"]],[["filename","<compiler-generated>"],["function","AnyTableViewController.tableView"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","<compiler-generated>"],["function","TableView.layoutSubviews"]],[["function","-[UITableView layoutSubviews]"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","<compiler-generated>"],["function","closure"]],[["filename","dailydigesttableviewsection.swift"],["function","DailyDigestTableViewSection.photoCell"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","<compiler-generated>"],["function","closure"]],[["filename","mediaslideshow+extensions.swift"],["function","MediaSlideshow.toSources"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","anytableviewcontroller.swift"],["function","AnyTableViewController.tableView"]],[["filename","<compiler-generated>"],["function","closure"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","currentuserprofile.swift"],["function","CurrentUserProfile.isVideoAutoplay.getter"]],[["filename","currentuserprofile.swift"],["function","value"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","dailydigesttableviewsection.swift"],["function","DailyDigestTableViewSection.photoCell"]],[["filename","<compiler-generated>"],["function","MediaSlideshow.toSources"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","main.m"],["function","main"]],[["filename","<compiler-generated>"],["function","TableView.layoutSubviews"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","main.m"],["function","main"]],[["function","UIApplicationMain"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","mediaslideshow+extensions.swift"],["function","MediaSlideshow.toSource"]],[["filename","<compiler-generated>"],["function","CurrentUserProfile.isVideoAutoplay.getter"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","mediaslideshow+extensions.swift"],["function","MediaSlideshow.toSources"]],[["filename","<compiler-generated>"],["function","Sequence.compactMap<T>"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","mediaslideshow+extensions.swift"],["function","MediaSlideshow.toSources"]],[["filename","mediaslideshow+extensions.swift"],["function","MediaSlideshow.toSource"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","-[CALayer layoutSublayers]"]],[["function","-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","-[UIApplication _run]"]],[["function","GSEventRunModal"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"]],[["filename","<compiler-generated>"],["function","AnyTableViewController.tableView"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","-[UITableView _updateVisibleCellsNow:]"]],[["function","-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","-[UITableView layoutSubviews]"]],[["function","-[UITableView _updateVisibleCellsNow:]"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"]],[["filename","<compiler-generated>"],["function","TableView.layoutSubviews"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","CA::Context::commit_transaction"]],[["function","CA::Layer::layout_and_display_if_needed"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","CA::Layer::layout_and_display_if_needed"]],[["function","CA::Layer::layout_if_needed"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","CA::Layer::layout_if_needed"]],[["function","-[CALayer layoutSublayers]"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","CA::Transaction::commit"]],[["function","CA::Context::commit_transaction"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","CA::Transaction::observer_callback"]],[["function","CA::Transaction::commit"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","CFRunLoopRunSpecific"]],[["function","__CFRunLoopRun"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","GSEventRunModal"]],[["function","CFRunLoopRunSpecific"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","UIApplicationMain"]],[["function","-[UIApplication _run]"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__"]],[["function","CA::Transaction::observer_callback"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__CFRunLoopDoObservers"]],[["function","__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","__CFRunLoopRun"]],[["function","__CFRunLoopDoObservers"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","start"]],[["filename","main.m"],["function","main"]]]
+similarity:2020-07-23:value:character-5-shingle: "Optio"
+similarity:2020-07-23:value:character-5-shingle: "autop"
+similarity:2020-07-23:value:character-5-shingle: "ayOpt"
+similarity:2020-07-23:value:character-5-shingle: "layOp"
+similarity:2020-07-23:value:character-5-shingle: "oplay"
+similarity:2020-07-23:value:character-5-shingle: "playO"
+similarity:2020-07-23:value:character-5-shingle: "ption"
+similarity:2020-07-23:value:character-5-shingle: "topla"
+similarity:2020-07-23:value:character-5-shingle: "utopl"
+similarity:2020-07-23:value:character-5-shingle: "yOpti"

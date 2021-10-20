@@ -18,7 +18,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import {getPerformanceLandingUrl, getTransactionSearchQuery} from '../utils';
@@ -31,10 +31,10 @@ import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,
   getSelectedQueryKey,
-  getTrendsParameters,
   modifyTrendsViewDefaultPeriod,
   resetCursors,
   TRENDS_FUNCTIONS,
+  TRENDS_PARAMETERS,
 } from './utils';
 
 type Props = {
@@ -147,12 +147,12 @@ class TrendsContent extends React.Component<Props, State> {
       ...location.query,
     };
     const query = decodeScalar(location.query.query, '');
-    const conditions = tokenizeSearch(query);
+    const conditions = new MutableSearch(query);
 
     // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
-    conditions.removeTag('tpm()');
-    conditions.removeTag('confidence()');
-    conditions.removeTag('transaction.duration');
+    conditions.removeFilter('tpm()');
+    conditions.removeFilter('confidence()');
+    conditions.removeFilter('transaction.duration');
     newQuery.query = conditions.formatString();
     return {
       pathname: getPerformanceLandingUrl(this.props.organization),
@@ -194,10 +194,6 @@ class TrendsContent extends React.Component<Props, State> {
     const currentTrendFunction = getCurrentTrendFunction(location);
     const currentTrendParameter = getCurrentTrendParameter(location);
     const query = getTransactionSearchQuery(location);
-
-    const TRENDS_PARAMETERS = getTrendsParameters({
-      canSeeSpanOpTrends: organization.features.includes('performance-ops-breakdown'),
-    });
 
     return (
       <GlobalSelectionHeader
@@ -314,15 +310,18 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
 
     const queryString = decodeScalar(location.query.query);
     const trendParameter = getCurrentTrendParameter(location);
-    const conditions = tokenizeSearch(queryString || '');
+    const conditions = new MutableSearch(queryString || '');
 
     if (queryString || this.hasPushedDefaults) {
       this.hasPushedDefaults = true;
       return <React.Fragment>{children}</React.Fragment>;
     } else {
       this.hasPushedDefaults = true;
-      conditions.setTagValues('tpm()', ['>0.01']);
-      conditions.setTagValues(trendParameter.column, ['>0', `<${DEFAULT_MAX_DURATION}`]);
+      conditions.setFilterValues('tpm()', ['>0.01']);
+      conditions.setFilterValues(trendParameter.column, [
+        '>0',
+        `<${DEFAULT_MAX_DURATION}`,
+      ]);
     }
 
     const query = conditions.formatString();

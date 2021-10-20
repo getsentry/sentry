@@ -18,6 +18,8 @@ type Props = Partial<DefaultProps> & {
   hasGuideAnchor?: boolean;
   withStackTracePreview?: boolean;
   guideAnchorName?: string;
+  /* is issue breakdown? */
+  grouping?: boolean;
   className?: string;
 };
 
@@ -31,15 +33,19 @@ function EventOrGroupTitle({
   data,
   withStackTracePreview,
   hasGuideAnchor,
+  grouping = false,
   className,
 }: Props) {
   const event = data as Event;
   const groupingCurrentLevel = (data as BaseGroup).metadata?.current_level;
 
   const hasGroupingTreeUI = !!organization?.features.includes('grouping-tree-ui');
+  const hasGroupingStacktraceUI = !!organization?.features.includes(
+    'grouping-stacktrace-ui'
+  );
   const {id, eventID, groupID, projectID} = event;
 
-  const {title, subtitle, treeLabel} = getTitle(event, organization?.features);
+  const {title, subtitle, treeLabel} = getTitle(event, organization?.features, grouping);
 
   return (
     <Wrapper className={className} hasGroupingTreeUI={hasGroupingTreeUI}>
@@ -53,7 +59,7 @@ function EventOrGroupTitle({
           eventId={eventID}
           projectSlug={eventID ? ProjectsStore.getById(projectID)?.slug : undefined}
           disablePreview={!withStackTracePreview}
-          hasGroupingTreeUI={hasGroupingTreeUI}
+          hasGroupingStacktraceUI={hasGroupingStacktraceUI}
         >
           {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title}
         </StyledStacktracePreview>
@@ -83,13 +89,16 @@ const Subtitle = styled('em')`
   font-style: normal;
 `;
 
-const StyledStacktracePreview = styled(StacktracePreview)<{hasGroupingTreeUI: boolean}>`
+const StyledStacktracePreview = styled(StacktracePreview)<{
+  hasGroupingStacktraceUI: boolean;
+}>`
   ${p =>
-    p.hasGroupingTreeUI &&
+    p.hasGroupingStacktraceUI &&
     `
       display: inline-flex;
+      overflow: hidden;
       > span:first-child {
-        display: inline-flex;
+        ${overflowEllipsis}
       }
     `}
 `;
@@ -98,7 +107,6 @@ const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
   ${p =>
     p.hasGroupingTreeUI &&
     `
-
       display: inline-grid;
       grid-template-columns: auto max-content 1fr max-content;
       align-items: flex-end;

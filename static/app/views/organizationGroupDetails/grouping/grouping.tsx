@@ -1,15 +1,16 @@
-import {useEffect, useState} from 'react';
-import {InjectedRouter} from 'react-router/lib/Router';
+import React, {useEffect, useState} from 'react';
+import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'app/api';
+import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
-import PaginationCaption from 'app/components/pagination/paginationCaption';
 import {PanelTable} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
+import {IconMegaphone} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {BaseGroup, Group, Organization, Project} from 'app/types';
@@ -26,12 +27,12 @@ import NewIssue from './newIssue';
 type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 
 type Props = {
+  api: Client;
   organization: Organization;
   groupId: Group['id'];
   projSlug: Project['slug'];
-  location: Location<{level?: number; cursor?: string}>;
-  api: Client;
   router: InjectedRouter;
+  location: Location<{level?: number; cursor?: string}>;
 };
 
 type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
@@ -44,6 +45,22 @@ type GroupingLevel = {
   id: number;
   isCurrent: boolean;
 };
+
+function LinkFooter() {
+  return (
+    <Footer>
+      <ExternalLink
+        href={`mailto:grouping@sentry.io?subject=${encodeURIComponent(
+          'Grouping Feedback'
+        )}&body=${encodeURIComponent(
+          `URL: ${window.location.href}\n\nThanks for taking the time to provide us feedback. What's on your mind?`
+        )}`}
+      >
+        <StyledIconMegaphone /> {t('Give Feedback')}
+      </ExternalLink>
+    </Footer>
+  );
+}
 
 function Grouping({api, groupId, location, organization, router, projSlug}: Props) {
   const {cursor, level} = location.query;
@@ -63,6 +80,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
 
   useEffect(() => {
     fetchGroupingLevels();
+    return browserHistory.listen(handleRouteLeave);
   }, []);
 
   useEffect(() => {
@@ -76,6 +94,30 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
   useEffect(() => {
     fetchGroupingLevelDetails();
   }, [activeGroupingLevel, cursor]);
+
+  function handleRouteLeave(newLocation: Location<{level?: number; cursor?: string}>) {
+    if (
+      newLocation.pathname === location.pathname ||
+      (newLocation.pathname !== location.pathname &&
+        newLocation.query.cursor === undefined &&
+        newLocation.query.level === undefined)
+    ) {
+      return true;
+    }
+
+    // Removes cursor and level from the URL on route leave
+    // so that the parameters will not interfere with other pages
+    browserHistory.replace({
+      pathname: newLocation.pathname,
+      query: {
+        ...newLocation.query,
+        cursor: undefined,
+        level: undefined,
+      },
+    });
+
+    return false;
+  }
 
   const handleSetActiveGroupingLevel = debounce((groupingLevelId: number | '') => {
     setActiveGroupingLevel(Number(groupingLevelId));
@@ -103,7 +145,7 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
     setError(undefined);
 
     try {
-      const [response, , xhr] = await api.requestPromise(
+      const [data, , resp] = await api.requestPromise(
         `/issues/${groupId}/grouping/levels/${activeGroupingLevel}/new-issues/`,
         {
           method: 'GET',
@@ -115,9 +157,9 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
         }
       );
 
-      const pageLinks = xhr && xhr.getResponseHeader?.('Link');
+      const pageLinks = resp?.getResponseHeader?.('Link');
       setPagination(pageLinks ?? '');
-      setActiveGroupingLevelDetails(Array.isArray(response) ? response : [response]);
+      setActiveGroupingLevelDetails(Array.isArray(data) ? data : [data]);
       setIsGroupingLevelDetailsLoading(false);
     } catch (err) {
       setIsGroupingLevelDetailsLoading(false);
@@ -169,13 +211,17 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
 
   if (error) {
     return (
-      <ErrorMessage
-        onRetry={fetchGroupingLevels}
-        groupId={groupId}
-        error={error}
-        projSlug={projSlug}
-        orgSlug={organization.slug}
-      />
+      <React.Fragment>
+        <ErrorMessage
+          onRetry={fetchGroupingLevels}
+          groupId={groupId}
+          error={error}
+          projSlug={projSlug}
+          orgSlug={organization.slug}
+          hasProjectWriteAccess={organization.access.includes('project:write')}
+        />
+        <LinkFooter />
+      </React.Fragment>
     );
   }
 
@@ -216,7 +262,10 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
                     key={hash}
                     sampleEvent={{
                       ...latestEvent,
-                      metadata: metadata || latestEvent.metadata,
+                      metadata: {
+                        ...(metadata || latestEvent.metadata),
+                        current_level: activeGroupingLevel,
+                      },
                       title: title || latestEvent.title,
                     }}
                     eventCount={eventCount}
@@ -229,27 +278,28 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
           <StyledPagination
             pageLinks={pagination}
             disabled={isGroupingLevelDetailsLoading}
-            caption={
-              <PaginationCaption
-                caption={tct('Showing [current] of [total] [result]', {
-                  result: hasMore
-                    ? t('results')
-                    : tn('result', 'results', paginationCurrentQuantity),
-                  current: paginationCurrentQuantity,
-                  total: hasMore
-                    ? `${paginationCurrentQuantity}+`
-                    : paginationCurrentQuantity,
-                })}
-              />
-            }
+            caption={tct('Showing [current] of [total] [result]', {
+              result: hasMore
+                ? t('results')
+                : tn('result', 'results', paginationCurrentQuantity),
+              current: paginationCurrentQuantity,
+              total: hasMore
+                ? `${paginationCurrentQuantity}+`
+                : paginationCurrentQuantity,
+            })}
           />
         </Content>
       </Body>
+      <LinkFooter />
     </Wrapper>
   );
 }
 
 export default withApi(Grouping);
+
+const StyledIconMegaphone = styled(IconMegaphone)`
+  margin-right: ${space(0.5)};
+`;
 
 const Wrapper = styled('div')`
   flex: 1;
@@ -262,6 +312,12 @@ const Wrapper = styled('div')`
 const Header = styled('p')`
   && {
     margin-bottom: ${space(2)};
+  }
+`;
+
+const Footer = styled('p')`
+  && {
+    margin-top: ${space(2)};
   }
 `;
 

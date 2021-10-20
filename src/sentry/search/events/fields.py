@@ -2,15 +2,22 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import Callable, List, Mapping, Match, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
-from snuba_sdk.function import Function
+from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.discover.models import KeyTransaction, TeamKeyTransaction
+from sentry.discover.arithmetic import (
+    Operation,
+    OperationSideType,
+    is_equation_alias,
+    resolve_equation_list,
+)
+from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, ProjectTeam, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import (
@@ -24,12 +31,11 @@ from sentry.search.events.constants import (
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
     DURATION_PATTERN,
-    ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
+    FUNCTION_ALIASES,
     FUNCTION_PATTERN,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
-    KEY_TRANSACTION_ALIAS,
     MEASUREMENTS_FRAMES_FROZEN_RATE,
     MEASUREMENTS_FRAMES_SLOW_RATE,
     MEASUREMENTS_STALL_PERCENTAGE,
@@ -44,15 +50,15 @@ from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
     TIMESTAMP_TO_DAY_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
-    TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
-from sentry.search.events.types import ParamsType, SelectType
+from sentry.search.events.types import NormalizedArg, ParamsType, SelectType
 from sentry.search.utils import InvalidQuery, parse_duration
 from sentry.utils.compat import zip
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import (
+    SESSIONS_SNUBA_MAP,
     Dataset,
     get_json_type,
     is_duration_measurement,
@@ -82,7 +88,7 @@ class PseudoField:
 
         self.validate()
 
-    def get_expression(self, params):
+    def get_expression(self, params) -> Union[List[Any], Tuple[Any]]:
         if isinstance(self.expression, (list, tuple)):
             return deepcopy(self.expression)
         elif self.expression_fn is not None:
@@ -101,50 +107,6 @@ class PseudoField:
         assert (
             self.expression is None or self.expression_fn is None
         ), f"{self.name}: only one of expression, expression_fn is allowed"
-
-
-def key_transaction_expression(user_id, organization_id, project_ids):
-    """
-    This function may be called multiple times, making for repeated data bases queries.
-    Lifting the query higher to earlier in the call stack will require a lot more changes
-    as there are numerous entry points. So we will leave the duplicate query alone for now.
-    """
-    if user_id is None or organization_id is None or project_ids is None:
-        raise InvalidSearchQuery("Missing necessary meta for key transaction field.")
-
-    key_transactions = (
-        KeyTransaction.objects.filter(
-            owner_id=user_id,
-            organization_id=organization_id,
-            project_id__in=project_ids,
-        )
-        .order_by("transaction", "project_id")
-        .values("project_id", "transaction")
-    )
-
-    # if there are no key transactions, the value should always be 0
-    if not len(key_transactions):
-        return ["toInt64", [0]]
-
-    return [
-        "has",
-        [
-            [
-                "array",
-                [
-                    [
-                        "tuple",
-                        [
-                            ["toUInt64", [transaction["project_id"]]],
-                            "'{}'".format(transaction["transaction"]),
-                        ],
-                    ]
-                    for transaction in key_transactions
-                ],
-            ],
-            ["tuple", ["project_id", "transaction"]],
-        ],
-    ]
 
 
 def project_threshold_config_expression(organization_id, project_ids):
@@ -411,18 +373,6 @@ FIELD_ALIASES = {
             USER_DISPLAY_ALIAS,
             expression=["coalesce", ["user.email", "user.username", "user.ip"]],
         ),
-        # the key transaction field is intentially not added to the discover/fields list yet
-        # because there needs to be some work on the front end to integrate this into discover
-        PseudoField(
-            KEY_TRANSACTION_ALIAS,
-            KEY_TRANSACTION_ALIAS,
-            expression_fn=lambda params: key_transaction_expression(
-                params.get("user_id"),
-                params.get("organization_id"),
-                params.get("project_id"),
-            ),
-            result_type="boolean",
-        ),
         PseudoField(
             PROJECT_THRESHOLD_CONFIG_ALIAS,
             PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -431,6 +381,8 @@ FIELD_ALIASES = {
                 params.get("project_id"),
             ),
         ),
+        # the team key transaction field is intentially not added to the discover/fields list yet
+        # because there needs to be some work on the front end to integrate this into discover
         PseudoField(
             TEAM_KEY_TRANSACTION_ALIAS,
             TEAM_KEY_TRANSACTION_ALIAS,
@@ -496,7 +448,7 @@ def format_column_arguments(column_args, arguments):
             column_args[i] = arguments[column_args[i].arg]
 
 
-def parse_arguments(function, columns):
+def parse_arguments(function: str, columns: str) -> List[str]:
     """
     Some functions take a quoted string for their arguments that may contain commas,
     which requires special handling.
@@ -597,6 +549,7 @@ def resolve_field_list(
         if "project.id" not in fields:
             fields.append("project.id")
 
+    field = None
     for field in fields:
         if isinstance(field, str) and field.strip() == "":
             continue
@@ -613,7 +566,7 @@ def resolve_field_list(
                     aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
 
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
-    if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
+    if auto_aggregations and snuba_filter.having and len(aggregations) > 0 and field is not None:
         for agg in snuba_filter.condition_aggregates:
             if agg not in snuba_filter.aliases:
                 function = resolve_field(agg, snuba_filter.params, functions_acl)
@@ -903,6 +856,15 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
         return ResolvedFunction(details, addition, None)
 
 
+def parse_combinator(function: str) -> Tuple[str, Optional[str]]:
+    for combinator in COMBINATORS:
+        kind = combinator.kind
+        if function.endswith(kind):
+            return function[: -len(kind)], kind
+
+    return function, None
+
+
 def parse_function(field, match=None, err_msg=None):
     if not match:
         match = is_function(field)
@@ -913,6 +875,7 @@ def parse_function(field, match=None, err_msg=None):
         raise InvalidSearchQuery(err_msg)
 
     function = match.group("function")
+
     return (
         function,
         parse_arguments(function, match.group("columns")),
@@ -920,7 +883,7 @@ def parse_function(field, match=None, err_msg=None):
     )
 
 
-def is_function(field):
+def is_function(field: str) -> Optional[Match[str]]:
     function_match = FUNCTION_PATTERN.search(field)
     if function_match:
         return function_match
@@ -928,7 +891,7 @@ def is_function(field):
     return None
 
 
-def get_function_alias(field):
+def get_function_alias(field: str) -> str:
     match = FUNCTION_PATTERN.search(field)
     if match is None:
         return field
@@ -940,7 +903,7 @@ def get_function_alias(field):
     return get_function_alias_with_columns(function, columns)
 
 
-def get_function_alias_with_columns(function_name, columns):
+def get_function_alias_with_columns(function_name, columns) -> str:
     columns = re.sub(r"[^\w]", "_", "_".join(str(col) for col in columns))
     return f"{function_name}_{columns}".rstrip("_")
 
@@ -987,30 +950,144 @@ def reflective_result_type(index=0):
     return result_type_fn
 
 
+class Combinator:
+    # The kind of combinator this is, to be overridden in the subclasses
+    kind: Optional[str] = None
+
+    def __init__(self, private: bool = True):
+        self.private = private
+
+    def validate_argument(self, column: str) -> bool:
+        raise NotImplementedError(f"{self.kind} combinator needs to implement `validate_argument`")
+
+    def apply(self, value: Any) -> Any:
+        raise NotImplementedError(f"{self.kind} combinator needs to implement `apply`")
+
+    def is_applicable(self, column_name: str) -> bool:
+        raise NotImplementedError(f"{self.kind} combinator needs to implement `is_applicable`")
+
+
+class ArrayCombinator(Combinator):
+    kind = "Array"
+
+    def __init__(self, column_name: str, array_columns: Set[str], private: bool = True):
+        super().__init__(private=private)
+        self.column_name = column_name
+        self.array_columns = array_columns
+
+    def validate_argument(self, column: str) -> bool:
+        if column in self.array_columns:
+            return True
+
+        raise InvalidFunctionArgument(f"{column} is not a valid array column.")
+
+    def is_applicable(self, column_name: str) -> bool:
+        return self.column_name == column_name
+
+
+class SnQLArrayCombinator(ArrayCombinator):
+    def apply(self, value: Any) -> Any:
+        return Function("arrayJoin", [value])
+
+
+COMBINATORS = [ArrayCombinator]
+
+
 class ArgValue:
-    def __init__(self, arg):
+    def __init__(self, arg: str):
         self.arg = arg
 
 
 class FunctionArg:
-    def __init__(self, name):
+    """Parent class to function arguments, including both column references and values"""
+
+    def __init__(self, name: str):
         self.name = name
         self.has_default = False
 
-    def get_default(self, params):
+    def get_default(self, _):
         raise InvalidFunctionArgument(f"{self.name} has no defaults")
 
-    def normalize(self, value, params):
+    def normalize(
+        self, value: str, params: ParamsType, combinator: Optional[Combinator]
+    ) -> NormalizedArg:
         return value
 
-    def get_type(self, value):
+    def get_type(self, _):
         raise InvalidFunctionArgument(f"{self.name} has no type defined")
 
 
 class FunctionAliasArg(FunctionArg):
-    def normalize(self, value, params):
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         if not ALIAS_PATTERN.match(value):
             raise InvalidFunctionArgument(f"{value} is not a valid function alias")
+        return value
+
+
+class StringArg(FunctionArg):
+    def __init__(
+        self,
+        name: str,
+        unquote: Optional[bool] = False,
+        unescape_quotes: Optional[bool] = False,
+        optional_unquote: Optional[bool] = False,
+    ):
+        """
+        :param str name: The name of the function, this refers to the name to invoke.
+        :param boolean unquote: Whether to try unquoting the arg or not
+        :param boolean unescape_quotes: Whether quotes within the string should be unescaped
+        :param boolean optional_unquote: Don't error when unable to unquote
+        """
+        super().__init__(name)
+        self.unquote = unquote
+        self.unescape_quotes = unescape_quotes
+        self.optional_unquote = optional_unquote
+
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        if self.unquote:
+            if len(value) < 2 or value[0] != '"' or value[-1] != '"':
+                if not self.optional_unquote:
+                    raise InvalidFunctionArgument("string should be quoted")
+            else:
+                value = value[1:-1]
+        if self.unescape_quotes:
+            value = re.sub(r'\\"', '"', value)
+        return f"'{value}'"
+
+
+class DateArg(FunctionArg):
+    date_format = "%Y-%m-%dT%H:%M:%S"
+
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        try:
+            datetime.strptime(value, self.date_format)
+        except ValueError:
+            raise InvalidFunctionArgument(
+                f"{value} is in the wrong format, expected a date like 2020-03-14T15:14:15"
+            )
+        return f"'{value}'"
+
+
+class ConditionArg(FunctionArg):
+    # List and not a set so the error message order is consistent
+    VALID_CONDITIONS = [
+        "equals",
+        "notEquals",
+        "lessOrEquals",
+        "greaterOrEquals",
+        "less",
+        "greater",
+    ]
+
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        if value not in self.VALID_CONDITIONS:
+            raise InvalidFunctionArgument(
+                "{} is not a valid condition, the only supported conditions are: {}".format(
+                    value,
+                    ",".join(self.VALID_CONDITIONS),
+                )
+            )
+
         return value
 
 
@@ -1021,26 +1098,138 @@ class NullColumn(FunctionArg):
     required argument that we ignore.
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         super().__init__(name)
         self.has_default = True
 
-    def get_default(self, params):
+    def get_default(self, _) -> None:
         return None
 
-    def normalize(self, value, params):
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> None:
         return None
 
 
-class CountColumn(FunctionArg):
-    def __init__(self, name):
+class NumberRange(FunctionArg):
+    def __init__(self, name: str, start: Optional[float], end: Optional[float]):
         super().__init__(name)
+        self.start = start
+        self.end = end
+
+    def normalize(
+        self, value: str, params: ParamsType, combinator: Optional[Combinator]
+    ) -> Optional[float]:
+        try:
+            normalized_value = float(value)
+        except ValueError:
+            raise InvalidFunctionArgument(f"{value} is not a number")
+
+        if self.start and normalized_value < self.start:
+            raise InvalidFunctionArgument(
+                f"{normalized_value:g} must be greater than or equal to {self.start:g}"
+            )
+        elif self.end and normalized_value >= self.end:
+            raise InvalidFunctionArgument(f"{normalized_value:g} must be less than {self.end:g}")
+        return normalized_value
+
+
+class NullableNumberRange(NumberRange):
+    def __init__(self, name: str, start: Optional[float], end: Optional[float]):
+        super().__init__(name, start, end)
         self.has_default = True
 
-    def get_default(self, params):
+    def get_default(self, _) -> None:
         return None
 
-    def normalize(self, value, params):
+    def normalize(
+        self, value: str, params: ParamsType, combinator: Optional[Combinator]
+    ) -> Optional[float]:
+        if value is None:
+            return value
+        return super().normalize(value, params, combinator)
+
+
+class IntervalDefault(NumberRange):
+    def __init__(self, name: str, start: Optional[float], end: Optional[float]):
+        super().__init__(name, start, end)
+        self.has_default = True
+
+    def get_default(self, params: ParamsType) -> int:
+        if not params or not params.get("start") or not params.get("end"):
+            raise InvalidFunctionArgument("function called without default")
+        elif not isinstance(params.get("start"), datetime) or not isinstance(
+            params.get("end"), datetime
+        ):
+            raise InvalidFunctionArgument("function called with invalid default")
+
+        interval = (params["end"] - params["start"]).total_seconds()
+        return int(interval)
+
+
+class ColumnArg(FunctionArg):
+    """Parent class to any function argument that should eventually resolve to a
+    column
+    """
+
+    def __init__(
+        self,
+        name: str,
+        allowed_columns: Optional[Sequence[str]] = None,
+        validate_only: Optional[bool] = True,
+    ):
+        """
+        :param name: The name of the function, this refers to the name to invoke.
+        :param allowed_columns: Optional list of columns to allowlist, an empty sequence
+        or None means allow all columns
+        :param validate_only: Run normalize, and raise any errors involved but don't change
+        the value in any way and return it as-is
+        """
+        super().__init__(name)
+        # make sure to map the allowed columns to their snuba names
+        self.allowed_columns = (
+            {SEARCH_MAP.get(col) for col in allowed_columns} if allowed_columns else set()
+        )
+        # Normalize the value to check if it is valid, but return the value as-is
+        self.validate_only = validate_only
+
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        snuba_column = SEARCH_MAP.get(value)
+        if len(self.allowed_columns) > 0:
+            if (
+                value in self.allowed_columns or snuba_column in self.allowed_columns
+            ) and snuba_column is not None:
+                if self.validate_only:
+                    return value
+                else:
+                    return snuba_column
+            else:
+                raise InvalidFunctionArgument(f"{value} is not an allowed column")
+        if not snuba_column:
+            raise InvalidFunctionArgument(f"{value} is not a valid column")
+
+        if self.validate_only:
+            return value
+        else:
+            return snuba_column
+
+
+class ColumnTagArg(ColumnArg):
+    """Validate that the argument is either a column or a valid tag"""
+
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        if TAG_KEY_RE.match(value) or VALID_FIELD_PATTERN.match(value):
+            return value
+        return super().normalize(value, params, combinator)
+
+
+class CountColumn(ColumnArg):
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
+        self.has_default = True
+
+    def get_default(self, _) -> None:
+        return None
+
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         if value is None:
             raise InvalidFunctionArgument("a column is required")
 
@@ -1062,7 +1251,7 @@ class CountColumn(FunctionArg):
 class FieldColumn(CountColumn):
     """Allow any field column, of any type"""
 
-    def get_type(self, value):
+    def get_type(self, value: str) -> str:
         if is_duration_measurement(value) or is_span_op_breakdown(value):
             return "duration"
         elif value == "transaction.duration":
@@ -1072,95 +1261,24 @@ class FieldColumn(CountColumn):
         return "string"
 
 
-class StringArg(FunctionArg):
-    def __init__(self, name, unquote=False, unescape_quotes=False, optional_unquote=False):
-        """
-        :param str name: The name of the function, this refers to the name to invoke.
-        :param boolean unquote: Whether to try unquoting the arg or not
-        :param boolean unescape_quotes: Whether quotes within the string should be unescaped
-        :param boolean optional_unquote: Don't error when unable to unquote
-        """
-        super().__init__(name)
-        self.unquote = unquote
-        self.unescape_quotes = unescape_quotes
-        self.optional_unquote = optional_unquote
+class NumericColumn(ColumnArg):
+    measurement_aliases = {
+        MEASUREMENTS_FRAMES_SLOW_RATE,
+        MEASUREMENTS_FRAMES_FROZEN_RATE,
+        MEASUREMENTS_STALL_PERCENTAGE,
+    }
 
-    def normalize(self, value, params):
-        if self.unquote:
-            if len(value) < 2 or value[0] != '"' or value[-1] != '"':
-                if not self.optional_unquote:
-                    raise InvalidFunctionArgument("string should be quoted")
-            else:
-                value = value[1:-1]
-        if self.unescape_quotes:
-            value = re.sub(r'\\"', '"', value)
-        return f"'{value}'"
+    numeric_array_columns = {
+        "measurements_value",
+        "span_op_breakdowns_value",
+        "spans_exclusive_time",
+    }
 
+    def __init__(self, name: str, allow_array_value: Optional[bool] = False, **kwargs):
+        super().__init__(name, **kwargs)
+        self.allow_array_value = allow_array_value
 
-class DateArg(FunctionArg):
-    date_format = "%Y-%m-%dT%H:%M:%S"
-
-    def normalize(self, value, params):
-        try:
-            datetime.strptime(value, self.date_format)
-        except ValueError:
-            raise InvalidFunctionArgument(
-                f"{value} is in the wrong format, expected a date like 2020-03-14T15:14:15"
-            )
-        return f"'{value}'"
-
-
-class ConditionArg(FunctionArg):
-    # List and not a set so the error message is consistent
-    VALID_CONDITIONS = [
-        "equals",
-        "notEquals",
-        "lessOrEquals",
-        "greaterOrEquals",
-        "less",
-        "greater",
-    ]
-
-    def normalize(self, value, params):
-        if value not in self.VALID_CONDITIONS:
-            raise InvalidFunctionArgument(
-                "{} is not a valid condition, the only supported conditions are: {}".format(
-                    value,
-                    ",".join(self.VALID_CONDITIONS),
-                )
-            )
-
-        return value
-
-
-class ColumnArg(FunctionArg):
-    def __init__(self, name, allowed_columns=None):
-        super().__init__(name)
-        # make sure to map the allowed columns to their snuba names
-        self.allowed_columns = (
-            {SEARCH_MAP.get(col) for col in allowed_columns} if allowed_columns else set()
-        )
-
-    def normalize(self, value, params):
-        snuba_column = SEARCH_MAP.get(value)
-        if len(self.allowed_columns) > 0:
-            if value in self.allowed_columns or snuba_column in self.allowed_columns:
-                return snuba_column
-            else:
-                raise InvalidFunctionArgument(f"{value} is not an allowed column")
-        if not snuba_column:
-            raise InvalidFunctionArgument(f"{value} is not a valid column")
-        return snuba_column
-
-
-class ColumnNoLookup(ColumnArg):
-    def normalize(self, value, params):
-        super().normalize(value, params)
-        return value
-
-
-class NumericColumn(FunctionArg):
-    def _normalize(self, value):
+    def _normalize(self, value: str) -> str:
         # This method is written in this way so that `get_type` can always call
         # this even in child classes where `normalize` have been overridden.
 
@@ -1175,10 +1293,46 @@ class NumericColumn(FunctionArg):
             raise InvalidFunctionArgument(f"{value} is not a numeric column")
         return snuba_column
 
-    def normalize(self, value, params):
-        return self._normalize(value)
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        snuba_column = None
 
-    def get_type(self, value):
+        if combinator is not None and combinator.validate_argument(value):
+            snuba_column = value
+
+        # `measurement_value` and `span_op_breakdowns_value` are actually an
+        # array of Float64s. But when used in this context, we always want to
+        # expand it using `arrayJoin`. The resulting column will be a numeric
+        # column of type Float64.
+        if self.allow_array_value:
+            if value in self.numeric_array_columns:
+                snuba_column = value
+
+        if snuba_column is None:
+            snuba_column = self._normalize(value)
+
+        if self.validate_only:
+            return value
+        else:
+            return snuba_column
+
+    def get_type(self, value: str) -> str:
+        if isinstance(value, str) and value in self.numeric_array_columns:
+            return "number"
+
+        # `measurements.frames_frozen_rate` and `measurements.frames_slow_rate` are aliases
+        # to a percentage value, since they are expressions rather than columns, we special
+        # case them here
+        # TODO: These are no longer expressions with SnQL, this should be removed once the
+        # migration is done
+        if isinstance(value, list):
+            for name in self.measurement_aliases:
+                field = FIELD_ALIASES[name]
+                expression = field.get_expression(None)
+                if expression == value:
+                    return field.result_type
+
+        if value in self.measurement_aliases:
+            return "percentage"
         snuba_column = self._normalize(value)
         if is_duration_measurement(snuba_column) or is_span_op_breakdown(snuba_column):
             return "duration"
@@ -1189,48 +1343,8 @@ class NumericColumn(FunctionArg):
         return "number"
 
 
-class NumericColumnNoLookup(NumericColumn):
-    measurement_aliases = {
-        MEASUREMENTS_FRAMES_SLOW_RATE,
-        MEASUREMENTS_FRAMES_FROZEN_RATE,
-        MEASUREMENTS_STALL_PERCENTAGE,
-    }
-
-    def __init__(self, name, allow_array_value=False):
-        super().__init__(name)
-        self.allow_array_value = allow_array_value
-
-    def normalize(self, value, params):
-        # `measurement_value` and `span_op_breakdowns_value` are actually an
-        # array of Float64s. But when used in this context, we always want to
-        # expand it using `arrayJoin`. The resulting column will be a numeric
-        # column of type Float64.
-        if self.allow_array_value:
-            if value in {"measurements_value", "span_op_breakdowns_value"}:
-                return ["arrayJoin", [value]]
-
-        if value in self.measurement_aliases:
-            field = FIELD_ALIASES[value]
-            return field.get_expression(params)
-
-        super().normalize(value, params)
-        return value
-
-    def get_type(self, value):
-        # `measurements.frames_frozen_rate` and `measurements.frames_slow_rate` are aliases
-        # to a percentage value, since they are expressions rather than columns, we special
-        # case them here
-        if isinstance(value, list):
-            for name in self.measurement_aliases:
-                field = FIELD_ALIASES[name]
-                expression = field.get_expression(None)
-                if expression == value:
-                    return field.result_type
-        return super().get_type(value)
-
-
-class DurationColumn(FunctionArg):
-    def normalize(self, value, params):
+class DurationColumn(ColumnArg):
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_duration_measurement(value):
             return value
@@ -1240,78 +1354,69 @@ class DurationColumn(FunctionArg):
             raise InvalidFunctionArgument(f"{value} is not a valid column")
         elif snuba_column != "duration":
             raise InvalidFunctionArgument(f"{value} is not a duration column")
-        return snuba_column
+
+        if self.validate_only:
+            return value
+        else:
+            return snuba_column
 
 
-class DurationColumnNoLookup(DurationColumn):
-    def normalize(self, value, params):
-        super().normalize(value, params)
-        return value
+class StringArrayColumn(ColumnArg):
+    string_array_columns = {
+        "tags.key",
+        "tags.value",
+        "measurements_key",
+        "span_op_breakdowns_key",
+        "spans_op",
+        "spans_group",
+    }
 
-
-class StringArrayColumn(FunctionArg):
-    def normalize(self, value, params):
-        if value in ["tags.key", "tags.value", "measurements_key", "span_op_breakdowns_key"]:
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        if value in self.string_array_columns:
             return value
         raise InvalidFunctionArgument(f"{value} is not a valid string array column")
 
 
-class NumberRange(FunctionArg):
-    def __init__(self, name, start, end):
-        super().__init__(name)
-        self.start = start
-        self.end = end
-
-    def normalize(self, value, params):
-        try:
-            value = float(value)
-        except ValueError:
-            raise InvalidFunctionArgument(f"{value} is not a number")
-
-        if self.start and value < self.start:
-            raise InvalidFunctionArgument(
-                f"{value:g} must be greater than or equal to {self.start:g}"
-            )
-        elif self.end and value >= self.end:
-            raise InvalidFunctionArgument(f"{value:g} must be less than {self.end:g}")
-        return value
-
-
-class NullableNumberRange(NumberRange):
-    def __init__(self, name, start, end):
-        super().__init__(name, start, end)
-        self.has_default = True
-
-    def get_default(self, params):
-        return None
-
-    def normalize(self, value, params):
-        if value is None:
+class SessionColumnArg(ColumnArg):
+    # XXX(ahmed): hack to get this to work with crash rate alerts over the sessions dataset until
+    # we deprecate the logic that is tightly coupled with the events dataset. At which point,
+    # we will just rely on dataset specific logic and refactor this class out
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        if value in SESSIONS_SNUBA_MAP:
             return value
-        return super().normalize(value, params)
-
-
-class IntervalDefault(NumberRange):
-    def __init__(self, name, start, end):
-        super().__init__(name, start, end)
-        self.has_default = True
-
-    def get_default(self, params):
-        if not params or not params.get("start") or not params.get("end"):
-            raise InvalidFunctionArgument("function called without default")
-        elif not isinstance(params.get("start"), datetime) or not isinstance(
-            params.get("end"), datetime
-        ):
-            raise InvalidFunctionArgument("function called with invalid default")
-
-        interval = (params["end"] - params["start"]).total_seconds()
-        return int(interval)
+        raise InvalidFunctionArgument(f"{value} is not a valid sessions dataset column")
 
 
 def with_default(default, argument):
     argument.has_default = True
     argument.get_default = lambda *_: default
     return argument
+
+
+# TODO(snql-migration): Remove these Arg classes in favour for their
+# non SnQL specific types
+class SnQLStringArg(StringArg):
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        value = super().normalize(value, params, combinator)
+        # SnQL interprets string types as string, so strip the
+        # quotes added in StringArg.normalize.
+        return value[1:-1]
+
+
+class SnQLDateArg(DateArg):
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        value = super().normalize(value, params, combinator)
+        # SnQL interprets string types as string, so strip the
+        # quotes added in StringArg.normalize.
+        return value[1:-1]
+
+
+class SnQLFieldColumn(FieldColumn):
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        if value is None:
+            raise InvalidFunctionArgument("a column is required")
+
+        return value
 
 
 class DiscoverFunction:
@@ -1328,6 +1433,7 @@ class DiscoverFunction:
         result_type_fn=None,
         default_result_type=None,
         redundant_grouping=False,
+        combinators=None,
         private=False,
     ):
         """
@@ -1357,6 +1463,7 @@ class DiscoverFunction:
             defined by RESULTS_TYPES.
         :param bool redundant_grouping: This function will result in redundant grouping if its column
             is included as a field as well.
+        :param list[Combinator] combinators: This is a list of combinators supported by this function.
         :param bool private: Whether or not this function should be disabled for general use.
         """
 
@@ -1371,6 +1478,7 @@ class DiscoverFunction:
         self.result_type_fn = result_type_fn
         self.default_result_type = default_result_type
         self.redundant_grouping = redundant_grouping
+        self.combinators = combinators
         self.private = private
 
         self.validate()
@@ -1397,7 +1505,9 @@ class DiscoverFunction:
         alias.name = name
         return alias
 
-    def add_default_arguments(self, field, columns, params):
+    def add_default_arguments(
+        self, field: str, columns: List[str], params: ParamsType
+    ) -> List[str]:
         # make sure to validate the argument count first to
         # ensure the right number of arguments have been passed
         self.validate_argument_count(field, columns)
@@ -1416,7 +1526,13 @@ class DiscoverFunction:
 
         return columns
 
-    def format_as_arguments(self, field, columns, params):
+    def format_as_arguments(
+        self,
+        field: str,
+        columns: List[str],
+        params: ParamsType,
+        combinator: Optional[Combinator] = None,
+    ) -> Mapping[str, NormalizedArg]:
         columns = self.add_default_arguments(field, columns, params)
 
         arguments = {}
@@ -1424,7 +1540,14 @@ class DiscoverFunction:
         # normalize the arguments before putting them in a dict
         for argument, column in zip(self.args, columns):
             try:
-                arguments[argument.name] = argument.normalize(column, params)
+                normalized_value = argument.normalize(column, params, combinator)
+                if not isinstance(self, SnQLFunction) and isinstance(argument, NumericColumn):
+                    if normalized_value in argument.measurement_aliases:
+                        field = FIELD_ALIASES[normalized_value]
+                        normalized_value = field.get_expression(params)
+                    elif normalized_value in NumericColumn.numeric_array_columns:
+                        normalized_value = ["arrayJoin", [normalized_value]]
+                arguments[argument.name] = normalized_value
             except InvalidFunctionArgument as e:
                 raise InvalidSearchQuery(f"{field}: {argument.name} argument invalid: {e}")
 
@@ -1482,7 +1605,7 @@ class DiscoverFunction:
 
         self.validate_result_type(self.default_result_type)
 
-    def validate_argument_count(self, field, arguments):
+    def validate_argument_count(self, field: str, arguments: List[str]) -> None:
         """
         Validate the number of required arguments the function defines against
         provided arguments. Raise an exception if there is a mismatch in the
@@ -1514,12 +1637,37 @@ class DiscoverFunction:
             result_type is None or result_type in RESULT_TYPES
         ), f"{self.name}: result type {result_type} not one of {list(RESULT_TYPES)}"
 
-    def is_accessible(self, acl=None):
-        if not self.private:
+    def is_accessible(
+        self,
+        acl: Optional[List[str]] = None,
+        combinator: Optional[Combinator] = None,
+    ) -> bool:
+        name = self.name
+        is_combinator_private = False
+
+        if combinator is not None:
+            is_combinator_private = combinator.private
+            name = f"{name}{combinator.kind}"
+
+        # a function is only public if both the function
+        # and the specified combinator is public
+        if not is_combinator_private and not self.private:
             return True
-        elif not acl:
+
+        if not acl:
             return False
-        return self.name in acl
+
+        return name in acl
+
+    def find_combinator(self, kind: Optional[str]) -> Optional[Combinator]:
+        if kind is None or self.combinators is None:
+            return None
+
+        for combinator in self.combinators:
+            if combinator.kind == kind:
+                return combinator
+
+        return None
 
 
 # When updating this list, also check if the following need to be updated:
@@ -1530,7 +1678,7 @@ FUNCTIONS = {
     for function in [
         DiscoverFunction(
             "percentile",
-            required_args=[NumericColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
+            required_args=[NumericColumn("column"), NumberRange("percentile", 0, 1)],
             aggregate=["quantile({percentile:g})", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
@@ -1538,7 +1686,7 @@ FUNCTIONS = {
         ),
         DiscoverFunction(
             "p50",
-            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            optional_args=[with_default("transaction.duration", NumericColumn("column"))],
             aggregate=["quantile(0.5)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
@@ -1546,7 +1694,7 @@ FUNCTIONS = {
         ),
         DiscoverFunction(
             "p75",
-            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            optional_args=[with_default("transaction.duration", NumericColumn("column"))],
             aggregate=["quantile(0.75)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
@@ -1554,7 +1702,7 @@ FUNCTIONS = {
         ),
         DiscoverFunction(
             "p95",
-            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            optional_args=[with_default("transaction.duration", NumericColumn("column"))],
             aggregate=["quantile(0.95)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
@@ -1562,7 +1710,7 @@ FUNCTIONS = {
         ),
         DiscoverFunction(
             "p99",
-            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            optional_args=[with_default("transaction.duration", NumericColumn("column"))],
             aggregate=["quantile(0.99)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
@@ -1570,7 +1718,7 @@ FUNCTIONS = {
         ),
         DiscoverFunction(
             "p100",
-            optional_args=[with_default("transaction.duration", NumericColumnNoLookup("column"))],
+            optional_args=[with_default("transaction.duration", NumericColumn("column"))],
             aggregate=["max", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
@@ -1659,7 +1807,7 @@ FUNCTIONS = {
                     " ", ""
                 ),
             ),
-            default_result_type="number",
+            default_result_type="integer",
         ),
         DiscoverFunction(
             "user_misery",
@@ -1752,7 +1900,7 @@ FUNCTIONS = {
         DiscoverFunction(
             "histogram",
             required_args=[
-                NumericColumnNoLookup("column", allow_array_value=True),
+                NumericColumn("column", allow_array_value=True),
                 # the bucket_size and start_offset should already be adjusted
                 # using the multiplier before it is passed here
                 NumberRange("bucket_size", 0, None),
@@ -1814,7 +1962,7 @@ FUNCTIONS = {
         ),
         DiscoverFunction(
             "count_at_least",
-            required_args=[NumericColumnNoLookup("column"), NumberRange("threshold", 0, None)],
+            required_args=[NumericColumn("column"), NumberRange("threshold", 0, None)],
             aggregate=[
                 "countIf",
                 [["greaterOrEquals", [ArgValue("column"), ArgValue("threshold")]]],
@@ -1824,7 +1972,7 @@ FUNCTIONS = {
         ),
         DiscoverFunction(
             "min",
-            required_args=[NumericColumnNoLookup("column")],
+            required_args=[NumericColumn("column")],
             aggregate=["min", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
@@ -1832,7 +1980,7 @@ FUNCTIONS = {
         ),
         DiscoverFunction(
             "max",
-            required_args=[NumericColumnNoLookup("column")],
+            required_args=[NumericColumn("column")],
             aggregate=["max", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
@@ -1840,7 +1988,7 @@ FUNCTIONS = {
         ),
         DiscoverFunction(
             "avg",
-            required_args=[NumericColumnNoLookup("column")],
+            required_args=[NumericColumn("column")],
             aggregate=["avg", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
@@ -1848,35 +1996,35 @@ FUNCTIONS = {
         ),
         DiscoverFunction(
             "var",
-            required_args=[NumericColumnNoLookup("column")],
+            required_args=[NumericColumn("column")],
             aggregate=["varSamp", ArgValue("column"), None],
             default_result_type="number",
             redundant_grouping=True,
         ),
         DiscoverFunction(
             "stddev",
-            required_args=[NumericColumnNoLookup("column")],
+            required_args=[NumericColumn("column")],
             aggregate=["stddevSamp", ArgValue("column"), None],
             default_result_type="number",
             redundant_grouping=True,
         ),
         DiscoverFunction(
             "cov",
-            required_args=[NumericColumnNoLookup("column1"), NumericColumnNoLookup("column2")],
+            required_args=[NumericColumn("column1"), NumericColumn("column2")],
             aggregate=["covarSamp", [ArgValue("column1"), ArgValue("column2")], None],
             default_result_type="number",
             redundant_grouping=True,
         ),
         DiscoverFunction(
             "corr",
-            required_args=[NumericColumnNoLookup("column1"), NumericColumnNoLookup("column2")],
+            required_args=[NumericColumn("column1"), NumericColumn("column2")],
             aggregate=["corr", [ArgValue("column1"), ArgValue("column2")], None],
             default_result_type="number",
             redundant_grouping=True,
         ),
         DiscoverFunction(
             "sum",
-            required_args=[NumericColumnNoLookup("column")],
+            required_args=[NumericColumn("column")],
             aggregate=["sum", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
@@ -1891,7 +2039,7 @@ FUNCTIONS = {
         # Currently only being used by the baseline PoC
         DiscoverFunction(
             "absolute_delta",
-            required_args=[DurationColumnNoLookup("column"), NumberRange("target", 0, None)],
+            required_args=[DurationColumn("column"), NumberRange("target", 0, None)],
             column=["abs", [["minus", [ArgValue("column"), ArgValue("target")]]], None],
             default_result_type="duration",
         ),
@@ -1901,7 +2049,7 @@ FUNCTIONS = {
         DiscoverFunction(
             "percentile_range",
             required_args=[
-                NumericColumnNoLookup("column"),
+                NumericColumn("column"),
                 NumberRange("percentile", 0, 1),
                 ConditionArg("condition"),
                 DateArg("middle"),
@@ -1937,7 +2085,7 @@ FUNCTIONS = {
         DiscoverFunction(
             "avg_range",
             required_args=[
-                NumericColumnNoLookup("column"),
+                NumericColumn("column"),
                 ConditionArg("condition"),
                 DateArg("middle"),
             ],
@@ -1955,7 +2103,7 @@ FUNCTIONS = {
         DiscoverFunction(
             "variance_range",
             required_args=[
-                NumericColumnNoLookup("column"),
+                NumericColumn("column"),
                 ConditionArg("condition"),
                 DateArg("middle"),
             ],
@@ -2075,7 +2223,7 @@ FUNCTIONS = {
         DiscoverFunction(
             "to_other",
             required_args=[
-                ColumnNoLookup("column", allowed_columns=["release", "trace.parent_span"]),
+                ColumnArg("column", allowed_columns=["release", "trace.parent_span"]),
                 StringArg("value", unquote=True, unescape_quotes=True),
             ],
             optional_args=[
@@ -2091,15 +2239,15 @@ FUNCTIONS = {
                 ],
             ],
         ),
+        DiscoverFunction(
+            "identity",
+            required_args=[SessionColumnArg("column")],
+            aggregate=["identity", ArgValue("column"), None],
+            private=True,
+        ),
     ]
 }
 
-
-# In Performance TPM is used as an alias to EPM
-FUNCTION_ALIASES = {
-    "tpm": "epm",
-    "tps": "eps",
-}
 for alias, name in FUNCTION_ALIASES.items():
     FUNCTIONS[alias] = FUNCTIONS[name].alias_as(alias)
 
@@ -2107,9 +2255,33 @@ for alias, name in FUNCTION_ALIASES.items():
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
+def normalize_percentile_alias(args: Mapping[str, str]) -> str:
+    # The compare_numeric_aggregate SnQL function accepts a percentile
+    # alias which is resolved to the percentile function call here
+    # to maintain backward compatibility with the legacy compare_numeric_aggregate
+    # function signature. This function only accepts percentile
+    # aliases.
+    aggregate_alias = args["aggregate_alias"]
+    match = re.match(r"(p\d{2,3})_?(\w+)?", aggregate_alias)
+
+    if not match:
+        raise InvalidFunctionArgument("Aggregate alias must be a percentile function.")
+
+    # Translating an arg of the pattern `measurements_lcp`
+    # to `measurements.lcp`.
+    if match.group(2):
+        aggregate_arg = ".".join(match.group(2).split("_"))
+    # We default percentiles without an arg to duration
+    else:
+        aggregate_arg = "transaction.duration"
+
+    return f"{match.group(1)}({aggregate_arg})"
+
+
 class SnQLFunction(DiscoverFunction):
     def __init__(self, *args, **kwargs):
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
+        self.snql_column = kwargs.pop("snql_column", None)
         super().__init__(*args, **kwargs)
 
     def validate(self):
@@ -2119,7 +2291,7 @@ class SnQLFunction(DiscoverFunction):
                 arg.has_default
             ), f"{self.name}: optional argument at index {i} does not have default"
 
-        assert self.snql_aggregate is not None
+        assert sum([self.snql_aggregate is not None, self.snql_column is not None]) == 1
 
         # assert that no duplicate argument names are used
         names = set()
@@ -2135,9 +2307,16 @@ class SnQLFunction(DiscoverFunction):
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
-    def __init__(self, dataset: Dataset, params: ParamsType):
-        super().__init__(dataset, params)
+    def __init__(
+        self,
+        dataset: Dataset,
+        params: ParamsType,
+        auto_fields: bool = False,
+        functions_acl: Optional[List[str]] = None,
+    ):
+        super().__init__(dataset, params, auto_fields, functions_acl)
 
+        self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
             # NOTE: `ISSUE_ALIAS` simply maps to the id, meaning that post processing
             # is required to insert the true issue short id into the response.
@@ -2148,11 +2327,12 @@ class QueryFields(QueryBase):
             TIMESTAMP_TO_HOUR_ALIAS: self._resolve_timestamp_to_hour_alias,
             TIMESTAMP_TO_DAY_ALIAS: self._resolve_timestamp_to_day_alias,
             USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
-            TRANSACTION_STATUS_ALIAS: self._resolve_transaction_status,
             PROJECT_THRESHOLD_CONFIG_ALIAS: self._resolve_project_threshold_config,
             ERROR_UNHANDLED_ALIAS: self._resolve_error_unhandled_alias,
-            ERROR_HANDLED_ALIAS: self._resolve_error_handled_alias,
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
+            MEASUREMENTS_FRAMES_SLOW_RATE: self._resolve_measurements_frames_slow_rate,
+            MEASUREMENTS_FRAMES_FROZEN_RATE: self._resolve_measurements_frames_frozen_rate,
+            MEASUREMENTS_STALL_PERCENTAGE: self._resolve_measurements_stall_percentage,
         }
 
         self.function_converter: Mapping[str, SnQLFunction] = {
@@ -2187,10 +2367,7 @@ class QueryFields(QueryBase):
                 ),
                 SnQLFunction(
                     "count_miserable",
-                    # Using the generic FunctionArg here temporarily till we
-                    # implement a resolver for count columns in SnQL. The only
-                    # column to be passed through here for now is `user`.
-                    required_args=[FunctionArg("column")],
+                    required_args=[ColumnTagArg("column")],
                     optional_args=[NullableNumberRange("satisfaction", 0, None)],
                     calculated_args=[
                         {
@@ -2230,6 +2407,7 @@ class QueryFields(QueryBase):
                 ),
                 SnQLFunction(
                     "count",
+                    optional_args=[NullColumn("column")],
                     snql_aggregate=lambda _, alias: Function(
                         "count",
                         [],
@@ -2265,84 +2443,474 @@ class QueryFields(QueryBase):
                     ),
                     default_result_type="percentage",
                 ),
-                # TODO: implement these
-                SnQLFunction("percentile", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p50", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p75", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p95", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p99", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("p100", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("eps", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("epm", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("array_join", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count_at_least", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("min", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("max", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("avg", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("var", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("stddev", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("cov", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("corr", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("sum", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("any", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction(
-                    "percentile_range", snql_aggregate=self._resolve_unimplemented_function
+                    "percentile",
+                    required_args=[
+                        NumericColumn("column"),
+                        NumberRange("percentile", 0, 1),
+                    ],
+                    snql_aggregate=self._resolve_percentile,
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                    combinators=[
+                        SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
+                    ],
                 ),
-                SnQLFunction("avg_range", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("variance_range", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count_range", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction(
+                    "p50",
+                    optional_args=[
+                        with_default("transaction.duration", NumericColumn("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.5),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p75",
+                    optional_args=[
+                        with_default("transaction.duration", NumericColumn("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.75),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p95",
+                    optional_args=[
+                        with_default("transaction.duration", NumericColumn("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.95),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p99",
+                    optional_args=[
+                        with_default("transaction.duration", NumericColumn("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.99),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p100",
+                    optional_args=[
+                        with_default("transaction.duration", NumericColumn("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 1),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "to_other",
+                    required_args=[
+                        ColumnArg("column", allowed_columns=["release", "trace.parent_span"]),
+                        SnQLStringArg("value", unquote=True, unescape_quotes=True),
+                    ],
+                    optional_args=[
+                        with_default("that", SnQLStringArg("that")),
+                        with_default("this", SnQLStringArg("this")),
+                    ],
+                    snql_column=lambda args, alias: Function(
+                        "if",
+                        [
+                            Function("equals", [args["column"], args["value"]]),
+                            args["this"],
+                            args["that"],
+                        ],
+                        alias,
+                    ),
+                ),
+                SnQLFunction(
+                    "percentile_range",
+                    required_args=[
+                        NumericColumn("column"),
+                        NumberRange("percentile", 0, 1),
+                        ConditionArg("condition"),
+                        SnQLDateArg("middle"),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        f"quantileIf({args['percentile']:.2f})",
+                        [
+                            args["column"],
+                            # This condition is written in this seemingly backwards way because of limitations
+                            # in the json query syntax.
+                            # TODO(snql-migration): Once the trends endpoint is using snql, we should update it
+                            # and flip these conditions back
+                            Function(args["condition"], [args["middle"], self.column("timestamp")]),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                ),
+                SnQLFunction(
+                    "avg_range",
+                    required_args=[
+                        NumericColumn("column"),
+                        ConditionArg("condition"),
+                        SnQLDateArg("middle"),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "avgIf",
+                        [
+                            args["column"],
+                            # see `percentile_range` for why this condition feels backwards
+                            Function(
+                                args["condition"],
+                                [args["middle"], self.column("timestamp")],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                ),
+                SnQLFunction(
+                    "variance_range",
+                    required_args=[
+                        NumericColumn("column"),
+                        ConditionArg("condition"),
+                        SnQLDateArg("middle"),
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "varSampIf",
+                        [
+                            args["column"],
+                            # see `percentile_range` for why this condition feels backwards
+                            Function(
+                                args["condition"],
+                                [args["middle"], self.column("timestamp")],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                ),
+                SnQLFunction(
+                    "count_range",
+                    required_args=[ConditionArg("condition"), SnQLDateArg("middle")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            # see `percentile_range` for why this condition feels backwards
+                            Function(
+                                args["condition"],
+                                [args["middle"], self.column("timestamp")],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "count_if",
+                    required_args=[
+                        ColumnTagArg("column"),
+                        ConditionArg("condition"),
+                        SnQLStringArg(
+                            "value", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "typed_value",
+                            "fn": normalize_count_if_value,
+                        }
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            Function(
+                                args["condition"],
+                                [
+                                    args["column"],
+                                    args["typed_value"],
+                                ],
+                            )
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "count_unique",
+                    required_args=[ColumnTagArg("column")],
+                    snql_aggregate=lambda args, alias: Function("uniq", [args["column"]], alias),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "count_at_least",
+                    required_args=[NumericColumn("column"), NumberRange("threshold", 0, None)],
+                    snql_aggregate=lambda args, alias: Function(
+                        "countIf",
+                        [Function("greaterOrEquals", [args["column"], args["threshold"]])],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "min",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "max",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function("max", [args["column"]], alias),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                    combinators=[
+                        SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
+                    ],
+                ),
+                SnQLFunction(
+                    "avg",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function("max", [args["column"]], alias),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "var",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function("varSamp", [args["column"]], alias),
+                    default_result_type="number",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "stddev",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "stddevSamp", [args["column"]], alias
+                    ),
+                    default_result_type="number",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "cov",
+                    required_args=[NumericColumn("column1"), NumericColumn("column2")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "covarSamp", [args["column1"], args["column2"]], alias
+                    ),
+                    default_result_type="number",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "corr",
+                    required_args=[NumericColumn("column1"), NumericColumn("column2")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "corr", [args["column1"], args["column2"]], alias
+                    ),
+                    default_result_type="number",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "sum",
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: Function("sum", [args["column"]], alias),
+                    result_type_fn=reflective_result_type(),
+                    default_result_type="duration",
+                    combinators=[
+                        SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
+                    ],
+                ),
+                SnQLFunction(
+                    "any",
+                    required_args=[SnQLFieldColumn("column")],
+                    # Not actually using `any` so that this function returns consistent results
+                    snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
+                    result_type_fn=reflective_result_type(),
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "absolute_delta",
+                    required_args=[DurationColumn("column"), NumberRange("target", 0, None)],
+                    snql_column=lambda args, alias: Function(
+                        "abs", [Function("minus", [args["column"], args["target"]])], alias
+                    ),
+                    default_result_type="duration",
+                ),
+                SnQLFunction(
+                    "eps",
+                    snql_aggregate=lambda args, alias: Function(
+                        "divide", [Function("count", []), args["interval"]], alias
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "epm",
+                    snql_aggregate=lambda args, alias: Function(
+                        "divide",
+                        [Function("count", []), Function("divide", [args["interval"], 60])],
+                        alias,
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "compare_numeric_aggregate",
+                    required_args=[
+                        FunctionAliasArg("aggregate_alias"),
+                        ConditionArg("condition"),
+                        NumberRange("value", 0, None),
+                    ],
+                    calculated_args=[
+                        {
+                            "name": "aggregate_function",
+                            "fn": normalize_percentile_alias,
+                        }
+                    ],
+                    snql_aggregate=lambda args, alias: Function(
+                        args["condition"],
+                        [self.resolve_function(args["aggregate_function"]), args["value"]],
+                        alias,
+                    ),
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "array_join",
+                    required_args=[StringArrayColumn("column")],
+                    snql_column=lambda args, alias: Function("arrayJoin", [args["column"]], alias),
+                    default_result_type="string",
+                    private=True,
+                ),
+                # TODO: implement these
+                SnQLFunction("histogram", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("percentage", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("t_test", snql_aggregate=self._resolve_unimplemented_function),
                 SnQLFunction("minus", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction(
-                    "absolute_correlation", snql_aggregate=self._resolve_unimplemented_function
-                ),
-                SnQLFunction("count_unique", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction("count_if", snql_aggregate=self._resolve_unimplemented_function),
-                SnQLFunction(
-                    "compare_numeric_aggregate", snql_aggregate=self._resolve_unimplemented_function
-                ),
-                SnQLFunction("to_other", snql_aggregate=self._resolve_unimplemented_function),
+                SnQLFunction("absolute_delta", snql_aggregate=self._resolve_unimplemented_function),
             ]
         }
 
-    def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
+        for alias, name in FUNCTION_ALIASES.items():
+            self.function_converter[alias] = self.function_converter[name].alias_as(alias)
+
+    def resolve_select(
+        self, selected_columns: Optional[List[str]], equations: Optional[List[str]]
+    ) -> List[SelectType]:
+        """Given a public list of discover fields, construct the corresponding
+        list of Snql Columns or Functions. Duplicate columns are ignored
+        """
+
         if selected_columns is None:
             return []
 
-        columns = []
+        resolved_columns = []
+        stripped_columns = [column.strip() for column in selected_columns]
 
-        for field in selected_columns:
-            if field.strip() == "":
+        if equations:
+            _, _, parsed_equations = resolve_equation_list(
+                equations, stripped_columns, use_snql=True
+            )
+            resolved_columns.extend(
+                [
+                    self.resolve_equation(equation, f"equation[{index}]")
+                    for index, equation in enumerate(parsed_equations)
+                ]
+            )
+
+        # Add threshold config alias if there's a function that depends on it
+        # TODO: this should be replaced with an explicit request for the project_threshold_config as a column
+        for column in {
+            "apdex()",
+            "count_miserable(user)",
+            "user_misery()",
+        }:
+            if (
+                column in stripped_columns
+                and PROJECT_THRESHOLD_CONFIG_ALIAS not in stripped_columns
+            ):
+                stripped_columns.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
+                break
+
+        for column in stripped_columns:
+            if column == "":
                 continue
-            resolved_field = self.resolve_field(field)
-            if resolved_field not in self.columns:
-                columns.append(resolved_field)
+            # need to make sure the column is resolved with the appropriate alias
+            # because the resolved snuba name may be different
+            resolved_column = self.resolve_column(column, alias=True)
+            if resolved_column not in self.columns:
+                resolved_columns.append(resolved_column)
 
-        return columns
+        # Happens after resolving columns to check if there any aggregates
+        if self.auto_fields:
+            # Ensure fields we require to build a functioning interface
+            # are present.
+            if not self.aggregates and "id" not in stripped_columns:
+                resolved_columns.append(self.resolve_column("id", alias=True))
+            if "id" in stripped_columns and "project.id" not in stripped_columns:
+                resolved_columns.append(self.resolve_column("project.name", alias=True))
 
-    def resolve_field(self, field: str) -> SelectType:
+        return resolved_columns
+
+    def resolve_column(self, field: str, alias: bool = False) -> SelectType:
+        """Given a public field, construct the corresponding Snql, this
+        function will determine the type of the field alias, whether its a
+        column, field alias or function and call the corresponding resolver
+
+        :param field: The public field string to resolve into Snql. This may
+                      be a column, field alias, or even a function.
+        :param alias: Whether or not the resolved column is aliased to the
+                      original name. If false, it may still have an alias
+                      but is not guaranteed.
+        """
         match = is_function(field)
         if match:
             return self.resolve_function(field, match)
-
-        if self.is_field_alias(field):
+        elif self.is_field_alias(field):
             return self.resolve_field_alias(field)
+        else:
+            return self.resolve_field(field, alias=alias)
 
-        tag_match = TAG_KEY_RE.search(field)
-        field = tag_match.group("tag") if tag_match else field
+    def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
+        """Given a public field, resolve the alias based on the Query's
+        dataset and return the Snql Column
+        """
+        tag_match = TAG_KEY_RE.search(raw_field)
+        field = tag_match.group("tag") if tag_match else raw_field
 
         if VALID_FIELD_PATTERN.match(field):
-            if field in self.field_allowlist:
-                return self.column(field)
-            else:
-                raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+            return self.aliased_column(field, raw_field) if alias else self.column(field)
         else:
             raise InvalidSearchQuery(f"Invalid characters in field {field}")
 
+    def resolve_equation(self, equation: Operation, alias: Optional[str] = None) -> SelectType:
+        """Convert this tree of Operations to the equivalent snql functions"""
+        lhs = self._resolve_equation_side(equation.lhs)
+        rhs = self._resolve_equation_side(equation.rhs)
+        result = Function(equation.operator, [lhs, rhs], alias)
+        return result
+
+    def _resolve_equation_side(self, side: OperationSideType) -> Union[SelectType, float]:
+        if isinstance(side, Operation):
+            return self.resolve_equation(side)
+        elif isinstance(side, float):
+            return side
+        else:
+            return self.resolve_column(side)
+
+    def is_equation_column(self, column: SelectType) -> bool:
+        """Equations are only ever functions, and shouldn't be literals so we
+        need to check that the column is a Function
+        """
+        return isinstance(column, CurriedFunction) and is_equation_alias(column.alias)
+
     def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
+        """Given a list of public aliases, optionally prefixed by a `-` to
+        represent direction, construct a list of Snql Orderbys
+        """
         validated: List[OrderBy] = []
 
         if orderby is None:
@@ -2358,22 +2926,39 @@ class QueryFields(QueryBase):
 
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
-            resolved_orderby = self.resolve_field(bare_orderby)
+            try:
+                if is_equation_alias(bare_orderby):
+                    resolved_orderby = bare_orderby
+                else:
+                    resolved_orderby = self.resolve_column(bare_orderby)
+            except NotImplementedError:
+                resolved_orderby = None
+
             direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
+
+            if is_function(bare_orderby):
+                bare_orderby = resolved_orderby.alias
 
             for selected_column in self.columns:
                 if isinstance(selected_column, Column) and selected_column == resolved_orderby:
                     validated.append(OrderBy(selected_column, direction))
-                    continue
+                    break
+
                 elif (
-                    isinstance(selected_column, Function) and selected_column.alias == bare_orderby
+                    isinstance(selected_column, AliasedExpression)
+                    and selected_column.alias == bare_orderby
+                ):
+                    # We cannot directly order by an `AliasedExpression`.
+                    # Instead, we order by the column inside.
+                    validated.append(OrderBy(selected_column.exp, direction))
+                    break
+
+                elif (
+                    isinstance(selected_column, CurriedFunction)
+                    and selected_column.alias == bare_orderby
                 ):
                     validated.append(OrderBy(selected_column, direction))
-                    continue
-
-            # TODO: orderby aggregations
-
-            # TODO: orderby field aliases
+                    break
 
         if len(validated) == len(orderby_columns):
             return validated
@@ -2382,19 +2967,25 @@ class QueryFields(QueryBase):
         # for now so we're consistent with the existing functionality
         raise InvalidSearchQuery("Cannot order by a field that is not selected.")
 
-    def is_field_alias(self, alias: str) -> bool:
-        return alias in self.field_alias_converter
+    def is_field_alias(self, field: str) -> bool:
+        """Given a public field, check if it's a field alias"""
+        return field in self.field_alias_converter
 
     def resolve_field_alias(self, alias: str) -> SelectType:
+        """Given a field alias, convert it to its corresponding snql"""
         converter = self.field_alias_converter.get(alias)
         if not converter:
             raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
         return converter(alias)
 
     def is_function(self, function: str) -> bool:
+        """ "Given a public field, check if it's a supported function"""
         return function in self.function_converter
 
     def resolve_function(self, function: str, match: Optional[Match[str]] = None) -> SelectType:
+        """Given a public function, resolve to the corresponding Snql
+        function
+        """
         if match is None:
             match = is_function(function)
 
@@ -2404,28 +2995,65 @@ class QueryFields(QueryBase):
         if function in self.params.get("aliases", {}):
             raise NotImplementedError("Aggregate aliases not implemented in snql field parsing yet")
 
-        name, arguments, alias = self.parse_function(match)
-        snql_function = self.function_converter.get(name)
+        name, combinator_name, arguments, alias = self.parse_function(match)
+        snql_function = self.function_converter[name]
 
-        arguments = snql_function.format_as_arguments(name, arguments, self.params)
+        combinator = snql_function.find_combinator(combinator_name)
+
+        if combinator_name is not None and combinator is None:
+            raise InvalidSearchQuery(
+                f"{snql_function.name}: no support for the -{combinator_name} combinator"
+            )
+
+        if not snql_function.is_accessible(self.functions_acl, combinator):
+            raise InvalidSearchQuery(f"{snql_function.name}: no access to private function")
+
+        combinator_applied = False
+
+        arguments = snql_function.format_as_arguments(name, arguments, self.params, combinator)
+
+        self.function_alias_map[alias] = FunctionDetails(function, snql_function, arguments.copy())
+
+        for arg in snql_function.args:
+            if isinstance(arg, ColumnArg):
+                arguments[arg.name] = self.resolve_column(arguments[arg.name])
+            if combinator is not None and combinator.is_applicable(arg.name):
+                arguments[arg.name] = combinator.apply(arguments[arg.name])
+                combinator_applied = True
+
+        if combinator and not combinator_applied:
+            raise InvalidSearchQuery("Invalid combinator: Arguments passed were incompatible")
 
         if snql_function.snql_aggregate is not None:
             self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
-        return snql_function.snql_aggregate(arguments, alias)
+            return snql_function.snql_aggregate(arguments, alias)
 
-    def parse_function(self, match: Match[str]) -> Tuple[str, List[str], str]:
-        function = match.group("function")
+        return snql_function.snql_column(arguments, alias)
+
+    def parse_function(self, match: Match[str]) -> Tuple[str, Optional[str], List[str], str]:
+        """Given a FUNCTION_PATTERN match, seperate the function name, arguments
+        and alias out
+        """
+        raw_function = match.group("function")
+        function, combinator = parse_combinator(raw_function)
+
         if not self.is_function(function):
             raise InvalidSearchQuery(f"{function} is not a valid function")
 
-        arguments = match.group("columns")
-        arguments = parse_arguments(function, arguments)
+        arguments = parse_arguments(function, match.group("columns"))
         alias = match.group("alias")
 
         if alias is None:
-            alias = get_function_alias_with_columns(function, arguments)
+            alias = get_function_alias_with_columns(raw_function, arguments)
 
-        return (function, arguments, alias)
+        return (function, combinator, arguments, alias)
+
+    def get_public_alias(self, function: CurriedFunction) -> str:
+        """Given a function resolved by QueryBuilder, get the public alias of that function
+
+        ie. any_user_display -> any(user_display)
+        """
+        return self.function_alias_map[function.alias].field
 
     # Field Aliases
     def _resolve_issue_id_alias(self, _: str) -> SelectType:
@@ -2469,12 +3097,6 @@ class QueryFields(QueryBase):
     def _resolve_user_display_alias(self, _: str) -> SelectType:
         columns = ["user.email", "user.username", "user.ip"]
         return Function("coalesce", [self.column(column) for column in columns], USER_DISPLAY_ALIAS)
-
-    def _resolve_transaction_status(self, _: str) -> SelectType:
-        # TODO: Remove the `toUInt8` once Column supports aliases
-        return Function(
-            "toUInt8", [self.column(TRANSACTION_STATUS_ALIAS)], TRANSACTION_STATUS_ALIAS
-        )
 
     def _resolve_project_threshold_config(self, _: str) -> SelectType:
         org_id = self.params.get("organization_id")
@@ -2655,13 +3277,6 @@ class QueryFields(QueryBase):
     def _resolve_error_unhandled_alias(self, _: str) -> SelectType:
         return Function("notHandled", [], ERROR_UNHANDLED_ALIAS)
 
-    def _resolve_error_handled_alias(self, _: str) -> SelectType:
-        # Columns in snuba doesn't support aliasing right now like Function does.
-        # Adding a no-op here to get the alias.
-        return Function(
-            "cast", [self.column("error.handled"), "Array(Nullable(UInt8))"], ERROR_HANDLED_ALIAS
-        )
-
     def _project_threshold_multi_if_function(self) -> SelectType:
         """Accessed by `_resolve_apdex_function` and `_resolve_count_miserable_function`,
         this returns the right duration value (for example, lcp or duration) based
@@ -2676,7 +3291,7 @@ class QueryFields(QueryBase):
                     [
                         Function(
                             "tupleElement",
-                            [self.resolve_field("project_threshold_config"), 1],
+                            [self.resolve_field_alias("project_threshold_config"), 1],
                         ),
                         "lcp",
                     ],
@@ -2692,7 +3307,7 @@ class QueryFields(QueryBase):
         else:
             function_args = [
                 self._project_threshold_multi_if_function(),
-                Function("tupleElement", [self.resolve_field("project_threshold_config"), 2]),
+                Function("tupleElement", [self.resolve_field_alias("project_threshold_config"), 2]),
             ]
 
         return Function("apdex", function_args, alias)
@@ -2708,21 +3323,14 @@ class QueryFields(QueryBase):
                 [
                     Function(
                         "tupleElement",
-                        [self.resolve_field("project_threshold_config"), 2],
+                        [self.resolve_field_alias("project_threshold_config"), 2],
                     ),
                     4,
                 ],
             )
         col = args["column"]
 
-        return Function(
-            "uniqIf",
-            [
-                self.resolve_field_alias(col) if self.is_field_alias(col) else self.column(col),
-                Function("greater", [lhs, rhs]),
-            ],
-            alias,
-        )
+        return Function("uniqIf", [col, Function("greater", [lhs, rhs])], alias)
 
     def _resolve_user_misery_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:
@@ -2757,6 +3365,63 @@ class QueryFields(QueryBase):
                 0,
             ],
             alias,
+        )
+
+    def _resolve_percentile(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str,
+        fixed_percentile: float = None,
+    ) -> SelectType:
+        return (
+            Function(
+                "max",
+                [args["column"]],
+                alias,
+            )
+            if fixed_percentile == 1
+            else Function(
+                f'quantile({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
+                [args["column"]],
+                alias,
+            )
+        )
+
+    def _resolve_division(self, dividend: str, divisor: str, alias: str) -> SelectType:
+        return Function(
+            "if",
+            [
+                Function(
+                    "greater",
+                    [self.column(divisor), 0],
+                ),
+                Function(
+                    "divide",
+                    [
+                        self.column(dividend),
+                        self.column(divisor),
+                    ],
+                ),
+                None,
+            ],
+            alias,
+        )
+
+    def _resolve_measurements_frames_slow_rate(self, _: str) -> SelectType:
+        return self._resolve_division(
+            "measurements.frames_slow", "measurements.frames_total", MEASUREMENTS_FRAMES_SLOW_RATE
+        )
+
+    def _resolve_measurements_frames_frozen_rate(self, _: str) -> SelectType:
+        return self._resolve_division(
+            "measurements.frames_frozen",
+            "measurements.frames_total",
+            MEASUREMENTS_FRAMES_FROZEN_RATE,
+        )
+
+    def _resolve_measurements_stall_percentage(self, _: str) -> SelectType:
+        return self._resolve_division(
+            "measurements.stall_total_time", "transaction.duration", MEASUREMENTS_STALL_PERCENTAGE
         )
 
     def _resolve_unimplemented_function(

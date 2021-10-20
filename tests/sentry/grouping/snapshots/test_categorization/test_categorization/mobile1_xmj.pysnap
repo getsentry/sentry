@@ -1,5 +1,5 @@
 ---
-created: '2021-03-30T09:16:31.691096Z'
+created: '2021-08-03T17:17:26.431969Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -14,7 +14,7 @@ SIGABRT:DRHT (thread_id:_, crashed:_)
                               CoreFoundation  __CFRunLoopRun category=internals
                               CoreFoundation  __CFRunLoopDoSources0 category=internals
                               CoreFoundation  __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ category=internals
-                                       UIKit  __handleHIDEventFetcherDrain category=ui
+                                       UIKit  __handleHIDEventFetcherDrain category=internals
                                        UIKit  __handleEventQueue category=internals
                                        UIKit  __dispatchPreprocessedEventFromEventQueue category=internals
                                        UIKit  -[UIApplication sendEvent:] category=internals

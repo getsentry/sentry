@@ -1,10 +1,10 @@
 import re
-from typing import List
+from typing import List, Optional
 
 from django.db.models import Q
 from django.http.request import HttpRequest
 
-from sentry.incidents.models import Incident
+from sentry.incidents.models import Incident, User
 from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
 from sentry.models.integration import Integration
 
@@ -19,7 +19,10 @@ map_incident_args = make_type_coercer(
 
 
 def unfurl_incidents(
-    request: HttpRequest, integration: Integration, links: List[UnfurlableUrl]
+    request: HttpRequest,
+    integration: Integration,
+    links: List[UnfurlableUrl],
+    user: Optional["User"] = None,
 ) -> UnfurledUrl:
     filter_query = Q()
     # Since we don't have real ids here, we use the org slug so that we can
@@ -51,7 +54,7 @@ def unfurl_incidents(
     }
 
 
-handler = Handler(
+handler: Handler = Handler(
     fn=unfurl_incidents,
     matcher=re.compile(
         r"^https?\://[^/]+/organizations/(?P<org_slug>[^/]+)/alerts/rules/details/(?P<incident_id>\d+)"

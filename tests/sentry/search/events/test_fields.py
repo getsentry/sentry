@@ -2,18 +2,24 @@ import unittest
 
 import pytest
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from snuba_sdk.column import Column
+from snuba_sdk.function import Function
 
 from sentry import eventstore
 from sentry.search.events.fields import (
+    COMBINATORS,
     FUNCTIONS,
     FunctionDetails,
     InvalidSearchQuery,
+    QueryFields,
     get_json_meta_type,
     parse_arguments,
+    parse_combinator,
     parse_function,
     resolve_field_list,
 )
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.snuba import Dataset
 
 
 @pytest.mark.parametrize(
@@ -39,7 +45,7 @@ from sentry.testutils.helpers.datetime import before_now
         ("p100", "Float32", None, "duration"),
         ("apdex_transaction_duration_300", "Float32", None, "number"),
         ("failure_rate", "Float32", None, "percentage"),
-        ("count_miserable_user_300", "Float32", None, "number"),
+        ("count_miserable_user_300", "Float32", None, "integer"),
         ("user_misery_300", "Float32", None, "number"),
         ("percentile_transaction_duration_0_95", "Float32", None, "duration"),
         ("count_thing", "UInt64", None, "integer"),
@@ -165,6 +171,7 @@ def test_get_json_meta_type(field_alias, snuba_type, function, expected):
             r'to_other(release,"asdf @ \"qwer: (3,2)")',
             ("to_other", ["release", r'"asdf @ \"qwer: (3,2)"'], None),
         ),
+        ("identity(sessions)", ("identity", ["sessions"], None)),
     ],
 )
 def test_parse_function(function, expected):
@@ -188,6 +195,19 @@ def test_parse_function(function, expected):
 )
 def test_parse_arguments(function, columns, result):
     assert parse_arguments(function, columns) == result
+
+
+@pytest.mark.parametrize(
+    "function, expected",
+    [
+        pytest.param("func", ("func", None), id="no combinators"),
+        pytest.param("funcArray", ("func", "Array"), id="-Array combinator"),
+        pytest.param("funcarray", ("funcarray", None), id="is case sensitive"),
+        pytest.param("func_array", ("func_array", None), id="does not accept snake case"),
+    ],
+)
+def test_parse_combinator(function, expected):
+    assert parse_combinator(function) == expected
 
 
 class ResolveFieldListTest(unittest.TestCase):
@@ -356,14 +376,15 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
 
     def test_aggregate_function_expansion(self):
-        fields = ["count_unique(user)", "count(id)", "min(timestamp)"]
-        result = resolve_field_list(fields, eventstore.Filter())
+        fields = ["count_unique(user)", "count(id)", "min(timestamp)", "identity(sessions)"]
+        result = resolve_field_list(fields, eventstore.Filter(), functions_acl=["identity"])
         # Automatic fields should be inserted, count() should have its column dropped.
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["uniq", "user", "count_unique_user"],
             ["count", None, "count_id"],
             ["min", "timestamp", "min_timestamp"],
+            ["identity", "sessions", "identity_sessions"],
         ]
         assert result["groupby"] == []
 
@@ -1608,3 +1629,70 @@ class ResolveFieldListTest(unittest.TestCase):
         assert (
             str(query_error.exception) == "'fakestatus' is not a valid value for transaction.status"
         )
+
+
+def resolve_snql_fieldlist(fields):
+    return QueryFields(Dataset.Discover, {}).resolve_select(fields, [])
+
+
+@pytest.mark.parametrize(
+    "field,expected",
+    [
+        (
+            "percentile_range(transaction.duration, 0.5, greater, 2020-05-03T06:48:57) as percentile_range_1",
+            Function(
+                "quantileIf(0.50)",
+                [
+                    Column("duration"),
+                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                ],
+                "percentile_range_1",
+            ),
+        ),
+        (
+            "avg_range(transaction.duration, greater, 2020-05-03T06:48:57) as avg_range_1",
+            Function(
+                "avgIf",
+                [
+                    Column("duration"),
+                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                ],
+                "avg_range_1",
+            ),
+        ),
+        (
+            "variance_range(transaction.duration, greater, 2020-05-03T06:48:57) as variance_range_1",
+            Function(
+                "varSampIf",
+                [
+                    Column("duration"),
+                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                ],
+                "variance_range_1",
+            ),
+        ),
+        (
+            "count_range(greater, 2020-05-03T06:48:57) as count_range_1",
+            Function(
+                "countIf",
+                [
+                    Function("greater", ["2020-05-03T06:48:57", Column("timestamp")]),
+                ],
+                "count_range_1",
+            ),
+        ),
+    ],
+)
+def test_range_funtions(field, expected):
+    fields = resolve_snql_fieldlist([field])
+    assert len(fields) == 1
+    assert fields[0] == expected
+
+
+@pytest.mark.parametrize("combinator", COMBINATORS)
+def test_combinator_names_are_reserved(combinator):
+    fields = QueryFields(dataset=Dataset.Discover, params={})
+    for function in fields.function_converter:
+        assert not function.endswith(
+            combinator.kind
+        ), f"Cannot name function `{function}` because `-{combinator.kind}` suffix is reserved for combinators"

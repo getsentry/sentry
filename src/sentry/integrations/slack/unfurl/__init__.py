@@ -1,11 +1,11 @@
 import enum
-from typing import Any, Callable, List, Mapping, NamedTuple, Pattern
+from typing import Any, Callable, List, Mapping, NamedTuple, Optional, Pattern, Tuple
 
 from django.http.request import HttpRequest
 
-from sentry.models import Integration
+from sentry.models import Integration, User
 
-UnfurledUrl = Mapping
+UnfurledUrl = Mapping[Any, Any]
 ArgsMapper = Callable[[str, Mapping[str, str]], Mapping[str, Any]]
 
 
@@ -21,9 +21,9 @@ class UnfurlableUrl(NamedTuple):
 
 
 class Handler(NamedTuple):
-    matcher: Pattern
+    matcher: Pattern[Any]
     arg_mapper: ArgsMapper
-    fn: Callable[[HttpRequest, Integration, List[UnfurlableUrl]], UnfurledUrl]
+    fn: Callable[[HttpRequest, Integration, List[UnfurlableUrl], Optional["User"]], UnfurledUrl]
 
 
 def make_type_coercer(type_map: Mapping[str, type]) -> ArgsMapper:
@@ -49,7 +49,7 @@ link_handlers = {
 }
 
 
-def match_link(link: str):
+def match_link(link: str) -> Tuple[Optional[LinkType], Optional[Mapping[str, Any]]]:
     for link_type, handler in link_handlers.items():
         match = handler.matcher.match(link)
         if not match:

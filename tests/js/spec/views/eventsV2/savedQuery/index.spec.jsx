@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import EventView from 'app/utils/discover/eventView';
 import DiscoverBanner from 'app/views/eventsV2/banner';
@@ -17,6 +18,7 @@ function generateWrappedComponent(
   organization,
   eventView,
   savedQuery,
+  yAxis,
   disabled = false
 ) {
   return mountWithTheme(
@@ -27,6 +29,7 @@ function generateWrappedComponent(
       savedQuery={savedQuery}
       disabled={disabled}
       updateCallback={() => {}}
+      yAxis={yAxis}
     />,
     TestStubs.routerContext()
   );
@@ -34,13 +37,19 @@ function generateWrappedComponent(
 
 describe('EventsV2 > SaveQueryButtonGroup', function () {
   // Organization + Location does not affect state in this component
-  const organization = TestStubs.Organization({features: ['discover-query']});
+  const organization = TestStubs.Organization({
+    features: ['discover-query', 'connect-discover-and-dashboards', 'dashboards-edit'],
+  });
   const location = {
     pathname: '/organization/eventsv2/',
     query: {},
   };
+  const yAxis = ['count()', 'failure_count()'];
 
-  const errorsQuery = ALL_VIEWS.find(view => view.name === 'Errors by Title');
+  const errorsQuery = {
+    ...ALL_VIEWS.find(view => view.name === 'Errors by Title'),
+    yAxis: 'count()',
+  };
   const errorsView = EventView.fromSavedQuery(errorsQuery);
 
   const errorsViewSaved = EventView.fromSavedQuery(errorsQuery);
@@ -50,7 +59,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
   errorsViewModified.id = '1';
   errorsViewModified.name = 'Modified Name';
 
-  const savedQuery = errorsViewSaved.toNewQuery();
+  const savedQuery = {...errorsViewSaved.toNewQuery(), yAxis};
 
   describe('building on a new query', () => {
     const mockUtils = jest
@@ -67,6 +76,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         organization,
         errorsView,
         undefined,
+        yAxis,
         true
       );
 
@@ -79,7 +89,8 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         location,
         organization,
         errorsView,
-        undefined
+        undefined,
+        yAxis
       );
 
       const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
@@ -98,7 +109,8 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         location,
         organization,
         errorsView,
-        undefined
+        undefined,
+        yAxis
       );
 
       // Click on ButtonSaveAs to open dropdown
@@ -124,7 +136,8 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         location,
         organization,
         errorsView,
-        undefined
+        undefined,
+        yAxis
       );
 
       // Click on ButtonSaveAs to open dropdown
@@ -147,6 +160,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
           ...errorsView,
           name: 'My New Query Name',
         }),
+        yAxis,
         true
       );
     });
@@ -156,7 +170,8 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         location,
         organization,
         errorsView,
-        undefined
+        undefined,
+        yAxis
       );
 
       // Click on ButtonSaveAs to open dropdown
@@ -194,7 +209,48 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         location,
         organization,
         errorsViewSaved,
-        savedQuery
+        savedQuery,
+        yAxis
+      );
+
+      const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
+      const buttonSaved = wrapper.find(SELECTOR_BUTTON_SAVED);
+      const buttonUpdate = wrapper.find(SELECTOR_BUTTON_UPDATE);
+      const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE);
+
+      expect(buttonSaveAs.exists()).toBe(false);
+      expect(buttonSaved.exists()).toBe(true);
+      expect(buttonUpdate.exists()).toBe(false);
+      expect(buttonDelete.exists()).toBe(true);
+    });
+
+    it('treats undefined yAxis the same as count() when checking for changes', () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewSaved,
+        {...savedQuery, yAxis: undefined},
+        ['count()']
+      );
+
+      const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
+      const buttonSaved = wrapper.find(SELECTOR_BUTTON_SAVED);
+      const buttonUpdate = wrapper.find(SELECTOR_BUTTON_UPDATE);
+      const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE);
+
+      expect(buttonSaveAs.exists()).toBe(false);
+      expect(buttonSaved.exists()).toBe(true);
+      expect(buttonUpdate.exists()).toBe(false);
+      expect(buttonDelete.exists()).toBe(true);
+    });
+
+    it('converts string yAxis values to array when checking for changes', () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewSaved,
+        {...savedQuery, yAxis: 'count()'},
+        ['count()']
       );
 
       const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
@@ -213,7 +269,8 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         location,
         organization,
         errorsViewSaved,
-        savedQuery
+        savedQuery,
+        yAxis
       );
 
       const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE).first();
@@ -235,7 +292,8 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         location,
         organization,
         errorsViewModified,
-        errorsViewSaved.toNewQuery()
+        errorsViewSaved.toNewQuery(),
+        yAxis
       );
 
       const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
@@ -265,7 +323,8 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
           location,
           organization,
           errorsViewModified,
-          savedQuery
+          savedQuery,
+          yAxis
         );
 
         // Click on Save in the Dropdown
@@ -277,7 +336,8 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
           organization,
           expect.objectContaining({
             ...errorsViewModified,
-          })
+          }),
+          yAxis
         );
       });
     });
@@ -298,7 +358,8 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
           location,
           organization,
           errorsViewModified,
-          savedQuery
+          savedQuery,
+          yAxis
         );
 
         // Click on ButtonSaveAs to open dropdown
@@ -321,6 +382,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
             ...errorsViewModified,
             name: 'Forked Query',
           }),
+          yAxis,
           false
         );
       });
@@ -336,7 +398,8 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         location,
         metricAlertOrg,
         errorsViewModified,
-        savedQuery
+        savedQuery,
+        yAxis
       );
       const buttonCreateAlert = wrapper.find(SELECTOR_BUTTON_CREATE_ALERT);
 
@@ -347,11 +410,95 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         location,
         organization,
         errorsViewModified,
-        savedQuery
+        savedQuery,
+        yAxis
       );
       const buttonCreateAlert = wrapper.find(SELECTOR_BUTTON_CREATE_ALERT);
 
       expect(buttonCreateAlert.exists()).toBe(false);
+    });
+  });
+  describe('add dashboard widget', () => {
+    beforeEach(() => {
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [],
+      });
+    });
+
+    it('opens widget modal when add to dashboard is clicked', async () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewModified,
+        savedQuery,
+        yAxis
+      );
+      wrapper.find('AddToDashboardButton').first().simulate('click');
+      await tick();
+      await tick();
+      const modal = await mountGlobalModal();
+      expect(modal.find('AddDashboardWidgetModal').find('h4').children().html()).toEqual(
+        'Add Widget to Dashboard'
+      );
+    });
+
+    it('populates dashboard widget modal with saved query data if created from discover', async () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewModified,
+        savedQuery,
+        yAxis
+      );
+      wrapper.find('AddToDashboardButton').first().simulate('click');
+      await tick();
+      await tick();
+      const modal = await mountGlobalModal();
+      expect(modal.find('SmartSearchBar').props().query).toEqual('event.type:error');
+      expect(modal.find('QueryField').at(0).props().fieldValue.function[0]).toEqual(
+        'count'
+      );
+      expect(modal.find('QueryField').at(1).props().fieldValue.function[0]).toEqual(
+        'failure_count'
+      );
+    });
+
+    it('adds equation to query fields if yAxis includes comprising functions', async () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewModified,
+        savedQuery,
+        [...yAxis, 'equation|count() + failure_count()']
+      );
+      wrapper.find('AddToDashboardButton').first().simulate('click');
+      await tick();
+      await tick();
+      const modal = await mountGlobalModal();
+      expect(modal.find('QueryField').at(2).props().fieldValue.field).toEqual(
+        'count() + failure_count()'
+      );
+    });
+
+    it('does not add equations to query fields if yAxis does not contain comprising functions', async () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsViewModified,
+        savedQuery,
+        [...yAxis, 'equation|count() + count_unique(user)']
+      );
+      wrapper.find('AddToDashboardButton').first().simulate('click');
+      await tick();
+      await tick();
+      const modal = await mountGlobalModal();
+      expect(modal.find('QueryField').length).toEqual(2);
     });
   });
 });

@@ -18,7 +18,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Release} from 'app/types';
 import {analytics} from 'app/utils/analytics';
-import {RELEASES_TOUR_STEPS} from 'app/views/releases/list/releasePromo';
+import {RELEASES_TOUR_STEPS} from 'app/views/releases/list/releasesPromo';
 
 import MissingReleasesButtons from './missingFeatureButtons/missingReleasesButtons';
 import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
@@ -223,6 +223,7 @@ const ReleasesTable = styled('div')`
 const StyledVersion = styled(Version)`
   ${overflowEllipsis}
   line-height: 1.6;
+  font-variant-numeric: tabular-nums;
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

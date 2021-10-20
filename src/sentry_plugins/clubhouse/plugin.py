@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.conf.urls import url
 from rest_framework.response import Response
 
@@ -33,6 +35,9 @@ class ClubhousePlugin(CorePluginMixin, IssuePlugin2):
             IntegrationFeatures.ISSUE_BASIC,
         ),
     ]
+    deprecation_date = datetime(2021, 9, 20)
+    alternative = "shortcut"
+    alt_is_sentry_app = True
 
     issue_fields = frozenset(["id", "title", "url"])
 
@@ -146,7 +151,7 @@ class ClubhousePlugin(CorePluginMixin, IssuePlugin2):
         # TODO: Something about the search API won't allow an explicit number search.
         # Should it switch the search mechanism from search_stories(text) to get_story(id)?
         try:
-            response = client.search_stories(query=(f"project:{project} {query}").encode("utf-8"))
+            response = client.search_stories(query=(f"project:{project} {query}").encode())
         except Exception as e:
             return self.handle_api_error(e)
 

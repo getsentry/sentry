@@ -16,6 +16,7 @@ import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
 import {defined} from 'app/utils';
+import {explodeField, generateFieldAsString} from 'app/utils/discover/fields';
 import Measurements from 'app/utils/measurements/measurements';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -64,6 +65,8 @@ type State = AsyncView['state'] & {
 };
 
 class EventWidget extends AsyncView<Props, State> {
+  shouldReload = true;
+
   getDefaultState() {
     const {widget} = this.props;
 
@@ -190,6 +193,10 @@ class EventWidget extends AsyncView<Props, State> {
     }
   };
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderBody() {
     const {
       organization,
@@ -203,6 +210,8 @@ class EventWidget extends AsyncView<Props, State> {
     } = this.props;
     const {title, displayType, queries, interval, widgetErrors} = this.state;
     const orgSlug = organization.slug;
+
+    const explodedFields = queries[0].fields.map(field => explodeField({field}));
 
     function fieldOptions(measurementKeys: string[]) {
       return generateFieldOptions({
@@ -226,6 +235,7 @@ class EventWidget extends AsyncView<Props, State> {
         />
         <Layout.Body>
           <BuildSteps>
+            <ChooseDataSetStep value={DataSet.EVENTS} onChange={onChangeDataSet} />
             <BuildStep
               title={t('Choose your visualization')}
               description={t(
@@ -263,7 +273,6 @@ class EventWidget extends AsyncView<Props, State> {
                 />
               </VisualizationWrapper>
             </BuildStep>
-            <ChooseDataSetStep value={DataSet.EVENTS} onChange={onChangeDataSet} />
             <BuildStep
               title={t('Begin your search')}
               description={t('Add another query to compare projects, tags, etc.')}
@@ -289,12 +298,15 @@ class EventWidget extends AsyncView<Props, State> {
                     errors={this.getFirstQueryError('fields')}
                     displayType={displayType}
                     fieldOptions={amendedFieldOptions}
-                    fields={queries[0].fields}
+                    fields={explodedFields}
                     organization={organization}
                     onChange={fields => {
+                      const fieldStrings = fields.map(field =>
+                        generateFieldAsString(field)
+                      );
                       queries.forEach((query, queryIndex) => {
                         const clonedQuery = cloneDeep(query);
-                        clonedQuery.fields = fields;
+                        clonedQuery.fields = fieldStrings;
                         this.handleChangeQuery(queryIndex, clonedQuery);
                       });
                     }}

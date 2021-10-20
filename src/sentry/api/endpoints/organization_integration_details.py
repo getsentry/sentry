@@ -1,15 +1,18 @@
-from uuid import uuid4
-
+from django.db import transaction
 from rest_framework import serializers
 
-from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
 from sentry.features.helpers import requires_feature
-from sentry.models import AuditLogEntryEvent, Integration, ObjectStatus, OrganizationIntegration
+from sentry.models import (
+    AuditLogEntryEvent,
+    Integration,
+    ObjectStatus,
+    OrganizationIntegration,
+    ScheduledDeletion,
+)
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.tasks.deletion import delete_organization_integration
 from sentry.utils.audit import create_audit_entry
 
 
@@ -19,8 +22,6 @@ class IntegrationSerializer(serializers.Serializer):
 
 
 class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint):
-    permission_classes = (OrganizationIntegrationsPermission,)
-
     def get(self, request, organization, integration_id):
         org_integration = self.get_organization_integration(organization, integration_id)
 
@@ -76,26 +77,20 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         # do any integration specific deleting steps
         integration.get_installation(organization.id).uninstall()
 
-        updated = OrganizationIntegration.objects.filter(
-            id=org_integration.id, status=ObjectStatus.VISIBLE
-        ).update(status=ObjectStatus.PENDING_DELETION)
+        with transaction.atomic():
+            updated = OrganizationIntegration.objects.filter(
+                id=org_integration.id, status=ObjectStatus.VISIBLE
+            ).update(status=ObjectStatus.PENDING_DELETION)
 
-        if updated:
-            delete_organization_integration.apply_async(
-                kwargs={
-                    "object_id": org_integration.id,
-                    "transaction_id": uuid4().hex,
-                    "actor_id": request.user.id,
-                },
-                countdown=0,
-            )
-            create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=integration.id,
-                event=AuditLogEntryEvent.INTEGRATION_REMOVE,
-                data={"provider": integration.provider, "name": integration.name},
-            )
+            if updated:
+                ScheduledDeletion.schedule(org_integration, days=0, actor=request.user)
+                create_audit_entry(
+                    request=request,
+                    organization=organization,
+                    target_object=integration.id,
+                    event=AuditLogEntryEvent.INTEGRATION_REMOVE,
+                    data={"provider": integration.provider, "name": integration.name},
+                )
 
         return self.respond(status=204)
 

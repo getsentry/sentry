@@ -1,5 +1,5 @@
 ---
-created: '2021-07-14T12:39:39.654871Z'
+created: '2021-08-09T15:01:35.927520Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -137,72 +137,14 @@ app-depth-max:
     app-depth-max*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "RtlUserThreadStart"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "BaseThreadInitThunk"
-            package (ignored because function takes precedence)
-              "kernel32.dll"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
-              "exe_common.inl"
-            function*
-              "invoke_main"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
-              "winmain.cpp"
-            function*
-              "wWinMain"
           frame* (marked out of app by stack trace rule (family:native function:std::* -app))
             filename (discarded native filename for grouping stability)
               "xstring"
             function*
               "std::basic_string<T>::{ctor}"
-          frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
-              "xstring"
-            function*
-              "std::basic_string<T>::assign"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
-            filename (discarded native filename for grouping stability)
-              "xstring"
-            function*
-              "std::basic_string<T>::assign"
-          frame (ignored by stack trace rule (category:internals -group))
-            filename (discarded native filename for grouping stability)
-              "xstring"
-            function*
-              "std::basic_string<T>::_Reallocate_for"
           frame*
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
-              "functional"
-            function*
-              "std::_Func_class<T>::operator()"
           frame*
             function*
               "stripped_application_code"
@@ -211,81 +153,23 @@ app-depth-max:
               "DispatchMessageWorker"
             package (ignored because function takes precedence)
               "user32.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "UserCallWinProcCheckWow"
-            package (ignored because function takes precedence)
-              "user32.dll"
           frame*
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
-              "function_template.hpp"
-            function*
-              "boost::function0<T>::operator()"
           frame*
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
-              "function_template.hpp"
-            function*
-              "boost::function0<T>::operator()"
           frame*
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
-              "function_template.hpp"
-            function*
-              "boost::function0<T>::operator()"
           frame*
             function*
               "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored due to recursion)
-            function*
-              "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
-            filename (discarded native filename for grouping stability)
-              "purevirt.cpp"
-            function*
-              "_purecall"
-            package (ignored because function takes precedence)
-              "vcruntime140.dll"
-          frame (ignored by stack trace rule (category:internals -group))
-            function*
-              "abort"
-            package (ignored because function takes precedence)
-              "ucrtbase.dll"
           frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "raise"
             package (ignored because function takes precedence)
               "ucrtbase.dll"
-          frame (ignored by stack trace rule (category:throw +prefix ^-group))
-            filename (discarded native filename for grouping stability)
-              "crashpad_client_win.cc"
-            function*
-              "crashpad::`anonymous namespace'::HandleAbortSignal"
         type (ignored because exception is synthetic)
           "0x40000015 / 0x00000001"
         value (ignored because stacktrace takes precedence)

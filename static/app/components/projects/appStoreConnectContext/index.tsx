@@ -1,9 +1,8 @@
 import {createContext, useEffect, useState} from 'react';
 
-import {Client} from 'app/api';
 import {Organization, Project} from 'app/types';
 import {AppStoreConnectValidationData} from 'app/types/debugFiles';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 
 export type AppStoreConnectContextProps = AppStoreConnectValidationData | undefined;
 
@@ -14,18 +13,17 @@ import {getAppConnectStoreUpdateAlertMessage} from './utils';
 type ProviderProps = {
   children: React.ReactNode;
   organization: Organization;
-  api: Client;
   project?: Project;
 };
 
-const Provider = withApi(({api, children, project, organization}: ProviderProps) => {
+const Provider = ({children, project, organization}: ProviderProps) => {
+  const api = useApi();
+
   const [projectDetails, setProjectDetails] = useState<undefined | Project>();
   const [appStoreConnectValidationData, setAppStoreConnectValidationData] =
     useState<AppStoreConnectContextProps>(undefined);
 
   const orgSlug = organization.slug;
-  const hasAppConnectStoreFeatureFlag =
-    !!organization.features?.includes('app-store-connect');
 
   useEffect(() => {
     fetchProjectDetails();
@@ -36,7 +34,7 @@ const Provider = withApi(({api, children, project, organization}: ProviderProps)
   }, [projectDetails]);
 
   async function fetchProjectDetails() {
-    if (!hasAppConnectStoreFeatureFlag || !project || projectDetails) {
+    if (!project || projectDetails) {
       return;
     }
 
@@ -101,7 +99,7 @@ const Provider = withApi(({api, children, project, organization}: ProviderProps)
       {children}
     </AppStoreConnectContext.Provider>
   );
-});
+};
 
 const Consumer = AppStoreConnectContext.Consumer;
 

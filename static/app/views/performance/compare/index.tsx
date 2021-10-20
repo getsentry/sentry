@@ -1,13 +1,12 @@
 import * as React from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
 
 import NotFound from 'app/components/errors/notFound';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
@@ -22,9 +21,10 @@ type ComparedEventSlugs = {
   regressionEventSlug: string | undefined;
 };
 
-type Props = {
-  location: Location;
-  params: Params;
+type Props = RouteComponentProps<
+  {baselineEventSlug: string; regressionEventSlug: string},
+  {}
+> & {
   organization: Organization;
 };
 
@@ -125,9 +125,9 @@ class TransactionComparisonPage extends React.PureComponent<Props> {
       >
         <React.Fragment>
           <StyledPageContent>
-            <LightWeightNoProjectMessage organization={organization}>
+            <NoProjectMessage organization={organization}>
               {this.renderComparison({baselineEventSlug, regressionEventSlug})}
-            </LightWeightNoProjectMessage>
+            </NoProjectMessage>
           </StyledPageContent>
         </React.Fragment>
       </SentryDocumentTitle>

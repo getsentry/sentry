@@ -4,25 +4,29 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics, features
 from sentry.integrations.slack.client import SlackClient
+from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.event import SlackEventMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
+from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
+from sentry.utils.urls import parse_link
 from sentry.web.decorators import transaction_start
 
-from ..utils import logger, parse_link
+from ..utils import logger
 from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
 
-# XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will
-# need refactored
-
 
 class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
+    """
+    XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will need refactoring
+    """
 
     authentication_classes = ()
     permission_classes = ()
@@ -42,7 +46,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
     def reply(self, slack_request: SlackRequest, message: str) -> Response:
         client = SlackClient()
         access_token = self._get_access_token(slack_request.integration)
-        headers = {"Authorization": "Bearer %s" % access_token}
+        headers = {"Authorization": f"Bearer {access_token}"}
         data = slack_request.data.get("event")
         channel = data["channel"]
         payload = {"channel": channel, "text": message}
@@ -69,15 +73,52 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
     def on_url_verification(self, request: Request, data: Mapping[str, str]) -> Response:
         return self.respond({"challenge": data["challenge"]})
 
+    def prompt_link(
+        self,
+        data: Mapping[str, Any],
+        slack_request: SlackRequest,
+        integration: Integration,
+    ):
+        associate_url = build_linking_url(
+            integration=integration,
+            slack_id=slack_request.user_id,
+            channel_id=slack_request.channel_id,
+            response_url=slack_request.response_url,
+        )
+
+        builder = BlockSlackMessageBuilder()
+
+        blocks = [
+            builder.get_markdown_block(
+                "Link your Slack identity to Sentry to unfurl Discover charts."
+            ),
+            builder.get_action_block([("Link", associate_url, "link"), ("Cancel", None, "ignore")]),
+        ]
+
+        payload = {
+            "token": self._get_access_token(integration),
+            "channel": data["channel"],
+            "user": data["user"],
+            "text": "Link your Slack identity to Sentry to unfurl Discover charts.",
+            "blocks": json.dumps(blocks),
+        }
+
+        client = SlackClient()
+        try:
+            client.post("/chat.postEphemeral", data=payload)
+        except ApiError as e:
+            logger.error("slack.event.unfurl-error", extra={"error": str(e)}, exc_info=True)
+
     def on_message(
         self, request: Request, integration: Integration, token: str, data: Mapping[str, Any]
     ) -> Response:
         channel = data["channel"]
-        if self.is_bot(data):
+        command = request.data.get("event", {}).get("text", "").lower()
+        if self.is_bot(data) or not command:
             return self.respond()
         access_token = self._get_access_token(integration)
-        headers = {"Authorization": "Bearer %s" % access_token}
-        payload = {"channel": channel, **SlackEventMessageBuilder(integration).build()}
+        headers = {"Authorization": f"Bearer {access_token}"}
+        payload = {"channel": channel, **SlackEventMessageBuilder(integration, command).build()}
         client = SlackClient()
         try:
             client.post("/chat.postMessage", headers=headers, data=payload, json=True)
@@ -87,28 +128,51 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         return self.respond()
 
     def on_link_shared(
-        self, request: Request, integration: Integration, token: str, data: Mapping[str, Any]
+        self,
+        request: Request,
+        slack_request: SlackRequest,
     ) -> Optional[Response]:
         matches: Dict[LinkType, List[UnfurlableUrl]] = defaultdict(list)
         links_seen = set()
 
+        integration = slack_request.integration
+        data = slack_request.data.get("event")
+
         # An unfurl may have multiple links to unfurl
         for item in data["links"]:
             try:
-                # We would like to track what types of links users are sharing,
-                # but it's a little difficult to do in sentry since we filter
-                # requests from Slack bots. Instead we just log to Kibana
-                logger.info(
-                    "slack.link-shared", extra={"slack_shared_link": parse_link(item["url"])}
-                )
+                url = item["url"]
+                slack_shared_link = parse_link(url)
             except Exception as e:
                 logger.error("slack.parse-link-error", extra={"error": str(e)})
+                continue
 
-            link_type, args = match_link(item["url"])
+            # We would like to track what types of links users are sharing, but
+            # it's a little difficult to do in Sentry because we filter requests
+            # from Slack bots. Instead we just log to Kibana.
+            logger.info("slack.link-shared", extra={"slack_shared_link": slack_shared_link})
+            link_type, args = match_link(url)
 
             # Link can't be unfurled
             if link_type is None or args is None:
                 continue
+
+            if (
+                link_type == LinkType.DISCOVER
+                and not slack_request.has_identity
+                and features.has(
+                    "organizations:chart-unfurls",
+                    slack_request.integration.organizations.all()[0],
+                    actor=request.user,
+                )
+            ):
+                analytics.record(
+                    "integrations.slack.chart_unfurl",
+                    organization_id=integration.organizations.all()[0].id,
+                    unfurls_count=0,
+                )
+                self.prompt_link(data, slack_request, integration)
+                return self.respond()
 
             # Don't unfurl the same thing multiple times
             seen_marker = hash(json.dumps((link_type, args), sort_keys=True))
@@ -116,7 +180,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
                 continue
 
             links_seen.add(seen_marker)
-            matches[link_type].append(UnfurlableUrl(url=item["url"], args=args))
+            matches[link_type].append(UnfurlableUrl(url=url, args=args))
 
         if not matches:
             return None
@@ -124,7 +188,9 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         # Unfurl each link type
         results: Dict[str, Any] = {}
         for link_type, unfurl_data in matches.items():
-            results.update(link_handlers[link_type].fn(request, integration, unfurl_data))
+            results.update(
+                link_handlers[link_type].fn(request, integration, unfurl_data, slack_request.user)
+            )
 
         if not results:
             return None
@@ -161,9 +227,7 @@ class SlackEventEndpoint(SlackDMEndpoint):  # type: ignore
         if slack_request.type == "link_shared":
             resp = self.on_link_shared(
                 request,
-                slack_request.integration,
-                slack_request.data.get("token"),
-                slack_request.data.get("event"),
+                slack_request,
             )
 
             if resp:

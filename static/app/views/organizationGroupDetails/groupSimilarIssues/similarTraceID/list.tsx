@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location, Query} from 'history';
+import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {Client} from 'app/api';
@@ -11,7 +11,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import GroupListHeader from 'app/components/issues/groupListHeader';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import Pagination from 'app/components/pagination';
+import Pagination, {CursorHandler} from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
 import StreamGroup from 'app/components/stream/group';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -112,12 +112,11 @@ class List extends Component<Props, State> {
       .filter(event => !!event) as Array<CustomGroup>;
   };
 
-  handleCursorChange(cursor: string, path: string, query: Query, pageDiff: number) {
+  handleCursorChange: CursorHandler = (cursor, path, query, delta) =>
     browserHistory.push({
       pathname: path,
-      query: {...query, cursor: pageDiff <= 0 ? undefined : cursor},
+      query: {...query, cursor: delta <= 0 ? undefined : cursor},
     });
-  }
 
   handleRetry = () => {
     this.getGroups();

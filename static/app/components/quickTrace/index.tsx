@@ -42,9 +42,9 @@ import {
   EventNode,
   ExternalDropdownLink,
   QuickTraceContainer,
+  QuickTraceValue,
   SectionSubtext,
   SingleEventHoverText,
-  StyledTruncate,
   TraceConnector,
 } from './styles';
 
@@ -290,7 +290,10 @@ function EventNodeSelector({
   let errors: TraceError[] = events.flatMap(event => event.errors ?? []);
 
   let type: keyof Theme['tag'] = nodeKey === 'current' ? 'black' : 'white';
-  if (errors.length > 0) {
+
+  const hasErrors = errors.length > 0;
+
+  if (hasErrors) {
     type = nodeKey === 'current' ? 'error' : 'warning';
     text = (
       <ErrorNodeContent>
@@ -331,6 +334,7 @@ function EventNodeSelector({
         to={target}
         onClick={() => handleNode(nodeKey, organization)}
         type={type}
+        shouldOffset={hasErrors}
       />
     );
   } else {
@@ -351,7 +355,14 @@ function EventNodeSelector({
       <DropdownContainer>
         <DropdownLink
           caret={false}
-          title={<StyledEventNode text={text} hoverText={hoverText} type={type} />}
+          title={
+            <StyledEventNode
+              text={text}
+              hoverText={hoverText}
+              type={type}
+              shouldOffset={hasErrors}
+            />
+          }
           anchorRight={anchor === 'right'}
         >
           {errors.length > 0 && (
@@ -458,7 +469,7 @@ function DropdownNodeItem({
           }}
         </Projects>
         {isQuickTraceEvent(event) ? (
-          <StyledTruncate
+          <QuickTraceValue
             value={event.transaction}
             // expand in the opposite direction of the anchor
             expandDirection={anchor === 'left' ? 'right' : 'left'}
@@ -467,7 +478,7 @@ function DropdownNodeItem({
             trimRegex={/\.|\//g}
           />
         ) : (
-          <StyledTruncate
+          <QuickTraceValue
             value={event.title}
             // expand in the opposite direction of the anchor
             expandDirection={anchor === 'left' ? 'right' : 'left'}
@@ -486,12 +497,26 @@ type EventNodeProps = {
   to?: LocationDescriptor;
   onClick?: (eventKey: any) => void;
   type?: keyof Theme['tag'];
+  shouldOffset?: boolean;
 };
 
-function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNodeProps) {
+function StyledEventNode({
+  text,
+  hoverText,
+  to,
+  onClick,
+  type = 'white',
+  shouldOffset = false,
+}: EventNodeProps) {
   return (
     <Tooltip position="top" containerDisplayMode="inline-flex" title={hoverText}>
-      <EventNode type={type} icon={null} to={to} onClick={onClick}>
+      <EventNode
+        type={type}
+        icon={null}
+        to={to}
+        onClick={onClick}
+        shouldOffset={shouldOffset}
+      >
         {text}
       </EventNode>
     </Tooltip>

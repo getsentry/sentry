@@ -22,6 +22,8 @@ addopts = "-ra --tb=short --strict-markers -p no:celery"
 # currently we have a few relative imports that don't work with that.
 markers = [
     "snuba: mark a test as requiring snuba",
+    "itunes: test requires iTunes interaction, skipped unless --itunes is provided",
+    "getsentryllc: test requires credentials for the GetSentry LLC organisation in Apple App Store Connect",
 ]
 selenium_driver = "chrome"
 filterwarnings = [
@@ -39,6 +41,7 @@ filterwarnings = [
     # TODO(joshuarli): Upgrade responses, then revisit this.
     #                  It'll probably show up in other dependencies.
     "ignore::DeprecationWarning",
+    "error:Using or importing the ABCs from 'collections':DeprecationWarning",
 
     # At writing, the Google Bigtable Emulator relies on deprecated behavior
     # internally, this can be removed once a version containing this fix is

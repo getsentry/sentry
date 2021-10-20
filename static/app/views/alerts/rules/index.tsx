@@ -44,16 +44,13 @@ type State = {
 
 class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {params, location, organization} = this.props;
+    const {params, location} = this.props;
     const {query} = location;
 
-    if (organization.features.includes('alert-details-redesign')) {
-      query.expand = ['latestIncident'];
-    }
-
+    query.expand = ['latestIncident'];
     query.team = getTeamParams(query.team);
 
-    if (organization.features.includes('alert-details-redesign') && !query.sort) {
+    if (!query.sort) {
       query.sort = ['incident_status', 'date_triggered'];
     }
 
@@ -156,7 +153,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       field: query.sort || 'date_added',
     };
     const {cursor: _cursor, page: _page, ...currentQuery} = query;
-    const hasAlertList = organization.features.includes('alert-details-redesign');
     const isAlertRuleSort =
       sort.field.includes('incident_status') || sort.field.includes('date_triggered');
     const sortArrow = (
@@ -171,56 +167,39 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
           {this.renderFilterBar()}
           <StyledPanelTable
             headers={[
-              ...(hasAlertList
-                ? [
-                    // eslint-disable-next-line react/jsx-key
-                    <StyledSortLink
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...currentQuery,
-                          asc: sort.field === 'name' && !sort.asc ? '1' : undefined,
-                          sort: 'name',
-                        },
-                      }}
-                    >
-                      {t('Alert Rule')} {sort.field === 'name' && sortArrow}
-                    </StyledSortLink>,
-                    // eslint-disable-next-line react/jsx-key
-                    <StyledSortLink
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...currentQuery,
-                          asc: isAlertRuleSort && !sort.asc ? '1' : undefined,
-                          sort: ['incident_status', 'date_triggered'],
-                        },
-                      }}
-                    >
-                      {t('Status')} {isAlertRuleSort && sortArrow}
-                    </StyledSortLink>,
-                  ]
-                : [
-                    t('Type'),
-                    // eslint-disable-next-line react/jsx-key
-                    <StyledSortLink
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...currentQuery,
-                          asc: sort.field === 'name' && !sort.asc ? '1' : undefined,
-                          sort: 'name',
-                        },
-                      }}
-                    >
-                      {t('Alert Name')} {sort.field === 'name' && sortArrow}
-                    </StyledSortLink>,
-                  ]),
+              <StyledSortLink
+                key="name"
+                to={{
+                  pathname: location.pathname,
+                  query: {
+                    ...currentQuery,
+                    // sort by name should start by ascending on first click
+                    asc: sort.field === 'name' && sort.asc ? undefined : '1',
+                    sort: 'name',
+                  },
+                }}
+              >
+                {t('Alert Rule')} {sort.field === 'name' && sortArrow}
+              </StyledSortLink>,
+
+              <StyledSortLink
+                key="status"
+                to={{
+                  pathname: location.pathname,
+                  query: {
+                    ...currentQuery,
+                    asc: isAlertRuleSort && !sort.asc ? '1' : undefined,
+                    sort: ['incident_status', 'date_triggered'],
+                  },
+                }}
+              >
+                {t('Status')} {isAlertRuleSort && sortArrow}
+              </StyledSortLink>,
+
               t('Project'),
               t('Team'),
-              ...(hasAlertList ? [] : [t('Created By')]),
-              // eslint-disable-next-line react/jsx-key
               <StyledSortLink
+                key="dateAdded"
                 to={{
                   pathname: location.pathname,
                   query: {
@@ -244,7 +223,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                 })}
               </EmptyStateAction>
             }
-            hasAlertList={hasAlertList}
           >
             <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
               {({initiallyLoaded, projects}) =>
@@ -343,13 +321,13 @@ const StyledSearchBar = styled(SearchBar)`
   margin-left: ${space(1.5)};
 `;
 
-const StyledPanelTable = styled(PanelTable)<{hasAlertList: boolean}>`
+const StyledPanelTable = styled(PanelTable)`
   overflow: auto;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     overflow: initial;
   }
 
-  grid-template-columns: auto 1.5fr 1fr 1fr ${p => (!p.hasAlertList ? '1fr' : '')} 1fr auto;
+  grid-template-columns: auto 1.5fr 1fr 1fr 1fr auto;
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
 `;

@@ -11,8 +11,8 @@ import {Client} from 'app/api';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -103,11 +103,10 @@ class CreateSampleEventButton extends React.Component<Props, State> {
       return;
     }
 
-    trackAdvancedAnalyticsEvent(
-      'growth.onboarding_view_sample_event',
-      {platform: project.platform},
-      organization
-    );
+    trackAdvancedAnalyticsEvent('growth.onboarding_view_sample_event', {
+      platform: project.platform,
+      organization,
+    });
 
     addLoadingMessage(t('Processing sample event...'), {
       duration: EVENT_POLL_RETRIES * EVENT_POLL_INTERVAL,
@@ -157,7 +156,7 @@ class CreateSampleEventButton extends React.Component<Props, State> {
     }
 
     browserHistory.push(
-      `/organizations/${organization.slug}/issues/${eventData.groupID}/`
+      `/organizations/${organization.slug}/issues/${eventData.groupID}/?project=${project.id}`
     );
   };
 

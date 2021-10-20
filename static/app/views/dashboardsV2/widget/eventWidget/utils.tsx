@@ -2,7 +2,8 @@ import isEqual from 'lodash/isEqual';
 
 import {
   aggregateOutputType,
-  isAggregateField,
+  getAggregateFields,
+  isAggregateFieldOrEquation,
   isLegalYAxisType,
 } from 'app/utils/discover/fields';
 import {Widget} from 'app/views/dashboardsV2/types';
@@ -64,9 +65,29 @@ export function normalizeQueries(
     return queries;
   }
 
+  if (displayType === DisplayType.TOP_N) {
+    queries = queries.slice(0, 1);
+    const aggregateFields = getAggregateFields(queries[0].fields);
+
+    let otherFields = queries[0].fields.filter(
+      field => !!!aggregateFields.includes(field)
+    );
+
+    otherFields = otherFields.length ? otherFields : ['title'];
+
+    const fields: string[] = [
+      ...otherFields,
+      aggregateFields.length ? aggregateFields[0] : 'count()',
+    ];
+
+    queries = queries.map(query => ({...query, fields}));
+
+    return queries;
+  }
+
   // Filter out non-aggregate fields
   queries = queries.map(query => {
-    let fields = query.fields.filter(isAggregateField);
+    let fields = query.fields.filter(isAggregateFieldOrEquation);
 
     if (isTimeseriesChart || displayType === DisplayType.WORLD_MAP) {
       // Filter out fields that will not generate numeric output types

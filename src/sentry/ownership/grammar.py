@@ -2,13 +2,14 @@ import operator
 import re
 from collections import namedtuple
 from functools import reduce
-from typing import List, Pattern, Tuple
+from typing import Iterable, List, Mapping, Pattern, Tuple
 
 from django.db.models import Q
 from parsimonious.exceptions import ParseError  # noqa
 from parsimonious.grammar import Grammar, NodeVisitor
 from rest_framework.serializers import ValidationError
 
+from sentry.models import ActorTuple
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 
@@ -80,7 +81,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
     A Matcher represents a type:pattern pairing for use in
     comparing with an Event.
 
-    type is either `path`, `url`, `module` or `codeowners` at this point.
+    type is either `path`, `tags`, `url`, `module` or `codeowners` at this point.
 
     TODO(mattrobenolt): pattern needs to be parsed into a regex
 
@@ -144,7 +145,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
         """
         spec = _path_to_regex(self.pattern)
-        keys = ["abs_path"]
+        keys = ["filename", "abs_path"]
         for frame in _iter_frames(data):
             value = next((frame.get(key) for key in keys if frame.get(key)), None)
 
@@ -380,8 +381,7 @@ def parse_code_owners(data: str) -> Tuple[List[str], List[str], List[str]]:
         if rule.startswith("#") or not len(rule):
             continue
 
-        _, *assignees = rule.strip().split()
-
+        assignees = rule.strip().split()[1:]
         for assignee in assignees:
             if "/" not in assignee:
                 if re.match(r"[^@]+@[^@]+\.[^@]+", assignee):
@@ -453,7 +453,7 @@ def convert_codeowners_syntax(codeowners, associations, code_mapping):
     return result
 
 
-def resolve_actors(owners, project_id):
+def resolve_actors(owners: Iterable["Owner"], project_id: int) -> Mapping["Owner", "ActorTuple"]:
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""

@@ -1,14 +1,15 @@
 import logging
 from collections import defaultdict
-from typing import AbstractSet, Any, Mapping, Set, Union
+from typing import Any, Iterable, Mapping, MutableMapping, Optional, Union
 
+from sentry import analytics
 from sentry.integrations.slack.client import SlackClient  # NOQA
 from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
-from sentry.notifications.activity.base import ActivityNotification
-from sentry.notifications.base import BaseNotification
+from sentry.notifications.notifications.activity.base import ActivityNotification
+from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notify import register_notification_provider
-from sentry.notifications.rules import AlertRuleNotification
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json, metrics
@@ -19,20 +20,20 @@ SLACK_TIMEOUT = 5
 
 def get_context(
     notification: BaseNotification,
-    recipient: Union[User, Team],
+    recipient: Union["Team", "User"],
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
     """Compose the various levels of context and add Slack-specific fields."""
     return {
         **shared_context,
-        **notification.get_user_context(recipient, extra_context),
+        **notification.get_recipient_context(recipient, extra_context),
     }
 
 
 def get_channel_and_integration_by_user(
-    user: User, organization: Organization
-) -> Mapping[str, Integration]:
+    user: "User", organization: "Organization"
+) -> Mapping[str, "Integration"]:
 
     identities = Identity.objects.filter(
         idp__type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
@@ -62,8 +63,8 @@ def get_channel_and_integration_by_user(
 
 
 def get_channel_and_integration_by_team(
-    team: Team, organization: Organization
-) -> Mapping[str, Integration]:
+    team: "Team", organization: "Organization"
+) -> Mapping[str, "Integration"]:
     try:
         external_actor = (
             ExternalActor.objects.filter(
@@ -81,9 +82,9 @@ def get_channel_and_integration_by_team(
 
 
 def get_channel_and_token_by_recipient(
-    organization: Organization, recipients: AbstractSet[Union[User, Team]]
-) -> Mapping[Union[User, Team], Mapping[str, str]]:
-    output = defaultdict(dict)
+    organization: "Organization", recipients: Iterable[Union["Team", "User"]]
+) -> Mapping[Union["Team", "User"], Mapping[str, str]]:
+    output: MutableMapping[Union["Team", "User"], MutableMapping[str, str]] = defaultdict(dict)
     for recipient in recipients:
         channels_to_integrations = (
             get_channel_and_integration_by_user(recipient, organization)
@@ -120,9 +121,9 @@ def get_key(notification: BaseNotification) -> str:
 @register_notification_provider(ExternalProviders.SLACK)
 def send_notification_as_slack(
     notification: BaseNotification,
-    recipients: Union[Set[User], Set[Team]],
+    recipients: Iterable[Union["Team", "User"]],
     shared_context: Mapping[str, Any],
-    extra_context_by_user_id: Mapping[str, Any],
+    extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]],
 ) -> None:
     """Send an "activity" or "alert rule" notification to a Slack user or team."""
     client = SlackClient()
@@ -166,7 +167,13 @@ def send_notification_as_slack(
                         "is_multiple": is_multiple,
                     },
                 )
-                continue
+            analytics.record(
+                "integrations.slack.notification_sent",
+                organization_id=notification.organization.id,
+                project_id=notification.project.id,
+                category=notification.get_category(),
+                actor_id=recipient.actor_id,
+            )
 
     key = get_key(notification)
     metrics.incr(

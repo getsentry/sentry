@@ -14,7 +14,7 @@ type Props = Pick<
   event: Event;
   newestFirst: boolean;
   platform: PlatformType;
-  hasGroupingTreeUI: boolean;
+  hasHierarchicalGrouping: boolean;
   stackView?: STACK_VIEW;
 };
 
@@ -24,7 +24,7 @@ const Stacktrace = ({
   event,
   newestFirst,
   platform,
-  hasGroupingTreeUI,
+  hasHierarchicalGrouping,
   groupingCurrentLevel,
 }: Props) => {
   return (
@@ -33,7 +33,7 @@ const Stacktrace = ({
         <pre className="traceback plain">
           {rawStacktraceContent(stacktrace, event.platform)}
         </pre>
-      ) : hasGroupingTreeUI ? (
+      ) : hasHierarchicalGrouping ? (
         <StacktraceContentV2
           data={stacktrace}
           className="no-exception"

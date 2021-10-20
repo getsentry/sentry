@@ -136,6 +136,7 @@ const tagColors = {
   url: theme.green200,
   path: theme.purple300,
   tag: theme.blue300,
+  codeowners: theme.orange300,
 };
 
 const CommitIcon = styled(IconCommit)`
@@ -188,7 +189,6 @@ const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</
   margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
   border-radius: 2px;
   font-weight: bold;
-  min-width: 34px;
   text-align: center;
 `;
 

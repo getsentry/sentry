@@ -22,17 +22,12 @@ export const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
 type TogglerTypes = OmitHtmlDivProps<{
   hasToggler?: boolean;
   isLast?: boolean;
-  hasCollapsedSpanGroup?: boolean;
 }>;
 
 export const TreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   height: ${p => (p.isLast ? ROW_HEIGHT / 2 : ROW_HEIGHT)}px;
   width: 100%;
   border-left: ${p => {
-    if (p.hasCollapsedSpanGroup) {
-      return '1px solid transparent';
-    }
-
     return `1px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.border}`;
   }};
   position: absolute;
@@ -43,11 +38,8 @@ export const TreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean
     height: 1px;
     border-bottom: ${p =>
       `1px ${p.orphanBranch ? 'dashed' : 'solid'} ${p.theme.border};`};
-    left: ${p => (p.hasCollapsedSpanGroup ? `${TOGGLE_BORDER_BOX / 2}px` : '0')};
-    width: ${p =>
-      p.hasCollapsedSpanGroup
-        ? `${TREE_TOGGLE_CONTAINER_WIDTH - TOGGLE_BORDER_BOX / 2 - 2}px`
-        : '100%'};
+    left: 0;
+    width: 100%;
     position: absolute;
     bottom: ${p => (p.isLast ? '0' : '50%')};
   }
@@ -100,7 +92,7 @@ export const TreeToggleContainer = styled('div')<TogglerTypes>`
   align-items: center;
 `;
 
-export const StyledIconChevron = styled(IconChevron)`
+export const TreeToggleIcon = styled(IconChevron)`
   width: 7px;
   margin-left: ${space(0.25)};
 `;

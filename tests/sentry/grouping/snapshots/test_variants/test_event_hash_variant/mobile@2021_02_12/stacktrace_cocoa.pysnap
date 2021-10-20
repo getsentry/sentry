@@ -1,10 +1,11 @@
 ---
-created: '2021-06-30T16:44:00.514192Z'
+created: '2021-08-31T10:25:50.741964Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "eb416f98479efa56a77c524602dc9979"
+  tree_label: "bar.m"
   component:
     app-depth-1*
       stacktrace*
@@ -12,32 +13,19 @@ app-depth-1:
           filename*
             "bar.m"
 --------------------------------------------------------------------------
-app-depth-2:
-  hash: "1df786c8c266506e1acb6669c8df5154"
-  component:
-    app-depth-2*
-      stacktrace*
-        frame*
-          filename*
-            "bar.m"
-        frame*
-          filename*
-            "baz.m"
---------------------------------------------------------------------------
 app-depth-max:
-  hash: "1df786c8c266506e1acb6669c8df5154"
+  hash: "eb416f98479efa56a77c524602dc9979"
+  tree_label: "bar.m"
   component:
     app-depth-max*
       stacktrace*
         frame*
           filename*
             "bar.m"
-        frame*
-          filename*
-            "baz.m"
 --------------------------------------------------------------------------
 system:
   hash: "1df786c8c266506e1acb6669c8df5154"
+  tree_label: "baz.m | bar.m"
   component:
     system*
       stacktrace*

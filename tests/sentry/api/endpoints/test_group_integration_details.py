@@ -43,6 +43,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "icon": integration.metadata.get("icon"),
                 "domainName": integration.metadata.get("domain_name"),
                 "accountType": integration.metadata.get("account_type"),
+                "scopes": integration.metadata.get("scopes"),
                 "status": integration.get_status_display(),
                 "provider": {
                     "key": provider.key,
@@ -83,6 +84,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "icon": integration.metadata.get("icon"),
                 "domainName": integration.metadata.get("domain_name"),
                 "accountType": integration.metadata.get("account_type"),
+                "scopes": integration.metadata.get("scopes"),
                 "status": integration.get_status_display(),
                 "provider": {
                     "key": provider.key,
@@ -154,7 +156,12 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         path = f"/api/0/issues/{self.group.id}/integrations/{integration.id}/?action=create"
 
-        with self.feature({"organizations:integrations-issue-basic": False}):
+        with self.feature(
+            {
+                "organizations:integrations-issue-basic": False,
+                "organizations:integrations-issue-sync": False,
+            }
+        ):
             response = self.client.get(path)
         assert response.status_code == 400
         assert response.data["detail"] == "Your organization does not have access to this feature."
@@ -203,7 +210,12 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
 
-        with self.feature({"organizations:integrations-issue-basic": False}):
+        with self.feature(
+            {
+                "organizations:integrations-issue-basic": False,
+                "organizations:integrations-issue-sync": False,
+            }
+        ):
             response = self.client.put(path, data={"externalIssue": "APP-123"})
         assert response.status_code == 400
         assert response.data["detail"] == "Your organization does not have access to this feature."
@@ -258,7 +270,12 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
 
-        with self.feature({"organizations:integrations-issue-basic": False}):
+        with self.feature(
+            {
+                "organizations:integrations-issue-basic": False,
+                "organizations:integrations-issue-sync": False,
+            }
+        ):
             response = self.client.post(path, data={})
         assert response.status_code == 400
         assert response.data["detail"] == "Your organization does not have access to this feature."
@@ -312,7 +329,12 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?externalIssue={external_issue.id}"
 
-        with self.feature({"organizations:integrations-issue-basic": False}):
+        with self.feature(
+            {
+                "organizations:integrations-issue-basic": False,
+                "organizations:integrations-issue-sync": False,
+            }
+        ):
             response = self.client.delete(path)
         assert response.status_code == 400
         assert response.data["detail"] == "Your organization does not have access to this feature."

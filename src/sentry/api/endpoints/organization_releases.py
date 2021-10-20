@@ -1,11 +1,12 @@
 import re
+from datetime import datetime, timedelta
 
 from django.db import IntegrityError
 from django.db.models import F, Q
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics, features, release_health
 from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -37,14 +38,9 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
-from sentry.search.events.filter import parse_semver
+from sentry.search.events.filter import handle_operator_negation, parse_semver
 from sentry.signals import release_created
-from sentry.snuba.sessions import (
-    STATS_PERIODS,
-    get_changed_project_release_model_adoptions,
-    get_oldest_health_data_for_releases,
-    get_project_releases_by_stability,
-)
+from sentry.snuba.sessions import STATS_PERIODS
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip as izip
 from sentry.utils.sdk import bind_organization_context, configure_scope
@@ -95,6 +91,8 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
                     query_q = Q(version__startswith=raw_value[:-1])
                 elif raw_value.startswith("*"):
                     query_q = Q(version__endswith=raw_value[1:])
+            elif search_filter.operator == "!=":
+                query_q = ~Q(version=search_filter.value.value)
             else:
                 query_q = Q(version=search_filter.value.value)
 
@@ -102,14 +100,14 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
         if search_filter.key.name == SEMVER_ALIAS:
             queryset = queryset.filter_by_semver(
-                organization.id,
-                parse_semver(search_filter.value.raw_value, search_filter.operator),
+                organization.id, parse_semver(search_filter.value.raw_value, search_filter.operator)
             )
 
         if search_filter.key.name == SEMVER_PACKAGE_ALIAS:
+            negated = True if search_filter.operator == "!=" else False
             queryset = queryset.filter_by_semver(
                 organization.id,
-                SemverFilter("exact", [], search_filter.value.raw_value),
+                SemverFilter("exact", [], search_filter.value.raw_value, negated),
             )
 
         if search_filter.key.name == RELEASE_STAGE_ALIAS:
@@ -118,13 +116,16 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
                 search_filter.operator,
                 search_filter.value.value,
                 project_ids=filter_params["project_id"],
+                environments=filter_params.get("environment"),
             )
 
         if search_filter.key.name == SEMVER_BUILD_ALIAS:
+            (operator, negated) = handle_operator_negation(search_filter.operator)
             queryset = queryset.filter_by_semver_build(
                 organization.id,
-                OPERATOR_TO_DJANGO[search_filter.operator],
+                OPERATOR_TO_DJANGO[operator],
                 search_filter.value.raw_value,
+                negated=negated,
             )
 
     return queryset
@@ -159,7 +160,9 @@ def debounce_update_release_health_data(organization, project_ids):
     # health data over the last days. It will miss releases where the last
     # date is longer than what `get_changed_project_release_model_adoptions`
     # considers recent.
-    project_releases = get_changed_project_release_model_adoptions(should_update.keys())
+    project_releases = release_health.get_changed_project_release_model_adoptions(
+        should_update.keys()
+    )
 
     # Check which we already have rows for.
     existing = set(
@@ -174,7 +177,7 @@ def debounce_update_release_health_data(organization, project_ids):
             to_upsert.append(key)
 
     if to_upsert:
-        dates = get_oldest_health_data_for_releases(to_upsert)
+        dates = release_health.get_oldest_health_data_for_releases(to_upsert)
 
         for project_id, version in to_upsert:
             project = projects.get(project_id)
@@ -281,8 +284,7 @@ class OrganizationReleasesEndpoint(
         if flatten:
             select_extra["_for_project_id"] = "sentry_release_project.project_id"
 
-        if sort not in self.SESSION_SORTS:
-            queryset = queryset.filter(projects__id__in=filter_params["project_id"])
+        queryset = queryset.filter(projects__id__in=filter_params["project_id"])
 
         if sort == "date":
             queryset = queryset.order_by("-date")
@@ -291,15 +293,18 @@ class OrganizationReleasesEndpoint(
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
-            order_by = [f"-{col}" for col in Release.SEMVER_COLS]
+            queryset = queryset.annotate_prerelease_column()
+
+            order_by = [F(col).desc(nulls_last=True) for col in Release.SEMVER_COLS]
             # TODO: Adding this extra sort order breaks index usage. Index usage is already broken
             # when we filter by status, so when we fix that we should also consider the best way to
             # make this work as expected.
-            queryset = (
-                queryset.annotate_prerelease_column()
-                .filter_to_semver()
-                .order_by(*order_by, "-date_added")
-            )
+            order_by.append(F("date_added").desc())
+            paginator_kwargs["order_by"] = order_by
+        elif sort == "adoption":
+            # sort by adoption date (most recently adopted first)
+            order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
+            queryset = queryset.order_by(order_by)
             paginator_kwargs["order_by"] = order_by
         elif sort in self.SESSION_SORTS:
             if not flatten:
@@ -307,9 +312,39 @@ class OrganizationReleasesEndpoint(
                     {"detail": "sorting by crash statistics requires flattening (flatten=1)"},
                     status=400,
                 )
+
+            def qs_load_func(queryset, total_offset, qs_offset, limit):
+                # We want to fetch at least total_offset + limit releases to check, to make sure
+                # we're not fetching only releases that were on previous pages.
+                release_versions = list(
+                    queryset.order_by_recent().values_list("version", flat=True)[
+                        : total_offset + limit
+                    ]
+                )
+                releases_with_session_data = release_health.check_releases_have_health_data(
+                    organization.id,
+                    filter_params["project_id"],
+                    release_versions,
+                    filter_params["start"]
+                    if filter_params["start"]
+                    else datetime.utcnow() - timedelta(days=90),
+                    filter_params["end"] if filter_params["end"] else datetime.utcnow(),
+                )
+                valid_versions = [
+                    rv for rv in release_versions if rv not in releases_with_session_data
+                ]
+
+                results = list(
+                    Release.objects.filter(
+                        organization_id=organization.id,
+                        version__in=valid_versions,
+                    ).order_by_recent()[qs_offset : qs_offset + limit]
+                )
+                return results
+
             paginator_cls = MergingOffsetPaginator
             paginator_kwargs.update(
-                data_load_func=lambda offset, limit: get_project_releases_by_stability(
+                data_load_func=lambda offset, limit: release_health.get_project_releases_by_stability(
                     project_ids=filter_params["project_id"],
                     environments=filter_params.get("environment"),
                     scope=sort,
@@ -317,9 +352,17 @@ class OrganizationReleasesEndpoint(
                     stats_period=summary_stats_period,
                     limit=limit,
                 ),
-                apply_to_queryset=lambda queryset, rows: queryset.filter(
-                    projects__id__in=list(x[0] for x in rows), version__in=list(x[1] for x in rows)
+                data_count_func=lambda: release_health.get_project_releases_count(
+                    organization_id=organization.id,
+                    project_ids=filter_params["project_id"],
+                    environments=filter_params.get("environment"),
+                    scope=sort,
+                    stats_period=summary_stats_period,
                 ),
+                apply_to_queryset=lambda queryset, rows: queryset.filter(
+                    version__in=list(x[1] for x in rows)
+                ),
+                queryset_load_func=qs_load_func,
                 key_from_model=lambda x: (x._for_project_id, x.version),
             )
         else:

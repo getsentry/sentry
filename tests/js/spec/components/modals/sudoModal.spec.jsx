@@ -1,10 +1,14 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
 import App from 'app/views/app';
 
 describe('Sudo Modal', function () {
+  const setHasPasswordAuth = hasPasswordAuth =>
+    act(() => ConfigStore.set('user', {...ConfigStore.get('user'), hasPasswordAuth}));
+
   beforeEach(function () {
     Client.clearMockResponses();
     Client.addMockResponse({
@@ -39,10 +43,8 @@ describe('Sudo Modal', function () {
   });
 
   it('can delete an org with sudo flow', async function () {
-    ConfigStore.set('user', {
-      ...ConfigStore.get('user'),
-      hasPasswordAuth: true,
-    });
+    setHasPasswordAuth(true);
+
     const wrapper = mountWithTheme(
       <App>{<div>placeholder content</div>}</App>,
       TestStubs.routerContext()
@@ -126,10 +128,8 @@ describe('Sudo Modal', function () {
   });
 
   it('shows button to redirect if user does not have password auth', async function () {
-    ConfigStore.set('user', {
-      ...ConfigStore.get('user'),
-      hasPasswordAuth: false,
-    });
+    setHasPasswordAuth(false);
+
     const wrapper = mountWithTheme(
       <App>{<div>placeholder content</div>}</App>,
       TestStubs.routerContext()

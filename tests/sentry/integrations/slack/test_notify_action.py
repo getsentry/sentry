@@ -3,28 +3,18 @@ from urllib.parse import parse_qs
 import responses
 
 from sentry.integrations.slack import SlackNotifyServiceAction
+from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
 from sentry.utils import json
+from tests.sentry.integrations.slack import install_slack
 
 
 class SlackNotifyActionTest(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
 
     def setUp(self):
-        event = self.get_event()
-
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Awesome Team",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-                "domain_name": "sentry.slack.com",
-            },
-        )
-        self.integration.add_organization(event.project.organization, self.user)
+        self.integration = install_slack(self.get_event().project.organization)
 
     def assert_form_valid(self, form, expected_channel_id, expected_channel):
         assert form.is_valid()
@@ -60,25 +50,35 @@ class SlackNotifyActionTest(RuleTestCase):
 
     def test_render_label(self):
         rule = self.get_rule(
-            data={"workspace": self.integration.id, "channel": "#my-channel", "tags": "one, two"}
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "channel_id": "",
+                "tags": "one, two",
+            }
         )
 
         assert (
             rule.render_label()
-            == "Send a notification to the Awesome Team Slack workspace to #my-channel and show tags [one, two] in notification"
+            == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] in notification"
         )
 
     def test_render_label_without_integration(self):
         self.integration.delete()
 
         rule = self.get_rule(
-            data={"workspace": self.integration.id, "channel": "#my-channel", "tags": ""}
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "channel_id": "",
+                "tags": "",
+            }
         )
 
         label = rule.render_label()
         assert (
             label
-            == "Send a notification to the [removed] Slack workspace to #my-channel and show tags [] in notification"
+            == "Send a notification to the [removed] Slack workspace to #my-channel (optionally, an ID: ) and show tags [] in notification"
         )
 
     @responses.activate
@@ -189,6 +189,42 @@ class SlackNotifyActionTest(RuleTestCase):
 
         assert not form.is_valid()
         assert len(form.errors) == 1
+
+    @responses.activate
+    def test_rate_limited_response(self):
+        """Should surface a 429 from Slack to the frontend form"""
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true", "channel": {"name": "my-channel", "id": "C2349874"}}),
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.list",
+            status=429,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "ok": "false",
+                    "error": "ratelimited",
+                }
+            ),
+        )
+
+        rule = self.get_rule(
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "input_channel_id": "",
+                "tags": "",
+            }
+        )
+
+        form = rule.get_form_instance()
+        assert not form.is_valid()
+        assert SLACK_RATE_LIMITED_MESSAGE in str(form.errors.values())
 
     @responses.activate
     def test_channel_id_provided(self):

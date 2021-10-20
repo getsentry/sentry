@@ -2,8 +2,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import EventView from 'app/utils/discover/eventView';
-import SummaryContent from 'app/views/performance/transactionSummary/content';
 import {SpanOperationBreakdownFilter} from 'app/views/performance/transactionSummary/filter';
+import SummaryContent from 'app/views/performance/transactionSummary/transactionOverview/content';
 
 function initialize(projects, query, additionalFeatures: string[] = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
@@ -54,41 +54,51 @@ describe('Transaction Summary Content', function () {
       url: '/prompts-activity/',
       body: {},
     });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {data: [{'event.type': 'error'}], meta: {'event.type': 'string'}},
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20transaction%3Aexample-transaction&sort=new&statsPeriod=14d',
+      body: [],
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-facets/',
+      body: [],
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: false},
+    });
   });
-  // @ts-expect-error
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/sdk-updates/',
-    body: [],
-  });
-  // @ts-expect-error
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/eventsv2/',
-    body: {data: [{'event.type': 'error'}], meta: {'event.type': 'string'}},
-  });
-  // @ts-expect-error
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/users/',
-    body: [],
-  });
-  // @ts-expect-error
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20transaction%3Aexample-transaction&sort=new&statsPeriod=14d',
-    body: [],
-  });
-  // @ts-expect-error
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-facets/',
-    body: [],
-  });
-  // @ts-expect-error
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/releases/stats/',
-    body: [],
-  });
-  // @ts-expect-error
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-stats/',
-    body: [],
+
+  afterEach(function () {
+    // @ts-expect-error
+    MockApiClient.clearMockResponses();
   });
 
   it('Basic Rendering', async function () {
@@ -123,7 +133,6 @@ describe('Transaction Summary Content', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('TransactionHeader')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
@@ -172,7 +181,6 @@ describe('Transaction Summary Content', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('TransactionHeader')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
@@ -187,5 +195,49 @@ describe('Transaction Summary Content', function () {
     expect(transactionListProps.handleOpenInDiscoverClick).toBeUndefined();
     expect(transactionListProps.generatePerformanceTransactionEventsView).toBeDefined();
     expect(transactionListProps.handleOpenAllEventsClick).toBeDefined();
+  });
+
+  it('Renders TransactionSummaryCharts withoutZerofill when feature flagged', async function () {
+    // @ts-expect-error
+    const projects = [TestStubs.Project()];
+    const {
+      organization,
+      location,
+      eventView,
+      spanOperationBreakdownFilter,
+      transactionName,
+    } = initialize(projects, {}, [
+      'performance-events-page',
+      'performance-chart-interpolation',
+    ]);
+    // @ts-expect-error
+    const routerContext = TestStubs.routerContext([{organization}]);
+
+    const wrapper = mountWithTheme(
+      <SummaryContent
+        location={location}
+        organization={organization}
+        eventView={eventView}
+        transactionName={transactionName}
+        isLoading={false}
+        totalValues={null}
+        spanOperationBreakdownFilter={spanOperationBreakdownFilter}
+        error={null}
+        onChangeFilter={() => {}}
+      />,
+      routerContext
+    );
+
+    // @ts-expect-error
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
+
+    const transactionSummaryChartsProps = wrapper
+      .find('TransactionSummaryCharts')
+      .first()
+      .props();
+    expect(transactionSummaryChartsProps.withoutZerofill).toEqual(true);
   });
 });

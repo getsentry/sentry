@@ -4,10 +4,15 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import pickBy from 'lodash/pickBy';
 
-import {DATE_TIME_KEYS, URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {
+  DATE_TIME_KEYS,
+  LOCAL_STORAGE_KEY,
+  URL_PARAM,
+} from 'app/constants/globalSelectionHeader';
 import {GlobalSelection} from 'app/types';
 import {defined} from 'app/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
+import localStorage from 'app/utils/localStorage';
 
 import {getParams} from './getParams';
 
@@ -116,4 +121,12 @@ export function isSelectionEqual(
     return false;
   }
   return true;
+}
+
+/**
+ * Removes globalselection from localstorage
+ */
+export function removeGlobalSelectionStorage(orgId) {
+  const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgId}`;
+  localStorage.removeItem(localStorageKey);
 }

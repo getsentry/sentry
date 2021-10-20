@@ -8,6 +8,7 @@ import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
+import ExternalLink from 'app/components/links/externalLink';
 import {RowRectangle} from 'app/components/performance/waterfall/rowBar';
 import {pickBarColor, toPercent} from 'app/components/performance/waterfall/utils';
 import Tooltip from 'app/components/tooltip';
@@ -15,7 +16,7 @@ import UserMisery from 'app/components/userMisery';
 import Version from 'app/components/version';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
-import {defined} from 'app/utils';
+import {defined, isUrl} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {EventData, MetaType} from 'app/utils/discover/eventView';
 import {
@@ -38,15 +39,14 @@ import {
 } from 'app/views/performance/transactionSummary/filter';
 
 import ArrayValue from './arrayValue';
-import KeyTransactionField from './keyTransactionField';
 import {
   BarContainer,
   Container,
+  FieldDateTime,
+  FieldShortId,
   FlexContainer,
   NumberContainer,
   OverflowLink,
-  StyledDateTime,
-  StyledShortId,
   UserIcon,
   VersionContainer,
 } from './styles';
@@ -112,7 +112,7 @@ const FIELD_FORMATTERS: FieldFormatters = {
       <Container>
         {data[field]
           ? getDynamicText({
-              value: <StyledDateTime date={data[field]} />,
+              value: <FieldDateTime date={data[field]} />,
               fixed: 'timestamp',
             })
           : emptyValue}
@@ -164,6 +164,15 @@ const FIELD_FORMATTERS: FieldFormatters = {
         : defined(data[field])
         ? data[field]
         : emptyValue;
+      if (isUrl(value)) {
+        return (
+          <Container>
+            <ExternalLink href={value} data-test-id="group-tag-url">
+              {value}
+            </ExternalLink>
+          </Container>
+        );
+      }
       return <Container>{value}</Container>;
     },
   },
@@ -197,7 +206,6 @@ type SpecialFields = {
   'error.handled': SpecialField;
   issue: SpecialField;
   release: SpecialField;
-  key_transaction: SpecialField;
   team_key_transaction: SpecialField;
   'trend_percentage()': SpecialField;
   'timestamp.to_hour': SpecialField;
@@ -255,7 +263,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       if (!issueID) {
         return (
           <Container>
-            <StyledShortId shortId={`${data.issue}`} />
+            <FieldShortId shortId={`${data.issue}`} />
           </Container>
         );
       }
@@ -267,7 +275,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       return (
         <Container>
           <OverflowLink to={target} aria-label={issueID}>
-            <StyledShortId shortId={`${data.issue}`} />
+            <FieldShortId shortId={`${data.issue}`} />
           </OverflowLink>
         </Container>
       );
@@ -374,19 +382,6 @@ const SPECIAL_FIELDS: SpecialFields = {
       return <Container>{[1, null].includes(value) ? 'true' : 'false'}</Container>;
     },
   },
-  key_transaction: {
-    sortField: null,
-    renderFunc: (data, {organization}) => (
-      <Container>
-        <KeyTransactionField
-          isKeyTransaction={(data.key_transaction ?? 0) !== 0}
-          organization={organization}
-          projectSlug={data.project}
-          transactionName={data.transaction}
-        />
-      </Container>
-    ),
-  },
   team_key_transaction: {
     sortField: null,
     renderFunc: (data, {organization}) => (
@@ -415,7 +410,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <StyledDateTime date={data['timestamp.to_hour']} format="lll z" />,
+          value: <FieldDateTime date={data['timestamp.to_hour']} format="lll z" />,
           fixed: 'timestamp.to_hour',
         })}
       </Container>
@@ -426,7 +421,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <StyledDateTime date={data['timestamp.to_day']} dateOnly utc />,
+          value: <FieldDateTime date={data['timestamp.to_day']} dateOnly utc />,
           fixed: 'timestamp.to_day',
         })}
       </Container>

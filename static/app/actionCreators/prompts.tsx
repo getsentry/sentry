@@ -46,11 +46,13 @@ type PromptCheckParams = {
   feature: string;
 };
 
+export type PromptResponseItem = {
+  snoozed_ts?: number;
+  dismissed_ts?: number;
+};
 export type PromptResponse = {
-  data?: {
-    snoozed_ts?: number;
-    dismissed_ts?: number;
-  };
+  data?: PromptResponseItem;
+  features?: {[key: string]: PromptResponseItem};
 };
 
 export type PromptData = null | {
@@ -84,4 +86,41 @@ export async function promptsCheck(
     dismissedTime: data.dismissed_ts,
     snoozedTime: data.snoozed_ts,
   };
+}
+
+/**
+ * Get the status of many prompt
+ */
+export async function batchedPromptsCheck<T extends readonly string[]>(
+  api: Client,
+  features: T,
+  params: {organizationId: string; projectId?: string}
+): Promise<{[key in T[number]]: PromptData}> {
+  const query = {
+    feature: features,
+    organization_id: params.organizationId,
+    ...(params.projectId === undefined ? {} : {project_id: params.projectId}),
+  };
+
+  const response: PromptResponse = await api.requestPromise('/prompts-activity/', {
+    query,
+  });
+  const responseFeatures = response?.features;
+
+  const result: {[key in T[number]]?: PromptData} = {};
+  if (!responseFeatures) {
+    return result as {[key in T[number]]: PromptData};
+  }
+  for (const featureName of features) {
+    const item = responseFeatures[featureName];
+    if (item) {
+      result[featureName] = {
+        dismissedTime: item.dismissed_ts,
+        snoozedTime: item.snoozed_ts,
+      };
+    } else {
+      result[featureName] = null;
+    }
+  }
+  return result as {[key in T[number]]: PromptData};
 }

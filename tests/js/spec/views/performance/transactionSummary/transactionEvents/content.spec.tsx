@@ -74,23 +74,12 @@ describe('Performance Transaction Events Content', function () {
     });
     // @ts-expect-error
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/is-key-transactions/',
-      body: [],
-    });
-    // @ts-expect-error
-    MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
     // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
-      body: [],
-    });
-    // @ts-expect-error
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/legacy-key-transactions-count/`,
       body: [],
     });
     data = [
@@ -152,6 +141,11 @@ describe('Performance Transaction Events Content', function () {
         },
       }
     );
+    // @ts-expect-error
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: false},
+    });
     initialData = initializeData({features: ['performance-events-page']});
     eventView = EventView.fromNewQueryWithLocation(
       {
@@ -181,12 +175,11 @@ describe('Performance Transaction Events Content', function () {
         organization={organization}
         location={initialData.router.location}
         transactionName={transactionName}
-        projects={initialData.projects}
         spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
         onChangeSpanOperationBreakdownFilter={() => {}}
         eventsDisplayFilterName={EventsDisplayFilterName.p100}
         onChangeEventsDisplayFilter={() => {}}
-        isLoading={false}
+        setError={() => {}}
       />,
       initialData.routerContext
     );
@@ -198,7 +191,6 @@ describe('Performance Transaction Events Content', function () {
     expect(wrapper.find('SearchRowMenuItem')).toHaveLength(2);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
-    expect(wrapper.find('TransactionHeader')).toHaveLength(1);
 
     const columnTitles = wrapper.find('EventsTable').props().columnTitles;
     expect(columnTitles).toEqual([
@@ -218,13 +210,12 @@ describe('Performance Transaction Events Content', function () {
         organization={organization}
         location={initialData.router.location}
         transactionName={transactionName}
-        projects={initialData.projects}
         spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
         onChangeSpanOperationBreakdownFilter={() => {}}
         eventsDisplayFilterName={EventsDisplayFilterName.p100}
         onChangeEventsDisplayFilter={() => {}}
-        isLoading={false}
         webVital={WebVital.LCP}
+        setError={() => {}}
       />,
       initialData.routerContext
     );
@@ -236,7 +227,6 @@ describe('Performance Transaction Events Content', function () {
     expect(wrapper.find('SearchRowMenuItem')).toHaveLength(2);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
-    expect(wrapper.find('TransactionHeader')).toHaveLength(1);
 
     const columnTitles = wrapper.find('EventsTable').props().columnTitles;
     expect(columnTitles).toEqual([

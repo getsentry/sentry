@@ -20,17 +20,6 @@ type TeamKeyTransaction = {
 
 export type TeamKeyTransactions = TeamKeyTransaction[];
 
-export async function fetchLegacyKeyTransactionsCount(orgSlug): Promise<number> {
-  const api = new Client();
-  const url = `/organizations/${orgSlug}/legacy-key-transactions-count/`;
-
-  const [data] = await api.requestPromise(url, {
-    method: 'GET',
-    includeAllArgs: true,
-  });
-  return data.keyed;
-}
-
 export async function fetchTeamKeyTransactions(
   api: Client,
   orgSlug: string,
@@ -53,7 +42,7 @@ export async function fetchTeamKeyTransactions(
         delete payload.project;
       }
 
-      const [data, , xhr] = await api.requestPromise(url, {
+      const [data, , resp] = await api.requestPromise(url, {
         method: 'GET',
         includeAllArgs: true,
         query: payload,
@@ -61,7 +50,7 @@ export async function fetchTeamKeyTransactions(
 
       datas.push(data);
 
-      const pageLinks = xhr && xhr.getResponseHeader('Link');
+      const pageLinks = resp?.getResponseHeader('Link');
       if (pageLinks) {
         const paginationObject = parseLinkHeader(pageLinks);
         hasMore = paginationObject?.next?.results ?? false;

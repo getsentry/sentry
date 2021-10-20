@@ -237,8 +237,8 @@ class QueryDefinition:
 
     def __init__(self, query, params, allow_minute_resolution=False):
         self.query = query.get("query", "")
-        raw_fields = query.getlist("field", [])
-        raw_groupby = query.getlist("groupBy", [])
+        self.raw_fields = raw_fields = query.getlist("field", [])
+        self.raw_groupby = raw_groupby = query.getlist("groupBy", [])
 
         if len(raw_fields) == 0:
             raise InvalidField('Request is missing a "field"')
@@ -259,6 +259,8 @@ class QueryDefinition:
         self.rollup = rollup
         self.start = start
         self.end = end
+
+        self.params = params
 
         query_columns = set()
         for field in self.fields.values():
@@ -296,6 +298,11 @@ class InvalidParams(Exception):
     pass
 
 
+def get_now():
+    """Wrapper function to make it mockable in unit tests"""
+    return datetime.now(tz=pytz.utc)
+
+
 def get_constrained_date_range(
     params, allow_minute_resolution=False, max_points=MAX_POINTS
 ) -> Tuple[datetime, datetime, int]:
@@ -318,7 +325,7 @@ def get_constrained_date_range(
     using_minute_resolution = interval % ONE_HOUR != 0
 
     start, end = get_date_range_from_params(params)
-    now = datetime.now(tz=pytz.utc)
+    now = get_now()
 
     # if `end` is explicitly given, we add a second to it, so it is treated as
     # inclusive. the rounding logic down below will take care of the rest.
@@ -378,7 +385,7 @@ def get_constrained_date_range(
 TS_COL = "bucketed_started"
 
 
-def run_sessions_query(query):
+def _run_sessions_query(query):
     """
     Runs the `query` as defined by [`QueryDefinition`] two times, once for the
     `totals` and again for the actual time-series data grouped by the requested
@@ -446,7 +453,7 @@ def massage_sessions_result(
     }
     ```
     """
-    timestamps = _get_timestamps(query)
+    timestamps = get_timestamps(query)
 
     total_groups = _split_rows_groupby(result_totals, query.groupby)
     timeseries_groups = _split_rows_groupby(result_timeseries, query.groupby)
@@ -509,7 +516,7 @@ def _isoformat_z(date):
     return datetime.utcfromtimestamp(int(to_timestamp(date))).isoformat() + "Z"
 
 
-def _get_timestamps(query):
+def get_timestamps(query):
     """
     Generates a list of timestamps according to `query`.
     The timestamps are returned as ISO strings for now.

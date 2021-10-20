@@ -1,5 +1,5 @@
 from sentry.models import Activity, NotificationSetting, UserOption
-from sentry.notifications.activity import NoteActivityNotification
+from sentry.notifications.notifications.activity import NoteActivityNotification
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationSettingOptionValues,

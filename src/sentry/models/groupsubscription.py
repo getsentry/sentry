@@ -1,10 +1,11 @@
 from collections import defaultdict
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Iterable, Mapping, MutableMapping, Optional, Sequence, Union
 
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
+from sentry import features
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -13,15 +14,23 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.notifications.helpers import (
-    transform_to_notification_settings_by_user,
+    transform_to_notification_settings_by_recipient,
     where_should_be_participating,
 )
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
 from sentry.types.integrations import ExternalProviders
 
+if TYPE_CHECKING:
+    from sentry.models import Group, Team, User
 
-class GroupSubscriptionManager(BaseManager):
-    def subscribe(self, group, user, reason=GroupSubscriptionReason.unknown):
+
+class GroupSubscriptionManager(BaseManager):  # type: ignore
+    def subscribe(
+        self,
+        group: "Group",
+        user: "User",
+        reason: int = GroupSubscriptionReason.unknown,
+    ) -> bool:
         """
         Subscribe a user to an issue, but only if the user has not explicitly
         unsubscribed.
@@ -33,8 +42,14 @@ class GroupSubscriptionManager(BaseManager):
                 )
         except IntegrityError:
             pass
+        return True
 
-    def subscribe_actor(self, group, actor, reason=GroupSubscriptionReason.unknown):
+    def subscribe_actor(
+        self,
+        group: "Group",
+        actor: Union["Team", "User"],
+        reason: int = GroupSubscriptionReason.unknown,
+    ) -> Optional[bool]:
         from sentry.models import Team, User
 
         if isinstance(actor, User):
@@ -46,11 +61,17 @@ class GroupSubscriptionManager(BaseManager):
 
         raise NotImplementedError("Unknown actor type: %r" % type(actor))
 
-    def bulk_subscribe(self, group, user_ids, reason=GroupSubscriptionReason.unknown):
+    def bulk_subscribe(
+        self,
+        group: "Group",
+        user_ids: Iterable[int],
+        reason: int = GroupSubscriptionReason.unknown,
+    ) -> bool:
         """
         Subscribe a list of user ids to an issue, but only if the users are not explicitly
         unsubscribed.
         """
+        # Unique the IDs.
         user_ids = set(user_ids)
 
         # 5 retries for race conditions where
@@ -82,48 +103,62 @@ class GroupSubscriptionManager(BaseManager):
             except IntegrityError as e:
                 if i == 0:
                     raise e
+        return False
 
-    def get_participants(self, group) -> Mapping[ExternalProviders, Mapping[Any, int]]:
+    def get_participants(self, group: "Group") -> Mapping[ExternalProviders, Mapping["User", int]]:
         """
         Identify all users who are participating with a given issue.
         :param group: Group object
         """
         from sentry.models import NotificationSetting, User
 
-        users = User.objects.get_from_group(group)
-        user_ids = [user.id for user in users]
-        subscriptions = self.filter(group=group, user_id__in=user_ids)
+        all_possible_users = User.objects.get_from_group(group)
+        active_and_disabled_subscriptions = self.filter(group=group, user__in=all_possible_users)
         notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
             NotificationSettingTypes.WORKFLOW,
-            recipients=users,
+            recipients=all_possible_users,
             parent=group.project,
         )
         subscriptions_by_user_id = {
-            subscription.user_id: subscription for subscription in subscriptions
+            subscription.user_id: subscription for subscription in active_and_disabled_subscriptions
         }
-        notification_settings_by_user = transform_to_notification_settings_by_user(
-            notification_settings, users
+        notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
+            notification_settings, all_possible_users
         )
 
-        result = defaultdict(dict)
-        for user in users:
+        should_use_slack_automatic = features.has(
+            "organizations:notification-slack-automatic", group.organization
+        )
+
+        result: MutableMapping[ExternalProviders, MutableMapping["User", int]] = defaultdict(dict)
+        for user in all_possible_users:
+            subscription_option = subscriptions_by_user_id.get(user.id)
             providers = where_should_be_participating(
                 user,
-                subscriptions_by_user_id,
-                notification_settings_by_user,
+                subscription_option,
+                notification_settings_by_recipient,
+                should_use_slack_automatic=should_use_slack_automatic,
             )
             for provider in providers:
-                value = getattr(
-                    subscriptions_by_user_id.get(user.id),
-                    "reason",
-                    GroupSubscriptionReason.implicit,
+                result[provider][user] = (
+                    subscription_option
+                    and subscription_option.reason
+                    or GroupSubscriptionReason.implicit
                 )
-                result[provider][user] = value
 
         return result
 
+    @staticmethod
+    def get_participating_users(group: "Group") -> Sequence["User"]:
+        """Return the list of users participating in this issue."""
+        from sentry.models import User
 
-class GroupSubscription(Model):
+        return list(
+            User.objects.filter(groupsubscription__is_active=True, groupsubscription__group=group)
+        )
+
+
+class GroupSubscription(Model):  # type: ignore
     """
     Identifies a subscription relationship between a user and an issue.
     """

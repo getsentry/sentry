@@ -65,7 +65,7 @@ const AccountNotificationsByProject = ({projects, field}: ANBPProps) => {
               <SelectField
                 defaultValue={f.defaultValue}
                 name={f.name}
-                choices={f.choices}
+                options={f.options}
                 label={f.label}
               />
             </PanelBodyLineItem>
@@ -101,7 +101,7 @@ const AccountNotificationsByOrganization = ({organizations, field}: ANBOProps) =
           <SelectField
             defaultValue={f.defaultValue}
             name={f.name}
-            choices={f.choices}
+            options={f.options}
             label={f.label}
           />
         </PanelBodyLineItem>
@@ -165,15 +165,10 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {params, organizations} = this.props;
+    const {params} = this.props;
     const {fineTuneType} = params;
 
-    if (
-      ['alerts', 'deploy', 'workflow'].includes(fineTuneType) &&
-      organizations.some(organization =>
-        organization.features.includes('notification-platform')
-      )
-    ) {
+    if (['alerts', 'deploy', 'workflow'].includes(fineTuneType)) {
       return <NotificationSettingsByType notificationType={fineTuneType} />;
     }
 
@@ -188,7 +183,7 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
 
     if (fineTuneType === 'email') {
       // Fetch verified email addresses
-      field.choices = this.emailChoices.map(({email}) => [email, email]);
+      field.options = this.emailChoices.map(({email}) => ({value: email, label: email}));
     }
 
     if (!notifications || !fineTuneData) {
@@ -261,4 +256,4 @@ const Heading = styled('div')`
   flex: 1;
 `;
 
-export default withOrganizations(AccountNotificationFineTuning);
+export default AccountNotificationFineTuning;

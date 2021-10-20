@@ -3,6 +3,7 @@ import {IconDocs, IconGeneric, IconMail, IconStack, IconStar} from 'app/icons';
 
 export default {
   title: 'Components/Alerts/Alert Links',
+  component: AlertLink,
 };
 
 export const Default = () => [

@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T22:02:38.699543Z'
+created: '2021-08-06T16:25:44.678378Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -10,10 +10,10 @@ IllegalArgumentException:_ (thread_id:_, crashed:_)
   com.android.internal.os.RuntimeInit$Method  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
-                          android.os.Handler  dispatchMessage category=internals
-                android.app.ActivityThread$H  handleMessage category=std
-                  android.app.ActivityThread  -wrap18 category=internals
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                android.app.ActivityThread$H  handleMessage category=threadbase
+                  android.app.ActivityThread  -wrap18 category=std
                   android.app.ActivityThread  handleRelaunchActivity category=internals
                   android.app.ActivityThread  handleLaunchActivity category=internals
                   android.app.ActivityThread  handleResumeActivity category=internals
@@ -33,10 +33,10 @@ RuntimeException:_ (thread_id:_, crashed:_)
   com.android.internal.os.RuntimeInit$Method  run category=internals
                     java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
-                           android.os.Looper  loop category=system
-                          android.os.Handler  dispatchMessage category=internals
-                android.app.ActivityThread$H  handleMessage category=std
-                  android.app.ActivityThread  -wrap18 category=internals
+                           android.os.Looper  loop category=threadbase
+                          android.os.Handler  dispatchMessage category=threadbase
+                android.app.ActivityThread$H  handleMessage category=threadbase
+                  android.app.ActivityThread  -wrap18 category=std
                   android.app.ActivityThread  handleRelaunchActivity category=internals
                   android.app.ActivityThread  handleLaunchActivity category=internals
                   android.app.ActivityThread  handleResumeActivity category=internals

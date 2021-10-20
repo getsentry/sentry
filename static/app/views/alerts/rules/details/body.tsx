@@ -14,6 +14,7 @@ import Duration from 'app/components/duration';
 import IdBadge from 'app/components/idBadge';
 import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
 import * as Layout from 'app/components/layouts/thirds';
+import NotAvailable from 'app/components/notAvailable';
 import {Panel, PanelBody} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {parseSearch} from 'app/components/searchSyntax/parser';
@@ -25,6 +26,7 @@ import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Actor, DateString, Organization, Project} from 'app/types';
+import getDynamicText from 'app/utils/getDynamicText';
 import Projects from 'app/utils/projects';
 import {
   AlertRuleThresholdType,
@@ -105,15 +107,23 @@ export default class DetailsBody extends React.Component<Props> {
 
   getFilter() {
     const {rule} = this.props;
+    const {dataset, query} = rule ?? {};
     if (!rule) {
       return null;
     }
 
-    const eventType = extractEventTypeFilterFromRule(rule);
-    const parsedQuery = parseSearch([eventType, rule.query].join(' '));
+    const eventType =
+      dataset === Dataset.SESSIONS ? null : extractEventTypeFilterFromRule(rule);
+    const parsedQuery = parseSearch([eventType, query].join(' ').trim());
 
     return (
-      <Filters>{parsedQuery && <HighlightQuery parsedQuery={parsedQuery} />}</Filters>
+      <Filters>
+        {query || eventType ? (
+          <HighlightQuery parsedQuery={parsedQuery ?? []} />
+        ) : (
+          <NotAvailable />
+        )}
+      </Filters>
     );
   }
 
@@ -237,7 +247,7 @@ export default class DetailsBody extends React.Component<Props> {
           <Status>
             <AlertBadge status={status} hideText />
             {activeIncident ? t('Triggered') : t('Resolved')}
-            {activityDate ? <TimeSince date={activityDate} /> : '-'}
+            {activityDate ? <TimeSince date={activityDate} /> : ''}
           </Status>
         </HeaderItem>
       </StatusContainer>
@@ -279,7 +289,7 @@ export default class DetailsBody extends React.Component<Props> {
       return this.renderLoading();
     }
 
-    const {query, projects: projectSlugs} = rule;
+    const {query, projects: projectSlugs, dataset} = rule;
 
     const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
 
@@ -305,7 +315,12 @@ export default class DetailsBody extends React.Component<Props> {
                       <HeaderItem>
                         <Heading noMargin>{t('Display')}</Heading>
                         <ChartControls>
-                          <DropdownControl label={timePeriod.display}>
+                          <DropdownControl
+                            label={getDynamicText({
+                              fixed: 'Oct 14, 2:56 PM — Oct 14, 4:55 PM',
+                              value: timePeriod.display,
+                            })}
+                          >
                             {TIME_OPTIONS.map(({label, value}) => (
                               <DropdownItem
                                 key={value}
@@ -355,13 +370,13 @@ export default class DetailsBody extends React.Component<Props> {
                     projects={projects}
                     interval={this.getInterval()}
                     filter={this.getFilter()}
-                    query={queryWithTypeFilter}
+                    query={dataset === Dataset.SESSIONS ? query : queryWithTypeFilter}
                     orgId={orgId}
                     handleZoom={handleZoom}
                   />
                   <DetailWrapper>
                     <ActivityWrapper>
-                      {rule?.dataset === Dataset.ERRORS && (
+                      {[Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
                         <RelatedIssues
                           organization={organization}
                           rule={rule}
@@ -369,9 +384,16 @@ export default class DetailsBody extends React.Component<Props> {
                             rule.projects.includes(project.slug)
                           )}
                           timePeriod={timePeriod}
+                          query={
+                            dataset === Dataset.ERRORS
+                              ? queryWithTypeFilter
+                              : dataset === Dataset.SESSIONS
+                              ? `${query} error.unhandled:true`
+                              : undefined
+                          }
                         />
                       )}
-                      {rule?.dataset === Dataset.TRANSACTIONS && (
+                      {dataset === Dataset.TRANSACTIONS && (
                         <RelatedTransactions
                           organization={organization}
                           location={location}

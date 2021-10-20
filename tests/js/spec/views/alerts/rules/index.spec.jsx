@@ -53,7 +53,6 @@ describe('OrganizationRuleList', () => {
         }),
       ],
     });
-
     projectMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [TestStubs.Project({slug: 'earth', platform: 'javascript'})],
@@ -73,9 +72,7 @@ describe('OrganizationRuleList', () => {
     await createWrapper();
 
     const row = wrapper.find('RuleListRow').at(0);
-    expect(row.find('RuleType').at(0).text()).toBe('Issue');
-    expect(row.find('Title').text()).toBe('First Issue Alert');
-    expect(row.find('CreatedBy').text()).toBe('Samwise');
+    expect(row.find('AlertName').text()).toBe('First Issue Alert');
 
     // GlobalSelectionHeader loads projects + the Projects render-prop
     // component to load projects for all rows.
@@ -94,7 +91,7 @@ describe('OrganizationRuleList', () => {
       eventKey: 'alert_rules.viewed',
       eventName: 'Alert Rules: Viewed',
       organization_id: '3',
-      sort: undefined,
+      sort: 'incident_status,date_triggered',
     });
   });
 
@@ -115,13 +112,13 @@ describe('OrganizationRuleList', () => {
   it('sorts by date created', async () => {
     await createWrapper();
 
-    expect(wrapper.find('IconArrow').prop('direction')).toBe('down');
+    expect(wrapper.find('IconArrow').at(0).prop('direction')).toBe('down');
 
     wrapper.setProps({
       location: {query: {asc: '1'}, search: '?asc=1`'},
     });
 
-    expect(wrapper.find('IconArrow').prop('direction')).toBe('up');
+    expect(wrapper.find('IconArrow').at(0).prop('direction')).toBe('up');
 
     expect(rulesMock).toHaveBeenCalledTimes(2);
 
@@ -135,13 +132,14 @@ describe('OrganizationRuleList', () => {
     await createWrapper();
 
     const nameHeader = wrapper.find('StyledSortLink').first();
-    expect(nameHeader.text()).toContain('Alert Name');
+    expect(nameHeader.text()).toContain('Alert Rule');
     expect(nameHeader.props().to).toEqual(
       expect.objectContaining({
         query: {
           sort: 'name',
-          asc: undefined,
+          asc: '1',
           team: ['myteams', 'unassigned'],
+          expand: ['latestIncident'],
         },
       })
     );
@@ -194,6 +192,8 @@ describe('OrganizationRuleList', () => {
       expect.objectContaining({
         query: {
           name: testQuery,
+          expand: ['latestIncident'],
+          sort: ['incident_status', 'date_triggered'],
           team: ['myteams', 'unassigned'],
         },
       })
@@ -215,6 +215,8 @@ describe('OrganizationRuleList', () => {
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
+          expand: ['latestIncident'],
+          sort: ['incident_status', 'date_triggered'],
           team: '',
         },
       })
@@ -222,27 +224,19 @@ describe('OrganizationRuleList', () => {
   });
 
   it('displays alert status', async () => {
-    const ownershipOrg = {
-      ...organization,
-      features: ['alert-details-redesign'],
-    };
-    await createWrapper({organization: ownershipOrg});
+    await createWrapper({organization});
     let row = wrapper.find('RuleListRow').at(1);
     expect(row.find('AlertNameAndStatus').text()).toContain('My Incident Rule');
     expect(row.find('AlertNameAndStatus').text()).toContain('Triggered');
     expect(row.find('TriggerText').text()).toBe('Above 70');
 
     row = wrapper.find('RuleListRow').at(2);
-    expect(row.find('TriggerText').text()).toBe('Below 70');
+    expect(row.find('TriggerText').text()).toBe('Below 36');
     expect(wrapper.find('AlertIconWrapper').exists()).toBe(true);
   });
 
-  it('sorts by alert rule with alert-details-redesign', async () => {
-    const ownershipOrg = {
-      ...organization,
-      features: ['alert-details-redesign'],
-    };
-    await createWrapper({organization: ownershipOrg});
+  it('sorts by alert rule', async () => {
+    await createWrapper({organization});
 
     expect(rulesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/combined-rules/',

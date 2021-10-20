@@ -1,8 +1,9 @@
 from collections import namedtuple
+from typing import Any, Mapping, Optional, Sequence
 
 from django.utils.translation import ugettext_lazy as _
+from django.views import View
 
-from sentry import features
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
     FeatureDescription,
@@ -12,12 +13,15 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.slack import tasks
+from sentry.models import Integration, NotificationSetting, Organization, User
 from sentry.pipeline import NestedPipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
+from sentry.utils.json import JSONData
 
 from .client import SlackClient
-from .utils import get_integration_type, logger
+from .utils import logger
 
 Channel = namedtuple("Channel", ["name", "id"])
 
@@ -61,12 +65,31 @@ metadata = IntegrationMetadata(
 )
 
 
-class SlackIntegration(IntegrationInstallation):
-    def get_config_data(self):
-        return {"installationType": get_integration_type(self.model)}
+class SlackIntegration(IntegrationInstallation):  # type: ignore
+    def get_config_data(self) -> Mapping[str, str]:
+        metadata_ = self.model.metadata
+        # Classic bots had a user_access_token in the metadata.
+        default_installation = (
+            "classic_bot" if "user_access_token" in metadata_ else "workspace_app"
+        )
+        return {"installationType": metadata_.get("installation_type", default_installation)}
+
+    def uninstall(self) -> None:
+        """
+        Delete all parent-specific notification settings. For each user and team,
+        if this is their ONLY Slack integration, set their parent-independent
+        Slack notification setting to NEVER.
+        """
+        provider = ExternalProviders.SLACK
+        organization = Organization.objects.get(id=self.organization_id)
+        users = User.objects.get_users_with_only_one_integration_for_provider(
+            provider, organization
+        )
+        NotificationSetting.objects.remove_parent_settings_for_organization(organization, provider)
+        NotificationSetting.objects.disable_settings_for_users(provider, users)
 
 
-class SlackIntegrationProvider(IntegrationProvider):
+class SlackIntegrationProvider(IntegrationProvider):  # type: ignore
     key = "slack"
     name = "Slack"
     metadata = metadata
@@ -100,7 +123,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 600, "height": 900}
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> Sequence[View]:
         identity_pipeline_config = {
             "oauth_scopes": self.identity_oauth_scopes,
             "user_scopes": self.user_scopes,
@@ -116,8 +139,8 @@ class SlackIntegrationProvider(IntegrationProvider):
 
         return [identity_pipeline_view]
 
-    def get_team_info(self, access_token):
-        headers = {"Authorization": "Bearer %s" % access_token}
+    def get_team_info(self, access_token: str) -> JSONData:
+        headers = {"Authorization": f"Bearer {access_token}"}
 
         client = SlackClient()
         try:
@@ -128,7 +151,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
         return resp["team"]
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         data = state["identity"]["data"]
         assert data["ok"]
 
@@ -164,10 +187,11 @@ class SlackIntegrationProvider(IntegrationProvider):
 
         return integration
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self, integration: Integration, organization: Organization, extra: Optional[Any] = None
+    ) -> None:
         """
         Create Identity records for an organization's users if their emails match in Sentry and Slack
         """
-        if features.has("organizations:notification-platform", organization):
-            run_args = {"integration": integration, "organization": organization}
-            tasks.link_slack_user_identities.apply_async(kwargs=run_args)
+        run_args = {"integration": integration, "organization": organization}
+        tasks.link_slack_user_identities.apply_async(kwargs=run_args)

@@ -1,12 +1,14 @@
 import * as React from 'react';
-import {InjectedRouter, Link} from 'react-router';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Badge from 'app/components/badge';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import GlobalEventProcessingAlert from 'app/components/globalEventProcessingAlert';
 import * as Layout from 'app/components/layouts/thirds';
+import Link from 'app/components/links/link';
 import QueryCount from 'app/components/queryCount';
 import Tooltip from 'app/components/tooltip';
 import {IconPause, IconPlay} from 'app/icons';
@@ -44,12 +46,11 @@ type Props = {
   sort: string;
   queryCounts: QueryCounts;
   realtimeActive: boolean;
-  orgSlug: Organization['slug'];
   router: InjectedRouter;
-  projectIds: Array<string>;
-  projects: Array<Project>;
   onRealtimeChange: (realtime: boolean) => void;
   displayReprocessingTab: boolean;
+  selectedProjectIds: number[];
+  projects: Project[];
   queryCount?: number;
 } & React.ComponentProps<typeof SavedSearchTab>;
 
@@ -66,6 +67,8 @@ function IssueListHeader({
   savedSearchList,
   router,
   displayReprocessingTab,
+  selectedProjectIds,
+  projects,
 }: Props) {
   const tabs = getTabs(organization);
   const visibleTabs = displayReprocessingTab
@@ -88,6 +91,10 @@ function IssueListHeader({
     }
   }
 
+  const selectedProjects = projects.filter(({id}) =>
+    selectedProjectIds.includes(Number(id))
+  );
+
   return (
     <React.Fragment>
       <BorderlessHeader>
@@ -106,6 +113,7 @@ function IssueListHeader({
             </Button>
           </ButtonBar>
         </Layout.HeaderActions>
+        <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       </BorderlessHeader>
       <TabLayoutHeader>
         <Layout.HeaderNavTabs underlined>
@@ -194,4 +202,15 @@ const TabLayoutHeader = styled(Layout.Header)`
 const StyledHeaderContent = styled(Layout.HeaderContent)`
   margin-bottom: 0;
   margin-right: ${space(2)};
+`;
+
+const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
+  grid-column: 1/-1;
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-top: ${space(2)};
+    margin-bottom: 0;
+  }
 `;

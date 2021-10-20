@@ -3,7 +3,10 @@ import re
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
 
-KEY_TRANSACTION_ALIAS = "key_transaction"
+TIMEOUT_ERROR_MESSAGE = """
+Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects. Also consider a
+filter on the transaction field if you're filtering performance data.
+"""
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
@@ -86,49 +89,24 @@ DEFAULT_PROJECT_THRESHOLD_METRIC = "duration"
 DEFAULT_PROJECT_THRESHOLD = 300
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 500
 
-# Allow list of fields that are compatible with the Snql Query Builder.
-# Once we reach a certain threshold of fields handled should turn this into a denylist
-# use public facing field/function names for this list
-SNQL_FIELD_ALLOWLIST = {
-    "environment",
-    "message",
-    "project",
-    "transaction",
-    "project.id",
-    "release",
-    USER_DISPLAY_ALIAS,
-    "user.email",
-    ISSUE_ALIAS,
-    ISSUE_ID_ALIAS,
-    TIMESTAMP_TO_HOUR_ALIAS,
-    TIMESTAMP_TO_DAY_ALIAS,
-    TRANSACTION_STATUS_ALIAS,
-    ERROR_UNHANDLED_ALIAS,
-    TEAM_KEY_TRANSACTION_ALIAS,
-    "error.mechanism",
-    "error.type",
-    "error.value",
-    "stack.abs_path",
-    "stack.colno",
-    "stack.filename",
-    "stack.function",
-    "stack.in_app",
-    "stack.lineno",
-    "stack.module",
-    "stack.package",
-    "stack.stack_level",
-}
-
 OPERATOR_NEGATION_MAP = {
     "=": "!=",
+    "!=": "=",
     "<": ">=",
     "<=": ">",
     ">": "<=",
     ">=": "<",
     "IN": "NOT IN",
+    "NOT IN": "IN",
 }
 OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exact"}
 
 MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
 SEMVER_WILDCARDS = frozenset(["X", "*"])
+
+# In Performance TPM is used as an alias to EPM
+FUNCTION_ALIASES = {
+    "tpm": "epm",
+    "tps": "eps",
+}

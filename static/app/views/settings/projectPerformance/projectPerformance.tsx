@@ -166,7 +166,9 @@ class ProjectPerformance extends AsyncView<Props, State> {
             fields={this.formFields}
             renderFooter={() => (
               <Actions>
-                <Button onClick={() => this.handleDelete()}>{t('Reset All')}</Button>
+                <Button type="button" onClick={() => this.handleDelete()}>
+                  {t('Reset All')}
+                </Button>
               </Actions>
             )}
           />

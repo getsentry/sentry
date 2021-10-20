@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
-import {Client} from 'app/api';
 import Card from 'app/components/card';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import {HeaderTitle} from 'app/components/charts/styles';
@@ -35,7 +34,7 @@ import VitalsCardsDiscoverQuery, {
 } from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 
 import ColorBar from '../vitalDetail/colorBar';
 import {
@@ -130,7 +129,6 @@ const VitalBarContainer = styled('div')`
 `;
 
 type BaseCardsProps = {
-  api: Client;
   eventView: EventView;
   location: Location;
   organization: Organization;
@@ -141,7 +139,9 @@ type GenericCardsProps = BaseCardsProps & {
 };
 
 function GenericCards(props: GenericCardsProps) {
-  const {api, eventView: baseEventView, location, organization, functions} = props;
+  const api = useApi();
+
+  const {eventView: baseEventView, location, organization, functions} = props;
   const {query} = location;
   const eventView = baseEventView.withColumns(functions);
 
@@ -246,7 +246,6 @@ function GenericCards(props: GenericCardsProps) {
 }
 
 function _BackendCards(props: BaseCardsProps) {
-  const {organization} = props;
   const functions: Column[] = [
     {
       kind: 'function',
@@ -254,20 +253,15 @@ function _BackendCards(props: BaseCardsProps) {
     },
     {kind: 'function', function: ['tpm', '', undefined, undefined]},
     {kind: 'function', function: ['failure_rate', '', undefined, undefined]},
-    organization.features.includes('project-transaction-threshold')
-      ? {
-          kind: 'function',
-          function: ['apdex', '', undefined, undefined],
-        }
-      : {
-          kind: 'function',
-          function: ['apdex', `${organization.apdexThreshold}`, undefined, undefined],
-        },
+    {
+      kind: 'function',
+      function: ['apdex', '', undefined, undefined],
+    },
   ];
   return <GenericCards {...props} functions={functions} />;
 }
 
-export const BackendCards = withApi(_BackendCards);
+export const BackendCards = _BackendCards;
 
 type MobileCardsProps = BaseCardsProps & {
   showStallPercentage: boolean;
@@ -283,25 +277,27 @@ function _MobileCards(props: MobileCardsProps) {
       kind: 'function',
       function: ['p75', 'measurements.app_start_warm', undefined, undefined],
     },
-    {
-      kind: 'function',
-      function: ['p75', 'measurements.frames_slow_rate', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['p75', 'measurements.frames_frozen_rate', undefined, undefined],
-    },
   ];
   if (props.showStallPercentage) {
     functions.push({
       kind: 'function',
       function: ['p75', 'measurements.stall_percentage', undefined, undefined],
     });
+  } else {
+    // TODO(tonyx): add these by default once the SDKs are ready
+    functions.push({
+      kind: 'function',
+      function: ['p75', 'measurements.frames_slow_rate', undefined, undefined],
+    });
+    functions.push({
+      kind: 'function',
+      function: ['p75', 'measurements.frames_frozen_rate', undefined, undefined],
+    });
   }
   return <GenericCards {...props} functions={functions} />;
 }
 
-export const MobileCards = withApi(_MobileCards);
+export const MobileCards = _MobileCards;
 
 type SparklineChartProps = {
   data: number[];

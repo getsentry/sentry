@@ -1,9 +1,6 @@
-import * as ReactRouter from 'react-router';
-import withRouter, {WithRouterProps} from 'react-router/lib/withRouter';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
-import {Client} from 'app/api';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'app/components/charts/styles';
@@ -18,18 +15,15 @@ import {Organization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 
 import Chart from '../../charts/chart';
 import {DoubleHeaderContainer} from '../../styles';
 import {getFieldOrBackup} from '../display/utils';
 
 type Props = {
-  api: Client;
   eventView: EventView;
   organization: Organization;
-  location: Location;
-  router: ReactRouter.InjectedRouter;
   field: string;
   title: string;
   titleTooltip: string;
@@ -37,19 +31,18 @@ type Props = {
   usingBackupAxis: boolean;
 } & WithRouterProps;
 
-function DurationChart(props: Props) {
-  const {
-    organization,
-    api,
-    eventView,
-    location,
-    router,
-    field,
-    title,
-    titleTooltip,
-    backupField,
-    usingBackupAxis,
-  } = props;
+function DurationChart({
+  organization,
+  eventView,
+  location,
+  router,
+  field,
+  title,
+  titleTooltip,
+  backupField,
+  usingBackupAxis,
+}: Props) {
+  const api = useApi();
 
   // construct request parameters for fetching chart data
   const globalSelection = eventView.getGlobalSelection();
@@ -91,6 +84,7 @@ function DurationChart(props: Props) {
       yAxis={[field, ..._backupField]}
       partial
       hideError
+      referrer="api.performance.homepage.duration-chart"
     >
       {({
         loading,
@@ -170,4 +164,4 @@ const MaskContainer = styled('div')`
   position: relative;
 `;
 
-export default withRouter(withApi(DurationChart));
+export default withRouter(DurationChart);

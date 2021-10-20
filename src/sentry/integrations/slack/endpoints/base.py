@@ -3,7 +3,6 @@ from typing import Any, Sequence, Tuple
 
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.base import Endpoint
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequest
@@ -17,7 +16,6 @@ LINK_USER_MESSAGE = (
 UNLINK_USER_MESSAGE = "<{associate_url}|Click here to unlink your identity.>"
 NOT_LINKED_MESSAGE = "You do not have a linked identity to unlink."
 ALREADY_LINKED_MESSAGE = "You are already linked as `{username}`."
-FEATURE_FLAG_MESSAGE = "This feature hasn't been released yet, hang tight."
 
 
 class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
@@ -30,13 +28,6 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
 
         if command in ["help", ""]:
             return self.respond(SlackHelpMessageBuilder().build())
-
-        integration = request.integration
-        organization = integration.organizations.all()[0]
-        if command in ["link", "unlink"] and not features.has(
-            "organizations:notification-platform", organization
-        ):
-            return self.reply(request, FEATURE_FLAG_MESSAGE)
 
         if command == "link":
             if not args:
@@ -53,7 +44,9 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
                 return self.unlink_team(request)
 
         # If we cannot interpret the command, print help text.
-        return self.respond(SlackHelpMessageBuilder(command).build())
+        request_data = request.data
+        unknown_command = request_data.get("text", "").lower()
+        return self.respond(SlackHelpMessageBuilder(unknown_command).build())
 
     def get_command_and_args(self, request: SlackRequest) -> Tuple[str, Sequence[str]]:
         raise NotImplementedError
@@ -67,11 +60,8 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
                 slack_request, ALREADY_LINKED_MESSAGE.format(username=slack_request.identity_str)
             )
 
-        integration = slack_request.integration
-        organization = integration.organizations.all()[0]
         associate_url = build_linking_url(
-            integration=integration,
-            organization=organization,
+            integration=slack_request.integration,
             slack_id=slack_request.user_id,
             channel_id=slack_request.channel_id,
             response_url=slack_request.response_url,
@@ -83,10 +73,8 @@ class SlackDMEndpoint(Endpoint, abc.ABC):  # type: ignore
             return self.reply(slack_request, NOT_LINKED_MESSAGE)
 
         integration = slack_request.integration
-        organization = integration.organizations.all()[0]
         associate_url = build_unlinking_url(
             integration_id=integration.id,
-            organization_id=organization.id,
             slack_id=slack_request.user_id,
             channel_id=slack_request.channel_id,
             response_url=slack_request.response_url,

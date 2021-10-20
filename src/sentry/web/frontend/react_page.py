@@ -38,6 +38,7 @@ class ReactPageView(OrganizationView, ReactMixin):
                 organization=organization, slug=kwargs["project_id"]
             ).first()
             first_event_pending.send(project=project, user=request.user, sender=self)
+        request.organization = organization
         return self.handle_react(request)
 
 

@@ -16,7 +16,7 @@ from sentry.snuba import discover
 Alias = namedtuple("Alias", "converter aggregate")
 
 
-# This is to flip conditions beteween trend types
+# This is to flip conditions between trend types
 CORRESPONDENCE_MAP = {
     ">": "<",
     ">=": "<=",
@@ -90,7 +90,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     if trend_type == REGRESSION
                     else aggregate_filter.operator,
                     -1 * aggregate_filter.value.value
-                    if trend_type == IMPROVED
+                    if trend_type == REGRESSION
                     else aggregate_filter.value.value,
                 ],
                 None,
@@ -256,7 +256,9 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
         self, request, organization, params, trend_function, selected_columns, orderby, query
     ):
         def on_results(events_results):
-            def get_event_stats(query_columns, query, params, rollup):
+            def get_event_stats(
+                query_columns, query, params, rollup, zerofill_results, comparison_delta=None
+            ):
                 return discover.top_events_timeseries(
                     query_columns,
                     selected_columns,
@@ -268,6 +270,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
                     organization,
                     top_events=events_results,
                     referrer="api.trends.get-event-stats",
+                    zerofill_results=zerofill_results,
                 )
 
             stats_results = (

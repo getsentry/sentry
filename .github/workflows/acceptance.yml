@@ -20,6 +20,7 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
+        # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
         instance: [0, 1]
 
     env:
@@ -40,13 +41,10 @@ jobs:
         id: yarn-cache-dir-path
         run: echo "::set-output name=dir::$(yarn cache dir)"
 
-      - uses: actions/cache@v2
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+      - uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
+          key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -55,12 +53,21 @@ jobs:
         run: NODE_ENV=production yarn build-css
 
       - name: jest
+        env:
+          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
+          # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+          #      Otherwise, if there are other things in the matrix, using strategy.job-total
+          #      wouldn't be correct.
+          CI_NODE_TOTAL: 2
+          CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
-          CI_NODE_TOTAL=${{ strategy.job-total }} CI_NODE_INDEX=${{ matrix.instance }} JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+          JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2
         with:
+          retention-days: 14
           name: jest-html
           path: .artifacts/visual-snapshots/jest
 
@@ -80,17 +87,12 @@ jobs:
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
 
-  acceptance:
-    name: acceptance
+  webpack:
+    name: create frontend bundle
     runs-on: ubuntu-20.04
-    timeout-minutes: 25
-    strategy:
-      matrix:
-        instance: [0, 1, 2, 3]
-
-    env:
-      VISUAL_SNAPSHOT_ENABLE: 1
-      TEST_GROUP_STRATEGY: roundrobin
+    timeout-minutes: 10
+    outputs:
+      dist-path: ${{ steps.config.outputs.dist-path }}
 
     steps:
       - uses: actions/checkout@v2
@@ -98,55 +100,24 @@ jobs:
 
       - uses: volta-cli/action@v1
 
-      - name: Set python version output
-        id: python-version
+      - name: Step configurations
+        id: config
         run: |
-          echo "::set-output name=python-version::$(cat .python-version)"
-
-      - name: Setup webpack cache
-        id: webpack-cache
-        run: echo "::set-output name=path::.webpack_cache"
-
-      # Until GH composite actions can use `uses`, we need to setup python here
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{ steps.python-version.outputs.python-version }}
-
-      - name: Setup pip
-        uses: ./.github/actions/setup-pip
-        id: pip
-
-      - name: pip cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: |
-            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
-
-      - name: Setup sentry python env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          snuba: true
+          echo "::set-output name=yarn-path::$(yarn cache dir)"
+          echo "::set-output name=webpack-path::.webpack_cache"
+          echo "::set-output name=dist-path::src/sentry/static/sentry/dist"
 
       - name: yarn cache
-        uses: actions/cache@v2
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
         with:
-          path: ${{ steps.setup.outputs.yarn-cache-dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
+          path: ${{ steps.config.outputs.yarn-path }}
+          key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
 
       - name: webpack cache
         uses: actions/cache@v2
         with:
-          path: ${{ steps.webpack-cache.outputs.path }}
-          key: ${{ runner.os }}-webpack-cache-${{ hashFiles('webpack.config.js') }}
-          restore-keys: |
-            ${{ runner.os }}-webpack-cache-
+          path: ${{ steps.config.outputs.webpack-path }}
+          key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
 
       - name: Install Javascript Dependencies
         run: |
@@ -154,14 +125,70 @@ jobs:
 
       - name: webpack
         env:
-          WEBPACK_CACHE_PATH: ${{ steps.webpack-cache.outputs.path }}
+          WEBPACK_CACHE_PATH: ${{ steps.config.outputs.webpack-path }}
           SENTRY_INSTRUMENTATION: 1
           # this is fine to not have for forks, it shouldn't fail
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
         run: |
           yarn build-acceptance
 
-      - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      # Bundle dist for faster uploading
+      - name: bundle dist
+        run: |
+          tar czf dist.tar.gz ${{ steps.config.outputs.dist-path }}
+
+      - name: Save frontend dist
+        uses: actions/upload-artifact@v2
+        with:
+          retention-days: 3
+          name: frontend-dist
+          path: dist.tar.gz
+
+  acceptance:
+    name: acceptance
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        python-version: [3.6.13, 3.8.12]
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0, 1, 2, 3]
+    env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 4
+      VISUAL_SNAPSHOT_ENABLE: 1
+      TEST_GROUP_STRATEGY: roundrobin
+
+    steps:
+      - name: Checkout sentry
+        uses: actions/checkout@v2
+
+      - name: Setup sentry env (python ${{ matrix.python-version }})
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
+          snuba: true
+
+      - name: Wait for frontend build
+        uses: getsentry/action-wait-for-check@v1.0.0
+        id: wait-for-frontend
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: create frontend bundle
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v2
+        with:
+          name: frontend-dist
+
+      - name: Extract dist
+        run: |
+          tar xf dist.tar.gz
+
+      - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         if: always()
         run: |
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
@@ -188,8 +215,13 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
+        python-version: [3.6.13, 3.8.12]
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0]
     env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 1
+      TEST_GROUP_STRATEGY: roundrobin
       VISUAL_SNAPSHOT_ENABLE: 1
 
     steps:
@@ -199,43 +231,19 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: Set python version output
-        id: python-version
-        run: |
-          echo "::set-output name=python-version::$(cat .python-version)"
-
-      # Until GH composite actions can use `uses`, we need to setup python here
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{ steps.python-version.outputs.python-version }}
-
-      - name: Setup pip
-        uses: ./.github/actions/setup-pip
-        id: pip
-
-      - name: pip cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: |
-            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}-${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ secrets.PIP_CACHE_VERSION }}
-
-      - name: Setup sentry env
+      - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          python-version: ${{ matrix.python-version }}
+          pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           chartcuterie: true
 
       - name: yarn cache
-        uses: actions/cache@v2
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
         with:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
+          key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
 
       - name: Install Javascript Dependencies
         run: |
@@ -245,7 +253,7 @@ jobs:
         run: |
           make build-chartcuterie-config
 
-      - name: Run chartcuterie tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Run chartcuterie tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
           make test-chartcuterie

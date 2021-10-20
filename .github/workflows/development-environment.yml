@@ -2,13 +2,15 @@ name: dev env
 on:
   pull_request:
     paths:
-    - 'Makefile'
-    - '.github/workflows/development-environment.yml'
-    - '.envrc'
-    - 'Brewfile'
-    - 'scripts/*'
-    - 'src/sentry/runner/commands/devserver.py'
-    - 'src/sentry/runner/commands/devservices.py'
+      - '.pre-commit-config.yaml'
+      - 'Makefile'
+      - '.github/actions/*'
+      - '.github/workflows/development-environment.yml'
+      - '.envrc'
+      - 'Brewfile'
+      - 'scripts/*'
+      - 'src/sentry/runner/commands/devserver.py'
+      - 'src/sentry/runner/commands/devservices.py'
 
 jobs:
   dev-environment:
@@ -17,10 +19,10 @@ jobs:
     timeout-minutes: 40
     strategy:
       matrix:
-        # macosx-11.0 is Big Sur, however, it takes long for jobs to get started
         # Using Ubuntu 18 until I figure out this error:
         # -> ImportError: libffi.so.6: cannot open shared object file: No such file or directory
-        os: [ macos-11.0, ubuntu-18.04 ]
+        os: [macos-11.0, ubuntu-18.04]
+        python-version: [3.6.13, 3.8.12]
       fail-fast: false
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
@@ -31,55 +33,42 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@v2
 
-      - name: Install prerequisites
-        # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
-        # Sometimes, brew needs to be updated before brew bundle would work
-        # After installing Docker (via homebrew) we need to make sure that it is properly initialized on Mac
-        run: |
-          brew update -q && brew bundle -q
-          # This code is mentioned in our dev docs. Only remove if you adjust the docs as well
-          SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh init-docker
-
-      # The next few steps are to set up the cache quickly
-      - name: Set environment variables & others
+      - name: Set variables for caches
         id: info
         run: |
-          echo "::set-output name=python-version::$(cat .python-version)"
-          echo "::set-output name=pip-cache-dir::$(pip3 cache dir)"
-          echo "::set-output name=pip-version::$(pip -V | awk -F ' ' '{print $2}')"
+          echo "::set-output name=brew-cache-dir::$(brew --cache)"
           echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
 
-      # In a sense, we set up Python two times (once here and once via pyenv). Setting
-      # it up here is instant and it helps us to get the cache primed sooner
-      - name: Setup Python
-        uses: actions/setup-python@v2
+      - name: Cache (brew)
+        uses: actions/cache@v2
         with:
-          python-version: ${{ steps.info.outputs.python-version }}
+          path: ${{ steps.info.outputs.brew-cache-dir }}
+          key: devenv-${{ runner.os }}-brew-${{ hashFiles('Brewfile') }}
+          restore-keys: devenv-${{ runner.os }}-brew
+
+      - name: Install prerequisites
+        # brew can be finicky but it does not always means that the rest of the job will fail
+        # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
+        continue-on-error: true
+        run: |
+          make prerequisites
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: Cache (pyenv)
         uses: actions/cache@v2
         with:
           path: ~/.pyenv
           key: devenv-${{ matrix.os }}-pyenv-${{ hashFiles('.python-version') }}
-          restore-keys: |
-            devenv-${{ matrix.os }}-pyenv-
-
-      - name: Cache (pip)
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.info.outputs.pip-cache-dir }}
-          key: devenv-${{ matrix.os }}-py${{ steps.info.outputs.python-version }}-pip${{ steps.info.outputs.pip-version }}-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            devenv-${{ matrix.os }}-py${{ steps.info.outputs.python-version }}-pip${{ steps.info.outputs.pip-version }}-
 
       - name: Cache (yarn)
-        uses: actions/cache@v2
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
         with:
           path: ${{ steps.info.outputs.yarn-cache-dir }}
-          key: devenv-${{ matrix.os }}-yarn-${{ hashFiles('yarn.lock') }}
-          restore-keys: |
-            devenv-${{ matrix.os }}-yarn-
+          key: devenv-${{ matrix.os }}-v2-yarn-${{ hashFiles('yarn.lock') }}
 
       - name: Set up development environment (mostly as per docs)
         run: |
@@ -90,9 +79,4 @@ jobs:
           eval "$(pyenv init --path)"
           python -m venv .venv
           source .venv/bin/activate
-          make bootstrap
-
-      - name: Test direnv
-        run: |
-          brew install direnv
-          direnv allow
+          make develop init-config

@@ -2,12 +2,14 @@
 /* eslint import/no-nodejs-modules:0 */
 
 import path from 'path';
+import process from 'process';
 
 import type {Config} from '@jest/types';
 
 import babelConfig from './babel.config';
 
-const {JEST_TESTS, CI_NODE_TOTAL, CI_NODE_INDEX} = process.env;
+const {CI, JEST_TESTS, CI_NODE_TOTAL, CI_NODE_INDEX, GITHUB_PR_SHA, GITHUB_PR_REF} =
+  process.env;
 
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
@@ -47,7 +49,6 @@ const config: Config.InitialOptions = {
   ],
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
-  snapshotSerializers: ['enzyme-to-json/serializer'],
   moduleNameMapper: {
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
@@ -60,10 +61,10 @@ const config: Config.InitialOptions = {
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
     '<rootDir>/tests/js/throw-on-react-error.js',
-    '<rootDir>/tests/js/setup.js',
     'jest-canvas-mock',
   ],
   setupFilesAfterEnv: [
+    '<rootDir>/tests/js/setup.js',
     '<rootDir>/tests/js/setupFramework.ts',
     '@testing-library/jest-dom/extend-expect',
   ],
@@ -97,8 +98,20 @@ const config: Config.InitialOptions = {
 
   testEnvironment: '<rootDir>/tests/js/instrumentedEnv',
   testEnvironmentOptions: {
+    sentryConfig: {
+      init: {
+        dsn: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
+        environment: !!CI ? 'ci' : 'local',
+        tracesSampleRate: 1.0,
+      },
+      transactionOptions: {
+        tags: {
+          branch: GITHUB_PR_REF,
+          commit: GITHUB_PR_SHA,
+        },
+      },
+    },
     output: path.resolve(__dirname, '.artifacts', 'visual-snapshots', 'jest'),
-    SENTRY_DSN: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
   },
 };
 

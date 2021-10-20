@@ -22,6 +22,7 @@ type Options = {
   start?: DateString;
   end?: DateString;
   interval?: string;
+  comparisonDelta?: number;
   includePrevious?: boolean;
   limit?: number;
   query?: string;
@@ -30,6 +31,8 @@ type Options = {
   topEvents?: number;
   orderby?: string;
   partial: boolean;
+  withoutZerofill?: boolean;
+  referrer?: string;
 };
 
 /**
@@ -43,6 +46,7 @@ type Options = {
  * @param {String[]} options.team List of teams to query for
  * @param {String} options.period Time period to query for, in the format: <integer><units> where units are "d" or "h"
  * @param {String} options.interval Time interval to group results in, in the format: <integer><units> where units are "d", "h", "m", "s"
+ * @param {Number} options.comparisonDelta Comparison delta for change alert event stats to include comparison stats
  * @param {Boolean} options.includePrevious Should request also return reqsults for previous period?
  * @param {Number} options.limit The number of rows to return
  * @param {String} options.query Search query
@@ -58,6 +62,7 @@ export const doEventsRequest = (
     start,
     end,
     interval,
+    comparisonDelta,
     includePrevious,
     query,
     yAxis,
@@ -65,12 +70,15 @@ export const doEventsRequest = (
     topEvents,
     orderby,
     partial,
+    withoutZerofill,
+    referrer,
   }: Options
 ): Promise<EventsStats | MultiSeriesEventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
   const urlQuery = Object.fromEntries(
     Object.entries({
       interval,
+      comparisonDelta,
       project,
       environment,
       team,
@@ -80,6 +88,8 @@ export const doEventsRequest = (
       topEvents,
       orderby,
       partial: partial ? '1' : undefined,
+      withoutZerofill: withoutZerofill ? '1' : undefined,
+      referrer: referrer ? referrer : 'api.organization-event-stats',
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 

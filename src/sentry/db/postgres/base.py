@@ -6,6 +6,7 @@ from django.db.backends.postgresql_psycopg2.base import DatabaseWrapper
 
 from sentry.utils.strings import strip_lone_surrogates
 
+from .creation import SentryDatabaseCreation
 from .decorators import (
     auto_reconnect_connection,
     auto_reconnect_cursor,
@@ -83,6 +84,8 @@ class CursorWrapper:
 
 
 class DatabaseWrapper(DatabaseWrapper):
+    creation_class = SentryDatabaseCreation
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.ops = DatabaseOperations(self)

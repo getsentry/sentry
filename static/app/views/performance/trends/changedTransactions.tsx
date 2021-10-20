@@ -1,24 +1,25 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, Query} from 'history';
+import {Location} from 'history';
 
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import {HeaderTitleLegend} from 'app/components/charts/styles';
 import Count from 'app/components/count';
 import DropdownLink from 'app/components/dropdownLink';
+import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MenuItem from 'app/components/menuItem';
-import Pagination from 'app/components/pagination';
+import Pagination, {CursorHandler} from 'app/components/pagination';
 import {Panel} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import Radio from 'app/components/radio';
 import Tooltip from 'app/components/tooltip';
-import {IconEllipsis} from 'app/icons';
+import {IconArrow, IconEllipsis} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -26,13 +27,13 @@ import {AvatarProject, Organization, Project} from 'app/types';
 import {formatPercentage, getDuration} from 'app/utils/formatters';
 import TrendsDiscoverQuery from 'app/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
-import withApi from 'app/utils/withApi';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
+import useApi from 'app/utils/useApi';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 import {RadioLineItem} from 'app/views/settings/components/forms/controls/radioGroup';
 
-import {DisplayModes} from '../transactionSummary/charts';
+import {DisplayModes} from '../transactionSummary/transactionOverview/charts';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
 import Chart from './chart';
@@ -51,7 +52,6 @@ import {
   getTrendProjectId,
   modifyTrendView,
   normalizeTrends,
-  StyledIconArrow,
   transformDeltaSpread,
   transformValueDelta,
   trendCursorNames,
@@ -59,7 +59,6 @@ import {
 } from './utils';
 
 type Props = {
-  api: Client;
   organization: Organization;
   trendChangeType: TrendChangeType;
   previousTrendFunction?: TrendFunctionField;
@@ -75,13 +74,9 @@ type TrendsCursorQuery = {
   regressionCursor?: string;
 };
 
-function onTrendsCursor(trendChangeType: TrendChangeType) {
-  return function onCursor(
-    cursor: string,
-    path: string,
-    query: Query,
-    _direction: number
-  ) {
+const makeTrendsCursorHandler =
+  (trendChangeType: TrendChangeType): CursorHandler =>
+  (cursor, path, query) => {
     const cursorQuery = {} as TrendsCursorQuery;
     if (trendChangeType === TrendChangeType.IMPROVED) {
       cursorQuery.improvedCursor = cursor;
@@ -97,7 +92,6 @@ function onTrendsCursor(trendChangeType: TrendChangeType) {
       query: {...query, ...cursorQuery},
     });
   };
-}
 
 function getChartTitle(trendChangeType: TrendChangeType): string {
   switch (trendChangeType) {
@@ -161,9 +155,9 @@ enum FilterSymbols {
 
 function handleFilterTransaction(location: Location, transaction: string) {
   const queryString = decodeScalar(location.query.query);
-  const conditions = tokenizeSearch(queryString || '');
+  const conditions = new MutableSearch(queryString ?? '');
 
-  conditions.addTagValues('!transaction', [transaction]);
+  conditions.addFilterValues('!transaction', [transaction]);
 
   const query = conditions.formatString();
 
@@ -179,20 +173,20 @@ function handleFilterTransaction(location: Location, transaction: string) {
 function handleFilterDuration(location: Location, value: number, symbol: FilterSymbols) {
   const durationTag = getCurrentTrendParameter(location).column;
   const queryString = decodeScalar(location.query.query);
-  const conditions = tokenizeSearch(queryString || '');
+  const conditions = new MutableSearch(queryString ?? '');
 
-  const existingValues = conditions.getTagValues(durationTag);
+  const existingValues = conditions.getFilterValues(durationTag);
   const alternateSymbol = symbol === FilterSymbols.GREATER_THAN_EQUALS ? '>' : '<';
 
   if (existingValues) {
     existingValues.forEach(existingValue => {
       if (existingValue.startsWith(symbol) || existingValue.startsWith(alternateSymbol)) {
-        conditions.removeTagValue(durationTag, existingValue);
+        conditions.removeFilterValue(durationTag, existingValue);
       }
     });
   }
 
-  conditions.addTagValues(durationTag, [`${symbol}${value}`]);
+  conditions.addFilterValues(durationTag, [`${symbol}${value}`]);
 
   const query = conditions.formatString();
 
@@ -207,7 +201,6 @@ function handleFilterDuration(location: Location, value: number, symbol: FilterS
 
 function ChangedTransactions(props: Props) {
   const {
-    api,
     location,
     trendChangeType,
     previousTrendFunction,
@@ -216,11 +209,13 @@ function ChangedTransactions(props: Props) {
     projects,
     setError,
   } = props;
+  const api = useApi();
+
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);
   modifyTrendView(trendView, location, trendChangeType);
 
-  const onCursor = onTrendsCursor(trendChangeType);
+  const onCursor = makeTrendsCursorHandler(trendChangeType);
   const cursor = decodeScalar(location.query[trendCursorNames[trendChangeType]]);
 
   return (
@@ -419,6 +414,7 @@ function TrendsListItem(props: TrendsListItemProps) {
               </span>
             </TooltipContent>
           }
+          disableForVisualTest // Disabled tooltip in snapshots because of overlap order issues.
         >
           <RadioLineItem index={index} role="radio">
             <Radio
@@ -484,23 +480,37 @@ function TrendsListItem(props: TrendsListItemProps) {
         <CompareDurations {...props} />
       </ItemTransactionDurationChange>
       <ItemTransactionStatus color={color}>
-        <Fragment>
-          {transformValueDelta(transaction.trend_difference, trendChangeType)}
-        </Fragment>
+        <ValueDelta {...props} />
       </ItemTransactionStatus>
     </ListItemContainer>
   );
 }
 
-type CompareLinkProps = TrendsListItemProps & {};
-
-const CompareDurations = (props: CompareLinkProps) => {
-  const {transaction} = props;
+const CompareDurations = ({transaction}: TrendsListItemProps) => {
+  const {fromSeconds, toSeconds, showDigits} = transformDeltaSpread(
+    transaction.aggregate_range_1,
+    transaction.aggregate_range_2
+  );
 
   return (
     <DurationChange>
-      {transformDeltaSpread(transaction.aggregate_range_1, transaction.aggregate_range_2)}
+      <Duration seconds={fromSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
+      <StyledIconArrow direction="right" size="xs" />
+      <Duration seconds={toSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
     </DurationChange>
+  );
+};
+
+const ValueDelta = ({transaction, trendChangeType}: TrendsListItemProps) => {
+  const {seconds, fixedDigits, changeLabel} = transformValueDelta(
+    transaction.trend_difference,
+    trendChangeType
+  );
+
+  return (
+    <span>
+      <Duration seconds={seconds} fixedDigits={fixedDigits} abbreviation /> {changeLabel}
+    </span>
   );
 };
 
@@ -546,7 +556,7 @@ const ChartContainer = styled('div')`
 
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)} ${space(3)};
+  margin: ${space(2)} ${space(3)};
 `;
 
 const StyledButton = styled(Button)`
@@ -616,4 +626,8 @@ const TooltipContent = styled('div')`
   align-items: center;
 `;
 
-export default withApi(withProjects(withOrganization(ChangedTransactions)));
+const StyledIconArrow = styled(IconArrow)`
+  margin: 0 ${space(1)};
+`;
+
+export default withProjects(withOrganization(ChangedTransactions));

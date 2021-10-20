@@ -1,4 +1,5 @@
 import logging
+import time
 from random import random
 from typing import Any, Callable, Dict, Iterable, List, Optional, cast
 
@@ -10,6 +11,7 @@ from confluent_kafka.admin import AdminClient
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 
+from sentry import options
 from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.tasks import _delete_from_snuba
@@ -21,8 +23,6 @@ logger = logging.getLogger(__name__)
 TQuerySubscriptionCallable = Callable[[Dict[str, Any], QuerySubscription], None]
 
 subscriber_registry: Dict[str, TQuerySubscriptionCallable] = {}
-
-CONSUMER_TRANSACTION_SAMPLE_RATE = 0.01
 
 
 def register_subscriber(
@@ -55,6 +55,7 @@ class QuerySubscriptionConsumer:
     topic_to_dataset: Dict[str, QueryDatasets] = {
         settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: QueryDatasets.EVENTS,
         settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: QueryDatasets.TRANSACTIONS,
+        settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: QueryDatasets.SESSIONS,
     }
 
     def __init__(
@@ -62,6 +63,7 @@ class QuerySubscriptionConsumer:
         group_id: str,
         topic: Optional[str] = None,
         commit_batch_size: int = 100,
+        commit_batch_timeout_ms: int = 5000,
         initial_offset_reset: str = "earliest",
         force_offset_reset: Optional[str] = None,
     ):
@@ -73,6 +75,11 @@ class QuerySubscriptionConsumer:
         self.topic = topic
         cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
         self.commit_batch_size = commit_batch_size
+
+        # Adding time based commit behaviour
+        self.commit_batch_timeout_ms: int = commit_batch_timeout_ms
+        self.__batch_deadline: Optional[float] = None
+
         self.initial_offset_reset = initial_offset_reset
         self.offsets: Dict[int, Optional[int]] = {}
         self.consumer: Consumer = None
@@ -176,20 +183,28 @@ class QuerySubscriptionConsumer:
             with sentry_sdk.start_transaction(
                 op="handle_message",
                 name="query_subscription_consumer_process_message",
-                sampled=random() <= CONSUMER_TRANSACTION_SAMPLE_RATE,
+                sampled=random() <= options.get("subscriptions-query.sample-rate"),
             ), metrics.timer("snuba_query_subscriber.handle_message"):
                 self.handle_message(message)
 
             # Track latest completed message here, for use in `shutdown` handler.
             self.offsets[message.partition()] = message.offset() + 1
 
-            if i % self.commit_batch_size == 0:
+            batch_by_size: bool = i % self.commit_batch_size == 0
+            batch_by_time: bool = (
+                self.__batch_deadline is not None and time.time() > self.__batch_deadline
+            )
+
+            if batch_by_time or batch_by_size:
                 logger.debug("Committing offsets")
                 self.commit_offsets()
 
         logger.debug("Committing offsets and closing consumer")
         self.commit_offsets()
         self.consumer.close()
+
+    def _reset_batch(self) -> None:
+        self.__batch_deadline = None
 
     def commit_offsets(self, partitions: Optional[Iterable[int]] = None) -> None:
         logger.info(
@@ -210,6 +225,8 @@ class QuerySubscriptionConsumer:
 
             self.consumer.commit(offsets=to_commit)
 
+        self._reset_batch()
+
     def shutdown(self) -> None:
         self.__shutdown_requested = True
 
@@ -221,6 +238,10 @@ class QuerySubscriptionConsumer:
         :param message:
         :return:
         """
+        # set a commit time deadline only after the first message for this batch is seen
+        if not self.__batch_deadline:
+            self.__batch_deadline = self.commit_batch_timeout_ms / 1000.0 + time.time()
+
         with sentry_sdk.push_scope() as scope:
             try:
                 with metrics.timer("snuba_query_subscriber.parse_message_value"):

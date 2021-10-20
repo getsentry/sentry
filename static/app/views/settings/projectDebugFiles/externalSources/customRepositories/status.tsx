@@ -1,8 +1,7 @@
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Placeholder from 'app/components/placeholder';
-import {appStoreConnectAlertMessage} from 'app/components/projects/appStoreConnectContext/utils';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
 import {IconDownload} from 'app/icons/iconDownload';
@@ -11,43 +10,28 @@ import {IconWarning} from 'app/icons/iconWarning';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {AppStoreConnectValidationData} from 'app/types/debugFiles';
-import {Theme} from 'app/utils/theme';
 
 type Props = {
-  theme: Theme;
   onEditRepository: () => void;
   onRevalidateItunesSession: () => void;
   details?: AppStoreConnectValidationData;
 };
 
-function Status({theme, details, onEditRepository, onRevalidateItunesSession}: Props) {
+function Status({details, onEditRepository, onRevalidateItunesSession}: Props) {
+  const theme = useTheme();
+
+  if (!details) {
+    return <Placeholder height="14px" />;
+  }
+
   const {
     pendingDownloads,
-    updateAlertMessage,
-    itunesSessionValid,
+    promptItunesSession,
     appstoreCredentialsValid,
     lastCheckedBuilds,
   } = details ?? {};
 
-  if (
-    itunesSessionValid &&
-    appstoreCredentialsValid &&
-    updateAlertMessage === appStoreConnectAlertMessage.isTodayAfterItunesSessionRefreshAt
-  ) {
-    return (
-      <Wrapper color={theme.red300} onClick={onRevalidateItunesSession}>
-        <StyledTooltip
-          title={t('We recommend that you revalidate the iTunes session')}
-          containerDisplayMode="inline-flex"
-        >
-          <IconWarning size="sm" />
-        </StyledTooltip>
-        {t('iTunes session will likely expire soon')}
-      </Wrapper>
-    );
-  }
-
-  if (itunesSessionValid === false) {
+  if (promptItunesSession) {
     return (
       <Wrapper color={theme.red300} onClick={onRevalidateItunesSession}>
         <StyledTooltip
@@ -97,10 +81,10 @@ function Status({theme, details, onEditRepository, onRevalidateItunesSession}: P
     );
   }
 
-  return <Placeholder height="14px" />;
+  return null;
 }
 
-export default withTheme(Status);
+export default Status;
 
 const Wrapper = styled('div')<{color: string}>`
   display: grid;

@@ -65,7 +65,7 @@
       </div>
       <div class="box-content with-padding">
         <b>Auth Token:</b>
-        <pre>{% if provider_name != "Active Directory" %}Bearer {% endif %}{{ scim_api_token }}</pre>
+        <pre>{{ scim_api_token }}</pre>
         <b>SCIM URL:</b>
         <pre>{{ scim_url }}</pre>
         <p>See provider specific SCIM documentation <a href="#TODO">here</a>.</p>

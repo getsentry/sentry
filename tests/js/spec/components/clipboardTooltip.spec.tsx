@@ -1,36 +1,30 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import copy from 'copy-text-to-clipboard';
+
+import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import ClipboardTooltip from 'app/components/clipboardTooltip';
-import {OPEN_DELAY} from 'app/components/tooltip';
+
+jest.mock('copy-text-to-clipboard');
 
 describe('ClipboardTooltip', function () {
-  it('renders', function () {
+  it('renders', async function () {
     const title = 'tooltip content';
-    const wrapper = mountWithTheme(
+    const content = 'This text displays a tooltip when hovering';
+    mountWithTheme(
       <ClipboardTooltip title={title}>
-        <span>This text displays a tooltip when hovering</span>
+        <span>{content}</span>
       </ClipboardTooltip>
     );
 
-    jest.useFakeTimers();
+    expect(screen.getByText(content)).toBeInTheDocument();
+    fireEvent.mouseEnter(screen.getByText(content));
 
-    const trigger = wrapper.find('span');
-    trigger.simulate('mouseEnter');
+    await screen.findByText(title);
 
-    jest.advanceTimersByTime(OPEN_DELAY);
-    wrapper.update();
+    const clipboardContent = screen.getByLabelText('Copy to clipboard');
+    expect(clipboardContent).toBeInTheDocument();
+    fireEvent.click(clipboardContent);
 
-    const tooltipClipboardWrapper = wrapper.find('TooltipClipboardWrapper');
-    expect(tooltipClipboardWrapper.length).toEqual(1);
-
-    const tooltipTextContent = tooltipClipboardWrapper.find('TextOverflow');
-    expect(tooltipTextContent.length).toEqual(1);
-
-    const clipboardContent = tooltipClipboardWrapper.find('Clipboard');
-    expect(clipboardContent.length).toEqual(1);
-    expect(clipboardContent.props().value).toEqual(title);
-
-    const iconCopy = clipboardContent.find('IconCopy');
-    expect(iconCopy.length).toEqual(1);
+    expect(copy).toHaveBeenCalledWith(title);
   });
 });

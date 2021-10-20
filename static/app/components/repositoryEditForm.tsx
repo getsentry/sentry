@@ -1,5 +1,6 @@
 import React from 'react';
 
+import ExternalLink from 'app/components/links/externalLink';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {Repository} from 'app/types';
@@ -64,7 +65,7 @@ export default class RepositoryEditForm extends React.Component<Props> {
             'Changing the [name:repo name] may have consequences if it no longer matches the repo name used when [link:sending commits with releases].',
             {
               link: (
-                <a href="https://docs.sentry.io/product/cli/releases/#sentry-cli-commit-integration" />
+                <ExternalLink href="https://docs.sentry.io/product/cli/releases/#sentry-cli-commit-integration" />
               ),
               name: <strong>repo name</strong>,
             }

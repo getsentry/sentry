@@ -10,7 +10,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.pipeline import Pipeline, PipelineAnalyticsEntry
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.web.helpers import render_to_response
 
 from . import default_manager
@@ -52,6 +52,16 @@ class IntegrationPipeline(Pipeline):
                 },
             )
             return self.error(str(e))
+        except IntegrationProviderError as e:
+            self.get_logger().info(
+                "build-integration.provider-error",
+                extra={
+                    "error_message": str(e),
+                    "error_status": getattr(e, "code", None),
+                    "provider_key": self.provider.key,
+                },
+            )
+            return self.render_warning(str(e))
 
         response = self._finish_pipeline(data)
 
@@ -123,7 +133,7 @@ class IntegrationPipeline(Pipeline):
                 except Identity.DoesNotExist:
                     # The user is linked to a different external_id. It's ok to relink
                     # here because they'll still be able to log in with the new external_id.
-                    identity_model = Identity.update_external_id_and_defaults(
+                    identity_model = Identity.objects.update_external_id_and_defaults(
                         idp, identity["external_id"], self.request.user, identity_data
                     )
                 else:

@@ -1,5 +1,5 @@
-import {useContext, useEffect} from 'react';
-import {InjectedRouter} from 'react-router/lib/Router';
+import {Fragment, useContext, useEffect} from 'react';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -10,6 +10,7 @@ import {Client} from 'app/api';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import HookOrDefault from 'app/components/hookOrDefault';
 import MenuItem from 'app/components/menuItem';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
@@ -26,10 +27,15 @@ import {
   getRequestMessages,
 } from './utils';
 
+const HookedAppStoreConnectItem = HookOrDefault({
+  hookName: 'component:disabled-app-store-connect-item',
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+});
+
 type Props = {
   api: Client;
   organization: Organization;
-  projectSlug: Project['slug'];
+  projSlug: Project['slug'];
   customRepositories: CustomRepo[];
   router: InjectedRouter;
   location: Location;
@@ -39,7 +45,7 @@ function CustomRepositories({
   api,
   organization,
   customRepositories: repositories,
-  projectSlug,
+  projSlug,
   router,
   location,
 }: Props) {
@@ -49,16 +55,21 @@ function CustomRepositories({
     openDebugFileSourceDialog();
   }, [location.query, appStoreConnectContext]);
 
-  const hasAppConnectStoreFeatureFlag =
-    !!organization.features?.includes('app-store-connect');
+  const orgSlug = organization.slug;
+
+  const hasAppStoreConnectMultipleFeatureFlag = !!organization.features?.includes(
+    'app-store-connect-multiple'
+  );
+
+  const hasAppStoreConnectRepo = !!repositories.find(
+    repository => repository.type === CustomRepoType.APP_STORE_CONNECT
+  );
 
   if (
-    hasAppConnectStoreFeatureFlag &&
     !appStoreConnectContext &&
     !dropDownItems.find(
       dropDownItem => dropDownItem.value === CustomRepoType.APP_STORE_CONNECT
-    ) &&
-    !repositories.find(repository => repository.type === CustomRepoType.APP_STORE_CONNECT)
+    )
   ) {
     dropDownItems.push({
       value: CustomRepoType.APP_STORE_CONNECT,
@@ -117,7 +128,7 @@ function CustomRepositories({
     const symbolSources = JSON.stringify(items.map(expandKeys));
 
     const promise: Promise<any> = api.requestPromise(
-      `/projects/${organization.slug}/${projectSlug}/`,
+      `/projects/${orgSlug}/${projSlug}/`,
       {
         method: 'PUT',
         data: {symbolSources},
@@ -188,19 +199,34 @@ function CustomRepositories({
       <PanelHeader hasButtons>
         {t('Custom Repositories')}
         <DropdownAutoComplete
-          items={dropDownItems.map(dropDownItem => ({
-            ...dropDownItem,
-            label: (
-              <StyledMenuItem
-                onClick={event => {
-                  event.preventDefault();
-                  handleAddRepository(dropDownItem.value);
-                }}
-              >
-                {dropDownItem.label}
-              </StyledMenuItem>
-            ),
-          }))}
+          alignMenu="right"
+          onSelect={item => {
+            handleAddRepository(item.value);
+          }}
+          items={dropDownItems.map(dropDownItem => {
+            const disabled =
+              dropDownItem.value === CustomRepoType.APP_STORE_CONNECT &&
+              hasAppStoreConnectRepo &&
+              !hasAppStoreConnectMultipleFeatureFlag;
+
+            return {
+              ...dropDownItem,
+              value: dropDownItem.value,
+              disabled,
+              label: (
+                <HookedAppStoreConnectItem
+                  disabled={disabled}
+                  onTrialStarted={() => {
+                    handleAddRepository(dropDownItem.value);
+                  }}
+                >
+                  <StyledMenuItem disabled={disabled}>
+                    {dropDownItem.label}
+                  </StyledMenuItem>
+                </HookedAppStoreConnectItem>
+              ),
+            };
+          })}
         >
           {({isOpen}) => (
             <DropdownButton isOpen={isOpen} size="small">

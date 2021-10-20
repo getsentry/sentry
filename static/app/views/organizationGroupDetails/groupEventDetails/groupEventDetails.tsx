@@ -25,7 +25,6 @@ import {
   Project,
 } from 'app/types';
 import {Event} from 'app/types/event';
-import {metric} from 'app/utils/analytics';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
 
 import GroupEventToolbar from '../eventToolbar';
@@ -66,26 +65,6 @@ class GroupEventDetails extends Component<Props, State> {
 
   componentDidMount() {
     this.fetchData();
-
-    // First Meaningful Paint for /organizations/:orgId/issues/:groupId/
-    metric.measure({
-      name: 'app.page.perf.issue-details',
-      start: 'page-issue-details-start',
-      data: {
-        // start_type is set on 'page-issue-details-start'
-        org_id: parseInt(this.props.organization.id, 10),
-        group: this.props.organization.features.includes('enterprise-perf')
-          ? 'enterprise-perf'
-          : 'control',
-        milestone: 'first-meaningful-paint',
-        is_enterprise: this.props.organization.features
-          .includes('enterprise-orgs')
-          .toString(),
-        is_outlier: this.props.organization.features
-          .includes('enterprise-orgs-outliers')
-          .toString(),
-      },
-    });
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -178,6 +157,8 @@ class GroupEventDetails extends Component<Props, State> {
       loadingEvent,
       onRetry,
       eventError,
+      router,
+      route,
     } = this.props;
 
     if (loadingEvent) {
@@ -198,6 +179,8 @@ class GroupEventDetails extends Component<Props, State> {
         project={project}
         location={location}
         showExampleCommit={this.showExampleCommit}
+        router={router}
+        route={route}
       />
     );
   }
@@ -281,6 +264,7 @@ class GroupEventDetails extends Component<Props, State> {
                 {group.status === 'resolved' && (
                   <ResolutionBox
                     statusDetails={group.statusDetails}
+                    activities={activities}
                     projectId={project.id}
                   />
                 )}

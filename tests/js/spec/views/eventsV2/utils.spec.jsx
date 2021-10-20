@@ -246,6 +246,7 @@ describe('pushEventViewToLocation', function () {
         end: '2019-10-02T00:00:00',
         statsPeriod: '14d',
         environment: ['staging'],
+        yAxis: 'count()',
       },
     });
   });
@@ -275,6 +276,7 @@ describe('pushEventViewToLocation', function () {
         statsPeriod: '14d',
         environment: ['staging'],
         cursor: 'some cursor',
+        yAxis: 'count()',
       },
     });
   });

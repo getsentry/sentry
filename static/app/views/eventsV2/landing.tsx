@@ -1,7 +1,5 @@
-import * as ReactRouter from 'react-router';
-import {Params} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import {stringify} from 'query-string';
@@ -12,7 +10,7 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Switch from 'app/components/switchButton';
@@ -38,14 +36,14 @@ const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('Date Created (Newest)'), value: '-dateCreated'},
   {label: t('Date Created (Oldest)'), value: 'dateCreated'},
   {label: t('Most Outdated'), value: 'dateUpdated'},
+  {label: t('Most Popular'), value: 'mostPopular'},
+  {label: t('Recently Viewed'), value: 'recentlyViewed'},
 ];
 
 type Props = {
   organization: Organization;
-  location: Location;
-  router: ReactRouter.InjectedRouter;
-  params: Params;
-} & AsyncComponent['props'];
+} & RouteComponentProps<{}, {}> &
+  AsyncComponent['props'];
 
 type State = {
   savedQueries: SavedQuery[] | null;
@@ -118,7 +116,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       }
     }
 
-    const queryParams: Location['query'] = {
+    const queryParams: Props['location']['query'] = {
       cursor,
       query: `version:2 name:"${searchQuery}"`,
       per_page: perPage.toString(),
@@ -160,7 +158,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
   handleSearchQuery = (searchQuery: string) => {
     const {location} = this.props;
-    ReactRouter.browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -178,7 +176,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       organization_id: parseInt(this.props.organization.id, 10),
       sort: value,
     });
-    ReactRouter.browserHistory.push({
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -292,7 +290,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       >
         <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
           <StyledPageContent>
-            <LightWeightNoProjectMessage organization={organization}>
+            <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
                   <GuideAnchor target="discover_landing_header">
@@ -317,7 +315,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                 {this.renderActions()}
                 {this.renderComponent()}
               </PageContent>
-            </LightWeightNoProjectMessage>
+            </NoProjectMessage>
           </StyledPageContent>
         </SentryDocumentTitle>
       </Feature>
@@ -337,7 +335,7 @@ const SwitchLabel = styled('div')`
   padding-right: 8px;
 `;
 
-export const StyledPageHeader = styled('div')`
+const StyledPageHeader = styled('div')`
   display: flex;
   align-items: flex-end;
   font-size: ${p => p.theme.headerFontSize};

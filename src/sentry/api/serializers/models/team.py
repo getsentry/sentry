@@ -240,28 +240,27 @@ class TeamSCIMSerializer(Serializer):  # type: ignore
 
     def get_attrs(
         self, item_list: Sequence[Team], user: Any, **kwargs: Any
-    ) -> MutableMapping[Team, MutableMapping[str, Any]]:
+    ) -> Mapping[Team, MutableMapping[str, Any]]:
 
-        # return the members key with a None value if we aren't expanding
-        # because some SCIM specs say to set it to null
-        result: MutableMapping[Team, MutableMapping[str, Any]] = {
-            team: {"members": None} for team in item_list
-        }
+        result: MutableMapping[Team, MutableMapping[str, Any]] = {team: {} for team in item_list}
 
         if "members" in self.expand:
             member_map = get_scim_teams_members(item_list)
             for team in item_list:
-                # if there are no members in the team, set to empty array
+                # if there are no members in the team, set to empty list
                 result[team]["members"] = member_map.get(team, [])
         return result
 
     def serialize(
         self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:
-        return {
+        result = {
             "schemas": [SCIM_SCHEMA_GROUP],
             "id": str(obj.id),
-            "displayName": obj.slug,
-            "members": attrs["members"],
+            "displayName": obj.name,
             "meta": {"resourceType": "Group"},
         }
+        if "members" in attrs:
+            result["members"] = attrs["members"]
+
+        return result

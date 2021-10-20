@@ -11,7 +11,7 @@ import {tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {EntryRequest, Event} from 'app/types/event';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
@@ -62,7 +62,7 @@ class SuggestProjectCTA extends Component<Props, State> {
     }
     // find the user agent header out of our list of headers
     const userAgent = (requestEntry as EntryRequest)?.data?.headers?.find(
-      item => item[0].toLowerCase() === 'user-agent'
+      item => item?.[0].toLowerCase() === 'user-agent'
     );
     if (!userAgent) {
       return '';
@@ -126,8 +126,8 @@ class SuggestProjectCTA extends Component<Props, State> {
               matchedUserAgentString,
               mobileEventBrowserName: mobileEventResult?.browserName || '',
               mobileEventClientOsName: mobileEventResult?.clientOsName || '',
+              organization: this.props.organization,
             },
-            this.props.organization,
             {startSession: true}
           );
         }
@@ -160,13 +160,10 @@ class SuggestProjectCTA extends Component<Props, State> {
 
   handleCTAClose = () => {
     const {api, organization} = this.props;
-    trackAdvancedAnalyticsEvent(
-      'growth.dismissed_mobile_prompt_banner',
-      {
-        matchedUserAgentString: this.matchedUserAgentString,
-      },
-      this.props.organization
-    );
+    trackAdvancedAnalyticsEvent('growth.dismissed_mobile_prompt_banner', {
+      matchedUserAgentString: this.matchedUserAgentString,
+      organization,
+    });
 
     promptsUpdate(api, {
       organizationId: organization.id,
@@ -178,13 +175,10 @@ class SuggestProjectCTA extends Component<Props, State> {
   };
 
   openModal = () => {
-    trackAdvancedAnalyticsEvent(
-      'growth.opened_mobile_project_suggest_modal',
-      {
-        matchedUserAgentString: this.matchedUserAgentString,
-      },
-      this.props.organization
-    );
+    trackAdvancedAnalyticsEvent('growth.opened_mobile_project_suggest_modal', {
+      matchedUserAgentString: this.matchedUserAgentString,
+      organization: this.props.organization,
+    });
     openModal(deps => (
       <SuggestProjectModal
         organization={this.props.organization}

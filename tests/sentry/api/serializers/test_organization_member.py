@@ -1,5 +1,8 @@
 from sentry.api.serializers import OrganizationMemberWithProjectsSerializer, serialize
-from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
+from sentry.api.serializers.models.organization_member import (
+    OrganizationMemberSCIMSerializer,
+    OrganizationMemberWithTeamsSerializer,
+)
 from sentry.testutils import TestCase
 
 
@@ -55,3 +58,21 @@ class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest
         )
         expected_teams = [{self.team.slug, self.team_2.slug}, {self.team.slug}]
         assert [set(r["teams"]) for r in result] == expected_teams
+
+
+class OrganizationMemberSCIMSerializerTest(OrganizationMemberSerializerTest):
+    def test_simple(self):
+        result = serialize(
+            self._get_org_members()[0],
+            self.user_2,
+            OrganizationMemberSCIMSerializer(expand=["active"]),
+        )
+        assert "active" in result
+
+    def test_no_active(self):
+        result = serialize(
+            self._get_org_members()[0],
+            self.user_2,
+            OrganizationMemberSCIMSerializer(),
+        )
+        assert "active" not in result

@@ -9,6 +9,7 @@ import socket
 import sys
 import tempfile
 from datetime import timedelta
+from platform import platform
 from urllib.parse import urlparse
 
 from django.conf.global_settings import *  # NOQA
@@ -334,6 +335,7 @@ INSTALLED_APPS = (
     "sentry.analytics.events",
     "sentry.nodestore",
     "sentry.search",
+    "sentry.sentry_metrics.indexer",
     "sentry.snuba",
     "sentry.lang.java.apps.Config",
     "sentry.lang.javascript.apps.Config",
@@ -360,13 +362,20 @@ SILENCED_SYSTEM_CHECKS = (
     # the trailing slash. This confuses the warning as the regex is `/$` which
     # looks like it starts with a slash but it doesn't.
     "urls.W002",
+    # Our own AuthenticationMiddleware suffices as a replacement for
+    # django.contrib.auth.middleware.AuthenticationMiddleware; both add the
+    # authenticated user to the HttpRequest which is what's needed here.
+    "admin.E408",
+    # This is fixed in Django@7c08f26bf0439c1ed593b51b51ad847f7e262bc1.
+    # It's not our problem; refer to Django issue 32260.
+    "urls.E007",
 )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
 # webpack assets live at a different URL that is unversioned
 # as we configure webpack to include file content based hash in the filename
-STATIC_UNVERSIONED_URL = "/_static/dist/"
+STATIC_FRONTEND_APP_URL = "/_static/dist/"
 
 # The webpack output directory
 STATICFILES_DIRS = [
@@ -432,6 +441,14 @@ SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = "sentry.User"
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 SESSION_COOKIE_NAME = "sentrysid"
+
+# setting SESSION_COOKIE_SAMESITE to None below for now because
+# Django's default in 2.1 now `Lax`.
+# this breaks certain IDP flows where we need cookies sent to us on a redirected POST
+# request, and `Lax` doesnt permit this.
+# See here: https://docs.djangoproject.com/en/2.1/ref/settings/#session-cookie-samesite
+SESSION_COOKIE_SAMESITE = None
+
 SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
 
 GOOGLE_OAUTH2_CLIENT_ID = ""
@@ -547,6 +564,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
+    "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.members",
     "sentry.tasks.merge",
     "sentry.tasks.releasemonitor",
@@ -558,13 +576,15 @@ CELERY_IMPORTS = (
     "sentry.tasks.release_registry",
     "sentry.tasks.reports",
     "sentry.tasks.reprocessing",
+    "sentry.tasks.reprocessing2",
     "sentry.tasks.scheduler",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
-    "sentry.tasks.signals",
     "sentry.tasks.store",
+    "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
+    "sentry.tasks.user_report",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -592,8 +612,15 @@ CELERY_QUEUES = [
     Queue(
         "events.reprocessing.symbolicate_event", routing_key="events.reprocessing.symbolicate_event"
     ),
+    Queue(
+        "events.reprocessing.symbolicate_event_low_priority",
+        routing_key="events.reprocessing.symbolicate_event_low_priority",
+    ),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
+    Queue(
+        "events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"
+    ),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
@@ -612,9 +639,14 @@ CELERY_QUEUES = [
     Queue("reports.deliver", routing_key="reports.deliver"),
     Queue("reports.prepare", routing_key="reports.prepare"),
     Queue("search", routing_key="search"),
+    Queue("similarity.index", routing_key="similarity.index"),
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
+    Queue(
+        "symbolications.compute_low_priority_projects",
+        routing_key="symbolications.compute_low_priority_projects",
+    ),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
 ]
@@ -714,6 +746,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=15),
         "options": {"expires": 60 * 25},
     },
+    "reattempt-deletions": {
+        "task": "sentry.tasks.deletion.reattempt_deletions",
+        "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
+        "options": {"expires": 60 * 25},
+    },
     "schedule-weekly-organization-reports": {
         "task": "sentry.tasks.reports.prepare_reports",
         "schedule": crontab(
@@ -750,6 +787,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.snuba.tasks.subscription_checker",
         "schedule": timedelta(minutes=20),
         "options": {"expires": 20 * 60},
+    },
+    "check-symbolicator-lpq-project-eligibility": {
+        "task": "sentry.tasks.low_priority_symbolication.scan_for_suspect_projects",
+        "schedule": timedelta(seconds=10),
+        "options": {"expires": 10},
     },
 }
 
@@ -857,13 +899,20 @@ SENTRY_FEATURES = {
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
+    "organizations:alert-rule-ui-component": False,
     "organizations:api-keys": False,
-    # Enable Apple app-store-connect dsym symbol file collection.
-    "organizations:app-store-connect": False,
+    # Enable multiple Apple app-store-connect sources per project.
+    "organizations:app-store-connect-multiple": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
+    # Enable the linked event feature in the issue details breadcrumb.
+    "organizations:breadcrumb-linked-event": False,
+    # Enable change alerts for an org
+    "organizations:change-alerts": False,
     # Enable unfurling charts using the Chartcuterie service
     "organizations:chart-unfurls": False,
+    # Enable alerting based on crash free sessions/users
+    "organizations:crash-rate-alerts": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
@@ -885,22 +934,36 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
+    # Enable discover top events queries with other & higher options
+    "organizations:discover-top-events": False,
     # Enable Performance view
-    "organizations:performance-view": False,
+    "organizations:performance-view": True,
     # Enable multi project selection
     "organizations:global-views": False,
+    # Enable writing group history
+    "organizations:group-history": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
+    # Enable experimental new version of stacktrace component where additional
+    # data related to grouping is shown on each frame
+    "organizations:grouping-stacktrace-ui": False,
+    # Enable tweaks to group title in relation to hierarchical
+    # grouping.
+    "organizations:grouping-title-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Lets organizations set a custom title through fingerprinting
     "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
-    # Enable imporved syntax highlightign + autocomplete on unified search
+    # Enable improved syntax highlighting + autocomplete on unified search
     "organizations:improved-search": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
+    # sentry at the moment.
+    "organizations:issue-search-use-cdc-primary": False,
+    "organizations:issue-search-use-cdc-secondary": False,
     # Enable the new Metrics page
     "organizations:metrics": False,
     # Automatically extract metrics during ingestion.
@@ -910,6 +973,8 @@ SENTRY_FEATURES = {
     "organizations:metrics-extraction": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
+    # Enable migrating auth identities between providers automatically
+    "organizations:idp-automatic-migration": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -933,6 +998,14 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Allow orgs to install a custom source code management integration
     "organizations:integrations-custom-scm": False,
+    # Allow orgs to use the deprecated Teamwork plugin
+    "organizations:integrations-ignore-teamwork-deprecation": False,
+    # Allow orgs to use the deprecated Clubhouse/Shortcut plugin
+    "organizations:integrations-ignore-clubhouse-deprecation": False,
+    # Allow orgs to use the deprecated VSTS (Azure DevOps) plugin
+    "organizations:integrations-ignore-vsts-deprecation": False,
+    # Allow orgs to debug internal/unpublished sentry apps with logging
+    "organizations:sentry-app-debugging": False,
     # Temporary safety measure, turned on for specific orgs only if
     # absolutely necessary, to be removed shortly
     "organizations:slack-allow-workspace": False,
@@ -942,8 +1015,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
     "organizations:dashboards-edit": True,
-    # Enable dashboards manager.
-    "organizations:dashboards-manage": False,
+    # Enable navigation features between Discover and Dashboards
+    "organizations:connect-discover-and-dashboards": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -960,21 +1033,28 @@ SENTRY_FEATURES = {
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable views for tag explorer
-    "organizations:performance-tag-explorer": False,
+    "organizations:performance-tag-explorer": True,
+    # Enable views for tag page
+    "organizations:performance-tag-page": True,
     # Enable landing improvements for performance
     "organizations:performance-landing-widgets": False,
     # Enable views for transaction events page in performance
     "organizations:performance-events-page": False,
+    # Enable interpolation of null data points in charts instead of zerofilling in performance
+    "organizations:performance-chart-interpolation": False,
+    # Enable views for suspect tags
+    "organizations:performance-suspect-spans-view": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
     # Enable Session Stats down to a minute resolution
-    "organizations:minute-resolution-sessions": False,
-    # Enable option to send alert, workflow, and deploy notifications
-    # to 3rd parties (e.g. Slack) in addition to email
-    "organizations:notification-platform": False,
+    "organizations:minute-resolution-sessions": True,
+    # Automatically opt IN users to receiving Slack notifications.
+    "organizations:notification-slack-automatic": False,
+    # Enable the new native stack trace design
+    "organizations:native-stack-trace-v2": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
@@ -992,16 +1072,12 @@ SENTRY_FEATURES = {
     "organizations:sso-scim": False,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
-    # Enable team based key transactions for performance
-    "organizations:team-key-transactions": False,
     # Enable transaction comparison view for performance.
     "organizations:transaction-comparison": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": True,
     # Enable percent-based conditions on issue rules
-    "organizations:issue-percent-filters": False,
-    # Enable the new alert details ux design
-    "organizations:alert-details-redesign": True,
+    "organizations:issue-percent-filters": True,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
     # Enable the mobile screenshots feature
@@ -1014,12 +1090,12 @@ SENTRY_FEATURES = {
     "organizations:release-archives": False,
     # Enable the new release details experience
     "organizations:release-comparison": False,
-    # Enable the project level transaction thresholds
-    "organizations:project-transaction-threshold": False,
-    # Enable the transaction level thresholds
-    "organizations:project-transaction-threshold-override": False,
+    # Enable the release details performance section
+    "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
+    # Enable team insights page
+    "organizations:team-insights": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1035,6 +1111,8 @@ SENTRY_FEATURES = {
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
+    # Enable ingestion for suspect spans
+    "projects:performance-suspect-spans-ingestion": False,
     # Enable functionality for project plugins.
     "projects:plugins": True,
     # Enable alternative version of group creation that is supposed to be less racy.
@@ -1111,6 +1189,15 @@ SENTRY_RELAY_ENDPOINT_APM_SAMPLING = 0
 
 # sample rate for ingest consumer processing functions
 SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
+
+# sample rate for Apple App Store Connect tasks transactions
+SENTRY_APPCONNECT_APM_SAMPLING = SENTRY_BACKEND_APM_SAMPLING
+
+# sample rate for suspect commits task
+SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
+
+# sample rate for post_process_group task
+SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
 
 # ----
 # end APM config
@@ -1192,9 +1279,6 @@ SENTRY_ENABLE_INVITES = True
 
 # Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
 SENTRY_ALLOW_ORIGIN = None
-
-# Enable scraping of javascript context for source code
-SENTRY_SCRAPE_JAVASCRIPT_CONTEXT = True
 
 # Buffer backend
 SENTRY_BUFFER = "sentry.buffer.Buffer"
@@ -1295,6 +1379,15 @@ SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
+
+# Metrics product
+SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.mock.MockIndexer"
+SENTRY_METRICS_INDEXER_OPTIONS = {}
+SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
+
+# Release Health
+SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
+SENTRY_RELEASE_HEALTH_OPTIONS = {}
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
@@ -1582,194 +1675,228 @@ SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 SENTRY_USE_CDC_DEV = False
 
 # SENTRY_DEVSERVICES = {
-#     "service-name": {
-#         "image": "image-name:version",
-#         # optional ports to expose
-#         "ports": {"internal-port/tcp": external-port},
-#         # optional command
-#         "command": ["exit 1"],
-#         optional mapping of volumes
-#         "volumes": {"volume-name": {"bind": "/path/in/container"}},
-#         # optional statement to test if service should run
-#         "only_if": lambda settings, options: True,
-#         # optional environment variables
-#         "environment": {
-#             "ENV_VAR": "1",
+#     "service-name": lambda settings, options: (
+#         {
+#             "image": "image-name:version",
+#             # optional ports to expose
+#             "ports": {"internal-port/tcp": external-port},
+#             # optional command
+#             "command": ["exit 1"],
+#             optional mapping of volumes
+#             "volumes": {"volume-name": {"bind": "/path/in/container"}},
+#             # optional statement to test if service should run
+#             "only_if": lambda settings, options: True,
+#             # optional environment variables
+#             "environment": {
+#                 "ENV_VAR": "1",
+#             }
 #         }
-#     }
+#     )
 # }
 
-POSTGRES_INIT_DB_VOLUME = (
-    {
-        os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
-            "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
+
+def build_cdc_postgres_init_db_volume(settings):
+    return (
+        {
+            os.path.join(settings.CDC_CONFIG_DIR, "init_hba.sh"): {
+                "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
+            }
         }
-    }
-    if SENTRY_USE_CDC_DEV
-    else {}
-)
+        if settings.SENTRY_USE_CDC_DEV
+        else {}
+    )
+
+
+APPLE_ARM64 = platform().startswith("mac") and platform().endswith("arm64-arm-64bit")
 
 SENTRY_DEVSERVICES = {
-    "redis": {
-        "image": "redis:5.0-alpine",
-        "ports": {"6379/tcp": 6379},
-        "command": [
-            "redis-server",
-            "--appendonly",
-            "yes",
-            "--save",
-            "60",
-            "20",
-            "--auto-aof-rewrite-percentage",
-            "100",
-            "--auto-aof-rewrite-min-size",
-            "64mb",
-        ],
-        "volumes": {"redis": {"bind": "/data"}},
-    },
-    "postgres": {
-        "image": "postgres:9.6-alpine",
-        "pull": True,
-        "ports": {"5432/tcp": 5432},
-        "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
-        "volumes": {
-            "postgres": {"bind": "/var/lib/postgresql/data"},
-            "wal2json": {"bind": "/wal2json"},
-            CDC_CONFIG_DIR: {"bind": "/cdc"},
-            **POSTGRES_INIT_DB_VOLUME,
-        },
-        "command": [
-            "postgres",
-            "-c",
-            "wal_level=logical",
-            "-c",
-            "max_replication_slots=1",
-            "-c",
-            "max_wal_senders=1",
-        ],
-        "entrypoint": "/cdc/postgres-entrypoint.sh" if SENTRY_USE_CDC_DEV else None,
-        "healthcheck": {
-            "test": ["CMD", "pg_isready", "-U", "postgres"],
-            "interval": 30000000000,  # Test every 30 seconds (in ns).
-            "timeout": 5000000000,  # Time we should expect the test to take.
-            "retries": 3,
-        },
-    },
-    "zookeeper": {
-        "image": "confluentinc/cp-zookeeper:5.1.2",
-        "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
-        "volumes": {"zookeeper": {"bind": "/var/lib/zookeeper"}},
-        "only_if": lambda settings, options: (
-            "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY
-        ),
-    },
-    "kafka": {
-        "image": "confluentinc/cp-kafka:5.1.2",
-        "ports": {"9092/tcp": 9092},
-        "environment": {
-            "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
-            "KAFKA_LISTENERS": "INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092",
-            "KAFKA_ADVERTISED_LISTENERS": "INTERNAL://{containers[kafka][name]}:9093,EXTERNAL://{containers[kafka]"
-            "[ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}",
-            "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
-            "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
-            "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
-            "KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS": "1",
-            "KAFKA_LOG_RETENTION_HOURS": "24",
-            "KAFKA_MESSAGE_MAX_BYTES": "50000000",
-            "KAFKA_MAX_REQUEST_SIZE": "50000000",
-        },
-        "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
-        "only_if": lambda settings, options: (
-            "kafka" in settings.SENTRY_EVENTSTREAM
+    "redis": lambda settings, options: (
+        {
+            "image": "redis:5.0-alpine",
+            "ports": {"6379/tcp": 6379},
+            "command": [
+                "redis-server",
+                "--appendonly",
+                "yes",
+                "--save",
+                "60",
+                "20",
+                "--auto-aof-rewrite-percentage",
+                "100",
+                "--auto-aof-rewrite-min-size",
+                "64mb",
+            ],
+            "volumes": {"redis": {"bind": "/data"}},
+        }
+    ),
+    "postgres": lambda settings, options: (
+        {
+            "image": "postgres:9.6-alpine",
+            "pull": True,
+            "ports": {"5432/tcp": 5432},
+            "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
+            "volumes": {
+                "postgres": {"bind": "/var/lib/postgresql/data"},
+                "wal2json": {"bind": "/wal2json"},
+                settings.CDC_CONFIG_DIR: {"bind": "/cdc"},
+                **build_cdc_postgres_init_db_volume(settings),
+            },
+            "command": [
+                "postgres",
+                "-c",
+                "wal_level=logical",
+                "-c",
+                "max_replication_slots=1",
+                "-c",
+                "max_wal_senders=1",
+            ],
+            "entrypoint": "/cdc/postgres-entrypoint.sh" if settings.SENTRY_USE_CDC_DEV else None,
+            "healthcheck": {
+                "test": ["CMD", "pg_isready", "-U", "postgres"],
+                "interval": 30000000000,  # Test every 30 seconds (in ns).
+                "timeout": 5000000000,  # Time we should expect the test to take.
+                "retries": 3,
+            },
+        }
+    ),
+    "zookeeper": lambda settings, options: (
+        {
+            # On Apple arm64, we upgrade to version 6.x to allow zookeeper to run properly on Apple's arm64
+            # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
+            "image": "confluentinc/cp-zookeeper:6.2.0",
+            "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
+            "volumes": {"zookeeper_6": {"bind": "/var/lib/zookeeper/data"}},
+            "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
+        }
+    ),
+    "kafka": lambda settings, options: (
+        {
+            "image": "confluentinc/cp-kafka:6.2.0",
+            "ports": {"9092/tcp": 9092},
+            "environment": {
+                "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
+                "KAFKA_LISTENERS": "INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092",
+                "KAFKA_ADVERTISED_LISTENERS": "INTERNAL://{containers[kafka][name]}:9093,EXTERNAL://{containers[kafka]"
+                "[ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}",
+                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
+                "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
+                "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
+                "KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS": "1",
+                "KAFKA_LOG_RETENTION_HOURS": "24",
+                "KAFKA_MESSAGE_MAX_BYTES": "50000000",
+                "KAFKA_MAX_REQUEST_SIZE": "50000000",
+            },
+            "volumes": {"kafka_6": {"bind": "/var/lib/kafka/data"}},
+            "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
-            or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS
-        ),
-    },
-    "clickhouse": {
-        "image": "yandex/clickhouse-server:20.3.9.70",
-        "pull": True,
-        "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
-        "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
-        "environment": {"MAX_MEMORY_USAGE_RATIO": "0.3"},
-        "volumes": {
-            "clickhouse_dist"
-            if SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
-            else "clickhouse": {"bind": "/var/lib/clickhouse"},
-            os.path.join(
-                DEVSERVICES_CONFIG_DIR,
-                "clickhouse",
-                "dist_config.xml" if SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES else "loc_config.xml",
-            ): {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
-        },
-    },
-    "snuba": {
-        "image": "getsentry/snuba:nightly",
-        "pull": True,
-        "ports": {"1218/tcp": 1218},
-        "command": ["devserver"],
-        "environment": {
-            "PYTHONUNBUFFERED": "1",
-            "SNUBA_SETTINGS": "docker",
-            "DEBUG": "1",
-            "CLICKHOUSE_HOST": "{containers[clickhouse][name]}",
-            "CLICKHOUSE_PORT": "9000",
-            "CLICKHOUSE_HTTP_PORT": "8123",
-            "DEFAULT_BROKERS": "{containers[kafka][name]}:9093",
-            "REDIS_HOST": "{containers[redis][name]}",
-            "REDIS_PORT": "6379",
-            "REDIS_DB": "1",
-        },
-        "only_if": lambda settings, options: (
-            "snuba" in settings.SENTRY_EVENTSTREAM or "kafka" in settings.SENTRY_EVENTSTREAM
-        ),
-    },
-    "bigtable": {
-        "image": "mattrobenolt/cbtemulator:0.51.0",
-        "ports": {"8086/tcp": 8086},
-        "only_if": lambda settings, options: "bigtable" in settings.SENTRY_NODESTORE,
-    },
-    "memcached": {
-        "image": "memcached:1.5-alpine",
-        "ports": {"11211/tcp": 11211},
-        "only_if": lambda settings, options: "memcached"
-        in settings.CACHES.get("default", {}).get("BACKEND"),
-    },
-    "symbolicator": {
-        "image": "us.gcr.io/sentryio/symbolicator:nightly",
-        "pull": True,
-        "ports": {"3021/tcp": 3021},
-        "volumes": {SYMBOLICATOR_CONFIG_DIR: {"bind": "/etc/symbolicator"}},
-        "command": ["run", "--config", "/etc/symbolicator/config.yml"],
-        "only_if": lambda settings, options: options.get("symbolicator.enabled"),
-    },
-    "relay": {
-        "image": "us.gcr.io/sentryio/relay:nightly",
-        "pull": True,
-        "ports": {"7899/tcp": SENTRY_RELAY_PORT},
-        "volumes": {RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
-        "command": ["run", "--config", "/etc/relay"],
-        "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
-        "with_devserver": True,
-    },
-    "chartcuterie": {
-        "image": "us.gcr.io/sentryio/chartcuterie:nightly",
-        "pull": True,
-        "volumes": {CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
-        "environment": {
-            "CHARTCUTERIE_CONFIG": "/etc/chartcuterie/config.js",
-            "CHARTCUTERIE_CONFIG_POLLING": "true",
-        },
-        "ports": {"9090/tcp": 7901},
-        "only_if": lambda settings, options: options.get("chart-rendering.enabled"),
-    },
-    "cdc": {
-        "image": "getsentry/cdc:nightly",
-        "pull": True,
-        "only_if": lambda settings, options: settings.SENTRY_USE_CDC_DEV,
-        "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
-        "volumes": {CDC_CONFIG_DIR: {"bind": "/etc/cdc"}},
-    },
+            or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS,
+        }
+    ),
+    "clickhouse": lambda settings, options: (
+        {
+            "image": "yandex/clickhouse-server:20.3.9.70" if not APPLE_ARM64
+            # altinity provides clickhouse support to other companies
+            # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
+            # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
+            else "altinity/clickhouse-server:21.6.1.6734-testing-arm",
+            "pull": True,
+            "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
+            "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
+            # The arm image does not properly load the MAX_MEMORY_USAGE_RATIO
+            # from the environment in loc_config.xml, thus, hard-coding it there
+            "volumes": {
+                "clickhouse_dist"
+                if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
+                else "clickhouse": {"bind": "/var/lib/clickhouse"},
+                os.path.join(
+                    settings.DEVSERVICES_CONFIG_DIR,
+                    "clickhouse",
+                    "dist_config.xml"
+                    if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
+                    else "loc_config.xml",
+                ): {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
+            },
+        }
+    ),
+    "snuba": lambda settings, options: (
+        {
+            "image": "getsentry/snuba:nightly",
+            "pull": True,
+            "ports": {"1218/tcp": 1218},
+            "command": ["devserver"],
+            "environment": {
+                "PYTHONUNBUFFERED": "1",
+                "SNUBA_SETTINGS": "docker",
+                "DEBUG": "1",
+                "CLICKHOUSE_HOST": "{containers[clickhouse][name]}",
+                "CLICKHOUSE_PORT": "9000",
+                "CLICKHOUSE_HTTP_PORT": "8123",
+                "DEFAULT_BROKERS": "{containers[kafka][name]}:9093",
+                "REDIS_HOST": "{containers[redis][name]}",
+                "REDIS_PORT": "6379",
+                "REDIS_DB": "1",
+            },
+            "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
+            or "kafka" in settings.SENTRY_EVENTSTREAM,
+        }
+    ),
+    "bigtable": lambda settings, options: (
+        {
+            "image": "us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614",
+            "ports": {"8086/tcp": 8086},
+            "only_if": "bigtable" in settings.SENTRY_NODESTORE,
+        }
+    ),
+    "memcached": lambda settings, options: (
+        {
+            "image": "memcached:1.5-alpine",
+            "ports": {"11211/tcp": 11211},
+            "only_if": "memcached" in settings.CACHES.get("default", {}).get("BACKEND"),
+        }
+    ),
+    "symbolicator": lambda settings, options: (
+        {
+            "image": "us.gcr.io/sentryio/symbolicator:nightly",
+            "pull": True,
+            "ports": {"3021/tcp": 3021},
+            "volumes": {settings.SYMBOLICATOR_CONFIG_DIR: {"bind": "/etc/symbolicator"}},
+            "command": ["run", "--config", "/etc/symbolicator/config.yml"],
+            "only_if": options.get("symbolicator.enabled"),
+        }
+    ),
+    "relay": lambda settings, options: (
+        {
+            "image": "us.gcr.io/sentryio/relay:nightly",
+            "pull": True,
+            "ports": {"7899/tcp": settings.SENTRY_RELAY_PORT},
+            "volumes": {settings.RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
+            "command": ["run", "--config", "/etc/relay"],
+            "only_if": settings.SENTRY_USE_RELAY,
+            "with_devserver": True,
+        }
+    ),
+    "chartcuterie": lambda settings, options: (
+        {
+            "image": "us.gcr.io/sentryio/chartcuterie:nightly",
+            "pull": True,
+            "volumes": {settings.CHARTCUTERIE_CONFIG_DIR: {"bind": "/etc/chartcuterie"}},
+            "environment": {
+                "CHARTCUTERIE_CONFIG": "/etc/chartcuterie/config.js",
+                "CHARTCUTERIE_CONFIG_POLLING": "true",
+            },
+            "ports": {"9090/tcp": 7901},
+            "only_if": options.get("chart-rendering.enabled"),
+        }
+    ),
+    "cdc": lambda settings, options: (
+        {
+            "image": "getsentry/cdc:nightly",
+            "pull": True,
+            "only_if": settings.SENTRY_USE_CDC_DEV,
+            "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
+            "volumes": {settings.CDC_CONFIG_DIR: {"bind": "/etc/cdc"}},
+        }
+    ),
 }
 
 # Max file size for avatar photo uploads
@@ -1808,7 +1935,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 
 
 SENTRY_SDK_CONFIG = {
-    "release": sentry.__build__,
+    "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
     "in_app_include": ["sentry", "sentry_plugins"],
     "debug": True,
@@ -1873,16 +2000,16 @@ SDK_VERSIONS = {
     "sentry-php": "2.0.1",
 }
 
+# Some of the migration links below are not ideal, but that is all migration documentation we currently have and can provide at this point
 SDK_URLS = {
-    "raven-js": "https://docs.sentry.io/clients/javascript/",
-    "raven-node": "https://docs.sentry.io/clients/node/",
-    "raven-python": "https://docs.sentry.io/clients/python/",
-    "raven-ruby": "https://docs.sentry.io/clients/ruby/",
-    "raven-swift": "https://docs.sentry.io/clients/cocoa/",
-    "sentry-java": "https://docs.sentry.io/clients/java/",
+    "sentry-java": "https://docs.sentry.io/platforms/java/legacy/migration/",
+    "@sentry/browser": "https://github.com/getsentry/sentry-javascript/blob/master/MIGRATION.md#migrating-from-raven-js-to-sentrybrowser",
+    "sentry-cocoa": "https://docs.sentry.io/platforms/apple/migration/",
     "sentry-php": "https://docs.sentry.io/platforms/php/",
-    "sentry-laravel": "https://docs.sentry.io/platforms/php/laravel/",
-    "sentry-swift": "https://docs.sentry.io/clients/cocoa/",
+    "sentry-python": "https://docs.sentry.io/platforms/python/migration/",
+    "sentry-ruby": "https://docs.sentry.io/platforms/ruby/migration/",
+    "sentry-dotnet": "https://docs.sentry.io/platforms/dotnet/migration/#migrating-from-sharpraven-to-sentry-sdk",
+    "sentry-go": "https://docs.sentry.io/platforms/go/migration/",
 }
 
 DEPRECATED_SDKS = {
@@ -1892,16 +2019,20 @@ DEPRECATED_SDKS = {
     "raven-java:log4j": "sentry-java",
     "raven-java:log4j2": "sentry-java",
     "raven-java:logback": "sentry-java",
-    "raven-js": "sentry.javascript.browser",
-    "raven-node": "sentry.javascript.node",
-    "raven-objc": "sentry-swift",
+    "raven-js": "@sentry/browser",
+    "raven-node": "@sentry/browser",
+    "raven-objc": "sentry-cocoa",
     "raven-php": "sentry-php",
-    "raven-python": "sentry.python",
-    "sentry-android": "raven-java",
+    "raven-python": "sentry-python",
+    "raven-ruby": "sentry-ruby",
+    "raven-swift": "sentry-cocoa",
+    "raven-csharp": "sentry-dotnet",
+    "raven-go": "sentry-go",
+    "sentry-android": "sentry-java",
     "sentry-swift": "sentry-cocoa",
-    "SharpRaven": "sentry.dotnet",
+    "SharpRaven": "sentry-dotnet",
     # The Ruby SDK used to go by the name 'sentry-raven'...
-    "sentry-raven": "raven-ruby",
+    "sentry-raven": "sentry-ruby",
 }
 
 TERMS_URL = None
@@ -2061,13 +2192,17 @@ KAFKA_EVENTS = "events"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
+KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
     "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
+    "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
 }
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
+KAFKA_INGEST_METRICS = "ingest-metrics"
+KAFKA_SNUBA_METRICS = "snuba-metrics"
 
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
@@ -2080,12 +2215,20 @@ KAFKA_TOPICS = {
         "cluster": "default",
         "topic": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
     },
+    KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {
+        "cluster": "default",
+        "topic": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
+    },
     # Topic for receiving simple events (error events without attachments) from Relay
     KAFKA_INGEST_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_EVENTS},
     # Topic for receiving 'complex' events (error events with attachments) from Relay
     KAFKA_INGEST_ATTACHMENTS: {"cluster": "default", "topic": KAFKA_INGEST_ATTACHMENTS},
     # Topic for receiving transaction events (APM events) from Relay
     KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
+    # Topic for receiving metrics from Relay
+    KAFKA_INGEST_METRICS: {"cluster": "default", "topic": KAFKA_INGEST_METRICS},
+    # Topic for indexer translated metrics
+    KAFKA_SNUBA_METRICS: {"cluster": "default", "topic": KAFKA_SNUBA_METRICS},
 }
 
 # If True, consumers will create the topics if they don't exist
@@ -2141,9 +2284,6 @@ SOUTH_MIGRATION_CONVERSIONS = (
         True,
         "Please upgrade to Sentry 9.1.2 before upgrading to any later versions.",
     ),
-    # From sentry-plugins
-    ("sentry_plugins.jira_ac", "0001_initial", "jira_ac", "0001_initial", False, ""),
-    ("jira_ac", "0001_initial", "jira_ac", "0001_initial", False, ""),
 )
 
 # Whether to use Django migrations to create the database, or just build it based off
@@ -2153,7 +2293,6 @@ MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
-    "jira_ac",
     "nodestore",
     "sentry",
     "social_auth",
@@ -2211,9 +2350,80 @@ SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
 
 SENTRY_USE_UWSGI = True
 
+# When copying attachments for to-be-reprocessed events into processing store,
+# how large is an individual file chunk? Each chunk is stored as Redis key.
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
 
+# Which cluster is used to store auxiliary data for reprocessing. Note that
+# this cluster is not used to store attachments etc, that still happens on
+# rc-processing. This is just for buffering up event IDs and storing a counter
+# for synchronization/progress report.
 SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
+
+# How long can reprocessing take before we start deleting its Redis keys?
+SENTRY_REPROCESSING_SYNC_TTL = 3600 * 24
+
+# How many events to query for at once while paginating through an entire
+# issue. Note that this needs to be kept in sync with the time-limits on
+# `sentry.tasks.reprocessing2.reprocess_group`. That task is responsible for
+# copying attachments from filestore into redis and can easily take a couple of
+# seconds per event. Better play it safe!
+SENTRY_REPROCESSING_PAGE_SIZE = 10
+
+# How many event IDs to buffer up in Redis before sending them to Snuba. This
+# is about "remaining events" exclusively.
+SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE = 500
+
+# Which backend to use for RealtimeMetricsStore.
+#
+# Currently, only redis is supported.
+SENTRY_REALTIME_METRICS_BACKEND = (
+    "sentry.processing.realtime_metrics.redis.RedisRealtimeMetricsStore"
+)
+SENTRY_REALTIME_METRICS_OPTIONS = {
+    # The redis cluster used for the realtime store redis backend.
+    "cluster": "default",
+    # The bucket size of the event counter.
+    #
+    # The size (in seconds) of the buckets that events are sorted into.
+    "counter_bucket_size": 10,
+    # Number of seconds to keep symbolicate_event rates per project.
+    #
+    # symbolicate_event tasks report the rates of events per project to redis
+    # so that projects that exceed a reasonable rate can be sent to the low
+    # priority queue. This setting determines how long we keep these rates
+    # around.
+    #
+    # The LPQ selection is computed using the rate of the most recent events covered by this
+    # time window.  See sentry.tasks.low_priority_symbolication.excessive_event_rate for the
+    # exact implementation.
+    "counter_time_window": 10 * 60,
+    # The bucket size of the processing duration histogram.
+    #
+    # The size (in seconds) of the buckets that events are sorted into.
+    "duration_bucket_size": 10,
+    # Number of seconds to keep symbolicate_event durations per project.
+    #
+    # symbolicate_event tasks report the processing durations of events per project to redis
+    # so that projects that exceed a reasonable duration can be sent to the low
+    # priority queue. This setting determines how long we keep these duration values
+    # around.
+    #
+    # The LPQ selection is computed using the durations of the most recent events covered by
+    # this time window.  See
+    # sentry.tasks.low_priority_symbolication.excessive_event_duration for the exact
+    # implementation.
+    "duration_time_window": 3 * 60,
+    # Number of seconds to wait after a project is made eligible or ineligible for the LPQ
+    # before its eligibility can be changed again.
+    #
+    # This backoff is only applied to automatic changes to project eligibility, and has zero effect
+    # on any manually-triggered changes to a project's presence in the LPQ.
+    "backoff_timer": 5 * 60,
+}
+
+# XXX(meredith): Temporary metrics indexer
+SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
 
 # Timeout for the project counter statement execution.
 # In case of contention on the project counter, prevent workers saturation with
@@ -2244,3 +2454,10 @@ DEMO_DATA_QUICK_GEN_PARAMS = {}
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []
+
+# Sentry post process forwarder use batching consumer
+SENTRY_POST_PROCESS_FORWARDER_BATCHING = False
+
+# Whether badly behaving projects will be automatically
+# sent to the low priority queue
+SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False

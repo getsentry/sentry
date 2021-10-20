@@ -3,26 +3,28 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateProjects} from 'app/actionCreators/globalSelection';
+import {fetchOrganizationDetails} from 'app/actionCreators/organization';
 import {fetchTagValues} from 'app/actionCreators/tags';
 import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import CreateAlertButton from 'app/components/createAlertButton';
 import GlobalAppStoreConnectUpdateAlert from 'app/components/globalAppStoreConnectUpdateAlert';
+import GlobalEventProcessingAlert from 'app/components/globalEventProcessingAlert';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import IdBadge from 'app/components/idBadge';
 import * as Layout from 'app/components/layouts/thirds';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import LoadingError from 'app/components/loadingError';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
 import TextOverflow from 'app/components/textOverflow';
-import {IconSettings, IconWarning} from 'app/icons';
+import {IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
-import {GlobalSelection, Organization, Project, SessionApiResponse} from 'app/types';
+import {GlobalSelection, Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import routeTitleGen from 'app/utils/routeTitle';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -50,9 +52,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   selection: GlobalSelection;
 };
 
-type State = AsyncView['state'] & {
-  hasSessions: boolean | null;
-};
+type State = AsyncView['state'];
 
 class ProjectDetail extends AsyncView<Props, State> {
   getTitle() {
@@ -63,56 +63,16 @@ class ProjectDetail extends AsyncView<Props, State> {
 
   componentDidMount() {
     this.syncProjectWithSlug();
-    if (this.props.location.query.project) {
-      this.fetchSessionsExistence();
-    }
   }
 
-  componentDidUpdate(prevProps: Props) {
+  componentDidUpdate() {
     this.syncProjectWithSlug();
-
-    if (prevProps.location.query.project !== this.props.location.query.project) {
-      this.fetchSessionsExistence();
-    }
   }
 
   get project() {
     const {projects, params} = this.props;
 
     return projects.find(p => p.slug === params.projectId);
-  }
-
-  async fetchSessionsExistence() {
-    const {organization, location} = this.props;
-    const {project: projectId, query} = location.query;
-
-    if (!projectId) {
-      return;
-    }
-
-    this.setState({
-      hasSessions: null,
-    });
-
-    try {
-      const response: SessionApiResponse = await this.api.requestPromise(
-        `/organizations/${organization.slug}/sessions/`,
-        {
-          query: {
-            project: projectId,
-            field: 'sum(session)',
-            statsPeriod: '90d',
-            interval: '1d',
-            query,
-          },
-        }
-      );
-      this.setState({
-        hasSessions: response.groups[0].totals['sum(session)'] > 0,
-      });
-    } catch {
-      // do nothing
-    }
   }
 
   handleProjectChange = (selectedProjects: number[]) => {
@@ -168,6 +128,11 @@ class ProjectDetail extends AsyncView<Props, State> {
     }
   }
 
+  onRetryProjects = () => {
+    const {params} = this.props;
+    fetchOrganizationDetails(this.api, params.orgId, true, false);
+  };
+
   isProjectStabilized() {
     const {selection, location} = this.props;
     const projectId = this.project?.id;
@@ -188,10 +153,7 @@ class ProjectDetail extends AsyncView<Props, State> {
 
     return (
       <PageContent>
-        <MissingProjectMembership
-          organization={organization}
-          projectSlug={project.slug}
-        />
+        <MissingProjectMembership organization={organization} project={project} />
       </PageContent>
     );
   }
@@ -199,9 +161,10 @@ class ProjectDetail extends AsyncView<Props, State> {
   renderProjectNotFound() {
     return (
       <PageContent>
-        <Alert type="error" icon={<IconWarning />}>
-          {t('This project could not be found.')}
-        </Alert>
+        <LoadingError
+          message={t('This project could not be found.')}
+          onRetry={this.onRetryProjects}
+        />
       </PageContent>
     );
   }
@@ -210,12 +173,12 @@ class ProjectDetail extends AsyncView<Props, State> {
     const {organization, params, location, router, loadingProjects, selection} =
       this.props;
     const project = this.project;
-    const {hasSessions} = this.state;
     const {query} = location.query;
     const hasPerformance = organization.features.includes('performance-view');
     const hasTransactions = hasPerformance && project?.firstTransactionEvent;
     const isProjectStabilized = this.isProjectStabilized();
     const visibleCharts = ['chart1'];
+    const hasSessions = project?.hasSessions ?? null;
 
     if (hasTransactions || hasSessions) {
       visibleCharts.push('chart2');
@@ -235,7 +198,7 @@ class ProjectDetail extends AsyncView<Props, State> {
         skipLoadLastUsed
         onUpdateProjects={this.handleProjectChange}
       >
-        <LightWeightNoProjectMessage organization={organization}>
+        <NoProjectMessage organization={organization}>
           <StyledPageContent>
             <Layout.Header>
               <Layout.HeaderContent>
@@ -288,6 +251,7 @@ class ProjectDetail extends AsyncView<Props, State> {
             </Layout.Header>
 
             <Layout.Body>
+              {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
               <StyledSdkUpdatesAlert />
               <StyledGlobalAppStoreConnectUpdateAlert
                 project={project}
@@ -364,7 +328,7 @@ class ProjectDetail extends AsyncView<Props, State> {
               </Layout.Side>
             </Layout.Body>
           </StyledPageContent>
-        </LightWeightNoProjectMessage>
+        </NoProjectMessage>
       </GlobalSelectionHeader>
     );
   }
@@ -380,6 +344,12 @@ const ProjectFiltersWrapper = styled('div')`
 `;
 
 const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-bottom: 0;
+  }
+`;
+
+const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     margin-bottom: 0;
   }

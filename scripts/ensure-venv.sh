@@ -1,17 +1,16 @@
 #!/bin/bash
+HERE="$(
+    cd "$(dirname "${BASH_SOURCE[0]}")" || exit
+    pwd -P
+)"
+# shellcheck disable=SC1090
+source "${HERE}/lib.sh"
 
 # optionally opt out of virtualenv creation
 # WARNING: this will be removed (most likely renamed) soon!
 if [[ "$SENTRY_NO_VIRTUALENV_CREATION" == "1" ]]; then
     exit 0
 fi
-
-red="$(tput setaf 1)"
-yellow="$(tput setaf 3)"
-bold="$(tput bold)"
-reset="$(tput sgr0)"
-
-venv_name=".venv"
 
 die() {
     cat <<EOF
@@ -21,33 +20,14 @@ EOF
 }
 
 if [[ -n "$VIRTUAL_ENV" ]]; then
-    minor=$(python -c "import sys; print(sys.version_info[1])")
-    # If .venv is less than Python 3.6 fail
-    [[ "$minor" -lt 6 ]] &&
-        die "Remove $VIRTUAL_ENV and try again since the Python version installed should be at least 3.6."
-    # If .venv is created with Python greater than 3.6 you might encounter problems and we want to ask you to downgrade
-    # unless you explicitely set an environment variable
-    if [[ "$minor" -gt 6 ]]; then
-        if [[ -n "$SENTRY_PYTHON_VERSION" ]]; then
-            cat <<EOF
-${yellow}${bold}
-You have explicitly set a non-recommended Python version (${SENTRY_PYTHON_VERSION}). You're on your own.
-${reset}
-EOF
-        else
-            cat <<EOF
-${red}${bold}
-ERROR! You are running a virtualenv with a Python version different than 3.6
-We recommend you start with a fresh virtualenv or to set the variable SENTRY_PYTHON_VERSION
-to the Python version you want to use (e.g. 3.7).
-${reset}
-EOF
-            exit 1
-        fi
-    fi
+    # The developer is inside a virtualenv *and* has set a SENTRY_PYTHON_VERSION
+    # Let's assume that they know what they're doing
+
+    # Let's make sure they know that they're not using a different version by mistake
+    query-valid-python-version || exit 1
 else
     if [[ ! -f "${venv_name}/bin/activate" ]]; then
-        die "You don't seem to have a virtualenv. Please create one by running: python3.6 -m venv ${venv_name}"
+        die "You don't seem to have a virtualenv. Please create one by running: source ./scripts/bootstrap-py3-venv"
     fi
     die "You have a virtualenv, but it doesn't seem to be activated. Please run: source ${venv_name}/bin/activate"
 fi

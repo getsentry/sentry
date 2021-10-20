@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Optional, Sequence
 from uuid import uuid4
 
 from django.conf import settings
@@ -12,13 +13,8 @@ from sentry.incidents.logic import (
     InvalidTriggerActionError,
     get_slack_channel_ids,
 )
-from sentry.incidents.models import AlertRule
-from sentry.integrations.slack.utils import (
-    get_channel_id_with_timeout,
-    get_identities_by_user,
-    get_slack_data_by_user,
-    strip_channel_name,
-)
+from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
+from sentry.integrations.utils import get_identities_by_user
 from sentry.mediators import project_rules
 from sentry.models import (
     Identity,
@@ -33,16 +29,29 @@ from sentry.models import (
     User,
     UserEmail,
 )
-from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
+from sentry.utils.json import JSONData
 from sentry.utils.redis import redis_clusters
+
+from .utils import (
+    SLACK_RATE_LIMITED_MESSAGE,
+    get_channel_id_with_timeout,
+    get_slack_data_by_user,
+    strip_channel_name,
+)
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
 
 
+SLACK_FAILED_MESSAGE = (
+    "The slack resource does not exist or has not been granted access in that workspace."
+)
+
+
 class RedisRuleStatus:
-    def __init__(self, uuid=None):
+    def __init__(self, uuid: Optional[str] = None) -> None:
         self._uuid = uuid or self._generate_uuid()
 
         cluster_id = getattr(settings, "SENTRY_RULE_TASK_REDIS_CLUSTER", "default")
@@ -50,42 +59,55 @@ class RedisRuleStatus:
         self._set_initial_value()
 
     @property
-    def uuid(self):
+    def uuid(self) -> str:
         return self._uuid
 
-    def set_value(self, status, rule_id=None):
-        value = self._format_value(status, rule_id)
+    def set_value(
+        self, status: str, rule_id: Optional[int] = None, error_message: Optional[str] = None
+    ) -> None:
+        value = self._format_value(status, rule_id, error_message)
         self.client.set(self._get_redis_key(), f"{value}", ex=60 * 60)
 
-    def get_value(self):
+    def get_value(self) -> JSONData:
         key = self._get_redis_key()
         value = self.client.get(key)
         return json.loads(value)
 
-    def _generate_uuid(self):
+    def _generate_uuid(self) -> str:
         return uuid4().hex
 
-    def _set_initial_value(self):
+    def _set_initial_value(self) -> None:
         value = json.dumps({"status": "pending"})
         self.client.set(self._get_redis_key(), f"{value}", ex=60 * 60, nx=True)
 
-    def _get_redis_key(self):
+    def _get_redis_key(self) -> str:
         return f"slack-channel-task:1:{self.uuid}"
 
-    def _format_value(self, status, rule_id):
+    def _format_value(
+        self, status: str, rule_id: Optional[int], error_message: Optional[str]
+    ) -> str:
         value = {"status": status}
         if rule_id:
             value["rule_id"] = str(rule_id)
-        if status == "failed":
-            value[
-                "error"
-            ] = "The slack resource does not exist or has not been granted access in that workspace."
+        if error_message:
+            value["error"] = error_message
+        elif status == "failed":
+            value["error"] = SLACK_FAILED_MESSAGE
 
-        return json.dumps(value)
+        # Explicitly typing to satisfy mypy.
+        _value: str = json.dumps(value)
+        return _value
 
 
-@instrumented_task(name="sentry.integrations.slack.search_channel_id", queue="integrations")
-def find_channel_id_for_rule(project, actions, uuid, rule_id=None, user_id=None, **kwargs):
+@instrumented_task(name="sentry.integrations.slack.search_channel_id", queue="integrations")  # type: ignore
+def find_channel_id_for_rule(
+    project: Project,
+    actions: Sequence[AlertRuleTriggerAction],
+    uuid: str,
+    rule_id: Optional[int] = None,
+    user_id: Optional[int] = None,
+    **kwargs: Any,
+) -> None:
     redis_rule_status = RedisRuleStatus(uuid)
 
     try:
@@ -102,8 +124,8 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, user_id=None,
             pass
 
     organization = project.organization
-    integration_id = None
-    channel_name = None
+    integration_id: Optional[int] = None
+    channel_name: Optional[str] = None
 
     # TODO: make work for multiple Slack actions
     for action in actions:
@@ -121,7 +143,7 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, user_id=None,
         redis_rule_status.set_value("failed")
         return
 
-    # we dont' know exactly how long it will take to paginate through all of the slack
+    # We do not know exactly how long it will take to paginate through all of the Slack
     # endpoints but need some time limit imposed. 3 minutes should be more than enough time,
     # we can always update later
     try:
@@ -133,6 +155,9 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, user_id=None,
         # want to set the status to failed. This just lets us skip
         # over the next block and hit the failed status at the end.
         item_id = None
+    except ApiRateLimitedError:
+        redis_rule_status.set_value("failed", None, SLACK_RATE_LIMITED_MESSAGE)
+        return
 
     if item_id:
         for action in actions:
@@ -161,10 +186,16 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, user_id=None,
     redis_rule_status.set_value("failed")
 
 
-@instrumented_task(
+@instrumented_task(  # type: ignore
     name="sentry.integrations.slack.search_channel_id_metric_alerts", queue="integrations"
 )
-def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=None, user_id=None):
+def find_channel_id_for_alert_rule(
+    organization_id: int,
+    uuid: str,
+    data: Any,
+    alert_rule_id: Optional[int] = None,
+    user_id: Optional[int] = None,
+) -> None:
     redis_rule_status = RedisRuleStatus(uuid)
     try:
         organization = Organization.objects.get(id=organization_id)
@@ -198,6 +229,15 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
             },
         )
         redis_rule_status.set_value("failed")
+        return
+    except ApiRateLimitedError as e:
+        logger.info(
+            "get_slack_channel_ids.rate_limited",
+            extra={
+                "exception": e,
+            },
+        )
+        redis_rule_status.set_value("failed", None, SLACK_RATE_LIMITED_MESSAGE)
         return
 
     for trigger in data["triggers"]:
@@ -241,8 +281,8 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
     return
 
 
-@instrumented_task(name="sentry.integrations.slack.link_users_identities", queue="integrations")
-def link_slack_user_identities(integration, organization):
+@instrumented_task(name="sentry.integrations.slack.link_users_identities", queue="integrations")  # type: ignore
+def link_slack_user_identities(integration: Integration, organization: Organization) -> None:
     emails_by_user = UserEmail.objects.get_emails_by_user(organization)
     slack_data_by_user = get_slack_data_by_user(integration, organization, emails_by_user)
 

@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Link, WithRouterProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 
 import {
   addErrorMessage,
@@ -7,12 +7,13 @@ import {
   clearIndicators,
 } from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
+import Link from 'app/components/links/link';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import Switch from 'app/components/switchButton';
 import Truncate from 'app/components/truncate';
 import {IconAdd, IconFlag} from 'app/icons';
 import {t} from 'app/locale';
-import {LightWeightOrganization, ServiceHook} from 'app/types';
+import {Organization, ServiceHook} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -52,8 +53,8 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
   );
 }
 
-type Props = WithRouterProps<{orgId: string; projectId: string}, {}> & {
-  organization: LightWeightOrganization;
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+  organization: Organization;
 };
 
 type State = {

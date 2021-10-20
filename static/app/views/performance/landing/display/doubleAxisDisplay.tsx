@@ -8,7 +8,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 
 import _Footer from '../../charts/footer';
@@ -35,8 +35,8 @@ function DoubleAxisDisplay(props: Props) {
   const onFilterChange = (field: string) => (minValue, maxValue) => {
     const filterString = getTransactionSearchQuery(location);
 
-    const conditions = tokenizeSearch(filterString);
-    conditions.setTagValues(field, [
+    const conditions = new MutableSearch(filterString);
+    conditions.setFilterValues(field, [
       `>=${Math.round(minValue)}`,
       `<${Math.round(maxValue)}`,
     ]);

@@ -23,7 +23,7 @@ class OrganizationProjectsTestBase(APITestCase):
         path = reverse(self.endpoint, args=[self.organization.slug])
         response = self.client.get(
             path,
-            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{key.key}:".encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{key.key}:".encode()),
         )
         self.check_valid_response(response, [project])
 

@@ -227,6 +227,8 @@ def test_field_values(a, op, b):
         (500, "+", "count_miserable(user, 300)"),
         ("count_miserable(user, 300)", "-", 500),
         ("p50(transaction.duration)", "/", "p100(transaction.duration)"),
+        ("count_if(user.email,equals,test@example.com)", "/", 2),
+        (100, "-", 'count_if(some_tag,notEquals,"something(really)annoying,like\\"this\\"")'),
     ],
 )
 def test_function_values(a, op, b):

@@ -24,7 +24,7 @@ import {
   API_INTERVAL_POINTS_MIN,
 } from '../rules/details/constants';
 import {Incident, IncidentStatus} from '../types';
-import {getIncidentMetricPreset, isIssueAlert} from '../utils';
+import {getIncidentMetricPreset} from '../utils';
 
 /**
  * Retrieve the start/end for showing the graph of the metric
@@ -73,25 +73,17 @@ class AlertListRow extends Component<Props> {
   );
 
   render() {
-    const {incident, orgId, projectsLoaded, projects, organization} = this.props;
+    const {incident, projectsLoaded, projects, organization} = this.props;
     const slug = incident.projects[0];
     const started = moment(incident.dateStarted);
     const duration = moment
       .duration(moment(incident.dateClosed || new Date()).diff(started))
       .as('seconds');
 
-    const hasRedesign =
-      !isIssueAlert(incident.alertRule) &&
-      organization.features.includes('alert-details-redesign');
-
-    const alertLink = hasRedesign
-      ? {
-          pathname: alertDetailsLink(organization, incident),
-          query: {alert: incident.identifier},
-        }
-      : {
-          pathname: `/organizations/${orgId}/alerts/${incident.identifier}/`,
-        };
+    const alertLink = {
+      pathname: alertDetailsLink(organization, incident),
+      query: {alert: incident.identifier},
+    };
     const ownerId = incident.alertRule.owner?.split(':')[1];
     let teamName = '';
     if (ownerId) {
@@ -107,25 +99,25 @@ class AlertListRow extends Component<Props> {
           <Link to={alertLink}>{incident.title}</Link>
         </Title>
 
-        <NoWrap>
+        <NoWrapNumeric>
           {getDynamicText({
             value: <TimeSince date={incident.dateStarted} extraShort />,
             fixed: '1w ago',
           })}
-        </NoWrap>
-        <NoWrap>
+        </NoWrapNumeric>
+        <NoWrapNumeric>
           {incident.status === IncidentStatus.CLOSED ? (
             <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
           ) : (
             <Tag type="warning">{t('Still Active')}</Tag>
           )}
-        </NoWrap>
+        </NoWrapNumeric>
 
         <ProjectBadge
           avatarSize={18}
           project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
         />
-        <div>#{incident.id}</div>
+        <NoWrapNumeric>#{incident.id}</NoWrapNumeric>
 
         <FlexCenter>
           {teamActor ? (
@@ -147,8 +139,9 @@ const Title = styled('div')`
   min-width: 130px;
 `;
 
-const NoWrap = styled('div')`
+const NoWrapNumeric = styled('div')`
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 `;
 
 const ProjectBadge = styled(IdBadge)`

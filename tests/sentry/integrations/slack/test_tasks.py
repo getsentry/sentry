@@ -9,27 +9,19 @@ from sentry.integrations.slack.tasks import (
     find_channel_id_for_alert_rule,
     find_channel_id_for_rule,
 )
-from sentry.models import Integration, Rule
+from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
+from sentry.models import Rule
+from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.compat.mock import patch
+from tests.sentry.integrations.slack import install_slack
 
 
 class SlackTasksTest(TestCase):
     def setUp(self):
-        self.org = self.create_organization(name="foo", owner=self.user)
-        self.project1 = self.create_project(organization=self.org)
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
+        self.integration = install_slack(self.organization)
         self.uuid = uuid4().hex
-        self.integration.add_organization(self.org, self.user)
 
         channels = {"ok": "true", "channels": [{"name": "my-channel", "id": "chan-id"}]}
 
@@ -63,10 +55,10 @@ class SlackTasksTest(TestCase):
                     ],
                 },
             ],
-            "projects": [self.project1.slug],
+            "projects": [self.project.slug],
             "owner": self.user.id,
             "name": "New Rule",
-            "organization_id": self.org.id,
+            "organization_id": self.organization.id,
         }
 
     @responses.activate
@@ -75,7 +67,7 @@ class SlackTasksTest(TestCase):
         data = {
             "name": "New Rule",
             "environment": None,
-            "project": self.project1,
+            "project": self.project,
             "action_match": "all",
             "filter_match": "all",
             "conditions": [
@@ -98,7 +90,7 @@ class SlackTasksTest(TestCase):
         with self.tasks():
             find_channel_id_for_rule(**data)
 
-        rule = Rule.objects.get(project_id=self.project1.id)
+        rule = Rule.objects.exclude(label=DEFAULT_RULE_LABEL).get(project_id=self.project.id)
         mock_set_value.assert_called_with("success", rule.id)
         assert rule.label == "New Rule"
         # check that the channel_id got added
@@ -120,13 +112,13 @@ class SlackTasksTest(TestCase):
         action_data = {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
         condition_data = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
         rule = Rule.objects.create(
-            project=self.project1, data={"actions": [action_data], "conditions": [condition_data]}
+            project=self.project, data={"actions": [action_data], "conditions": [condition_data]}
         )
 
         data = {
             "name": "Test Rule",
             "environment": None,
-            "project": self.project1,
+            "project": self.project,
             "action_match": "all",
             "filter_match": "all",
             "conditions": [condition_data],
@@ -177,7 +169,7 @@ class SlackTasksTest(TestCase):
         data = {
             "name": "Test Rule",
             "environment": None,
-            "project": self.project1,
+            "project": self.project,
             "action_match": "all",
             "filter_match": "all",
             "conditions": [{"id": "sentry.rules.conditions.every_event.EveryEventCondition"}],
@@ -199,9 +191,46 @@ class SlackTasksTest(TestCase):
 
         mock_set_value.assert_called_with("failed")
 
+    @responses.activate
+    @patch.object(RedisRuleStatus, "set_value", return_value=None)
+    def test_task_rate_limited_channel_id_lookup(self, mock_set_value):
+        """Should set the correct error value when rate limited"""
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/users.list",
+            status=429,
+            content_type="application/json",
+            body=json.dumps({"ok": "true", "error": "ratelimited"}),
+        )
+
+        data = {
+            "name": "Test Rule",
+            "environment": None,
+            "project": self.project,
+            "action_match": "all",
+            "filter_match": "all",
+            "conditions": [{"id": "sentry.rules.conditions.every_event.EveryEventCondition"}],
+            "actions": [
+                {
+                    "channel": "@user",
+                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                    "name": "Send a notification to the funinthesun Slack workspace to #secrets and show tags [] in notification",
+                    "tags": "",
+                    "workspace": self.integration.id,
+                }
+            ],
+            "frequency": 5,
+            "uuid": self.uuid,
+        }
+
+        with self.tasks():
+            find_channel_id_for_rule(**data)
+
+        mock_set_value.assert_called_with("failed", None, SLACK_RATE_LIMITED_MESSAGE)
+
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
-        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", "chan-id", False),
     )
     def test_task_new_alert_rule(self, mock_get_channel_id, mock_set_value):
@@ -210,7 +239,7 @@ class SlackTasksTest(TestCase):
         data = {
             "data": alert_rule_data,
             "uuid": self.uuid,
-            "organization_id": self.org.id,
+            "organization_id": self.organization.id,
             "user_id": self.user.id,
         }
 
@@ -228,7 +257,7 @@ class SlackTasksTest(TestCase):
 
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
-        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, False),
     )
     def test_task_failed_id_lookup(self, mock_get_channel_id, mock_set_value):
@@ -237,7 +266,7 @@ class SlackTasksTest(TestCase):
         data = {
             "data": alert_rule_data,
             "uuid": self.uuid,
-            "organization_id": self.org.id,
+            "organization_id": self.organization.id,
         }
 
         with self.tasks():
@@ -250,7 +279,7 @@ class SlackTasksTest(TestCase):
 
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
-        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
     def test_task_timeout_id_lookup(self, mock_get_channel_id, mock_set_value):
@@ -259,7 +288,7 @@ class SlackTasksTest(TestCase):
         data = {
             "data": alert_rule_data,
             "uuid": self.uuid,
-            "organization_id": self.org.id,
+            "organization_id": self.organization.id,
         }
 
         with self.tasks():
@@ -272,19 +301,19 @@ class SlackTasksTest(TestCase):
 
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
-        "sentry.integrations.slack.utils.get_channel_id_with_timeout",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", "chan-id", False),
     )
     def test_task_existing_metric_alert(self, mock_get_channel_id, mock_set_value):
         alert_rule_data = self.metric_alert_data
         alert_rule = self.create_alert_rule(
-            organization=self.org, projects=[self.project1], name="New Rule", user=self.user
+            organization=self.organization, projects=[self.project], name="New Rule", user=self.user
         )
 
         data = {
             "data": alert_rule_data,
             "uuid": self.uuid,
-            "organization_id": self.org.id,
+            "organization_id": self.organization.id,
             "alert_rule_id": alert_rule.id,
         }
 

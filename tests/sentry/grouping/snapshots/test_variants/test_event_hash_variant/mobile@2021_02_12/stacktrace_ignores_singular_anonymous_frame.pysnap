@@ -1,5 +1,5 @@
 ---
-created: '2021-06-30T16:43:58.879479Z'
+created: '2021-08-04T15:53:47.709437Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -38,9 +38,6 @@ app-depth-max:
   component:
     app-depth-max*
       stacktrace*
-        frame (ignored low quality javascript frame)
-          filename (anonymous filename discarded)
-            "<anonymous>"
         frame*
           filename*
             "dojo.js"

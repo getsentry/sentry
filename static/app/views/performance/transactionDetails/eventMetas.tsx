@@ -148,7 +148,6 @@ class EventMetas extends React.Component<Props, State> {
                 <QuickTraceMeta
                   event={event}
                   project={project}
-                  organization={organization}
                   location={location}
                   quickTrace={quickTrace}
                   traceMeta={meta}

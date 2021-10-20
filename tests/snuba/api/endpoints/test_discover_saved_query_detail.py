@@ -237,3 +237,54 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             response = self.client.delete(url)
 
         assert response.status_code == 403, response.content
+
+
+class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        self.org = self.create_organization(owner=self.user)
+        self.org_without_access = self.create_organization()
+        self.project_ids = [
+            self.create_project(organization=self.org).id,
+            self.create_project(organization=self.org).id,
+        ]
+        q = {"fields": ["test"], "conditions": [], "limit": 10}
+
+        self.query = DiscoverSavedQuery.objects.create(
+            organization=self.org, created_by=self.user, name="Test query", query=q
+        )
+
+        self.query.set_projects(self.project_ids)
+
+    def url(self, query_id):
+        return reverse(
+            "sentry-api-0-discover-saved-query-visit",
+            kwargs={"organization_slug": self.org.slug, "query_id": query_id},
+        )
+
+    def test_visit_query(self):
+        last_visited = self.query.last_visited
+        assert self.query.visits == 1
+
+        with self.feature("organizations:discover-query"):
+            response = self.client.post(self.url(self.query.id))
+
+        assert response.status_code == 204
+
+        query = DiscoverSavedQuery.objects.get(id=self.query.id)
+        assert query.visits == 2
+        assert query.last_visited > last_visited
+
+    def test_visit_query_no_access(self):
+        last_visited = self.query.last_visited
+        assert self.query.visits == 1
+
+        with self.feature({"organizations:discover-query": False}):
+            response = self.client.post(self.url(self.query.id))
+
+        assert response.status_code == 404
+
+        query = DiscoverSavedQuery.objects.get(id=self.query.id)
+        assert query.visits == 1
+        assert query.last_visited == last_visited

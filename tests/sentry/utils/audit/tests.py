@@ -176,6 +176,20 @@ class CreateAuditEntryTest(TestCase):
         assert entry.event == AuditLogEntryEvent.PROJECT_EDIT
         assert entry.get_note() == "renamed project slug from old to new"
 
+    def test_audit_entry_project_edit_log_regression(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+            data={"new_slug": "new"},
+        )
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == AuditLogEntryEvent.PROJECT_EDIT
+        assert entry.get_note() == "edited project settings in new_slug to new"
+
     def test_audit_entry_integration_log(self):
         project = self.create_project()
         self.login_as(user=self.user)

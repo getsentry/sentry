@@ -14,7 +14,7 @@ import {IntegrationFeature, Organization, SentryApp} from 'app/types';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import {
   getIntegrationFeatureGate,
-  trackIntegrationEvent,
+  trackIntegrationAnalytics,
 } from 'app/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
@@ -48,7 +48,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     const {sentryApp, organization, isInstalled} = this.props;
     recordInteraction(sentryApp.slug, 'sentry_app_viewed');
 
-    trackIntegrationEvent(
+    trackIntegrationAnalytics(
       'integrations.install_modal_opened',
       {
         integration_type: 'sentry_app',
@@ -56,8 +56,8 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
         already_installed: isInstalled,
         view: 'external_install',
         integration_status: sentryApp.status,
+        organization,
       },
-      organization,
       {startSession: true}
     );
   }

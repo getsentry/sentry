@@ -8,8 +8,13 @@ class TestAlertRuleActionSchemaValidation(TestCase):
     def setUp(self):
         self.schema = {
             "type": "alert-rule-action",
-            "required_fields": [{"type": "text", "name": "channel", "label": "Channel"}],
-            "optional_fields": [{"type": "text", "name": "prefix", "label": "Prefix"}],
+            "title": "Create Task",
+            "settings": {
+                "type": "alert-rule-settings",
+                "uri": "/sentry/alert-rule",
+                "required_fields": [{"type": "text", "name": "channel", "label": "Channel"}],
+                "optional_fields": [{"type": "text", "name": "prefix", "label": "Prefix"}],
+            },
         }
 
     def test_valid_schema(self):
@@ -17,5 +22,5 @@ class TestAlertRuleActionSchemaValidation(TestCase):
 
     @invalid_schema
     def test_missing_required_fields_fails(self):
-        del self.schema["required_fields"]
+        del self.schema["settings"]["required_fields"]
         validate_component(self.schema)

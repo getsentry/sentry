@@ -1,20 +1,20 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {fireEvent, mountWithTheme, screen} from 'sentry-test/reactTestingLibrary';
 
 import Banner from 'app/components/banner';
 
 describe('Banner', function () {
   it('can be dismissed', function () {
-    const banner = mountWithTheme(<Banner dismissKey="test" />);
-    expect(banner.find('BannerWrapper').exists()).toBe(true);
+    mountWithTheme(<Banner dismissKey="test" title="test" />);
+    expect(screen.getByText('test')).toBeInTheDocument();
 
-    banner.find('CloseButton').simulate('click');
+    fireEvent.click(screen.getByLabelText('Close'));
 
-    expect(banner.find('BannerWrapper').exists()).toBe(false);
+    expect(screen.queryByText('test')).toBeNull();
     expect(localStorage.getItem('test-banner-dismissed')).toBe('true');
   });
 
   it('is not dismissable', function () {
-    const banner = mountWithTheme(<Banner isDismissable={false} />);
-    expect(banner.find('CloseButton').exists()).toBe(false);
+    mountWithTheme(<Banner isDismissable={false} />);
+    expect(screen.queryByLabelText('Close')).toBeNull();
   });
 });

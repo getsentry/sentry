@@ -1,13 +1,13 @@
 ---
-created: '2021-03-29T22:02:40.784430Z'
+created: '2021-08-03T15:05:54.499004Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
 
 
 DeadSystemException:_ (thread_id:_, crashed:_)
-                            java.lang.Thread  run category=threadbase
-  java.util.concurrent.ThreadPoolExecutor$Wo  run category=std
+                            java.lang.Thread  run category=std
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=internals
      java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
        android.os.AsyncTask$SerialExecutor$1  run category=indirection
              java.util.concurrent.FutureTask  run category=std
@@ -21,8 +21,8 @@ DeadSystemException:_ (thread_id:_, crashed:_)
 
 
 RuntimeException:android.os.DeadSystemException (thread_id:_, crashed:_)
-                            java.lang.Thread  run category=threadbase
-  java.util.concurrent.ThreadPoolExecutor$Wo  run category=std
+                            java.lang.Thread  run category=std
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=internals
      java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
        android.os.AsyncTask$SerialExecutor$1  run category=indirection
              java.util.concurrent.FutureTask  run category=std
@@ -36,8 +36,8 @@ RuntimeException:android.os.DeadSystemException (thread_id:_, crashed:_)
 
 
 RuntimeException:An error occurred while executing doInBackground() (thread_id:_, crashed:_)
-                            java.lang.Thread  run category=threadbase
-  java.util.concurrent.ThreadPoolExecutor$Wo  run category=std
+                            java.lang.Thread  run category=std
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=internals
      java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
        android.os.AsyncTask$SerialExecutor$1  run category=indirection
              java.util.concurrent.FutureTask  run category=std

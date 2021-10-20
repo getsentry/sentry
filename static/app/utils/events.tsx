@@ -6,7 +6,7 @@ import {
   TreeLabelPart,
 } from 'app/types';
 import {Event} from 'app/types/event';
-import {isNativePlatform} from 'app/utils/platform';
+import {isMobilePlatform, isNativePlatform} from 'app/utils/platform';
 
 function isTombstone(maybe: BaseGroup | Event | GroupTombstone): maybe is GroupTombstone {
   return !maybe.hasOwnProperty('type');
@@ -54,24 +54,30 @@ export function getLocation(event: Event | BaseGroup | GroupTombstone) {
 }
 
 export function getTreeLabelPartDetails(part: TreeLabelPart) {
+  // Note: This function also exists in Python in eventtypes/base.py, to make
+  // porting efforts simpler it's recommended to keep both variants
+  // structurally similar.
   if (typeof part === 'string') {
-    return {
-      label: part,
-      highlight: false,
-    };
+    return part;
   }
 
-  return {
-    label: part?.function || part?.package || part?.type || '<unknown>',
-    highlight: !!part.is_sentinel,
-  };
+  const label = part?.function || part?.package || part?.filebase || part?.type;
+  const classbase = part?.classbase;
+
+  if (classbase) {
+    return label ? `${classbase}.${label}` : classbase;
+  }
+
+  return label || '<unknown>';
 }
 
 function computeTitleWithTreeLabel(metadata: EventMetadata) {
   const {type, current_tree_label, finest_tree_label} = metadata;
+
   const treeLabel = current_tree_label || finest_tree_label;
+
   const formattedTreeLabel = treeLabel
-    ? treeLabel.map(labelPart => getTreeLabelPartDetails(labelPart).label).join(' | ')
+    ? treeLabel.map(labelPart => getTreeLabelPartDetails(labelPart)).join(' | ')
     : undefined;
 
   if (!type) {
@@ -91,7 +97,11 @@ function computeTitleWithTreeLabel(metadata: EventMetadata) {
   };
 }
 
-export function getTitle(event: Event | BaseGroup, features: string[] = []) {
+export function getTitle(
+  event: Event | BaseGroup,
+  features: string[] = [],
+  grouping = false
+) {
   const {metadata, type, culprit} = event;
 
   const customTitle =
@@ -109,9 +119,23 @@ export function getTitle(event: Event | BaseGroup, features: string[] = []) {
         };
       }
 
+      const displayTitleWithTreeLabel =
+        features.includes('grouping-title-ui') &&
+        (grouping ||
+          isNativePlatform(event.platform) ||
+          isMobilePlatform(event.platform));
+
+      if (displayTitleWithTreeLabel) {
+        return {
+          subtitle: culprit,
+          ...computeTitleWithTreeLabel(metadata),
+        };
+      }
+
       return {
         subtitle: culprit,
-        ...computeTitleWithTreeLabel(metadata),
+        title: metadata.type || metadata.function || '<unknown>',
+        treeLabel: undefined,
       };
     }
     case EventOrGroupType.CSP:

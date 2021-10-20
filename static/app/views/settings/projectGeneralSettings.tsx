@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {
   changeProjectSlug,
@@ -9,6 +9,7 @@ import {
 import ProjectActions from 'app/actions/projectActions';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import {removeGlobalSelectionStorage} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
 import {fields} from 'app/data/forms/projectGeneralSettings';
 import {t, tct} from 'app/locale';
@@ -29,7 +30,7 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 type Props = AsyncView['props'] &
-  WithRouterProps<{orgId: string; projectId: string}> & {
+  RouteComponentProps<{orgId: string; projectId: string}, {}> & {
     organization: Organization;
     onChangeSlug: (slug: string) => void;
   };
@@ -59,6 +60,9 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
   handleRemoveProject = () => {
     const {orgId} = this.props.params;
     const project = this.state.data;
+
+    removeGlobalSelectionStorage(orgId);
+
     if (!project) {
       return;
     }
@@ -327,7 +331,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
 
 type ContainerProps = {
   organization: Organization;
-} & WithRouterProps<{orgId: string; projectId: string}>;
+} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 class ProjectGeneralSettingsContainer extends Component<ContainerProps> {
   componentWillUnmount() {

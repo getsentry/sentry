@@ -1,6 +1,5 @@
 import * as React from 'react';
-import {withRouter} from 'react-router';
-import {WithRouterProps} from 'react-router/lib/withRouter';
+import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import {EChartOption} from 'echarts/lib/echarts';
 import {Query} from 'history';
@@ -9,7 +8,7 @@ import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
+import {Client, ResponseMeta} from 'app/api';
 import MarkLine from 'app/components/charts/components/markLine';
 import {t} from 'app/locale';
 import {DateString, Organization} from 'app/types';
@@ -59,7 +58,7 @@ function getOrganizationReleases(
     includeAllArgs: true,
     method: 'GET',
     query,
-  }) as Promise<[ReleaseMetaBasic[], any, JQueryXHR]>;
+  }) as Promise<[ReleaseMetaBasic[], any, ResponseMeta]>;
 }
 
 type Props = WithRouterProps & {
@@ -164,13 +163,13 @@ class ReleaseSeries extends React.Component<Props, State> {
         const getReleases = memoized
           ? this.getOrganizationReleasesMemoized
           : getOrganizationReleases;
-        const [newReleases, , xhr] = await getReleases(api, organization, conditions);
+        const [newReleases, , resp] = await getReleases(api, organization, conditions);
         releases.push(...newReleases);
         if (this._isMounted) {
           this.setReleasesWithSeries(releases);
         }
 
-        const pageLinks = xhr && xhr.getResponseHeader('Link');
+        const pageLinks = resp?.getResponseHeader('Link');
         if (pageLinks) {
           const paginationObject = parseLinkHeader(pageLinks);
           hasMore = paginationObject?.next?.results ?? false;

@@ -97,6 +97,10 @@ class AuditLogEntryEvent:
     INVITE_REQUEST_ADD = 140
     INVITE_REQUEST_REMOVE = 141
 
+    PROJECT_QUOTA_ADD = 150
+    PROJECT_QUOTA_EDIT = 151
+    PROJECT_QUOTA_REMOVE = 152
+
 
 class AuditLogEntry(Model):
     __include_in_export__ = False
@@ -186,6 +190,9 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.PLAN_CANCELLED, "plan.cancelled"),
             (AuditLogEntryEvent.INVITE_REQUEST_ADD, "invite-request.create"),
             (AuditLogEntryEvent.INVITE_REQUEST_REMOVE, "invite-request.remove"),
+            (AuditLogEntryEvent.PROJECT_QUOTA_ADD, "project-quota.add"),
+            (AuditLogEntryEvent.PROJECT_QUOTA_EDIT, "project-quota.edit"),
+            (AuditLogEntryEvent.PROJECT_QUOTA_REMOVE, "project-quota.remove"),
         )
     )
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
@@ -195,7 +202,10 @@ class AuditLogEntry(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_auditlogentry"
-        indexes = [models.Index(fields=["organization", "datetime"])]
+        indexes = [
+            models.Index(fields=["organization", "datetime"]),
+            models.Index(fields=["organization", "event", "datetime"]),
+        ]
 
     __repr__ = sane_repr("organization_id", "type")
 
@@ -286,7 +296,7 @@ class AuditLogEntry(Model):
                     + self.data["new_slug"]
                 )
             return "edited project settings " + (
-                " ".join(f" in {key} to {value}" for (key, value) in self.data.items())
+                " ".join(f"in {key} to {value}" for (key, value) in self.data.items())
             )
         elif self.event == AuditLogEntryEvent.PROJECT_REMOVE:
             return "removed project {}".format(self.data["slug"])
@@ -426,5 +436,18 @@ class AuditLogEntry(Model):
             return "request added to invite {}".format(self.data["email"])
         elif self.event == AuditLogEntryEvent.INVITE_REQUEST_REMOVE:
             return "removed the invite request for {}".format(self.data["email"])
-
+        elif self.event == AuditLogEntryEvent.PROJECT_QUOTA_ADD:
+            return (
+                "created project quota for {} with {} as the event type and a limit of {} ".format(
+                    self.data["slug"], self.data["billing_metric"], self.data["limit"]
+                )
+            )
+        elif self.event == AuditLogEntryEvent.PROJECT_QUOTA_EDIT:
+            return "changed project quota for {} with {} as the event type to have a limit of {} ".format(
+                self.data["slug"], self.data["billing_metric"], self.data["limit"]
+            )
+        elif self.event == AuditLogEntryEvent.PROJECT_QUOTA_REMOVE:
+            return "removed project quota for {} with {} as the event type".format(
+                self.data["slug"], self.data["billing_metric"]
+            )
         return ""

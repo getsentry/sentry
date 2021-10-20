@@ -1,5 +1,5 @@
 ---
-created: '2021-07-14T12:39:42.898653Z'
+created: '2021-08-04T15:53:49.760127Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -76,16 +76,6 @@ app-depth-max:
     app-depth-max*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
-              "exe_common.inl"
-            function*
-              "__scrt_common_main_seh"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
-            filename (discarded native filename for grouping stability)
-              "exe_common.inl"
-            function*
-              "invoke_main"
           frame*
             filename (discarded native filename for grouping stability)
               "main.cpp"

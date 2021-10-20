@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
-import {InjectedRouter} from 'react-router/lib/Router';
-import {withTheme} from '@emotion/react';
+import {InjectedRouter} from 'react-router';
+import {useTheme} from '@emotion/react';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
@@ -26,7 +26,7 @@ import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
 import {DisplayModes} from '../projectCharts';
 
-import SessionsRequest from './sessionsRequest';
+import ProjectSessionsChartRequest from './projectSessionsChartRequest';
 
 type Props = {
   title: string;
@@ -34,7 +34,6 @@ type Props = {
   selection: GlobalSelection;
   api: Client;
   organization: Organization;
-  theme: Theme;
   onTotalValuesChange: (value: number | null) => void;
   displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
   help?: string;
@@ -44,7 +43,6 @@ type Props = {
 
 function ProjectBaseSessionsChart({
   title,
-  theme,
   organization,
   router,
   selection,
@@ -55,6 +53,8 @@ function ProjectBaseSessionsChart({
   disablePrevious,
   query,
 }: Props) {
+  const theme = useTheme();
+
   const {projects, environments, datetime} = selection;
   const {start, end, period, utc} = datetime;
 
@@ -64,7 +64,7 @@ function ProjectBaseSessionsChart({
         value: (
           <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
             {zoomRenderProps => (
-              <SessionsRequest
+              <ProjectSessionsChartRequest
                 api={api}
                 selection={selection}
                 organization={organization}
@@ -127,7 +127,7 @@ function ProjectBaseSessionsChart({
                     }}
                   </ReleaseSeries>
                 )}
-              </SessionsRequest>
+              </ProjectSessionsChartRequest>
             )}
           </ChartZoom>
         ),
@@ -307,4 +307,4 @@ class Chart extends Component<ChartProps, ChartState> {
   }
 }
 
-export default withGlobalSelection(withTheme(ProjectBaseSessionsChart));
+export default withGlobalSelection(ProjectBaseSessionsChart);

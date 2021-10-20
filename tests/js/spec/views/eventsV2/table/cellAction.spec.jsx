@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EventView from 'app/utils/discover/eventView';
-import {QueryResults} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 
 const defaultData = {
@@ -374,7 +374,7 @@ describe('updateQuery()', function () {
   };
 
   it('modifies the query with has/!has', function () {
-    let results = new QueryResults([]);
+    let results = new MutableSearch([]);
     updateQuery(results, Actions.ADD, columnA, null);
     expect(results.formatString()).toEqual('!has:a');
     updateQuery(results, Actions.EXCLUDE, columnA, null);
@@ -382,13 +382,13 @@ describe('updateQuery()', function () {
     updateQuery(results, Actions.ADD, columnA, null);
     expect(results.formatString()).toEqual('!has:a');
 
-    results = new QueryResults([]);
+    results = new MutableSearch([]);
     updateQuery(results, Actions.ADD, columnA, [null]);
     expect(results.formatString()).toEqual('!has:a');
   });
 
   it('modifies the query with additions', function () {
-    const results = new QueryResults([]);
+    const results = new MutableSearch([]);
     updateQuery(results, Actions.ADD, columnA, '1');
     expect(results.formatString()).toEqual('a:1');
     updateQuery(results, Actions.ADD, columnB, '1');
@@ -400,7 +400,7 @@ describe('updateQuery()', function () {
   });
 
   it('modifies the query with exclusions', function () {
-    const results = new QueryResults([]);
+    const results = new MutableSearch([]);
     updateQuery(results, Actions.EXCLUDE, columnA, '1');
     expect(results.formatString()).toEqual('!a:1');
     updateQuery(results, Actions.EXCLUDE, columnB, '1');
@@ -412,7 +412,7 @@ describe('updateQuery()', function () {
   });
 
   it('modifies the query with a mix of additions and exclusions', function () {
-    const results = new QueryResults([]);
+    const results = new MutableSearch([]);
     updateQuery(results, Actions.ADD, columnA, '1');
     expect(results.formatString()).toEqual('a:1');
     updateQuery(results, Actions.ADD, columnB, '2');
@@ -428,7 +428,7 @@ describe('updateQuery()', function () {
   });
 
   it('modifies the query with greater/less than', function () {
-    const results = new QueryResults([]);
+    const results = new MutableSearch([]);
     updateQuery(results, Actions.SHOW_GREATER_THAN, columnA, 1);
     expect(results.formatString()).toEqual('a:>1');
     updateQuery(results, Actions.SHOW_GREATER_THAN, columnA, 2);
@@ -442,7 +442,7 @@ describe('updateQuery()', function () {
   it('modifies the query with greater/less than on duration fields', function () {
     const columnADuration = {...columnA, type: 'duration'};
 
-    const results = new QueryResults([]);
+    const results = new MutableSearch([]);
     updateQuery(results, Actions.SHOW_GREATER_THAN, columnADuration, 1);
     expect(results.formatString()).toEqual('a:>1.00ms');
     updateQuery(results, Actions.SHOW_GREATER_THAN, columnADuration, 2);
@@ -454,14 +454,14 @@ describe('updateQuery()', function () {
   });
 
   it('does not error for special actions', function () {
-    const results = new QueryResults([]);
+    const results = new MutableSearch([]);
     updateQuery(results, Actions.TRANSACTION, columnA, '');
     updateQuery(results, Actions.RELEASE, columnA, '');
     updateQuery(results, Actions.DRILLDOWN, columnA, '');
   });
 
   it('errors for unknown actions', function () {
-    const results = new QueryResults([]);
+    const results = new MutableSearch([]);
     expect(() => updateQuery(results, 'unknown', columnA, '')).toThrow();
   });
 });

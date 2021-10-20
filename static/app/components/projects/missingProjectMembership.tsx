@@ -15,35 +15,26 @@ import {Organization, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-type SelectOption = Record<'value' | 'label', string>;
-
 type Props = {
   api: Client;
   organization: Organization;
-  projectSlug?: string;
+  project?: Project | null;
 };
 
 type State = {
   loading: boolean;
   error: boolean;
-  project?: Project;
   team: string | null;
+  project?: Project | null;
 };
 
 class MissingProjectMembership extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-
-    const {organization, projectSlug} = this.props;
-    const project = organization.projects?.find(p => p.slug === projectSlug);
-
-    this.state = {
-      loading: false,
-      error: false,
-      project,
-      team: '',
-    };
-  }
+  state: State = {
+    loading: false,
+    error: false,
+    project: this.props.project,
+    team: '',
+  };
 
   joinTeam(teamSlug: string) {
     this.setState({
@@ -125,11 +116,6 @@ class MissingProjectMembership extends Component<Props, State> {
     return [request, pending];
   }
 
-  handleChangeTeam = (teamObj: SelectOption | null) => {
-    const team = teamObj ? teamObj.value : null;
-    this.setState({team});
-  };
-
   getPendingTeamOption = (team: string) => {
     return {
       value: team,
@@ -180,7 +166,10 @@ class MissingProjectMembership extends Component<Props, State> {
                   name="select"
                   placeholder={t('Select a Team')}
                   options={teamAccess}
-                  onChange={this.handleChangeTeam}
+                  onChange={teamObj => {
+                    const team = teamObj ? teamObj.value : null;
+                    this.setState({team});
+                  }}
                 />
                 {teamSlug ? (
                   this.renderJoinTeam(teamSlug, features)
@@ -216,7 +205,5 @@ const DisabledLabel = styled('div')`
   opacity: 0.5;
   overflow: hidden;
 `;
-
-export {MissingProjectMembership};
 
 export default withApi(MissingProjectMembership);

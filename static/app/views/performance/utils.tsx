@@ -2,15 +2,16 @@ import {Location, LocationDescriptor, Query} from 'history';
 
 import Duration from 'app/components/duration';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {backend, frontend} from 'app/data/platformCategories';
+import {backend, frontend, mobile} from 'app/data/platformCategories';
 import {GlobalSelection, OrganizationSummary, Project} from 'app/types';
 import {defined} from 'app/utils';
 import {statsPeriodToDays} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
+import {TRACING_FIELDS} from 'app/utils/discover/fields';
 import {getDuration} from 'app/utils/formatters';
 import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 
 /**
  * Performance type can used to determine a default view or which specific field should be used by default on pages
@@ -21,10 +22,12 @@ export enum PROJECT_PERFORMANCE_TYPE {
   FRONTEND = 'frontend',
   BACKEND = 'backend',
   FRONTEND_OTHER = 'frontend_other',
+  MOBILE = 'mobile',
 }
 
 const FRONTEND_PLATFORMS: string[] = [...frontend];
 const BACKEND_PLATFORMS: string[] = [...backend];
+const MOBILE_PLATFORMS: string[] = [...mobile];
 
 export function platformToPerformanceType(
   projects: Project[],
@@ -54,6 +57,14 @@ export function platformToPerformanceType(
     return PROJECT_PERFORMANCE_TYPE.BACKEND;
   }
 
+  if (
+    selectedProjects.every(project =>
+      MOBILE_PLATFORMS.includes(project.platform as string)
+    )
+  ) {
+    return PROJECT_PERFORMANCE_TYPE.MOBILE;
+  }
+
   return PROJECT_PERFORMANCE_TYPE.ANY;
 }
 
@@ -66,8 +77,8 @@ export function platformAndConditionsToPerformanceType(
 ) {
   const performanceType = platformToPerformanceType(projects, eventView.project);
   if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
-    const conditions = tokenizeSearch(eventView.query);
-    const ops = conditions.getTagValues('!transaction.op');
+    const conditions = new MutableSearch(eventView.query);
+    const ops = conditions.getFilterValues('!transaction.op');
     if (ops.some(op => op === 'pageload')) {
       return PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER;
     }
@@ -85,6 +96,15 @@ export function isSummaryViewFrontendPageLoad(eventView: EventView, projects: Pr
   );
 }
 
+export function isSummaryViewFrontend(eventView: EventView, projects: Project[]) {
+  return (
+    platformAndConditionsToPerformanceType(projects, eventView) ===
+      PROJECT_PERFORMANCE_TYPE.FRONTEND ||
+    platformAndConditionsToPerformanceType(projects, eventView) ===
+      PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER
+  );
+}
+
 export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
   return `/organizations/${organization.slug}/performance/`;
 }
@@ -95,6 +115,36 @@ export function getPerformanceTrendsUrl(organization: OrganizationSummary): stri
 
 export function getTransactionSearchQuery(location: Location, query: string = '') {
   return decodeScalar(location.query.query, query).trim();
+}
+
+export function removeTracingKeysFromSearch(
+  currentFilter: MutableSearch,
+  options: {excludeTagKeys: Set<string>} = {
+    excludeTagKeys: new Set([
+      // event type can be "transaction" but we're searching for issues
+      'event.type',
+      // the project is already determined by the transaction,
+      // and issue search does not support the project filter
+      'project',
+    ]),
+  }
+) {
+  currentFilter.getFilterKeys().forEach(tagKey => {
+    const searchKey = tagKey.startsWith('!') ? tagKey.substr(1) : tagKey;
+    // Remove aggregates and transaction event fields
+    if (
+      // aggregates
+      searchKey.match(/\w+\(.*\)/) ||
+      // transaction event fields
+      TRACING_FIELDS.includes(searchKey) ||
+      // tags that we don't want to pass to pass to issue search
+      options.excludeTagKeys.has(searchKey)
+    ) {
+      currentFilter.removeFilter(tagKey);
+    }
+  });
+
+  return currentFilter;
 }
 
 export function getTransactionDetailsUrl(

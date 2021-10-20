@@ -21,8 +21,9 @@ import {Organization, Project, Team} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
+import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
 import withTeams from 'app/utils/withTeams';
 
@@ -53,8 +54,8 @@ type State = {
 };
 
 function getSummaryConditions(query: string) {
-  const parsed = tokenizeSearch(query);
-  parsed.query = [];
+  const parsed = new MutableSearch(query);
+  parsed.freeText = [];
 
   return parsed.formatString();
 }
@@ -186,7 +187,9 @@ class VitalDetailContent extends React.Component<Props, State> {
     const filterString = getTransactionSearchQuery(location);
     const summaryConditions = getSummaryConditions(filterString);
     const description = vitalDescription[vitalName];
-    const userTeams = teams.filter(({isMember}) => isMember);
+
+    const isSuperuser = isActiveSuperuser();
+    const userTeams = teams.filter(({isMember}) => isMember || isSuperuser);
 
     return (
       <React.Fragment>
@@ -233,12 +236,7 @@ class VitalDetailContent extends React.Component<Props, State> {
               statsPeriod={eventView.statsPeriod}
             />
             <StyledVitalInfo>
-              <VitalInfo
-                eventView={eventView}
-                organization={organization}
-                location={location}
-                vital={vital}
-              />
+              <VitalInfo location={location} vital={vital} />
             </StyledVitalInfo>
             <TeamKeyTransactionManager.Provider
               organization={organization}

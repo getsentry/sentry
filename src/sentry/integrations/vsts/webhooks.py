@@ -1,16 +1,15 @@
 import logging
 import re
+from typing import Any, Mapping, Optional
 
 from django.utils.crypto import constant_time_compare
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.models import (
-    Identity,
-    Integration,
-    OrganizationIntegration,
-    sync_group_assignee_inbound,
-)
+from sentry.integrations.utils import sync_group_assignee_inbound
+from sentry.models import Identity, Integration, OrganizationIntegration
 from sentry.models.apitoken import generate_token
 
 from .client import VstsApiClient
@@ -22,18 +21,18 @@ logger = logging.getLogger("sentry.integrations")
 PROVIDER_KEY = "vsts"
 
 
-class WorkItemWebhook(Endpoint):
+class WorkItemWebhook(Endpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
 
-    def get_client(self, identity, oauth_redirect_url):
+    def get_client(self, identity: Identity, oauth_redirect_url: str) -> VstsApiClient:
         return VstsApiClient(identity, oauth_redirect_url)
 
-    @csrf_exempt
-    def dispatch(self, request, *args, **kwargs):
+    @csrf_exempt  # type: ignore
+    def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         data = request.data
         try:
             event_type = data["eventType"]
@@ -69,7 +68,7 @@ class WorkItemWebhook(Endpoint):
             self.handle_updated_workitem(data, integration)
         return self.respond()
 
-    def check_webhook_secret(self, request, integration):
+    def check_webhook_secret(self, request: Request, integration: Integration) -> None:
         try:
             integration_secret = integration.metadata["subscription"]["secret"]
             webhook_payload_secret = request.META["HTTP_SHARED_SECRET"]
@@ -90,8 +89,8 @@ class WorkItemWebhook(Endpoint):
 
         assert constant_time_compare(integration_secret, webhook_payload_secret)
 
-    def handle_updated_workitem(self, data, integration):
-        project = None
+    def handle_updated_workitem(self, data: Mapping[str, Any], integration: Integration) -> None:
+        project: Optional[str] = None
         try:
             external_issue_key = data["resource"]["workItemId"]
             project = data["resourceContainers"]["project"]["id"]
@@ -126,9 +125,18 @@ class WorkItemWebhook(Endpoint):
         self.handle_assign_to(integration, external_issue_key, assigned_to)
         self.handle_status_change(integration, external_issue_key, status_change, project)
 
-    def handle_assign_to(self, integration, external_issue_key, assigned_to):
+    def handle_assign_to(
+        self,
+        integration: Integration,
+        external_issue_key: str,
+        assigned_to: Optional[Mapping[str, str]],
+    ) -> None:
         if not assigned_to:
             return
+
+        email: Optional[str] = None
+        assign = False
+
         new_value = assigned_to.get("newValue")
         if new_value is not None:
             try:
@@ -145,9 +153,6 @@ class WorkItemWebhook(Endpoint):
                 )
                 return  # TODO(lb): return if cannot parse email?
             assign = True
-        else:
-            email = None
-            assign = False
 
         sync_group_assignee_inbound(
             integration=integration,
@@ -156,7 +161,13 @@ class WorkItemWebhook(Endpoint):
             assign=assign,
         )
 
-    def handle_status_change(self, integration, external_issue_key, status_change, project):
+    def handle_status_change(
+        self,
+        integration: Integration,
+        external_issue_key: str,
+        status_change: Optional[Mapping[str, str]],
+        project: Optional[str],
+    ) -> None:
         if status_change is None:
             return
 
@@ -175,11 +186,13 @@ class WorkItemWebhook(Endpoint):
 
             installation.sync_status_inbound(external_issue_key, data)
 
-    def parse_email(self, email):
-        # TODO(lb): hmm... this looks brittle to me
-        return EMAIL_PARSER.search(email).group(1)
+    def parse_email(self, email: str) -> str:
+        # TODO(mgaeta): This is too brittle and doesn't pass types.
+        return EMAIL_PARSER.search(email).group(1)  # type: ignore
 
-    def create_subscription(self, instance, identity_data, oauth_redirect_url):
+    def create_subscription(
+        self, instance: Optional[str], identity_data: Mapping[str, Any], oauth_redirect_url: str
+    ) -> Response:
         client = self.get_client(Identity(data=identity_data), oauth_redirect_url)
         shared_secret = generate_token()
         return client.create_subscription(instance, shared_secret), shared_secret

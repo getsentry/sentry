@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactRouter from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -14,7 +14,7 @@ import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconCalendar} from 'app/icons';
 import space from 'app/styles/space';
-import {DateString, LightWeightOrganization} from 'app/types';
+import {DateString, Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {analytics} from 'app/utils/analytics';
 import {
@@ -89,7 +89,7 @@ const defaultProps = {
   onChange: (() => {}) as (data: ChangeData) => void,
 };
 
-type Props = ReactRouter.WithRouterProps & {
+type Props = WithRouterProps & {
   /**
    * Start date value for absolute date selector
    */
@@ -133,7 +133,7 @@ type Props = ReactRouter.WithRouterProps & {
   /**
    * Just used for metrics
    */
-  organization: LightWeightOrganization;
+  organization: Organization;
 
   /**
    * Small info icon with tooltip hint text
@@ -491,6 +491,6 @@ const SubmitRow = styled('div')`
   border-left: 1px solid ${p => p.theme.border};
 `;
 
-export default ReactRouter.withRouter(TimeRangeSelector);
+export default withRouter(TimeRangeSelector);
 
 export {TimeRangeRoot};

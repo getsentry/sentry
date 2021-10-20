@@ -1,7 +1,9 @@
 from copy import deepcopy
 from datetime import datetime, timedelta
 from itertools import chain
+from typing import Callable, Dict, Optional, Union
 
+import pytz
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
@@ -60,6 +62,12 @@ NOT_SET = object()
 
 CRITICAL_TRIGGER_LABEL = "critical"
 WARNING_TRIGGER_LABEL = "warning"
+
+# types
+ENTITY_STATS_SNAPSHOT_FUNC = Callable[[Incident, bool], TimeSeriesSnapshot]
+INCIDENT_ENTITY_STATS_FUNC = Callable[
+    [Incident, Optional[datetime], Optional[datetime], bool], SnubaTSResult
+]
 
 
 class AlreadyDeletedError(Exception):
@@ -325,29 +333,62 @@ def create_incident_snapshot(incident, windowed_stats=False):
             total_events=0,
         )
 
-    event_stats_snapshot = create_event_stat_snapshot(incident, windowed_stats=windowed_stats)
-    aggregates = get_incident_aggregates(incident)
+    dataset: QueryDatasets = QueryDatasets(incident.alert_rule.snuba_query.dataset)
+    if dataset == QueryDatasets.SESSIONS:
+        entity_stats_snapshot = create_session_stat_snapshot(
+            incident, windowed_stats=windowed_stats
+        )
+    else:
+        entity_stats_snapshot = create_event_stat_snapshot(incident, windowed_stats=windowed_stats)
+
+    aggregates = get_incident_aggregates(incident, dataset=dataset)
     return IncidentSnapshot.objects.create(
         incident=incident,
-        event_stats_snapshot=event_stats_snapshot,
+        event_stats_snapshot=entity_stats_snapshot,
         unique_users=aggregates["unique_users"],
         total_events=aggregates["count"],
     )
 
 
-def create_event_stat_snapshot(incident, windowed_stats=False):
+def _entity_stats_snapshot_func_factory(
+    dataset: QueryDatasets, entity_stats_func: INCIDENT_ENTITY_STATS_FUNC
+) -> ENTITY_STATS_SNAPSHOT_FUNC:
+    time_col: str = "bucketed_started" if dataset == QueryDatasets.SESSIONS else "time"
+
+    def create_entity_stat_snapshot(
+        incident: Incident, windowed_stats: bool = False
+    ) -> TimeSeriesSnapshot:
+        entity_stats: SnubaTSResult = entity_stats_func(incident, None, None, windowed_stats)
+        start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
+        return TimeSeriesSnapshot.objects.create(
+            start=start,
+            end=end,
+            values=[[row[time_col], row["count"]] for row in entity_stats.data["data"]],
+            period=entity_stats.rollup,
+        )
+
+    return create_entity_stat_snapshot
+
+
+def create_event_stat_snapshot(
+    incident: Incident, windowed_stats: bool = False
+) -> TimeSeriesSnapshot:
     """
     Creates an event stats snapshot for an incident in a given period of time.
     """
+    return _entity_stats_snapshot_func_factory(QueryDatasets.EVENTS, get_incident_event_stats)(
+        incident, windowed_stats
+    )
 
-    event_stats = get_incident_event_stats(incident, windowed_stats=windowed_stats)
-    start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
 
-    return TimeSeriesSnapshot.objects.create(
-        start=start,
-        end=end,
-        values=[[row["time"], row["count"]] for row in event_stats.data["data"]],
-        period=event_stats.rollup,
+def create_session_stat_snapshot(
+    incident: Incident, windowed_stats: bool = False
+) -> TimeSeriesSnapshot:
+    """
+    Creates an event stats snapshot for an incident in a given period of time.
+    """
+    return _entity_stats_snapshot_func_factory(QueryDatasets.SESSIONS, get_incident_session_stats)(
+        incident, windowed_stats
     )
 
 
@@ -429,82 +470,148 @@ def calculate_incident_prewindow(start, end, incident=None):
     return prewindow
 
 
-def get_incident_event_stats(incident, start=None, end=None, windowed_stats=False):
+def _incident_entity_stats_func_factory(dataset: QueryDatasets):
+    """
+    Function factory that returns a function responsible for returning incident entity specific
+    stats
+    """
+    if dataset == QueryDatasets.SESSIONS:
+        time_col: str = "bucketed_started"
+
+        def format_count_in_data(data):
+            for elem in data:
+                if elem["count"] is not None:
+                    elem["count"] = round((1 - elem["count"]) * 100, 3)
+                if isinstance(elem[time_col], str):
+                    elem[time_col] = to_timestamp(
+                        datetime.strptime(elem[time_col], "%Y-%m-%dT%H:%M:%S+00:00").astimezone(
+                            pytz.utc
+                        )
+                    )
+
+    else:
+        time_col = "time"
+
+        def format_count_in_data(data):
+            ...
+
+    def get_incident_entity_stats(
+        incident: Incident,
+        start: Optional[datetime] = None,
+        end: Optional[datetime] = None,
+        windowed_stats=False,
+    ) -> SnubaTSResult:
+        query_params = build_incident_query_params(
+            incident, start=start, end=end, windowed_stats=windowed_stats
+        )
+        time_window = incident.alert_rule.snuba_query.time_window
+        aggregations = query_params.pop("aggregations")[0]
+        snuba_params = [
+            SnubaQueryParams(
+                aggregations=[(aggregations[0], aggregations[1], "count")],
+                orderby=time_col,
+                groupby=[time_col],
+                rollup=time_window,
+                limit=10000,
+                **query_params,
+            )
+        ]
+
+        # We make extra queries to fetch these buckets
+        def build_extra_query_params(bucket_start):
+            extra_bucket_query_params = build_incident_query_params(
+                incident, start=bucket_start, end=bucket_start + timedelta(seconds=time_window)
+            )
+            aggregations = extra_bucket_query_params.pop("aggregations")[0]
+            return SnubaQueryParams(
+                aggregations=[(aggregations[0], aggregations[1], "count")],
+                limit=1,
+                **extra_bucket_query_params,
+            )
+
+        # We want to include the specific buckets for the incident start and closed times,
+        # so that there's no need to interpolate to show them on the frontend. If they're
+        # cleanly divisible by the `time_window` then there's no need to fetch, since
+        # they'll be included in the standard results anyway.
+        start_query_params = None
+        extra_buckets = []
+        retention = quotas.get_event_retention(organization=incident.organization) or 90
+        if (
+            incident.date_started
+            > datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=retention)
+            and int(to_timestamp(incident.date_started)) % time_window
+        ):
+            start_query_params = build_extra_query_params(incident.date_started)
+            snuba_params.append(start_query_params)
+            extra_buckets.append(incident.date_started)
+
+        if incident.date_closed:
+            date_closed = incident.date_closed.replace(second=0, microsecond=0)
+            if int(to_timestamp(date_closed)) % time_window:
+                snuba_params.append(build_extra_query_params(date_closed))
+                extra_buckets.append(date_closed)
+
+        results = bulk_raw_query(snuba_params, referrer="incidents.get_incident_event_stats")
+        # Once we receive the results, if we requested extra buckets we now need to label
+        # them with timestamp data, since the query we ran only returns the count.
+        for extra_start, result in zip(extra_buckets, results[1:]):
+            result["data"][0][time_col] = int(to_timestamp(extra_start))
+        merged_data = list(chain(*(r["data"] for r in results)))
+        # Used to format the count field when it is just a ratio into a percentage for crash rate
+        # alerts
+        format_count_in_data(merged_data)
+        merged_data.sort(key=lambda row: row[time_col])
+        results[0]["data"] = merged_data
+        # When an incident has just been created it's possible for the actual incident start
+        # date to be greater than the latest bucket for the query. Get the actual end date
+        # here.
+        end_date = snuba_params[0].end
+        if start_query_params:
+            end_date = max(end_date, start_query_params.end)
+
+        return SnubaTSResult(results[0], snuba_params[0].start, end_date, snuba_params[0].rollup)
+
+    return get_incident_entity_stats
+
+
+def get_incident_event_stats(
+    incident: Incident,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+    windowed_stats: bool = False,
+) -> SnubaTSResult:
     """
     Gets event stats for an incident. If start/end are provided, uses that time
     period, otherwise uses the incident start/current_end.
     """
-    query_params = build_incident_query_params(
-        incident, start=start, end=end, windowed_stats=windowed_stats
+    return _incident_entity_stats_func_factory(QueryDatasets.EVENTS)(
+        incident, start, end, windowed_stats
     )
-    time_window = incident.alert_rule.snuba_query.time_window
-    aggregations = query_params.pop("aggregations")[0]
-    snuba_params = [
-        SnubaQueryParams(
-            aggregations=[(aggregations[0], aggregations[1], "count")],
-            orderby="time",
-            groupby=["time"],
-            rollup=time_window,
-            limit=10000,
-            **query_params,
-        )
-    ]
 
-    # We make extra queries to fetch these buckets
-    def build_extra_query_params(bucket_start):
-        extra_bucket_query_params = build_incident_query_params(
-            incident, start=bucket_start, end=bucket_start + timedelta(seconds=time_window)
-        )
-        aggregations = extra_bucket_query_params.pop("aggregations")[0]
-        return SnubaQueryParams(
-            aggregations=[(aggregations[0], aggregations[1], "count")],
-            limit=1,
-            **extra_bucket_query_params,
-        )
 
-    # We want to include the specific buckets for the incident start and closed times,
-    # so that there's no need to interpolate to show them on the frontend. If they're
-    # cleanly divisible by the `time_window` then there's no need to fetch, since
-    # they'll be included in the standard results anyway.
-    start_query_params = None
-    extra_buckets = []
-    retention = quotas.get_event_retention(organization=incident.organization) or 90
-    if (
-        incident.date_started
-        > datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=retention)
-        and int(to_timestamp(incident.date_started)) % time_window
-    ):
-        start_query_params = build_extra_query_params(incident.date_started)
-        snuba_params.append(start_query_params)
-        extra_buckets.append(incident.date_started)
-
-    if incident.date_closed:
-        date_closed = incident.date_closed.replace(second=0, microsecond=0)
-        if int(to_timestamp(date_closed)) % time_window:
-            snuba_params.append(build_extra_query_params(date_closed))
-            extra_buckets.append(date_closed)
-
-    results = bulk_raw_query(snuba_params, referrer="incidents.get_incident_event_stats")
-    # Once we receive the results, if we requested extra buckets we now need to label
-    # them with timestamp data, since the query we ran only returns the count.
-    for extra_start, result in zip(extra_buckets, results[1:]):
-        result["data"][0]["time"] = int(to_timestamp(extra_start))
-    merged_data = list(chain(*[r["data"] for r in results]))
-    merged_data.sort(key=lambda row: row["time"])
-    results[0]["data"] = merged_data
-    # When an incident has just been created it's possible for the actual incident start
-    # date to be greater than the latest bucket for the query. Get the actual end date
-    # here.
-    end_date = snuba_params[0].end
-    if start_query_params:
-        end_date = max(end_date, start_query_params.end)
-
-    return SnubaTSResult(results[0], snuba_params[0].start, end_date, snuba_params[0].rollup)
+def get_incident_session_stats(
+    incident: Incident,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+    windowed_stats=False,
+) -> SnubaTSResult:
+    """
+    Gets session stats for an incident. If start/end are provided, uses that time
+    period, otherwise uses the incident start/current_end.
+    """
+    return _incident_entity_stats_func_factory(QueryDatasets.SESSIONS)(
+        incident, start, end, windowed_stats
+    )
 
 
 def get_incident_aggregates(
-    incident, start=None, end=None, windowed_stats=False, use_alert_aggregate=False
-):
+    incident: Incident,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+    windowed_stats: bool = False,
+    use_alert_aggregate: bool = False,
+    dataset: QueryDatasets = QueryDatasets.EVENTS,
+) -> Dict[str, Union[float, int]]:
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
     If `use_alert_aggregate` is True, calculates just the aggregate that the alert is
@@ -514,15 +621,24 @@ def get_incident_aggregates(
     - unique_users: Total number of unique users
     """
     query_params = build_incident_query_params(incident, start, end, windowed_stats)
-    if not use_alert_aggregate:
-        query_params["aggregations"] = [
-            ("count()", "", "count"),
-            ("uniq", "tags[sentry:user]", "unique_users"),
-        ]
-    else:
+    if dataset == QueryDatasets.SESSIONS:
         query_params["aggregations"][0][2] = "count"
-    snuba_params_list = [SnubaQueryParams(limit=10000, **query_params)]
-    results = bulk_raw_query(snuba_params_list, referrer="incidents.get_incident_aggregates")
+        if not use_alert_aggregate:
+            query_params["aggregations"][1] = ("identity", "users", "unique_users")
+        snuba_params_list = [SnubaQueryParams(limit=10000, **query_params)]
+        results = bulk_raw_query(snuba_params_list, referrer="incidents.get_incident_aggregates")
+        if use_alert_aggregate:
+            results[0]["data"][0]["count"] = round((1 - results[0]["data"][0]["count"]) * 100, 3)
+    else:
+        if not use_alert_aggregate:
+            query_params["aggregations"] = [
+                ("count()", "", "count"),
+                ("uniq", "tags[sentry:user]", "unique_users"),
+            ]
+        else:
+            query_params["aggregations"][0][2] = "count"
+        snuba_params_list = [SnubaQueryParams(limit=10000, **query_params)]
+        results = bulk_raw_query(snuba_params_list, referrer="incidents.get_incident_aggregates")
     return results[0]["data"][0]
 
 
@@ -578,7 +694,9 @@ class AlertRuleNameAlreadyUsedError(Exception):
     pass
 
 
+# Default values for `SnubaQuery.resolution`, in minutes.
 DEFAULT_ALERT_RULE_RESOLUTION = 1
+DEFAULT_CMP_ALERT_RULE_RESOLUTION = 2
 
 
 def create_alert_rule(
@@ -598,13 +716,14 @@ def create_alert_rule(
     dataset=QueryDatasets.EVENTS,
     user=None,
     event_types=None,
+    comparison_delta: Optional[int] = None,
     **kwargs,
 ):
     """
     Creates an alert rule for an organization.
 
     :param organization:
-    :param projects: A list of projects to subscribe to the rule. This will be overriden
+    :param projects: A list of projects to subscribe to the rule. This will be overridden
     if `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project
@@ -624,10 +743,16 @@ def create_alert_rule(
     `include_all_projects`.
     :param dataset: The dataset that this query will be executed on
     :param event_types: List of `EventType` that this alert will be related to
+    :param comparison_delta: An optional int representing the time delta to use to determine the
+    comparison period. In minutes.
 
     :return: The created `AlertRule`
     """
     resolution = DEFAULT_ALERT_RULE_RESOLUTION
+    if comparison_delta is not None:
+        # Since comparison alerts make twice as many queries, run the queries less frequently.
+        resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
+        comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
     validate_alert_rule_query(query)
     if AlertRule.objects.filter(organization=organization, name=name).exists():
         raise AlertRuleNameAlreadyUsedError()
@@ -654,6 +779,7 @@ def create_alert_rule(
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
             owner=actor,
+            comparison_delta=comparison_delta,
         )
 
         if include_all_projects:
@@ -732,6 +858,7 @@ def update_alert_rule(
     excluded_projects=None,
     user=None,
     event_types=None,
+    comparison_delta=NOT_SET,
     **kwargs,
 ):
     """
@@ -757,6 +884,8 @@ def update_alert_rule(
     :param excluded_projects: List of projects to exclude if we're using
     `include_all_projects`. Ignored otherwise.
     :param event_types: List of `EventType` that this alert will be related to
+    :param comparison_delta: An optional int representing the time delta to use to determine the
+    comparison period. In minutes.
     :return: The updated `AlertRule`
     """
     if (
@@ -766,7 +895,7 @@ def update_alert_rule(
     ):
         raise AlertRuleNameAlreadyUsedError()
 
-    updated_fields = {}
+    updated_fields = {"date_modified": timezone.now()}
     updated_query_fields = {}
     if name:
         updated_fields["name"] = name
@@ -791,6 +920,15 @@ def update_alert_rule(
         updated_query_fields["event_types"] = event_types
     if owner is not None:
         updated_fields["owner"] = owner.resolve_to_actor()
+    if comparison_delta is not NOT_SET:
+        resolution = DEFAULT_ALERT_RULE_RESOLUTION
+        if comparison_delta is not None:
+            # Since comparison alerts make twice as many queries, run the queries less frequently.
+            resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
+            comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
+
+        updated_query_fields["resolution"] = timedelta(minutes=resolution)
+        updated_fields["comparison_delta"] = comparison_delta
 
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
@@ -810,9 +948,9 @@ def update_alert_rule(
                 "time_window", timedelta(seconds=snuba_query.time_window)
             )
             updated_query_fields.setdefault("event_types", None)
+            updated_query_fields.setdefault("resolution", timedelta(seconds=snuba_query.resolution))
             update_snuba_query(
                 alert_rule.snuba_query,
-                resolution=timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
                 environment=environment,
                 **updated_query_fields,
             )
@@ -1059,12 +1197,7 @@ def trigger_incident_triggers(incident):
     triggers = IncidentTrigger.objects.filter(incident=incident).select_related(
         "alert_rule_trigger"
     )
-    actions = list(
-        AlertRuleTriggerAction.objects.filter(
-            alert_rule_trigger__in=[t.alert_rule_trigger for t in triggers]
-        ).select_related("alert_rule_trigger")
-    )
-    actions = deduplicate_trigger_actions(actions)
+    actions = deduplicate_trigger_actions(triggers=triggers)
     with transaction.atomic():
         for trigger in triggers:
             trigger.status = TriggerStatus.RESOLVED.value
@@ -1082,24 +1215,64 @@ def trigger_incident_triggers(incident):
                 )
 
 
-def deduplicate_trigger_actions(actions):
+def sort_by_priority_list(incident_triggers):
+    priority_dict = {
+        (CRITICAL_TRIGGER_LABEL, TriggerStatus.ACTIVE.value): 0,
+        (WARNING_TRIGGER_LABEL, TriggerStatus.ACTIVE.value): 1,
+        (CRITICAL_TRIGGER_LABEL, TriggerStatus.RESOLVED.value): 2,
+        (WARNING_TRIGGER_LABEL, TriggerStatus.RESOLVED.value): 3,
+    }
+    return sorted(
+        incident_triggers,
+        key=lambda t: priority_dict.get(
+            (t.alert_rule_trigger.label, t.status), len(incident_triggers) + t.id
+        ),
+    )
+
+
+def prioritize_actions(incident_triggers):
     """
-    Given a list of trigger actions, this returns a list of actions that is unique on
-    (type, target_type, target_identifier, integration_id, sentry_app_id). If there are
+    Function that given an input array of incident_triggers, prioritizes those incident_triggers
+    based on the label of related alert_rule_trigger and their TriggerStatus, and then re-orders
+    actions based on that ordering
+    Inputs:
+        * incident_triggers: Array of instances of `IncidentTrigger`
+    Returns:
+        List of instances of `AlertRuleTriggerAction` that are ordered according to the ordering
+        of related prioritized instances of `IncidentTriggers`
+    """
+    actions = list(
+        AlertRuleTriggerAction.objects.filter(
+            alert_rule_trigger__in=[it.alert_rule_trigger for it in incident_triggers]
+        ).select_related("alert_rule_trigger")
+    )
+
+    incident_triggers = sort_by_priority_list(incident_triggers=incident_triggers)
+    incident_triggers_dict = {
+        it.alert_rule_trigger.id: idx for idx, it in enumerate(incident_triggers)
+    }
+
+    sorted_actions = sorted(
+        actions,
+        key=lambda action: incident_triggers_dict.get(
+            action.alert_rule_trigger.id, len(actions) + action.id
+        ),
+    )
+    return sorted_actions
+
+
+def deduplicate_trigger_actions(triggers):
+    """
+    Given a list of incident triggers, we fetch actions, this returns a list of actions that is
+    unique on (type, target_type, target_identifier, integration_id, sentry_app_id). If there are
     duplicate actions, we'll prefer the action from a critical trigger over a warning
     trigger. If there are duplicate actions on a critical trigger, we'll just choose
     one arbitrarily.
-    :param actions: A list of `AlertRuleTriggerAction` instances from the same
-    `AlertRule`.
+    :param triggers: A list of `IncidentTrigger` instances from the same `AlertRule`
     :return: A list of deduplicated `AlertRuleTriggerAction` instances.
     """
-    # Make sure we process actions from the critical trigger first
-    actions.sort(
-        key=lambda action: (
-            0 if action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL else 1,
-            action.id,
-        )
-    )
+    actions = prioritize_actions(incident_triggers=triggers)
+
     deduped = {}
     for action in actions:
         deduped.setdefault(
@@ -1142,6 +1315,7 @@ def create_alert_rule_trigger_action(
     sentry_app=None,
     use_async_lookup=False,
     input_channel_id=None,
+    sentry_app_config=None,
 ):
     """
     Creates an AlertRuleTriggerAction
@@ -1182,6 +1356,7 @@ def create_alert_rule_trigger_action(
         target_display=target_display,
         integration=integration,
         sentry_app=sentry_app,
+        sentry_app_config=sentry_app_config,
     )
 
 
@@ -1194,6 +1369,7 @@ def update_alert_rule_trigger_action(
     sentry_app=None,
     use_async_lookup=False,
     input_channel_id=None,
+    sentry_app_config=None,
 ):
     """
     Updates values on an AlertRuleTriggerAction
@@ -1216,6 +1392,8 @@ def update_alert_rule_trigger_action(
         updated_fields["integration"] = integration
     if sentry_app is not None:
         updated_fields["sentry_app"] = sentry_app
+    if sentry_app_config is not None:
+        updated_fields["sentry_app_config"] = sentry_app_config
     if target_identifier is not None:
         type = updated_fields.get("type", trigger_action.type)
 
@@ -1502,4 +1680,6 @@ def rewrite_trigger_action_fields(action_data):
     elif "sentryAppId" in action_data:
         action_data["sentry_app"] = action_data.pop("sentryAppId")
 
+    if "settings" in action_data:
+        action_data["sentry_app_config"] = action_data.pop("settings")
     return action_data

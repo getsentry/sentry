@@ -2,13 +2,6 @@ import {cloneElement, Fragment, MouseEvent, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import Line from 'app/components/events/interfaces/frame/lineV2';
-import {isExpandable} from 'app/components/events/interfaces/frame/utils';
-import {
-  getImageRange,
-  parseAddress,
-  stackTracePlatformIcon,
-} from 'app/components/events/interfaces/utils';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
@@ -16,6 +9,9 @@ import space from 'app/styles/space';
 import {Frame, Group, PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
+
+import Line from './frame/lineV2';
+import {getImageRange, parseAddress, stackTracePlatformIcon} from './utils';
 
 type Props = {
   data: StacktraceType;
@@ -71,16 +67,6 @@ function StackTraceContent({
     return `${className} traceback in-app-traceback`;
   }
 
-  function handleToggleAddresses(mouseEvent: MouseEvent<SVGElement>) {
-    mouseEvent.stopPropagation(); // to prevent collapsing if collapsable
-    setShowingAbsoluteAddresses(!showingAbsoluteAddresses);
-  }
-
-  function handleToggleFunctionName(mouseEvent: MouseEvent<SVGElement>) {
-    mouseEvent.stopPropagation(); // to prevent collapsing if collapsable
-    setShowCompleteFunctionName(!showCompleteFunctionName);
-  }
-
   function isFrameUsedForGrouping(frame: Frame) {
     const {minGroupingLevel} = frame;
 
@@ -91,36 +77,29 @@ function StackTraceContent({
     return minGroupingLevel <= groupingCurrentLevel;
   }
 
-  function getFramesDetails() {
-    let haveFramesAtLeastOneExpandedFrame = false;
-    let haveFramesAtLeastOneGroupingBadge = false;
+  function handleToggleAddresses(mouseEvent: MouseEvent<SVGElement>) {
+    mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
+    setShowingAbsoluteAddresses(!showingAbsoluteAddresses);
+  }
 
-    for (const frameIndex in frames) {
-      const frame = frames[Number(frameIndex)];
-      if (!haveFramesAtLeastOneExpandedFrame) {
-        haveFramesAtLeastOneExpandedFrame = isExpandable({
-          frame,
-          registers: registers ?? {},
-          emptySourceNotation:
-            frames.length - 1 === Number(frameIndex) && Number(frameIndex) === 0,
-          platform,
-        });
-      }
+  function handleToggleFunctionName(mouseEvent: MouseEvent<SVGElement>) {
+    mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
+    setShowCompleteFunctionName(!showCompleteFunctionName);
+  }
 
-      if (!haveFramesAtLeastOneGroupingBadge) {
-        haveFramesAtLeastOneGroupingBadge =
-          isFrameUsedForGrouping(frame) || !!frame.isPrefix || !!frame.isSentinel;
-      }
+  function getLastFrameIndex() {
+    const inAppFrameIndexes = frames
+      .map((frame, frameIndex) => {
+        if (frame.inApp) {
+          return frameIndex;
+        }
+        return undefined;
+      })
+      .filter(frame => frame !== undefined);
 
-      if (haveFramesAtLeastOneExpandedFrame && haveFramesAtLeastOneGroupingBadge) {
-        break;
-      }
-    }
-
-    return {
-      haveFramesAtLeastOneExpandedFrame,
-      haveFramesAtLeastOneGroupingBadge,
-    };
+    return !inAppFrameIndexes.length
+      ? frames.length - 1
+      : inAppFrameIndexes[inAppFrameIndexes.length - 1];
   }
 
   function renderOmittedFrames(firstFrameOmitted: any, lastFrameOmitted: any) {
@@ -138,9 +117,7 @@ function StackTraceContent({
   function renderConvertedFrames() {
     const firstFrameOmitted = framesOmitted?.[0] ?? null;
     const lastFrameOmitted = framesOmitted?.[1] ?? null;
-    const lastFrameIndex = frames.length - 1;
-    const {haveFramesAtLeastOneExpandedFrame, haveFramesAtLeastOneGroupingBadge} =
-      getFramesDetails();
+    const lastFrameIndex = getLastFrameIndex();
 
     let nRepeats = 0;
 
@@ -184,16 +161,24 @@ function StackTraceContent({
           nRepeats++;
         }
 
+        const isUsedForGrouping = isFrameUsedForGrouping(frame);
+
         const isVisible =
-          includeSystemFrames || frame.inApp || frame.minGroupingLevel !== undefined;
+          includeSystemFrames ||
+          frame.inApp ||
+          (nextFrame && nextFrame.inApp) ||
+          // the last non-app frame
+          (!frame.inApp && !nextFrame) ||
+          isUsedForGrouping;
 
         if (isVisible && !repeatedFrame) {
           const lineProps = {
             event,
             frame,
+            prevFrame,
+            nextFrame,
             isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
             emptySourceNotation: lastFrameIndex === frameIndex && frameIndex === 0,
-            prevFrame,
             platform,
             timesRepeated: nRepeats,
             showingAbsoluteAddress: showingAbsoluteAddresses,
@@ -205,11 +190,7 @@ function StackTraceContent({
             onFunctionNameToggle: handleToggleFunctionName,
             showCompleteFunctionName,
             isHoverPreviewed,
-            isPrefix: !!frame.isPrefix,
-            isSentinel: !!frame.isSentinel,
-            isUsedForGrouping: isFrameUsedForGrouping(frame),
-            haveFramesAtLeastOneExpandedFrame,
-            haveFramesAtLeastOneGroupingBadge,
+            isUsedForGrouping,
           };
 
           nRepeats = 0;

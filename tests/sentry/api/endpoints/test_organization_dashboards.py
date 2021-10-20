@@ -7,6 +7,7 @@ from sentry.models import (
     DashboardWidgetDisplayTypes,
 )
 from sentry.testutils import OrganizationDashboardWidgetTestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.compat import zip
 
 
@@ -93,6 +94,50 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 values = list(reversed(values))
             assert list(sorted(values)) == values
 
+    def test_get_sortby_most_popular(self):
+        Dashboard.objects.create(
+            title="A",
+            created_by=self.user,
+            organization=self.organization,
+            visits=3,
+            last_visited=before_now(minutes=5),
+        )
+
+        for forward_sort in [True, False]:
+            sorting = "mostPopular" if forward_sort else "-mostPopular"
+            response = self.client.get(self.url, data={"sort": sorting})
+
+            assert response.status_code == 200
+            values = [row["title"] for row in response.data]
+            expected = ["A", "Dashboard 2", "Dashboard 1"]
+
+            if not forward_sort:
+                expected = ["Dashboard 2", "Dashboard 1", "A"]
+
+            assert values == ["Dashboard"] + expected
+
+    def test_get_sortby_recently_viewed(self):
+        Dashboard.objects.create(
+            title="A",
+            created_by=self.user,
+            organization=self.organization,
+            visits=3,
+            last_visited=before_now(minutes=5),
+        )
+
+        for forward_sort in [True, False]:
+            sorting = "recentlyViewed" if forward_sort else "-recentlyViewed"
+            response = self.client.get(self.url, data={"sort": sorting})
+
+            assert response.status_code == 200
+            values = [row["title"] for row in response.data]
+            expected = ["Dashboard 2", "Dashboard 1", "A"]
+
+            if not forward_sort:
+                expected = list(reversed(expected))
+
+            assert values == ["Dashboard"] + expected
+
     def test_get_sortby_mydashboards(self):
         user_1 = self.create_user(username="user_1")
         self.create_member(organization=self.organization, user=user_1)
@@ -109,6 +154,50 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         values = [int(row["createdBy"]["id"]) for row in response.data if row["dateCreated"]]
         assert values == [self.user.id, self.user.id, user_1.id, user_2.id]
 
+    def test_get_sortby_mydashboards_and_recently_viewed(self):
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        Dashboard.objects.create(
+            title="Dashboard 3",
+            created_by=user_1,
+            organization=self.organization,
+            last_visited=before_now(minutes=5),
+        )
+        Dashboard.objects.create(
+            title="Dashboard 4",
+            created_by=user_2,
+            organization=self.organization,
+            last_visited=before_now(minutes=0),
+        )
+        Dashboard.objects.create(
+            title="Dashboard 5",
+            created_by=self.user,
+            organization=self.organization,
+            last_visited=before_now(minutes=5),
+        )
+        Dashboard.objects.create(
+            title="Dashboard 6",
+            created_by=self.user,
+            organization=self.organization,
+            last_visited=before_now(minutes=0),
+        )
+
+        response = self.client.get(self.url, data={"sort": "myDashboardsAndRecentlyViewed"})
+        assert response.status_code == 200, response.content
+
+        values = [row["title"] for row in response.data if row["dateCreated"]]
+        assert values == [
+            "Dashboard 6",
+            "Dashboard 2",
+            "Dashboard 1",
+            "Dashboard 5",
+            "Dashboard 4",
+            "Dashboard 3",
+        ]
+
     def test_post(self):
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
         assert response.status_code == 201
@@ -123,7 +212,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 201
 
     def test_post_features_required(self):
-        with self.feature({"organizations:dashboards-basic": False}):
+        with self.feature(
+            {"organizations:dashboards-basic": False, "organizations:dashboards-edit": False}
+        ):
             response = self.do_request(
                 "post",
                 self.url,

@@ -348,6 +348,27 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'release_stages',
+      requiredTargets: ['release_stages'],
+      dateThreshold: new Date(2021, 6, 1),
+      steps: [
+        {
+          title: t('Adoption Filter'),
+          target: 'release_stages',
+          description: tct(
+            'Select an environment and search for `release.stage:adopted` to filter out releases with low adoption. [br] [link:Learn more]',
+            {
+              br: <br />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/releases/usage/sorting-filtering/#filtering-releases" />
+              ),
+            }
+          ),
+          nextText: t('Got it'),
+        },
+      ],
+    },
   ];
 }
 
@@ -457,7 +478,7 @@ function getDemoModeGuides(): GuidesContent {
           title: t('Release'),
           target: 'release_version',
           description: t(
-            `Click here to easily identify new issues, regressions, and track the health every release.`
+            `Click here to easily identify new issues, regressions, and track the health of every release.`
           ),
         },
       ],

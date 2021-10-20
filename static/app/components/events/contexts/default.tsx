@@ -1,5 +1,4 @@
 import * as React from 'react';
-import startCase from 'lodash/startCase';
 
 import ContextBlock from 'app/components/events/contexts/contextBlock';
 import {Event} from 'app/types/event';
@@ -15,7 +14,7 @@ function getKnownData(data: Props['data']) {
     .filter(([k]) => k !== 'type' && k !== 'title')
     .map(([key, value]) => ({
       key,
-      subject: startCase(key),
+      subject: key,
       value,
     }));
 }

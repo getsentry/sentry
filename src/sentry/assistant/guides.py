@@ -52,6 +52,7 @@ GUIDES = {
         "required_targets": ["percentage_based_alerts"],
     },
     "semver": {"id": 22, "required_targets": ["releases_search"]},
+    "release_stages": {"id": 23, "required_targets": ["release_stages"]},
 }
 
 # demo mode has different guides

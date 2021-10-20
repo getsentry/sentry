@@ -1,9 +1,19 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import ProjectsStore from 'app/stores/projectsStore';
 import EventView from 'app/utils/discover/eventView';
 import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'app/views/eventsV2/data';
 import EventDetails from 'app/views/eventsV2/eventDetails';
+import {OrganizationContext} from 'app/views/organizationContext';
+
+const WrappedEventDetails = ({organization, ...rest}) => {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <EventDetails organization={organization} {...rest} />
+    </OrganizationContext.Provider>
+  );
+};
 
 describe('EventsV2 > EventDetails', function () {
   const allEventsView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
@@ -12,6 +22,8 @@ describe('EventsV2 > EventDetails', function () {
   );
 
   beforeEach(function () {
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -100,8 +112,8 @@ describe('EventsV2 > EventDetails', function () {
 
   it('renders', function () {
     const wrapper = mountWithTheme(
-      <EventDetails
-        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+      <WrappedEventDetails
+        organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: allEventsView.generateQueryStringObject()}}
       />,
@@ -113,8 +125,8 @@ describe('EventsV2 > EventDetails', function () {
 
   it('renders a 404', function () {
     const wrapper = mountWithTheme(
-      <EventDetails
-        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+      <WrappedEventDetails
+        organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:abad1'}}
         location={{query: allEventsView.generateQueryStringObject()}}
       />,
@@ -126,8 +138,8 @@ describe('EventsV2 > EventDetails', function () {
 
   it('renders a chart in grouped view', async function () {
     const wrapper = mountWithTheme(
-      <EventDetails
-        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+      <WrappedEventDetails
+        organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: errorsView.generateQueryStringObject()}}
       />,
@@ -150,8 +162,8 @@ describe('EventsV2 > EventDetails', function () {
       body: {},
     });
     const wrapper = mountWithTheme(
-      <EventDetails
-        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+      <WrappedEventDetails
+        organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: allEventsView.generateQueryStringObject()}}
       />,
@@ -164,7 +176,7 @@ describe('EventsV2 > EventDetails', function () {
 
   it('navigates when tag values are clicked', async function () {
     const {organization, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
+      organization: TestStubs.Organization(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
@@ -173,7 +185,7 @@ describe('EventsV2 > EventDetails', function () {
       },
     });
     const wrapper = mountWithTheme(
-      <EventDetails
+      <WrappedEventDetails
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: allEventsView.generateQueryStringObject()}}
@@ -184,7 +196,9 @@ describe('EventsV2 > EventDetails', function () {
     await wrapper.update();
 
     // Get the first link as we wrap react-router's link
-    const browserTagLink = wrapper.find('EventDetails KeyValueTable Value Link').first();
+    const browserTagLink = wrapper
+      .find('WrappedEventDetails KeyValueTable Value Link')
+      .first();
 
     // Should append tag value and other event attributes to results view query.
     const browserTagTarget = browserTagLink.props().to;
@@ -196,7 +210,9 @@ describe('EventsV2 > EventDetails', function () {
     );
 
     // Get the second link
-    const deviceUUIDTagLink = wrapper.find('EventDetails KeyValueTable Value Link').at(2);
+    const deviceUUIDTagLink = wrapper
+      .find('WrappedEventDetails KeyValueTable Value Link')
+      .at(2);
 
     // Should append tag value wrapped with tags[] as device.uuid is part of our fields
     const deviceUUIDTagTarget = deviceUUIDTagLink.props().to;
@@ -208,7 +224,9 @@ describe('EventsV2 > EventDetails', function () {
     );
 
     // Get the third link
-    const releaseTagLink = wrapper.find('EventDetails KeyValueTable Value Link').at(4);
+    const releaseTagLink = wrapper
+      .find('WrappedEventDetails KeyValueTable Value Link')
+      .at(4);
 
     // Should append raw tag value without tags[] as release is exempt from being wrapped
     const releaseTagTarget = releaseTagLink.props().to;
@@ -222,7 +240,7 @@ describe('EventsV2 > EventDetails', function () {
 
   it('appends tag value to existing query when clicked', async function () {
     const {organization, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
+      organization: TestStubs.Organization(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
@@ -231,7 +249,7 @@ describe('EventsV2 > EventDetails', function () {
       },
     });
     const wrapper = mountWithTheme(
-      <EventDetails
+      <WrappedEventDetails
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
@@ -244,7 +262,9 @@ describe('EventsV2 > EventDetails', function () {
     await wrapper.update();
 
     // Get the first link as we wrap react-router's link
-    const browserTagLink = wrapper.find('EventDetails KeyValueTable Value Link').first();
+    const browserTagLink = wrapper
+      .find('WrappedEventDetails KeyValueTable Value Link')
+      .first();
 
     // Should append tag value and other event attributes to results view query.
     const browserTagTarget = browserTagLink.props().to;
@@ -256,7 +276,9 @@ describe('EventsV2 > EventDetails', function () {
     );
 
     // Get the second link
-    const deviceUUIDTagLink = wrapper.find('EventDetails KeyValueTable Value Link').at(2);
+    const deviceUUIDTagLink = wrapper
+      .find('WrappedEventDetails KeyValueTable Value Link')
+      .at(2);
 
     // Should append tag value wrapped with tags[] as device.uuid is part of our fields
     const deviceUUIDTagTarget = deviceUUIDTagLink.props().to;
@@ -268,7 +290,9 @@ describe('EventsV2 > EventDetails', function () {
     );
 
     // Get the third link
-    const releaseTagLink = wrapper.find('EventDetails KeyValueTable Value Link').at(4);
+    const releaseTagLink = wrapper
+      .find('WrappedEventDetails KeyValueTable Value Link')
+      .at(4);
 
     // Should append raw tag value without tags[] as release is exempt from being wrapped
     const releaseTagTarget = releaseTagLink.props().to;

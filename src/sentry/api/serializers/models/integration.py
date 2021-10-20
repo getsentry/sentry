@@ -43,6 +43,7 @@ class IntegrationSerializer(Serializer):  # type: ignore
             "icon": obj.metadata.get("icon"),
             "domainName": obj.metadata.get("domain_name"),
             "accountType": obj.metadata.get("account_type"),
+            "scopes": obj.metadata.get("scopes"),
             "status": obj.get_status_display(),
             "provider": serialize_provider(provider),
         }
@@ -134,7 +135,13 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
                 }
                 logger.info(name, extra=log_info)
 
-        integration.update({"configData": config_data})
+        integration.update(
+            {
+                "configData": config_data,
+                "externalId": obj.integration.external_id,
+                "organizationId": obj.organization.id,
+            }
+        )
 
         if dynamic_display_information:
             integration.update({"dynamicDisplayInformation": dynamic_display_information})

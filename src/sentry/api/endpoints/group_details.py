@@ -11,18 +11,18 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import (
+    delete_group_list,
     get_first_last_release,
     prep_search,
     rate_limit_endpoint,
     update_groups,
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
-from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.models import Activity, Group, GroupSeen, User, UserReport
+from sentry.api.serializers.models.plugin import PluginSerializer, is_plugin_deprecated
+from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
 from sentry.models.groupinbox import get_inbox_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
-from sentry.signals import issue_deleted
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
@@ -31,33 +31,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     def _get_activity(self, request, group, num):
-        activity_items = set()
-        activity = []
-        activity_qs = (
-            Activity.objects.filter(group=group).order_by("-datetime").select_related("user")
-        )
-        # we select excess so we can filter dupes
-        for item in activity_qs[: num * 2]:
-            sig = (item.type, item.ident, item.user_id)
-            # TODO: we could just generate a signature (hash(text)) for notes
-            # so there's no special casing
-            if item.type == Activity.NOTE:
-                activity.append(item)
-            elif sig not in activity_items:
-                activity_items.add(sig)
-                activity.append(item)
-
-        activity.append(
-            Activity(
-                id=0,
-                project=group.project,
-                group=group,
-                type=Activity.FIRST_SEEN,
-                datetime=group.first_seen,
-            )
-        )
-
-        return activity[:num]
+        return Activity.objects.get_activities_for_group(group, num)
 
     def _get_seen_by(self, request, group):
         seen_by = list(
@@ -70,6 +44,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         action_list = []
         for plugin in plugins.for_project(project, version=1):
+            if is_plugin_deprecated(plugin, project):
+                continue
+
             results = safe_execute(
                 plugin.actions, request, group, action_list, _with_transaction=False
             )
@@ -80,6 +57,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             action_list = results
 
         for plugin in plugins.for_project(project, version=2):
+            if is_plugin_deprecated(plugin, project):
+                continue
             for action in (
                 safe_execute(plugin.get_actions, request, group, _with_transaction=False) or ()
             ):
@@ -93,6 +72,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         plugin_issues = []
         for plugin in plugins.for_project(project, version=1):
             if isinstance(plugin, IssueTrackingPlugin2):
+                if is_plugin_deprecated(plugin, project):
+                    continue
                 plugin_issues = safe_execute(
                     plugin.plugin_issues, request, group, plugin_issues, _with_transaction=False
                 )
@@ -183,11 +164,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 3600 * 24,
             )[group.id]
 
-            participants = list(
-                User.objects.filter(
-                    groupsubscription__is_active=True, groupsubscription__group=group
-                )
-            )
+            participants = GroupSubscriptionManager.get_participating_users(group)
 
             if "inbox" in expand:
                 inbox_map = get_inbox_details([group])
@@ -247,6 +224,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                                   this issue. Can be of the form ``"<user_id>"``,
                                   ``"user:<user_id>"``, ``"<username>"``,
                                   ``"<user_primary_email>"``, or ``"team:<team_id>"``.
+        :param string assignedBy: ``"suggested_assignee"`` | ``"assignee_selector"``
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the
@@ -309,38 +287,15 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam string issue_id: the ID of the issue to delete.
         :auth: required
         """
+        from sentry.utils import snuba
+
         try:
-            from sentry.group_deletion import delete_group
-            from sentry.utils import snuba
-
-            transaction_id = delete_group(group)
-
-            if transaction_id:
-                self.create_audit_entry(
-                    request=request,
-                    organization_id=group.project.organization_id if group.project else None,
-                    target_object=group.id,
-                    transaction_id=transaction_id,
-                )
-
-                delete_logger.info(
-                    "object.delete.queued",
-                    extra={
-                        "object_id": group.id,
-                        "transaction_id": transaction_id,
-                        "model": type(group).__name__,
-                    },
-                )
-
-                # This is exclusively used for analytics, as such it should not run as part of reprocessing.
-                issue_deleted.send_robust(
-                    group=group, user=request.user, delete_type="delete", sender=self.__class__
-                )
+            delete_group_list(request, group.project, [group], "delete")
 
             metrics.incr(
                 "group.update.http_response",
                 sample_rate=1.0,
-                tags={"status": 200, "detail": "group_details:delete:Reponse"},
+                tags={"status": 200, "detail": "group_details:delete:Response"},
             )
             return Response(status=202)
         except snuba.RateLimitExceeded:

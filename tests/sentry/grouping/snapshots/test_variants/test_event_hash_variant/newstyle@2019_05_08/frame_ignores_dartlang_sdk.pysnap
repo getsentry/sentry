@@ -1,0 +1,26 @@
+---
+created: '2021-08-23T14:18:12.669833Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace (ignored because hash matches system variant)
+        frame*
+          filename*
+            "async_patch.dart"
+          function*
+            "_asyncStartSync"
+--------------------------------------------------------------------------
+system:
+  hash: "82639bcdd4eca16551e8cd3448f48ed4"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            "async_patch.dart"
+          function*
+            "_asyncStartSync"

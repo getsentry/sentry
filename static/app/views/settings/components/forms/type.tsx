@@ -5,6 +5,7 @@ import Alert from 'app/components/alert';
 import {AvatarProject, Project} from 'app/types';
 import {ChoiceMapperProps} from 'app/views/settings/components/forms/choiceMapperField';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
+import FormModel from 'app/views/settings/components/forms/model';
 import {SelectAsyncFieldProps} from 'app/views/settings/components/forms/selectAsyncField';
 
 export const FieldType = [
@@ -31,8 +32,6 @@ export const FieldType = [
 
 export type FieldValue = any;
 
-type ConfirmKeyType = 'true' | 'false';
-
 // TODO(ts): A lot of these attributes are missing correct types. We'll likely
 // need to introduce some generics in here to get rid of some of these anys.
 
@@ -53,7 +52,7 @@ type BaseField = {
   updatesForm?: boolean;
   /** Does editing this field need to clear all other fields? */
   resetsForm?: boolean;
-  confirm?: {[key in ConfirmKeyType]?: string};
+  confirm?: {[key: string]: string};
   autosize?: boolean;
   maxRows?: number;
   extraHelp?: string;
@@ -200,3 +199,13 @@ export type JsonFormObject = {
   title?: React.ReactNode;
   fields: FieldObject[];
 };
+
+export type Data = Record<string, any>;
+
+export type OnSubmitCallback = (
+  data: Data,
+  onSubmitSuccess: (data: Data) => void,
+  onSubmitError: (error: any) => void,
+  event: React.FormEvent,
+  model: FormModel
+) => void;

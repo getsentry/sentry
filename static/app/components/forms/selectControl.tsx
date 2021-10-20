@@ -10,13 +10,13 @@ import ReactSelect, {
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconChevron, IconClose} from 'app/icons';
 import space from 'app/styles/space';
 import {Choices, SelectValue} from 'app/types';
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
-import {Theme} from 'app/utils/theme';
 
 function isGroupedOptions<OptionType>(
   maybe:
@@ -55,6 +55,10 @@ const MultiValueRemove = (
   </selectComponents.MultiValueRemove>
 );
 
+const SelectLoadingIndicator = () => (
+  <LoadingIndicator mini size={20} style={{height: 20, width: 20}} />
+);
+
 export type ControlProps<OptionType = GeneralSelectValue> = Omit<
   ReactSelectProps<OptionType>,
   'onChange' | 'value'
@@ -85,10 +89,9 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
 };
 
 /**
- * Additional props provided by forwardRef and withTheme()
+ * Additional props provided by forwardRef
  */
 type WrappedControlProps<OptionType> = ControlProps<OptionType> & {
-  theme: Theme;
   /**
    * Ref forwarded into ReactSelect component.
    * The any is inherited from react-select.
@@ -105,7 +108,7 @@ export type GeneralSelectValue = SelectValue<any>;
 function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
   props: WrappedControlProps<OptionType>
 ) {
-  const {theme} = props;
+  const theme = useTheme();
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
@@ -336,6 +339,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     ClearIndicator,
     DropdownIndicator,
     MultiValueRemove,
+    LoadingIndicator: SelectLoadingIndicator,
     IndicatorSeparator: null,
   };
 
@@ -356,8 +360,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     />
   );
 }
-
-const SelectControlWithTheme = withTheme(SelectControl);
 
 type PickerProps<OptionType> = ControlProps<OptionType> & {
   /**
@@ -401,7 +403,7 @@ const RefForwardedSelectControl = React.forwardRef<
   ReactSelect<GeneralSelectValue>,
   ControlProps<GeneralSelectValue>
 >(function RefForwardedSelectControl(props, ref) {
-  return <SelectControlWithTheme forwardedRef={ref} {...props} />;
+  return <SelectControl forwardedRef={ref as any} {...props} />;
 });
 
 export default RefForwardedSelectControl;

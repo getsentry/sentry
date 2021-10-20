@@ -161,7 +161,7 @@ export class Line extends React.Component<Props, State> {
   }
 
   scrollToImage = event => {
-    event.stopPropagation(); // to prevent collapsing if collapsable
+    event.stopPropagation(); // to prevent collapsing if collapsible
 
     const {instructionAddr, addrMode} = this.props.data;
     if (instructionAddr) {
@@ -188,6 +188,7 @@ export class Line extends React.Component<Props, State> {
       <ToggleContextButtonWrapper>
         <ToggleContextButton
           className="btn-toggle"
+          data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
           css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
           title={t('Toggle Context')}
           tooltipProps={
@@ -263,7 +264,7 @@ export class Line extends React.Component<Props, State> {
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-        <DefaultLine className="title">
+        <DefaultLine className="title" data-test-id="title">
           <VertCenterWrapper>
             <div>
               {this.renderLeadHint()}
@@ -300,7 +301,7 @@ export class Line extends React.Component<Props, State> {
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
-        <DefaultLine className="title as-table">
+        <DefaultLine className="title as-table" data-test-id="title">
           <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
             <PackageInfo>
               {leadHint}

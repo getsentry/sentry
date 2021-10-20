@@ -1,10 +1,9 @@
 import React from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {Client} from 'app/api';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
@@ -19,13 +18,11 @@ import {generatePerformanceEventView} from '../data';
 
 import TrendsContent from './content';
 
-type Props = {
+type Props = RouteComponentProps<{}, {}> & {
   api: Client;
-  location: Location;
   selection: GlobalSelection;
   organization: Organization;
   projects: Project[];
-  params: Params;
 };
 
 type State = {
@@ -82,9 +79,9 @@ class TrendsSummary extends React.Component<Props, State> {
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
         <StyledPageContent>
-          <LightWeightNoProjectMessage organization={organization}>
+          <NoProjectMessage organization={organization}>
             {this.renderContent()}
-          </LightWeightNoProjectMessage>
+          </NoProjectMessage>
         </StyledPageContent>
       </SentryDocumentTitle>
     );

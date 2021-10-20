@@ -10,7 +10,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {MutableSearch} from 'app/utils/tokenizeSearch';
 import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
 import {
   getPerformanceLandingUrl,
@@ -28,9 +28,12 @@ type Props = {
 function ProjectQuickLinks({organization, project, location}: Props) {
   function getTrendsLink() {
     const queryString = decodeScalar(location.query.query);
-    const conditions = tokenizeSearch(queryString || '');
-    conditions.setTagValues('tpm()', ['>0.01']);
-    conditions.setTagValues('transaction.duration', ['>0', `<${DEFAULT_MAX_DURATION}`]);
+    const conditions = new MutableSearch(queryString || '');
+    conditions.setFilterValues('tpm()', ['>0.01']);
+    conditions.setFilterValues('transaction.duration', [
+      '>0',
+      `<${DEFAULT_MAX_DURATION}`,
+    ]);
 
     return {
       pathname: getPerformanceTrendsUrl(organization),

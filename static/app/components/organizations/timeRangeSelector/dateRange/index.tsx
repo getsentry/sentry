@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type {OnChangeProps, RangeWithKey} from 'react-date-range';
-import * as ReactRouter from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
@@ -12,7 +12,7 @@ import Placeholder from 'app/components/placeholder';
 import {MAX_PICKABLE_DAYS} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {LightWeightOrganization} from 'app/types';
+import {Organization} from 'app/types';
 import {analytics} from 'app/utils/analytics';
 import {
   getEndOfDay,
@@ -45,12 +45,12 @@ const defaultProps = {
   maxPickableDays: MAX_PICKABLE_DAYS,
 };
 
-type Props = ReactRouter.WithRouterProps & {
+type Props = WithRouterProps & {
   theme: Theme;
   /**
    * Just used for metrics
    */
-  organization: LightWeightOrganization;
+  organization: Organization;
 
   /**
    * Start date value for absolute date selector
@@ -89,7 +89,7 @@ type State = {
   hasEndErrors: boolean;
 };
 
-class DateRange extends React.Component<Props, State> {
+class BaseDateRange extends React.Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
@@ -246,7 +246,7 @@ class DateRange extends React.Component<Props, State> {
   }
 }
 
-const StyledDateRange = styled(withTheme(ReactRouter.withRouter(DateRange)))`
+const DateRange = styled(withTheme(withRouter(BaseDateRange)))`
   display: flex;
   flex-direction: column;
   border-left: 1px solid ${p => p.theme.border};
@@ -268,4 +268,4 @@ const UtcPicker = styled('div')`
   flex: 1;
 `;
 
-export default StyledDateRange;
+export default DateRange;

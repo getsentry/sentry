@@ -1,0 +1,49 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_avatars %}
+
+{% block title %}{% trans "Confirm Account" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+  <div class="sso-link">
+    <div class="sso-grid">
+      <div class="column left-column">
+        <div class="avatar-row">
+          <span class="avatar">
+            <img src="{% gravatar_url identity.email 36 'blank' %}">
+          </span>
+          <span class="avatar">
+            {% letter_avatar_svg identity_display_name identity_identifier %}
+          </span>
+          <span class="icon-arrow-right"></span>
+        </div>
+        <div><strong>{{ provider }}</strong></div>
+        <div class="email-truncate">{{ identity.email }}</div>
+      </div>
+
+      <div class="column right-column">
+        <div class="avatar-row">
+          <span class="icon-arrow-left"></span>
+          <span class="avatar">{% avatar existing_user %}</span>
+        </div>
+        <div><strong>Sentry</strong></div>
+        <div class="email-truncate">{{ existing_user.email }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sso-link">
+    <p>
+      We found an existing Sentry account for {{ identity.email }}.
+      Please check your inbox for a verification email and follow the link
+      to associate this {{ provider }} account with your Sentry account.
+    </p>
+
+    <p>
+      <a href="https://docs.sentry.io/product/accounts/sso/">Learn more in docs</a>
+    </p>
+  </div>
+
+{% endblock %}

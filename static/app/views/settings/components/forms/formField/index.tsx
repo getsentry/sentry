@@ -457,7 +457,7 @@ const MessageAndActions = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
   grid-gap: ${space(2)};
-  align-items: center;
+  align-items: flex-start;
 `;
 
 const StyledReturnButton = styled(ReturnButton)`

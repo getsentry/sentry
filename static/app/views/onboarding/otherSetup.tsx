@@ -10,7 +10,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'app/utils/getDynamicText';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -44,7 +44,7 @@ class OtherSetup extends AsyncComponent<Props, State> {
 
   handleFullDocsClick = () => {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {}, organization);
+    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {organization});
   };
 
   render() {

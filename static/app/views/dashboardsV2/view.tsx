@@ -1,7 +1,7 @@
-import React from 'react';
-import {RouteComponentProps} from 'react-router';
+import React, {useEffect, useState} from 'react';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
-import {Client} from 'app/api';
+import {updateDashboardVisit} from 'app/actionCreators/dashboards';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import NotFound from 'app/components/errors/notFound';
@@ -9,21 +9,40 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
-import withApi from 'app/utils/withApi';
+import useApi from 'app/utils/useApi';
 import withOrganization from 'app/utils/withOrganization';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
-import {DashboardState} from './types';
+import {DashboardState, Widget} from './types';
+import {constructWidgetFromQuery} from './utils';
 
 type Props = RouteComponentProps<{orgId: string; dashboardId: string}, {}> & {
-  api: Client;
   organization: Organization;
   children: React.ReactNode;
 };
 
 function ViewEditDashboard(props: Props) {
-  const {organization, params, api, location} = props;
+  const api = useApi();
+
+  const {organization, params, location} = props;
+  const dashboardId = params.dashboardId;
+  const orgSlug = organization.slug;
+  const [newWidget, setNewWidget] = useState<Widget | undefined>();
+
+  useEffect(() => {
+    if (dashboardId && dashboardId !== 'default-overview') {
+      updateDashboardVisit(api, orgSlug, dashboardId);
+    }
+
+    const constructedWidget = constructWidgetFromQuery(location.query);
+    setNewWidget(constructedWidget);
+    // Clean up url after constructing widget from query string
+    if (constructedWidget) {
+      browserHistory.replace(location.pathname);
+    }
+  }, [api, orgSlug, dashboardId]);
+
   return (
     <DashboardBasicFeature organization={organization}>
       <OrgDashboards
@@ -38,10 +57,16 @@ function ViewEditDashboard(props: Props) {
           ) : dashboard ? (
             <DashboardDetail
               {...props}
-              initialState={DashboardState.VIEW}
+              initialState={newWidget ? DashboardState.EDIT : DashboardState.VIEW}
               dashboard={dashboard}
               dashboards={dashboards}
-              reloadData={reloadData}
+              reloadData={(...args) => {
+                if (newWidget) {
+                  setNewWidget(undefined);
+                }
+                return reloadData(...args);
+              }}
+              newWidget={newWidget}
             />
           ) : (
             <LoadingIndicator />
@@ -52,7 +77,7 @@ function ViewEditDashboard(props: Props) {
   );
 }
 
-export default withApi(withOrganization(ViewEditDashboard));
+export default withOrganization(ViewEditDashboard);
 
 type FeatureProps = {
   organization: Organization;
