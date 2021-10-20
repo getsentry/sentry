@@ -18,6 +18,7 @@ import {Series} from 'app/types/echarts';
 import {percent} from 'app/utils';
 import {getPeriod} from 'app/utils/getPeriod';
 import {
+  filterSessionsInTimeWindow,
   getCount,
   getCountSeries,
   getSessionsInterval,
@@ -98,14 +99,23 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
     }));
 
     try {
+      const queryParams = this.queryParams({shouldFetchWithPrevious});
       const response: SessionApiResponse = await api.requestPromise(this.path, {
-        query: this.queryParams({shouldFetchWithPrevious}),
+        query: queryParams,
       });
+
+      const filteredResponse = filterSessionsInTimeWindow(
+        response,
+        queryParams.start,
+        queryParams.end
+      );
 
       const {timeseriesData, previousTimeseriesData, totalSessions} =
         displayMode === DisplayModes.SESSIONS
-          ? this.transformSessionCountData(response)
-          : this.transformData(response, {fetchedWithPrevious: shouldFetchWithPrevious});
+          ? this.transformSessionCountData(filteredResponse)
+          : this.transformData(filteredResponse, {
+              fetchedWithPrevious: shouldFetchWithPrevious,
+            });
 
       if (this.unmounting) {
         return;
@@ -136,7 +146,7 @@ class ProjectSessionsChartRequest extends React.Component<Props, State> {
     return `/organizations/${organization.slug}/sessions/`;
   }
 
-  queryParams({shouldFetchWithPrevious = false}) {
+  queryParams({shouldFetchWithPrevious = false}): Record<string, any> {
     const {selection, query, organization} = this.props;
     const {datetime, projects, environments: environment} = selection;
 
