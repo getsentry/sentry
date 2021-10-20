@@ -363,6 +363,9 @@ class Fixtures:
     def create_identity_provider(self, *args, **kwargs):
         return Factories.create_identity_provider(*args, **kwargs)
 
+    def create_group_history(self, *args, **kwargs):
+        return Factories.create_group_history(*args, **kwargs)
+
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):
         self.insta_snapshot = insta_snapshot

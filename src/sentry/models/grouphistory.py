@@ -34,6 +34,29 @@ ACTIONED_STATUSES = [
     GroupHistoryStatus.DELETED_AND_DISCARDED,
 ]
 
+UNRESOLVED_STATUSES = (GroupHistoryStatus.UNRESOLVED, GroupHistoryStatus.REGRESSED)
+RESOLVED_STATUSES = (
+    GroupHistoryStatus.RESOLVED,
+    GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
+    GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+    GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST,
+    GroupHistoryStatus.AUTO_RESOLVED,
+)
+
+PREVIOUS_STATUSES = {
+    GroupHistoryStatus.UNRESOLVED: RESOLVED_STATUSES,
+    GroupHistoryStatus.RESOLVED: UNRESOLVED_STATUSES,
+    GroupHistoryStatus.SET_RESOLVED_IN_RELEASE: UNRESOLVED_STATUSES,
+    GroupHistoryStatus.SET_RESOLVED_IN_COMMIT: UNRESOLVED_STATUSES,
+    GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST: UNRESOLVED_STATUSES,
+    GroupHistoryStatus.AUTO_RESOLVED: UNRESOLVED_STATUSES,
+    GroupHistoryStatus.IGNORED: (GroupHistoryStatus.UNIGNORED,),
+    GroupHistoryStatus.UNIGNORED: (GroupHistoryStatus.IGNORED,),
+    GroupHistoryStatus.ASSIGNED: (GroupHistoryStatus.UNASSIGNED,),
+    GroupHistoryStatus.UNASSIGNED: (GroupHistoryStatus.ASSIGNED,),
+    GroupHistoryStatus.REGRESSED: RESOLVED_STATUSES,
+}
+
 
 class GroupHistory(Model):
     """
@@ -82,16 +105,23 @@ class GroupHistory(Model):
     class Meta:
         db_table = "sentry_grouphistory"
         app_label = "sentry"
-        index_together = (("project", "status", "release"),)
+        index_together = (("project", "status", "release"), ("group", "status"))
 
     __repr__ = sane_repr("group_id", "release_id")
 
 
-def get_prev_history(group):
-    prev_histories = GroupHistory.objects.filter(group=group).order_by("date_added")
-    if prev_histories.exists():
-        return prev_histories.first()
-    return None
+def get_prev_history(group, status):
+    """
+    Finds the most recent row that is the inverse of this history row, if one exists.
+    """
+    previous_statuses = PREVIOUS_STATUSES.get(status)
+    if not previous_statuses:
+        return
+
+    prev_histories = GroupHistory.objects.filter(
+        group=group, status__in=previous_statuses
+    ).order_by("-date_added")
+    return prev_histories.first()
 
 
 def record_group_history_from_activity_type(group, activity_type, actor=None, release=None):
@@ -105,9 +135,9 @@ def record_group_history_from_activity_type(group, activity_type, actor=None, re
 
 
 def record_group_history(group, status, actor=None, release=None):
-    prev_history = get_prev_history(group)
     if not features.has("organizations:group-history", group.organization):
         return
+    prev_history = get_prev_history(group, status)
     return GroupHistory.objects.create(
         organization=group.project.organization,
         group=group,
