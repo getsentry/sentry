@@ -24,9 +24,9 @@ def delete_group_list(
     project: "Project",
     group_list: List["Group"],
     delete_type: str,
-) -> Response:
+) -> None:
     if not group_list:
-        return None
+        return
 
     # deterministic sort for sanity, and for very large deletions we'll
     # delete the "smaller" groups first
@@ -126,7 +126,7 @@ def delete_groups(
 
     for project in projects:
         delete_group_list(
-            request, project, groups_by_project_id.get(project.id), delete_type="delete"
+            request, project, groups_by_project_id.get(project.id, []), delete_type="delete"
         )
 
     return Response(status=204)

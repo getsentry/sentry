@@ -58,7 +58,7 @@ from sentry.tasks.merge import merge_groups
 from sentry.utils import metrics
 from sentry.utils.functional import extract_lazy_object
 
-from . import BULK_MUTATION_LIMIT, delete_group_list
+from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, delete_group_list
 from .validators import GroupValidator, ValidationError
 
 
@@ -95,7 +95,9 @@ def handle_discard(
                 )
 
     for project in projects:
-        delete_group_list(request, project, groups_to_delete.get(project.id), delete_type="discard")
+        delete_group_list(
+            request, project, groups_to_delete.get(project.id, []), delete_type="discard"
+        )
 
     return Response(status=204)
 
@@ -642,7 +644,9 @@ def update_groups(
                 GroupResolution.Type.in_release,
             ):
                 result["activity"] = serialize(
-                    Activity.objects.get_activities_for_group(group=group_list[0], num=100),
+                    Activity.objects.get_activities_for_group(
+                        group=group_list[0], num=ACTIVITIES_COUNT
+                    ),
                     acting_user,
                 )
     except UnboundLocalError:

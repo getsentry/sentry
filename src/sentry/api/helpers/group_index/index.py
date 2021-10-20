@@ -21,6 +21,7 @@ from sentry.utils.compat import zip
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.hashlib import md5_text
 
+from . import SEARCH_MAX_HITS
 from .validators import ValidationError
 
 # List of conditions that mark a SearchFilter as an advanced search. Format is
@@ -35,7 +36,7 @@ def build_query_params_from_request(
     request: Request,
     organization: "Organization",
     projects: Sequence["Project"],
-    environments: Sequence["Environment"],
+    environments: Optional[Sequence["Environment"]],
 ) -> MutableMapping[str, Any]:
     query_kwargs = {"projects": projects, "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION)}
 
@@ -213,10 +214,8 @@ def prep_search(
     try:
         environment = cls._get_environment_from_request(request, project.organization_id)
     except Environment.DoesNotExist:
-        # XXX: The 1000 magic number for `max_hits` is an abstraction leak
-        # from `sentry.api.paginator.BasePaginator.get_result`.
-        result = CursorResult([], None, None, hits=0, max_hits=1000)
-        query_kwargs: Mapping[str, Any] = {}
+        result = CursorResult([], None, None, hits=0, max_hits=SEARCH_MAX_HITS)
+        query_kwargs: MutableMapping[str, Any] = {}
     else:
         environments = [environment] if environment is not None else environment
         query_kwargs = build_query_params_from_request(
@@ -262,7 +261,10 @@ def get_release_info(request: Request, group: "Group", version: str) -> Mapping[
         )
     except Release.DoesNotExist:
         release = {"version": version}
-    return serialize(release, request.user)
+
+    # Explicitly typing to satisfy mypy.
+    release_ifo: Mapping[str, Any] = serialize(release, request.user)
+    return release_ifo
 
 
 def get_first_last_release_info(
