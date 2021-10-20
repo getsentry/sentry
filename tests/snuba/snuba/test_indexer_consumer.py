@@ -166,7 +166,8 @@ class MetricsIndexerConsumerTest(TestCase):
             snuba_producer = batching_consumer.worker._MetricsIndexerWorker__producer
             assert snuba_producer.flush() == 0
 
-            expected_msg = translate_payload()
+            translated_msg = translate_payload()
+            expected_msg = {k: translated_msg[k] for k in ["tags", "name", "org_id"]}
             mock_task.apply_async.assert_called_once_with(kwargs={"messages": [expected_msg]})
 
         # in order to test that the message we produced to the dummy

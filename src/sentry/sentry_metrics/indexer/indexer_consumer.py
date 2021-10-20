@@ -85,8 +85,11 @@ class MetricsIndexerWorker(AbstractBatchWorker):  # type: ignore
             raise Exception(f"didn't get all the callbacks: {messages_left} left")
 
         # if we have successfully produced messages to the snuba-metrics topic
-        # then enque task to send payload to the product metrics data model
-        process_indexed_metrics.apply_async(kwargs={"messages": batch})
+        # then enque task to send a slimmed down payload to the product metrics data model.
+        # TODO(meredith): once we know more about what the product data model needs
+        # adjust payload to send the necessary data
+        messages = [{"tags": m["tags"], "name": m["name"], "org_id": m["org_id"]} for m in batch]
+        process_indexed_metrics.apply_async(kwargs={"messages": messages})
 
     def shutdown(self) -> None:
         return
