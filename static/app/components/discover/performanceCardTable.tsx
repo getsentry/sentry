@@ -64,17 +64,13 @@ function PerformanceCardTable({
     const val = trend.toFixed(2);
 
     if (trend === 0) {
-      return (
-        <SubText>{`0${
-          meta === 'duration' ? 'ms' : meta === 'number' ? '%' : ''
-        }`}</SubText>
-      );
+      return <SubText>{`0${meta === 'duration' ? 'ms' : '%'}`}</SubText>;
     }
 
     return (
       <TrendText color={trend >= 0 ? 'green300' : 'red300'}>
-        {`${meta === 'number' ? valPercentage : val}${
-          meta === 'duration' ? 'ms' : meta === 'number' ? '%' : ' '
+        {`${meta === 'duration' ? val : valPercentage}${
+          meta === 'duration' ? 'ms' : '%'
         }`}
         <IconArrow
           color={trend >= 0 ? 'green300' : 'red300'}
@@ -384,7 +380,11 @@ function PerformanceCardTable({
           return (
             <div key={idx}>
               <UserMiseryPanelItem>{thisReleasesMisery}</UserMiseryPanelItem>
-              <ApdexPanelItem>{thisReleasesApdex}</ApdexPanelItem>
+              {!dataRow.apdex_300 ? (
+                <ApdexSubText>{'n/a'}</ApdexSubText>
+              ) : (
+                <ApdexPanelItem>{thisReleasesApdex}</ApdexPanelItem>
+              )}
               <StyledPanelItem>
                 <TitleSpace />
                 {thisReleasesSpans.map(span => span)}
