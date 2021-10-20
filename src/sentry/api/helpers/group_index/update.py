@@ -750,8 +750,7 @@ def update_groups(
                     user=acting_user,
                 )
 
-    # XXX(dcramer): this feels a bit shady like it should be its own
-    # endpoint
+    # XXX(dcramer): this feels a bit shady like it should be its own endpoint.
     if result.get("merge") and len(group_list) > 1:
         # don't allow merging cross project
         if len(projects) > 1:
