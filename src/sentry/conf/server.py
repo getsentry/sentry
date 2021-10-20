@@ -1052,6 +1052,8 @@ SENTRY_FEATURES = {
     "organizations:minute-resolution-sessions": True,
     # Automatically opt IN users to receiving Slack notifications.
     "organizations:notification-slack-automatic": False,
+    # Enable the new native stack trace design
+    "organizations:native-stack-trace-v2": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable sorting+filtering by semantic version of a release
