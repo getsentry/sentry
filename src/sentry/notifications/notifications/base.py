@@ -2,6 +2,8 @@ import abc
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, Mapping, MutableMapping, Optional, Tuple, Type, Union
 
+from typing_extensions import Literal
+
 from sentry import analytics
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -9,7 +11,6 @@ from sentry.utils.email import group_id_to_email
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-    from typing_extensions import Literal
 
     from sentry.integrations.slack.message_builder import SlackAttachment
     from sentry.integrations.slack.message_builder.notifications import (
@@ -26,7 +27,13 @@ class MessageAction:
     style: Optional[Literal["primary", "danger", "default"]]
 
     def as_slack(self) -> Mapping[str, Any]:
-        return {"text": self.label, "name": self.label, "url": self.url, "style": self.style}
+        return {
+            "text": self.label,
+            "name": self.label,
+            "url": self.url,
+            "style": self.style,
+            "type": "button",
+        }
 
 
 class BaseNotification:

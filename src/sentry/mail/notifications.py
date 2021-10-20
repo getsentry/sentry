@@ -16,10 +16,8 @@ logger = logging.getLogger(__name__)
 
 def build_subject_prefix(project: "Project") -> str:
     key = "mail:subject_prefix"
-    return str(
-        force_text(
-            ProjectOption.objects.get_value(project, key) or options.get("mail.subject-prefix")
-        )
+    return force_text(
+        ProjectOption.objects.get_value(project, key) or options.get("mail.subject-prefix")
     )
 
 
