@@ -83,7 +83,7 @@ from sentry.sentry_metrics import indexer
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils import json
-from sentry.utils.auth import DEPRECATED_SSO_SESSION_KEY
+from sentry.utils.auth import sso_session_key_for_org_id
 from sentry.utils.compat import mock
 from sentry.utils.compat.mock import patch
 from sentry.utils.pytest.selenium import Browser
@@ -205,7 +205,10 @@ class BaseTestCase(Fixtures, Exam):
 
         # TODO(dcramer): ideally this would get abstracted
         if organization_ids:
-            request.session[DEPRECATED_SSO_SESSION_KEY] = ",".join(str(o) for o in organization_ids)
+            for o in organization_ids:
+                self.session[sso_session_key_for_org_id(o)] = {
+                    "auth_timestamp": datetime.now(tz=timezone.utc).timestamp()
+                }
 
         # logging in implicitly binds superuser, but for test cases we
         # want that action to be explicit to avoid accidentally testing
