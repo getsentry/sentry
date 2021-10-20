@@ -2,12 +2,8 @@ from typing import TYPE_CHECKING, Any, Dict
 
 import pytest
 
+from sentry.exceptions import InvalidConfiguration
 from sentry.processing import realtime_metrics
-from sentry.processing.realtime_metrics.base import (
-    BucketedCount,
-    BucketedDurations,
-    DurationHistogram,
-)
 from sentry.processing.realtime_metrics.redis import RedisRealtimeMetricsStore
 from sentry.utils import redis
 
@@ -29,9 +25,9 @@ def config() -> Dict[str, Any]:
     return {
         "cluster": "default",
         "counter_bucket_size": 10,
-        "counter_time_window": 0,
+        "counter_time_window": 120,
         "duration_bucket_size": 10,
-        "duration_time_window": 0,
+        "duration_time_window": 120,
         "backoff_timer": 1,
     }
 
@@ -49,16 +45,11 @@ def store(config: Dict[str, Any]) -> RedisRealtimeMetricsStore:
     return RedisRealtimeMetricsStore(**config)
 
 
-def empty_histogram() -> BucketedDurations:
-    return BucketedDurations({duration: 0 for duration in range(0, 600, 10)})
-
-
 def test_default() -> None:
     realtime_metrics.increment_project_event_counter(17, 1234)
     realtime_metrics.increment_project_duration_counter(17, 1234, 55)
 
 
-@pytest.mark.xfail
 def test_invalid_config() -> None:
     invalid_config: Dict[str, Any] = {
         "cluster": "default",
@@ -68,10 +59,9 @@ def test_invalid_config() -> None:
         "duration_time_window": 0,
         "backoff_timer": -100,
     }
-    RedisRealtimeMetricsStore(**invalid_config)
+    with pytest.raises(InvalidConfiguration):
+        RedisRealtimeMetricsStore(**invalid_config)
 
-
-# TODO: group tests using classes
 
 #
 # increment_project_event_counter()
@@ -413,116 +403,34 @@ def test_projects_mixed_buckets(
 
 
 def test_get_counts_for_project_unset(store: RedisRealtimeMetricsStore) -> None:
-    counts = store.get_counts_for_project(42, 113)
+    buckets = store.get_counts_for_project(project_id=42, timestamp=113)
 
-    assert list(counts) == [BucketedCount(timestamp=110, count=0)]
+    # It is impossible to specify the last possible time in the current bucket, so we always
+    # still fall back to 13 buckets to cover the time window.
+    assert len(buckets.counts) == 13
 
-    store._counter_time_window = 20
-
-    counts = store.get_counts_for_project(42, 113)
-
-    assert list(counts) == [
-        BucketedCount(timestamp=90, count=0),
-        BucketedCount(timestamp=100, count=0),
-        BucketedCount(timestamp=110, count=0),
-    ]
+    assert buckets.total_count() == 0
 
 
-def test_get_counts_for_project_empty(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
-) -> None:
-    redis_cluster.set(
-        "symbolicate_event_low_priority:counter:10:42:111",
-        0,
-    )
-    redis_cluster.delete("symbolicate_event_low_priority:counter:10:42:111")
-
-    counts = store.get_counts_for_project(42, 113)
-
-    assert list(counts) == [BucketedCount(timestamp=110, count=0)]
-
-    store._counter_time_window = 20
-
-    counts = store.get_counts_for_project(42, 113)
-
-    assert list(counts) == [
-        BucketedCount(timestamp=90, count=0),
-        BucketedCount(timestamp=100, count=0),
-        BucketedCount(timestamp=110, count=0),
-    ]
-
-
-def test_get_counts_for_project_no_matching_keys(
+def test_get_counts_for_project_missing_project(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
     redis_cluster.set("symbolicate_event_low_priority:counter:10:53:111", 0)
 
-    counts = store.get_counts_for_project(42, 113)
+    buckets = store.get_counts_for_project(project_id=42, timestamp=113)
 
-    assert list(counts) == [BucketedCount(timestamp=110, count=0)]
+    assert buckets.total_count() == 0
 
 
-def test_get_counts_for_project_negative_key(
+def test_get_counts_for_project_different_bucket_sizes(
     store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
 ) -> None:
-    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:-110", 0)
+    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:110", 1)
+    redis_cluster.set("symbolicate_event_low_priority:counter:5:42:110", 2)
 
-    counts = store.get_counts_for_project(42, -103)
+    buckets = store.get_counts_for_project(project_id=42, timestamp=113)
 
-    assert list(counts) == [
-        BucketedCount(timestamp=-110, count=0),
-    ]
-
-
-def test_get_counts_for_project_negative_count(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
-) -> None:
-    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:110", -10)
-
-    counts = store.get_counts_for_project(42, 113)
-
-    assert list(counts) == [
-        BucketedCount(timestamp=110, count=-10),
-    ]
-
-
-def test_get_counts_for_project_multiple_projects(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
-) -> None:
-    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:110", 0)
-    redis_cluster.set("symbolicate_event_low_priority:counter:10:53:110", 0)
-
-    counts = store.get_counts_for_project(42, 113)
-
-    assert list(counts) == [
-        BucketedCount(timestamp=110, count=0),
-    ]
-
-
-def test_get_counts_for_project_multi_metric(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
-) -> None:
-    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:110", 0)
-    redis_cluster.hset("symbolicate_event_low_priority:duration:10:42:110:0", 0, 123)
-
-    counts = store.get_counts_for_project(42, 113)
-
-    assert list(counts) == [
-        BucketedCount(timestamp=110, count=0),
-    ]
-
-
-def test_get_counts_for_project_different_buckets(
-    store: RedisRealtimeMetricsStore, redis_cluster: redis._RedisCluster
-) -> None:
-    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:110", 0)
-    redis_cluster.set("symbolicate_event_low_priority:counter:5:42:110", 0)
-
-    counts = store.get_counts_for_project(42, 113)
-
-    assert list(counts) == [
-        BucketedCount(timestamp=110, count=0),
-    ]
+    assert buckets.total_count() == 1
 
 
 def test_get_counts_for_projects_with_gap(
@@ -532,15 +440,15 @@ def test_get_counts_for_projects_with_gap(
     redis_cluster.set("symbolicate_event_low_priority:counter:10:42:110", 3)
     redis_cluster.set("symbolicate_event_low_priority:counter:10:42:150", 17)
 
-    counts = store.get_counts_for_project(42, 154)
+    buckets = store.get_counts_for_project(project_id=42, timestamp=154)
 
-    assert list(counts) == [
-        BucketedCount(timestamp=110, count=3),
-        BucketedCount(timestamp=120, count=0),
-        BucketedCount(timestamp=130, count=0),
-        BucketedCount(timestamp=140, count=0),
-        BucketedCount(timestamp=150, count=17),
-    ]
+    assert buckets.total_count() == 20
+
+    assert buckets.counts[-1] == 17
+    assert buckets.counts[-2] == 0
+    assert buckets.counts[-3] == 0
+    assert buckets.counts[-4] == 0
+    assert buckets.counts[-5] == 3
 
 
 #
@@ -549,163 +457,38 @@ def test_get_counts_for_projects_with_gap(
 
 
 def test_get_durations_for_project_unset(store: RedisRealtimeMetricsStore) -> None:
-    durations = store.get_durations_for_project(42, 113)
+    durations = store.get_durations_for_project(project_id=42, timestamp=113)
 
-    assert list(durations) == [
-        DurationHistogram(timestamp=110, histogram=BucketedDurations(empty_histogram()))
-    ]
+    assert len(durations.histograms) == 13
 
-    store._duration_time_window = 20
-
-    durations = store.get_durations_for_project(42, 113)
-
-    assert list(durations) == [
-        DurationHistogram(timestamp=90, histogram=BucketedDurations(empty_histogram())),
-        DurationHistogram(timestamp=100, histogram=BucketedDurations(empty_histogram())),
-        DurationHistogram(timestamp=110, histogram=BucketedDurations(empty_histogram())),
-    ]
+    for hist in durations.histograms:
+        assert hist.total_count() == 0
 
 
-def test_get_durations_for_project_empty(
-    store: RedisRealtimeMetricsStore,
-    redis_cluster: redis._RedisCluster,
-) -> None:
-    redis_cluster.hset(
-        "symbolicate_event_low_priority:duration:10:42:111",
-        0,
-        123,
-    )
-    redis_cluster.delete("symbolicate_event_low_priority:duration:10:42:111")
-
-    durations = store.get_durations_for_project(42, 113)
-
-    assert list(durations) == [
-        DurationHistogram(timestamp=110, histogram=BucketedDurations(empty_histogram()))
-    ]
-
-    store._duration_time_window = 20
-
-    durations = store.get_durations_for_project(42, 113)
-
-    assert list(durations) == [
-        DurationHistogram(timestamp=90, histogram=BucketedDurations(empty_histogram())),
-        DurationHistogram(timestamp=100, histogram=BucketedDurations(empty_histogram())),
-        DurationHistogram(timestamp=110, histogram=BucketedDurations(empty_histogram())),
-    ]
-
-
-def test_get_durations_for_project_no_matching_keys(
+def test_get_durations_for_project_missing_project(
     store: RedisRealtimeMetricsStore,
     redis_cluster: redis._RedisCluster,
 ) -> None:
     redis_cluster.hset("symbolicate_event_low_priority:duration:10:53:111", 0, 123)
 
-    durations = store.get_durations_for_project(42, 113)
+    durations = store.get_durations_for_project(project_id=42, timestamp=113)
 
-    assert list(durations) == [
-        DurationHistogram(timestamp=110, histogram=BucketedDurations(empty_histogram()))
-    ]
-
-
-def test_get_durations_for_project_negative_timestamp(
-    store: RedisRealtimeMetricsStore,
-    redis_cluster: redis._RedisCluster,
-) -> None:
-    redis_cluster.hset("symbolicate_event_low_priority:duration:10:42:-110", 0, 123)
-
-    histogram = empty_histogram()
-    histogram[0] = 123
-
-    durations = store.get_durations_for_project(42, -103)
-
-    assert list(durations) == [
-        DurationHistogram(timestamp=-110, histogram=BucketedDurations(histogram))
-    ]
+    for hist in durations.histograms:
+        assert hist.total_count() == 0
 
 
-def test_get_durations_for_project_negative_duration(
-    store: RedisRealtimeMetricsStore,
-    redis_cluster: redis._RedisCluster,
-) -> None:
-    redis_cluster.hset("symbolicate_event_low_priority:duration:10:42:110", -20, 123)
-
-    histogram = empty_histogram()
-    histogram[-20] = 123
-
-    durations = store.get_durations_for_project(42, 113)
-
-    assert list(durations) == [
-        DurationHistogram(timestamp=110, histogram=BucketedDurations(histogram))
-    ]
-
-
-def test_get_durations_for_project_negative_count(
-    store: RedisRealtimeMetricsStore,
-    redis_cluster: redis._RedisCluster,
-) -> None:
-    redis_cluster.hset("symbolicate_event_low_priority:duration:10:42:110", 0, -123)
-
-    histogram = empty_histogram()
-    histogram[0] = -123
-
-    durations = store.get_durations_for_project(42, 113)
-
-    assert list(durations) == [
-        DurationHistogram(timestamp=110, histogram=BucketedDurations(histogram))
-    ]
-
-
-def test_get_durations_for_project_multi_key_multi_durations(
-    store: RedisRealtimeMetricsStore,
-    redis_cluster: redis._RedisCluster,
-) -> None:
-    redis_cluster.hset("symbolicate_event_low_priority:duration:10:42:110", 0, 123)
-    redis_cluster.hset("symbolicate_event_low_priority:duration:10:42:110", 10, 456)
-    redis_cluster.hset("symbolicate_event_low_priority:duration:10:53:110", 0, 123)
-
-    histogram = empty_histogram()
-    histogram[0] = 123
-    histogram[10] = 456
-
-    durations = store.get_durations_for_project(42, 113)
-
-    assert list(durations) == [
-        DurationHistogram(timestamp=110, histogram=BucketedDurations(histogram)),
-    ]
-
-
-def test_get_durations_for_project_multi_metric(
-    store: RedisRealtimeMetricsStore,
-    redis_cluster: redis._RedisCluster,
-) -> None:
-    redis_cluster.set("symbolicate_event_low_priority:counter:10:42:110", 0)
-    redis_cluster.hset("symbolicate_event_low_priority:duration:10:42:220", 0, 123)
-
-    histogram = empty_histogram()
-    histogram[0] = 123
-
-    durations = store.get_durations_for_project(42, 225)
-
-    assert list(durations) == [
-        DurationHistogram(timestamp=220, histogram=BucketedDurations(histogram))
-    ]
-
-
-def test_get_durations_for_project_different_buckets(
+def test_get_durations_for_project_different_bucket_sizes(
     store: RedisRealtimeMetricsStore,
     redis_cluster: redis._RedisCluster,
 ) -> None:
     redis_cluster.hset("symbolicate_event_low_priority:duration:10:42:110", 0, 123)
     redis_cluster.hset("symbolicate_event_low_priority:duration:5:42:110", 20, 456)
 
-    histogram = empty_histogram()
-    histogram[0] = 123
-
     durations = store.get_durations_for_project(42, 113)
 
-    assert list(durations) == [
-        DurationHistogram(timestamp=110, histogram=BucketedDurations(histogram))
-    ]
+    total = sum(h.total_count() for h in durations.histograms)
+
+    assert total == 123
 
 
 def test_get_durations_for_projects_with_gap(
@@ -715,18 +498,10 @@ def test_get_durations_for_projects_with_gap(
     redis_cluster.hset("symbolicate_event_low_priority:duration:10:42:110", 20, 3)
     redis_cluster.hset("symbolicate_event_low_priority:duration:10:42:150", 30, 17)
 
-    hist1 = empty_histogram()
-    hist1[20] = 3
-
-    hist2 = empty_histogram()
-    hist2[30] = 17
-
     durations = store.get_durations_for_project(42, 154)
 
-    assert list(durations) == [
-        DurationHistogram(timestamp=110, histogram=hist1),
-        DurationHistogram(timestamp=120, histogram=empty_histogram()),
-        DurationHistogram(timestamp=130, histogram=empty_histogram()),
-        DurationHistogram(timestamp=140, histogram=empty_histogram()),
-        DurationHistogram(timestamp=150, histogram=hist2),
-    ]
+    assert durations.histograms[-1].total_count() == 17
+    assert durations.histograms[-2].total_count() == 0
+    assert durations.histograms[-3].total_count() == 0
+    assert durations.histograms[-4].total_count() == 0
+    assert durations.histograms[-5].total_count() == 3

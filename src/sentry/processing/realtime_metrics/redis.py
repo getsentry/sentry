@@ -47,17 +47,17 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         self.validate()
 
     def validate(self) -> None:
-        if self._counter_bucket_size <= 0:
-            raise InvalidConfiguration("counter bucket size must be at least 1")
+        if not 0 < self._counter_bucket_size <= 60:
+            raise InvalidConfiguration("counter bucket size must be 1-60 seconds")
 
-        if self._duration_bucket_size <= 0:
-            raise InvalidConfiguration("duration bucket size must be at least 1")
+        if not 0 < self._duration_bucket_size <= 60:
+            raise InvalidConfiguration("duration bucket size must be 1-60 seconds")
 
-        if self._counter_time_window < 0:
-            raise InvalidConfiguration("counter time window must be nonnegative")
+        if self._counter_time_window < 60:
+            raise InvalidConfiguration("counter time window must be at least a minute")
 
-        if self._duration_time_window < 0:
-            raise InvalidConfiguration("duration time window must be nonnegative")
+        if self._duration_time_window < 60:
+            raise InvalidConfiguration("duration time window must be at least a minute")
 
     def _counter_key_prefix(self) -> str:
         return f"{self._prefix}:counter:{self._counter_bucket_size}"
@@ -154,14 +154,12 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
                 already_seen.add(project_id)
                 yield project_id
 
-    def get_counts_for_project(
-        self, project_id: int, timestamp: int
-    ) -> Iterable[base.BucketedCount]:
-        """
-        Returns a sorted list of bucketed timestamps paired with the count of symbolicator requests
+    def get_counts_for_project(self, project_id: int, timestamp: int) -> base.BucketedCounts:
+        """Returns a sorted list of bucketed timestamps paired with the count of symbolicator requests
         made during that time for some given project.
 
-        The first bucket returned is the one that `timestamp - self._counter_time_window` falls into. The last bucket returned is the one that `timestamp` falls into.
+        The first bucket returned is the one that `timestamp - self._counter_time_window`
+        falls into. The last bucket returned is the one that `timestamp` falls into.
 
         This may throw an exception if there is some sort of issue fetching counts from the redis
         store.
@@ -174,20 +172,19 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         buckets = range(first_bucket, now_bucket + bucket_size, bucket_size)
         keys = [f"{self._counter_key_prefix()}:{project_id}:{ts}" for ts in buckets]
-
         counts = self.cluster.mget(keys)
-        for ts, count_raw in zip(buckets, counts):
-            count = int(count_raw) if count_raw else 0
-            yield base.BucketedCount(timestamp=ts, count=count)
+        return base.BucketedCounts(
+            timestamp=buckets[0], width=bucket_size, counts=[int(c) if c else 0 for c in counts]
+        )
 
     def get_durations_for_project(
         self, project_id: int, timestamp: int
-    ) -> Iterable[base.DurationHistogram]:
-        """
-        Returns a sorted list of bucketed timestamps paired with a histogram-like dictionary of
+    ) -> base.BucketedDurationsHistograms:
+        """Returns a sorted list of bucketed timestamps paired with a histogram-like dictionary of
         symbolication durations made during some timestamp for some given project.
 
-        The first bucket returned is the one that `timestamp - self._duration_time_window` falls into. The last bucket returned is the one that `timestamp` falls into.
+        The first bucket returned is the one that `timestamp - self._duration_time_window`
+        falls into. The last bucket returned is the one that `timestamp` falls into.
 
         For a given `{duration:count}` entry in the dictionary bound to a specific `timestamp`:
 
@@ -214,13 +211,18 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
                 pipeline.hgetall(f"{self._duration_key_prefix()}:{project_id}:{ts}")
             histograms = pipeline.execute()
 
-        for ts, histogram_redis_raw in zip(buckets, histograms):
-            histogram = {duration: 0 for duration in range(0, 600, 10)}
-            histogram_redis = {
-                int(duration): int(count) for duration, count in histogram_redis_raw.items()
-            }
-            histogram.update(histogram_redis)
-            yield base.DurationHistogram(timestamp=ts, histogram=base.BucketedDurations(histogram))
+        all_histograms = []
+        for ts, histogram_redis in zip(buckets, histograms):
+            histogram = base.DurationsHistogram(bucket_size=10)
+            for duration, count in histogram_redis.items():
+                histogram.incr(int(duration), int(count))
+            all_histograms.append(histogram)
+
+        return base.BucketedDurationsHistograms(
+            timestamp=first_bucket,
+            width=bucket_size,
+            histograms=all_histograms,
+        )
 
     def get_lpq_projects(self) -> Set[int]:
         """
