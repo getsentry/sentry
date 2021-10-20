@@ -110,6 +110,7 @@ function EventEntry({
           projectId={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
+          organization={organization as Organization}
         />
       );
     }
