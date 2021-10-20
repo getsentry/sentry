@@ -21,7 +21,7 @@ from typing import Any, Dict, Mapping
 
 MFA_SESSION_KEY = "mfa"
 
-SSO_EXPIRY_TIME = timedelta(minutes=1)
+SSO_EXPIRY_TIME = timedelta(hours=20)
 
 
 class SSOSession:
