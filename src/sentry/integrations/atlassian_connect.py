@@ -1,12 +1,13 @@
 import hashlib
 from typing import Mapping, Optional, Sequence, Union
 
+import requests
 from jwt import InvalidSignatureError
 from rest_framework.request import Request
 
 from sentry.models import Integration
 from sentry.utils import jwt
-from sentry.utils.http import percent_encode
+from sentry.utils.http import absolute_uri, percent_encode
 
 __all__ = ["AtlassianConnectValidationError", "get_query_hash", "get_integration_from_request"]
 
@@ -53,11 +54,13 @@ def get_integration_from_jwt(
         raise AtlassianConnectValidationError("No token parameter")
     # Decode the JWT token, without verification. This gives
     # you a header JSON object, a claims JSON object, and a signature.
-    decoded = jwt.peek_claims(token)
+    claims = jwt.peek_claims(token)
+    headers = jwt.peek_header(token)
+
     # Extract the issuer ('iss') claim from the decoded, unverified
     # claims object. This is the clientKey for the tenant - an identifier
     # for the Atlassian application making the call
-    issuer = decoded["iss"]
+    issuer = claims.get("iss")
     # Look up the sharedSecret for the clientKey, as stored
     # by the add-on during the installation handshake
     try:
@@ -69,18 +72,51 @@ def get_integration_from_jwt(
     # audience to the JWT validation that is require to match.  Bitbucket does give us an
     # audience claim however, so disable verification of this.
     try:
-        decoded_verified = jwt.decode(token, integration.metadata["shared_secret"], audience=False)
+        # We only authenticate asymmetrically (through the CDN) if the event provides a key ID
+        # in its JWT headers. This should only appear for install/uninstall events.
+        decoded_claims = (
+            authenticate_asymmetric_jwt(token)
+            if headers.get("kid")
+            else jwt.decode(token, integration.metadata["shared_secret"], audience=False)
+        )
     except InvalidSignatureError:
         raise AtlassianConnectValidationError("Signature is invalid")
 
-    # Verify the query has not been tampered by Creating a Query Hash
-    # and comparing it against the qsh claim on the verified token.
-
-    qsh = get_query_hash(path, method, query_params)
-    if qsh != decoded_verified["qsh"]:
-        raise AtlassianConnectValidationError("Query hash mismatch")
+    verify_claims(decoded_claims, path, query_params, method)
 
     return integration
+
+
+def verify_claims(
+    claims: str, path: str, query_params: Optional[Mapping[str, str]], method: str
+) -> None:
+    # Verify the query has not been tampered by Creating a Query Hash
+    # and comparing it against the qsh claim on the verified token.
+    qsh = get_query_hash(path, method, query_params)
+    if qsh != claims["qsh"]:
+        raise AtlassianConnectValidationError("Query hash mismatch")
+
+
+def authenticate_asymmetric_jwt(token: Optional[str]) -> Optional[Mapping[str, str]]:
+    """
+    Allows for Atlassian Connect installation lifecycle security improvments (i.e. verified senders)
+    See: https://community.developer.atlassian.com/t/action-required-atlassian-connect-installation-lifecycle-security-improvements/49046
+    """
+    if token is None:
+        raise AtlassianConnectValidationError("No token parameter")
+    headers = jwt.peek_header(token)
+    key_id = headers.get("kid")
+    key_response = requests.get(f"https://connect-install-keys.atlassian.com/{key_id}")
+    public_key = key_response.content.decode("utf-8").strip()
+    decoded_claims = jwt.decode(
+        token, public_key, audience=absolute_uri(), algorithms=[headers.get("alg")]
+    )
+    if not decoded_claims:
+        raise AtlassianConnectValidationError("Unable to verify asymmetric installation JWT")
+
+    print("🔥🔥🔥🔥")
+    print("Verified claims via CDN (should only happen on installation events)")
+    return decoded_claims
 
 
 def get_integration_from_request(request: Request, provider: str) -> Integration:
