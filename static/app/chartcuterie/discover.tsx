@@ -23,6 +23,10 @@ const discoverxAxis = XAxis({
   axisLabel: {fontSize: 11},
 });
 
+import map from 'app/data/world.json';
+
+echarts.registerMap('sentryWorld', map);
+
 export const discoverCharts: RenderDescriptor<ChartType>[] = [];
 
 discoverCharts.push({
@@ -347,14 +351,12 @@ discoverCharts.push({
 discoverCharts.push({
   key: ChartType.SLACK_DISCOVER_WORLDMAP,
   getOption: (data: {seriesName: string; stats: {data: EventsGeoData}}) => {
-    const map = require('app/data/world.json');
     const countryCodesMap = require('app/data/countryCodesMap');
-    echarts.registerMap('sentryWorld', map);
     const mapSeries = MapSeries({
       map: 'sentryWorld',
       name: data.seriesName,
       data: data.stats.data.map(x => ({name: x['geo.country_code'], value: x.count})),
-      nameMap: countryCodesMap,
+      nameMap: countryCodesMap.default,
       aspectScale: 0.85,
       zoom: 1.1,
       center: [10.97, 9.71],
