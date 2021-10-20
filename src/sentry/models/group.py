@@ -29,6 +29,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.eventstore.models import Event
+from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
@@ -315,6 +316,7 @@ class GroupManager(BaseManager):
         if updated_count:
             for group in groups:
                 Activity.objects.create_group_activity(group, activity_type)
+                record_group_history_from_activity_type(group, activity_type)
 
     def from_share_id(self, share_id: str) -> "Group":
         if not share_id or len(share_id) != 32:

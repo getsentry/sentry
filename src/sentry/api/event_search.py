@@ -682,7 +682,7 @@ class SearchVisitor(NodeVisitor):
                 # minutes). So we fall through to numeric if it's not a
                 # duration key
                 #
-                # TODO(epurkhsier): Should we validate that the field is
+                # TODO(epurkhiser): Should we validate that the field is
                 # numeric and do some other fallback if it's not?
                 aggregate_value = parse_numeric_value(*search_value)
         except ValueError:

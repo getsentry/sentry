@@ -2,6 +2,7 @@ import {SessionField, SessionStatus} from 'app/types';
 import {
   filterSessionsInTimeWindow,
   getCount,
+  getCountAtIndex,
   getCrashFreeRate,
   getSessionsInterval,
   getSessionStatusRate,
@@ -148,6 +149,16 @@ describe('utils/sessions', () => {
     });
   });
 
+  describe('getCountAtIndex', () => {
+    const groups = [sessionsApiResponse.groups[1], sessionsApiResponse.groups[2]];
+    it('returns sessions count', () => {
+      expect(getCountAtIndex(groups, SessionField.SESSIONS, 1)).toBe(35);
+    });
+    it('returns users count', () => {
+      expect(getCountAtIndex(groups, SessionField.USERS, 1)).toBe(16);
+    });
+  });
+
   describe('getCrashFreeRate', () => {
     const {groups} = sessionsApiResponse;
     it('returns crash free sessions', () => {
@@ -174,20 +185,20 @@ describe('utils/sessions', () => {
 
   describe('getSessionsInterval', () => {
     describe('with high fidelity', () => {
-      it('greater than 14 days', () => {
-        expect(getSessionsInterval({period: '15d'}, {highFidelity: true})).toBe('1d');
+      it('>= 60 days', () => {
+        expect(getSessionsInterval({period: '60d'}, {highFidelity: true})).toBe('1d');
       });
 
-      it('greater than 7 days', () => {
-        expect(getSessionsInterval({period: '8d'}, {highFidelity: true})).toBe('6h');
+      it('>= 30 days', () => {
+        expect(getSessionsInterval({period: '30d'}, {highFidelity: true})).toBe('4h');
       });
 
-      it('30 minutes or less', () => {
-        expect(getSessionsInterval({period: '28m'}, {highFidelity: true})).toBe('1m');
+      it('14 days', () => {
+        expect(getSessionsInterval({period: '14d'}, {highFidelity: true})).toBe('1h');
       });
 
-      it('between one week and six hours', () => {
-        expect(getSessionsInterval({period: '1d'}, {highFidelity: true})).toBe('1h');
+      it('>= 6 hours', () => {
+        expect(getSessionsInterval({period: '6h'}, {highFidelity: true})).toBe('1h');
       });
 
       it('between 6 hours and 30 minutes', () => {
@@ -209,26 +220,26 @@ describe('utils/sessions', () => {
     });
 
     describe('with low fidelity', () => {
-      it('greater than 14 days', () => {
-        expect(getSessionsInterval({period: '15d'})).toBe('1d');
+      it('>= 60 days', () => {
+        expect(getSessionsInterval({period: '60d'})).toBe('1d');
         expect(
           getSessionsInterval(
-            {start: '2021-07-19T15:14:23Z', end: '2021-08-03T15:13:32Z'},
+            {start: '2021-07-19T15:14:23Z', end: '2021-10-19T15:14:23Z'},
             {highFidelity: true}
           )
         ).toBe('1d');
       });
 
-      it('greater than 7 days', () => {
-        expect(getSessionsInterval({period: '8d'})).toBe('6h');
+      it('>= 30 days', () => {
+        expect(getSessionsInterval({period: '30d'})).toBe('4h');
       });
 
-      it('30 minutes or less', () => {
-        expect(getSessionsInterval({period: '28m'})).toBe('1h');
+      it('14 days', () => {
+        expect(getSessionsInterval({period: '14d'})).toBe('1h');
       });
 
-      it('between one week and six hours', () => {
-        expect(getSessionsInterval({period: '1d'})).toBe('1h');
+      it('>= 6 hours', () => {
+        expect(getSessionsInterval({period: '6h'})).toBe('1h');
       });
 
       it('between 6 hours and 30 minutes', () => {
