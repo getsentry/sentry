@@ -1,13 +1,15 @@
+from typing import Any, Mapping
+
 from rest_framework import serializers
 
 from sentry.models import Commit, Repository
 
 
-class InCommitValidator(serializers.Serializer):
+class InCommitValidator(serializers.Serializer):  # type: ignore
     commit = serializers.CharField(required=True)
     repository = serializers.CharField(required=True)
 
-    def validate_repository(self, value):
+    def validate_repository(self, value: str) -> "Repository":
         project = self.context["project"]
         try:
             value = Repository.objects.get(organization_id=project.organization_id, name=value)
@@ -15,7 +17,7 @@ class InCommitValidator(serializers.Serializer):
             raise serializers.ValidationError("Unable to find the given repository.")
         return value
 
-    def validate(self, attrs):
+    def validate(self, attrs: Mapping[str, Any]) -> Commit:
         attrs = super().validate(attrs)
         repository = attrs.get("repository")
         commit = attrs.get("commit")
