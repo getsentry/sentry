@@ -2453,6 +2453,9 @@ class QueryFields(QueryBase):
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
+                    combinators=[
+                        SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
+                    ],
                 ),
                 SnQLFunction(
                     "p50",
@@ -2665,6 +2668,9 @@ class QueryFields(QueryBase):
                     result_type_fn=reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
+                    combinators=[
+                        SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
+                    ],
                 ),
                 SnQLFunction(
                     "avg",

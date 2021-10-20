@@ -115,6 +115,7 @@ def load_data(
     trace=None,
     span_id=None,
     spans=None,
+    trace_context=None,
 ):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
@@ -191,6 +192,8 @@ def load_data(
                 tag[1] = span_id
         data["contexts"]["trace"]["trace_id"] = trace
         data["contexts"]["trace"]["span_id"] = span_id
+        if trace_context is not None:
+            data["contexts"]["trace"].update(trace_context)
         if spans:
             data["spans"] = spans
 
