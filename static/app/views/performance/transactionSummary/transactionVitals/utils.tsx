@@ -1,4 +1,4 @@
-import {ECharts} from 'echarts';
+import type {ECharts} from 'echarts';
 import {Query} from 'history';
 
 import {HistogramData} from 'app/utils/performance/histogram/types';

@@ -1,4 +1,4 @@
-import {XAXisComponentOption} from 'echarts';
+import type {XAXisComponentOption} from 'echarts';
 import merge from 'lodash/merge';
 
 import BaseChart from 'app/components/charts/baseChart';

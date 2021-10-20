@@ -4,7 +4,7 @@ import {Popper} from 'react-popper';
 import styled from '@emotion/styled';
 import {truncate} from '@sentry/utils';
 import classNames from 'classnames';
-import {EChartOption} from 'echarts';
+import type {VisualMapComponentOption} from 'echarts';
 import {Location} from 'history';
 import memoize from 'lodash/memoize';
 
@@ -200,7 +200,7 @@ const TagsHeatMap = (
     },
   };
 
-  const visualMaps = [
+  const visualMaps: VisualMapComponentOption[] = [
     {
       min: 0,
       max: maxCount,
@@ -210,7 +210,7 @@ const TagsHeatMap = (
       inRange: {
         color: purples,
       },
-    } as EChartOption.VisualMap,
+    },
   ];
 
   const series: Series[] = [];

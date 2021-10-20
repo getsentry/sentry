@@ -15,6 +15,7 @@ import {ChartType, RenderDescriptor} from './types';
 
 const discoverxAxis = XAxis({
   theme,
+  // @ts-expect-error Not sure whats wrong with boundryGap type
   boundaryGap: true,
   splitNumber: 3,
   isGroupedByDate: true,

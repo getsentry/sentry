@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {EChartOption} from 'echarts';
+import type {LineSeriesOption} from 'echarts';
 import moment from 'moment';
 
 import {Series, SeriesDataUnit} from 'app/types/echarts';
@@ -9,9 +9,9 @@ import BaseChart from './baseChart';
 
 const FILLER_NAME = '__filler';
 
-type ChartProps = React.ComponentProps<typeof BaseChart>;
+type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
 
-export type AreaChartSeries = Series & Omit<EChartOption.SeriesLine, 'data' | 'name'>;
+export type AreaChartSeries = Series & Omit<LineSeriesOption, 'data' | 'name'>;
 
 type DefaultProps = {
   getDataItemName: ({name}: SeriesDataUnit) => SeriesDataUnit['name'];

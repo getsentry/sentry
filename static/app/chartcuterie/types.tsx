@@ -1,4 +1,4 @@
-import {EChartsOption} from 'echarts';
+import type {EChartsOption} from 'echarts';
 
 /**
  * Defines the keys which may be passed into the chartcuterie chart rendering

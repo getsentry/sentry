@@ -1,7 +1,7 @@
 import 'echarts/lib/component/legend';
 import 'echarts/lib/component/legendScroll';
 
-import {EChartOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 import merge from 'lodash/merge';
 
 import BaseChart from 'app/components/charts/baseChart';
@@ -13,7 +13,7 @@ type ChartProps = React.ComponentProps<typeof BaseChart>;
 
 export default function Legend(
   props: ChartProps['legend'] & {theme: Theme}
-): EChartOption.Legend {
+): LegendComponentOption {
   const {truncate, theme, ...rest} = props ?? {};
   const formatter = (value: string) => truncationFormatter(value, truncate ?? 0);
 

@@ -125,7 +125,7 @@ function createIncidentSeries(
 ) {
   const series = {
     seriesName: 'Incident Line',
-    type: 'line',
+    type: 'line' as const,
     markLine: MarkLine({
       silent: false,
       lineStyle: {color: lineColor, type: 'solid'},

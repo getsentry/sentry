@@ -380,9 +380,11 @@ function BaseChartUnwrapped({
 
   // Maybe changing the series type to types/echarts Series[] would be a better
   // solution and can't use ignore for multiline blocks
-  const seriesValid = series && series[0]?.data && series[0].data.length > 1;
+  const seriesValid = series && series[0]?.data && (series[0].data as any[]).length > 1;
   const seriesData = seriesValid ? series[0].data : undefined;
-  const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
+  const bucketSize = seriesData
+    ? (seriesData as any[])[1][0] - (seriesData as any[])[0][0]
+    : undefined;
 
   const tooltipOrNone =
     tooltip !== null

@@ -57,7 +57,7 @@ function defaultNameFormatter(value: string) {
   return value;
 }
 
-function getSeriesValue(series: EChartOption.Tooltip.Format, offset: number) {
+function getSeriesValue(series: any, offset: number) {
   if (!series.data) {
     return undefined;
   }
@@ -100,7 +100,7 @@ function getFormatter({
   nameFormatter = defaultNameFormatter,
   indentLabels = [],
 }: FormatterOptions) {
-  const getFilter = (seriesParam: EChartOption.Tooltip.Format) => {
+  const getFilter = (seriesParam: any) => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
     // has a series using strictly `markLine`s.
     // However, real series will have `data` as a tuple of (label, value) or be
@@ -225,7 +225,7 @@ export default function Tooltip({
   hideDelay,
   indentLabels,
   ...props
-}: Props = {}): EChartOption.Tooltip {
+}: Props = {}): TooltipComponentOption {
   formatter =
     formatter ||
     getFormatter({
@@ -250,6 +250,8 @@ export default function Tooltip({
     // Default hideDelay in echarts docs is 100ms
     hideDelay: hideDelay || 100,
     position(pos, _params, dom, _rec, _size) {
+      // Types seem to be broken on dom
+      dom = dom as HTMLDivElement;
       // Center the tooltip slightly above the cursor.
       const tipWidth = dom.clientWidth;
       const tipHeight = dom.clientHeight;

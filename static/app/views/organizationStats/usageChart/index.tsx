@@ -2,7 +2,7 @@ import * as React from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
-import type {SeriesOption} from 'echarts';
+import type {SeriesOption, TooltipComponentOption} from 'echarts';
 
 import BaseChart from 'app/components/charts/baseChart';
 import Legend from 'app/components/charts/components/legend';
@@ -131,7 +131,7 @@ type Props = DefaultProps & {
   /**
    * Replace default tooltip
    */
-  chartTooltip?: SeriesOption;
+  chartTooltip?: TooltipComponentOption;
 };
 
 type State = {
@@ -353,19 +353,19 @@ export class UsageChart extends React.Component<Props, State> {
       },
     ];
 
-    if (chartData.filtered && chartData.filtered.length > 0) {
+    if (chartData.filtered && (chartData.filtered as any[]).length > 0) {
       legend.push({
         name: SeriesTypes.FILTERED,
       });
     }
 
-    if (chartData.dropped.length > 0) {
+    if ((chartData.dropped as any[]).length > 0) {
       legend.push({
         name: SeriesTypes.DROPPED,
       });
     }
 
-    if (chartData.projected.length > 0) {
+    if ((chartData.projected as any[]).length > 0) {
       legend.push({
         name: SeriesTypes.PROJECTED,
       });
@@ -373,7 +373,7 @@ export class UsageChart extends React.Component<Props, State> {
     return legend;
   }
 
-  get chartTooltip() {
+  get chartTooltip(): TooltipComponentOption {
     const {chartTooltip} = this.props;
 
     if (chartTooltip) {

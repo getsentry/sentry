@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {PieSeriesOption} from 'echarts';
+import type {PieSeriesOption} from 'echarts';
 
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
