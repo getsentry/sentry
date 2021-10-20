@@ -1,12 +1,12 @@
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, Callable, Mapping, Optional, Sequence
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
 from uuid import uuid4
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
-from requests import Request
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, eventstream, features
@@ -67,7 +67,7 @@ def handle_discard(
     group_list: Sequence["Group"],
     projects: Sequence["Project"],
     user: "User",
-):
+) -> Response:
     for project in projects:
         if not features.has("projects:discard-groups", project, actor=user):
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
@@ -116,6 +116,7 @@ def self_subscribe_and_assign_issue(
         )
         if self_assign_issue == "1" and not group.assignee_set.exists():
             return ActorTuple(type=User, id=acting_user.id)
+    return None
 
 
 def get_current_release_version_of_group(
@@ -251,7 +252,7 @@ def update_groups(
                 .order_by("-sort")[0]
             )
             activity_type = Activity.SET_RESOLVED_IN_RELEASE
-            activity_data = {
+            activity_data: MutableMapping[str, Optional[Any]] = {
                 # no version yet
                 "version": ""
             }

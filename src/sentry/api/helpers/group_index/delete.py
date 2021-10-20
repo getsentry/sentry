@@ -1,9 +1,9 @@
 import logging
 from collections import defaultdict
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, List, Sequence
 from uuid import uuid4
 
-from requests import Request
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstream
@@ -22,7 +22,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 def delete_group_list(
     request: Request,
     project: "Project",
-    group_list: Sequence["Group"],
+    group_list: List["Group"],
     delete_type: str,
 ) -> Response:
     if not group_list:

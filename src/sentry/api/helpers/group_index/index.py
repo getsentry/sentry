@@ -1,9 +1,9 @@
 from datetime import datetime
-from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 import sentry_sdk
-from requests import Request
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, search
@@ -25,7 +25,7 @@ from .validators import ValidationError
 
 # List of conditions that mark a SearchFilter as an advanced search. Format is
 # (lambda SearchFilter(): <boolean condition>, '<feature_name')
-advanced_search_features = [
+advanced_search_features: Sequence[Tuple[Callable[..., Any], str]] = [
     (lambda search_filter: search_filter.is_negation, "negative search"),
     (lambda search_filter: search_filter.value.is_wildcard(), "wildcard search"),
 ]
@@ -36,7 +36,7 @@ def build_query_params_from_request(
     organization: "Organization",
     projects: Sequence["Project"],
     environments: Sequence["Environment"],
-) -> Mapping[str, Any]:
+) -> MutableMapping[str, Any]:
     query_kwargs = {"projects": projects, "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION)}
 
     limit = request.GET.get("limit")
@@ -163,7 +163,7 @@ def build_rate_limit_key(function: Callable[..., Any], request: Request) -> str:
 
 def rate_limit_endpoint(limit: int = 1, window: int = 1) -> Callable[..., Any]:
     def inner(function: Callable[..., Any]) -> Callable[..., Any]:
-        def wrapper(self, request: Request, *args: Any, **kwargs: Any) -> Callable[..., Any]:
+        def wrapper(self: Any, request: Request, *args: Any, **kwargs: Any) -> Response:
             if ratelimiter.is_limited(
                 build_rate_limit_key(function, request),
                 limit=limit,
@@ -205,7 +205,7 @@ def calculate_stats_period(
 
 
 def prep_search(
-    cls,
+    cls: Any,
     request: Request,
     project: "Project",
     extra_query_kwargs: Optional[Mapping[str, Any]] = None,
@@ -216,7 +216,7 @@ def prep_search(
         # XXX: The 1000 magic number for `max_hits` is an abstraction leak
         # from `sentry.api.paginator.BasePaginator.get_result`.
         result = CursorResult([], None, None, hits=0, max_hits=1000)
-        query_kwargs = {}
+        query_kwargs: Mapping[str, Any] = {}
     else:
         environments = [environment] if environment is not None else environment
         query_kwargs = build_query_params_from_request(
