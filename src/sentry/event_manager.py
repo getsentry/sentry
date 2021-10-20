@@ -65,6 +65,7 @@ from sentry.models import (
     UserReport,
     get_crashreport_key,
 )
+from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.plugins.base import plugins
 from sentry.reprocessing2 import (
     delete_old_primary_hash,
@@ -1318,6 +1319,8 @@ def _handle_regression(group, event, release):
         Activity.objects.create_group_activity(
             group, ActivityType.SET_REGRESSION, data={"version": release.version if release else ""}
         )
+        record_group_history(group, GroupHistoryStatus.REGRESSED, actor=None, release=release)
+
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )

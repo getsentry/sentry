@@ -48,6 +48,21 @@ describe('releases/utils', () => {
         releaseEnd: '2020-03-23T01:03:59Z',
       });
     });
+
+    it('clamps releases lasting longer than 1000 days', () => {
+      expect(
+        getReleaseBounds(
+          // @ts-expect-error
+          TestStubs.Release({
+            dateCreated: '2020-03-23T01:02:30Z',
+            lastEvent: '2023-03-23T01:02:30Z',
+          })
+        )
+      ).toEqual({
+        releaseStart: '2020-03-23T01:02:00Z',
+        releaseEnd: '2022-12-17T01:02:00Z',
+      });
+    });
   });
 
   describe('getReleaseParams', () => {

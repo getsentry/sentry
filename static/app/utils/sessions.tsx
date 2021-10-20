@@ -5,18 +5,31 @@ import moment from 'moment';
 import {
   DateTimeObject,
   getDiffInMinutes,
-  ONE_WEEK,
-  TWO_WEEKS,
+  SIX_HOURS,
+  SIXTY_DAYS,
+  THIRTY_DAYS,
 } from 'app/components/charts/utils';
+import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
 import {SessionApiResponse, SessionField, SessionStatus} from 'app/types';
 import {SeriesDataUnit} from 'app/types/echarts';
 import {defined, percent} from 'app/utils';
-import {Theme} from 'app/utils/theme';
+import {IconSize, Theme} from 'app/utils/theme';
 import {getCrashFreePercent, getSessionStatusPercent} from 'app/views/releases/utils';
 import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
+const CRASH_FREE_DANGER_THRESHOLD = 98;
+const CRASH_FREE_WARNING_THRESHOLD = 99.5;
+
 export function getCount(groups: SessionApiResponse['groups'] = [], field: SessionField) {
   return groups.reduce((acc, group) => acc + group.totals[field], 0);
+}
+
+export function getCountAtIndex(
+  groups: SessionApiResponse['groups'] = [],
+  field: SessionField,
+  index: number
+) {
+  return groups.reduce((acc, group) => acc + group.series[field][index], 0);
 }
 
 export function getCrashFreeRate(
@@ -158,11 +171,11 @@ export function getAdoptionSeries(
 ): SeriesDataUnit[] {
   return intervals.map((interval, i) => {
     const intervalReleaseSessions = releaseGroups.reduce(
-      (acc, group) => acc + group.series[field][i],
+      (acc, group) => acc + (group.series[field]?.[i] ?? 0),
       0
     );
     const intervalTotalSessions = allGroups.reduce(
-      (acc, group) => acc + group.series[field][i],
+      (acc, group) => acc + (group.series[field]?.[i] ?? 0),
       0
     );
 
@@ -259,15 +272,20 @@ export function getSessionsInterval(
     highFidelity = false;
   }
 
-  if (diffInMinutes > TWO_WEEKS) {
+  if (diffInMinutes >= SIXTY_DAYS) {
     return '1d';
   }
-  if (diffInMinutes > ONE_WEEK) {
-    return '6h';
+
+  if (diffInMinutes >= THIRTY_DAYS) {
+    return '4h';
+  }
+
+  if (diffInMinutes >= SIX_HOURS) {
+    return '1h';
   }
 
   // limit on backend for sub-hour session resolution is set to six hours
-  if (highFidelity && diffInMinutes < 360) {
+  if (highFidelity) {
     if (diffInMinutes <= 30) {
       return '1m';
     }
@@ -336,4 +354,16 @@ export function filterSessionsInTimeWindow(
     intervals,
     groups,
   };
+}
+
+export function getCrashFreeIcon(crashFreePercent: number, iconSize: IconSize = 'sm') {
+  if (crashFreePercent < CRASH_FREE_DANGER_THRESHOLD) {
+    return <IconFire color="red300" size={iconSize} />;
+  }
+
+  if (crashFreePercent < CRASH_FREE_WARNING_THRESHOLD) {
+    return <IconWarning color="yellow300" size={iconSize} />;
+  }
+
+  return <IconCheckmark isCircled color="green300" size={iconSize} />;
 }

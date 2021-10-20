@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Project, Release, ReleaseProject
+from sentry.models import Project, Release
 
 
 class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
@@ -24,7 +24,7 @@ class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
 
         per_project_daily_release_counts = (
             Release.objects.filter(
-                id__in=ReleaseProject.objects.filter(project__in=project_list).values("release_id"),
+                projects__in=project_list,
                 date_added__gte=start,
                 date_added__lte=end,
             )
