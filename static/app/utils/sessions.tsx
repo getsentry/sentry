@@ -24,6 +24,14 @@ export function getCount(groups: SessionApiResponse['groups'] = [], field: Sessi
   return groups.reduce((acc, group) => acc + group.totals[field], 0);
 }
 
+export function getCountAtIndex(
+  groups: SessionApiResponse['groups'] = [],
+  field: SessionField,
+  index: number
+) {
+  return groups.reduce((acc, group) => acc + group.series[field][index], 0);
+}
+
 export function getCrashFreeRate(
   groups: SessionApiResponse['groups'] = [],
   field: SessionField
