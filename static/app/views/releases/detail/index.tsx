@@ -34,7 +34,7 @@ import AsyncView from 'app/views/asyncView';
 
 import {getReleaseBounds, ReleaseBounds} from '../utils';
 
-import ReleaseHeader from './releaseHeader';
+import ReleaseHeader from './header/releaseHeader';
 
 type ReleaseContextType = {
   release: ReleaseWithHealth;

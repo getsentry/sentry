@@ -1108,12 +1108,16 @@ function buildRoutes() {
         />
         <Route
           path="commits/"
-          componentPromise={() => import('app/views/releases/detail/commits')}
+          componentPromise={() =>
+            import('app/views/releases/detail/commitsAndFiles/commits')
+          }
           component={SafeLazyLoad}
         />
         <Route
           path="files-changed/"
-          componentPromise={() => import('app/views/releases/detail/filesChanged')}
+          componentPromise={() =>
+            import('app/views/releases/detail/commitsAndFiles/filesChanged')
+          }
           component={SafeLazyLoad}
         />
         <Redirect from="new-events/" to="/organizations/:orgId/releases/:release/" />
