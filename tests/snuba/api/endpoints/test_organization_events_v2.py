@@ -4280,6 +4280,38 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
         )
 
+    def test_equation_sort(self):
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        event_data2 = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data2["breakdowns"]["span_ops"]["ops.http"]["value"] = 2000
+        self.store_event(data=event_data2, project_id=self.project.id)
+
+        query = {
+            "field": ["spans.http", "equation|spans.http / 3"],
+            "project": [self.project.id],
+            "orderby": "equation[0]",
+            "query": "event.type:transaction",
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 2
+        assert (
+            response.data["data"][0]["equation[0]"]
+            == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
+        )
+        assert (
+            response.data["data"][1]["equation[0]"]
+            == event_data2["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
+        )
+
     def test_equation_operation_limit(self):
         query = {
             "field": ["spans.http", f"equation|spans.http{' * 2' * 11}"],
