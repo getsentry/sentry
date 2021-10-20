@@ -103,7 +103,7 @@ def test_move_to_process_event(
         "extra": {"foo": "bar"},
     }
 
-    preprocess_event(data=data)
+    preprocess_event(cache_key="", data=data)
 
     assert mock_symbolicate_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 1
@@ -123,7 +123,7 @@ def test_move_to_save_event(
         "extra": {"foo": "bar"},
     }
 
-    preprocess_event(data=data)
+    preprocess_event(cache_key="", data=data)
 
     assert mock_symbolicate_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 0
