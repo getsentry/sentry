@@ -24,9 +24,13 @@ from sentry.utils.hashlib import md5_text
 from . import SEARCH_MAX_HITS
 from .validators import ValidationError
 
+# TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
+EndpointFunction = Callable[..., Response]
+
+
 # List of conditions that mark a SearchFilter as an advanced search. Format is
 # (lambda SearchFilter(): <boolean condition>, '<feature_name')
-advanced_search_features: Sequence[Tuple[Callable[..., Any], str]] = [
+advanced_search_features: Sequence[Tuple[Callable[[SearchFilter], Any], str]] = [
     (lambda search_filter: search_filter.is_negation, "negative search"),
     (lambda search_filter: search_filter.value.is_wildcard(), "wildcard search"),
 ]
@@ -118,8 +122,8 @@ def get_by_short_id(
     return None
 
 
-def track_slo_response(name: str) -> Callable[..., Any]:
-    def inner_func(function: Callable[..., Any]) -> Callable[..., Any]:
+def track_slo_response(name: str) -> Callable[[EndpointFunction], EndpointFunction]:
+    def inner_func(function: EndpointFunction) -> EndpointFunction:
         def wrapper(request: Request, *args: Any, **kwargs: Any) -> Response:
             from sentry.utils import snuba
 
@@ -157,13 +161,13 @@ def track_slo_response(name: str) -> Callable[..., Any]:
     return inner_func
 
 
-def build_rate_limit_key(function: Callable[..., Any], request: Request) -> str:
+def build_rate_limit_key(function: EndpointFunction, request: Request) -> str:
     ip = request.META["REMOTE_ADDR"]
     return f"rate_limit_endpoint:{md5_text(function.__qualname__).hexdigest()}:{ip}"
 
 
-def rate_limit_endpoint(limit: int = 1, window: int = 1) -> Callable[..., Any]:
-    def inner(function: Callable[..., Any]) -> Callable[..., Any]:
+def rate_limit_endpoint(limit: int = 1, window: int = 1) -> EndpointFunction:
+    def inner(function: EndpointFunction) -> EndpointFunction:
         def wrapper(self: Any, request: Request, *args: Any, **kwargs: Any) -> Response:
             if ratelimiter.is_limited(
                 build_rate_limit_key(function, request),

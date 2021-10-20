@@ -1,3 +1,7 @@
+from typing import Any, Callable, Mapping, Tuple
+
+from sentry.utils.cursors import CursorResult
+
 from .delete import delete_group_list
 
 """TODO(mgaeta): This directory is incorrectly suffixed '_index'."""
@@ -12,6 +16,8 @@ ACTIVITIES_COUNT = 100
 # XXX: The 1000 magic number for `max_hits` is an abstraction leak from
 #  `sentry.api.paginator.BasePaginator.get_result`.
 SEARCH_MAX_HITS = 1000
+
+SearchFunction = Callable[[Mapping[str, Any]], Tuple[CursorResult, Mapping[str, Any]]]
 
 __all__ = (
     "ACTIVITIES_COUNT",

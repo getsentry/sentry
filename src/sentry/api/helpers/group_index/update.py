@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Mapping, MutableMapping, Optional, Sequence
 from uuid import uuid4
 
 from django.db import IntegrityError, transaction
@@ -58,7 +58,7 @@ from sentry.tasks.merge import merge_groups
 from sentry.utils import metrics
 from sentry.utils.functional import extract_lazy_object
 
-from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, delete_group_list
+from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
 from .validators import GroupValidator, ValidationError
 
 
@@ -168,7 +168,7 @@ def update_groups(
     group_ids: Sequence["Group"],
     projects: Sequence["Project"],
     organization_id: int,
-    search_fn: Callable[..., Any],
+    search_fn: SearchFunction,
     user: Optional["User"] = None,
     data: Optional[Mapping[str, Any]] = None,
 ) -> Response:
