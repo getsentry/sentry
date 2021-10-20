@@ -31,6 +31,17 @@ discover_total_period = {
     },
 }
 
+discover_geo = {
+    "seriesName": "Discover total period",
+    "stats": {
+        "data": [
+            {"geo.country_code": "US", "count": 25},
+            {"geo.country_code": "GB", "count": 30},
+            {"geo.country_code": "AU", "count": 25},
+        ],
+    },
+}
+
 discover_total_daily = {
     "seriesName": "Discover total daily",
     "stats": {
@@ -249,6 +260,7 @@ class DebugChartRendererView(View):
         charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_PERIOD, discover_empty))
         charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_top5))
         charts.append(generate_chart(ChartType.SLACK_DISCOVER_TOP5_DAILY, discover_empty))
+        charts.append(generate_chart(ChartType.SLACK_DISCOVER_WORLDMAP, discover_geo))
         charts.append(
             generate_chart(ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD, discover_total_period)
         )
