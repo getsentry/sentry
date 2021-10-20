@@ -74,17 +74,17 @@ class OptionCheckboxSelector extends Component<Props, State> {
     return [...selected, value];
   }
 
-  shouldBeDisabled(value: string) {
+  shouldBeDisabled({value, disabled}: SelectValue<string>) {
     const {selected} = this.props;
     // Y-Axis is capped at 3 fields
-    return selected.length > 2 && !selected.includes(value);
+    return disabled || (selected.length > 2 && !selected.includes(value));
   }
 
-  handleCheckboxClick(event: MouseEvent, value: string) {
+  handleCheckboxClick(event: MouseEvent, opt: SelectValue<string>) {
     const {onChange} = this.props;
     event.stopPropagation();
-    if (!this.shouldBeDisabled(value)) {
-      onChange(this.selectCheckbox(value));
+    if (!this.shouldBeDisabled(opt)) {
+      onChange(this.selectCheckbox(opt.value));
     }
   }
 
@@ -119,7 +119,7 @@ class OptionCheckboxSelector extends Component<Props, State> {
                   blendCorner
                 >
                   {options.map(opt => {
-                    const disabled = this.shouldBeDisabled(opt.value);
+                    const disabled = this.shouldBeDisabled(opt);
                     return (
                       <StyledDropdownItem
                         key={opt.value}
@@ -140,7 +140,8 @@ class OptionCheckboxSelector extends Component<Props, State> {
                           title={
                             disabled
                               ? t(
-                                  'Only a maximum of 3 fields can be displayed on the Y-Axis at a time'
+                                  opt.tooltip ??
+                                    'Only a maximum of 3 fields can be displayed on the Y-Axis at a time'
                                 )
                               : undefined
                           }
@@ -149,7 +150,7 @@ class OptionCheckboxSelector extends Component<Props, State> {
                             className={opt.value}
                             isChecked={selected.includes(opt.value)}
                             isDisabled={disabled}
-                            onClick={event => this.handleCheckboxClick(event, opt.value)}
+                            onClick={event => this.handleCheckboxClick(event, opt)}
                           />
                         </Tooltip>
                       </StyledDropdownItem>

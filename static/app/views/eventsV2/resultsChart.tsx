@@ -15,7 +15,11 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
-import {DisplayModes, TOP_N} from 'app/utils/discover/types';
+import {
+  DisplayModes,
+  MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
+  TOP_N,
+} from 'app/utils/discover/types';
 import getDynamicText from 'app/utils/getDynamicText';
 import {decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
@@ -217,6 +221,24 @@ class ResultsChartContainer extends Component<ContainerProps> {
       });
 
     const yAxisValue = hasConnectDiscoverAndDashboards ? yAxis : [eventView.getYAxis()];
+    let yAxisOptions = eventView.getYAxisOptions();
+    // Disable multi y axis options when in an unsupported Display Mode
+    if (
+      !MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(
+        eventView.getDisplayMode() as DisplayModes
+      )
+    ) {
+      yAxisOptions = yAxisOptions.map(option => {
+        if (option.value !== yAxisValue[0]) {
+          return {
+            ...option,
+            disabled: true,
+            tooltip: t('Multiple Y-Axis cannot be plotted on this Display mode.'),
+          };
+        }
+        return option;
+      });
+    }
 
     return (
       <StyledPanel>
@@ -235,7 +257,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
           organization={organization}
           total={total}
           yAxisValue={yAxisValue}
-          yAxisOptions={eventView.getYAxisOptions()}
+          yAxisOptions={yAxisOptions}
           onAxisChange={onAxisChange}
           displayOptions={displayOptions}
           displayMode={eventView.getDisplayMode()}
