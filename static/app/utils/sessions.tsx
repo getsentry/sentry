@@ -9,10 +9,11 @@ import {
   SIXTY_DAYS,
   THIRTY_DAYS,
 } from 'app/components/charts/utils';
+import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
 import {SessionApiResponse, SessionField, SessionStatus} from 'app/types';
 import {SeriesDataUnit} from 'app/types/echarts';
 import {defined, percent} from 'app/utils';
-import {Theme} from 'app/utils/theme';
+import {IconSize, Theme} from 'app/utils/theme';
 import {getCrashFreePercent, getSessionStatusPercent} from 'app/views/releases/utils';
 import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
@@ -20,6 +21,9 @@ import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
  * If the time window is less than or equal 10, seconds will be displayed on the graphs
  */
 export const MINUTES_THRESHOLD_TO_DISPLAY_SECONDS = 10;
+
+const CRASH_FREE_DANGER_THRESHOLD = 98;
+const CRASH_FREE_WARNING_THRESHOLD = 99.5;
 
 export function getCount(groups: SessionApiResponse['groups'] = [], field: SessionField) {
   return groups.reduce((acc, group) => acc + group.totals[field], 0);
@@ -353,4 +357,16 @@ export function filterSessionsInTimeWindow(
     intervals,
     groups,
   };
+}
+
+export function getCrashFreeIcon(crashFreePercent: number, iconSize: IconSize = 'sm') {
+  if (crashFreePercent < CRASH_FREE_DANGER_THRESHOLD) {
+    return <IconFire color="red300" size={iconSize} />;
+  }
+
+  if (crashFreePercent < CRASH_FREE_WARNING_THRESHOLD) {
+    return <IconWarning color="yellow300" size={iconSize} />;
+  }
+
+  return <IconCheckmark isCircled color="green300" size={iconSize} />;
 }

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -17,6 +17,7 @@ import PageTimeRangeSelector from 'app/components/pageTimeRangeSelector';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {DateString, Organization, RelativePeriod, TeamWithProjects} from 'app/types';
+import trackAdvancedAnalyticsEvent from 'app/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'app/utils/localStorage';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -74,6 +75,12 @@ function TeamInsightsOverview({
   const currentTeamId = localTeamId ?? teams[0]?.id;
   const currentTeam = teams.find(team => team.id === currentTeamId);
   const projects = currentTeam?.projects ?? [];
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('team_insights.viewed', {
+      organization,
+    });
+  }, []);
 
   function handleChangeTeam(teamId: string) {
     localStorage.setItem(localStorageKey, teamId);
