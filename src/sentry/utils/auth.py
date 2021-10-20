@@ -10,6 +10,7 @@ from django.urls import resolve, reverse
 from django.utils.http import is_safe_url
 
 from sentry.models import Authenticator, User
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.auth")
 
@@ -141,6 +142,8 @@ def mark_sso_complete(request, organization_id):
     key = sso_session_key_for_org_id(organization_id)
     request.session[key] = {"auth_timestamp": datetime.now(tz=timezone.utc).timestamp()}
 
+    metrics.incr("sso.session-added-success")
+
     request.session.modified = True
 
 
@@ -162,8 +165,14 @@ def has_completed_sso(request, organization_id):
         return True
 
     # TODO: remove this old logic after two weeks
-    sso = request.session.get(DEPRECATED_SSO_SESSION_KEY, "").split(",")
-    return str(organization_id) in sso
+    deprecated_sso = request.session.get(DEPRECATED_SSO_SESSION_KEY, "").split(",")
+    has_sso_session_for_org = str(organization_id) in deprecated_sso
+
+    metrics.incr(
+        "sso.deprecated-session-checked", tags={"success": has_sso_session_for_org}, sample_rate=0.1
+    )
+
+    return has_sso_session_for_org
 
 
 def sso_session_key_for_org_id(organization_id):
