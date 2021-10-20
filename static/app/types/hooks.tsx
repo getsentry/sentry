@@ -533,6 +533,7 @@ type InviteModalCustomizationHook = () => React.ComponentType<{
 }>;
 
 type MultiProjectSelectButtonHook = () => React.ComponentType<{
+  organization: Organization;
   defaultButtonText: string;
   defaultOnClick: () => void;
   canShowAllProjects: boolean;

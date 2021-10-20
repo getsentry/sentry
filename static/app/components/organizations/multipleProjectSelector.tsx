@@ -315,8 +315,13 @@ class MultipleProjectSelector extends React.PureComponent<Props, State> {
 
 const MultiProjectOverride = HookOrDefault({
   hookName: 'project-selector-all-projects:customization',
-  defaultComponent: ({children, defaultButtonText, defaultOnClick}) =>
-    children({buttonText: defaultButtonText, onClick: defaultOnClick}),
+  defaultComponent: ({children, defaultButtonText, defaultOnClick, organization}) => {
+    // render nothing if feature unavailable
+    if (!organization.features.includes('global-views')) {
+      return null;
+    }
+    return children({buttonText: defaultButtonText, onClick: defaultOnClick});
+  },
 });
 
 type ControlProps = {
@@ -366,6 +371,7 @@ const SelectorFooterControls = ({
             defaultButtonText={projectText}
             defaultOnClick={onProjectClick}
             canShowAllProjects={canShowAllProjects}
+            organization={organization}
           >
             {({buttonText, ...rest}) => (
               <Button priority="default" size="xsmall" {...rest}>
