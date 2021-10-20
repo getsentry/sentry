@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {withTheme} from '@emotion/react';
-import echarts, {MapSeriesOption, TooltipComponentOption} from 'echarts';
+import type {MapSeriesOption, TooltipComponentOption} from 'echarts';
+import * as echarts from 'echarts/core';
 import max from 'lodash/max';
 
 import {Series, SeriesDataUnit} from 'app/types/echarts';
