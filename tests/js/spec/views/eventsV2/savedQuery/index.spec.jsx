@@ -439,8 +439,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         savedQuery,
         yAxis
       );
-      wrapper.find('DiscoverQueryMenu').find('Button').first().simulate('click');
-      wrapper.find('MenuItem').first().simulate('click');
+      wrapper.find('AddToDashboardButton').first().simulate('click');
       await tick();
       await tick();
       const modal = await mountGlobalModal();
@@ -457,8 +456,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         savedQuery,
         yAxis
       );
-      wrapper.find('DiscoverQueryMenu').find('Button').first().simulate('click');
-      wrapper.find('MenuItem').first().simulate('click');
+      wrapper.find('AddToDashboardButton').first().simulate('click');
       await tick();
       await tick();
       const modal = await mountGlobalModal();
@@ -479,8 +477,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         savedQuery,
         [...yAxis, 'equation|count() + failure_count()']
       );
-      wrapper.find('DiscoverQueryMenu').find('Button').first().simulate('click');
-      wrapper.find('MenuItem').first().simulate('click');
+      wrapper.find('AddToDashboardButton').first().simulate('click');
       await tick();
       await tick();
       const modal = await mountGlobalModal();
@@ -497,8 +494,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         savedQuery,
         [...yAxis, 'equation|count() + count_unique(user)']
       );
-      wrapper.find('DiscoverQueryMenu').find('Button').first().simulate('click');
-      wrapper.find('MenuItem').first().simulate('click');
+      wrapper.find('AddToDashboardButton').first().simulate('click');
       await tick();
       await tick();
       const modal = await mountGlobalModal();
