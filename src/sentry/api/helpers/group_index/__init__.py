@@ -2,8 +2,6 @@ from typing import Any, Callable, Mapping, Tuple
 
 from sentry.utils.cursors import CursorResult
 
-from .delete import delete_group_list
-
 """TODO(mgaeta): This directory is incorrectly suffixed '_index'."""
 
 # Bulk mutations are limited to 1000 items.
@@ -27,5 +25,6 @@ __all__ = (
 )
 
 from .delete import *  # NOQA
+from .delete import delete_group_list
 from .index import *  # NOQA
 from .update import *  # NOQA
