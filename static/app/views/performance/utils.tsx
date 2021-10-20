@@ -7,6 +7,7 @@ import {GlobalSelection, OrganizationSummary, Project} from 'app/types';
 import {defined} from 'app/utils';
 import {statsPeriodToDays} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
+import {TRACING_FIELDS} from 'app/utils/discover/fields';
 import {getDuration} from 'app/utils/formatters';
 import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import {decodeScalar} from 'app/utils/queryString';
@@ -114,6 +115,36 @@ export function getPerformanceTrendsUrl(organization: OrganizationSummary): stri
 
 export function getTransactionSearchQuery(location: Location, query: string = '') {
   return decodeScalar(location.query.query, query).trim();
+}
+
+export function removeTracingKeysFromSearch(
+  currentFilter: MutableSearch,
+  options: {excludeTagKeys: Set<string>} = {
+    excludeTagKeys: new Set([
+      // event type can be "transaction" but we're searching for issues
+      'event.type',
+      // the project is already determined by the transaction,
+      // and issue search does not support the project filter
+      'project',
+    ]),
+  }
+) {
+  currentFilter.getFilterKeys().forEach(tagKey => {
+    const searchKey = tagKey.startsWith('!') ? tagKey.substr(1) : tagKey;
+    // Remove aggregates and transaction event fields
+    if (
+      // aggregates
+      searchKey.match(/\w+\(.*\)/) ||
+      // transaction event fields
+      TRACING_FIELDS.includes(searchKey) ||
+      // tags that we don't want to pass to pass to issue search
+      options.excludeTagKeys.has(searchKey)
+    ) {
+      currentFilter.removeFilter(tagKey);
+    }
+  });
+
+  return currentFilter;
 }
 
 export function getTransactionDetailsUrl(
