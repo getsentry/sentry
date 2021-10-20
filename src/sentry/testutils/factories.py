@@ -1092,10 +1092,15 @@ class Factories:
         release: Optional[Release] = None,
         actor: Actor = None,
         prev_history: GroupHistory = None,
+        date_added: datetime = None,
     ) -> GroupHistory:
         prev_history_date = None
         if prev_history:
             prev_history_date = prev_history.date_added
+
+        kwargs = {}
+        if date_added:
+            kwargs["date_added"] = date_added
         return GroupHistory.objects.create(
             organization=group.organization,
             group=group,
@@ -1105,4 +1110,5 @@ class Factories:
             status=status,
             prev_history=prev_history,
             prev_history_date=prev_history_date,
+            **kwargs,
         )
