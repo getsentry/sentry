@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from typing import Optional, Union
 
@@ -44,6 +45,7 @@ class UserIdentityConfig:
     provider: UserIdentityProvider
     status: Status
     organization: Optional[Organization]
+    date_added: Optional[datetime]
 
     @staticmethod
     def wrap(identity: IdentityType, status: Status) -> "UserIdentityConfig":
@@ -62,7 +64,10 @@ class UserIdentityConfig:
             raise TypeError
 
         category_key = _IDENTITY_CATEGORY_KEYS[type(identity)]
-        return UserIdentityConfig(category_key, identity.id, provider, status, organization)
+        date_added = identity.date_added if hasattr(identity, "date_added") else None
+        return UserIdentityConfig(
+            category_key, identity.id, provider, status, organization, date_added
+        )
 
     def get_model_type_for_category(self) -> type:
         return _IDENTITY_CATEGORIES_BY_KEY[self.category]
@@ -77,4 +82,5 @@ class UserIdentityConfigSerializer(Serializer):
             "provider": {"key": obj.provider.key, "name": obj.provider.name},
             "status": obj.status.value,
             "organization": serialize(obj.organization),
+            "dateAdded": serialize(obj.date_added),
         }
