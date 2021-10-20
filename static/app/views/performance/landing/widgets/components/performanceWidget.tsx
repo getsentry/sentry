@@ -34,7 +34,6 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
         setNextWidgetData({...nextWidgetData, [dataKey]: result});
       }
       if (result?.hasData || result?.isErrored) {
-        setNextWidgetData({...nextWidgetData, [dataKey]: result});
         setWidgetData({...widgetData, [dataKey]: result});
       }
     },

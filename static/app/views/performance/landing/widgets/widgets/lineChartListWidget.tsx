@@ -138,7 +138,7 @@ export function LineChartListWidget(props: Props) {
               includePrevious
               includeTransformedData
               partial
-              currentSeriesName={props.fields[0]}
+              currentSeriesNames={[props.fields[0]]}
               query={eventView.getQueryWithAdditionalConditions()}
               interval={getInterval(
                 {

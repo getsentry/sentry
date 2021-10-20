@@ -2,6 +2,7 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {defined} from 'app/utils';
 import {TableData} from 'app/utils/discover/discoverQuery';
 import {GenericChildrenProps} from 'app/utils/discover/genericDiscoverQuery';
+import {DEFAULT_STATS_PERIOD} from 'app/views/performance/data';
 
 import {QueryDefinitionWithKey, WidgetDataConstraint, WidgetPropUnion} from '../types';
 
@@ -10,7 +11,9 @@ export function transformDiscoverToList<T extends WidgetDataConstraint>(
   results: GenericChildrenProps<TableData>,
   _: QueryDefinitionWithKey<T>
 ) {
-  const {start, end, utc, interval, statsPeriod} = getParams(widgetProps.location.query);
+  const {start, end, utc, interval, statsPeriod} = getParams(widgetProps.location.query, {
+    defaultStatsPeriod: DEFAULT_STATS_PERIOD,
+  });
 
   const data = results.tableData?.data ?? [];
 
