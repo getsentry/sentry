@@ -105,7 +105,11 @@ type Props = {
         utc: boolean,
         showTimeInTooltip: boolean
       ) => string;
-      valueFormatter?: (value: number, label?: string) => string | number;
+      valueFormatter?: (
+        value: number,
+        label?: string,
+        seriesParams?: EChartOption.Tooltip.Format
+      ) => string | number;
       nameFormatter?: (name: string) => string;
       /**
        * Array containing seriesNames that need to be indented

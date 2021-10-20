@@ -167,42 +167,30 @@ class RuleProcessor:
             else:
                 filter_list.append(rule_cond)
 
-        # if conditions exist evaluate them, otherwise move to the filters section
-        if condition_list:
-            condition_iter = (self.condition_matches(c, state, rule) for c in condition_list)
-
-            condition_func = self.get_match_function(condition_match)
-            if condition_func:
-                condition_passed = condition_func(condition_iter)
+        for predicate_list, match, name in (
+            (filter_list, filter_match, "filter"),
+            (condition_list, condition_match, "condition"),
+        ):
+            if not predicate_list:
+                continue
+            predicate_iter = (self.condition_matches(f, state, rule) for f in predicate_list)
+            predicate_func = self.get_match_function(match)
+            if predicate_func:
+                if not predicate_func(predicate_iter):
+                    return
             else:
                 self.logger.error(
-                    "Unsupported condition_match %r for rule %d", condition_match, rule.id
+                    f"Unsupported {name}_match {match!r} for rule {rule.id}", filter_match, rule.id
                 )
                 return
 
-            if not condition_passed:
-                return
+        updated = (
+            GroupRuleStatus.objects.filter(id=status.id)
+            .exclude(last_active__gt=freq_offset)
+            .update(last_active=now)
+        )
 
-        # if filters exist evaluate them, otherwise pass
-        if filter_list:
-            filter_iter = (self.condition_matches(f, state, rule) for f in filter_list)
-            filter_func = self.get_match_function(filter_match)
-            if filter_func:
-                passed = filter_func(filter_iter)
-            else:
-                self.logger.error("Unsupported filter_match %r for rule %d", filter_match, rule.id)
-                return
-        else:
-            passed = True
-
-        if passed:
-            passed = (
-                GroupRuleStatus.objects.filter(id=status.id)
-                .exclude(last_active__gt=freq_offset)
-                .update(last_active=now)
-            )
-
-        if not passed:
+        if not updated:
             return
 
         if randrange(10) == 0:

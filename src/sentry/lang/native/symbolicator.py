@@ -18,7 +18,7 @@ from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
 from sentry.models import Organization
 from sentry.net.http import Session
-from sentry.tasks.store import RetrySymbolication
+from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, metrics, safe
 
 MAX_ATTEMPTS = 3
