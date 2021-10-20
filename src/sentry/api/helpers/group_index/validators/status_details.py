@@ -5,7 +5,7 @@ from sentry.models import Release
 from . import InCommitValidator
 
 
-class StatusDetailsValidator(serializers.Serializer):
+class StatusDetailsValidator(serializers.Serializer):  # type: ignore
     inNextRelease = serializers.BooleanField()
     inRelease = serializers.CharField()
     inCommit = InCommitValidator(required=False)
@@ -17,7 +17,7 @@ class StatusDetailsValidator(serializers.Serializer):
     # in minutes, max of one week
     ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
 
-    def validate_inRelease(self, value):
+    def validate_inRelease(self, value: bool) -> bool:
         project = self.context["project"]
         if value == "latest":
             try:
@@ -43,7 +43,7 @@ class StatusDetailsValidator(serializers.Serializer):
                 )
         return value
 
-    def validate_inNextRelease(self, value):
+    def validate_inNextRelease(self, value: bool) -> "Release":
         project = self.context["project"]
         try:
             value = (
