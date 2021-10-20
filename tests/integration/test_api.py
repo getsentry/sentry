@@ -4,11 +4,7 @@ from django.urls import reverse
 
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import AuthProviderTestCase
-from sentry.utils.auth import (
-    DEPRECATED_SSO_SESSION_KEY,
-    SSO_EXPIRY_TIME,
-    sso_session_key_for_org_id,
-)
+from sentry.utils.auth import DEPRECATED_SSO_SESSION_KEY, SSO_EXPIRY_TIME, SSOSession
 from sentry.utils.linksign import generate_signed_link
 
 
@@ -60,19 +56,19 @@ class AuthenticationTest(AuthProviderTestCase):
         self._test_paths_with_status(200)
 
     def test_sso_with_expiry_valid(self):
-        self.session[sso_session_key_for_org_id(self.organization.id)] = {
-            "auth_timestamp": datetime.now(tz=timezone.utc).timestamp()
-        }
+        sso_session = SSOSession.create(self.organization.id)
+        self.session[sso_session.session_key] = sso_session.to_dict()
         self.save_session()
 
         self._test_paths_with_status(200)
 
     def test_sso_with_expiry_expired(self):
-        self.session[sso_session_key_for_org_id(self.organization.id)] = {
-            "auth_timestamp": (
-                datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1)
-            ).timestamp()
-        }
+        sso_session_expired = SSOSession(
+            self.organization.id,
+            datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1),
+        )
+        self.session[sso_session_expired.session_key] = sso_session_expired.to_dict()
+
         self.save_session()
         self._test_paths_with_status(401)
 

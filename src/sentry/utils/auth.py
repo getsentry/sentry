@@ -17,12 +17,51 @@ logger = logging.getLogger("sentry.auth")
 _LOGIN_URL = None
 
 DEPRECATED_SSO_SESSION_KEY = "sso"
-
-SSO_SESSION_KEY = "sso_session"
+from typing import Any, Dict, Mapping
 
 MFA_SESSION_KEY = "mfa"
 
-SSO_EXPIRY_TIME = timedelta(hours=20)
+SSO_EXPIRY_TIME = timedelta(minutes=1)
+
+
+class SSOSession:
+    """
+    The value returned from to_dict is stored in the django session cookie, with the org id being the key.
+    """
+
+    SSO_SESSION_KEY = "sso_s"
+    SSO_LOGIN_TIMESTAMP = "ts"
+
+    def __init__(self, organization_id: int, time: datetime) -> None:
+        self.organization_id = organization_id
+        self.authenticated_at_time = time
+        self.session_key = self.django_session_key(organization_id)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {self.SSO_LOGIN_TIMESTAMP: self.authenticated_at_time.timestamp()}
+
+    @classmethod
+    def create(cls, organization_id: int) -> "SSOSession":
+        return cls(organization_id, datetime.now(tz=timezone.utc))
+
+    @classmethod
+    def from_django_session_value(
+        cls, organization_id: int, session_value: Mapping[str, Any]
+    ) -> "SSOSession":
+
+        return cls(
+            organization_id,
+            datetime.fromtimestamp(session_value[cls.SSO_LOGIN_TIMESTAMP], tz=timezone.utc),
+        )
+
+    def is_sso_authtime_fresh(self) -> bool:
+        expired_time_cutoff = datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME
+
+        return self.authenticated_at_time > expired_time_cutoff
+
+    @staticmethod
+    def django_session_key(organization_id: int) -> str:
+        return f"{SSOSession.SSO_SESSION_KEY}:{organization_id}"
 
 
 class AuthUserPasswordExpired(Exception):
@@ -139,8 +178,8 @@ def mark_sso_complete(request, organization_id):
     """
     # TODO(dcramer): this needs to be bound based on SSO options (e.g. changing
     # or enabling SSO invalidates this)
-    key = sso_session_key_for_org_id(organization_id)
-    request.session[key] = {"auth_timestamp": datetime.now(tz=timezone.utc).timestamp()}
+    sso_session = SSOSession.create(organization_id)
+    request.session[sso_session.session_key] = sso_session.to_dict()
 
     metrics.incr("sso.session-added-success")
 
@@ -151,32 +190,29 @@ def has_completed_sso(request, organization_id):
     """
     look for the org id under the sso session key, and check that the timestamp isn't past our expiry limit
     """
-
-    def is_sso_timestamp_fresh():
-        sso_timestamp = datetime.fromtimestamp(sso_session["auth_timestamp"], tz=timezone.utc)
-        expired_timestamp_cutoff = datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME
-
-        return sso_timestamp > expired_timestamp_cutoff
-
-    sso_session = request.session.get(f"{SSO_SESSION_KEY}:{organization_id}", None)
-
-    if sso_session and is_sso_timestamp_fresh():
-        metrics.incr("sso.new-session-checked-success", sample_rate=0.1)
-        return True
-
-    # TODO: remove this old logic after two weeks
-    deprecated_sso = request.session.get(DEPRECATED_SSO_SESSION_KEY, "").split(",")
-    has_sso_session_for_org = str(organization_id) in deprecated_sso
-
-    metrics.incr(
-        "sso.deprecated-session-checked", tags={"success": has_sso_session_for_org}, sample_rate=0.1
+    sso_session_in_request = request.session.get(
+        SSOSession.django_session_key(organization_id), None
     )
 
-    return has_sso_session_for_org
+    if not sso_session_in_request:
+        # TODO: remove this old logic after two weeks
+        deprecated_sso = request.session.get(DEPRECATED_SSO_SESSION_KEY, "").split(",")
+        has_sso_session_for_org = str(organization_id) in deprecated_sso
 
+        metrics.incr(
+            "sso.deprecated-session-checked",
+            tags={"success": has_sso_session_for_org},
+            sample_rate=0.1,
+        )
+        return has_sso_session_for_org
 
-def sso_session_key_for_org_id(organization_id):
-    return f"{SSO_SESSION_KEY}:{organization_id}"
+    django_session_value = SSOSession.from_django_session_value(
+        organization_id, sso_session_in_request
+    )
+
+    if django_session_value and django_session_value.is_sso_authtime_fresh():
+        metrics.incr("sso.new-session-checked-success", sample_rate=0.1)
+        return True
 
 
 def find_users(username, with_valid_password=True, is_active=None):

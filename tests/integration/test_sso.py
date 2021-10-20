@@ -1,8 +1,6 @@
-from datetime import datetime, timezone
-
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import AuthProviderTestCase
-from sentry.utils.auth import sso_session_key_for_org_id
+from sentry.utils.auth import SSOSession
 
 
 class OrganizationAuthLoginTest(AuthProviderTestCase):
@@ -35,9 +33,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertRedirects(resp, redirect_uri)
 
         # XXX(dcramer): using internal API as exposing a request object is hard
-        self.session[sso_session_key_for_org_id(organization.id)] = {
-            "auth_timestamp": datetime.now(tz=timezone.utc).timestamp()
-        }
+        sso_session = SSOSession.create(organization.id)
+        self.session[sso_session.session_key] = sso_session.to_dict()
         self.save_session()
 
         # now that SSO is marked as complete, we should be able to access dash
