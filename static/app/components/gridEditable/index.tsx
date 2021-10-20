@@ -218,17 +218,16 @@ class GridEditable<
   onResizeMouseUp = (e: MouseEvent) => {
     const metadata = this.resizeMetadata;
     const onResizeColumn = this.props.grid.onResizeColumn;
-    if (!metadata || !onResizeColumn) {
-      return;
+
+    if (metadata && onResizeColumn) {
+      const {columnOrder} = this.props;
+      const widthChange = e.clientX - metadata.cursorX;
+
+      onResizeColumn(metadata.columnIndex, {
+        ...columnOrder[metadata.columnIndex],
+        width: metadata.columnWidth + widthChange,
+      });
     }
-
-    const {columnOrder} = this.props;
-    const widthChange = e.clientX - metadata.cursorX;
-
-    onResizeColumn(metadata.columnIndex, {
-      ...columnOrder[metadata.columnIndex],
-      width: metadata.columnWidth + widthChange,
-    });
 
     this.resizeMetadata = undefined;
     this.clearWindowLifecycleEvents();
