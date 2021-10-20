@@ -350,7 +350,7 @@ const SelectorFooterControls = ({
     return null;
   }
 
-  // see we should show "All Projects" or "My Projects" if disableMultipleProjectSelection isn't true
+  // see if we should show "All Projects" or "My Projects" if disableMultipleProjectSelection isn't true
   const hasGlobalRole = organization.role === 'owner' || organization.role === 'manager';
   const hasOpenMembership = organization.features.includes('open-membership');
   const allSelected = selected && selected.has(ALL_ACCESS_PROJECTS);
