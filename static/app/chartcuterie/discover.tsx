@@ -1,16 +1,18 @@
-import {EChartOption} from 'echarts/lib/echarts';
+import echarts, {EChartOption} from 'echarts';
 import isArray from 'lodash/isArray';
 
+import VisualMap from 'app/components/charts/components/visualMap';
 import XAxis from 'app/components/charts/components/xAxis';
 import AreaSeries from 'app/components/charts/series/areaSeries';
 import BarSeries from 'app/components/charts/series/barSeries';
 import LineSeries from 'app/components/charts/series/lineSeries';
+import MapSeries from 'app/components/charts/series/mapSeries';
 import {lightenHexToRgb} from 'app/components/charts/utils';
 import {t} from 'app/locale';
-import {EventsStats} from 'app/types';
+import {EventsGeoData, EventsStats} from 'app/types';
 import {lightTheme as theme} from 'app/utils/theme';
 
-import {slackChartDefaults, slackChartSize} from './slack';
+import {slackChartDefaults, slackChartSize, slackGeoChartSize} from './slack';
 import {ChartType, RenderDescriptor} from './types';
 
 const discoverxAxis = XAxis({
@@ -340,4 +342,47 @@ discoverCharts.push({
     };
   },
   ...slackChartSize,
+});
+
+discoverCharts.push({
+  key: ChartType.SLACK_DISCOVER_WORLDMAP,
+  getOption: (data: {seriesName: string; stats: {data: EventsGeoData}}) => {
+    const map = require('app/data/world.json');
+    const countryCodesMap = require('app/data/countryCodesMap');
+    echarts.registerMap('sentryWorld', map);
+    const mapSeries = MapSeries({
+      map: 'sentryWorld',
+      name: data.seriesName,
+      data: data.stats.data.map(x => ({name: x['geo.country_code'], value: x.count})),
+      nameMap: countryCodesMap,
+      aspectScale: 0.85,
+      zoom: 1.1,
+      center: [10.97, 9.71],
+      itemStyle: {
+        areaColor: theme.gray200,
+        borderColor: theme.backgroundSecondary,
+      } as any, // TODO(ts): Echarts types aren't correct for these colors as they don't allow for basic strings
+    });
+
+    return {
+      backgroundColor: theme.background,
+      visualMap: [
+        VisualMap({
+          left: 'right',
+          min: 0,
+          max: 10,
+          inRange: {
+            color: [theme.purple200, theme.purple300],
+          },
+          text: ['High', 'Low'],
+          textStyle: {
+            color: theme.textColor,
+          },
+          calculable: false,
+        }),
+      ],
+      series: [mapSeries],
+    };
+  },
+  ...slackGeoChartSize,
 });
