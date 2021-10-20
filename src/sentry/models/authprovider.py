@@ -38,6 +38,8 @@ class AuthProvider(Model):
     # TODO(dcramer): ManyToMany has the same issue as ForeignKey and we need
     # to either write our own which works w/ BigAuto or switch this to use
     # through.
+
+    # DEPRECATED
     default_teams = models.ManyToManyField("sentry.Team", blank=True)
 
     flags = BitField(
