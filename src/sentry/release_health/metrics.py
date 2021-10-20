@@ -1736,7 +1736,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     ) -> Sequence[ProjectWithCount]:
 
         org_id = self._get_org_id(project_ids)
-        columns = [Column("value"), Column("project_id")]
+        columns = [Function("sum", [Column("value")], alias="value"), Column("project_id")]
 
         try:
             status_key = tag_key(org_id, "session.status")
