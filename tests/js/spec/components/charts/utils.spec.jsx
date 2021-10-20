@@ -4,6 +4,7 @@ import {
   getInterval,
   getSeriesApiInterval,
   lightenHexToRgb,
+  processTableResults,
 } from 'app/components/charts/utils';
 
 describe('Chart Utils', function () {
@@ -145,6 +146,44 @@ describe('Chart Utils', function () {
         'rgb(77, 71, 84)',
         'rgb(255, 255, 255)',
       ]);
+    });
+  });
+
+  describe('processTableResults', function () {
+    it('transforms TableDataWithTitle array to chartable data', function () {
+      const tableData = [
+        {
+          data: [
+            {
+              'geo.country_code': 'PE',
+              count: 9215,
+            },
+            {
+              'geo.country_code': 'VI',
+              count: 1,
+            },
+          ],
+          meta: {
+            'geo.country_code': 'string',
+            count: 'integer',
+          },
+          title: 'Country',
+        },
+      ];
+      const result = {
+        title: 'Country',
+        data: [
+          {
+            name: 'PE',
+            value: 9215,
+          },
+          {
+            name: 'VI',
+            value: 1,
+          },
+        ],
+      };
+      expect(processTableResults(tableData)).toEqual(result);
     });
   });
 });

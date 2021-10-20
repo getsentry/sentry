@@ -7,6 +7,7 @@ import isEqual from 'lodash/isEqual';
 import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
 import EventsChart from 'app/components/charts/eventsChart';
+import WorldMapChart from 'app/components/charts/worldMapChart';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
@@ -75,6 +76,12 @@ class ResultsChart extends Component<ResultsChartProps> {
     const referrer = `api.discover.${display}-chart`;
     const topEvents =
       hasTopEvents && eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
+    const chartComponent =
+      display === DisplayModes.WORLDMAP
+        ? WorldMapChart
+        : hasConnectDiscoverAndDashboards && yAxisValue.length > 1 && !isDaily
+        ? AreaChart
+        : undefined;
 
     return (
       <Fragment>
@@ -102,12 +109,9 @@ class ResultsChart extends Component<ResultsChartProps> {
               utc={utc === 'true'}
               confirmedQuery={confirmedQuery}
               withoutZerofill={hasPerformanceChartInterpolation}
-              chartComponent={
-                hasConnectDiscoverAndDashboards && yAxisValue.length > 1 && !isDaily
-                  ? AreaChart
-                  : undefined
-              }
+              chartComponent={chartComponent}
               referrer={referrer}
+              fromDiscover
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -180,6 +184,9 @@ class ResultsChartContainer extends Component<ContainerProps> {
           ) &&
           !hasQueryFeature
         ) {
+          return false;
+        }
+        if (!hasConnectDiscoverAndDashboards && opt.value === DisplayModes.WORLDMAP) {
           return false;
         }
         return true;

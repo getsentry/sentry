@@ -14,24 +14,38 @@ import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import {getInterval, RELEASE_LINES_THRESHOLD} from 'app/components/charts/utils';
+import {
+  getInterval,
+  processTableResults,
+  RELEASE_LINES_THRESHOLD,
+} from 'app/components/charts/utils';
+import WorldMapChart from 'app/components/charts/worldMapChart';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {DateString, OrganizationSummary} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {defined} from 'app/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
+import {TableDataWithTitle} from 'app/utils/discover/discoverQuery';
 import {aggregateMultiPlotType, getEquation, isEquation} from 'app/utils/discover/fields';
 import {decodeList} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
 
+import EventsGeoRequest from './eventsGeoRequest';
 import EventsRequest from './eventsRequest';
+
+type ChartComponent =
+  | React.ComponentType<BarChart['props']>
+  | React.ComponentType<AreaChart['props']>
+  | React.ComponentType<LineChart['props']>
+  | React.ComponentType<React.ComponentProps<typeof WorldMapChart>>;
 
 type ChartProps = {
   theme: Theme;
   loading: boolean;
   reloading: boolean;
   zoomRenderProps: ZoomRenderProps;
+  tableData: TableDataWithTitle[];
   timeseriesData: Series[];
   showLegend?: boolean;
   legendOptions?: EChartOption.Legend;
@@ -59,14 +73,12 @@ type ChartProps = {
    * a list of series names that are also disableable.
    */
   disableableSeries?: string[];
-  chartComponent?:
-    | React.ComponentType<BarChart['props']>
-    | React.ComponentType<AreaChart['props']>
-    | React.ComponentType<LineChart['props']>;
+  chartComponent?: ChartComponent;
   height?: number;
   timeframe?: {start: number; end: number};
   topEvents?: number;
   referrer?: string;
+  fromDiscover?: boolean;
 };
 
 type State = {
@@ -96,7 +108,8 @@ class Chart extends React.Component<ChartProps, State> {
     if (
       isEqual(this.props.timeseriesData, nextProps.timeseriesData) &&
       isEqual(this.props.releaseSeries, nextProps.releaseSeries) &&
-      isEqual(this.props.previousTimeseriesData, nextProps.previousTimeseriesData)
+      isEqual(this.props.previousTimeseriesData, nextProps.previousTimeseriesData) &&
+      isEqual(this.props.tableData, nextProps.tableData)
     ) {
       return false;
     }
@@ -104,10 +117,7 @@ class Chart extends React.Component<ChartProps, State> {
     return true;
   }
 
-  getChartComponent():
-    | React.ComponentType<BarChart['props']>
-    | React.ComponentType<AreaChart['props']>
-    | React.ComponentType<LineChart['props']> {
+  getChartComponent(): ChartComponent {
     const {showDaily, timeseriesData, yAxis, chartComponent} = this.props;
     if (defined(chartComponent)) {
       return chartComponent;
@@ -148,6 +158,18 @@ class Chart extends React.Component<ChartProps, State> {
     );
   };
 
+  renderWorldMap() {
+    const {tableData, fromDiscover} = this.props;
+    const {data, title} = processTableResults(tableData);
+    const tableSeries = [
+      {
+        seriesName: title,
+        data,
+      },
+    ];
+    return <WorldMapChart series={tableSeries} fromDiscover={fromDiscover} />;
+  }
+
   render() {
     const {
       theme,
@@ -172,6 +194,15 @@ class Chart extends React.Component<ChartProps, State> {
       ...props
     } = this.props;
     const {seriesSelection} = this.state;
+
+    let Component = this.getChartComponent();
+    if (typeof Component === typeof WorldMapChart) {
+      return this.renderWorldMap();
+    }
+    Component = Component as Exclude<
+      ChartComponent,
+      React.ComponentType<React.ComponentProps<typeof WorldMapChart>>
+    >;
 
     const data = [
       ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
@@ -265,7 +296,6 @@ class Chart extends React.Component<ChartProps, State> {
       ...(chartOptionsProp ?? {}),
     };
 
-    const Component = this.getChartComponent();
     return (
       <Component
         {...props}
@@ -393,6 +423,7 @@ export type EventsChartProps = {
   | 'chartOptions'
   | 'chartComponent'
   | 'height'
+  | 'fromDiscover'
 >;
 
 type ChartDataProps = {
@@ -406,6 +437,7 @@ type ChartDataProps = {
   releaseSeries?: Series[];
   timeframe?: {start: number; end: number};
   topEvents?: number;
+  tableData?: TableDataWithTitle[];
 };
 
 class EventsChart extends React.Component<EventsChartProps> {
@@ -420,6 +452,7 @@ class EventsChart extends React.Component<EventsChartProps> {
   render() {
     const {
       api,
+      organization,
       period,
       utc,
       query,
@@ -454,6 +487,7 @@ class EventsChart extends React.Component<EventsChartProps> {
       usePageZoom,
       height,
       withoutZerofill,
+      fromDiscover,
       ...props
     } = this.props;
 
@@ -486,6 +520,7 @@ class EventsChart extends React.Component<EventsChartProps> {
       timeseriesData,
       previousTimeseriesData,
       timeframe,
+      tableData,
     }: ChartDataProps) => {
       if (errored) {
         return (
@@ -529,6 +564,8 @@ class EventsChart extends React.Component<EventsChartProps> {
             height={height}
             timeframe={timeframe}
             topEvents={topEvents}
+            tableData={tableData ?? []}
+            fromDiscover={fromDiscover}
           />
         </TransitionChart>
       );
@@ -563,37 +600,68 @@ class EventsChart extends React.Component<EventsChartProps> {
         usePageDate={usePageZoom}
         {...props}
       >
-        {zoomRenderProps => (
-          <EventsRequest
-            {...props}
-            api={api}
-            period={period}
-            project={projects}
-            environment={environments}
-            start={start}
-            end={end}
-            interval={intervalVal}
-            query={query}
-            includePrevious={includePrevious}
-            currentSeriesNames={currentSeriesNames}
-            previousSeriesNames={previousSeriesNames}
-            yAxis={yAxis}
-            field={field}
-            orderby={orderby}
-            topEvents={topEvents}
-            confirmedQuery={confirmedQuery}
-            partial
-            // Cannot do interpolation when stacking series
-            withoutZerofill={withoutZerofill && !this.isStacked()}
-          >
-            {eventData => {
-              return chartImplementation({
-                ...eventData,
-                zoomRenderProps,
-              });
-            }}
-          </EventsRequest>
-        )}
+        {zoomRenderProps => {
+          if (chartComponent === WorldMapChart) {
+            return (
+              <EventsGeoRequest
+                api={api}
+                organization={organization}
+                yAxis={yAxis}
+                query={query}
+                orderby={orderby}
+                projects={projects}
+                period={period}
+                start={start}
+                end={end}
+                environments={environments}
+                referrer={props.referrer}
+              >
+                {({errored, loading, reloading, tableData}) =>
+                  chartImplementation({
+                    errored,
+                    loading,
+                    reloading,
+                    zoomRenderProps,
+                    tableData,
+                  })
+                }
+              </EventsGeoRequest>
+            );
+          } else {
+            return (
+              <EventsRequest
+                {...props}
+                api={api}
+                organization={organization}
+                period={period}
+                project={projects}
+                environment={environments}
+                start={start}
+                end={end}
+                interval={intervalVal}
+                query={query}
+                includePrevious={includePrevious}
+                currentSeriesNames={currentSeriesNames}
+                previousSeriesNames={previousSeriesNames}
+                yAxis={yAxis}
+                field={field}
+                orderby={orderby}
+                topEvents={topEvents}
+                confirmedQuery={confirmedQuery}
+                partial
+                // Cannot do interpolation when stacking series
+                withoutZerofill={withoutZerofill && !this.isStacked()}
+              >
+                {eventData => {
+                  return chartImplementation({
+                    ...eventData,
+                    zoomRenderProps,
+                  });
+                }}
+              </EventsRequest>
+            );
+          }
+        }}
       </ChartZoom>
     );
   }
