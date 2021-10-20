@@ -144,7 +144,7 @@ class WidgetCard extends React.Component<Props> {
         }
         if (widget.queries.length === 1) {
           menuOptions.push(
-            <Link to={discoverLocation}>
+            <Link key="open-discover-link" to={discoverLocation}>
               <StyledMenuItem key="open-discover">{t('Open in Discover')}</StyledMenuItem>
             </Link>
           );
