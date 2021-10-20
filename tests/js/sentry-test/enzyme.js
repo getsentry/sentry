@@ -4,6 +4,10 @@ import {mount, render, shallow} from 'enzyme'; // eslint-disable-line no-restric
 
 import {lightTheme} from 'app/utils/theme';
 
+/**
+ * As we are migrating our tests to React Testing Library,
+ * please avoid using `sentry-test/enzyme` and use `sentry-test/reactTestingLibrary` instead.
+ */
 const mountWithTheme = (tree, opts) => {
   const WrappingThemeProvider = props => (
     <CacheProvider value={cache}>
