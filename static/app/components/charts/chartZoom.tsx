@@ -176,11 +176,15 @@ class ChartZoom extends React.Component<Props> {
    * Enable zoom immediately instead of having to toggle to zoom
    */
   handleChartReady = chart => {
-    chart.dispatchAction({
-      type: 'takeGlobalCursor',
-      key: 'dataZoomSelect',
-      dataZoomSelectActive: true,
-    });
+    // https://github.com/apache/echarts/issues/10274
+    // This attempts to activate the area zoom toolbox feature
+    setTimeout(() => {
+      chart.dispatchAction({
+        type: 'takeGlobalCursor',
+        key: 'dataZoomSelect',
+        dataZoomSelectActive: true,
+      });
+    }, 1000);
 
     callIfFunction(this.props.onChartReady, chart);
   };
@@ -205,11 +209,10 @@ class ChartZoom extends React.Component<Props> {
 
   handleDataZoom = (evt, chart) => {
     const model = chart.getModel();
-    const {xAxis} = model.option;
-    const axis = xAxis[0];
+    const {startValue, endValue} = model._payload.batch[0];
 
     // if `rangeStart` and `rangeEnd` are null, then we are going back
-    if (axis.rangeStart === null && axis.rangeEnd === null) {
+    if (startValue === null && endValue === null) {
       const previousPeriod = this.history.pop();
 
       if (!previousPeriod) {
@@ -218,10 +221,10 @@ class ChartZoom extends React.Component<Props> {
 
       this.setPeriod(previousPeriod);
     } else {
-      const start = moment.utc(axis.rangeStart);
+      const start = moment.utc(startValue);
 
       // Add a day so we go until the end of the day (e.g. next day at midnight)
-      const end = moment.utc(axis.rangeEnd);
+      const end = moment.utc(endValue);
 
       this.setPeriod({period: null, start, end}, true);
     }

@@ -21,7 +21,10 @@ function getFeatures({dataZoom, ...features}) {
   };
 }
 
-export default function ToolBox(options, features): ToolboxComponentOption {
+export default function ToolBox(
+  options: ToolboxComponentOption,
+  features
+): ToolboxComponentOption {
   return {
     right: 0,
     top: 0,
