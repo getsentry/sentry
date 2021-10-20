@@ -39,7 +39,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         return self.organization
 
     def get_context(self) -> MutableMapping[str, Any]:
-        raise NotImplementedError
+        return {}
 
     @property
     def sentry_query_params(self) -> str:

@@ -1094,6 +1094,8 @@ SENTRY_FEATURES = {
     "organizations:release-comparison-performance": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
+    # send organization request notifications through Slack
+    "organizations:slack-requests": False,
     # Enable team insights page
     "organizations:team-insights": False,
     # Adds additional filters and a new section to issue alert rules.
