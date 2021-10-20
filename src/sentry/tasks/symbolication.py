@@ -1,12 +1,14 @@
 import logging
 import random
 from time import sleep, time
+from typing import Any, Callable, Optional
 
 import sentry_sdk
 from django.conf import settings
 
 from sentry import options
 from sentry.eventstore import processing
+from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
 from sentry.processing import realtime_metrics
 from sentry.tasks import store
@@ -21,7 +23,7 @@ info_logger = logging.getLogger("sentry.symbolication")
 # Is reprocessing on or off by default?
 REPROCESSING_DEFAULT = False
 
-SYMBOLICATOR_MAX_RETRY_AFTER = settings.SYMBOLICATOR_MAX_RETRY_AFTER
+SYMBOLICATOR_MAX_RETRY_AFTER: int = settings.SYMBOLICATOR_MAX_RETRY_AFTER
 
 # The maximum number of times an event will be moved between the normal
 # and low priority queues
@@ -38,7 +40,7 @@ SYMBOLICATOR_MAX_QUEUE_SWITCHES = 3
 
 
 class RetrySymbolication(Exception):
-    def __init__(self, retry_after=None):
+    def __init__(self, retry_after: Optional[int] = None) -> None:
         self.retry_after = retry_after
 
 
@@ -77,8 +79,14 @@ def should_demote_symbolication(project_id: int) -> bool:
 
 
 def submit_symbolicate(
-    is_low_priority, from_reprocessing, cache_key, event_id, start_time, data, queue_switches=0
-):
+    is_low_priority: bool,
+    from_reprocessing: bool,
+    cache_key: str,
+    event_id: Optional[str],
+    start_time: Optional[int],
+    data: Optional[Event],
+    queue_switches: int = 0,
+) -> None:
     if is_low_priority:
         task = (
             symbolicate_event_from_reprocessing_low_priority
@@ -98,8 +106,13 @@ def submit_symbolicate(
 
 
 def _do_symbolicate_event(
-    cache_key, start_time, event_id, symbolicate_task, data=None, queue_switches=0
-):
+    cache_key: str,
+    start_time: Optional[int],
+    event_id: Optional[str],
+    symbolicate_task: Callable[[Optional[str], Optional[int], Optional[str]], None],
+    data: Optional[Event] = None,
+    queue_switches: int = 0,
+) -> None:
     from sentry.lang.native.processing import get_symbolication_function
 
     if data is None:
@@ -148,7 +161,7 @@ def _do_symbolicate_event(
             )
             return
 
-    def _continue_to_process_event():
+    def _continue_to_process_event() -> None:
         process_task = (
             store.process_event_from_reprocessing if from_reprocessing else store.process_event
         )
@@ -244,7 +257,12 @@ def _do_symbolicate_event(
                             "tasks.store.symbolicate_event.retry",
                             tags={"symbolication_function": symbolication_function_name},
                         )
-                        sleep(min(e.retry_after, SYMBOLICATOR_MAX_RETRY_AFTER))
+                        sleep_time = (
+                            SYMBOLICATOR_MAX_RETRY_AFTER
+                            if e.retry_after is None
+                            else min(e.retry_after, SYMBOLICATOR_MAX_RETRY_AFTER)
+                        )
+                        sleep(sleep_time)
                         continue
                 except Exception:
                     metrics.incr(
@@ -283,7 +301,7 @@ def _do_symbolicate_event(
     return _continue_to_process_event()
 
 
-@instrumented_task(
+@instrumented_task(  # type: ignore
     name="sentry.tasks.store.symbolicate_event",
     queue="events.symbolicate_event",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
@@ -291,8 +309,13 @@ def _do_symbolicate_event(
     acks_late=True,
 )
 def symbolicate_event(
-    cache_key, start_time=None, event_id=None, data=None, queue_switches=0, **kwargs
-):
+    cache_key: str,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    data: Optional[Event] = None,
+    queue_switches: int = 0,
+    **kwargs: Any,
+) -> None:
     """
     Handles event symbolication using the external service: symbolicator.
 
@@ -310,7 +333,7 @@ def symbolicate_event(
     )
 
 
-@instrumented_task(
+@instrumented_task(  # type: ignore
     name="sentry.tasks.store.symbolicate_event_low_priority",
     queue="events.symbolicate_event_low_priority",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
@@ -318,8 +341,13 @@ def symbolicate_event(
     acks_late=True,
 )
 def symbolicate_event_low_priority(
-    cache_key, start_time=None, event_id=None, data=None, queue_switches=0, **kwargs
-):
+    cache_key: str,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    data: Optional[Event] = None,
+    queue_switches: int = 0,
+    **kwargs: Any,
+) -> None:
     """
     Handles event symbolication using the external service: symbolicator.
 
@@ -340,7 +368,7 @@ def symbolicate_event_low_priority(
     )
 
 
-@instrumented_task(
+@instrumented_task(  # type: ignore
     name="sentry.tasks.store.symbolicate_event_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
@@ -348,8 +376,13 @@ def symbolicate_event_low_priority(
     acks_late=True,
 )
 def symbolicate_event_from_reprocessing(
-    cache_key, start_time=None, event_id=None, data=None, queue_switches=0, **kwargs
-):
+    cache_key: str,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    data: Optional[Event] = None,
+    queue_switches: int = 0,
+    **kwargs: Any,
+) -> None:
     return _do_symbolicate_event(
         cache_key=cache_key,
         start_time=start_time,
@@ -360,7 +393,7 @@ def symbolicate_event_from_reprocessing(
     )
 
 
-@instrumented_task(
+@instrumented_task(  # type: ignore
     name="sentry.tasks.store.symbolicate_event_from_reprocessing_low_priority",
     queue="events.reprocessing.symbolicate_event_low_priority",
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
@@ -368,8 +401,13 @@ def symbolicate_event_from_reprocessing(
     acks_late=True,
 )
 def symbolicate_event_from_reprocessing_low_priority(
-    cache_key, start_time=None, event_id=None, data=None, queue_switches=0, **kwargs
-):
+    cache_key: str,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    data: Optional[Event] = None,
+    queue_switches: int = 0,
+    **kwargs: Any,
+) -> None:
     return _do_symbolicate_event(
         cache_key=cache_key,
         start_time=start_time,
