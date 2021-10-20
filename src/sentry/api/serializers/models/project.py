@@ -41,7 +41,7 @@ from sentry.notifications.helpers import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba import discover
-from sentry.tasks.store import should_demote_symbolication
+from sentry.tasks.symbolication import should_demote_symbolication
 from sentry.utils import json
 from sentry.utils.compat import zip
 
